@@ -1,2 +1,30 @@
-# longhorn
-Shared Tauri app systems
+# Longhorn
+
+Shared Rust and Svelte/TypeScript systems for Tauri desktop applications.
+
+Longhorn extracts proven desktop mechanisms from existing apps, separates
+product policy from reusable behavior, and supplies composable pieces for new
+projects. It complements Poodle: Poodle owns visual primitives; Longhorn owns
+desktop application state, host integration, and orchestration.
+
+## Start Here
+
+- [Docs](docs/README.md)
+- [Vision](docs/vision/001-shared-tauri-systems.md)
+- [Initial Tauri audit](docs/research/translation-memos/001-tauri-application-extraction-audit.md)
+- [Agent rules](AGENTS.md)
+
+## Default Effigy Loop
+
+```sh
+effigy tasks
+effigy doctor
+effigy test --plan
+effigy qa
+```
+
+## Current State
+
+Strict-ready Northstar docs spine installed. Cross-project audit complete.
+Implementation remains blocked on the first foundation contracts and donor
+behavior characterization.

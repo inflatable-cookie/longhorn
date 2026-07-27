@@ -1,0 +1,39 @@
+[catalog]
+alias = "longhorn"
+
+[docs_policy.indexes.vision]
+file = "docs/vision/README.md"
+dir = "docs/vision"
+section = "Vision Artifacts"
+exclude = ["history/**"]
+
+[tasks]
+health = [{ task = "qa" }]
+test = [{ task = "qa" }]
+"qa:docs:links" = "effigy docs check links README.md AGENTS.md docs/README.md docs/vision/README.md docs/architecture/README.md docs/contracts/README.md docs/research/README.md docs/roadmaps/README.md docs/logs/README.md"
+"qa:docs:index:vision" = "effigy docs check index --policy-index vision"
+"qa:docs:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
+"qa:docs" = [
+  { task = "qa:docs:links" },
+  { task = "qa:docs:index:vision" },
+  { task = "qa:docs:agent-defaults" },
+]
+"qa:northstar:spine" = "effigy docs check paths README.md AGENTS.md CHANGELOG.md scripts/README.md docs/README.md docs/vision/README.md docs/architecture/README.md docs/architecture/system-architecture.md docs/architecture/system-inventory.md docs/architecture/repo-authority-map.md docs/architecture/product-guardrails.md docs/contracts/README.md docs/contracts/001-working-rules.md docs/contracts/002-composable-workspace-hosting.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/contract-index.md docs/specs/README.md docs/specs/archive/README.md docs/research/README.md docs/research/master-index.md docs/research/research-to-implementation-playbook.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/batch-cards/README.md docs/logs/README.md docs/policy/internal-writing-style.md"
+"qa:northstar:agent-contract" = "effigy docs check contains AGENTS.md --require 'effigy tasks' --require 'effigy test --plan' --require 'docs/README.md' --require 'docs/vision/README.md' --require 'docs/roadmaps/README.md' --require 'docs/logs/README.md'"
+"qa:northstar:readme" = "effigy docs check contains README.md --require 'docs/README.md'"
+"qa:northstar:docs-front-door" = "effigy docs check contains docs/README.md --require 'vision/README.md' --require 'roadmaps/README.md' --require 'logs/README.md'"
+"qa:northstar:headings" = "effigy docs check headings docs/vision/README.md --require-heading '## Current Vision'"
+"qa:northstar:roadmap-headings" = "effigy docs check headings docs/roadmaps/g01/README.md --require-heading '## Generation Runway' --require-heading '## Next Task'"
+"qa:northstar:indexes" = "effigy docs check index --policy-index vision"
+"qa:northstar:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
+"qa:northstar" = [
+  { task = "qa:northstar:spine" },
+  { task = "qa:northstar:agent-contract" },
+  { task = "qa:northstar:readme" },
+  { task = "qa:northstar:docs-front-door" },
+  { task = "qa:northstar:indexes" },
+  { task = "qa:northstar:headings" },
+  { task = "qa:northstar:roadmap-headings" },
+  { task = "qa:northstar:agent-defaults" },
+]
+qa = [{ task = "qa:docs" }, { task = "qa:northstar" }]
