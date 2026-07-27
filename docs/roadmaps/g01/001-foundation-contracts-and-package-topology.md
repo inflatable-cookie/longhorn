@@ -1,9 +1,9 @@
 # g01.001 Foundation Contracts And Package Topology
 
-Status: planning  
+Status: complete  
 Owner: Tom  
 Updated: 2026-07-27  
-Governing refs: architecture inventory; contracts 001-008
+Governing refs: architecture inventory; package topology; contracts 001-013
 
 ## Outcome
 
@@ -45,3 +45,14 @@ implementation without turning Longhorn into one framework.
 
 No implementation batch card before contract and package-graph review.
 
+## Closeout
+
+- promoted display/window, IPC/event, transfer, distribution, and
+  Svelte/Poodle lifecycle contracts
+- froze the optional, downward-only Rust and TypeScript package graph
+- preserved donor evidence in translation memo 003
+- compiled the first ready `g01.002` card
+
+## Next Task
+
+Execute `batch-cards/001-configuration-domain-store.md`.

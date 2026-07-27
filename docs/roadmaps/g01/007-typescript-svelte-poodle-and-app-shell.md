@@ -1,8 +1,9 @@
 # g01.007 TypeScript, Svelte, Poodle, And App Shell
 
-Status: blocked on `g01.004` through `g01.006` and bridge contract  
+Status: blocked on `g01.004` through `g01.006`  
 Owner: Tom  
 Updated: 2026-07-27
+Governing refs: contracts 010, 012, and 013
 
 ## Outcome
 
@@ -35,4 +36,3 @@ components or creating a mandatory application framework.
 - adapters dispose listeners across mount/unmount and window destruction
 - renderer projections cannot create durable fallback truth
 - Bovine minimal shell and Loophole full shell remain different compositions
-

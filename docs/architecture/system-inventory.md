@@ -1,16 +1,16 @@
 # System Inventory
 
-Status: complete inventory; contracts partial
+Status: complete inventory; foundation contracts promoted
 Owner: Tom  
 Updated: 2026-07-27  
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
 
-The known system suite, consumers, authority seams, and validation surfaces
-are inventoried. Hosting, configuration, settings, commands, topology, and
-history have first-pass boundaries. Implementation planning remains blocked
-on package topology plus detailed display/window, IPC, and drag contracts.
+The known system suite, consumers, authority seams, validation surfaces, and
+package graph are inventoried. All foundation boundaries have first-pass
+contracts. The first configuration domain-store batch is ready; later config
+mutation and backup work retains explicit research gates.
 
 The bootstrap `test` selector currently delegates to docs QA. Replace that
 temporary test plan with native Rust and TypeScript discovery when the first
@@ -21,15 +21,15 @@ packages land.
 | Element | Type | Authority | Evidence | Coverage |
 | --- | --- | --- | --- | --- |
 | Foundation model | Rust library | ids, geometry, normalization | Loophole Echo; Nucleus workspaces; Nucleus/Soundcheck window restore | architecture only |
-| Display inventory | Rust library + Tauri adapter | canonical local display facts | Loophole `echo-configuration` and Aura local plane | contract pending |
-| Window planning | Rust library | fallback and desired window plan | Loophole `echo-windowing`; `nucleus-workspaces` | contract pending |
-| Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | contract pending |
+| Display inventory | Rust library + Tauri adapter | canonical local display facts | Loophole `echo-configuration` and Aura local plane | contract 009 |
+| Window planning | Rust library | fallback and desired window plan | Loophole `echo-windowing`; `nucleus-workspaces` | contract 009 |
+| Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | contract 009 |
 | Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | first boundary contracted |
 | Surface hosting | optional Rust + TS module | Surface lifecycle and window hosting | Loophole Aura/Echo | first boundary contracted |
 | Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | first boundary contracted |
 | Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | first boundary contracted |
-| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole and Nucleus | contract pending |
-| Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | contract pending |
+| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole and Nucleus | contract 013 |
+| Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | contract 010 |
 | Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | ready to include in Svelte contract |
 | Settings registry/shell | Rust + TS/Svelte package | page composition and config transactions | Loophole plus cross-app demand | first boundary contracted |
 | Command/keymap/palette | Rust + TS/Svelte packages | catalogue, context, input, palette projection | Loophole full system; Jetstream basic shortcuts | first boundary contracted |
@@ -57,10 +57,10 @@ packages land.
 | --- | --- | --- |
 | platform filesystem roots | config/data/cache/log/temp location authority | contract 004; adapter details pending |
 | secure credential store | secrets outside ordinary config/backups | trait required; provider choice pending |
-| Tauri path/window/monitor/event APIs | native desktop adapter | window and bridge contracts pending |
+| Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 |
 | local or remote service transport | optional product authority seam | contract 007; v1 transports pending |
-| Poodle packages | component and presentation authority | public adapter contract pending |
-| Rust/TS package registries | distribution and versioning | release topology pending |
+| Poodle packages | component and presentation authority | contract 013 |
+| Rust/TS package registries | distribution and versioning | contract 012; names pending verification |
 
 ## Validation Surfaces
 
@@ -75,15 +75,10 @@ packages land.
 
 ## Planning Gaps
 
-- canonical display identity portability outside Loophole
-- logical versus physical coordinate contract
-- local-state migration and corruption policy
-- backup archive, encryption, and multi-process locking
-- Rust-to-TypeScript contract generation/checking choice
-- cross-window panel transfer semantics without Surfaces
+- backup archive and encryption
 - settings transaction and restart-required semantics
 - backend transport and offline mutation policy
 - generic history payload and branching/checkpoint policy
 - async operation/notification shared lifecycle
 - native-content-island common denominator
-- release/package topology
+- non-macOS strong display evidence and packaged drag proof

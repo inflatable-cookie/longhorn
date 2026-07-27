@@ -3,6 +3,7 @@
 Status: blocked on first two migrations  
 Owner: Tom  
 Updated: 2026-07-27
+Governing refs: contracts 003 and 012
 
 ## Outcome
 
@@ -43,4 +44,3 @@ greenfield path.
 - public docs explain filesystem locations, backup, settings registration,
   topology, commands, and history claims
 - release artifacts and consumer fixtures are reproducible
-

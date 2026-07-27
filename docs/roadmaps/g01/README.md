@@ -4,8 +4,8 @@
 
 | Milestone | State | Outcome |
 | --- | --- | --- | --- |
-| [g01.001](001-foundation-contracts-and-package-topology.md) | planning | close contracts and package graph |
-| [g01.002](002-configuration-backup-and-recovery.md) | blocked | versioned domains, safe writes, backup, restore |
+| [g01.001](001-foundation-contracts-and-package-topology.md) | complete | contracts and package graph |
+| [g01.002](002-configuration-backup-and-recovery.md) | active | versioned domains, safe writes, backup, restore |
 | [g01.003](003-display-geometry-and-window-planning.md) | blocked | pure display, coordinates, geometry, window plans |
 | [g01.004](004-tauri-window-host-and-lifecycle.md) | blocked | native window apply and lifecycle |
 | [g01.005](005-layout-container-region-and-panel-core.md) | blocked | Surface-independent layout state |
@@ -42,16 +42,19 @@ not research activity, gates dependent implementation.
 
 ## Active Milestone
 
-None.
+`g01.002 Configuration, Backup, And Recovery`
+
+Batch 1 is complete. The multi-process coordination decision is promoted.
+[Card 002](batch-cards/002-coordinated-atomic-configuration-mutation.md) is
+ready for the first bounded part of batch 2.
 
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
-envelopes, not execution authority. `batch-cards/` remains empty until a
-milestone passes its contract and readiness gate.
+envelopes, not execution authority. Current implementation authority stops at
+card 002.
 
 ## Next Task
 
-Review contract 004 and close the display identity, coordinate/window, IPC,
-and drag contracts in `g01.001`. Then freeze the package graph and compile the
-first ready batch card for `g01.002`.
+Execute card 002 when implementation resumes. Keep debounce/flush, backup,
+remote coordination, and host bindings outside it.

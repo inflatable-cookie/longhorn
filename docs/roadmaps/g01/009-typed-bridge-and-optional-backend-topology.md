@@ -1,9 +1,9 @@
 # g01.009 Typed Bridge And Optional Backend Topology
 
-Status: blocked on `g01.001`; can research beside foundation work  
+Status: researchable; implementation card not compiled  
 Owner: Tom  
 Updated: 2026-07-27  
-Governing refs: contract 007; IPC/event contract pending
+Governing refs: contracts 007, 010, and 012
 
 ## Outcome
 
@@ -14,8 +14,8 @@ remote adapters.
 
 ### 1. Wire authority
 
-- choose schema/code generation or checked-binding strategy
-- define command/query/event/error envelopes
+- generate checked TypeScript from Rust authority
+- implement contracted command/query/event/error envelopes
 - initial snapshot, ordering, correlation, cancellation, and listener lifetime
 
 ### 2. Adapter conformance
@@ -44,4 +44,3 @@ remote adapters.
 - local configuration/windowing works with no server
 - version mismatch and reconnect states are actionable
 - an offline projection cannot silently become write authority
-

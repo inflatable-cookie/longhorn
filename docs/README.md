@@ -12,12 +12,13 @@
 
 ## Posture
 
-`strict-paused`
+`strict-ready`
 
-The strict spine is installed. Both audit passes are preserved, the complete
+The strict spine is installed. Three audit passes are preserved, the complete
 shared-system suite is inventoried, and a 16-milestone g01 runway covers
 foundation systems, optional systems, consumer migrations, and greenfield
-release. Execution is paused until `g01.001` closes the remaining foundation
-contracts and package topology.
+release. Foundation contracts and package topology are promoted. The
+configuration domain-store batch is complete. The local multi-process
+coordination contract is promoted. One bounded atomic-mutation card is ready.
 
 The live next-task pointer lives in the roadmap front doors.

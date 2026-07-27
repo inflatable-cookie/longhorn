@@ -16,5 +16,5 @@ None.
 
 ## Next Task
 
-Execute the `g01.001` planning gate. Do not create implementation cards for
-later milestones from their runway summaries alone.
+Execute `g01.002` card 002 when implementation resumes. Later milestone
+summaries remain non-executable until compiled into ready cards.

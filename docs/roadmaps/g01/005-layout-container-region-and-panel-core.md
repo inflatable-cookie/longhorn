@@ -1,6 +1,6 @@
 # g01.005 Layout Container, Region, And Panel Core
 
-Status: blocked on `g01.001` and `g01.002`  
+Status: blocked on `g01.002`  
 Owner: Tom  
 Updated: 2026-07-27  
 Governing refs: contract 002
@@ -36,4 +36,3 @@ Nucleus.
 - no Surface type enters the core package
 - invalid placement never mutates durable state
 - concurrent/partial layout updates cannot overwrite window geometry
-

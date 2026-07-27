@@ -3,7 +3,7 @@
 Status: blocked on `g01.003` through `g01.005`  
 Owner: Tom  
 Updated: 2026-07-27  
-Governing refs: contract 002; drag contract pending
+Governing refs: contracts 002, 009, and 011
 
 ## Outcome
 
@@ -37,4 +37,3 @@ prove cross-window transfer for both composition shapes.
 - Loophole retains full hosting behavior
 - cross-window transfer re-resolves current host authority
 - failed or cancelled transfer leaves source state intact
-

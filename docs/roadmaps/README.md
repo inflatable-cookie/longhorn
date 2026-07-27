@@ -7,10 +7,13 @@
 
 ## Active Milestone
 
-None. The full g01 suite is compiled, but implementation remains blocked on
-the `g01.001` contract and package-topology gate.
+`g01.002 Configuration, Backup, And Recovery`
+
+The domain-store batch is complete. The coordination decision is promoted.
+[Coordinated atomic configuration mutation](g01/batch-cards/002-coordinated-atomic-configuration-mutation.md)
+is the one ready card.
 
 ## Next Task
 
-Review contract 004, close the remaining foundation contracts, and freeze the
-package graph in `g01.001`.
+Execute the ready mutation card when implementation resumes. Do not widen it
+into debounce, backup, remote coordination, or host bindings.

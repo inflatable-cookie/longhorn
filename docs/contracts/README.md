@@ -9,6 +9,11 @@
 - [006 Command, Action, And Input](006-command-action-and-input.md)
 - [007 Optional Backend Topology](007-optional-backend-topology.md)
 - [008 History Kernel Boundary](008-history-kernel-boundary.md)
+- [009 Display Identity, Coordinates, And Window Planning](009-display-identity-coordinates-and-window-planning.md)
+- [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md)
+- [011 Cross-window Transfer](011-cross-window-transfer.md)
+- [012 Distribution And Compatibility](012-distribution-and-compatibility.md)
+- [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md)
 
 Roadmap execution stops when its required boundary remains pending in the
 index.

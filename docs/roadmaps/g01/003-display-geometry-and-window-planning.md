@@ -1,8 +1,9 @@
 # g01.003 Display, Geometry, And Window Planning
 
-Status: blocked on `g01.001` and `g01.002`  
+Status: blocked on `g01.002`  
 Owner: Tom  
 Updated: 2026-07-27
+Governing refs: contract 009
 
 ## Outcome
 
@@ -36,4 +37,3 @@ planning without Tauri or Surface dependencies.
 - coordinate types prevent silent logical/physical mixing
 - missing and rearranged displays resolve deterministically
 - package graph has no Tauri, Svelte, Poodle, or product dependency
-

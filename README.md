@@ -27,7 +27,7 @@ effigy qa
 
 ## Current State
 
-Strict-paused Northstar docs spine installed. Cross-project audit and system
-suite are preserved. The g01 runway covers foundation, reusable systems,
-consumer migrations, and greenfield use. Implementation remains blocked on
-the first contract and package-topology gate.
+Strict-ready Northstar docs spine installed. The five-app audit, promoted
+foundation contracts, package topology, and full g01 runway are preserved.
+The read-only configuration domain store is implemented. The coordination
+contract is promoted and one atomic-mutation card is ready.

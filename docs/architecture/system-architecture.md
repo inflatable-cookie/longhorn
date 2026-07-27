@@ -100,7 +100,9 @@ This is a separate package/module. Apps that omit it carry no Surface state.
   project-shared state, secrets, cache, and runtime material
 - platform root resolution through host adapters
 - registered versioned domains and ordered migrations
-- atomic file replacement and serialized writes
+- one injected store-wide local coordinator using a process mutex and stable
+  advisory file lock
+- capability-confined atomic file replacement and explicit durability receipts
 - merge-safe partial updates and cross-domain transactions
 - debounced scheduling and explicit flush
 - corruption, future-schema, backup, restore, and receipt policy
@@ -196,10 +198,11 @@ This layer remains prototype-first.
 ## Drag And Drop
 
 - Same-webview tab and region movement uses Poodle's HTML5 payload contract.
-- Cross-webview/window movement carries ids and pointer/screen coordinates,
-  never serialized model state.
-- The Rust host resolves the current authoritative snapshot and target
-  window/display.
+- Cross-webview/window movement uses host-created id-only sessions and leased
+  drop zones in `ScreenDip`, never serialized model state.
+- The Rust host re-resolves source, target, revision, and eligibility before
+  one transactional commit.
+- Empty-display window creation is explicit consumer policy.
 - Pointer-math editing gestures remain consumer or specialist-library work.
 
 ## Authority
@@ -212,16 +215,9 @@ This layer remains prototype-first.
 
 ## Package Shape
 
-Exact names remain provisional. Package seams, not a monolith, are required:
-
-- Rust foundation/display/window/layout packages
-- optional Rust Surface hosting package
-- Rust configuration/backup package and secure-store traits
-- Rust command/input and optional history packages
-- Tauri adapter package
-- TypeScript protocol/core package
-- Svelte/Poodle integration and settings-shell package
-- optional service topology/adapters
+`package-topology.md` is canonical. It defines narrow Rust domain and host
+crates, owning TypeScript domain packages, and separate Svelte/Poodle adapters.
+No g01 umbrella package or empty optional-package placeholders are allowed.
 
 ## Validation Strategy
 

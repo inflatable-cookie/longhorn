@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-27
+Updated: 2026-07-28
 
 ## Contract Register
 
@@ -16,22 +16,24 @@ Updated: 2026-07-27
 | [006 Command, Action, And Input](006-command-action-and-input.md) | registry, availability, input, palette projection | active first pass |
 | [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters and domain authority | active first pass |
 | [008 History Kernel Boundary](008-history-kernel-boundary.md) | generic linear history and branching research gate | active research boundary |
+| [009 Display Identity, Coordinates, And Window Planning](009-display-identity-coordinates-and-window-planning.md) | display correlation, typed geometry, pure window plans | active first pass |
+| [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md) | type authority, handler/client seam, revisions, lifecycle | active first pass |
+| [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only drag sessions, target leases, transactional commit | active first pass |
+| [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active first pass |
+| [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active first pass |
 
 ## Pending Contracts
 
 | Boundary | Why | Blocks |
 | --- | --- | --- |
-| display identity and monitor correlation | portable inventory semantics | foundation milestone |
-| coordinates and window planning | physical/logical safety and fallback | foundation milestone |
-| Rust/TypeScript IPC and events | all five apps duplicate unchecked bridges | client packages |
-| panel and cross-window drag | ids, target selection, abort/commit | Svelte integration |
-| Svelte/Poodle adapter lifecycle | subscriptions, actions, and component seams | client packages |
 | async operations and notifications | lifecycle and ownership remain unclear | later package |
 | native content islands | three incompatible host shapes | later prototype |
-| distribution and compatibility | package graph, publication, versions | greenfield and migration |
+| configuration archive and encryption | backup/restore needs portable operational rules | g01.002 batch 3 |
+| non-macOS strong display evidence | correlation adapters need platform proof | packaged g01.003 proof |
 
 ## Roadmap Readiness
 
-No implementation milestone is ready. Contract 004 is detailed enough for
-design review, but package topology and the remaining foundation contracts
-must close before the first implementation card.
+`g01.001` and the first `g01.002` domain-store card are complete. The
+multi-process lock decision is promoted and the coordinated mutation card is
+ready. Backup and restore remain gated by their named archive and encryption
+decisions.

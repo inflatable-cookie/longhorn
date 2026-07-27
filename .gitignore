@@ -1,2 +1,5 @@
 # Effigy local state
 .effigy/
+
+# Rust build output
+/target/

@@ -18,15 +18,15 @@ shape and admission questions.
 | --- | --- | --- | --- |
 | configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, Bovine, Nucleus |
 | backup and recovery | inventory, snapshot, verify, rotate, restore | promoted first pass | cross-app need; partial Loophole evidence |
-| display inventory | pure model plus Tauri probe adapter | architecture; contract pending | Loophole, Nucleus, Soundcheck |
-| geometry/window planning | pure planner plus native host | architecture; contract pending | Loophole, Nucleus, Soundcheck |
+| display inventory | pure model plus Tauri probe adapter | contract 009 | Loophole, Nucleus, Soundcheck |
+| geometry/window planning | pure planner plus native host | contract 009 | Loophole, Nucleus, Soundcheck |
 | lifecycle and app chrome | small Tauri/Svelte helpers and guidance | provisional | all five apps |
 | layout containers | Rust/TS region and panel state | promoted first pass | Loophole, Nucleus |
 | hosted Surfaces | optional layout-container host | promoted first pass | Loophole |
-| cross-window drag | id/coordinate protocol and host transaction | contract pending | Loophole, Nucleus |
+| cross-window drag | id/coordinate protocol and host transaction | contract 011 | Loophole, Nucleus |
 | Svelte/Poodle bindings | stores, actions, adapters; no component fork | architecture | Loophole, Nucleus |
 | settings | registry-driven dialog shell and domain pages | promoted first pass | Loophole plus cross-app demand |
-| typed bridge | checked commands, events, errors, subscriptions | contract pending | all five apps |
+| typed bridge | checked commands, events, errors, subscriptions | contract 010 | all five apps |
 | optional backend topology | local, embedded, or remote authority adapters | promoted first pass | Nucleus, Loophole |
 | commands/actions | registry, context, availability, execution | promoted first pass | Loophole, Jetstream |
 | input/keymaps | triggers, contexts, conflicts, overrides | promoted first pass | Loophole |
@@ -86,4 +86,3 @@ shape and admission questions.
 - Surface as a mandatory parent of regions
 - palette definitions separate from the command registry
 - claiming branch history from a linear undo/redo donor
-
