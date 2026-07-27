@@ -96,15 +96,61 @@ This is a separate package/module. Apps that omit it carry no Surface state.
 
 ### Local state and persistence
 
-- schema version and migrations
-- atomic file replacement
-- process-local serialization
-- merge-safe partial updates
+- storage classes for user config, machine state, workspace-local state,
+  project-shared state, secrets, cache, and runtime material
+- platform root resolution through host adapters
+- registered versioned domains and ordered migrations
+- atomic file replacement and serialized writes
+- merge-safe partial updates and cross-domain transactions
 - debounced scheduling and explicit flush
-- corruption and missing-file policy
+- corruption, future-schema, backup, restore, and receipt policy
 
-Storage format and location are injected. Product state does not enter the
-generic store.
+Storage locations are injected into pure code. Product schemas register with
+the store but do not become Longhorn types. Secrets use a separate secure-store
+adapter.
+
+### Settings and system registration
+
+- one registry-driven shell for modal, window, or panel presentation
+- app and module registration of pages, keywords, scopes, and capabilities
+- staged/immediate application, validation, dirty state, reset, and deep links
+- backup, restore, and storage diagnostics as registered pages
+- no empty UI for modules the app did not compose
+
+Poodle supplies the visual primitives. Longhorn supplies registry state,
+configuration transactions, and Svelte bindings.
+
+### Command, action, and input
+
+- one namespaced command catalogue
+- typed arguments, context, capabilities, availability, and execution routes
+- deterministic input resolution, keymaps, sparse overrides, and conflicts
+- command palette, menus, keybinding settings, and automation as projections
+  of the same registry
+- optional macros that still pass command validation
+
+Consumer commands register through the same seam. Longhorn does not own
+product verbs.
+
+### History
+
+- generic linear navigation mechanics
+- inverse/apply adapter seam
+- compound and gesture grouping
+- coalescing policy, limits, persistence, and UI projections
+- optional branch-tree research lane
+
+Loophole's Pulse mutations and runtime apply logic remain app-specific.
+Branching is not part of the current extraction claim.
+
+### Async operations and notifications
+
+- operation ids, state transitions, progress, cancellation, and terminal
+  outcomes
+- listener/subscription lifetime and stale-request protection
+- bounded notification records and presentation projections
+
+These remain incubating until a second consumer confirms the common shape.
 
 ### TypeScript and Svelte
 
@@ -127,6 +173,25 @@ host-authoritative snapshot.
 - capability examples for dynamic windows
 
 The bridge must not become a product command bus.
+
+### Optional backend topology
+
+- transport-independent domain command/query/event contracts
+- direct, Tauri-local, local-service, remote, and local-first adapters
+- capability and version negotiation
+- explicit readiness, failure, reconnect, and offline state
+- one declared write authority per domain
+
+Local configuration, windowing, and layout do not require a service.
+
+### Native content islands
+
+- host-owned child webviews, isolated native windows, or embedded render views
+- checked geometry and input forwarding seams
+- lifecycle and occlusion/visibility coordination
+
+The current app implementations are too different for a promoted common API.
+This layer remains prototype-first.
 
 ## Drag And Drop
 
@@ -151,9 +216,12 @@ Exact names remain provisional. Package seams, not a monolith, are required:
 
 - Rust foundation/display/window/layout packages
 - optional Rust Surface hosting package
+- Rust configuration/backup package and secure-store traits
+- Rust command/input and optional history packages
 - Tauri adapter package
 - TypeScript protocol/core package
-- Svelte/Poodle integration package
+- Svelte/Poodle integration and settings-shell package
+- optional service topology/adapters
 
 ## Validation Strategy
 
@@ -163,3 +231,6 @@ Exact names remain provisional. Package seams, not a monolith, are required:
 - Vitest coverage for drag, reorder, subscription, and adapter logic
 - consumer conformance fixtures from Loophole and Nucleus
 - packaged-app proofs for native window and cross-window behavior
+- failure-injection fixtures for config writes, backup, migration, and restore
+- direct-versus-serialized backend adapter conformance
+- consumer-neutral history apply/failure fixtures

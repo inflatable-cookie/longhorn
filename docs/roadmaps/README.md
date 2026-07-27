@@ -7,9 +7,10 @@
 
 ## Active Milestone
 
-None. Implementation planning is blocked on foundation contracts.
+None. The full g01 suite is compiled, but implementation remains blocked on
+the `g01.001` contract and package-topology gate.
 
 ## Next Task
 
-Write the versioned local-state and display/window coordinate contracts, then
-reassess readiness for `g01.001`.
+Review contract 004, close the remaining foundation contracts, and freeze the
+package graph in `g01.001`.

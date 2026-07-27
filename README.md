@@ -12,6 +12,8 @@ desktop application state, host integration, and orchestration.
 - [Docs](docs/README.md)
 - [Vision](docs/vision/001-shared-tauri-systems.md)
 - [Initial Tauri audit](docs/research/translation-memos/001-tauri-application-extraction-audit.md)
+- [Shared system suite](docs/specs/001-shared-desktop-system-suite.md)
+- [g01 roadmap suite](docs/roadmaps/g01/README.md)
 - [Agent rules](AGENTS.md)
 
 ## Default Effigy Loop
@@ -25,6 +27,7 @@ effigy qa
 
 ## Current State
 
-Strict-ready Northstar docs spine installed. Cross-project audit complete.
-Implementation remains blocked on the first foundation contracts and donor
-behavior characterization.
+Strict-paused Northstar docs spine installed. Cross-project audit and system
+suite are preserved. The g01 runway covers foundation, reusable systems,
+consumer migrations, and greenfield use. Implementation remains blocked on
+the first contract and package-topology gate.

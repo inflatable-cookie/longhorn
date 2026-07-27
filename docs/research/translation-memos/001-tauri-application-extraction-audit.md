@@ -158,3 +158,10 @@ Promoted into:
 - `../../architecture/repo-authority-map.md`
 - `../../contracts/002-composable-workspace-hosting.md`
 - `../../contracts/003-extraction-and-consumer-migration.md`
+
+## Follow-up
+
+The operator added configuration location, backups, centralized settings,
+optional server topology, command palettes, and unified history to the
+candidate suite. Their evidence and disposition are preserved in
+[`002-shared-desktop-systems-follow-up.md`](002-shared-desktop-systems-follow-up.md).

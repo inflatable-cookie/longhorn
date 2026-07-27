@@ -2,7 +2,8 @@
 
 ## Mode
 
-Sequential.
+Dependency-led. Consumer migrations remain sequential; bounded research lanes
+may run beside foundation work.
 
 ## Active Generation
 
@@ -15,4 +16,5 @@ None.
 
 ## Next Task
 
-Keep `g01` in planning posture until the foundation contract gate closes.
+Execute the `g01.001` planning gate. Do not create implementation cards for
+later milestones from their runway summaries alone.

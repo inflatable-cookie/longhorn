@@ -4,6 +4,11 @@
 - [001 Working Rules](001-working-rules.md)
 - [002 Composable Workspace Hosting](002-composable-workspace-hosting.md)
 - [003 Extraction And Consumer Migration](003-extraction-and-consumer-migration.md)
+- [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md)
+- [005 Settings And System Registration](005-settings-and-system-registration.md)
+- [006 Command, Action, And Input](006-command-action-and-input.md)
+- [007 Optional Backend Topology](007-optional-backend-topology.md)
+- [008 History Kernel Boundary](008-history-kernel-boundary.md)
 
 Roadmap execution stops when its required boundary remains pending in the
 index.

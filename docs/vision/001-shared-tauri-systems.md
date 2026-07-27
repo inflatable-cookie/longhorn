@@ -8,7 +8,8 @@ Updated: 2026-07-27
 
 Tauri apps in `~/Dev/projects` repeatedly rebuild the same desktop shell
 mechanisms: display discovery, window restore, local preferences, docked panel
-layouts, drag/drop, command/event bridges, and native-content coordination.
+layouts, drag/drop, settings, command/event bridges, history, service
+connections, and native-content coordination.
 
 Longhorn turns the reusable parts into maintained Rust and
 Svelte/TypeScript libraries. Existing apps become real consumers. Greenfield
@@ -22,6 +23,8 @@ An app composes only the layers it needs:
 - a workspace app may add regions, panels, tabs, and split persistence
 - a multi-window app may add display inventory and window fallback
 - an advanced workstation may add hosted surfaces and cross-window movement
+- any shape may add a registered settings shell, command palette, backup,
+  history, or optional local/remote backend without adopting the rest
 
 Loophole can keep:
 
@@ -46,6 +49,9 @@ Neither shape becomes a compatibility mode or a fork.
 - Shared APIs need evidence from multiple apps or a strong mechanism-level
   greenfield case.
 - Consumer migration and removal of donor copies are part of extraction done.
+- Configuration uses correct platform locations, schema-safe writes, and
+  recoverable backups instead of per-app path conventions.
+- Local desktop authority remains usable when an optional backend is absent.
 
 ## Success
 
@@ -55,6 +61,9 @@ Neither shape becomes a compatibility mode or a fork.
 - window/display loss and restore are deterministic and tested
 - Rust and TypeScript contracts do not drift silently
 - new Tauri/Poodle apps can adopt a documented minimum stack
+- settings, commands, and optional systems compose from registries rather than
+  copied app shells
+- configuration backup and restore can be inspected, verified, and scoped
 - app-specific policy never leaks into the shared core
 
 ## Non-Goals

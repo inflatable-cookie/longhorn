@@ -5,7 +5,7 @@ contracts.
 
 ## Active Specs
 
-None.
+- [001 Shared Desktop System Suite](001-shared-desktop-system-suite.md)
 
 ## Lifecycle
 

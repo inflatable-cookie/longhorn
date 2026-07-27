@@ -14,10 +14,10 @@ authority and migrate through explicit batches. Poodle remains independent.
 
 | Repo | Owns | Consumes from Longhorn | Must not move |
 | --- | --- | --- | --- |
-| `longhorn` | generic Rust/TS/Svelte desktop mechanisms | n/a | app panel catalogues and workflows |
+| `longhorn` | generic Rust/TS/Svelte desktop mechanisms | n/a | app schemas, commands, history payloads, panel catalogues, workflows |
 | `poodle` | components, tokens, interaction primitives | optional shared types only | host state and persistence |
-| `loophole` | DAW shell policy and panel catalogue | full hosting stack | Pulse/Signal/Aura product authority |
-| `nucleus` | agent workspace policy and resources | window + region/panel stack | project/task/runtime authority |
+| `loophole` | DAW shell policy, mutations, and panel catalogue | full hosting, config, command, settings, optional history stack | Pulse/Signal/Aura product authority |
+| `nucleus` | agent workspace policy, resources, and server data | window + region/panel, config, settings, topology adapters | project/task/runtime authority |
 | `soundcheck` | plugin-library workflows | foundation modules as adopted | scan/sync/inspection domain |
 | `jetstream` | engine/editor and native renderer | bridge or native-host adapters as adopted | frame/render/world authority |
 | `acowtancy/bovine-accelerator-desktop` | content workspace | simple preferences/layout adapters as adopted | content/navigation/editorial domain |
@@ -29,6 +29,9 @@ authority and migrate through explicit batches. Poodle remains independent.
 - Consumer policy enters Longhorn only through generic configuration or traits.
 - Rust/TypeScript wire changes require Longhorn contract and fixture updates.
 - Poodle integration uses public Poodle APIs; no copied component fork.
+- Apps register configuration schemas, settings pages, commands, and history
+  payloads; registration does not transfer product authority.
+- A service cache never becomes a second write authority by accident.
 - Audit access is read-only. Consumer writes need an explicit migration card.
 
 ## Planning Gaps
