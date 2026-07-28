@@ -1,8 +1,8 @@
 # Package Topology
 
-Status: promoted first pass  
+Status: promoted  
 Owner: Tom  
-Updated: 2026-07-27  
+Updated: 2026-07-28  
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -23,7 +23,7 @@ discovery and validation entry points.
 | Package | Responsibility | Depends on |
 | --- | --- | --- |
 | `longhorn-core` | ids, revisions, typed units, geometry, errors | none |
-| `longhorn-config` | domains, roots, safe writes, backup, restore | core |
+| `longhorn-config` | domains, roots, coordinated safe writes, backup, restore | core, `cap-std`, `fs4` |
 | `longhorn-display` | known/observed displays and correlation | core |
 | `longhorn-windowing` | placement and pure desired/apply plans | core, display |
 | `longhorn-layout` | containers, regions, panels, normalization | core |
@@ -87,4 +87,3 @@ Examples arrive with the capability they prove:
 
 Local path dependencies are proof scaffolding only. Consumer migration targets
 published prerelease artifacts with exact lockfile resolution.
-

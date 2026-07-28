@@ -16,5 +16,5 @@ None.
 
 ## Next Task
 
-Execute `g01.002` card 002 when implementation resumes. Later milestone
+Close the `g01.002` backup/archive contract gate in card 004. Later milestone
 summaries remain non-executable until compiled into ready cards.

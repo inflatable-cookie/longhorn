@@ -11,7 +11,7 @@ Updated: 2026-07-28
 | [001 Working Rules](001-working-rules.md) | delivery and refactoring | active |
 | [002 Composable Workspace Hosting](002-composable-workspace-hosting.md) | optional Surface and shared layout core | active first pass |
 | [003 Extraction And Consumer Migration](003-extraction-and-consumer-migration.md) | donor admission, cutover, ownership | active |
-| [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md) | roots, domains, safe writes, migration, backup, restore | active first pass |
+| [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md) | roots, domains, safe writes, migration, backup, restore | active |
 | [005 Settings And System Registration](005-settings-and-system-registration.md) | settings shell and module/page composition | active first pass |
 | [006 Command, Action, And Input](006-command-action-and-input.md) | registry, availability, input, palette projection | active first pass |
 | [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters and domain authority | active first pass |
@@ -33,7 +33,7 @@ Updated: 2026-07-28
 
 ## Roadmap Readiness
 
-`g01.001` and the first `g01.002` domain-store card are complete. The
-multi-process lock decision is promoted and the coordinated mutation card is
-ready. Backup and restore remain gated by their named archive and encryption
-decisions.
+`g01.001`, the configuration domain store, coordinated atomic mutation,
+debounced mutation, and explicit flush are complete. No implementation card is
+ready. Backup and restore are paused on archive, encryption, snapshot, and
+atomic-restore decisions in card 004.

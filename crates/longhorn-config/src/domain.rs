@@ -276,6 +276,9 @@ pub trait ConfigDomain {
     /// Decodes a current-version raw JSON value.
     fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue>;
 
+    /// Encodes a current value as raw JSON.
+    fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue>;
+
     /// Validates a decoded current value.
     fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue>;
 

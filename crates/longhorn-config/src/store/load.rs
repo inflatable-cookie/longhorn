@@ -1,15 +1,13 @@
 use std::{io, path::PathBuf};
 
 use cap_std::{ambient_authority, fs::Dir};
-use longhorn_core::{DomainId, SchemaVersion};
-use serde::Deserialize;
-use serde_json::Value;
+use longhorn_core::SchemaVersion;
 
 use crate::{ConfigDomain, DomainIssue, MigrationStep, ResolvedFile};
 
 use super::{
     LoadDiagnostic, LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, RecoveryKind,
-    RecoveryState, SourceDocument,
+    RecoveryState, SourceDocument, document::SerializedDocument,
 };
 
 pub(super) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> LoadOutcome<D::Value> {
@@ -253,12 +251,4 @@ fn recovery_from_issue(
         source,
         detail: format!("{}: {}", issue.code, issue.message),
     }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct SerializedDocument {
-    domain: DomainId,
-    schema_version: SchemaVersion,
-    value: Value,
 }

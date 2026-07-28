@@ -137,7 +137,7 @@ fn defaults_and_external_authorities_do_not_become_files() {
         fixture.temp.path().join("isolated-log"),
     )
     .unwrap();
-    let mut store = ConfigStore::new(roots_without_project);
+    let mut store = ConfigStore::new(roots_without_project, fixture.coordination.clone());
     let project = PreferencesDomain::new(
         "example.project-settings",
         StorageClass::ProjectShared,

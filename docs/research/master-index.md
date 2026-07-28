@@ -15,6 +15,7 @@ Updated: 2026-07-28
 | history | [Shared Desktop Systems Follow-up](translation-memos/002-shared-desktop-systems-follow-up.md) | `../contracts/008-history-kernel-boundary.md` |
 | display, window, IPC, drag, lifecycle, packages | [Foundation Boundary Characterization](translation-memos/003-foundation-boundary-characterization.md) | `../contracts/009-display-identity-coordinates-and-window-planning.md` through `../contracts/013-svelte-and-poodle-adapter-lifecycle.md`; `../architecture/package-topology.md` |
 | configuration coordination and atomic mutation | [Configuration Coordination And Atomic Mutation](translation-memos/004-configuration-coordination-and-atomic-mutation.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/002-coordinated-atomic-configuration-mutation.md` |
+| debounced mutation and explicit flush | [Debounced Mutation And Explicit Flush](translation-memos/005-debounced-mutation-and-explicit-flush.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/003-debounced-mutation-and-explicit-flush.md` |
 
 ## Open Research
 

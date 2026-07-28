@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 cap-std.workspace = true
+fs4.workspace = true
 longhorn-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true

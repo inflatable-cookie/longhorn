@@ -1,8 +1,8 @@
-use std::{error::Error, fmt, path::PathBuf};
+use std::{error::Error, fmt, path::PathBuf, time::Duration};
 
 use longhorn_core::{DomainId, SchemaVersion};
 
-use crate::DomainLocation;
+use crate::{CoordinationFailure, DomainIssue, DomainLocation};
 
 /// Result of loading a registered configuration domain.
 #[derive(Debug, PartialEq)]
@@ -143,3 +143,173 @@ impl fmt::Display for StoreError {
 }
 
 impl Error for StoreError {}
+
+/// Required lock wait and publication durability for one mutation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct MutationOptions {
+    /// Maximum time spent acquiring process and file locks.
+    pub lock_timeout: Duration,
+    /// Minimum accepted publication durability.
+    pub durability: DurabilityRequirement,
+}
+
+impl MutationOptions {
+    /// Constructs explicit finite mutation options.
+    #[must_use]
+    pub const fn new(lock_timeout: Duration, durability: DurabilityRequirement) -> Self {
+        Self {
+            lock_timeout,
+            durability,
+        }
+    }
+}
+
+/// Minimum durability accepted by the caller.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DurabilityRequirement {
+    /// Require atomic old-or-new visibility and a synced file.
+    Atomic,
+    /// Also require verified parent-directory synchronization.
+    Durable,
+}
+
+/// Durability established for a published mutation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Durability {
+    /// The replacement is atomic and the new file was synced.
+    FileSynced,
+    /// The file and containing directory were synced.
+    FileAndDirectorySynced,
+}
+
+/// Successful configuration mutation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MutationReceipt {
+    /// Mutated domain.
+    pub domain: DomainId,
+    /// Published domain file.
+    pub path: PathBuf,
+    /// Published schema version.
+    pub schema_version: SchemaVersion,
+    /// Durability established by publication.
+    pub durability: Durability,
+}
+
+/// Safe refusal to mutate a load outcome or authority.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MutationRefusal {
+    /// The domain has no ordinary writable file.
+    Unavailable {
+        /// Resolved non-file authority.
+        location: DomainLocation,
+    },
+    /// The registered file is read-only.
+    ReadOnly {
+        /// Read-only file.
+        path: PathBuf,
+    },
+    /// Project-shared mutation needs a separately proven authority.
+    ProjectSharedRequiresExternalAuthority {
+        /// Project-shared file.
+        path: PathBuf,
+    },
+    /// Source is invalid and was preserved for recovery.
+    Recovery(RecoveryState),
+    /// Destructive migration rewrite requires the later backup batch.
+    MigrationBackupRequired {
+        /// Original schema.
+        from: SchemaVersion,
+        /// Current schema.
+        to: SchemaVersion,
+    },
+}
+
+/// Filesystem publication phase.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PublicationStage {
+    /// Open the registered root capability.
+    OpenRoot,
+    /// Create the registered target parent.
+    CreateParent,
+    /// Open the target parent capability.
+    OpenParent,
+    /// Exclusively create a unique temporary file.
+    CreateTemporary,
+    /// Write the encoded envelope.
+    WriteTemporary,
+    /// Sync the encoded temporary file.
+    SyncTemporary,
+    /// Atomically replace the target.
+    Rename,
+    /// Sync the target parent directory.
+    SyncDirectory,
+}
+
+/// Typed atomic-publication failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PublicationFailure {
+    /// Failed phase.
+    pub stage: PublicationStage,
+    /// Intended target.
+    pub path: PathBuf,
+    /// Whether atomic replacement already succeeded.
+    pub published: bool,
+    /// Human-readable detail, including cleanup failure when relevant.
+    pub detail: String,
+}
+
+/// Configuration mutation failure.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MutationError {
+    /// Store registration authority failed.
+    Store(StoreError),
+    /// The mutation coordinator could not be acquired.
+    Coordination(CoordinationFailure),
+    /// The current location or load outcome is not safely writable.
+    Refused(MutationRefusal),
+    /// Consumer patch code rejected the change.
+    Patch(DomainIssue),
+    /// The patched typed value failed validation.
+    Validation(DomainIssue),
+    /// The domain codec could not encode the current value.
+    Encode(DomainIssue),
+    /// Encoded current-version JSON failed raw validation.
+    EncodedValueInvalid(DomainIssue),
+    /// The versioned envelope could not be serialized.
+    Serialization {
+        /// Serializer detail.
+        detail: String,
+    },
+    /// Atomic publication failed.
+    Publication(PublicationFailure),
+}
+
+impl fmt::Display for MutationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Store(error) => error.fmt(formatter),
+            Self::Coordination(error) => error.fmt(formatter),
+            Self::Refused(refusal) => write!(formatter, "mutation refused: {refusal:?}"),
+            Self::Patch(issue) => write!(formatter, "patch failed: {}", issue.message),
+            Self::Validation(issue) => {
+                write!(formatter, "patched value is invalid: {}", issue.message)
+            }
+            Self::Encode(issue) => write!(formatter, "encode failed: {}", issue.message),
+            Self::EncodedValueInvalid(issue) => {
+                write!(formatter, "encoded value is invalid: {}", issue.message)
+            }
+            Self::Serialization { detail } => {
+                write!(formatter, "cannot serialize domain envelope: {detail}")
+            }
+            Self::Publication(failure) => write!(
+                formatter,
+                "publication failed at {:?} for {}: {}",
+                failure.stage,
+                failure.path.display(),
+                failure.detail
+            ),
+        }
+    }
+}
+
+impl Error for MutationError {}

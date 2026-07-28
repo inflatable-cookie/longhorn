@@ -1,15 +1,15 @@
 use std::{fs, path::PathBuf};
 
 use longhorn_config::{
-    ConfigDomain, ConfigStore, DomainDescriptor, DomainFilePath, DomainIssue, DomainLocation,
-    MigrationStep, StorageClass, StorageRoots,
+    ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
+    DomainIssue, DomainLocation, MigrationStep, StorageClass, StorageRoots,
 };
 use longhorn_core::{DomainId, SchemaVersion};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Preferences {
     pub(crate) name: String,
@@ -81,6 +81,10 @@ impl ConfigDomain for PreferencesDomain {
 
     fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
         serde_json::from_value(value).map_err(|error| DomainIssue::new("decode", error.to_string()))
+    }
+
+    fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
+        serde_json::to_value(value).map_err(|error| DomainIssue::new("encode", error.to_string()))
     }
 
     fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue> {
@@ -168,6 +172,7 @@ impl ConfigDomain for PreferencesDomain {
 pub(crate) struct Fixture {
     pub(crate) temp: TempDir,
     pub(crate) roots: StorageRoots,
+    pub(crate) coordination: CoordinationAuthority,
 }
 
 impl Fixture {
@@ -189,6 +194,7 @@ impl Fixture {
             fs::create_dir_all(path).unwrap();
         }
 
+        let coordination = CoordinationAuthority::new(&data).unwrap();
         let roots = StorageRoots::new(config, data, cache, runtime, log)
             .unwrap()
             .with_policy(policy)
@@ -198,11 +204,15 @@ impl Fixture {
             .with_project(project)
             .unwrap();
 
-        Self { temp, roots }
+        Self {
+            temp,
+            roots,
+            coordination,
+        }
     }
 
     pub(crate) fn store(&self) -> ConfigStore {
-        ConfigStore::new(self.roots.clone())
+        ConfigStore::new(self.roots.clone(), self.coordination.clone())
     }
 
     pub(crate) fn path_for(&self, domain: &PreferencesDomain) -> PathBuf {

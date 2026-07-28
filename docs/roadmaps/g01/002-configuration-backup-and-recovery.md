@@ -23,10 +23,10 @@ Status: complete
 
 - unique same-directory temporary files, flush, atomic replacement
 - stable store-wide coordination, patch transactions, durability receipts
-- debounce and explicit flush in a later bounded card
+- bounded debounce and explicit flush
 - failure-injection tests
 
-Status: active; coordinated atomic mutation card ready
+Status: complete
 
 ### 3. Backup and restore
 
@@ -34,6 +34,8 @@ Status: active; coordinated atomic mutation card ready
 - staged publish, retention, pre-migration backup
 - inspect, safety backup, staged restore, atomic commit, receipt
 - secure-store exclusion and custom adapters
+
+Status: paused on archive, encryption, snapshot, and atomic-restore contract
 
 ### 4. Consumer conformance
 
@@ -50,7 +52,6 @@ Status: active; coordinated atomic mutation card ready
 
 ## Current Gate
 
-Execute
-[002 Coordinated Atomic Configuration Mutation](batch-cards/002-coordinated-atomic-configuration-mutation.md)
-when implementation resumes. Compile debounce and explicit flush separately
-after it closes. Backup, restore, and consumer conformance remain later cards.
+Research and promote the decisions named by
+[004 Backup Archive And Restore Contract](batch-cards/004-backup-archive-and-restore-contract.md).
+Backup implementation and consumer conformance remain later cards.

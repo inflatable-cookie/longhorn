@@ -32,7 +32,7 @@ pub enum RootKind {
 pub enum AccessMode {
     /// Domain files may only be read.
     ReadOnly,
-    /// Later mutation batches may write this location.
+    /// Coordinated domain mutation may write this location.
     ReadWrite,
 }
 

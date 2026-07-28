@@ -44,17 +44,17 @@ not research activity, gates dependent implementation.
 
 `g01.002 Configuration, Backup, And Recovery`
 
-Batch 1 is complete. The multi-process coordination decision is promoted.
-[Card 002](batch-cards/002-coordinated-atomic-configuration-mutation.md) is
-ready for the first bounded part of batch 2.
+Domain storage, coordinated atomic mutation, bounded debounce, and explicit
+flush are complete. No implementation card is ready.
+[Card 004](batch-cards/004-backup-archive-and-restore-contract.md) records the
+backup/archive contract gate.
 
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
-envelopes, not execution authority. Current implementation authority stops at
-card 002.
+envelopes, not execution authority. Card 004 is a paused planning gate.
 
 ## Next Task
 
-Execute card 002 when implementation resumes. Keep debounce/flush, backup,
-remote coordination, and host bindings outside it.
+Research and promote the backup archive, encryption, snapshot, and atomic
+restore protocol named in card 004.

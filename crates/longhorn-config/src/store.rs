@@ -1,31 +1,39 @@
+mod document;
 mod load;
+pub(super) mod mutation;
+mod publication;
 mod types;
 
 pub use types::{
-    LoadDiagnostic, LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, RecoveryKind,
-    RecoveryState, SourceDocument, StoreError, UnavailableState,
+    Durability, DurabilityRequirement, LoadDiagnostic, LoadDiagnosticCode, LoadOutcome,
+    LoadedConfig, LoadedOrigin, MutationError, MutationOptions, MutationReceipt, MutationRefusal,
+    PublicationFailure, PublicationStage, RecoveryKind, RecoveryState, SourceDocument, StoreError,
+    UnavailableState,
 };
 
 use crate::{
-    ConfigDomain, DomainLocation, RegistrationError, StorageRoots, registry::DomainRegistry,
+    ConfigDomain, CoordinationAuthority, DomainIssue, DomainLocation, RegistrationError,
+    StorageRoots, coordination::Coordinator, registry::DomainRegistry,
 };
 
 use self::load::{load_file, validated_default};
 
-/// Registered, read-only configuration domain store.
+/// Registered configuration domain store.
 #[derive(Debug)]
 pub struct ConfigStore {
-    roots: StorageRoots,
+    pub(super) roots: StorageRoots,
     registry: DomainRegistry,
+    pub(super) coordinator: Coordinator,
 }
 
 impl ConfigStore {
-    /// Constructs an empty store over injected roots.
+    /// Constructs an empty store over injected roots and coordination authority.
     #[must_use]
-    pub fn new(roots: StorageRoots) -> Self {
+    pub fn new(roots: StorageRoots, coordination: CoordinationAuthority) -> Self {
         Self {
             roots,
             registry: DomainRegistry::default(),
+            coordinator: Coordinator::new(coordination),
         }
     }
 
@@ -54,7 +62,21 @@ impl ConfigStore {
         })
     }
 
-    fn ensure_registered<D: ConfigDomain>(&self, domain: &D) -> Result<(), StoreError> {
+    /// Applies and atomically publishes a patch against the latest valid value.
+    pub fn mutate<D, F>(
+        &self,
+        domain: &D,
+        options: MutationOptions,
+        patch: F,
+    ) -> Result<MutationReceipt, MutationError>
+    where
+        D: ConfigDomain,
+        F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
+    {
+        mutation::mutate(self, domain, options, patch)
+    }
+
+    pub(super) fn ensure_registered<D: ConfigDomain>(&self, domain: &D) -> Result<(), StoreError> {
         let descriptor = domain.descriptor();
         let Some(registered) = self.registry.descriptor(descriptor.id()) else {
             return Err(StoreError::NotRegistered {

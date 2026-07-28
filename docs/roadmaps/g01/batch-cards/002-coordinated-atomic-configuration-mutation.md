@@ -1,7 +1,8 @@
 # 002 Coordinated Atomic Configuration Mutation
 
-Status: ready  
+Status: complete  
 Owner: Tom  
+Completed: 2026-07-28  
 Roadmap: g01.002 batch 2  
 Governing refs: contracts 001, 004, and 012; research memo 004  
 Auto-start next card: no
@@ -143,8 +144,33 @@ may not.
 - a migrated value would need destructive rewrite before verified backup exists
 - the card expands into debounce, backup, remote authority, or host bindings
 
-## Continuation
+## Completion Notes
 
-Stop after coordinated atomic mutation closes. Compile debounce and explicit
-flush as a separate bounded card. Backup/archive work remains gated by the
-archive and encryption decisions.
+- added explicit canonicalized coordination authorities and stable
+  `.longhorn/config.lock` files
+- added one process-local mutex per coordination authority plus `fs4` advisory
+  locking
+- added finite busy/timeout acquisition and crash-safe handle release
+- added domain encoding and fresh-value typed patch mutation
+- added capability-relative exclusive temporary creation, file sync, atomic
+  rename, cleanup, Unix `0600` mode, and explicit durability receipts
+- refused migrated, recovery, future, read-only, unavailable, and
+  project-shared authorities without source mutation
+- added failpoint, same-process, helper-process, crash, complete-reader,
+  permission, and symlink-confinement proofs
+- retained Rust 1.85 and a host/UI-free package graph
+
+## Evidence
+
+- 34 passing unit, integration, helper-process, and acceptance tests
+- `cargo +1.85.0 check --workspace --all-targets`
+- `cargo fmt --all --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace`
+- `effigy doctor`
+- `effigy test --plan`
+- `effigy qa`
+
+## Next Task
+
+Research and promote the backup/archive decisions in paused card 004.

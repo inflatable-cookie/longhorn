@@ -4,7 +4,8 @@ Status: active
 Owner: Tom  
 Updated: 2026-07-28  
 Evidence: `../research/translation-memos/002-shared-desktop-systems-follow-up.md`;
-`../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`
+`../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`;
+`../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`
 
 ## Boundary
 
@@ -106,6 +107,75 @@ to the current directory or a home-directory dotfile.
   unlocked lock file is normal and never needs stale-file cleanup.
 - Blocking coordination runs away from the Tauri UI thread.
 
+## Debounced Mutation
+
+Debounce is opt-in. A staged receipt proves process-local acceptance, not
+publication. Consumers use immediate mutation when loss of the unflushed
+interval after process failure is unacceptable.
+
+- One lane is keyed by store and domain.
+- A lane holds one bounded, coalesced typed intent, not a desired whole-domain
+  snapshot, unchecked bytes, patch closures, or an unbounded request queue.
+- The consumer supplies intent, deterministic coalescer, applicator, pending
+  weight, maximum weight, delay, and mutation options.
+- Coalescing preserves ordered application to any valid fresh value.
+- Longhorn accepts a coalesced candidate only after its weight passes. Rejected
+  or overflowing input leaves the earlier intent and deadline unchanged.
+- Accepted staging uses trailing-edge timing and monotonic generations.
+- Longhorn keeps bounded generation metadata. It does not retain one waiter or
+  completion future per stage.
+
+The core owns a deterministic state machine with an injected monotonic clock.
+It exposes its next deadline plus due and forced flush calls. It does not own a
+thread, async runtime, timer, or Tauri task. Host adapters schedule wakeups and
+run blocking flushes away from the UI thread.
+
+Flush composes over coordinated mutation:
+
+1. acquire the card-002 store-wide guard
+2. reread the authoritative domain value
+3. apply the coalesced intent to that fresh value
+4. validate and encode
+5. compare current and candidate encoded values
+6. skip an equal value or publish the candidate
+
+Separate processes may stage independently. Their flushes serialize at the
+coordination guard, and each intent applies to the last published value. Store
+loads remain authoritative; pending UI projections do not shadow
+`ConfigStore::load`.
+
+## Debounce Failure And Flush
+
+Longhorn performs no hidden retry.
+
+- A failure before atomic replacement retains the exact pending intent and
+  enters `retry-required`.
+- Due polling does not retry that state. Forced flush retries it; accepted new
+  input coalesces with it and starts a new interval.
+- An explicit discard operation is the only generic way to remove unpublished
+  intent.
+- Retry classification distinguishes likely transient failures from
+  validation or authority failures, but both retain unpublished intent.
+- A failure after known atomic replacement clears intent and reports
+  `published-with-durability-failure`. Retrying could apply a non-idempotent
+  command twice.
+
+Receipts carry domain id and monotonic generation. Required outcomes distinguish
+no pending work, not due, unchanged, published, uncommitted failure with
+pending retained, and known publication with durability failure. A terminal
+receipt covers all accepted stages through its generation. Lane snapshots
+expose pending generation, deadline, retry-required state, and last terminal
+result without unbounded history.
+
+Forced aggregate flush visits pending domains in stable domain-id order,
+attempts all lanes, and returns one result per lane. It is not a cross-domain
+transaction. Only pre-publication failures remain pending.
+
+The host invokes and awaits forced flush before runtime or storage teardown.
+Drop and destructors perform no I/O. Shutdown timeout and publication failure
+remain visible to the host; a Tauri adapter and product decide whether to
+delay, cancel, retry, or continue close.
+
 ## Backup
 
 Backup is a registry operation, not a directory copy.
@@ -147,6 +217,14 @@ restore operate at explicit scopes.
 - two cooperating processes serialize through the stable lock, finite timeout
   is typed, and a crashed holder requires no stale-file deletion
 - receipts distinguish atomic replacement from verified durable publication
+- debounced intent applies to a fresh locked value and preserves an intervening
+  mutation
+- fake-clock scheduling proves trailing-edge coalescing without sleeps
+- pending weight is bounded and an overflow cannot replace earlier intent
+- pre-publication failure retains intent; known post-publication durability
+  failure clears it
+- close flush reports every lane and never acknowledges a failed write as
+  success
 - backup manifests verify and an invalid archive cannot partially restore
 - Loophole, Soundcheck, and Bovine state map without sharing product schemas
 
