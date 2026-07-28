@@ -1,10 +1,12 @@
 use std::{error::Error, fmt, path::Path};
 
 use longhorn_core::{DomainId, SchemaVersion};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 /// Persistence authority and default root for a configuration domain.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum StorageClass {
     /// Compiled product defaults with no writable file.
     Defaults,

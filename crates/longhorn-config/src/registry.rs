@@ -1,4 +1,9 @@
-use std::{collections::HashMap, error::Error, fmt, path::PathBuf};
+use std::{
+    collections::{BTreeMap, HashMap},
+    error::Error,
+    fmt,
+    path::PathBuf,
+};
 
 use longhorn_core::DomainId;
 
@@ -13,7 +18,7 @@ enum LocationKey {
 /// Descriptor registry for one configuration store.
 #[derive(Debug, Default)]
 pub(crate) struct DomainRegistry {
-    descriptors: HashMap<DomainId, DomainDescriptor>,
+    descriptors: BTreeMap<DomainId, DomainDescriptor>,
     locations: HashMap<LocationKey, DomainId>,
 }
 
@@ -50,6 +55,10 @@ impl DomainRegistry {
 
     pub(crate) fn descriptor(&self, id: &DomainId) -> Option<&DomainDescriptor> {
         self.descriptors.get(id)
+    }
+
+    pub(crate) fn descriptors(&self) -> impl Iterator<Item = &DomainDescriptor> {
+        self.descriptors.values()
     }
 }
 

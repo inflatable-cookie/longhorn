@@ -181,21 +181,23 @@ impl Fixture {
         let root = temp.path();
         let config = root.join("config");
         let data = root.join("data");
+        let state = root.join("state");
         let cache = root.join("cache");
         let runtime = root.join("runtime");
         let log = root.join("log");
+        let backup = root.join("backups");
         let policy = root.join("policy");
         let workspace = root.join("workspace");
         let project = root.join("project");
 
         for path in [
-            &config, &data, &cache, &runtime, &log, &policy, &workspace, &project,
+            &config, &data, &state, &cache, &runtime, &log, &policy, &workspace, &project,
         ] {
             fs::create_dir_all(path).unwrap();
         }
 
         let coordination = CoordinationAuthority::new(&data).unwrap();
-        let roots = StorageRoots::new(config, data, cache, runtime, log)
+        let roots = StorageRoots::new(config, data, state, cache, runtime, log, backup)
             .unwrap()
             .with_policy(policy)
             .unwrap()

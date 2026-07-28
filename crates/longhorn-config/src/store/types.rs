@@ -2,7 +2,27 @@ use std::{error::Error, fmt, path::PathBuf, time::Duration};
 
 use longhorn_core::{DomainId, SchemaVersion};
 
-use crate::{CoordinationFailure, DomainIssue, DomainLocation};
+use crate::{CoordinationFailure, DomainIssue, DomainLocation, RestoreRecoveryError};
+
+/// Failure before a coordinated load-set can read one stable generation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CoordinatedLoadError {
+    /// The shared store coordinator could not be acquired.
+    Coordination(CoordinationFailure),
+    /// Interrupted restore recovery could not verify the exact old state.
+    RestoreRecovery(RestoreRecoveryError),
+}
+
+impl fmt::Display for CoordinatedLoadError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Coordination(error) => error.fmt(formatter),
+            Self::RestoreRecovery(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl Error for CoordinatedLoadError {}
 
 /// Result of loading a registered configuration domain.
 #[derive(Debug, PartialEq)]
@@ -109,11 +129,18 @@ pub enum RecoveryKind {
     DecodeFailed,
 }
 
-/// A load requiring another storage authority.
+/// Typed reason a load cannot safely return configuration.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UnavailableState {
-    /// Required location or authority.
-    pub location: DomainLocation,
+pub enum UnavailableState {
+    /// Another storage authority or optional root is required.
+    Authority {
+        /// Required location or authority.
+        location: DomainLocation,
+    },
+    /// A coordinated destructive operation is active or interrupted.
+    RestoreActive,
+    /// The durable journal or rollback set is invalid and requires intervention.
+    RestoreRecoveryRequired,
 }
 
 /// Store use that violates registration authority.
@@ -265,6 +292,8 @@ pub enum MutationError {
     Store(StoreError),
     /// The mutation coordinator could not be acquired.
     Coordination(CoordinationFailure),
+    /// Interrupted restore recovery could not verify the exact old state.
+    RestoreRecovery(RestoreRecoveryError),
     /// The current location or load outcome is not safely writable.
     Refused(MutationRefusal),
     /// Consumer patch code rejected the change.
@@ -289,6 +318,7 @@ impl fmt::Display for MutationError {
         match self {
             Self::Store(error) => error.fmt(formatter),
             Self::Coordination(error) => error.fmt(formatter),
+            Self::RestoreRecovery(error) => error.fmt(formatter),
             Self::Refused(refusal) => write!(formatter, "mutation refused: {refusal:?}"),
             Self::Patch(issue) => write!(formatter, "patch failed: {}", issue.message),
             Self::Validation(issue) => {

@@ -17,9 +17,11 @@ fn fixture() -> (TempDir, ResolvedFile) {
     let roots = StorageRoots::new(
         &root,
         temp.path().join("data"),
+        temp.path().join("state"),
         temp.path().join("cache"),
         temp.path().join("runtime"),
         temp.path().join("log"),
+        temp.path().join("backups"),
     )
     .unwrap();
     let descriptor = DomainDescriptor::new(

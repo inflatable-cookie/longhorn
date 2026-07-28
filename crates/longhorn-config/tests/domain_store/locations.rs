@@ -1,6 +1,6 @@
 use longhorn_config::{
     ConfigDomain, ConfigStore, DomainLocation, LoadOutcome, LoadedOrigin, RegistrationError,
-    RootKind, StorageClass, StorageRoots, StoreError,
+    RootKind, StorageClass, StorageRoots, StoreError, UnavailableState,
 };
 use longhorn_core::DomainId;
 
@@ -11,7 +11,7 @@ fn storage_classes_resolve_to_distinct_authorities() {
     let fixture = Fixture::new();
     let cases = [
         (StorageClass::UserConfig, RootKind::Config),
-        (StorageClass::MachineState, RootKind::Data),
+        (StorageClass::MachineState, RootKind::State),
         (StorageClass::WorkspaceLocal, RootKind::Workspace),
         (StorageClass::ProjectShared, RootKind::Project),
         (StorageClass::Cache, RootKind::Cache),
@@ -45,9 +45,11 @@ fn storage_classes_resolve_to_distinct_authorities() {
     let roots_without_project = StorageRoots::new(
         fixture.temp.path().join("plain-config"),
         fixture.temp.path().join("plain-data"),
+        fixture.temp.path().join("plain-state"),
         fixture.temp.path().join("plain-cache"),
         fixture.temp.path().join("plain-runtime"),
         fixture.temp.path().join("plain-log"),
+        fixture.temp.path().join("plain-backups"),
     )
     .unwrap();
     let project = PreferencesDomain::new(
@@ -127,14 +129,21 @@ fn defaults_and_external_authorities_do_not_become_files() {
     let LoadOutcome::Unavailable(unavailable) = store.load(&secret).unwrap() else {
         panic!("expected secure-store requirement");
     };
-    assert_eq!(unavailable.location, DomainLocation::SecureStoreRequired);
+    assert_eq!(
+        unavailable,
+        UnavailableState::Authority {
+            location: DomainLocation::SecureStoreRequired
+        }
+    );
 
     let roots_without_project = StorageRoots::new(
         fixture.temp.path().join("isolated-config"),
         fixture.temp.path().join("isolated-data"),
+        fixture.temp.path().join("isolated-state"),
         fixture.temp.path().join("isolated-cache"),
         fixture.temp.path().join("isolated-runtime"),
         fixture.temp.path().join("isolated-log"),
+        fixture.temp.path().join("isolated-backups"),
     )
     .unwrap();
     let mut store = ConfigStore::new(roots_without_project, fixture.coordination.clone());

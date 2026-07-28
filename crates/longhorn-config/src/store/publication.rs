@@ -17,7 +17,7 @@ use super::{Durability, DurabilityRequirement, PublicationFailure, PublicationSt
 const TEMP_ATTEMPTS: u64 = 32;
 static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
-pub(super) fn publish(
+pub(crate) fn publish(
     target: &ResolvedFile,
     bytes: &[u8],
     requirement: DurabilityRequirement,

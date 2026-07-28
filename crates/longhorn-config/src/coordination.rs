@@ -174,6 +174,10 @@ impl Coordinator {
         })
     }
 
+    pub(crate) fn authority_root(&self) -> &Path {
+        self.authority.root()
+    }
+
     fn acquire_process_lock(
         &self,
         timeout: Duration,

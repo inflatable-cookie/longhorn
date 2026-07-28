@@ -7,14 +7,16 @@
 
 ## Active Milestone
 
-`g01.002 Configuration, Backup, And Recovery`
+`g01.003 Display, Geometry, And Window Planning`
 
-The domain store, coordinated atomic mutation, debounce, and explicit flush
-are complete. The backup/archive contract gate is promoted.
-[Card 005](g01/batch-cards/005-backup-inventory-and-consistent-snapshot.md) is
-the only ready implementation lane.
+`g01.002` is complete through fixed bootstrap selection, journaled
+storage-profile transition, SQLite-native participation, locator-last commit,
+legacy discovery, and explicit receipt-bound source cleanup.
+
+`g01.003` has a milestone envelope and contract 009, but no executable batch
+card. It is a planning gate.
 
 ## Next Task
 
-Execute card 005. Later cards own ZIP publication, restore, encryption, and
-custom adapters.
+Compile `g01.003` into bounded display, geometry, and pure window-planning
+cards. Do not start implementation from the milestone summary.

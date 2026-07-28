@@ -192,6 +192,18 @@ passphrases in configuration.
 The age file format is the compatibility promise. A Rust implementation crate
 is replaceable and must remain compatible with Rust 1.85.
 
+### Plaintext archive implementation
+
+Card 006 implemented the promoted plaintext boundary with exact `zip` 5.1.1,
+default features disabled, and only the zlib-rs-backed DEFLATE path enabled.
+Longhorn performs its own bounded central-directory preflight before indexed
+ZIP reads so parser name normalization cannot hide duplicates.
+
+Publication now distinguishes application-owned operational roots from
+explicit user-export targets. Retention plans use only fully inspected
+same-app operational archives, bind deletion to complete archive SHA-256, and
+preserve every unproven root entry.
+
 ### Inspect and plan before restore
 
 Inspection never mutates the store. It decrypts when required, validates the
@@ -314,4 +326,7 @@ manifest, bounded coordinated capture, safe retention, whole-archive age
 encryption, inspect-bound restore planning, and journaled failure-atomic
 restore.
 
-The implementation is split across cards 005 through 010. Card 005 is ready.
+Cards 005 through 010 are complete. The resulting implementation includes
+bounded capture, archive publication and retention, restore planning and
+journaled execution, optional age envelopes, custom adapters, a SQLite
+online-snapshot fixture, and three donor-shaped conformance fixtures.

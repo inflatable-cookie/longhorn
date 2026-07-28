@@ -1,6 +1,6 @@
 # 008 Journaled Restore And Crash Recovery
 
-Status: planned after card 007
+Status: complete
 Owner: Tom
 Roadmap: g01.002 batch 3
 Governing refs: contracts 001, 004, and 012; research memo 006
@@ -81,6 +81,32 @@ same safety-backup and journal boundary.
 - implementation claims a portable multi-file atomic rename
 - the card expands into encryption or consumer adapters
 
+## Completion
+
+- restore execution requires a verified durable `pre-restore` operational
+  archive before the first live replacement
+- exact old bytes and absence are bounded, privately persisted, checksummed,
+  and named by registered domain authority
+- the durable phased journal is the active-operation marker and safety-backup
+  retention pin
+- each file uses the existing atomic publisher; complete target verification
+  precedes durable success
+- ordinary post-journal failure restores and verifies the complete old set
+  before returning `rolled-back`
+- failed rollback retains material, reports `recovery-required`, blocks
+  lock-free loads, and blocks later writes
+- startup or mutation recovery rolls back every nonterminal phase, never
+  resumes the lost restore intent, and is idempotent
+- lock-free loads distinguish active restore from recovery required
+- coordinated load-sets hold the store guard across all member reads
+- destructive schema rewrites use the same transaction with a verified
+  `pre-migration` archive
+- focused fixtures cover success, safety contents, ordinary failure, every
+  nonterminal crash phase, corrupt rollback, coordinated reads, and migration
+
+Evidence:
+[Journaled Restore And Crash Recovery](../../../logs/2026-07/28-journaled-restore-and-crash-recovery.md).
+
 ## Next Task
 
-Run after card 007 closes. Then activate the age encrypted archive adapter.
+Card 009 is activated. Do not auto-start it.

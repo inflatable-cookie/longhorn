@@ -1,6 +1,6 @@
 # 009 Age Encrypted Backup Adapter
 
-Status: planned after card 008
+Status: complete
 Owner: Tom
 Roadmap: g01.002 batch 3
 Governing refs: contracts 001, 004, and 012; research memo 006
@@ -77,5 +77,4 @@ sets; old archives remain readable only while an old identity stays available.
 
 ## Next Task
 
-Run after card 008 closes. Then execute custom adapter and consumer
-conformance.
+Card 010 is ready. Do not auto-start it.

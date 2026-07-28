@@ -22,7 +22,9 @@ fn descriptor(class: StorageClass) -> DomainDescriptor {
 
 #[test]
 fn roots_must_be_absolute() {
-    let result = StorageRoots::new("config", "/data", "/cache", "/tmp", "/logs");
+    let result = StorageRoots::new(
+        "config", "/data", "/state", "/cache", "/tmp", "/logs", "/backups",
+    );
 
     assert_eq!(
         result,
@@ -35,7 +37,10 @@ fn roots_must_be_absolute() {
 
 #[test]
 fn non_file_authorities_stay_typed() {
-    let roots = StorageRoots::new("/config", "/data", "/cache", "/tmp", "/logs").unwrap();
+    let roots = StorageRoots::new(
+        "/config", "/data", "/state", "/cache", "/tmp", "/logs", "/backups",
+    )
+    .unwrap();
 
     assert_eq!(
         roots.resolve(&descriptor(StorageClass::Defaults)),

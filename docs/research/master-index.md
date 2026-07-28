@@ -17,6 +17,7 @@ Updated: 2026-07-28
 | configuration coordination and atomic mutation | [Configuration Coordination And Atomic Mutation](translation-memos/004-configuration-coordination-and-atomic-mutation.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/002-coordinated-atomic-configuration-mutation.md` |
 | debounced mutation and explicit flush | [Debounced Mutation And Explicit Flush](translation-memos/005-debounced-mutation-and-explicit-flush.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/003-debounced-mutation-and-explicit-flush.md` |
 | backup archive, encryption, and restore | [Backup Archive, Encryption, And Restore](translation-memos/006-backup-archive-encryption-and-restore.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/005-backup-inventory-and-consistent-snapshot.md` through card 010 |
+| cross-platform storage locations and profiles | [Cross-platform Storage Layout Profiles](translation-memos/007-cross-platform-storage-layout-profiles.md) | `../architecture/package-topology.md`; `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/011-platform-storage-layout-profiles.md`; card 012 |
 
 ## Open Research
 

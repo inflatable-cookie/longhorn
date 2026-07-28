@@ -33,5 +33,13 @@ Updated: 2026-07-28
 ## Roadmap Readiness
 
 `g01.001`, the configuration domain store, coordinated atomic mutation,
-debounced mutation, and explicit flush are complete. The backup/archive
-contract gate is promoted. Card 005 is the only ready implementation lane.
+debounced mutation, explicit flush, and bounded coordinated backup capture are
+complete. Verified ZIP publication and safe operational retention are
+complete. Restore inspection, confirmation-bound planning, private staging,
+journaled publication, exact rollback, crash recovery, coordinated load-sets,
+safe migration rewrite, and optional binary age v1 envelopes are complete.
+Custom backup adapters, separate consistency groups, SQLite native snapshot
+proof, donor-shaped conformance, cross-platform storage profiles, fixed
+bootstrap selection, journaled profile transition, legacy discovery, and
+receipt-bound cleanup are complete. `g01.002` is complete. `g01.003` is at
+card compilation; no implementation lane is ready.

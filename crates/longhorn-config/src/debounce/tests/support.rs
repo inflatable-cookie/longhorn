@@ -198,9 +198,11 @@ pub(super) fn fixture() -> (TempDir, ConfigStore) {
     let roots = StorageRoots::new(
         &config,
         &data,
+        temp.path().join("state"),
         temp.path().join("cache"),
         temp.path().join("runtime"),
         temp.path().join("log"),
+        temp.path().join("backups"),
     )
     .unwrap();
     let coordination = CoordinationAuthority::new(data).unwrap();

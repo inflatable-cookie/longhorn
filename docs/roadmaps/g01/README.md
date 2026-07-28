@@ -5,8 +5,8 @@
 | Milestone | State | Outcome |
 | --- | --- | --- | --- |
 | [g01.001](001-foundation-contracts-and-package-topology.md) | complete | contracts and package graph |
-| [g01.002](002-configuration-backup-and-recovery.md) | active | versioned domains, safe writes, backup, restore |
-| [g01.003](003-display-geometry-and-window-planning.md) | blocked | pure display, coordinates, geometry, window plans |
+| [g01.002](002-configuration-backup-and-recovery.md) | complete | versioned domains, safe writes, backup, restore |
+| [g01.003](003-display-geometry-and-window-planning.md) | planning | pure display, coordinates, geometry, window plans |
 | [g01.004](004-tauri-window-host-and-lifecycle.md) | blocked | native window apply and lifecycle |
 | [g01.005](005-layout-container-region-and-panel-core.md) | blocked | Surface-independent layout state |
 | [g01.006](006-optional-surfaces-and-cross-window-drag.md) | blocked | optional full hosting and transfer |
@@ -42,20 +42,23 @@ not research activity, gates dependent implementation.
 
 ## Active Milestone
 
-`g01.002 Configuration, Backup, And Recovery`
+`g01.003 Display, Geometry, And Window Planning`
 
-Domain storage, coordinated atomic mutation, bounded debounce, and explicit
-flush are complete. The backup/archive contract gate is promoted.
-[Card 005](batch-cards/005-backup-inventory-and-consistent-snapshot.md) is the
-only ready implementation lane.
+`g01.002` is complete. The delivered storage foundation includes domain
+storage, coordinated mutation, backup, restore, encrypted envelopes, custom
+adapters, versioned platform layouts, fixed bootstrap selection, journaled
+profile transition, legacy discovery, and receipt-bound cleanup.
+
+`g01.003` now owns the front door. Contract 009 and the milestone summary bound
+the work. No implementation card is ready.
 
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
-envelopes, not execution authority. Cards 005 through 010 preserve the
-configuration backup and recovery runway.
+envelopes, not execution authority. Cards 001 through 012 preserve the
+completed configuration runway.
 
 ## Next Task
 
-Execute card 005. Keep ZIP publication, restore, encryption, and custom
-adapters in their later cards.
+Compile `g01.003` into bounded display geometry, inventory, and pure
+window-planning cards. Stop before implementation.

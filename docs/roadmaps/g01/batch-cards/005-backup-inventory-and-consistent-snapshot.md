@@ -1,7 +1,8 @@
 # 005 Backup Inventory And Consistent Snapshot
 
-Status: ready
+Status: complete
 Owner: Tom
+Completed: 2026-07-28
 Roadmap: g01.002 batch 3
 Governing refs: contracts 001, 004, and 012; research memo 006
 Auto-start next card: no
@@ -123,7 +124,24 @@ and guard lifetime may not.
 - custom adapter behavior must be invented inside the ordinary JSON path
 - the card expands into ZIP, retention, restore, or host UI
 
+## Completion Evidence
+
+- added explicit include, exclude-with-reason, and custom-adapter policy
+- default-excluded secret, cache, runtime, and log domains
+- added explicit all-registered and selected scopes with stable id ordering
+- added strict bounded version-1 manifest, source evidence, SHA-256, limits,
+  immutable payloads, and machine-readable receipts
+- captured exact present, older-valid, future, and corrupt-readable bytes
+  under the existing coordinator; missing files remain absent
+- failed unreadable, unavailable, incomplete-policy, custom-adapter, and
+  bounded-size cases without returning a partial snapshot
+- proved pending debounce exclusion, forced-flush inclusion, guard release,
+  and helper-process mutation exclusion
+- retained Rust 1.85 and kept ZIP, age, Tauri, async runtime, Svelte, Poodle,
+  restore, and adapter execution out
+- full validation recorded in the batch log
+
 ## Next Task
 
-Execute this card. After completion, compile or activate the ZIP publication
-card without auto-starting it.
+Card 006 is ready. Stop before ZIP implementation because this card does not
+auto-start its successor.

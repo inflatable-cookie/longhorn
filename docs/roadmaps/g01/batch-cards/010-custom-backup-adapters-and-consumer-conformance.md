@@ -1,6 +1,6 @@
 # 010 Custom Backup Adapters And Consumer Conformance
 
-Status: planned after card 009
+Status: complete
 Owner: Tom
 Roadmap: g01.002 batch 4
 Governing refs: contracts 001, 003, 004, and 012; research memo 006
@@ -69,5 +69,5 @@ higher-level authority.
 
 ## Next Task
 
-Run after card 009 closes. Then close g01.002 and advance to display geometry
-and window planning.
+Card 012 is ready for profile transition and legacy import. Do not auto-start
+it.

@@ -198,9 +198,11 @@ fn authorities(root: &Path) -> (StorageRoots, CoordinationAuthority) {
     let roots = StorageRoots::new(
         config,
         &data,
+        root.join("state"),
         root.join("cache"),
         root.join("runtime"),
         root.join("log"),
+        root.join("backups"),
     )
     .unwrap()
     .with_policy(root.join("policy"))

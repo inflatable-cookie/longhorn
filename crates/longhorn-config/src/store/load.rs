@@ -10,7 +10,7 @@ use super::{
     RecoveryState, SourceDocument, document::SerializedDocument,
 };
 
-pub(super) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> LoadOutcome<D::Value> {
+pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> LoadOutcome<D::Value> {
     let source = match read_source(file) {
         Ok(source) => source,
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
@@ -72,7 +72,10 @@ pub(super) fn validated_default<D: ConfigDomain>(
     })
 }
 
-fn load_source<D: ConfigDomain>(domain: &D, source: SourceDocument) -> LoadOutcome<D::Value> {
+pub(crate) fn load_source<D: ConfigDomain>(
+    domain: &D,
+    source: SourceDocument,
+) -> LoadOutcome<D::Value> {
     let document: SerializedDocument = match serde_json::from_slice(&source.bytes) {
         Ok(document) => document,
         Err(error) => {

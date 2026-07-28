@@ -1,13 +1,14 @@
 # g01.002 Configuration, Backup, And Recovery
 
-Status: active  
+Status: complete
 Owner: Tom  
 Updated: 2026-07-28  
 Governing refs: contract 004
 
 ## Outcome
 
-Ship the foundation store used by every later durable Longhorn system.
+Ship the foundation store and path policy used by every later durable Longhorn
+system.
 
 ## Batches
 
@@ -35,7 +36,7 @@ Status: complete
 - inspect, safety backup, staged restore, journaled failure-atomic commit
 - secure-store exclusion and custom adapters
 
-Status: ready; cards 005 through 009
+Status: complete; cards 005 through 010 complete
 
 ### 4. Consumer conformance
 
@@ -43,7 +44,17 @@ Status: ready; cards 005 through 009
 - Soundcheck settings/window fixture
 - Bovine workspace preference fixture
 
-Status: planned as card 010
+Status: complete as card 010
+
+### 5. Storage layout profiles and transition
+
+- immutable storage identity and platform-directory facts
+- native, unified, and portable versioned profiles
+- fixed bootstrap locator and layout diagnostics
+- journaled profile transition and declarative legacy import
+- database placement by lifecycle with native adapters for live stores
+
+Status: complete; cards 011 and 012 complete
 
 ## Acceptance
 
@@ -51,10 +62,10 @@ Status: planned as card 010
 - crashes and invalid archives cannot replace known-good state
 - all three consumers map without shared product schemas
 - backup contents and exclusions are inspectable before restore
+- one profile selection resolves every ordinary root on all three platforms
+- profile changes preserve one recoverable authority and retain the source
 
-## Current Gate
+## Completion
 
-Execute
-[005 Backup Inventory And Consistent Snapshot](batch-cards/005-backup-inventory-and-consistent-snapshot.md).
-Later cards own ZIP publication, restore planning, journaled recovery, age
-encryption, and custom adapter conformance.
+[012 Storage Profile Transition And Legacy Import](batch-cards/012-storage-profile-transition-and-legacy-import.md)
+closed the final storage-layout gate. `g01.003` owns the next planning gate.

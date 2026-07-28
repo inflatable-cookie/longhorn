@@ -6,7 +6,8 @@ Updated: 2026-07-28
 Evidence: `../research/translation-memos/002-shared-desktop-systems-follow-up.md`;
 `../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`;
 `../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`;
-`../research/translation-memos/006-backup-archive-encryption-and-restore.md`
+`../research/translation-memos/006-backup-archive-encryption-and-restore.md`;
+`../research/translation-memos/007-cross-platform-storage-layout-profiles.md`
 
 ## Boundary
 
@@ -22,26 +23,139 @@ Each registered domain declares one class:
 | defaults | compiled, read-only product defaults | package/binary |
 | policy | optional administrator or deployment policy | injected read-only root |
 | user config | portable user intent and preferences | platform app config root |
-| machine state | display, window, device, and machine correlation | platform app data root |
-| workspace-local | personal state tied to a workspace | app data root, keyed by workspace |
+| machine state | display, window, device, and machine correlation | platform app state root |
+| workspace-local | personal state tied to a workspace | app state root, keyed by workspace |
 | project-shared | state intentionally shared with a project/team | explicit project or server authority |
 | secret | credentials and private tokens | secure-store adapter |
 | cache | recreatable performance data | platform app cache root |
-| runtime/log | ephemeral runtime material and logs | temp/log roots |
+| runtime/log | ephemeral runtime material and logs | runtime/log roots |
 
 The app may expose a portable root explicitly. Longhorn never silently writes
 to the current directory or a home-directory dotfile.
 
 ## Roots And Paths
 
-- Tauri adapters resolve platform roots through the application path API.
-- Pure storage code receives resolved roots through dependency injection.
+- Pure storage code receives platform-directory facts, storage identity,
+  profile selection, and explicit overrides through dependency injection.
+- Resolution does no filesystem or environment access. It returns a complete
+  layout, provenance, warnings, and typed failures.
+- Tauri adapters resolve platform-directory facts through the application path
+  API. Tauri's suggested leaf layout does not override the selected profile.
 - Tests receive temporary roots.
 - Filenames are stable, sanitized, and confined below their registered root.
 - Ordinary file access opens a capability-scoped root and resolves only the
   validated relative domain path beneath it.
 - User-selected project files are not reclassified as app configuration.
 - Secrets never share ordinary JSON files or unencrypted backup archives.
+
+## Storage Identity
+
+Every app registers an immutable canonical application id and may register one
+optional stable human-readable storage name. The canonical id normally matches
+the Tauri and platform bundle identifier.
+
+The effective storage leaf is the storage name when supplied, otherwise the
+canonical app id. The storage name is explicitly chosen, validated as one path
+component, and never derived from the current display name. Soundcheck may opt
+into `Soundcheck` while retaining `audio.infiniteloop.soundcheck` as canonical
+machine identity.
+
+An invalid explicit storage name fails resolution. It never falls back to
+canonical id. The option is app identity, not an end-user preference or
+per-purpose root override.
+
+Display name, executable name, install path, and working directory never derive
+storage paths. Adding, removing, or changing the storage name requires an
+explicit transition.
+
+## Layout Profiles
+
+Profile ids are versioned compatibility contracts. Updating Longhorn cannot
+change the paths produced by an existing profile id.
+
+`platform-native-v1` is the default:
+
+| Purpose | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| config | `Application Support/<leaf>/config` | `LocalAppData/<leaf>/config` | `$XDG_CONFIG_HOME/<leaf>` |
+| data | `Application Support/<leaf>/data` | `LocalAppData/<leaf>/data` | `$XDG_DATA_HOME/<leaf>` |
+| state | `Application Support/<leaf>/state` | `LocalAppData/<leaf>/state` | `$XDG_STATE_HOME/<leaf>` |
+| cache | `Caches/<leaf>` | `LocalAppData/<leaf>/cache` | `$XDG_CACHE_HOME/<leaf>` |
+| log | `Logs/<leaf>` | `LocalAppData/<leaf>/logs` | `$XDG_STATE_HOME/<leaf>/logs` |
+| runtime | system temp plus `<leaf>` | system temp plus `<leaf>` | `$XDG_RUNTIME_DIR/<leaf>` |
+| backup | `Application Support/<leaf>/backups` | `LocalAppData/<leaf>/backups` | `$XDG_DATA_HOME/<leaf>/backups` |
+
+`<leaf>` is canonical app id by default. One optional stable storage name
+replaces it throughout the layout. Resolution records the effective leaf plus
+canonical or explicit provenance.
+Packaged Windows adapters may inject package-isolated local and cache facts,
+but may not claim roaming or synchronization.
+
+`unified-app-root-v1` places typed `config`, `data`, `state`, `cache`, `logs`,
+`runtime`, and `backups` children below one native durable app root. Resolution
+warns that cache cleanup, runtime lifetime, and platform backup classification
+are no longer native.
+
+`portable-v1` requires an explicit absolute root and uses the same typed child
+layout. It never guesses the executable directory or current directory.
+
+Per-purpose overrides are explicit deployment and test policy. The layout
+receipt records each override and its source. Unknown profiles and invalid,
+relative, or unavailable required platform facts fail closed.
+
+## Database Placement
+
+A database is a storage mechanism, not a storage class.
+
+- durable app-owned databases use the data root, conventionally below
+  `databases`
+- machine-local restart-state databases use the state root
+- rebuildable indexes use the cache root
+- user-owned or project-shared databases use explicit user/project authority
+
+Live databases use native snapshot, migration, and restore adapters. Longhorn
+never moves or copies a live SQLite main/WAL pair as ordinary files.
+
+## Profile Bootstrap And Transition
+
+The selected profile cannot be discovered from the root it selects. A minimal
+versioned locator stays at a fixed `platform-native-v1` path derived only from
+canonical application id, never optional storage name. It contains only
+canonical application id, profile id, an explicit profile root when required,
+transition id, and the last committed layout digest. It contains no app
+configuration, arbitrary per-purpose overrides, or secrets.
+
+Explicit host input may bypass the locator. A missing locator selects the
+compiled default. An unreadable, corrupt, future, or unknown-profile locator
+returns typed recovery state; it never silently falls back and strands an
+existing store.
+
+Profile change is a migration:
+
+1. resolve and preview source and target layouts
+2. inventory registered ordinary and custom stores
+3. reject overlap, ambiguity, and unresolved destination conflicts
+4. acquire source and target authorities in deterministic order
+5. stage and verify ordinary copies and native database snapshots
+6. durably journal beside the fixed locator
+7. commit the locator last
+8. retain the old layout until explicit receipt-bound cleanup
+
+Cache is excluded by default, logs are optional evidence, runtime is never
+migrated, and secrets remain in secure storage. Crash recovery returns to the
+last committed locator and verified layout before normal mutation.
+
+Legacy roots are declared candidates and discovered read-only. Import requires
+an explicit plan. Discovery never automatically merges, deletes, or grants
+authority to derived display-name, dot-directory, or old Tauri roots.
+
+The implemented transition API inventories both layouts without mutation,
+binds confirmation to layout and file evidence, stages ordinary files, invokes
+schema-opaque custom adapters under their declared external guards, journals
+beside the fixed locator, and commits that locator last. Recovery verifies the
+authority selected by the locator. Cleanup accepts only exact registered
+source paths and evidence carried by a committed receipt; it re-verifies target
+and source state under both store coordinators and remains idempotent.
 
 ## Domain Files
 
@@ -340,6 +454,26 @@ explicit separate operation with a separate receipt.
 SQLite adapters use a database-native snapshot. Longhorn never treats a live
 SQLite main/WAL pair as ordinary files.
 
+The implemented adapter seam keeps custom policy in the existing domain
+catalogue. Coordinated-bounded capture runs under the Longhorn guard. External
+snapshot capture runs only after that guard is released and declares its own
+stable group id and transaction authority. Adapter-relative payloads are
+confined below `longhorn/adapters/<domain-id>/`, sorted, uniquely declared,
+bounded, hashed, and included in capture receipts.
+
+Restore inspection calls the matching adapter without mutation and binds
+archive, adapter id, participation, semantic target evidence, and exact current
+semantic evidence into a confirmation digest. Custom domains never enter the
+ordinary file transaction by inference. The explicit adapter restore call can
+require failure atomicity or allow a separately receipted operation. It
+reinspects current evidence immediately before execution and rejects terminal
+evidence that contradicts the confirmed target or rollback claim.
+
+The conformance fixture uses SQLite's online backup and restore APIs against a
+WAL-mode source, verifies the snapshot, and proves the live WAL is neither
+copied as an ordinary payload nor changed by capture. `rusqlite` remains a
+test-only dependency; Longhorn owns no SQLite schema or runtime adapter.
+
 ## Settings Interaction
 
 Settings UI reads registered domain projections and sends validated patches or
@@ -350,6 +484,20 @@ restore operate at explicit scopes.
 
 - config, machine-state, workspace-local, secret, and cache fixtures resolve
   to distinct roots
+- all built-in profile/platform matrices resolve deterministically from
+  injected facts
+- display-name changes do not change a storage layout
+- absent storage-name override resolves every app leaf from canonical app id
+- one explicit stable storage name replaces every app leaf and appears with
+  provenance
+- invalid explicit storage name fails instead of falling back to canonical id
+- Linux uses XDG bases; unpackaged Windows uses LocalAppData without a roaming
+  claim
+- unified and portable profiles need no per-purpose override
+- invalid or future bootstrap locators cannot silently select another layout
+- profile transition commits the locator last and never copies live SQLite as
+  ordinary files
+- legacy discovery does not mutate either layout
 - a killed/failed write preserves the previous valid document
 - older schemas migrate after a verified pre-migration backup
 - future and corrupt schemas preserve their original bytes

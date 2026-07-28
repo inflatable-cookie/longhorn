@@ -24,6 +24,7 @@ discovery and validation entry points.
 | --- | --- | --- |
 | `longhorn-core` | ids, revisions, typed units, geometry, errors | none |
 | `longhorn-config` | domains, roots, coordinated safe writes, backup, restore | core, `cap-std`, `fs4` |
+| `longhorn-config-age` | optional authenticated binary age v1 backup envelopes | config, exact `age` adapter |
 | `longhorn-display` | known/observed displays and correlation | core |
 | `longhorn-windowing` | placement and pure desired/apply plans | core, display |
 | `longhorn-layout` | containers, regions, panels, normalization | core |
@@ -31,6 +32,7 @@ discovery and validation entry points.
 | `longhorn-command` | optional commands and input resolution | core |
 | `longhorn-history` | optional history kernel | core |
 | `longhorn-tauri-bridge` | typed IPC/event transport | core plus adapted domains |
+| `longhorn-tauri-config` | mapping for Tauri-supplied platform paths and storage bootstrap | config; Tauri stays a consumer peer |
 | `longhorn-tauri-windowing` | Tauri display/window host | display, windowing |
 | `longhorn-bindings` | checked TypeScript generation | publishable domains |
 

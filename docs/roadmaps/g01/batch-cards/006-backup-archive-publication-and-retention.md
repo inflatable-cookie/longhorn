@@ -1,7 +1,8 @@
 # 006 Backup Archive Publication And Retention
 
-Status: planned after card 005
+Status: complete
 Owner: Tom
+Completed: 2026-07-28
 Roadmap: g01.002 batch 3
 Governing refs: contracts 001, 004, and 012; research memo 006
 Auto-start next card: no
@@ -90,6 +91,27 @@ operational candidate.
 - pruning can remove an uninspectable archive
 - the card expands into restore or encryption
 
+## Completion Evidence
+
+- pinned `zip` 5.1.1 without default codecs or crypto and retained Rust 1.85
+- added deterministic manifest-first ZIP encoding with normalized metadata,
+  stable payload order, fixed DEFLATE level, and archive SHA-256
+- added bounded central-directory preflight plus private-memory inspection;
+  rejected duplicate, unsafe, non-regular, undeclared, damaged, unknown, and
+  bomb-shaped input before filesystem extraction
+- added operational-root and explicit-export destination authorities with
+  archive-kind checks, explicit overwrite, private sibling partials, sync,
+  reopen verification, atomic rename, cleanup, and durability receipts
+- added same-app operational listing with locked, corrupt, unreadable,
+  foreign, unknown-format, user-export, duplicate-id, and unmanaged
+  preservation diagnostics
+- added deterministic count, manifest-age, and milestone retention with pins,
+  mandatory new-archive retention, clock-regression reporting, incomplete-scan
+  refusal, and hash recheck before deletion
+- recorded focused attack, publication, listing, retention, stale-plan, and
+  corrupt-staging fixtures plus the full validation run in the batch log
+
 ## Next Task
 
-Run after card 005 closes. Then activate restore inspection and planning.
+Card 007 is ready. Stop before restore implementation because this card does
+not auto-start its successor.

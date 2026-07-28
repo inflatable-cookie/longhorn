@@ -16,6 +16,6 @@ None.
 
 ## Next Task
 
-Execute card 005 for backup inventory, policy, bounded coordinated snapshot,
-and manifest model. Later milestone summaries remain non-executable until
-compiled into ready cards.
+`g01.002` is complete. Compile `g01.003` display, geometry, and pure
+window-planning work into ready cards. The milestone summary is not execution
+authority.

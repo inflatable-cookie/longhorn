@@ -7,18 +7,22 @@ use std::{
 use crate::{DomainDescriptor, DomainFilePath, StorageClass};
 
 /// Injected root required by a storage class.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum RootKind {
     /// Platform application configuration root.
     Config,
     /// Platform application data root.
     Data,
+    /// Platform application state root.
+    State,
     /// Platform application cache root.
     Cache,
     /// Platform temporary root.
     Runtime,
     /// Platform application log root.
     Log,
+    /// Operational backup root.
+    Backup,
     /// Optional administrator policy root.
     Policy,
     /// Workspace-keyed personal state root.
@@ -41,9 +45,11 @@ pub enum AccessMode {
 pub struct StorageRoots {
     config: PathBuf,
     data: PathBuf,
+    state: PathBuf,
     cache: PathBuf,
     runtime: PathBuf,
     log: PathBuf,
+    backup: PathBuf,
     policy: Option<PathBuf>,
     workspace: Option<PathBuf>,
     project: Option<PathBuf>,
@@ -54,26 +60,74 @@ impl StorageRoots {
     pub fn new(
         config: impl Into<PathBuf>,
         data: impl Into<PathBuf>,
+        state: impl Into<PathBuf>,
         cache: impl Into<PathBuf>,
         runtime: impl Into<PathBuf>,
         log: impl Into<PathBuf>,
+        backup: impl Into<PathBuf>,
     ) -> Result<Self, StorageRootError> {
         let config = validate_root(RootKind::Config, config.into())?;
         let data = validate_root(RootKind::Data, data.into())?;
+        let state = validate_root(RootKind::State, state.into())?;
         let cache = validate_root(RootKind::Cache, cache.into())?;
         let runtime = validate_root(RootKind::Runtime, runtime.into())?;
         let log = validate_root(RootKind::Log, log.into())?;
+        let backup = validate_root(RootKind::Backup, backup.into())?;
 
         Ok(Self {
             config,
             data,
+            state,
             cache,
             runtime,
             log,
+            backup,
             policy: None,
             workspace: None,
             project: None,
         })
+    }
+
+    /// Returns the application configuration root.
+    #[must_use]
+    pub fn config(&self) -> &Path {
+        &self.config
+    }
+
+    /// Returns the durable application data root.
+    #[must_use]
+    pub fn data(&self) -> &Path {
+        &self.data
+    }
+
+    /// Returns the machine-local state root.
+    #[must_use]
+    pub fn state(&self) -> &Path {
+        &self.state
+    }
+
+    /// Returns the rebuildable cache root.
+    #[must_use]
+    pub fn cache(&self) -> &Path {
+        &self.cache
+    }
+
+    /// Returns the runtime root.
+    #[must_use]
+    pub fn runtime(&self) -> &Path {
+        &self.runtime
+    }
+
+    /// Returns the log root.
+    #[must_use]
+    pub fn log(&self) -> &Path {
+        &self.log
+    }
+
+    /// Returns the operational backup root.
+    #[must_use]
+    pub fn backup(&self) -> &Path {
+        &self.backup
     }
 
     /// Adds an optional administrator policy root.
@@ -127,8 +181,8 @@ impl StorageRoots {
                 AccessMode::ReadWrite,
             ),
             StorageClass::MachineState => self.resolve_required(
-                RootKind::Data,
-                &self.data,
+                RootKind::State,
+                &self.state,
                 descriptor,
                 AccessMode::ReadWrite,
             ),

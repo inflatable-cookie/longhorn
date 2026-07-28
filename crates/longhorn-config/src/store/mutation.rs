@@ -2,7 +2,8 @@ use crate::{AccessMode, ConfigDomain, DomainIssue, DomainLocation, ResolvedFile,
 
 use super::{
     ConfigStore, LoadOutcome, LoadedOrigin, MutationError, MutationOptions, MutationReceipt,
-    MutationRefusal, document::SerializedDocument, load::load_file, publication::publish,
+    MutationRefusal, UnavailableState, document::SerializedDocument, load::load_file,
+    publication::publish,
 };
 
 pub(super) fn mutate<D, F>(
@@ -50,10 +51,12 @@ where
         .map_err(MutationError::Store)?;
     let location = store.roots.resolve(domain.descriptor());
     let file = writable_file(location)?;
-    let _guard = store
+    let guard = store
         .coordinator
         .acquire(options.lock_timeout)
         .map_err(MutationError::Coordination)?;
+    crate::backup::restore::recover_guarded(store, &guard)
+        .map_err(MutationError::RestoreRecovery)?;
     let loaded = load_file(domain, &file);
 
     let mut value = match loaded {
@@ -68,10 +71,15 @@ where
         LoadOutcome::Recovery(recovery) => {
             return Err(MutationError::Refused(MutationRefusal::Recovery(recovery)));
         }
-        LoadOutcome::Unavailable(unavailable) => {
+        LoadOutcome::Unavailable(UnavailableState::Authority { location }) => {
             return Err(MutationError::Refused(MutationRefusal::Unavailable {
-                location: unavailable.location,
+                location,
             }));
+        }
+        LoadOutcome::Unavailable(
+            UnavailableState::RestoreActive | UnavailableState::RestoreRecoveryRequired,
+        ) => {
+            unreachable!("mutation loads only after coordinated recovery");
         }
     };
 

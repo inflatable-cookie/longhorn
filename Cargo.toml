@@ -1,7 +1,9 @@
 [workspace]
 members = [
   "crates/longhorn-config",
+  "crates/longhorn-config-age",
   "crates/longhorn-core",
+  "crates/longhorn-tauri-config",
 ]
 resolver = "2"
 
@@ -13,12 +15,18 @@ license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
+age = { version = "=0.12.1", default-features = false }
 cap-std = "4.0.2"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-core = { path = "crates/longhorn-core" }
+longhorn-config = { path = "crates/longhorn-config" }
+longhorn-config-age = { path = "crates/longhorn-config-age" }
+rusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+sha2 = "0.10.9"
 tempfile = "3.27.0"
+zip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"

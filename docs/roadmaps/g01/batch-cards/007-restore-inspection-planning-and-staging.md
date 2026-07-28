@@ -1,6 +1,6 @@
 # 007 Restore Inspection, Planning, And Staging
 
-Status: planned after card 006
+Status: complete
 Owner: Tom
 Roadmap: g01.002 batch 3
 Governing refs: contracts 001, 004, and 012; research memo 006
@@ -73,6 +73,25 @@ validation block any selected domain.
 - migration requires mutating the source archive
 - the card expands into journaled publication
 
+## Completion
+
+- verified archives produce exact identity, domain, exclusion, schema, and
+  policy reports without reading current files
+- the borrowed backup catalogue remains the consumer-schema capability;
+  Longhorn stores descriptors, not product schema authority
+- every manifest domain receives one explicit use-archive or keep-current
+  choice before planning
+- plans bind archive SHA-256, choices, actions, staged-target evidence, and
+  capability-scoped current present/absent, length, and SHA-256 evidence
+- preparation reacquires the coordinator, rejects stale evidence, reruns every
+  migration and validation, and returns only a complete opaque staging set
+- seven restore acceptance fixtures cover classifications, exact scope,
+  create/replace/delete/migrate/unchanged actions, digest changes, stale
+  rejection, all-or-nothing migration staging, and non-publication
+
+Evidence:
+[Restore Inspection, Planning, And Staging](../../../logs/2026-07/28-restore-inspection-planning-and-staging.md).
+
 ## Next Task
 
-Run after card 006 closes. Then activate journaled restore and crash recovery.
+Card 008 is activated. Do not auto-start it.

@@ -2,7 +2,7 @@
 
 Status: promoted first pass  
 Owner: Tom  
-Updated: 2026-07-27  
+Updated: 2026-07-28
 Vision: `../vision/001-shared-tauri-systems.md`
 
 ## Boundary
@@ -98,18 +98,39 @@ This is a separate package/module. Apps that omit it carry no Surface state.
 
 - storage classes for user config, machine state, workspace-local state,
   project-shared state, secrets, cache, and runtime material
-- platform root resolution through host adapters
+- immutable canonical identity with one optional stable human-readable storage
+  name, separate from the mutable product display name
+- versioned platform-native, unified-root, and explicit portable profiles
+- pure config, data, state, cache, log, runtime, and backup root resolution
+  from injected platform-directory facts
+- platform root facts and profile bootstrap through narrow host adapters
+- fixed native locator outside profile-selected configuration authority
+- inspectable, journaled profile transition with locator commit last
+- declarative read-only legacy-root discovery
 - registered versioned domains and ordered migrations
 - one injected store-wide local coordinator using a process mutex and stable
   advisory file lock
 - capability-confined atomic file replacement and explicit durability receipts
 - merge-safe partial updates and cross-domain transactions
 - debounced scheduling and explicit flush
+- bounded backup capture, verified archive publication, and retention
+- capability-declared custom capture and restore adapters with confined
+  payloads, truthful external consistency groups, and separately explicit
+  nontransactional receipts
+- optional whole-archive binary age v1 encryption through an injected
+  noninteractive provider or explicit recipient/passphrase export
+- non-mutating restore inspection, exact conflict planning, current-evidence
+  confirmation, and complete private current-schema staging
+- verified safety archives, bounded exact rollback, durable restore journal,
+  per-file atomic publication, full-set verification, and crash rollback
+- active/recovery-required load states and coordinated multi-domain load-sets
+- destructive migration rewrite through the same safety transaction
 - corruption, future-schema, backup, restore, and receipt policy
 
 Storage locations are injected into pure code. Product schemas register with
 the store but do not become Longhorn types. Secrets use a separate secure-store
-adapter.
+adapter. Database placement follows the data lifecycle; database-native
+snapshot and migration adapters own live database consistency.
 
 ### Settings and system registration
 

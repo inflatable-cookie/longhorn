@@ -29,7 +29,17 @@ effigy qa
 
 Strict-ready Northstar docs spine installed. The five-app audit, promoted
 foundation contracts, package topology, and full g01 runway are preserved.
-The configuration domain store and coordinated atomic patch mutation are
-implemented. Bounded debounced mutation and explicit flush are complete.
-The backup/archive contract is promoted. Card 005 is ready; later cards
-preserve ZIP publication, restore, encryption, and adapter work.
+The configuration domain store, coordinated atomic patch mutation, bounded
+debounce, explicit flush, and coordinated backup capture are implemented.
+Deterministic ZIP publication, bounded inspection, and safe retention are
+implemented. Non-mutating restore inspection, exact conflict planning,
+private staging, journaled publication, exact rollback, crash recovery,
+coordinated load-sets, safe migration rewrite, and optional binary age v1
+envelopes are implemented. Capability-declared custom adapters, truthful
+external consistency groups, explicit adapter restore receipts, SQLite native
+snapshot proof, and Loophole/Soundcheck/Bovine conformance fixtures are
+implemented. Cross-platform storage identity, native/unified/portable layouts,
+fixed bootstrap selection, journaled profile transition, receipt-bound source
+cleanup, legacy discovery, root provenance, and Tauri-supplied path mapping
+are implemented. `g01.002` is complete. `g01.003` display, geometry, and
+window planning is at its card-compilation gate.
