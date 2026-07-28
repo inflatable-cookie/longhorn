@@ -28,12 +28,10 @@ Updated: 2026-07-28
 | --- | --- | --- |
 | async operations and notifications | lifecycle and ownership remain unclear | later package |
 | native content islands | three incompatible host shapes | later prototype |
-| configuration archive and encryption | backup/restore needs portable operational rules | g01.002 batch 3 |
 | non-macOS strong display evidence | correlation adapters need platform proof | packaged g01.003 proof |
 
 ## Roadmap Readiness
 
 `g01.001`, the configuration domain store, coordinated atomic mutation,
-debounced mutation, and explicit flush are complete. No implementation card is
-ready. Backup and restore are paused on archive, encryption, snapshot, and
-atomic-restore decisions in card 004.
+debounced mutation, and explicit flush are complete. The backup/archive
+contract gate is promoted. Card 005 is the only ready implementation lane.

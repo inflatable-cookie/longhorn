@@ -45,16 +45,17 @@ not research activity, gates dependent implementation.
 `g01.002 Configuration, Backup, And Recovery`
 
 Domain storage, coordinated atomic mutation, bounded debounce, and explicit
-flush are complete. No implementation card is ready.
-[Card 004](batch-cards/004-backup-archive-and-restore-contract.md) records the
-backup/archive contract gate.
+flush are complete. The backup/archive contract gate is promoted.
+[Card 005](batch-cards/005-backup-inventory-and-consistent-snapshot.md) is the
+only ready implementation lane.
 
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
-envelopes, not execution authority. Card 004 is a paused planning gate.
+envelopes, not execution authority. Cards 005 through 010 preserve the
+configuration backup and recovery runway.
 
 ## Next Task
 
-Research and promote the backup archive, encryption, snapshot, and atomic
-restore protocol named in card 004.
+Execute card 005. Keep ZIP publication, restore, encryption, and custom
+adapters in their later cards.

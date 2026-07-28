@@ -27,9 +27,9 @@ effigy qa
 
 ## Current State
 
-Strict-paused Northstar docs spine installed. The five-app audit, promoted
+Strict-ready Northstar docs spine installed. The five-app audit, promoted
 foundation contracts, package topology, and full g01 runway are preserved.
 The configuration domain store and coordinated atomic patch mutation are
 implemented. Bounded debounced mutation and explicit flush are complete.
-Backup/archive implementation is paused on card 004's format, encryption,
-snapshot, and atomic-restore contract.
+The backup/archive contract is promoted. Card 005 is ready; later cards
+preserve ZIP publication, restore, encryption, and adapter work.

@@ -12,3 +12,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Coordinated Atomic Configuration Mutation](2026-07/28-coordinated-atomic-configuration-mutation.md)
 - [Debounced Mutation Contract Promotion](2026-07/28-debounced-mutation-contract-promotion.md)
 - [Debounced Mutation And Explicit Flush](2026-07/28-debounced-mutation-and-explicit-flush.md)
+- [Backup Archive And Restore Contract Promotion](2026-07/28-backup-archive-and-restore-contract-promotion.md)

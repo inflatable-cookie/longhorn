@@ -1,9 +1,10 @@
 # 004 Backup Archive And Restore Contract
 
-Status: paused on backup contract  
-Owner: Tom  
-Roadmap: g01.002 batch 3  
-Governing refs: contracts 001, 004, and 012  
+Status: complete
+Owner: Tom
+Completed: 2026-07-28
+Roadmap: g01.002 batch 3
+Governing refs: contracts 001, 004, and 012; research memo 006
 Auto-start next card: no
 
 ## Objective
@@ -20,43 +21,45 @@ restore decisions required before compiling backup implementation.
 - pre-migration operational backup
 - retention by count and age
 - inspect-before-restore compatibility report
-- safety backup, staged validation, and all-or-none declared restore set
+- safety backup, staged validation, and failure-atomic terminal restore set
 - secure-store exclusion and custom adapter boundary
 - encrypted archive policy without moving key authority into ordinary config
 - machine-readable backup and restore receipts
 
-## Contract Gate
+## Closed Contract Gate
 
-Contract 004 does not yet answer:
+Contract 004 now answers:
 
-- archive container, compression, deterministic layout, and format versioning
-- whether encryption wraps the archive or individual domain payloads
-- key acquisition, rotation, unavailable-key, and recovery behavior
-- snapshot lock lifetime and treatment of unreadable or recovering domains
-- how large-domain streaming interacts with one store-wide coordination guard
-- retention ordering when clocks disagree or manifests are corrupt
-- atomic restore mechanics across multiple domain files
-- rollback behavior after a restore publication fails partway
-- migration timing during inspect, staging, and commit
-- destination authority for operational backup versus user export
-- custom adapter participation in snapshot, verification, and restore
+- standard ZIP inner bundle, strict version-1 manifest, DEFLATE, normalized
+  metadata, bounded readers, and SHA-256
+- binary age v1 over the complete inner archive
+- injected key authority, locked state, rotation, and explicit re-encryption
+- bounded source capture under the store guard, with compression outside it
+- source-preserved recovery states and explicit unreadable failure
+- external snapshot consistency groups for large/custom authorities
+- safe retention over inspected manifests with pins and clock diagnostics
+- journaled failure-atomic restore instead of false multi-file atomicity
+- exact rollback payloads, verified rollback, and crash recovery
+- inspect-time planning and execution-time in-memory migration
+- injected operational roots versus explicit export destinations
+- capability-declared custom adapter participation
 
-No audited donor proves a complete portable archive and atomic multi-domain
-restore protocol. Implementation would otherwise invent persistence guarantees
-inside the card.
+No donor proves the full protocol. Soundcheck supplies exact-byte snapshots,
+preview binding, integrity checks, safety capture, milestone retention,
+verification, and rollback. External specifications close the portable
+archive and encryption gaps. Research memo 006 records the translation.
 
-## Required Promotion
+## Promotion
 
-Promote these decisions into contract 004 before implementation:
+Contract 004 now owns:
 
-- archive and manifest format
-- compression and encryption boundary
-- key-authority and secret-exclusion rules
-- consistent snapshot and coordination lifetime
-- corruption, partial availability, and retention behavior
-- staged restore transaction and rollback protocol
+- archive, manifest, compression, encryption, and compatibility
+- key authority and secret exclusion
+- bounded consistent capture and external consistency groups
+- corruption, partial availability, publication, and retention
+- inspect-bound planning and journaled restore/rollback
 - migration and custom-adapter participation
-- receipt and inspection shape
+- truthful receipts and multi-file visibility limits
 
 ## Out Of Scope
 
@@ -67,19 +70,19 @@ Promote these decisions into contract 004 before implementation:
 - consumer migration
 - configuration debounce and flush
 
-## Ready When
+## Completion Evidence
 
-- every contract-gate question has one promoted answer
-- archive compatibility and encryption claims are versioned and testable
-- snapshot and restore compose over the existing coordination authority
-- all-or-none restore has a concrete crash/failure model
-- secret and custom-adapter boundaries are explicit
-- acceptance covers corruption, unavailable keys, partial failure, retention,
-  migration, rollback, and inspection
-- implementation is compiled as one or more separate bounded cards
+- donor audit covers Soundcheck library and DAW restore, Loophole recovery and
+  export, plus negative evidence from Nucleus, Jetstream, and Bovine
+- current primary archive, encryption, rename, and SQLite snapshot sources are
+  recorded
+- every gate question has one promoted answer
+- compatibility and encryption claims are versioned and testable
+- restore has an implementable crash and failure model
+- cards 005 through 010 split implementation into bounded batches
 
 ## Next Task
 
-Research archive, encryption, consistent-snapshot, and atomic restore options.
-Promote the selected protocol into contract 004. Do not implement backup while
-this card is paused.
+Execute card 005: backup inventory, policy, bounded coordinated snapshot, and
+manifest model. Do not pull ZIP publication, restore, or age encryption into
+that card.

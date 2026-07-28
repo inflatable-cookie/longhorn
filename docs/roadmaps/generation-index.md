@@ -16,5 +16,6 @@ None.
 
 ## Next Task
 
-Close the `g01.002` backup/archive contract gate in card 004. Later milestone
-summaries remain non-executable until compiled into ready cards.
+Execute card 005 for backup inventory, policy, bounded coordinated snapshot,
+and manifest model. Later milestone summaries remain non-executable until
+compiled into ready cards.

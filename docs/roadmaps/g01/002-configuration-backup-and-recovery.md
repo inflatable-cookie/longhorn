@@ -32,16 +32,18 @@ Status: complete
 
 - domain inventory and checksummed manifest
 - staged publish, retention, pre-migration backup
-- inspect, safety backup, staged restore, atomic commit, receipt
+- inspect, safety backup, staged restore, journaled failure-atomic commit
 - secure-store exclusion and custom adapters
 
-Status: paused on archive, encryption, snapshot, and atomic-restore contract
+Status: ready; cards 005 through 009
 
 ### 4. Consumer conformance
 
 - Loophole machine/windowing fixture
 - Soundcheck settings/window fixture
 - Bovine workspace preference fixture
+
+Status: planned as card 010
 
 ## Acceptance
 
@@ -52,6 +54,7 @@ Status: paused on archive, encryption, snapshot, and atomic-restore contract
 
 ## Current Gate
 
-Research and promote the decisions named by
-[004 Backup Archive And Restore Contract](batch-cards/004-backup-archive-and-restore-contract.md).
-Backup implementation and consumer conformance remain later cards.
+Execute
+[005 Backup Inventory And Consistent Snapshot](batch-cards/005-backup-inventory-and-consistent-snapshot.md).
+Later cards own ZIP publication, restore planning, journaled recovery, age
+encryption, and custom adapter conformance.

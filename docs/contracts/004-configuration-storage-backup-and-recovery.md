@@ -5,7 +5,8 @@ Owner: Tom
 Updated: 2026-07-28  
 Evidence: `../research/translation-memos/002-shared-desktop-systems-follow-up.md`;
 `../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`;
-`../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`
+`../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`;
+`../research/translation-memos/006-backup-archive-encryption-and-restore.md`
 
 ## Boundary
 
@@ -180,25 +181,164 @@ delay, cancel, retry, or continue close.
 
 Backup is a registry operation, not a directory copy.
 
-- Domains declare whether they are included, excluded, or require a custom
-  backup adapter.
-- Every backup has a manifest with app id, app version, creation time, domain
-  ids, schema versions, byte sizes, and checksums.
-- Backups are written to staging, verified, then published atomically.
-- Automatic backups run before migration and may run on a consumer schedule.
-- Retention is policy-driven by count and/or age.
-- Secrets and caches are excluded by default.
-- User-initiated export is distinct from operational backup.
+- Every operation names an explicit domain scope. Registry policy marks each
+  domain included, excluded with reason, or custom-adapted.
+- Secret, cache, runtime, and log domains are excluded by default. Secure-store
+  payloads never enter the ordinary archive path.
+- Backup captures published state only. A host that needs pending debounced
+  intent must force-flush and handle that receipt first.
+- Missing files are recorded as absent; defaults are not materialized.
+- Readable corrupt or future source may be preserved as non-restorable source
+  evidence. An unreadable required source fails capture.
+
+Ordinary capture acquires the existing store-wide guard, inventories the
+scope, copies exact bounded source bytes or absence into private immutable
+staging, verifies length and SHA-256, then releases the guard. Archive
+encoding, compression, encryption, and publication happen after release.
+
+Custom adapters declare coordinated-bounded, external-snapshot, or excluded
+capture. Only bounded capture under the Longhorn guard joins its consistency
+group. An external transaction such as the SQLite backup API produces a
+separate consistency group unless a consumer supplies a higher-level common
+authority.
+
+## Archive Format
+
+The portable inner bundle is standard ZIP with media type
+`application/vnd.longhorn.config-backup+zip` and extension
+`.longhorn-backup`.
+
+Version 1 requires:
+
+- `longhorn/manifest.json` first
+- ordinary payloads at `longhorn/domains/<domain-id>.json`
+- adapter payloads below `longhorn/adapters/<domain-id>/`
+- lexicographic entry order after the manifest
+- normalized 1980 ZIP timestamps, `0600` file mode, and no comments or ambient
+  filesystem metadata
+- DEFLATE writer output; readers accept only Stored and DEFLATE
+- regular declared files only; directories, links, devices, duplicates,
+  absolute paths, parent traversal, NULs, and undeclared entries are rejected
+- finite configurable entry, per-entry byte, total uncompressed byte, and
+  compression-ratio limits
+
+The layout is deterministic. Compressed bytes across encoder versions are not
+a compatibility promise.
+
+The strict JSON manifest records format, archive id and kind, producer, app
+identity, UTC creation time, consistency groups, domain storage and schema
+metadata, source state, adapter, payload paths, sizes, SHA-256 checksums, and
+explicit exclusions. Unknown format versions or fields fail safe.
+
+SHA-256 proves byte integrity, not authenticity for a plaintext archive.
+Inspection and receipts report those states separately.
+
+## Archive Publication And Retention
+
+Operational backup uses an injected app-data backup root. User export uses an
+explicit user-selected parent and never enters operational retention.
+
+Both write a unique sibling partial, sync it, reopen and verify it, rename it
+once, and report achieved durability. Export does not overwrite an existing
+file without explicit caller authority.
+
+Retention acts only on successfully inspected same-app operational archives.
+It always preserves the new archive and operation pins. Valid candidates
+order by manifest creation time then archive id; age tiers derive from the
+newest valid manifest time. Clock regression is diagnosed.
+
+Locked, corrupt, unreadable, foreign-app, unknown-version, and unparseable
+files are never deleted automatically. Framework-owned partial cleanup is a
+separate bounded policy. Arbitrary files below the backup root are not pruned.
+
+## Backup Encryption
+
+Optional encryption wraps the whole inner ZIP in binary age v1 and uses
+extension `.longhorn-backup.age`. ZIP AES and per-entry encryption are not
+used. The complete manifest, names, and checksums stay encrypted until an
+identity succeeds.
+
+Recipients and identities come from an injected encryption provider.
+Longhorn never stores private identities, passphrases, or recovery material in
+ordinary configuration.
+
+- automatic encrypted backup requires noninteractive recipient and identity
+  authority
+- interactive export may use age recipients or a human passphrase
+- unavailable identity reports `locked`, not `corrupt`
+- rotation changes new recipients; external key rings retain old identities
+- re-encryption is explicit decrypt-and-write with a new nonce
+- retention preserves archives it cannot authenticate and inspect
+
+The age v1 file format is the compatibility contract. A particular Rust age
+crate API is replaceable and must preserve the Rust 1.85 floor.
 
 ## Restore
 
-- Inspect and checksum an archive before mutation.
-- Report compatibility, excluded domains, migrations, and conflicts.
-- Restore to staging and validate every included domain.
-- Create a safety backup of current state.
-- Commit either the complete declared restore set or none of it.
-- Emit a machine-readable receipt with restored, skipped, and migrated
-  domains.
+Inspection never mutates the store. It decrypts when required, validates the
+strict archive inventory and limits, verifies every payload, and reports app
+compatibility, consistency groups, key and authentication state, exclusions,
+unknown domains, source and target schemas, migrations, conflicts, and
+planned create, replace, delete, migrate, or unchanged actions.
+
+The restore plan binds archive SHA-256, selected actions, explicit conflict
+choices, and current present/absent plus SHA-256 evidence into a confirmation
+digest. Execution rereads current evidence under the coordinator and rejects
+a stale plan.
+
+Archive migrations are side-effect-free during inspection. Execution migrates
+and validates the complete selected set into private current-schema staging
+before touching live files. Future or incomplete migration blocks that
+selected domain. The source archive remains unchanged.
+
+## Restore Transaction And Recovery
+
+Independent domain paths have no portable multi-file atomic rename. Longhorn
+promises failure-atomic terminal state, not instantaneous cross-file
+visibility.
+
+Execution:
+
+1. verify and stage the complete selected target set
+2. acquire the store-wide guard and recheck freshness
+3. capture exact current bytes and absence into a private rollback set
+4. publish and verify a policy-compliant safety backup
+5. durably publish a restore journal with every target, checksum, and phase
+6. replace each domain through the existing single-file atomic publisher
+7. verify the complete target set
+8. mark success durably and clean rollback material
+
+Ordinary failure rolls back and verifies the complete selected set under the
+same guard. Unverified rollback retains the journal and enters
+`restore-recovery-required`.
+
+A crash leaves the journal and private rollback payloads. The next store open
+or mutation completes and verifies rollback before normal writes. Loads that
+detect active recovery return typed unavailable state. A load already in
+flight may complete against an old or new complete single-domain file.
+Callers needing one consistent multi-domain view use a coordinated load-set
+operation.
+
+Terminal results are exact:
+
+- success means every selected domain matches staged target evidence
+- rolled back means every selected domain matches captured source evidence
+- recovery required blocks normal writes until verified rollback
+
+No receipt claims that all lock-free readers observed one cross-domain
+generation. Receipts list restored, deleted, unchanged, migrated, excluded,
+skipped, rolled-back, and recovery-required domains.
+
+## Custom Backup And Restore Adapters
+
+Adapters declare capture, inspect, stage, publish, verify, rollback,
+transaction authority, and size capabilities. An adapter joins the
+failure-atomic set only when it can preserve exact prior state, participate in
+the journal, and verify rollback. Otherwise it is excluded or executed as an
+explicit separate operation with a separate receipt.
+
+SQLite adapters use a database-native snapshot. Longhorn never treats a live
+SQLite main/WAL pair as ordinary files.
 
 ## Settings Interaction
 
@@ -226,14 +366,19 @@ restore operate at explicit scopes.
 - close flush reports every lane and never acknowledges a failed write as
   success
 - backup manifests verify and an invalid archive cannot partially restore
+- archive traversal, duplicates, undeclared entries, links, bombs, unknown
+  versions, and locked encryption fail safe
+- retention cannot prune the new, pinned, locked, corrupt, foreign, or
+  unparseable archive
+- restore preview is bound to current evidence and stale confirmation fails
+- every publication failure rolls back and verifies or blocks normal writes
+- a crash journal recovers before later mutation
 - Loophole, Soundcheck, and Bovine state map without sharing product schemas
 
 ## Open Decisions
 
 | Decision | First gate |
 | --- | --- |
-| archive container and compression | `g01.002` backup card |
-| encrypted backup adapter | `g01.002` backup card |
 | managed-policy precedence | `g01.008` settings composition |
 | remote synchronization and conflict behavior | `g01.009` topology adapters |
 
