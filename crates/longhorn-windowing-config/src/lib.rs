@@ -10,7 +10,8 @@ use std::{
 };
 
 use longhorn_config::{
-    ConfigDomain, ConfigStore, DomainIssue, LoadOutcome, MutationError, MutationOptions,
+    BackupCatalog, ConfigDomain, ConfigStore, DomainIssue, LoadOutcome, MigrationRewriteError,
+    MigrationRewriteOptions, MigrationRewriteReceipt, MutationError, MutationOptions,
     MutationReceipt, RegistrationError, StoreError,
 };
 use longhorn_core::WindowId;
@@ -73,6 +74,19 @@ where
     {
         self.store
             .mutate(&self.domain, self.mutation_options, patch)
+    }
+
+    /// Rewrites an older migrated source through Longhorn's required safety backup.
+    pub fn rewrite_migrated_domain(
+        &self,
+        options: MigrationRewriteOptions,
+    ) -> Result<MigrationRewriteReceipt, MigrationRewriteError> {
+        let mut catalog = BackupCatalog::new();
+        catalog
+            .include(&self.domain)
+            .expect("a new backup catalog accepts one registered domain");
+        self.store
+            .rewrite_migrated_domain(&catalog, &self.domain, options)
     }
 
     /// Returns the registered consumer domain.
