@@ -1,4 +1,4 @@
-use longhorn_core::{DisplayId, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
+use longhorn_core::{DisplayId, ScaleFactor, ScreenRect, ScreenSize, WindowId, WindowPlacement};
 use longhorn_display::{DisplayAvailability, DisplayInventory};
 use serde::{Deserialize, Serialize};
 
@@ -153,7 +153,52 @@ pub fn restore_window_placement(
     if let Some(display_id) = home_display_id {
         config = config.with_normal_placement(display_id, saved.normal_placement());
     }
-    resolve_window_placement(&config, inventory, policy)
+    let mut resolution = resolve_window_placement(&config, inventory, policy)?;
+    if let WindowPlacementResolution::Resolved(resolved) = &mut resolution {
+        let requested = saved.normal_placement();
+        let requested_size = requested.inner_size();
+        let work_area = resolved.target_work_area();
+        let available_size = work_area.size();
+        let minimum_size = policy.minimum_size();
+        let fitted_size = ScreenSize::new(
+            requested_size
+                .width()
+                .max(minimum_size.width())
+                .min(available_size.width()),
+            requested_size
+                .height()
+                .max(minimum_size.height())
+                .min(available_size.height()),
+        );
+        let requested_rect = ScreenRect::new(requested.outer_origin(), fitted_size);
+        let minimum_visible = policy.minimum_visible_extent();
+        let preserves_reachable_origin =
+            requested_rect
+                .intersection(&work_area)
+                .is_some_and(|intersection| {
+                    intersection.size().width()
+                        >= minimum_visible
+                            .width()
+                            .min(fitted_size.width())
+                            .min(available_size.width())
+                        && intersection.size().height()
+                            >= minimum_visible
+                                .height()
+                                .min(fitted_size.height())
+                                .min(available_size.height())
+                });
+        if preserves_reachable_origin {
+            let reachable = requested_rect
+                .ensure_minimum_visible(&work_area, &minimum_visible)
+                .map_err(|source| PlacementResolutionError::Geometry {
+                    window_id: saved.window_id().clone(),
+                    display_id: resolved.target_display_id().clone(),
+                    source,
+                })?;
+            resolved.normal_placement = WindowPlacement::new(reachable.origin(), reachable.size());
+        }
+    }
+    Ok(resolution)
 }
 
 /// Resolves saved canonical identity or unique exact logical display evidence.

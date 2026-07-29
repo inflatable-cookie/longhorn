@@ -1,11 +1,15 @@
 use longhorn_core::{
-    DisplayId, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
+    DisplayId, PhysicalPoint, PhysicalRect, PhysicalSize, ScaleFactor, ScreenPoint, ScreenRect,
+    ScreenSize, WindowId, WindowPlacement,
 };
 use longhorn_display::{
     DisplayBuiltinStatus, DisplayEvidence, DisplayFacts, DisplayIdAllocator, KnownDisplayRegistry,
     ObservationId, ObservedDisplay,
 };
-use longhorn_tauri_windowing::{DesktopObservation, plan_window_restore_from_observation};
+use longhorn_tauri_windowing::{
+    CapturedDisplayAssociation, CapturedDisplayEvidence, CapturedWindowPlacement,
+    DesktopObservation, plan_window_restore_from_observation,
+};
 use longhorn_windowing::{
     PlacementPolicy, PlacementReason, SavedDisplayAssociation, SavedDisplayEvidence,
     SavedWindowPlacement, WindowPlacementResolution, WindowRole,
@@ -83,4 +87,25 @@ fn one_entry_point_reconciles_displays_and_restores_saved_evidence() {
         &DisplayId::new("display:side").unwrap()
     );
     assert_eq!(placement.reason(), &PlacementReason::ConfiguredHome);
+
+    let captured = CapturedWindowPlacement::new(
+        WindowId::new("window:main").unwrap(),
+        WindowPlacement::new(ScreenPoint::new(1_720, 60), ScreenSize::new(900, 700)),
+        false,
+        CapturedDisplayAssociation::Observed {
+            evidence: CapturedDisplayEvidence::new(
+                None,
+                PhysicalRect::new(PhysicalPoint::new(1_600, 0), PhysicalSize::new(1_200, 900)),
+                PhysicalRect::new(PhysicalPoint::new(1_600, 0), PhysicalSize::new(1_200, 900)),
+                ScaleFactor::from_thousandths(1_000).unwrap(),
+                side,
+                side,
+            ),
+        },
+    );
+    let persisted = captured.saved_with_registry(restore.reconciliation().registry());
+    assert_eq!(
+        persisted.display().display_id(),
+        Some(&DisplayId::new("display:side").unwrap())
+    );
 }

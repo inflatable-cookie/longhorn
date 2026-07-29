@@ -167,6 +167,31 @@ impl CapturedWindowPlacement {
         let display_id = resolve_saved_display_association(unresolved.display(), inventory);
         self.saved(display_id)
     }
+
+    /// Converts this capture using unique exact evidence from a known registry.
+    ///
+    /// This is useful at persistence seams that retain the registry but not the
+    /// ephemeral inventory from the last restore observation.
+    #[must_use]
+    pub fn saved_with_registry(
+        &self,
+        registry: &longhorn_display::KnownDisplayRegistry,
+    ) -> SavedWindowPlacement {
+        let unresolved = self.saved(None);
+        let Some(evidence) = unresolved.display().evidence() else {
+            return unresolved;
+        };
+        let mut matches = registry.iter().filter(|display| {
+            display.facts().full_bounds() == evidence.full_bounds()
+                && display.facts().work_area() == evidence.work_area()
+                && display.facts().scale() == evidence.scale()
+        });
+        let display_id = matches.next().map(|display| display.id().clone());
+        if matches.next().is_some() {
+            return unresolved;
+        }
+        self.saved(display_id)
+    }
 }
 
 /// One host wake requested by the pure lifecycle coordinator.

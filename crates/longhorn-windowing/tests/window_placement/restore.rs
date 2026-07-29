@@ -113,6 +113,11 @@ fn missing_saved_display_uses_intersection_then_main() {
         .unwrap(),
     );
     assert_eq!(main.reason(), &PlacementReason::MainDisplay);
+    assert!(
+        main.target_work_area()
+            .contains_rect(&rect(800, 300, 800, 600))
+    );
+    assert_eq!(main.normal_placement(), placement(800, 300, 800, 600));
 }
 
 #[test]
@@ -155,4 +160,28 @@ fn poisoned_double_scale_size_is_clamped_to_the_work_area() {
     );
 
     assert_eq!(restored.normal_placement(), placement(0, 0, 1_580, 1_013));
+}
+
+#[test]
+fn reachable_edge_placement_keeps_its_saved_origin() {
+    let saved = SavedWindowPlacement::new(
+        window_id("window:main"),
+        placement(1_400, 100, 1_200, 800),
+        false,
+        SavedDisplayAssociation::new(Some(display_id("display:main")), None),
+    );
+    let restored = resolved(
+        restore_window_placement(
+            &saved,
+            &inventory(&[display("display:main", 0, 0, 1_512, 982, true)]),
+            WindowRole::RequiredPrimary,
+            policy(),
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(
+        restored.normal_placement(),
+        placement(1_400, 100, 1_200, 800)
+    );
 }
