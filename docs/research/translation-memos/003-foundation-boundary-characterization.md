@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-07-27
+Updated: 2026-07-28
 
 ## Question
 
@@ -96,6 +96,25 @@ versions, optional capability packages, and no g01 umbrella package.
 
 - non-macOS strong display evidence and ambiguity UX
 - packaged multi-window drag behavior across platforms and display scales
-- archive format, multi-process config locking, and encrypted backup
 - exact registry names before first publication
 
+## 2026-07-28 Display Revalidation
+
+Read-only donor inspection reconfirmed the promoted display/window boundary:
+
+- Loophole `echo-display-inventory`, `display_correlation`,
+  `display_registry`, and `echo-windowing` retain canonical/observed display
+  separation, scale-in-thousandths, confidence tiers, labels, remembered
+  client ids, configured fallbacks, and per-display geometry.
+- Nucleus `nucleus-workspaces::{geometry,displays,planning}` and desktop
+  `window_geometry` retain known-versus-available records, saved/fallback
+  planning, largest-intersection selection, primary/first fallback, negative
+  desktop origins, and work-area clamping.
+- Soundcheck `app_settings` retains the minimal single-window case: outer
+  origin plus inner size, primary/first fallback, explicit `320x240` minimum,
+  work-area clamp, debounce, and close flush.
+
+The pure lane therefore splits into typed geometry, display correlation,
+placement resolution, and desired/live diffing. Tauri observation/mutation,
+event settling, debounce, persistence, and ambiguity UI remain outside
+`g01.003`. No donor repository was modified.

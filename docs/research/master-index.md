@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-28
+Updated: 2026-07-29
 
 ## Architecture Area To Research
 
@@ -18,11 +18,15 @@ Updated: 2026-07-28
 | debounced mutation and explicit flush | [Debounced Mutation And Explicit Flush](translation-memos/005-debounced-mutation-and-explicit-flush.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/003-debounced-mutation-and-explicit-flush.md` |
 | backup archive, encryption, and restore | [Backup Archive, Encryption, And Restore](translation-memos/006-backup-archive-encryption-and-restore.md) | `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/005-backup-inventory-and-consistent-snapshot.md` through card 010 |
 | cross-platform storage locations and profiles | [Cross-platform Storage Layout Profiles](translation-memos/007-cross-platform-storage-layout-profiles.md) | `../architecture/package-topology.md`; `../contracts/004-configuration-storage-backup-and-recovery.md`; `../roadmaps/g01/batch-cards/011-platform-storage-layout-profiles.md`; card 012 |
+| Tauri window host and lifecycle | [Tauri Window Host And Lifecycle](translation-memos/008-tauri-window-host-and-lifecycle.md) | `../contracts/009-display-identity-coordinates-and-window-planning.md`; `../roadmaps/g01/004-tauri-window-host-and-lifecycle.md`; cards 017-022 |
+| layout container, region, and panel core | [Layout Core Boundary Characterization](translation-memos/009-layout-core-boundary-characterization.md) | `../architecture/system-architecture.md`; `../contracts/014-layout-container-region-and-panel-core.md`; `../roadmaps/g01/005-layout-container-region-and-panel-core.md`; cards 023-027 |
+| optional Surface hosting and cross-window transfer | [Surface Hosting And Transfer Boundary](translation-memos/010-surface-hosting-and-transfer-boundary.md) | `../architecture/system-architecture.md`; `../contracts/002-composable-workspace-hosting.md`; `../contracts/011-cross-window-transfer.md`; `../roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md`; cards 028-035 |
 
 ## Open Research
 
 - non-macOS strong display evidence and ambiguity UX
-- packaged cross-window transfer across platforms and display scales
+- non-macOS packaged cross-window transfer across platforms and display scales
+- cross-document panel transaction and copy-transfer authority
 - server-synchronized settings and remote transaction authority
 - backup and restore settings UX
 - public registry name verification

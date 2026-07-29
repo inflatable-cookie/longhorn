@@ -14,6 +14,7 @@
 - [011 Cross-window Transfer](011-cross-window-transfer.md)
 - [012 Distribution And Compatibility](012-distribution-and-compatibility.md)
 - [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md)
+- [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md)
 
 Roadmap execution stops when its required boundary remains pending in the
 index.

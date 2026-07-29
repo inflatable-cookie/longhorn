@@ -12,5 +12,8 @@ contracts.
 - [Debounced Mutation And Explicit Flush](translation-memos/005-debounced-mutation-and-explicit-flush.md)
 - [Backup Archive, Encryption, And Restore](translation-memos/006-backup-archive-encryption-and-restore.md)
 - [Cross-platform Storage Layout Profiles](translation-memos/007-cross-platform-storage-layout-profiles.md)
+- [Tauri Window Host And Lifecycle](translation-memos/008-tauri-window-host-and-lifecycle.md)
+- [Layout Core Boundary Characterization](translation-memos/009-layout-core-boundary-characterization.md)
+- [Surface Hosting And Transfer Boundary](translation-memos/010-surface-hosting-and-transfer-boundary.md)
 
 Start from a problem. Promote stable conclusions before roadmap execution.

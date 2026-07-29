@@ -1,0 +1,23 @@
+[package]
+name = "longhorn-surfaces-config"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+longhorn-config.workspace = true
+longhorn-core.workspace = true
+longhorn-layout.workspace = true
+longhorn-surfaces.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+longhorn-layout-config.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

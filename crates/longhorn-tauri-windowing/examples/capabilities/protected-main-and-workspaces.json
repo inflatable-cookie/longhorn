@@ -1,0 +1,6 @@
+{
+  "identifier": "longhorn-protected-main-and-workspaces",
+  "description": "Custom-titlebar drag for a protected main window and dynamic workspaces.",
+  "windows": ["main", "workspace-*"],
+  "permissions": ["core:window:allow-start-dragging"]
+}

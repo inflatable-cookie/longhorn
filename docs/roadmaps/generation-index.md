@@ -16,6 +16,5 @@ None.
 
 ## Next Task
 
-`g01.002` is complete. Compile `g01.003` display, geometry, and pure
-window-planning work into ready cards. The milestone summary is not execution
-authority.
+`g01.002` through `g01.005` are complete. `g01.006` is compiled through Cards
+028-035. Cards 028-031 are complete. Start Card 032.

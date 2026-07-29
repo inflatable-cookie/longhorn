@@ -68,4 +68,5 @@ Status: complete; cards 011 and 012 complete
 ## Completion
 
 [012 Storage Profile Transition And Legacy Import](batch-cards/012-storage-profile-transition-and-legacy-import.md)
-closed the final storage-layout gate. `g01.003` owns the next planning gate.
+closed the final storage-layout gate. `g01.003` and Card 017 are complete;
+Card 018 is the sole ready `g01.004` lane.

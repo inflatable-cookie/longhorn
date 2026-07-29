@@ -1,9 +1,22 @@
 [workspace]
 members = [
+  "crates/longhorn-bindings",
   "crates/longhorn-config",
   "crates/longhorn-config-age",
   "crates/longhorn-core",
+  "crates/longhorn-display",
+  "crates/longhorn-layout",
+  "crates/longhorn-layout-config",
+  "crates/longhorn-surface-windowing",
+  "crates/longhorn-surfaces",
+  "crates/longhorn-surfaces-config",
+  "crates/longhorn-transfer",
   "crates/longhorn-tauri-config",
+  "crates/longhorn-tauri-windowing",
+  "crates/longhorn-windowing",
+  "crates/longhorn-windowing-config",
+  "examples/nucleus-no-surface-proof",
+  "examples/tauri-windowing-proof/src-tauri",
 ]
 resolver = "2"
 
@@ -21,11 +34,25 @@ fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-core = { path = "crates/longhorn-core" }
 longhorn-config = { path = "crates/longhorn-config" }
 longhorn-config-age = { path = "crates/longhorn-config-age" }
+longhorn-display = { path = "crates/longhorn-display" }
+longhorn-layout = { path = "crates/longhorn-layout" }
+longhorn-layout-config = { path = "crates/longhorn-layout-config" }
+longhorn-surface-windowing = { path = "crates/longhorn-surface-windowing" }
+longhorn-surfaces = { path = "crates/longhorn-surfaces" }
+longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config" }
+longhorn-transfer = { path = "crates/longhorn-transfer" }
+longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing" }
+longhorn-windowing = { path = "crates/longhorn-windowing" }
+longhorn-windowing-config = { path = "crates/longhorn-windowing-config" }
+proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 rusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.10.9"
 tempfile = "3.27.0"
+tauri = { version = "2.10.3", default-features = false }
+tauri-build = { version = "=2.6.3", default-features = false, features = ["config-json"] }
+ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
 zip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]

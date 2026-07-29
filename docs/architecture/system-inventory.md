@@ -1,31 +1,57 @@
 # System Inventory
 
-Status: complete inventory; foundation contracts promoted
+Status: complete inventory; g01.006 compiled
 Owner: Tom  
-Updated: 2026-07-27  
+Updated: 2026-07-29
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
 
 The known system suite, consumers, authority seams, validation surfaces, and
 package graph are inventoried. All foundation boundaries have first-pass
-contracts. The first configuration domain-store batch is ready; later config
-mutation and backup work retains explicit research gates.
-
-The bootstrap `test` selector currently delegates to docs QA. Replace that
-temporary test plan with native Rust and TypeScript discovery when the first
-packages land.
+contracts. `g01.002` configuration, backup, recovery, and storage-layout work
+is complete. `g01.003` has completed typed geometry, display correlation,
+window placement resolution, and deterministic live diff planning. Cards
+017-022 add checked Tauri observation, managed identity, native
+execution, partial receipts, convergence readback, pure event
+attribution/settling, settled capture, injected persistence, reveal gating,
+bounded flush, reusable host composition, and packaged macOS proof. The layout
+core now has promoted donor characterization, contract 014, an implemented
+pure registry, durable state, normalization, sizing, and visibility
+foundation, authoritative expected-revision mutation, registered persistence,
+registry-digest migration policy, and bounded presentation debounce.
+Checked Rust-to-TypeScript generation, compatibility guards, golden fixtures,
+exact ratio and ordinary-visibility helpers, and package validation are also
+implemented. Card 027 adds checked Loophole and Nucleus conformance through one
+resolver and mutation engine, cross-language expected snapshots, and package
+boundary evidence. `g01.005` is complete.
+Research memo 010 and revised contracts 002 and 011 now bound optional Surface
+identity, presence input, lifecycle, persistence, transfer sessions, leased
+targets, same-document panel moves, whole-Surface moves, and explicit window
+provision cleanup. Cards 028-035 compile the g01.006 runway. Card 028
+implements bounded Surface identity, topology, normalization, presence input,
+and available-window fallback. Card 029 implements authoritative lifecycle,
+external container evidence, and registered coordinated persistence. Card 030
+adds the optional pure Surface/window projection, existing-host mock
+composition, missing and returning window evidence, readiness and partial
+failure reconciliation, ordered shutdown, full-hierarchy conformance, and a
+compile-only no-Surface dependency proof. Card 031 adds exact 128-bit injected
+session identity, monotonic time, finite session/client/lease stores, atomic
+complete replacement leases, epoch and destroy invalidation, typed expiry and
+terminal replay, deterministic explicit-zone and screen-point resolution, and
+overlap rejection. Card 032 is ready.
 
 ## In-Scope Elements
 
 | Element | Type | Authority | Evidence | Coverage |
 | --- | --- | --- | --- | --- |
-| Foundation model | Rust library | ids, geometry, normalization | Loophole Echo; Nucleus workspaces; Nucleus/Soundcheck window restore | architecture only |
-| Display inventory | Rust library + Tauri adapter | canonical local display facts | Loophole `echo-configuration` and Aura local plane | contract 009 |
-| Window planning | Rust library | fallback and desired window plan | Loophole `echo-windowing`; `nucleus-workspaces` | contract 009 |
-| Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | contract 009 |
-| Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | first boundary contracted |
-| Surface hosting | optional Rust + TS module | Surface lifecycle and window hosting | Loophole Aura/Echo | first boundary contracted |
+| Foundation model | Rust library | ids, geometry, normalization | Loophole Echo; Nucleus workspaces; Nucleus/Soundcheck window restore | typed geometry implemented |
+| Display inventory | Rust library + Tauri adapter | canonical local display facts | Loophole `echo-configuration` and Aura local plane | pure inventory/correlation implemented |
+| Window planning | Rust library | fallback and desired window plan | Loophole `echo-windowing`; `nucleus-workspaces`; Soundcheck | placement and live diff implemented |
+| Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | g01.004 complete through packaged Card 022 proof |
+| Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
+| Surface hosting | optional Rust + config + TS packages | Surface lifecycle, persistence, and window hosting | Loophole Aura/Echo | pure identity, topology, presence, resolution, lifecycle, persistence, and window-host composition implemented |
+| Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | bounded pure session, lease, and target core implemented; panel move remains Card 032 |
 | Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | first boundary contracted |
 | Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | first boundary contracted |
 | Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole and Nucleus | contract 013 |
@@ -75,10 +101,10 @@ packages land.
 
 ## Planning Gaps
 
-- backup archive and encryption
 - settings transaction and restart-required semantics
 - backend transport and offline mutation policy
 - generic history payload and branching/checkpoint policy
 - async operation/notification shared lifecycle
 - native-content-island common denominator
-- non-macOS strong display evidence and packaged drag proof
+- cross-document panel transaction and copy-transfer authority
+- non-macOS strong display and packaged transfer evidence

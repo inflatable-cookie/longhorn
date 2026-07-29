@@ -1,0 +1,1376 @@
+{
+  "protocol_version": 1,
+  "name": "nucleus",
+  "host_binding": {
+    "kind": "window",
+    "window_id": "window:project",
+    "container_id": "container:primary"
+  },
+  "resolved_default_region": "main",
+  "definitions": {
+    "limits": {
+      "maximum_schemas": 4,
+      "maximum_regions_per_schema": 16,
+      "maximum_sizing_slots_per_schema": 8,
+      "maximum_panel_definitions": 8,
+      "maximum_containers": 4,
+      "maximum_panel_instances": 32,
+      "maximum_panel_instances_per_region": 16
+    },
+    "schema": {
+      "id": "schema:nucleus",
+      "regions": [
+        {
+          "id": "navigation",
+          "family_id": "activity",
+          "order": 0,
+          "empty_policy": "keep_visible",
+          "collapsible": true
+        },
+        {
+          "id": "main",
+          "family_id": "workspace",
+          "order": 1,
+          "empty_policy": "hide_when_empty",
+          "collapsible": false
+        },
+        {
+          "id": "detail",
+          "family_id": "workspace",
+          "order": 2,
+          "empty_policy": "hide_when_empty",
+          "collapsible": true
+        },
+        {
+          "id": "tasks",
+          "family_id": "utility",
+          "order": 3,
+          "empty_policy": "hide_when_empty",
+          "collapsible": true
+        },
+        {
+          "id": "status",
+          "family_id": "chrome",
+          "order": 4,
+          "empty_policy": "keep_visible",
+          "collapsible": false
+        }
+      ],
+      "sizing_slots": [
+        {
+          "id": "navigation-width",
+          "order": 0,
+          "minimum": 100000,
+          "default": 250000,
+          "maximum": 900000
+        },
+        {
+          "id": "detail-width",
+          "order": 1,
+          "minimum": 100000,
+          "default": 250000,
+          "maximum": 900000
+        },
+        {
+          "id": "tasks-height",
+          "order": 2,
+          "minimum": 100000,
+          "default": 250000,
+          "maximum": 900000
+        },
+        {
+          "id": "content-scale",
+          "order": 3,
+          "minimum": 100000,
+          "default": 250000,
+          "maximum": 900000
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": "panel:workspace-tool",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "main"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "workspace"
+          }
+        ],
+        "instance_policy": {
+          "kind": "multiple"
+        },
+        "movable": true,
+        "closeable": true
+      },
+      {
+        "id": "panel:tasks",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "tasks"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "utility"
+          }
+        ],
+        "instance_policy": {
+          "kind": "singleton"
+        },
+        "movable": false,
+        "closeable": false
+      }
+    ]
+  },
+  "initial_document": {
+    "revision": 0,
+    "containers": [
+      {
+        "id": "container:primary",
+        "schema_id": "schema:nucleus",
+        "regions": [
+          {
+            "region_id": "navigation",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "main",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": null
+          },
+          {
+            "region_id": "detail",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "tasks",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "status",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": null
+          }
+        ],
+        "sizing_slots": [
+          {
+            "sizing_slot_id": "navigation-width",
+            "ratio": 250000
+          },
+          {
+            "sizing_slot_id": "detail-width",
+            "ratio": 250000
+          },
+          {
+            "sizing_slot_id": "tasks-height",
+            "ratio": 250000
+          },
+          {
+            "sizing_slot_id": "content-scale",
+            "ratio": 250000
+          }
+        ]
+      }
+    ],
+    "panel_instances": []
+  },
+  "steps": [
+    {
+      "request": {
+        "request_id": "request:nucleus:create-a",
+        "expected_revision": 0,
+        "command": {
+          "kind": "create_panel",
+          "panel_instance_id": "instance:a",
+          "panel_definition_id": "panel:workspace-tool",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "insertion_index": 0
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:create-a",
+        "previous_revision": 0,
+        "committed_revision": 1,
+        "outcome": {
+          "kind": "panel_created",
+          "panel_instance_id": "instance:a",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "insertion_index": 0
+        },
+        "authoritative_document": {
+          "revision": 1,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:create-b",
+        "expected_revision": 1,
+        "command": {
+          "kind": "create_panel",
+          "panel_instance_id": "instance:b",
+          "panel_definition_id": "panel:workspace-tool",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "insertion_index": 1
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:create-b",
+        "previous_revision": 1,
+        "committed_revision": 2,
+        "outcome": {
+          "kind": "panel_created",
+          "panel_instance_id": "instance:b",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "insertion_index": 1
+        },
+        "authoritative_document": {
+          "revision": 2,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a",
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:b",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:activate-a",
+        "expected_revision": 2,
+        "command": {
+          "kind": "activate_panel",
+          "panel_instance_id": "instance:a"
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:activate-a",
+        "previous_revision": 2,
+        "committed_revision": 3,
+        "outcome": {
+          "kind": "panel_activated",
+          "panel_instance_id": "instance:a",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "previous_active_panel_instance_id": "instance:b"
+        },
+        "authoritative_document": {
+          "revision": 3,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a",
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:reorder",
+        "expected_revision": 3,
+        "command": {
+          "kind": "reorder_region",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "panel_instance_ids": [
+            "instance:b",
+            "instance:a"
+          ]
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:reorder",
+        "previous_revision": 3,
+        "committed_revision": 4,
+        "outcome": {
+          "kind": "region_reordered",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "panel_instance_ids": [
+            "instance:b",
+            "instance:a"
+          ]
+        },
+        "authoritative_document": {
+          "revision": 4,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:b",
+                    "instance:a"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:move-b",
+        "expected_revision": 4,
+        "command": {
+          "kind": "move_panel",
+          "panel_instance_id": "instance:b",
+          "target_container_id": "container:primary",
+          "target_region_id": "detail",
+          "insertion_index": 0
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:move-b",
+        "previous_revision": 4,
+        "committed_revision": 5,
+        "outcome": {
+          "kind": "panel_moved",
+          "panel_instance_id": "instance:b",
+          "source_container_id": "container:primary",
+          "source_region_id": "main",
+          "former_index": 0,
+          "target_container_id": "container:primary",
+          "target_region_id": "detail",
+          "insertion_index": 0
+        },
+        "authoritative_document": {
+          "revision": 5,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:b",
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:size",
+        "expected_revision": 5,
+        "command": {
+          "kind": "set_sizing_slot",
+          "container_id": "container:primary",
+          "sizing_slot_id": "navigation-width",
+          "ratio": 300000
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:size",
+        "previous_revision": 5,
+        "committed_revision": 6,
+        "outcome": {
+          "kind": "sizing_slot_set",
+          "container_id": "container:primary",
+          "sizing_slot_id": "navigation-width",
+          "previous_ratio": 250000,
+          "committed_ratio": 300000
+        },
+        "authoritative_document": {
+          "revision": 6,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:b",
+                  "collapsed": false
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 300000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:collapse",
+        "expected_revision": 6,
+        "command": {
+          "kind": "set_region_collapsed",
+          "container_id": "container:primary",
+          "region_id": "detail",
+          "collapsed": true
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:collapse",
+        "previous_revision": 6,
+        "committed_revision": 7,
+        "outcome": {
+          "kind": "region_collapsed_set",
+          "container_id": "container:primary",
+          "region_id": "detail",
+          "previous_collapsed": false,
+          "committed_collapsed": true
+        },
+        "authoritative_document": {
+          "revision": 7,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [
+                    "instance:a"
+                  ],
+                  "active_panel_instance_id": "instance:a",
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:b",
+                  "collapsed": true
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 300000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:a",
+              "definition_id": "panel:workspace-tool"
+            },
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "request_id": "request:nucleus:close-a",
+        "expected_revision": 7,
+        "command": {
+          "kind": "close_panel",
+          "panel_instance_id": "instance:a"
+        }
+      },
+      "receipt": {
+        "request_id": "request:nucleus:close-a",
+        "previous_revision": 7,
+        "committed_revision": 8,
+        "outcome": {
+          "kind": "panel_closed",
+          "panel_instance_id": "instance:a",
+          "container_id": "container:primary",
+          "region_id": "main",
+          "former_index": 0
+        },
+        "authoritative_document": {
+          "revision": 8,
+          "containers": [
+            {
+              "id": "container:primary",
+              "schema_id": "schema:nucleus",
+              "regions": [
+                {
+                  "region_id": "navigation",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "main",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                },
+                {
+                  "region_id": "detail",
+                  "panel_instance_ids": [
+                    "instance:b"
+                  ],
+                  "active_panel_instance_id": "instance:b",
+                  "collapsed": true
+                },
+                {
+                  "region_id": "tasks",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "status",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                }
+              ],
+              "sizing_slots": [
+                {
+                  "sizing_slot_id": "navigation-width",
+                  "ratio": 300000
+                },
+                {
+                  "sizing_slot_id": "detail-width",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "tasks-height",
+                  "ratio": 250000
+                },
+                {
+                  "sizing_slot_id": "content-scale",
+                  "ratio": 250000
+                }
+              ]
+            }
+          ],
+          "panel_instances": [
+            {
+              "id": "instance:b",
+              "definition_id": "panel:workspace-tool"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "singleton_policy": {
+    "first_receipt": {
+      "request_id": "request:nucleus:singleton-a",
+      "previous_revision": 0,
+      "committed_revision": 1,
+      "outcome": {
+        "kind": "panel_created",
+        "panel_instance_id": "instance:singleton-a",
+        "container_id": "container:primary",
+        "region_id": "tasks",
+        "insertion_index": 0
+      },
+      "authoritative_document": {
+        "revision": 1,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:nucleus",
+            "regions": [
+              {
+                "region_id": "navigation",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              },
+              {
+                "region_id": "main",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": null
+              },
+              {
+                "region_id": "detail",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              },
+              {
+                "region_id": "tasks",
+                "panel_instance_ids": [
+                  "instance:singleton-a"
+                ],
+                "active_panel_instance_id": "instance:singleton-a",
+                "collapsed": false
+              },
+              {
+                "region_id": "status",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": null
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "navigation-width",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "detail-width",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "tasks-height",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "content-scale",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:singleton-a",
+            "definition_id": "panel:tasks"
+          }
+        ]
+      }
+    },
+    "second_rejection": {
+      "request_id": "request:nucleus:singleton-b",
+      "current_revision": 1,
+      "code": "instance_policy_exceeded",
+      "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:tasks has 2 instances per document; maximum is 1",
+      "authoritative_document": {
+        "revision": 1,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:nucleus",
+            "regions": [
+              {
+                "region_id": "navigation",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              },
+              {
+                "region_id": "main",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": null
+              },
+              {
+                "region_id": "detail",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              },
+              {
+                "region_id": "tasks",
+                "panel_instance_ids": [
+                  "instance:singleton-a"
+                ],
+                "active_panel_instance_id": "instance:singleton-a",
+                "collapsed": false
+              },
+              {
+                "region_id": "status",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": null
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "navigation-width",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "detail-width",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "tasks-height",
+                "ratio": 250000
+              },
+              {
+                "sizing_slot_id": "content-scale",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:singleton-a",
+            "definition_id": "panel:tasks"
+          }
+        ]
+      }
+    }
+  },
+  "ordinary_visibility": [
+    {
+      "region_id": "navigation",
+      "state": "visible"
+    },
+    {
+      "region_id": "main",
+      "state": "hidden"
+    },
+    {
+      "region_id": "detail",
+      "state": "visible"
+    },
+    {
+      "region_id": "tasks",
+      "state": "hidden"
+    },
+    {
+      "region_id": "status",
+      "state": "visible"
+    }
+  ],
+  "transient_visibility": [
+    {
+      "region_id": "navigation",
+      "state": "visible"
+    },
+    {
+      "region_id": "main",
+      "state": "transiently_revealed"
+    },
+    {
+      "region_id": "detail",
+      "state": "visible"
+    },
+    {
+      "region_id": "tasks",
+      "state": "hidden"
+    },
+    {
+      "region_id": "status",
+      "state": "visible"
+    }
+  ],
+  "stale_rejection": {
+    "request_id": "request:nucleus:stale",
+    "current_revision": 8,
+    "code": "stale_revision",
+    "detail": "expected layout revision 0; current revision is 8",
+    "authoritative_document": {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:nucleus",
+          "regions": [
+            {
+              "region_id": "navigation",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "main",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            },
+            {
+              "region_id": "detail",
+              "panel_instance_ids": [
+                "instance:b"
+              ],
+              "active_panel_instance_id": "instance:b",
+              "collapsed": true
+            },
+            {
+              "region_id": "tasks",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "status",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "navigation-width",
+              "ratio": 300000
+            },
+            {
+              "sizing_slot_id": "detail-width",
+              "ratio": 250000
+            },
+            {
+              "sizing_slot_id": "tasks-height",
+              "ratio": 250000
+            },
+            {
+              "sizing_slot_id": "content-scale",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:b",
+          "definition_id": "panel:workspace-tool"
+        }
+      ]
+    }
+  },
+  "invalid_rejection": {
+    "request_id": "request:nucleus:unchanged-move",
+    "current_revision": 8,
+    "code": "move_target_unchanged",
+    "detail": "same-region position changes require a complete reorder command",
+    "authoritative_document": {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:nucleus",
+          "regions": [
+            {
+              "region_id": "navigation",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "main",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            },
+            {
+              "region_id": "detail",
+              "panel_instance_ids": [
+                "instance:b"
+              ],
+              "active_panel_instance_id": "instance:b",
+              "collapsed": true
+            },
+            {
+              "region_id": "tasks",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "status",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "navigation-width",
+              "ratio": 300000
+            },
+            {
+              "sizing_slot_id": "detail-width",
+              "ratio": 250000
+            },
+            {
+              "sizing_slot_id": "tasks-height",
+              "ratio": 250000
+            },
+            {
+              "sizing_slot_id": "content-scale",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:b",
+          "definition_id": "panel:workspace-tool"
+        }
+      ]
+    }
+  },
+  "expected_snapshot": {
+    "revision": 8,
+    "containers": [
+      {
+        "id": "container:primary",
+        "schema_id": "schema:nucleus",
+        "regions": [
+          {
+            "region_id": "navigation",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "main",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": null
+          },
+          {
+            "region_id": "detail",
+            "panel_instance_ids": [
+              "instance:b"
+            ],
+            "active_panel_instance_id": "instance:b",
+            "collapsed": true
+          },
+          {
+            "region_id": "tasks",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "status",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": null
+          }
+        ],
+        "sizing_slots": [
+          {
+            "sizing_slot_id": "navigation-width",
+            "ratio": 300000
+          },
+          {
+            "sizing_slot_id": "detail-width",
+            "ratio": 250000
+          },
+          {
+            "sizing_slot_id": "tasks-height",
+            "ratio": 250000
+          },
+          {
+            "sizing_slot_id": "content-scale",
+            "ratio": 250000
+          }
+        ]
+      }
+    ],
+    "panel_instances": [
+      {
+        "id": "instance:b",
+        "definition_id": "panel:workspace-tool"
+      }
+    ]
+  }
+}

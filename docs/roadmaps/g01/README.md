@@ -6,10 +6,10 @@
 | --- | --- | --- | --- |
 | [g01.001](001-foundation-contracts-and-package-topology.md) | complete | contracts and package graph |
 | [g01.002](002-configuration-backup-and-recovery.md) | complete | versioned domains, safe writes, backup, restore |
-| [g01.003](003-display-geometry-and-window-planning.md) | planning | pure display, coordinates, geometry, window plans |
-| [g01.004](004-tauri-window-host-and-lifecycle.md) | blocked | native window apply and lifecycle |
-| [g01.005](005-layout-container-region-and-panel-core.md) | blocked | Surface-independent layout state |
-| [g01.006](006-optional-surfaces-and-cross-window-drag.md) | blocked | optional full hosting and transfer |
+| [g01.003](003-display-geometry-and-window-planning.md) | complete | pure display, coordinates, geometry, window plans |
+| [g01.004](004-tauri-window-host-and-lifecycle.md) | complete | native window apply and lifecycle |
+| [g01.005](005-layout-container-region-and-panel-core.md) | complete | Surface-independent layout state |
+| [g01.006](006-optional-surfaces-and-cross-window-drag.md) | active; Card 032 ready | optional full hosting and transfer |
 | [g01.007](007-typescript-svelte-poodle-and-app-shell.md) | blocked | checked clients and thin UI adapters |
 | [g01.008](008-settings-registry-and-shell.md) | blocked | centralized composable settings |
 | [g01.009](009-typed-bridge-and-optional-backend-topology.md) | researchable | direct/local/remote semantic seam |
@@ -42,23 +42,69 @@ not research activity, gates dependent implementation.
 
 ## Active Milestone
 
-`g01.003 Display, Geometry, And Window Planning`
+`g01.005` is complete. `g01.006` is active. Card 032 is ready.
 
 `g01.002` is complete. The delivered storage foundation includes domain
 storage, coordinated mutation, backup, restore, encrypted envelopes, custom
 adapters, versioned platform layouts, fixed bootstrap selection, journaled
 profile transition, legacy discovery, and receipt-bound cleanup.
 
-`g01.003` now owns the front door. Contract 009 and the milestone summary bound
-the work. No implementation card is ready.
+`g01.003` is complete. Cards 017 and 018 provide checked Tauri observation,
+explicit managed identity, injected dynamic creation, ordered native mutation,
+partial receipts, and fresh convergence readback. Card 019 adds pure
+apply/user event attribution, settling, debounce, bounded flush, close, and
+destroy directives. Card 020 adds Tauri capture, injected persistence, reveal
+gating, bounded close, and aggregate shutdown. Card 021 adds reusable mock and
+native assembly, donor-shaped composition proofs, minimal capability policy,
+fault receipts, and idempotent teardown. Card 022 adds the Rust 1.85-compatible
+locked graph and packaged macOS arm64 restore, reveal, capture, restart,
+dynamic-window, protected-primary, and flush evidence. `g01.004` is complete.
+
+Read-only Loophole and Nucleus layout revalidation is promoted through research
+memo 009 and contract 014. Cards 023-027 cover pure layout identity and policy,
+authoritative mutation, registered persistence, generated TypeScript, and
+two-shape conformance. Card 023 now supplies the pure registered model,
+normalization, sizing, and visibility foundation. Card 024 supplies atomic
+expected-revision mutation, authoritative receipts, failure invariance, and
+opt-in bounded replay. Card 025 supplies registered configuration persistence,
+registry-digest migration policy, fresh coordinated publication, bounded
+presentation debounce, explicit flush, and independent layout/window domains.
+Card 026 supplies checked Rust-to-TypeScript generation, compatibility guards,
+golden fixtures, exact ratio and ordinary-visibility helpers, and a
+framework-neutral package. Card 027 supplies checked Loophole and Nucleus
+composition, one shared resolver/mutation matrix, exact TypeScript expected
+snapshots, and package-boundary evidence.
+
+Read-only Surface and transfer revalidation is promoted through research memo
+010 and revised contracts 002 and 011. Cards 028-030 cover optional Surface
+identity, lifecycle, persistence, and window-host composition. Card 031 adds
+bounded sessions and leased targets. Cards 032-033 add same-document panel
+move and whole-Surface transfer. Card 034 adds checked clients and Tauri host
+assembly. Card 035 provides packaged proof and closeout. Cross-document panel
+transactions, copy, and reusable UI adapters remain explicit later work.
+Card 028 now supplies bounded Surface identity, strict topology, canonical
+normalization, consumer-resolved presence, and deterministic available-window
+fallback in a pure optional crate. Card 029 supplies authoritative lifecycle,
+external container inventory evidence, exact active fallback, explicit cleanup
+intent, registered persistence, migration and backup policy, fresh coordinated
+publication, and three-domain isolation. Card 030 adds optional pure
+Surface/window plan composition through the existing host, missing and
+returning host behavior, readiness and shutdown evidence, Loophole hierarchy
+conformance, and a no-Surface Nucleus dependency proof.
+Card 031 adds the pure bounded transfer coordinator: exact injected session
+identity and time, finite registries, atomic complete leases, epoch and destroy
+invalidation, terminal single-use, fresh-bounds resolution, and deterministic
+overlap rejection.
 
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
-envelopes, not execution authority. Cards 001 through 012 preserve the
-completed configuration runway.
+envelopes, not execution authority. Cards 001 through 022 preserve the
+completed configuration, display, and window-host runway. Cards 023-027 form
+the completed layout runway. Cards 028-035 form the active Surface and
+transfer runway.
 
 ## Next Task
 
-Compile `g01.003` into bounded display geometry, inventory, and pure
-window-planning cards. Stop before implementation.
+Start
+[Card 032 Authoritative Layout Panel Transfer](batch-cards/032-authoritative-layout-panel-transfer.md).

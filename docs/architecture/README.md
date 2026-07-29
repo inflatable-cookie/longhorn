@@ -1,6 +1,7 @@
 # Architecture
 
 - [System Architecture](system-architecture.md)
+- [Tauri Window Host Integration](tauri-window-host-integration.md)
 - [Package Topology](package-topology.md)
 - [System Inventory](system-inventory.md)
 - [Repo Authority Map](repo-authority-map.md)

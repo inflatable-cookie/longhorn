@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Longhorn Windowing Proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #101318;
+        color: #eef1f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        min-width: 520px;
+        min-height: 360px;
+        background:
+          radial-gradient(circle at 8% 0%, #27334a 0, transparent 40%),
+          #101318;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        margin: 0;
+        color: #aeb8c7;
+        line-height: 1.5;
+      }
+
+      .badge {
+        border: 1px solid #46536a;
+        border-radius: 999px;
+        padding: 6px 10px;
+        color: #c8d4e7;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: nowrap;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 10px;
+        margin: 22px 0;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid #46536a;
+        border-radius: 9px;
+        padding: 11px 13px;
+        background: #1a202a;
+        color: #edf2f8;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #242d3a;
+        border-color: #6a7c99;
+      }
+
+      button.danger {
+        border-color: #704851;
+      }
+
+      .panel {
+        border: 1px solid #354052;
+        border-radius: 12px;
+        overflow: hidden;
+        background: rgb(12 15 20 / 82%);
+      }
+
+      .panel-label {
+        padding: 9px 12px;
+        border-bottom: 1px solid #354052;
+        color: #91a0b7;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      pre {
+        min-height: 220px;
+        max-height: 420px;
+        margin: 0;
+        padding: 14px;
+        overflow: auto;
+        color: #c8d4e7;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre-wrap;
+      }
+
+      #message {
+        min-height: 24px;
+        margin: 12px 0 0;
+        color: #8ed2a8;
+        font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      #message.error {
+        color: #ff9c9c;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header data-tauri-drag-region>
+        <div>
+          <h1>Longhorn window host</h1>
+          <p>Packaged public-API proof. Move and resize this native window, then let it settle.</p>
+        </div>
+        <div class="badge" id="window-label">loading</div>
+      </header>
+
+      <section class="controls" id="main-controls">
+        <button data-command="refresh">Refresh evidence</button>
+        <button data-command="toggle-maximized">Toggle maximized through host</button>
+        <button data-command="create-workspace">Create dynamic workspace</button>
+        <button data-command="close-workspace">Close dynamic workspace</button>
+        <button data-command="protected-primary">Prove protected primary survival</button>
+        <button data-command="missing-display">Prepare missing-display restart</button>
+        <button data-command="flush">Flush staged placement</button>
+        <button class="danger" data-command="quit">Flush, teardown, and quit</button>
+      </section>
+
+      <section class="controls" id="workspace-controls" hidden>
+        <button data-command="refresh">Refresh evidence</button>
+        <button data-command="close-workspace">Close this dynamic window</button>
+      </section>
+
+      <div class="panel">
+        <div class="panel-label">Structured runtime state</div>
+        <pre id="status">Waiting for page-ready handshake…</pre>
+      </div>
+      <div id="message" aria-live="polite"></div>
+    </main>
+
+    <script type="module">
+      const { invoke } = window.__TAURI__.core;
+      const currentWindow = window.__TAURI__.window.getCurrentWindow();
+      const label = currentWindow.label;
+      const status = document.querySelector("#status");
+      const message = document.querySelector("#message");
+      const dragRegion = document.querySelector("header");
+
+      document.querySelector("#window-label").textContent = label;
+      document.querySelector("#main-controls").hidden = label !== "main";
+      document.querySelector("#workspace-controls").hidden = label === "main";
+      dragRegion.addEventListener("mousedown", (event) => {
+        if (event.button === 0) currentWindow.startDragging();
+      });
+
+      function showMessage(text, error = false) {
+        message.textContent = text;
+        message.classList.toggle("error", error);
+      }
+
+      async function refresh() {
+        const value = await invoke("proof_status");
+        status.textContent = JSON.stringify(value, null, 2);
+        return value;
+      }
+
+      const actions = {
+        refresh,
+        "toggle-maximized": () => invoke("toggle_maximized"),
+        "create-workspace": () => invoke("set_workspace", { enabled: true }),
+        "close-workspace": () => invoke("set_workspace", { enabled: false }),
+        "protected-primary": () => invoke("prove_protected_primary"),
+        "missing-display": () => invoke("prepare_missing_display_restart"),
+        flush: () => invoke("flush_proof"),
+        quit: () => invoke("quit_proof"),
+      };
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-command]");
+        if (!button) return;
+        button.disabled = true;
+        showMessage(`Running ${button.dataset.command}…`);
+        try {
+          const result = await actions[button.dataset.command]();
+          showMessage(
+            typeof result === "string" ? result : `${button.dataset.command} complete`,
+          );
+          await refresh();
+        } catch (error) {
+          showMessage(String(error), true);
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      try {
+        const receipt = await invoke("page_ready", { label });
+        let runtime = await refresh();
+        for (
+          let attempt = 0;
+          label === "main" &&
+          !runtime.host.initial_restore_complete &&
+          attempt < 12;
+          attempt += 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          runtime = await refresh();
+        }
+        showMessage(
+          runtime.host.initial_restore_complete || label !== "main"
+            ? `Page ready; Longhorn reveal gate complete (${receipt.status.kind}).`
+            : "Page ready; placement convergence is still pending.",
+        );
+      } catch (error) {
+        status.textContent = String(error);
+        showMessage("Page-ready handshake failed.", true);
+      }
+    </script>
+  </body>
+</html>

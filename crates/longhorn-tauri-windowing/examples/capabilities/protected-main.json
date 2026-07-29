@@ -1,0 +1,6 @@
+{
+  "identifier": "longhorn-protected-main",
+  "description": "Custom-titlebar drag for one protected predeclared window.",
+  "windows": ["main"],
+  "permissions": ["core:window:allow-start-dragging"]
+}

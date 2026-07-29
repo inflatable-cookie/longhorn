@@ -1,0 +1,16 @@
+[package]
+name = "longhorn-nucleus-no-surface-proof"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-layout.workspace = true
+longhorn-windowing.workspace = true
+
+[lints]
+workspace = true

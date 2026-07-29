@@ -1,8 +1,8 @@
 # System Architecture
 
-Status: promoted first pass  
+Status: promoted
 Owner: Tom  
-Updated: 2026-07-28
+Updated: 2026-07-29
 Vision: `../vision/001-shared-tauri-systems.md`
 
 ## Boundary
@@ -73,26 +73,41 @@ This layer does not depend on Surfaces.
 
 ### Layout core
 
-- consumer-defined region ids and families
-- panel ids, definitions, allowed regions, and instance policy
+- opaque layout-container and layout-schema ids
+- consumer-defined flat region ids, families, order, and empty-region policy
+- panel definitions, distinct panel instances, allowed placement, and explicit
+  instance policy
 - panel ordering and active-panel state
-- region sizing, collapse, visibility, and normalization
-- mutation commands and deterministic resolution
+- fixed-point named sizing slots and supported collapse state
+- occupancy and transient-reveal visibility projection
+- expected-revision mutation and deterministic normalization
 - layout-container id as the only parent requirement
 
-Panel bodies and panel resource attachments remain consumer-owned.
+The core does not encode a generic split tree. Consumers map named sizing slots
+and semantic regions into public Poodle split and dock components. Panel
+bodies, labels, and product resource attachments remain consumer-owned.
+
+`longhorn-layout`, `longhorn-layout-config`, `longhorn-bindings`, and
+`@longhorn/layout` implement this foundation. Checked Loophole eight-region
+and Nucleus five-region fixtures use one public resolver and mutation engine.
+Their Surface/window bindings remain outside the layout document.
 
 ### Optional Surface hosting
 
 - stable Surface identity and labels
+- distinct Surface-to-layout-container bindings
 - window hosting preferences and fallback
 - ordered hosted Surfaces per window
 - active Surface per window
-- presence gates
+- consumer-resolved presence input
 - create, duplicate, close, move, and reorder lifecycle
-- focused-panel and regional habitat policy
+- expected-revision mutation and registered persistence
+- explicit layout-container cleanup intent
 
-This is a separate package/module. Apps that omit it carry no Surface state.
+Product presence predicates, layout cloning, cleanup execution, window roles,
+and product resources remain consumer-owned. Surface, layout, and window
+geometry persist as distinct domains. Apps that omit this package carry no
+Surface state.
 
 ### Local state and persistence
 
@@ -111,7 +126,7 @@ This is a separate package/module. Apps that omit it carry no Surface state.
 - one injected store-wide local coordinator using a process mutex and stable
   advisory file lock
 - capability-confined atomic file replacement and explicit durability receipts
-- merge-safe partial updates and cross-domain transactions
+- merge-safe partial updates and coordinated multi-domain load sets
 - debounced scheduling and explicit flush
 - bounded backup capture, verified archive publication, and retention
 - capability-declared custom capture and restore adapters with confined
@@ -131,6 +146,14 @@ Storage locations are injected into pure code. Product schemas register with
 the store but do not become Longhorn types. Secrets use a separate secure-store
 adapter. Database placement follows the data lifecycle; database-native
 snapshot and migration adapters own live database consistency.
+
+Layout persistence uses a narrow `longhorn-layout-config` adapter. Consumers
+inject the exact descriptor and scope. Layout and window geometry remain
+separate domains, so renderer layout updates cannot replace host-owned window
+state. The adapter binds the complete layout document to a deterministic
+definition-registry digest. A changed digest requires a domain schema bump and
+an explicit migration hook. Structural requests publish immediately over fresh
+coordinated state; sizing and collapse may use bounded explicit-flush debounce.
 
 ### Settings and system registration
 
@@ -195,6 +218,9 @@ host-authoritative snapshot.
 - primary-window coordinator identity
 - capability examples for dynamic windows
 
+The implemented window-host assembly and capability posture are in the
+[Tauri Window Host Integration guide](tauri-window-host-integration.md).
+
 The bridge must not become a product command bus.
 
 ### Optional backend topology
@@ -219,11 +245,23 @@ This layer remains prototype-first.
 ## Drag And Drop
 
 - Same-webview tab and region movement uses Poodle's HTML5 payload contract.
-- Cross-webview/window movement uses host-created id-only sessions and leased
-  drop zones in `ScreenDip`, never serialized model state.
-- The Rust host re-resolves source, target, revision, and eligibility before
-  one transactional commit.
-- Empty-display window creation is explicit consumer policy.
+- Cross-webview/window movement uses bounded host-created single-use sessions
+  and complete replacement drop-zone leases in `ScreenDip`.
+- Drag payloads contain only protocol version and an unguessable session id.
+- Session ids contain exactly 128 injected entropy bits. Monotonic time and
+  entropy have no ambient implementation in the pure transfer package.
+- One current renderer client epoch owns each window lease. Epoch advance,
+  window destroy, expiry, and host shutdown invalidate process-local authority.
+- The Rust host re-resolves source, target, revision, window presence, and
+  eligibility before commit.
+- First-line panel transfer supports move within one registered layout
+  document. Cross-document and copy transfer fail before mutation.
+- Whole-Surface transfer mutates one Surface document and retains its layout
+  binding.
+- Empty-display window creation is explicit consumer policy with provision and
+  cleanup receipts.
+- Overlapping eligible targets abort as ambiguous; enumeration order never
+  chooses.
 - Pointer-math editing gestures remain consumer or specialist-library work.
 
 ## Authority

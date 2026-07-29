@@ -1,0 +1,2629 @@
+{
+  "protocol_version": 1,
+  "definitions": {
+    "limits": {
+      "maximum_schemas": 8,
+      "maximum_regions_per_schema": 16,
+      "maximum_sizing_slots_per_schema": 16,
+      "maximum_panel_definitions": 32,
+      "maximum_containers": 8,
+      "maximum_panel_instances": 128,
+      "maximum_panel_instances_per_region": 64
+    },
+    "schemas": [
+      {
+        "id": "schema:workspace",
+        "regions": [
+          {
+            "id": "left",
+            "family_id": "activity",
+            "order": 10,
+            "empty_policy": "keep_visible",
+            "collapsible": true
+          },
+          {
+            "id": "center",
+            "family_id": "workspace",
+            "order": 20,
+            "empty_policy": "hide_when_empty",
+            "collapsible": false
+          },
+          {
+            "id": "right",
+            "family_id": "workspace",
+            "order": 30,
+            "empty_policy": "hide_when_empty",
+            "collapsible": true
+          }
+        ],
+        "sizing_slots": [
+          {
+            "id": "left-width",
+            "order": 10,
+            "minimum": 100000,
+            "default": 200000,
+            "maximum": 500000
+          },
+          {
+            "id": "right-width",
+            "order": 20,
+            "minimum": 100000,
+            "default": 250000,
+            "maximum": 500000
+          }
+        ]
+      }
+    ],
+    "panels": [
+      {
+        "id": "panel:chat",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "center"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "workspace"
+          }
+        ],
+        "instance_policy": {
+          "kind": "singleton"
+        },
+        "movable": true,
+        "closeable": true
+      },
+      {
+        "id": "panel:tool",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "right"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "workspace"
+          }
+        ],
+        "instance_policy": {
+          "kind": "multiple"
+        },
+        "movable": true,
+        "closeable": true
+      },
+      {
+        "id": "panel:activity",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "left"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "activity"
+          }
+        ],
+        "instance_policy": {
+          "kind": "one_per_container"
+        },
+        "movable": false,
+        "closeable": false
+      },
+      {
+        "id": "panel:bounded",
+        "default_placements": [
+          {
+            "kind": "region",
+            "id": "center"
+          }
+        ],
+        "allowed_placements": [
+          {
+            "kind": "family",
+            "id": "workspace"
+          }
+        ],
+        "instance_policy": {
+          "kind": "bounded",
+          "maximum_per_document": 2,
+          "maximum_per_container": 1
+        },
+        "movable": true,
+        "closeable": true
+      }
+    ]
+  },
+  "snapshots": [
+    {
+      "revision": 7,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:chat",
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:chat",
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [
+                "instance:tool-2"
+              ],
+              "active_panel_instance_id": "instance:tool-2",
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        },
+        {
+          "id": "instance:tool-2",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:tool",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:chat",
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:tool",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:tool",
+                "instance:chat"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:tool",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [
+                "instance:chat"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": false
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:chat",
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 400000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    },
+    {
+      "revision": 8,
+      "containers": [
+        {
+          "id": "container:primary",
+          "schema_id": "schema:workspace",
+          "regions": [
+            {
+              "region_id": "left",
+              "panel_instance_ids": [
+                "instance:activity"
+              ],
+              "active_panel_instance_id": "instance:activity",
+              "collapsed": true
+            },
+            {
+              "region_id": "center",
+              "panel_instance_ids": [
+                "instance:chat",
+                "instance:tool"
+              ],
+              "active_panel_instance_id": "instance:chat",
+              "collapsed": null
+            },
+            {
+              "region_id": "right",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            }
+          ],
+          "sizing_slots": [
+            {
+              "sizing_slot_id": "left-width",
+              "ratio": 200000
+            },
+            {
+              "sizing_slot_id": "right-width",
+              "ratio": 250000
+            }
+          ]
+        }
+      ],
+      "panel_instances": [
+        {
+          "id": "instance:activity",
+          "definition_id": "panel:activity"
+        },
+        {
+          "id": "instance:chat",
+          "definition_id": "panel:chat"
+        },
+        {
+          "id": "instance:tool",
+          "definition_id": "panel:tool"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "request_id": "request:create",
+      "expected_revision": 7,
+      "command": {
+        "kind": "create_panel",
+        "panel_instance_id": "instance:tool-2",
+        "panel_definition_id": "panel:tool",
+        "container_id": "container:primary",
+        "region_id": "right",
+        "insertion_index": 0
+      }
+    },
+    {
+      "request_id": "request:close",
+      "expected_revision": 7,
+      "command": {
+        "kind": "close_panel",
+        "panel_instance_id": "instance:chat"
+      }
+    },
+    {
+      "request_id": "request:activate",
+      "expected_revision": 7,
+      "command": {
+        "kind": "activate_panel",
+        "panel_instance_id": "instance:tool"
+      }
+    },
+    {
+      "request_id": "request:reorder",
+      "expected_revision": 7,
+      "command": {
+        "kind": "reorder_region",
+        "container_id": "container:primary",
+        "region_id": "center",
+        "panel_instance_ids": [
+          "instance:tool",
+          "instance:chat"
+        ]
+      }
+    },
+    {
+      "request_id": "request:move",
+      "expected_revision": 7,
+      "command": {
+        "kind": "move_panel",
+        "panel_instance_id": "instance:chat",
+        "target_container_id": "container:primary",
+        "target_region_id": "right",
+        "insertion_index": 0
+      }
+    },
+    {
+      "request_id": "request:sizing",
+      "expected_revision": 7,
+      "command": {
+        "kind": "set_sizing_slot",
+        "container_id": "container:primary",
+        "sizing_slot_id": "right-width",
+        "ratio": 400000
+      }
+    },
+    {
+      "request_id": "request:collapse",
+      "expected_revision": 7,
+      "command": {
+        "kind": "set_region_collapsed",
+        "container_id": "container:primary",
+        "region_id": "left",
+        "collapsed": true
+      }
+    }
+  ],
+  "receipts": [
+    {
+      "request_id": "request:create",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "panel_created",
+        "panel_instance_id": "instance:tool-2",
+        "container_id": "container:primary",
+        "region_id": "right",
+        "insertion_index": 0
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [
+                  "instance:tool-2"
+                ],
+                "active_panel_instance_id": "instance:tool-2",
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          },
+          {
+            "id": "instance:tool-2",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:close",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "panel_closed",
+        "panel_instance_id": "instance:chat",
+        "container_id": "container:primary",
+        "region_id": "center",
+        "former_index": 0
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:tool",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:activate",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "panel_activated",
+        "panel_instance_id": "instance:tool",
+        "container_id": "container:primary",
+        "region_id": "center",
+        "previous_active_panel_instance_id": "instance:chat"
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:tool",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:reorder",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "region_reordered",
+        "container_id": "container:primary",
+        "region_id": "center",
+        "panel_instance_ids": [
+          "instance:tool",
+          "instance:chat"
+        ]
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:tool",
+                  "instance:chat"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:move",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "panel_moved",
+        "panel_instance_id": "instance:chat",
+        "source_container_id": "container:primary",
+        "source_region_id": "center",
+        "former_index": 0,
+        "target_container_id": "container:primary",
+        "target_region_id": "right",
+        "insertion_index": 0
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:tool",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [
+                  "instance:chat"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:sizing",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "sizing_slot_set",
+        "container_id": "container:primary",
+        "sizing_slot_id": "right-width",
+        "previous_ratio": 250000,
+        "committed_ratio": 400000
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 400000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:collapse",
+      "previous_revision": 7,
+      "committed_revision": 8,
+      "outcome": {
+        "kind": "region_collapsed_set",
+        "container_id": "container:primary",
+        "region_id": "left",
+        "previous_collapsed": false,
+        "committed_collapsed": true
+      },
+      "authoritative_document": {
+        "revision": 8,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": true
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "request_id": "request:error-00",
+      "current_revision": 7,
+      "code": "invalid_current_document",
+      "detail": "golden fixture for invalid_current_document",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:stale",
+      "current_revision": 7,
+      "code": "stale_revision",
+      "detail": "expected layout revision 0; current revision is 7",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-02",
+      "current_revision": 7,
+      "code": "revision_overflow",
+      "detail": "golden fixture for revision_overflow",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-03",
+      "current_revision": 7,
+      "code": "unknown_container",
+      "detail": "golden fixture for unknown_container",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-04",
+      "current_revision": 7,
+      "code": "unknown_region",
+      "detail": "golden fixture for unknown_region",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-05",
+      "current_revision": 7,
+      "code": "unknown_sizing_slot",
+      "detail": "golden fixture for unknown_sizing_slot",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-06",
+      "current_revision": 7,
+      "code": "unknown_panel_definition",
+      "detail": "golden fixture for unknown_panel_definition",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-07",
+      "current_revision": 7,
+      "code": "unknown_panel_instance",
+      "detail": "golden fixture for unknown_panel_instance",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-08",
+      "current_revision": 7,
+      "code": "duplicate_panel_instance",
+      "detail": "golden fixture for duplicate_panel_instance",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-09",
+      "current_revision": 7,
+      "code": "panel_placement_not_allowed",
+      "detail": "golden fixture for panel_placement_not_allowed",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-10",
+      "current_revision": 7,
+      "code": "instance_policy_exceeded",
+      "detail": "golden fixture for instance_policy_exceeded",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-11",
+      "current_revision": 7,
+      "code": "panel_not_closeable",
+      "detail": "golden fixture for panel_not_closeable",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-12",
+      "current_revision": 7,
+      "code": "panel_not_movable",
+      "detail": "golden fixture for panel_not_movable",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-13",
+      "current_revision": 7,
+      "code": "move_target_unchanged",
+      "detail": "golden fixture for move_target_unchanged",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-14",
+      "current_revision": 7,
+      "code": "invalid_insertion_index",
+      "detail": "golden fixture for invalid_insertion_index",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-15",
+      "current_revision": 7,
+      "code": "incomplete_reorder",
+      "detail": "golden fixture for incomplete_reorder",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-16",
+      "current_revision": 7,
+      "code": "duplicate_reorder_member",
+      "detail": "golden fixture for duplicate_reorder_member",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-17",
+      "current_revision": 7,
+      "code": "foreign_reorder_member",
+      "detail": "golden fixture for foreign_reorder_member",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-18",
+      "current_revision": 7,
+      "code": "invalid_sizing_ratio",
+      "detail": "golden fixture for invalid_sizing_ratio",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-19",
+      "current_revision": 7,
+      "code": "unsupported_collapse",
+      "detail": "golden fixture for unsupported_collapse",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-20",
+      "current_revision": 7,
+      "code": "invalid_candidate",
+      "detail": "golden fixture for invalid_candidate",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-21",
+      "current_revision": 7,
+      "code": "request_id_conflict",
+      "detail": "golden fixture for request_id_conflict",
+      "authoritative_document": {
+        "revision": 7,
+        "containers": [
+          {
+            "id": "container:primary",
+            "schema_id": "schema:workspace",
+            "regions": [
+              {
+                "region_id": "left",
+                "panel_instance_ids": [
+                  "instance:activity"
+                ],
+                "active_panel_instance_id": "instance:activity",
+                "collapsed": false
+              },
+              {
+                "region_id": "center",
+                "panel_instance_ids": [
+                  "instance:chat",
+                  "instance:tool"
+                ],
+                "active_panel_instance_id": "instance:chat",
+                "collapsed": null
+              },
+              {
+                "region_id": "right",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
+              }
+            ],
+            "sizing_slots": [
+              {
+                "sizing_slot_id": "left-width",
+                "ratio": 200000
+              },
+              {
+                "sizing_slot_id": "right-width",
+                "ratio": 250000
+              }
+            ]
+          }
+        ],
+        "panel_instances": [
+          {
+            "id": "instance:activity",
+            "definition_id": "panel:activity"
+          },
+          {
+            "id": "instance:chat",
+            "definition_id": "panel:chat"
+          },
+          {
+            "id": "instance:tool",
+            "definition_id": "panel:tool"
+          }
+        ]
+      }
+    }
+  ],
+  "visibility": [
+    {
+      "region_id": "left",
+      "state": "visible"
+    },
+    {
+      "region_id": "center",
+      "state": "visible"
+    },
+    {
+      "region_id": "right",
+      "state": "hidden"
+    },
+    {
+      "region_id": "left",
+      "state": "visible"
+    },
+    {
+      "region_id": "center",
+      "state": "visible"
+    },
+    {
+      "region_id": "right",
+      "state": "transiently_revealed"
+    }
+  ],
+  "incompatibility": {
+    "future_protocol_version": 2,
+    "unknown_command": {
+      "kind": "future_layout_command"
+    },
+    "unknown_outcome": {
+      "kind": "future_layout_outcome"
+    },
+    "unknown_rejection_code": "future_layout_rejection"
+  }
+}

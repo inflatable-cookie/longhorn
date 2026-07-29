@@ -1,0 +1,24 @@
+[package]
+name = "longhorn-tauri-windowing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-display.workspace = true
+longhorn-windowing.workspace = true
+serde.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+longhorn-surface-windowing.workspace = true
+longhorn-surfaces.workspace = true
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true
