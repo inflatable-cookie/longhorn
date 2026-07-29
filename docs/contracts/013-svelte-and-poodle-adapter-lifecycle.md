@@ -1,9 +1,10 @@
 # 013 Svelte And Poodle Adapter Lifecycle
 
-Status: active first pass  
-Owner: Tom  
-Updated: 2026-07-27  
-Evidence: `../research/translation-memos/003-foundation-boundary-characterization.md`
+Status: active compiled boundary
+Owner: Tom
+Updated: 2026-07-29
+Evidence: `../research/translation-memos/003-foundation-boundary-characterization.md`,
+`../research/translation-memos/011-client-svelte-poodle-and-shell-boundary.md`
 
 ## Boundary
 
@@ -22,6 +23,10 @@ primitives without copying component source or durable state.
 - Window destruction releases listeners, timers, drag leases, and pending
   optimistic projections.
 - Transport and scheduler dependencies are injectable for tests.
+- A shared lifecycle primitive may own registration, pump, and teardown. Each
+  domain still supplies validation and freshness comparison.
+- A client is added only for a real host command/event contract. Checked
+  generated layout data does not imply an invented layout service.
 
 ## Reactive State
 
@@ -31,6 +36,8 @@ primitives without copying component source or durable state.
   and rolled back or resynced on failure.
 - Errors, loading, reconnecting, and unsupported capability states are
   explicit.
+- An optional capability lives behind its package subpath. Importing the
+  Surface-free root cannot resolve that capability.
 
 ## Poodle Boundary
 
@@ -40,17 +47,56 @@ primitives without copying component source or durable state.
 - Longhorn owns ids, eligibility, command dispatch, and authoritative state.
 - Consumer panel bodies and product presentation remain slots or snippets.
 - No adapter imports Poodle internals or copies Poodle source.
+- Poodle's `WorkspaceLayoutSnapshot` is presentation state, not a second
+  durable Longhorn document.
+- Same-window drag remains Poodle-owned. Cross-window binding requires public
+  drag start, end, eligibility, and external-drop extension points.
+- Poodle `g12.016` supplies those public points through typed asynchronous
+  prepare, synchronous start, terminal end/cancel, target eligibility, and
+  accepted-drop callbacks. Pending preparation emits no external payload.
+- Private MIME values, generated DOM ids, CSS classes, and event-target
+  reverse engineering are not public integration seams.
 
 The titlebar-drag helper rejects interactive descendants and modified pointer
 gestures before asking the host to start native dragging. Failure goes through
 an injected reporter.
 
+## Shell Composition
+
+- Theme and presentation bootstrap uses public Poodle token and provider APIs.
+- Readiness reveal is explicit and follows authoritative load.
+- Missing capability and host errors remain visible states.
+- Guidance composes these pieces; Longhorn does not ship one mandatory app
+  frame.
+
 ## Compatibility
 
 - Svelte, Poodle, and Tauri compatibility ranges are declared peers.
+- Private Poodle adapter proof pins one exact packable preview artifact until a
+  published prerelease range exists.
+- The current pin is Card 038 artifact set
+  `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.
 - Every adapter has a framework-neutral client test and a mounted lifecycle
   test.
 - DOM-only code is isolated from generated protocol and domain packages.
+
+## Implementation Evidence
+
+Card 039 implements private `@longhorn/poodle` against the exact Card 038
+artifact. Public Tabs, DockRegion, and SplitView bindings project registered
+layout state, serialize expected-revision mutation, reconcile controlled state,
+and keep labels, icons, bodies, and static panels in consumer resolvers and
+snippets. The root imports no Surface or transfer package. Mounted Nucleus and
+Loophole shapes exercise the same adapter.
+
+Card 041 installs three shell shapes from packed artifacts. Public Poodle
+theme and presentation setup surrounds distinct consumer frames. Checked
+authority loads before guarded reveal; loading, reconnecting, unsupported,
+and failed states stay visible. Mounted teardown covers connections and armed
+transfer cancellation.
+
+Evidence: `../logs/2026-07/29-poodle-layout-bindings.md`,
+`../logs/2026-07/29-three-shape-app-shell-proof-and-closeout.md`.
 
 ## Acceptance
 
@@ -60,5 +106,5 @@ an injected reporter.
 - stale optimistic results cannot overwrite a newer authoritative snapshot
 - public Poodle adapters cover tabs, regions, and split views without source
   duplication
+- cross-window drag uses no Poodle-private selector or payload
 - a minimal Bovine shell and full Loophole shell use different compositions
-

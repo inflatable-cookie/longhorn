@@ -35,6 +35,20 @@ impl<R: Runtime> TauriWindowHost<R> {
             .map_err(TauriWindowHostError::Lifecycle)
     }
 
+    /// Clones the current managed-window set for narrow peer host adapters.
+    pub fn managed_windows(
+        &self,
+    ) -> Result<Vec<crate::ManagedWebviewWindow<R>>, TauriWindowHostError> {
+        self.registry
+            .lock()
+            .map_err(|_| TauriWindowHostError::StateUnavailable {
+                state: "managed window registry".to_string(),
+            })?
+            .as_ref()
+            .map(ManagedWindowRegistry::managed_windows)
+            .ok_or(TauriWindowHostError::Busy)
+    }
+
     /// Executes one apply without retaining a registry lock across injected calls.
     pub fn apply<F, B, Q>(
         &self,

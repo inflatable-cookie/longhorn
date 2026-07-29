@@ -16,5 +16,6 @@ None.
 
 ## Next Task
 
-`g01.002` through `g01.005` are complete. `g01.006` is compiled through Cards
-028-035. Cards 028-031 are complete. Start Card 032.
+`g01.002` through `g01.007` are complete. No execution card is ready. Resolve
+the g01 post-007 intent gate between settings compilation and bridge/topology
+research.

@@ -8,6 +8,7 @@ use crate::{ClientEpoch, TransferRevision};
 
 /// Capability admitted for one transfer subject and target.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum TransferCapability {
     /// Move one panel through authoritative layout mutation.
@@ -18,6 +19,7 @@ pub enum TransferCapability {
 
 /// Product-neutral transfer-subject category.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum TransferSubjectKind {
     /// Surface-independent panel instance.

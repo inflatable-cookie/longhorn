@@ -27,7 +27,7 @@ effigy qa
 
 ## Current State
 
-Strict-ready Northstar docs spine installed. The five-app audit, promoted
+Strict-paused Northstar docs spine installed. The five-app audit, promoted
 foundation contracts, package topology, and full g01 runway are preserved.
 The configuration domain store, coordinated atomic patch mutation, bounded
 debounce, explicit flush, and coordinated backup capture are implemented.
@@ -99,4 +99,31 @@ behavior, ordered shutdown, and Loophole and no-Surface Nucleus shapes. Card
 031 adds exact injected transfer-session identity and monotonic time, finite
 process-local registries, atomic complete drop-zone leases, client-epoch and
 destroy invalidation, terminal single-use, and deterministic target
-resolution. Card 032 is ready.
+resolution. Card 032 adds fresh movable-panel admission, opaque direct-window
+and Surface-container bindings, same-domain and revision rechecks, and the
+existing coordinated expected-revision `MovePanel` publication with exact
+abort invariance. Card 033 adds fresh whole-Surface admission, Surface-only
+expected-revision moves, exact layout-binding retention, opt-in empty-display
+policy, and receipted provision, cleanup, and host reconciliation. Card 034
+adds checked Surface, transfer, and optional Surface-transfer protocols,
+framework-neutral clients, listener-before-snapshot epoch handling, narrow
+Tauri transport and handler assembly, managed-window geometry projection, and
+audited capability examples. Card 035 adds passing direct and
+Surface-enabled Rust 1.85 packaged macOS arm64 artifacts, real multi-webview
+transfer, explicit empty-display provision, exact failure invariance, 2× scale
+boundaries, and dependency, payload, capability, and authority audits.
+`g01.006` is complete. Research memo 011 compiles g01.007 into Cards 036-041:
+client lifetime, domain-free Tauri transport, Svelte state, a Poodle public
+drag and preview-artifact checkpoint, public layout bindings, armed
+cross-window drag, titlebar behavior, and three shell proofs. Card 036 is
+complete with the shared checked client lifetime and domain-free Tauri
+transport. Card 037 is complete with isolated Svelte state, consumer-fed layout
+projection, optional domain subpaths, request-keyed optimism, and mounted
+teardown. Card 038 is complete with Poodle's public typed drag seam and exact
+preview artifact. Card 039 is complete with private Surface-free Poodle layout
+bindings, consumer-owned presentation snippets, serialized revisioned
+mutation, and mounted Nucleus and Loophole shapes. Card 040 is complete with
+armed transfer, checked leases, compatible reveal, and injected titlebar
+drag. Card 041 closes `g01.007` with isolated artifact-installed Bovine,
+Nucleus, and Loophole shells. No execution card is ready; the g01 post-007
+intent gate is active.

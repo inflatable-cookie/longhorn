@@ -8,6 +8,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 /// segment starts with a letter and may continue with letters, digits, `_`,
 /// or `-`.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "string"))]
 pub struct DomainId(String);
 
 impl DomainId {

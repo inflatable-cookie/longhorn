@@ -1,0 +1,12 @@
+{
+  "identifier": "loophole-shell",
+  "description": "Full managed-window, Surface, panel-transfer, and Surface-transfer shell.",
+  "windows": ["main", "workspace-*"],
+  "permissions": [
+    "allow-longhorn-transfer-base",
+    "allow-longhorn-transfer-surface",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-start-dragging"
+  ]
+}

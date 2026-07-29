@@ -40,7 +40,7 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
         let mut by_handle = BTreeMap::new();
         let mut stable_ids = BTreeSet::new();
         for managed in windows {
-            let label = managed.window().label();
+            let label = managed.webview_window().label();
             let handle = HostWindowHandle::new(label).map_err(|source| {
                 ManagedWindowRegistryError::InvalidTransportHandle {
                     label: label.to_string(),
@@ -190,13 +190,13 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
                     transport_handle: handle.clone(),
                 });
             }
-            return Ok((handle.clone(), managed.window().clone()));
+            return Ok((handle.clone(), managed.webview_window().clone()));
         }
 
         self.windows
             .iter()
             .find(|(_, managed)| managed.window_id() == Some(window_id))
-            .map(|(handle, managed)| (handle.clone(), managed.window().clone()))
+            .map(|(handle, managed)| (handle.clone(), managed.webview_window().clone()))
             .ok_or_else(|| ManagedWindowRegistryError::UnknownWindowId(window_id.clone()))
     }
 

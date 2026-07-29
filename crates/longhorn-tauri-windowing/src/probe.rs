@@ -170,7 +170,7 @@ fn validate_managed_windows<R: Runtime>(
     let mut ordered_handles = Vec::with_capacity(managed_windows.len());
 
     for managed in managed_windows {
-        let label = managed.window().label();
+        let label = managed.webview_window().label();
         let handle = HostWindowHandle::new(label).map_err(|source| {
             TauriProbeError::InvalidTransportHandle {
                 label: label.to_string(),
@@ -195,7 +195,7 @@ fn probe_window<R: Runtime>(
     managed: &ManagedWebviewWindow<R>,
     handle: HostWindowHandle,
 ) -> Result<PhysicalLiveWindowObservation, TauriProbeError> {
-    let window = managed.window();
+    let window = managed.webview_window();
     let scale = host_result(
         window.scale_factor(),
         HostProbeOperation::WindowScale,

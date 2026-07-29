@@ -12,7 +12,7 @@
 
 ## Posture
 
-`strict-ready`
+`strict-paused`
 
 The strict spine is installed. Three audit passes are preserved, the complete
 shared-system suite is inventoried, and a 16-milestone g01 runway covers
@@ -66,6 +66,28 @@ mock evidence, ordered shutdown, full-hierarchy conformance, and a no-Surface
 dependency proof. Card 031 adds the Surface-free bounded transfer coordinator,
 complete replacement leases, epoch and destroy invalidation, terminal
 single-use, and deterministic explicit-zone and screen-point resolution. Card
-032 is ready.
+032 adds fresh movable-panel admission, opaque direct-window and
+Surface-container host bindings, same-domain and revision rechecks, and the
+existing coordinated expected-revision `MovePanel` publication with exact
+abort invariance. Card 033 adds fresh whole-Surface admission, Surface-only
+expected-revision moves, exact layout-binding retention, opt-in empty-display
+policy, and receipted provision, cleanup, and host reconciliation. Card 034
+adds checked Surface, transfer, and optional Surface-transfer protocols,
+framework-neutral clients, epoch-safe renderer connection, narrow Tauri
+transport and handler assembly, managed-window geometry projection, and
+audited capability examples. Card 035 adds passing direct and Surface-enabled
+packaged macOS arm64 proofs, real multi-webview transfer, explicit
+empty-display provision, exact failed-attempt invariance, scale boundaries,
+and package, payload, capability, and authority audits. `g01.006` is complete.
+Research memo 011 and revised contracts 011-013 compile the domain-neutral
+client lifetime, Svelte, Poodle-public, armed drag, titlebar, and shell
+boundary into Cards 036-041. Cards 036-040 are complete. Poodle's public drag
+seam and exact preview artifact are recorded. Card 039 is complete with
+Surface-free public layout bindings and mounted Nucleus and Loophole shapes.
+Card 040 adds armed transfer, checked leases, compatible reveal, and titlebar
+drag. Card 041 adds isolated artifact-installed Bovine, Surface-free Nucleus,
+and full Loophole shells, public Poodle bootstrap, guarded reveal, narrow
+capabilities, and explicit failures. `g01.007` is complete. No execution card
+is ready; the g01 post-007 intent gate is active.
 
 The live next-task pointer lives in the roadmap front doors.

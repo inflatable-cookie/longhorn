@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-transfer-surface"
+description = "Allows the optional Longhorn whole-Surface transfer protocol."
+commands.allow = [
+  "longhorn_transfer_start_surface",
+  "longhorn_transfer_commit_surface",
+]

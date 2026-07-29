@@ -3,3 +3,6 @@
 
 # Rust build output
 /target/
+
+# JavaScript workspace installs
+/node_modules/

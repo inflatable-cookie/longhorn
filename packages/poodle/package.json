@@ -1,0 +1,42 @@
+{
+  "name": "@longhorn/poodle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/index.ts",
+  "svelte": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./transfer": {
+      "types": "./src/transfer.ts",
+      "svelte": "./src/transfer.ts",
+      "import": "./src/transfer.ts",
+      "default": "./src/transfer.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "dependencies": {
+    "@longhorn/layout": "0.1.0",
+    "@longhorn/svelte": "0.1.0"
+  },
+  "peerDependencies": {
+    "@longhorn/transfer": "0.1.0",
+    "@poodle/svelte": "0.1.0",
+    "svelte": ">=5.38.6 <6"
+  },
+  "peerDependenciesMeta": {
+    "@longhorn/transfer": {
+      "optional": true
+    }
+  },
+  "sideEffects": false
+}

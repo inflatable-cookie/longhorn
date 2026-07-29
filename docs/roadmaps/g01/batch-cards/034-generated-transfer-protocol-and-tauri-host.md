@@ -1,6 +1,6 @@
 # 034 Generated Transfer Protocol And Tauri Host
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.006 batch 5
 Governing refs: contracts 001, 002, 009-014; research memo 010
@@ -89,5 +89,27 @@ protocol behavior needed by the packaged proof and later g01.007 adapters.
 
 ## Next Task
 
-Card 035 remains planned until checked clients and the real/mock handler share
-one protocol.
+Card 035 is ready. Prove the shared protocol and handler in one packaged
+multi-window app, then close g01.006.
+
+## Outcome
+
+`longhorn-bindings` now generates checked Surface, transfer, and optional
+Surface-transfer protocols and Rust-authored golden fixtures.
+`@longhorn/surfaces`, `@longhorn/transfer`, and
+`@longhorn/surface-transfer` provide compatibility guards and
+framework-neutral clients. `@longhorn/tauri` is the sole raw invoke/listen
+adapter.
+
+`longhorn-tauri-transfer` binds commands to current managed-window readback,
+projects client geometry through checked scale conversion, and shares one
+coordinator and client epoch across base and optional Surface handlers. The
+renderer connection installs its epoch listener before snapshot invoke,
+accepts only the newest epoch, and tears down safely when listener
+registration resolves late.
+
+Base and Surface capability examples grant only the named commands and event
+listen/unlisten. Rust and TypeScript protocol, handler, connection,
+import-safety, package-content, capability, Rust 1.85, and full Effigy QA
+evidence passes. The closeout report is
+[`Generated Transfer Protocol And Tauri Host`](../../../logs/2026-07/29-generated-transfer-protocol-and-tauri-host.md).

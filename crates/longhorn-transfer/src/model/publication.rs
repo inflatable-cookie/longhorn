@@ -1,4 +1,5 @@
 use longhorn_core::{DropZoneId, ScreenPoint, ScreenRect, WindowId};
+use serde::{Deserialize, Serialize};
 
 use crate::{ClientEpoch, DropZone, LeaseGeneration, TransferClientId, TransferDuration};
 
@@ -107,7 +108,9 @@ pub enum TargetSelector {
 }
 
 /// Stable target-resolution evidence.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
 pub enum TargetResolutionPath {
     /// Selected by explicit zone identity.
     ExplicitZone,

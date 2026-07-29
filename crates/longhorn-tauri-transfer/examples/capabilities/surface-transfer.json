@@ -1,0 +1,11 @@
+{
+  "identifier": "longhorn-transfer-with-surfaces",
+  "description": "Base and optional whole-Surface transfer commands for managed app windows.",
+  "windows": ["main", "workspace-*"],
+  "permissions": [
+    "allow-longhorn-transfer-base",
+    "allow-longhorn-transfer-surface",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

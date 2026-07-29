@@ -7,6 +7,7 @@ use crate::SurfaceDocument;
 
 /// Stable typed Surface mutation rejection category.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum SurfaceMutationRejectionCode {
     /// The supplied current document failed validation.
@@ -47,6 +48,7 @@ pub enum SurfaceMutationRejectionCode {
 
 /// Failed mutation with exact unchanged-state evidence.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceMutationRejection {
     request_id: SurfaceRequestId,

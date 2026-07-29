@@ -10,6 +10,9 @@ publish = false
 [dependencies]
 longhorn-core = { workspace = true, features = ["bindings"] }
 longhorn-layout = { workspace = true, features = ["bindings"] }
+longhorn-surfaces = { workspace = true, features = ["bindings"] }
+longhorn-surface-transfer = { workspace = true, features = ["bindings"] }
+longhorn-transfer = { workspace = true, features = ["bindings"] }
 serde.workspace = true
 serde_json.workspace = true
 ts-rs.workspace = true

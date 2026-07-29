@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{SurfaceDocument, SurfaceHostPreference};
 
-use super::LayoutContainerCleanupIntent;
+use super::{LayoutContainerCleanupIntent, SurfaceMutationRejection};
 
 /// One strict expected-revision Surface mutation request.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceMutationRequest {
     request_id: SurfaceRequestId,
@@ -50,6 +51,8 @@ impl SurfaceMutationRequest {
 
 /// Authoritative Surface lifecycle command.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "kind")]
 pub enum SurfaceMutationCommand {
     /// Creates a caller-identified Surface bound to an existing container.
@@ -111,6 +114,8 @@ pub enum SurfaceMutationCommand {
 
 /// Command-specific committed Surface mutation evidence.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "kind")]
 pub enum SurfaceMutationOutcome {
     /// One Surface was created.
@@ -168,6 +173,7 @@ pub enum SurfaceMutationOutcome {
 
 /// Successful authoritative Surface mutation receipt.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceMutationReceipt {
     request_id: SurfaceRequestId,
@@ -222,5 +228,32 @@ impl SurfaceMutationReceipt {
     #[must_use]
     pub const fn authoritative_document(&self) -> &SurfaceDocument {
         &self.authoritative_document
+    }
+}
+
+/// Serialized outcome of one authoritative Surface mutation request.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "status")]
+pub enum SurfaceMutationResponse {
+    /// The mutation committed once.
+    Committed {
+        /// Complete authoritative mutation receipt.
+        receipt: SurfaceMutationReceipt,
+    },
+    /// The mutation preserved the exact current authority.
+    Rejected {
+        /// Typed unchanged-state rejection.
+        rejection: SurfaceMutationRejection,
+    },
+}
+
+impl From<Result<SurfaceMutationReceipt, SurfaceMutationRejection>> for SurfaceMutationResponse {
+    fn from(result: Result<SurfaceMutationReceipt, SurfaceMutationRejection>) -> Self {
+        match result {
+            Ok(receipt) => Self::Committed { receipt },
+            Err(rejection) => Self::Rejected { rejection },
+        }
     }
 }

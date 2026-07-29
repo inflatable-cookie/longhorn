@@ -9,6 +9,8 @@ use super::TransferCapability;
 
 /// Authority binding advertised by one advisory drop zone.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum TransferTargetBinding {
     /// One Surface-independent layout region.

@@ -19,8 +19,8 @@ Updated: 2026-07-29
 | [009 Display Identity, Coordinates, And Window Planning](009-display-identity-coordinates-and-window-planning.md) | display correlation, typed geometry, pure window plans | active first pass |
 | [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md) | type authority, handler/client seam, revisions, lifecycle | active first pass |
 | [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only sessions, leased targets, authoritative move | active compiled boundary |
-| [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active first pass |
-| [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active first pass |
+| [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
+| [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
 | [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | registered layout policy, state, mutation, and persistence | active first pass |
 
 ## Pending Contracts
@@ -46,6 +46,14 @@ including typed geometry, display inventory/correlation, placement resolution,
 and deterministic desired/live planning. The Tauri host boundary is complete
 through Card 022 packaged macOS proof. Contract 014's layout-core foundation
 is implemented through Cards 023-027 and `g01.005` is complete. `g01.006` is
-compiled through Cards 028-035. Cards 028-031 are complete. Contract 011
-remains current after the Surface foundation checkpoint and its bounded
-session, lease, and target core is implemented. Card 032 is ready.
+complete through Cards 028-035. Contract 011
+remains current after the Surface foundation checkpoint; bounded sessions,
+leases, target resolution, same-document panel moves, whole-Surface moves,
+opt-in provision cleanup, checked clients, and Tauri host assembly are
+implemented. Card 035 adds passing direct and Surface-enabled packaged macOS
+proofs and boundary audits. Research memo 011 and revised contracts 011-013
+compile g01.007 into Cards 036-041. Cards 036-040 are complete. Poodle's public
+drag seam and exact preview artifact are recorded. Card 039 completes the
+Surface-free public layout binding slice. Card 040 completes armed transfer,
+checked leases, compatible reveal, and titlebar actions. Card 041 completes
+three isolated artifact-installed shell shapes and closes `g01.007`.

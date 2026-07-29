@@ -2,17 +2,15 @@
 
 ## Active
 
-- g01.006 Surface and transfer runway
+None.
 
 ## Ready
 
-- [032 Authoritative Layout Panel Transfer](032-authoritative-layout-panel-transfer.md)
+None.
 
 ## Planned
 
-- [033 Whole-Surface Transfer And Window Provisioning](033-whole-surface-transfer-and-window-provisioning.md)
-- [034 Generated Transfer Protocol And Tauri Host](034-generated-transfer-protocol-and-tauri-host.md)
-- [035 Packaged Multi-window Transfer Proof And Closeout](035-packaged-multi-window-transfer-proof-and-closeout.md)
+None.
 
 ## Complete
 
@@ -47,7 +45,17 @@
 - [029 Authoritative Surface Lifecycle And Persistence](029-authoritative-surface-lifecycle-and-persistence.md)
 - [030 Surface And Window Host Composition Conformance](030-surface-window-host-composition-and-conformance.md)
 - [031 Bounded Transfer Sessions And Drop-zone Leases](031-bounded-transfer-sessions-and-drop-zone-leases.md)
+- [032 Authoritative Layout Panel Transfer](032-authoritative-layout-panel-transfer.md)
+- [033 Whole-Surface Transfer And Window Provisioning](033-whole-surface-transfer-and-window-provisioning.md)
+- [034 Generated Transfer Protocol And Tauri Host](034-generated-transfer-protocol-and-tauri-host.md)
+- [035 Packaged Multi-window Transfer Proof And Closeout](035-packaged-multi-window-transfer-proof-and-closeout.md)
+- [036 Client Lifecycle And Domain-free Tauri Transport](036-client-lifecycle-and-domain-free-tauri-transport.md)
+- [037 Svelte Reactive Client State](037-svelte-reactive-client-state.md)
+- [038 Poodle Public Drag Seam And Preview Artifact](038-poodle-public-drag-seam-and-preview-artifact.md)
+- [039 Poodle Layout Bindings](039-poodle-layout-bindings.md)
+- [040 Cross-window Drag And Titlebar Actions](040-cross-window-drag-and-titlebar-actions.md)
+- [041 Three-shape App Shell Proof And Closeout](041-three-shape-app-shell-proof-and-closeout.md)
 
 ## Next Task
 
-Start Card 032.
+No execution card is ready. Resolve the g01 post-007 intent gate.

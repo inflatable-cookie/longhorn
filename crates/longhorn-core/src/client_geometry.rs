@@ -4,6 +4,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Finite local webview content coordinate measured in CSS pixels.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
 pub struct ClientCssPx(f64);
 
 impl ClientCssPx {
@@ -53,6 +55,7 @@ impl<'de> Deserialize<'de> for ClientCssPx {
 /// let _screen: ScreenPoint = client;
 /// ```
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 pub struct ClientPoint {
     x: ClientCssPx,
     y: ClientCssPx,
@@ -82,6 +85,7 @@ impl ClientPoint {
 
 /// A non-negative local webview content size.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(try_from = "UncheckedClientSize")]
 pub struct ClientSize {
     width: ClientCssPx,
@@ -129,6 +133,7 @@ impl TryFrom<UncheckedClientSize> for ClientSize {
 
 /// A local webview content rectangle.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 pub struct ClientRect {
     origin: ClientPoint,
     size: ClientSize,

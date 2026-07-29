@@ -1,0 +1,10 @@
+{
+  "identifier": "longhorn-transfer-base",
+  "description": "Surface-free transfer commands for explicitly managed app windows.",
+  "windows": ["main", "workspace-*"],
+  "permissions": [
+    "allow-longhorn-transfer-base",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

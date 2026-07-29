@@ -1,6 +1,6 @@
 # System Inventory
 
-Status: complete inventory; g01.006 compiled
+Status: complete inventory; g01.007 paused at Card 038 checkpoint
 Owner: Tom  
 Updated: 2026-07-29
 Architecture: `system-architecture.md`
@@ -28,7 +28,7 @@ boundary evidence. `g01.005` is complete.
 Research memo 010 and revised contracts 002 and 011 now bound optional Surface
 identity, presence input, lifecycle, persistence, transfer sessions, leased
 targets, same-document panel moves, whole-Surface moves, and explicit window
-provision cleanup. Cards 028-035 compile the g01.006 runway. Card 028
+provision cleanup. Cards 028-035 complete g01.006. Card 028
 implements bounded Surface identity, topology, normalization, presence input,
 and available-window fallback. Card 029 implements authoritative lifecycle,
 external container evidence, and registered coordinated persistence. Card 030
@@ -39,7 +39,27 @@ compile-only no-Surface dependency proof. Card 031 adds exact 128-bit injected
 session identity, monotonic time, finite session/client/lease stores, atomic
 complete replacement leases, epoch and destroy invalidation, typed expiry and
 terminal replay, deterministic explicit-zone and screen-point resolution, and
-overlap rejection. Card 032 is ready.
+overlap rejection. Card 032 now adds fresh panel admission, opaque
+direct-window and Surface-container bindings, same-domain expected-revision
+move publication, and exact abort invariance. Card 033 adds fresh
+whole-Surface admission, ordinary and empty-display target resolution,
+expected-revision Surface-only publication, exact layout-binding retention,
+consumer target policy, and receipted provision, cleanup, and reconciliation.
+Card 034 adds checked Surface and transfer protocol generation,
+framework-neutral clients, epoch-safe renderer connection, narrow Tauri
+transport and handler assembly, managed-window geometry projection, optional
+Surface commands, and audited capabilities. Card 035 adds separate direct and
+Surface-enabled packaged proofs, real multi-webview commands, explicit
+empty-display provision, exact failure invariance, scale and boundary
+evidence, and dependency, payload, capability, and authority audits.
+`g01.006` is complete.
+Research memo 011 and revised contracts 011-013 compile client lifetime,
+domain-free Tauri transport, Svelte state, Poodle public bindings, armed drag,
+titlebar behavior, and shell proof into Cards 036-041. Card 036 is complete
+with the structural client lifetime and raw Tauri adapter. Card 037 adds the
+Surface-free Svelte root, consumer-fed layout state, optional domain subpaths,
+request-keyed optimism, and exact mounted teardown. Card 038 is the named
+Poodle-local contract and artifact checkpoint.
 
 ## In-Scope Elements
 
@@ -51,12 +71,12 @@ overlap rejection. Card 032 is ready.
 | Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | g01.004 complete through packaged Card 022 proof |
 | Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
 | Surface hosting | optional Rust + config + TS packages | Surface lifecycle, persistence, and window hosting | Loophole Aura/Echo | pure identity, topology, presence, resolution, lifecycle, persistence, and window-host composition implemented |
-| Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | bounded pure session, lease, and target core implemented; panel move remains Card 032 |
+| Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | g01.006 complete; direct and Surface-enabled packaged macOS proofs pass |
 | Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | first boundary contracted |
 | Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | first boundary contracted |
-| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole and Nucleus | contract 013 |
+| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Bovine, Poodle | Svelte state complete; paused at Card 038 Poodle checkpoint |
 | Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | contract 010 |
-| Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | ready to include in Svelte contract |
+| Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | Card 040 |
 | Settings registry/shell | Rust + TS/Svelte package | page composition and config transactions | Loophole plus cross-app demand | first boundary contracted |
 | Command/keymap/palette | Rust + TS/Svelte packages | catalogue, context, input, palette projection | Loophole full system; Jetstream basic shortcuts | first boundary contracted |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | first boundary contracted |
@@ -85,7 +105,7 @@ overlap rejection. Card 032 is ready.
 | secure credential store | secrets outside ordinary config/backups | trait required; provider choice pending |
 | Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 |
 | local or remote service transport | optional product authority seam | contract 007; v1 transports pending |
-| Poodle packages | component and presentation authority | contract 013 |
+| Poodle packages | component and presentation authority | contract 013; Card 038 public-seam and artifact checkpoint |
 | Rust/TS package registries | distribution and versioning | contract 012; names pending verification |
 
 ## Validation Surfaces

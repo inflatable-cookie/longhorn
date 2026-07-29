@@ -1,6 +1,6 @@
 # 032 Authoritative Layout Panel Transfer
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.006 batch 4
 Governing refs: contracts 001, 004, 009-011, and 014; research memo 010
@@ -88,5 +88,22 @@ fail before publication. Every terminal outcome consumes the transfer session.
 
 ## Next Task
 
-Card 033 remains planned until panel-transfer authority and exact abort
-invariance close.
+Start Card 033.
+
+## Outcome
+
+`longhorn-transfer` now admits panels only from a fresh registered layout
+document and current opaque host binding. Unknown, unplaced, non-movable, and
+stale-bound sources fail before session allocation.
+
+Terminal commit consumes the session through the Card 031 coordinator, then
+rechecks source and target host bindings, one registered domain, both recorded
+revisions, current source placement, target container and region, and advisory
+insertion. Direct-window and Surface-container projections use the same opaque
+binding adapter without importing a Surface package.
+
+The adapter constructs the existing expected-revision `MovePanel` request and
+publishes only through `longhorn-layout-config`. Cross-document, copy, missing,
+stale, ineligible, invalid-insertion, recovery, and replay paths preserve exact
+current bytes. Success returns the existing authoritative layout and
+configuration receipt. Card 033 is ready.

@@ -7,12 +7,24 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+bindings = [
+  "dep:ts-rs",
+  "longhorn-core/bindings",
+  "longhorn-layout/bindings",
+]
+
 [dependencies]
+longhorn-config.workspace = true
 longhorn-core.workspace = true
+longhorn-layout.workspace = true
+longhorn-layout-config.workspace = true
 serde.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true
+tempfile.workspace = true
 
 [lints]
 workspace = true

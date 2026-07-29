@@ -1,9 +1,4 @@
-use std::{
-    env,
-    error::Error,
-    fs, io,
-    path::{Path, PathBuf},
-};
+use std::error::Error;
 
 use longhorn_core::{
     LayoutContainerId, LayoutRequestId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
@@ -18,21 +13,15 @@ use longhorn_layout::{
 };
 use ts_rs::TS;
 
+use crate::generation::{
+    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+};
+
 mod conformance;
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/layout/src/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/layout/protocol-v1.json";
-
-pub enum GenerationMode {
-    Write,
-    Check,
-}
-
-struct Artifact {
-    relative_path: &'static str,
-    contents: String,
-}
 
 struct RenderedProtocol {
     contents: String,
@@ -40,7 +29,6 @@ struct RenderedProtocol {
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let root = repository_root();
     let protocol = render_protocol()?;
     let mut artifacts = vec![
         Artifact {
@@ -61,18 +49,7 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             }),
     );
 
-    match mode {
-        GenerationMode::Write => write_artifacts(&root, &artifacts),
-        GenerationMode::Check => check_artifacts(&root, &artifacts),
-    }
-}
-
-fn repository_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("binding crate must remain under crates/")
-        .to_path_buf()
+    apply("layout", "generate:layout", mode, &artifacts)
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
@@ -115,11 +92,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         rejection_declaration,
         LayoutMutationRejection::decl(),
     ];
-    let declarations = declarations.map(|declaration| {
-        declaration
-            .strip_prefix("type ")
-            .map_or(declaration.clone(), |body| format!("export type {body}"))
-    });
+    let declarations = declarations.map(exported_declaration);
     let command_kinds_json = serde_json::to_string(&command_kinds)?;
     let outcome_kinds_json = serde_json::to_string(&outcome_kinds)?;
     let rejection_codes_json = serde_json::to_string(&rejection_codes)?;
@@ -138,76 +111,4 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         contents,
         rejection_codes,
     })
-}
-
-fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let marker = format!("\"{tag}\": \"");
-    let values: Vec<_> = declaration
-        .split(&marker)
-        .skip(1)
-        .filter_map(|suffix| suffix.split('"').next())
-        .map(str::to_owned)
-        .collect();
-    if values.is_empty() {
-        Err(io::Error::other(format!("generated declaration has no `{tag}` variants")).into())
-    } else {
-        Ok(values)
-    }
-}
-
-fn string_union_variants(declaration: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let body = declaration
-        .split_once('=')
-        .map(|(_, body)| body)
-        .ok_or_else(|| io::Error::other("generated string union has no assignment"))?;
-    let values: Vec<_> = body
-        .trim()
-        .trim_end_matches(';')
-        .split('|')
-        .map(str::trim)
-        .filter_map(|value| value.strip_prefix('"')?.strip_suffix('"'))
-        .map(str::to_owned)
-        .collect();
-    if values.is_empty() {
-        Err(io::Error::other("generated string union has no variants").into())
-    } else {
-        Ok(values)
-    }
-}
-
-fn write_artifacts(root: &Path, artifacts: &[Artifact]) -> Result<(), Box<dyn Error>> {
-    for artifact in artifacts {
-        let path = root.join(artifact.relative_path);
-        let parent = path
-            .parent()
-            .ok_or_else(|| io::Error::other("generated artifact has no parent"))?;
-        fs::create_dir_all(parent)?;
-        if fs::read_to_string(&path).ok().as_deref() != Some(artifact.contents.as_str()) {
-            fs::write(&path, &artifact.contents)?;
-            println!("wrote {}", artifact.relative_path);
-        }
-    }
-    Ok(())
-}
-
-fn check_artifacts(root: &Path, artifacts: &[Artifact]) -> Result<(), Box<dyn Error>> {
-    let drifted: Vec<_> = artifacts
-        .iter()
-        .filter_map(|artifact| {
-            let path = root.join(artifact.relative_path);
-            (fs::read_to_string(path).ok().as_deref() != Some(artifact.contents.as_str()))
-                .then_some(artifact.relative_path)
-        })
-        .collect();
-
-    if drifted.is_empty() {
-        println!("layout bindings and fixtures are current");
-        Ok(())
-    } else {
-        Err(io::Error::other(format!(
-            "generated layout artifacts drifted: {}; run `effigy generate:layout`",
-            drifted.join(", ")
-        ))
-        .into())
-    }
 }

@@ -33,8 +33,8 @@ discovery and validation entry points.
 | `longhorn-surfaces` | optional Surface identity, topology, lifecycle, and pure host resolution | core |
 | `longhorn-surfaces-config` | registered Surface domains and coordinated lifecycle publication | core, config, layout, surfaces |
 | `longhorn-surface-windowing` | optional pure Surface/window plan projection and ordered shutdown | core, surfaces, windowing |
-| `longhorn-transfer` | bounded sessions, leased targets, and deterministic target resolution | core |
-| `longhorn-surface-transfer` | optional whole-Surface transfer and provision coordination | core, windowing, surfaces, transfer |
+| `longhorn-transfer` | bounded sessions, leased targets, deterministic target resolution, and same-document panel commit | core, config, layout, layout-config |
+| `longhorn-surface-transfer` | optional whole-Surface transfer and receipted provision coordination | core, config, layout, surfaces, surfaces-config, transfer |
 | `longhorn-command` | optional commands and input resolution | core |
 | `longhorn-history` | optional history kernel | core |
 | `longhorn-tauri-bridge` | typed IPC/event transport | core plus adapted domains |
@@ -46,14 +46,14 @@ discovery and validation entry points.
 The bindings tool is development-only. Additional adapter crates stay narrow;
 there is no all-capabilities `longhorn-tauri` crate.
 
-The first implemented generator slice is `longhorn-bindings layout`. It emits
-the checked `@longhorn/layout` protocol and Rust-produced golden fixture.
+Implemented generator slices cover layout, Surface, transfer, and optional
+Surface-transfer protocols with Rust-produced golden fixtures.
 
 ## TypeScript Packages
 
 | Package | Responsibility |
 | --- | --- |
-| `@longhorn/core` | generated shared protocol and framework-neutral utilities |
+| `@longhorn/core` | structural transport, checked subscription lifetime, and shared framework-neutral utilities |
 | `@longhorn/config` | generated config client and diagnostics |
 | `@longhorn/windowing` | window snapshots and placement client |
 | `@longhorn/layout` | generated layout snapshots, commands, receipts, and framework-neutral helpers |
@@ -62,19 +62,29 @@ the checked `@longhorn/layout` protocol and Rust-produced golden fixture.
 | `@longhorn/surface-transfer` | optional whole-Surface transfer client |
 | `@longhorn/commands` | optional command/keymap clients |
 | `@longhorn/history` | optional history client |
-| `@longhorn/tauri` | raw transport implementation |
-| `@longhorn/svelte` | reactive clients and actions |
-| `@longhorn/poodle` | public Poodle bindings |
+| `@longhorn/tauri` | domain-free raw invoke/listen transport implementation |
+| `@longhorn/svelte` | reactive client state, actions, and optional capability subpaths |
+| `@longhorn/poodle` | public Tabs, DockRegion, and SplitView bindings |
 | `@longhorn/settings` | optional settings shell |
 
 Names are working names until registry verification. Packages appear only
 when their milestone implements a usable slice.
 
-`@longhorn/layout` is the first implemented TypeScript package. It remains
-private until registry authority is verified.
+The implemented TypeScript packages remain private until registry authority
+is verified. `@longhorn/tauri` contains only the raw Tauri transport adapter;
+domain behavior remains in the framework-neutral packages.
+`@longhorn/svelte` now provides the per-instance reactive lifecycle, generic
+optimism, consumer-fed layout state, and optional domain adapters.
 
-Its checked conformance artifacts cover Loophole and Nucleus shapes without
-placing donor host identity or product payload in the published package.
+The implemented Svelte root is Surface-free. Optional layout, Surface,
+transfer, and Surface-transfer bindings are subpath exports backed by optional
+peers, not root re-exports. The implemented private Poodle root is also
+Surface-free and owns public Tabs, DockRegion, and SplitView integration.
+It is tested against the exact Card 038 preview artifact. A published peer
+range remains a release gate, not an inferred promise from sibling source.
+
+Checked conformance artifacts cover Loophole and Nucleus shapes without
+placing donor host identity or product payload in either package.
 
 ## Dependency Rules
 
@@ -98,6 +108,9 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
 - Optional packages cannot become dependencies of their foundations.
 - Generated bindings live in the TypeScript package for their Rust domain.
 - Poodle, Svelte, and Tauri remain peer dependencies at adapter edges.
+- Optional adapter subpaths use optional peers and cannot leak into root
+  resolution.
+- Poodle drag integration uses public extension points only.
 - Product schemas and panel bodies never enter this graph.
 
 ## Examples
@@ -105,8 +118,9 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
 Examples arrive with the capability they prove:
 
 - minimal configuration and shell
+- `app-shell-proof`: isolated Bovine, Nucleus, and Loophole artifact installs
 - `nucleus-no-surface-proof`: window-bound workspace without Surface packages
-- full Surface hosting
+- `tauri-transfer-proof`: direct and optional full Surface transfer hosting
 - optional local or remote service
 - installation from produced release artifacts
 

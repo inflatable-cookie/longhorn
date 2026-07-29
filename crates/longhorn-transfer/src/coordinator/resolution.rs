@@ -3,9 +3,10 @@ use std::collections::BTreeMap;
 use longhorn_core::{DropZoneId, ScreenPoint, ScreenRect, WindowId};
 
 use crate::{
-    DragSessionId, LiveTransferWindow, MonotonicClock, ResolvedTransferTarget,
-    TargetResolutionPath, TargetSelector, TerminalTransferAttempt, TransferCapability,
-    TransferError, TransferErrorCode, TransferInstant,
+    DragSessionId, EmptyDisplayTransferAttempt, LiveTransferWindow, MonotonicClock,
+    ResolvedTransferTarget, TargetResolutionPath, TargetSelector, TerminalTransferAttempt,
+    TerminalTransferResolution, TransferCapability, TransferError, TransferErrorCode,
+    TransferInstant,
 };
 
 use super::{
@@ -21,6 +22,28 @@ impl TransferCoordinator {
         selector: TargetSelector,
         live_windows: &[LiveTransferWindow],
     ) -> Result<TerminalTransferAttempt, TransferError> {
+        match self.attempt_target_or_empty_display(clock, session_id, selector, live_windows)? {
+            TerminalTransferResolution::Target(attempt) => Ok(attempt),
+            TerminalTransferResolution::EmptyDisplay(_) => Err(TransferError::new(
+                TransferErrorCode::NoTarget,
+                "no current eligible transfer target matched",
+            )
+            .consumed()),
+        }
+    }
+
+    /// Consumes the first terminal attempt and preserves an empty-display point.
+    ///
+    /// Only a screen point outside every fresh managed-window bound produces
+    /// `EmptyDisplay`. Missing leases or zones inside a managed window remain
+    /// ordinary consumed target failures.
+    pub fn attempt_target_or_empty_display(
+        &mut self,
+        clock: &impl MonotonicClock,
+        session_id: DragSessionId,
+        selector: TargetSelector,
+        live_windows: &[LiveTransferWindow],
+    ) -> Result<TerminalTransferResolution, TransferError> {
         let now = self.observe_now(clock)?;
         let (source, expires_at, status) = self
             .sessions
@@ -54,11 +77,18 @@ impl TransferCoordinator {
                 self.resolve_explicit(now, &windows, source.capability(), &zone_id)
             }
             TargetSelector::ScreenPoint(point) => {
+                if !windows.values().any(|bounds| bounds.contains_point(&point)) {
+                    return Ok(TerminalTransferResolution::EmptyDisplay(
+                        EmptyDisplayTransferAttempt::new(session_id, source, point),
+                    ));
+                }
                 self.resolve_point(now, &windows, source.capability(), point)
             }
         }
         .map_err(TransferError::consumed)?;
-        Ok(TerminalTransferAttempt::new(session_id, source, target))
+        Ok(TerminalTransferResolution::Target(
+            TerminalTransferAttempt::new(session_id, source, target),
+        ))
     }
 
     fn resolve_explicit(

@@ -29,6 +29,10 @@ authority and migrate through explicit batches. Poodle remains independent.
 - Consumer policy enters Longhorn only through generic configuration or traits.
 - Rust/TypeScript wire changes require Longhorn contract and fixture updates.
 - Poodle integration uses public Poodle APIs; no copied component fork.
+- Longhorn may request public drag extension points through a named Poodle
+  upstream card. Poodle retains API, interaction, and release authority.
+- Private Poodle selectors, generated ids, MIME formats, and source aliases do
+  not become Longhorn contracts.
 - Apps register configuration schemas, settings pages, commands, and history
   payloads; registration does not transfer product authority.
 - A service cache never becomes a second write authority by accident.
@@ -38,5 +42,4 @@ authority and migrate through explicit batches. Poodle remains independent.
 
 - package publication/path-dependency strategy
 - first two consumer migration order
-- Poodle version-support policy
 - ownership transfer plan for generic Echo crates

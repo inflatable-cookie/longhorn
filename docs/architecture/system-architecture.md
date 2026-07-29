@@ -249,13 +249,15 @@ This layer remains prototype-first.
   and complete replacement drop-zone leases in `ScreenDip`.
 - Drag payloads contain only protocol version and an unguessable session id.
 - Session ids contain exactly 128 injected entropy bits. Monotonic time and
-  entropy have no ambient implementation in the pure transfer package.
+  entropy have no ambient implementation in the transfer session core.
 - One current renderer client epoch owns each window lease. Epoch advance,
   window destroy, expiry, and host shutdown invalidate process-local authority.
 - The Rust host re-resolves source, target, revision, window presence, and
   eligibility before commit.
 - First-line panel transfer supports move within one registered layout
   document. Cross-document and copy transfer fail before mutation.
+- Direct-window and Surface-container hosts project through fresh opaque
+  bindings. The same expected-revision `MovePanel` path owns publication.
 - Whole-Surface transfer mutates one Surface document and retains its layout
   binding.
 - Empty-display window creation is explicit consumer policy with provision and

@@ -7,6 +7,7 @@ mod limits;
 mod model;
 mod mutation;
 mod resolution;
+mod snapshot;
 mod validation;
 
 pub use limits::{SurfaceLimits, SurfaceLimitsError};
@@ -15,12 +16,14 @@ pub use mutation::{
     EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory,
     SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationOutcome, SurfaceMutationReceipt,
     SurfaceMutationRejection, SurfaceMutationRejectionCode, SurfaceMutationRequest,
+    SurfaceMutationResponse,
 };
 pub use resolution::{
     ResolvedSurface, ResolvedSurfaceWindow, SurfaceResolution, SurfaceResolutionError,
     SurfaceResolutionErrorCode, SurfaceResolutionInput, SurfaceUnresolvedReason, UnresolvedSurface,
     resolve_surfaces,
 };
+pub use snapshot::{SurfaceChangedEvent, SurfaceProtocolEpoch, SurfaceSnapshot};
 pub use validation::{
     SurfaceValidationCode, SurfaceValidationError, normalize_document, validate_document,
     validate_normalized_document,

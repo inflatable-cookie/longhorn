@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// One candidate host and its declared tab order for a Surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceHostPreference {
     window_id: WindowId,
@@ -35,6 +36,7 @@ impl SurfaceHostPreference {
 
 /// Durable generic metadata and hosting policy for one Surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceRecord {
     id: SurfaceId,
@@ -95,6 +97,7 @@ impl SurfaceRecord {
 
 /// Durable active-Surface preference for one participating window.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct ParticipatingWindow {
     id: WindowId,
@@ -130,6 +133,7 @@ impl ParticipatingWindow {
 
 /// Complete durable optional Surface document.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct SurfaceDocument {
     revision: SurfaceRevision,

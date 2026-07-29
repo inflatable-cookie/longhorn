@@ -1,0 +1,26 @@
+[package]
+name = "longhorn-tauri-transfer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+surface-transfer = ["dep:longhorn-surface-transfer"]
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-surface-transfer = { workspace = true, optional = true }
+longhorn-tauri-windowing.workspace = true
+longhorn-transfer.workspace = true
+longhorn-windowing.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

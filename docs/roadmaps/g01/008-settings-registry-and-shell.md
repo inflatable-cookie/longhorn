@@ -1,6 +1,6 @@
 # g01.008 Settings Registry And Shell
 
-Status: blocked on `g01.002` and `g01.007`  
+Status: planning gate; dependencies complete, implementation cards not compiled
 Owner: Tom  
 Updated: 2026-07-27  
 Governing refs: contract 005
@@ -44,3 +44,8 @@ configuration.
 - all persistence passes through configuration commands
 - product pages retain app ownership and use Poodle primitives
 
+## Planning Gate
+
+`g01.002` and `g01.007` are complete. Revalidate contract 005 against the
+delivered configuration and shell surfaces, then compile a multi-card runway
+only if settings is the selected next priority.

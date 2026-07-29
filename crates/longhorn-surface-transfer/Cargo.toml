@@ -1,0 +1,33 @@
+[package]
+name = "longhorn-surface-transfer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+bindings = [
+  "dep:ts-rs",
+  "longhorn-core/bindings",
+  "longhorn-surfaces/bindings",
+  "longhorn-transfer/bindings",
+]
+
+[dependencies]
+longhorn-config.workspace = true
+longhorn-core.workspace = true
+longhorn-layout.workspace = true
+longhorn-surfaces.workspace = true
+longhorn-surfaces-config.workspace = true
+longhorn-transfer.workspace = true
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

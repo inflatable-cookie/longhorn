@@ -1,0 +1,9 @@
+{
+  "identifier": "bovine-shell",
+  "description": "Minimal local shell with guarded reveal and native titlebar drag only.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging"
+  ]
+}

@@ -27,6 +27,7 @@ impl LayoutContainerInventory {
 
 /// Consumer policy for participating windows left without hosted Surfaces.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum EmptyWindowPolicy {
     /// Permit an empty window and clear its active Surface.
@@ -37,6 +38,7 @@ pub enum EmptyWindowPolicy {
 
 /// Explicit external cleanup work produced by Surface close.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct LayoutContainerCleanupIntent {
     layout_container_id: LayoutContainerId,

@@ -111,6 +111,10 @@ opaque_id!(
     "Opaque identity for one Surface mutation request."
 );
 opaque_id!(
+    TransferRequestId,
+    "Opaque identity for one transfer protocol request."
+);
+opaque_id!(
     DropZoneId,
     "Opaque identity for one process-local leased transfer target."
 );

@@ -1,0 +1,10 @@
+[[permission]]
+identifier = "allow-longhorn-transfer-base"
+description = "Allows the Surface-free Longhorn transfer protocol."
+commands.allow = [
+  "longhorn_transfer_snapshot",
+  "longhorn_transfer_start_panel",
+  "longhorn_transfer_publish_lease",
+  "longhorn_transfer_commit_panel",
+  "longhorn_transfer_cancel",
+]

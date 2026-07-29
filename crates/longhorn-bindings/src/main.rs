@@ -2,7 +2,11 @@
 
 use std::{env, error::Error, process::ExitCode};
 
+mod generation;
 mod layout;
+mod surface_transfer;
+mod surfaces;
+mod transfer;
 
 fn main() -> ExitCode {
     match run() {
@@ -19,13 +23,24 @@ fn run() -> Result<(), Box<dyn Error>> {
     let domain = arguments.next();
     let mode = arguments.next();
 
-    if arguments.next().is_some() || domain.as_deref() != Some("layout") {
-        return Err("usage: longhorn-bindings layout <write|check>".into());
+    if arguments.next().is_some() {
+        return Err(usage().into());
     }
 
-    match mode.as_deref() {
-        Some("write") => layout::run(layout::GenerationMode::Write),
-        Some("check") => layout::run(layout::GenerationMode::Check),
-        _ => Err("usage: longhorn-bindings layout <write|check>".into()),
+    let mode = match mode.as_deref() {
+        Some("write") => generation::GenerationMode::Write,
+        Some("check") => generation::GenerationMode::Check,
+        _ => return Err(usage().into()),
+    };
+    match domain.as_deref() {
+        Some("layout") => layout::run(mode),
+        Some("surfaces") => surfaces::run(mode),
+        Some("surface-transfer") => surface_transfer::run(mode),
+        Some("transfer") => transfer::run(mode),
+        _ => Err(usage().into()),
     }
+}
+
+fn usage() -> &'static str {
+    "usage: longhorn-bindings <layout|surfaces|surface-transfer|transfer> <write|check>"
 }

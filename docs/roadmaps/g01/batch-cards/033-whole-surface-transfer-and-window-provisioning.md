@@ -1,6 +1,6 @@
 # 033 Whole-Surface Transfer And Window Provisioning
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.006 batch 4
 Governing refs: contracts 001, 002, 004, 009-012, and 014; research memo 010
@@ -89,5 +89,60 @@ cleanup and reports both outcomes.
 
 ## Next Task
 
-Card 034 remains planned until whole-Surface commit and provision cleanup are
-fully receipted.
+Start Card 034.
+
+## Outcome
+
+`longhorn-surface-transfer` now admits a whole-Surface session only after
+loading the registered Surface domain and matching the current primary host
+to a fresh opaque binding. Terminal commit consumes the session, reloads the
+Surface document, rechecks source, revision, target participation, declared
+host preference, host binding, consumer target policy, insertion, and
+empty-window policy, then publishes the existing expected-revision
+`MoveSurface`.
+
+Ordinary and provisioned moves advance one Surface revision. The layout
+document is immutable input, no layout payload enters transfer state, and the
+Surface retains its exact external layout-container binding.
+
+The transfer core now distinguishes a screen point outside every fresh
+managed window from missing lease or zone authority inside a managed window.
+Only the former may enter the Surface adapter's empty-display path.
+
+Provisioning is disabled by default. Enabled policy supplies current display
+bounds, a predeclared logical target window, exact placement, and optional
+insertion. The injected provisioner returns a hidden, placed, ready receipt
+plus retained authority. Surface publication happens next. Failure invokes
+cleanup. Cleanup failure and host commit failure after durable publication
+return typed reconciliation evidence with the available receipts.
+
+### Failure table
+
+| Failure point | Surface state | Host action | Evidence |
+| --- | --- | --- | --- |
+| policy or target rejection | unchanged | none | consumed typed abort |
+| create, placement, or readiness | unchanged | provision failed | stage failure |
+| expected-revision publication | current authority retained | cleanup invoked | provision plus cleanup outcome |
+| cleanup | current authority retained | unresolved target | host reconciliation required |
+| host commit after publication | committed move retained | unresolved finalization | publication plus provision and commit failure |
+
+### Donor delta
+
+Retained from Loophole:
+
+- whole-Surface movement by screen point
+- optional new host on empty display space
+- logical window target selected before movement
+
+Changed for shared authority:
+
+- overlap is ambiguous; enumeration order never selects
+- target topology must already be declared; transfer performs no repair
+- consumer policy supplies display bounds and placement with no product
+  defaults
+- native creation follows policy admission and remains hidden through
+  placement and readiness
+- failed publication invokes explicit cleanup
+- partial host outcomes are typed reconciliation, never silent repair
+
+Card 034 is ready.

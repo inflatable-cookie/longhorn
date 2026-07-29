@@ -21,6 +21,7 @@ Updated: 2026-07-29
 | Tauri window host and lifecycle | [Tauri Window Host And Lifecycle](translation-memos/008-tauri-window-host-and-lifecycle.md) | `../contracts/009-display-identity-coordinates-and-window-planning.md`; `../roadmaps/g01/004-tauri-window-host-and-lifecycle.md`; cards 017-022 |
 | layout container, region, and panel core | [Layout Core Boundary Characterization](translation-memos/009-layout-core-boundary-characterization.md) | `../architecture/system-architecture.md`; `../contracts/014-layout-container-region-and-panel-core.md`; `../roadmaps/g01/005-layout-container-region-and-panel-core.md`; cards 023-027 |
 | optional Surface hosting and cross-window transfer | [Surface Hosting And Transfer Boundary](translation-memos/010-surface-hosting-and-transfer-boundary.md) | `../architecture/system-architecture.md`; `../contracts/002-composable-workspace-hosting.md`; `../contracts/011-cross-window-transfer.md`; `../roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md`; cards 028-035 |
+| client, Svelte, Poodle, drag, and shell adapters | [Client, Svelte, Poodle, And Shell Boundary](translation-memos/011-client-svelte-poodle-and-shell-boundary.md) | `../architecture/package-topology.md`; `../contracts/012-distribution-and-compatibility.md`; `../contracts/013-svelte-and-poodle-adapter-lifecycle.md`; `../roadmaps/g01/007-typescript-svelte-poodle-and-app-shell.md`; cards 036-041 |
 
 ## Open Research
 

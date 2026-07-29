@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Longhorn Transfer Proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #101318;
+        color: #eef1f5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 420px;
+        min-height: 360px;
+        background:
+          radial-gradient(circle at 10% 0%, #263552 0, transparent 42%),
+          #101318;
+      }
+
+      main {
+        padding: 28px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+        user-select: none;
+      }
+
+      h1 {
+        margin: 0 0 5px;
+        font-size: 22px;
+      }
+
+      p {
+        margin: 0;
+        color: #aeb8c7;
+        line-height: 1.45;
+      }
+
+      .badge {
+        height: fit-content;
+        border: 1px solid #52617a;
+        border-radius: 999px;
+        padding: 5px 9px;
+        color: #c9d5e8;
+        font: 12px ui-monospace, monospace;
+      }
+
+      .zone {
+        min-height: 150px;
+        margin: 18px 0;
+        border: 2px dashed #52617a;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        color: #a9bad4;
+        background: rgb(32 43 61 / 55%);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      pre {
+        max-height: 230px;
+        overflow: auto;
+        padding: 13px;
+        border: 1px solid #354052;
+        border-radius: 10px;
+        background: rgb(12 15 20 / 82%);
+        font: 11px/1.5 ui-monospace, monospace;
+        white-space: pre-wrap;
+      }
+
+      #message {
+        color: #8ed2a8;
+        font: 13px ui-monospace, monospace;
+      }
+
+      #message.error {
+        color: #ff9c9c;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header data-tauri-drag-region>
+        <div>
+          <h1>Longhorn transfer host</h1>
+          <p id="subtitle">Packaged multi-webview protocol proof.</p>
+        </div>
+        <div class="badge" id="label">loading</div>
+      </header>
+      <div class="zone" id="panel-zone">Authoritative panel target zone</div>
+      <div class="zone" id="surface-zone" hidden>Authoritative Surface target zone</div>
+      <div id="message">Starting renderer handshake…</div>
+      <pre id="status"></pre>
+    </main>
+
+    <script type="module">
+      const { invoke } = window.__TAURI__.core;
+      const currentWindow = window.__TAURI__.window.getCurrentWindow();
+      const label = currentWindow.label;
+      const status = document.querySelector("#status");
+      const message = document.querySelector("#message");
+      const zone = document.querySelector("#panel-zone");
+      const surfaceZone = document.querySelector("#surface-zone");
+
+      document.querySelector("#label").textContent = label;
+      document.querySelector("#subtitle").textContent =
+        label === "source"
+          ? "Source renderer owns session admission and terminal commit."
+          : "Target renderer owns its complete replacement lease.";
+
+      function show(value, text) {
+        status.textContent = JSON.stringify(value, null, 2);
+        message.textContent = text;
+      }
+
+      function fail(error) {
+        status.textContent = String(error);
+        message.textContent = "Proof failed.";
+        message.classList.add("error");
+      }
+
+      async function snapshot() {
+        return invoke("longhorn_transfer_snapshot");
+      }
+
+      async function runTarget(bootstrap, authority) {
+        const bounds = zone.getBoundingClientRect();
+        surfaceZone.hidden = bootstrap.mode !== "surface";
+        const surfaceBounds = surfaceZone.getBoundingClientRect();
+        const request = {
+          protocol_version: 1,
+          request_id: "request:target-lease",
+          client_id: authority.client_id,
+          client_epoch: authority.client_epoch,
+          generation: 1,
+          zones: [
+            {
+              id: "zone:panel",
+              bounds: {
+                origin: { x: bounds.x, y: bounds.y },
+                size: { width: bounds.width, height: bounds.height },
+              },
+              insertion_position: null,
+              accepted_capability: "move_panel",
+              target: {
+                kind: "panel_region",
+                host_binding_id: bootstrap.layout.target_binding_id,
+                document_id: bootstrap.layout.domain_id,
+                revision: bootstrap.layout.revision,
+                container_id: bootstrap.layout.target_container_id,
+                region_id: bootstrap.layout.target_region_id,
+              },
+            },
+          ],
+        };
+        if (bootstrap.mode === "surface") {
+          request.zones.push({
+            id: "zone:surface",
+            bounds: {
+              origin: { x: surfaceBounds.x, y: surfaceBounds.y },
+              size: { width: surfaceBounds.width, height: surfaceBounds.height },
+            },
+            insertion_position: null,
+            accepted_capability: "move_surface",
+            target: {
+              kind: "surface_window",
+              host_binding_id: bootstrap.surface.target_binding_id,
+              document_id: bootstrap.surface.domain_id,
+              revision: bootstrap.surface.revision,
+            },
+          });
+        }
+        const lease = await invoke("longhorn_transfer_publish_lease", { request });
+        const evidence = {
+          target_snapshot: authority,
+          target_lease: lease,
+          panel_bounds: bounds,
+          surface_bounds: bootstrap.mode === "surface" ? surfaceBounds : null,
+        };
+        await invoke("proof_target_ready", { evidence });
+        show(evidence, "Target lease published; waiting for source commit.");
+      }
+
+      async function waitForTarget() {
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          const ready = await invoke("proof_target_status");
+          if (ready) return ready;
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        throw new Error("target renderer did not publish its lease");
+      }
+
+      async function runSource(bootstrap, authority) {
+        const target = await waitForTarget();
+        const matrix = await invoke("proof_run_matrix");
+        if (matrix.result !== "passed") {
+          throw new Error(`transfer matrix failed: ${JSON.stringify(matrix)}`);
+        }
+        const startRequest = {
+          protocol_version: 1,
+          request_id: "request:start-panel",
+          panel_instance_id: bootstrap.layout.source_panel_id,
+        };
+        const panelStart = await invoke("longhorn_transfer_start_panel", {
+          request: startRequest,
+        });
+        if (panelStart.status !== "started") {
+          throw new Error(`panel admission failed: ${JSON.stringify(panelStart)}`);
+        }
+        const commitRequest = {
+          protocol_version: 1,
+          request_id: "request:commit-panel",
+          session_id: panelStart.session.payload.session_id,
+          selector: { kind: "explicit_zone", drop_zone_id: "zone:panel" },
+        };
+        const panelCommit = await invoke("longhorn_transfer_commit_panel", {
+          request: commitRequest,
+        });
+        let surfaceExistingStart = null;
+        let surfaceExistingCommit = null;
+        let surfaceProvisionedStart = null;
+        let surfaceProvisionedCommit = null;
+        if (bootstrap.mode === "surface") {
+          surfaceExistingStart = await invoke("longhorn_transfer_start_surface", {
+            request: {
+              protocol_version: 1,
+              request_id: "request:start-surface-existing",
+              surface_id: bootstrap.surface.source_surface_id,
+            },
+          });
+          if (surfaceExistingStart.status !== "started") {
+            throw new Error(
+              `Surface admission failed: ${JSON.stringify(surfaceExistingStart)}`,
+            );
+          }
+          surfaceExistingCommit = await invoke(
+            "longhorn_transfer_commit_surface",
+            {
+              request: {
+                protocol_version: 1,
+                request_id: "request:commit-surface-existing",
+                session_id: surfaceExistingStart.session.payload.session_id,
+                selector: {
+                  kind: "explicit_zone",
+                  drop_zone_id: "zone:surface",
+                },
+              },
+            },
+          );
+          surfaceProvisionedStart = await invoke(
+            "longhorn_transfer_start_surface",
+            {
+              request: {
+                protocol_version: 1,
+                request_id: "request:start-surface-provisioned",
+                surface_id: bootstrap.surface.second_surface_id,
+              },
+            },
+          );
+          if (surfaceProvisionedStart.status !== "started") {
+            throw new Error(
+              `provisioned Surface admission failed: ${JSON.stringify(surfaceProvisionedStart)}`,
+            );
+          }
+          surfaceProvisionedCommit = await invoke(
+            "longhorn_transfer_commit_surface",
+            {
+              request: {
+                protocol_version: 1,
+                request_id: "request:commit-surface-provisioned",
+                session_id: surfaceProvisionedStart.session.payload.session_id,
+                selector: {
+                  kind: "screen_point",
+                  point: bootstrap.surface.empty_drop_point,
+                },
+              },
+            },
+          );
+        }
+        const rendererEvidence = {
+          source_snapshot: authority,
+          target_snapshot: target.target_snapshot,
+          target_lease: target.target_lease,
+          matrix,
+          panel_start: panelStart,
+          panel_commit: panelCommit,
+          surface_existing_start: surfaceExistingStart,
+          surface_existing_commit: surfaceExistingCommit,
+          surface_provisioned_start: surfaceProvisionedStart,
+          surface_provisioned_commit: surfaceProvisionedCommit,
+        };
+        const report = await invoke("proof_complete", { rendererEvidence });
+        show(report, `Packaged ${bootstrap.mode} proof complete.`);
+      }
+
+      try {
+        const bootstrap = await invoke("proof_bootstrap");
+        const authority = await snapshot();
+        if (label === "target") {
+          await runTarget(bootstrap, authority);
+        } else if (label === "source") {
+          await runSource(bootstrap, authority);
+        }
+      } catch (error) {
+        try {
+          await invoke("proof_failed", { detail: String(error) });
+        } catch (reportError) {
+          console.error("could not persist proof failure", reportError);
+        }
+        fail(error);
+      }
+    </script>
+  </body>
+</html>

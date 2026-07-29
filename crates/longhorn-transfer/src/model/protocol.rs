@@ -1,3 +1,4 @@
+use longhorn_core::ScreenPoint;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -10,6 +11,7 @@ pub const TRANSFER_PROTOCOL_VERSION: u32 = 1;
 
 /// Minimal renderer-visible transfer payload.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct TransferPayload {
     protocol_version: u32,
@@ -89,7 +91,9 @@ impl SessionCreationReceipt {
 }
 
 /// Idempotent cancellation result.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
 pub enum SessionCancellationStatus {
     /// The active session became cancelled.
     Cancelled,
@@ -98,7 +102,9 @@ pub enum SessionCancellationStatus {
 }
 
 /// Successful cancellation evidence.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
 pub struct SessionCancellationReceipt {
     session_id: DragSessionId,
     status: SessionCancellationStatus,
@@ -128,6 +134,55 @@ pub struct TerminalTransferAttempt {
     session_id: DragSessionId,
     source: TransferSourceAuthority,
     target: ResolvedTransferTarget,
+}
+
+/// Consumed whole-Surface session whose screen point hit no managed window.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EmptyDisplayTransferAttempt {
+    session_id: DragSessionId,
+    source: TransferSourceAuthority,
+    screen_point: ScreenPoint,
+}
+
+impl EmptyDisplayTransferAttempt {
+    pub(crate) const fn new(
+        session_id: DragSessionId,
+        source: TransferSourceAuthority,
+        screen_point: ScreenPoint,
+    ) -> Self {
+        Self {
+            session_id,
+            source,
+            screen_point,
+        }
+    }
+
+    /// Returns the consumed session identity.
+    #[must_use]
+    pub const fn session_id(&self) -> DragSessionId {
+        self.session_id
+    }
+
+    /// Returns source authority recorded at session creation.
+    #[must_use]
+    pub const fn source(&self) -> &TransferSourceAuthority {
+        &self.source
+    }
+
+    /// Returns the fresh host screen point outside all managed windows.
+    #[must_use]
+    pub const fn screen_point(&self) -> ScreenPoint {
+        self.screen_point
+    }
+}
+
+/// First terminal resolution, including explicit empty-display evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TerminalTransferResolution {
+    /// A current leased target resolved normally.
+    Target(TerminalTransferAttempt),
+    /// A screen point hit no current managed window.
+    EmptyDisplay(EmptyDisplayTransferAttempt),
 }
 
 impl TerminalTransferAttempt {

@@ -1,0 +1,3799 @@
+{
+  "protocol_version": 1,
+  "snapshots": [
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 11,
+      "document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:new",
+            "layout_container_id": "container:new",
+            "label": "New",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 2
+              },
+              {
+                "window_id": "window:tools",
+                "order": 3
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:copy",
+            "layout_container_id": "container:duplicate",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 2
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 3
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix room",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:mix"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 1
+              },
+              {
+                "window_id": "window:main",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:mix"
+          }
+        ]
+      }
+    }
+  ],
+  "commands": [
+    {
+      "request_id": "request:create",
+      "expected_revision": 11,
+      "command": {
+        "kind": "create_surface",
+        "surface_id": "surface:new",
+        "layout_container_id": "container:new",
+        "label": "New",
+        "host_preferences": [
+          {
+            "window_id": "window:main",
+            "order": 2
+          },
+          {
+            "window_id": "window:tools",
+            "order": 3
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:duplicate",
+      "expected_revision": 11,
+      "command": {
+        "kind": "duplicate_surface",
+        "source_surface_id": "surface:mix",
+        "surface_id": "surface:copy",
+        "layout_container_id": "container:duplicate"
+      }
+    },
+    {
+      "request_id": "request:rename",
+      "expected_revision": 11,
+      "command": {
+        "kind": "rename_surface",
+        "surface_id": "surface:mix",
+        "label": "Mix room"
+      }
+    },
+    {
+      "request_id": "request:activate",
+      "expected_revision": 11,
+      "command": {
+        "kind": "activate_surface",
+        "window_id": "window:main",
+        "surface_id": "surface:mix"
+      }
+    },
+    {
+      "request_id": "request:reorder",
+      "expected_revision": 11,
+      "command": {
+        "kind": "reorder_window",
+        "window_id": "window:main",
+        "surface_ids": [
+          "surface:edit",
+          "surface:mix"
+        ]
+      }
+    },
+    {
+      "request_id": "request:move",
+      "expected_revision": 11,
+      "command": {
+        "kind": "move_surface",
+        "surface_id": "surface:mix",
+        "target_window_id": "window:tools",
+        "insertion_index": 1
+      }
+    },
+    {
+      "request_id": "request:close",
+      "expected_revision": 11,
+      "command": {
+        "kind": "close_surface",
+        "surface_id": "surface:plugins"
+      }
+    }
+  ],
+  "receipts": [
+    {
+      "request_id": "request:create",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_created",
+        "surface_id": "surface:new"
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:new",
+            "layout_container_id": "container:new",
+            "label": "New",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 2
+              },
+              {
+                "window_id": "window:tools",
+                "order": 3
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:duplicate",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_duplicated",
+        "source_surface_id": "surface:mix",
+        "surface_id": "surface:copy"
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:copy",
+            "layout_container_id": "container:duplicate",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 2
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 3
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:rename",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_renamed",
+        "surface_id": "surface:mix"
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix room",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:activate",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_activated",
+        "window_id": "window:main",
+        "surface_id": "surface:mix",
+        "previous_active_surface_id": "surface:edit"
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:mix"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:reorder",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "window_reordered",
+        "window_id": "window:main",
+        "surface_ids": [
+          "surface:edit",
+          "surface:mix"
+        ]
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:move",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_moved",
+        "surface_id": "surface:mix",
+        "source_window_id": "window:main",
+        "target_window_id": "window:tools",
+        "insertion_index": 1
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 1
+              },
+              {
+                "window_id": "window:main",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:close",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_closed",
+        "surface_id": "surface:plugins",
+        "cleanup": {
+          "layout_container_id": "container:plugins"
+        }
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:mix"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "request_id": "request:error-00",
+      "current_revision": 11,
+      "code": "invalid_current_document",
+      "detail": "golden fixture for invalid_current_document",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:stale",
+      "current_revision": 11,
+      "code": "stale_revision",
+      "detail": "expected Surface revision 0; current revision is 11",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-02",
+      "current_revision": 11,
+      "code": "revision_overflow",
+      "detail": "golden fixture for revision_overflow",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-03",
+      "current_revision": 11,
+      "code": "unknown_surface",
+      "detail": "golden fixture for unknown_surface",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-04",
+      "current_revision": 11,
+      "code": "duplicate_surface",
+      "detail": "golden fixture for duplicate_surface",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-05",
+      "current_revision": 11,
+      "code": "unknown_layout_container",
+      "detail": "golden fixture for unknown_layout_container",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-06",
+      "current_revision": 11,
+      "code": "layout_container_already_bound",
+      "detail": "golden fixture for layout_container_already_bound",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-07",
+      "current_revision": 11,
+      "code": "unknown_window",
+      "detail": "golden fixture for unknown_window",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-08",
+      "current_revision": 11,
+      "code": "duplicate_host_preference",
+      "detail": "golden fixture for duplicate_host_preference",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-09",
+      "current_revision": 11,
+      "code": "undeclared_target_window",
+      "detail": "golden fixture for undeclared_target_window",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-10",
+      "current_revision": 11,
+      "code": "move_target_unchanged",
+      "detail": "golden fixture for move_target_unchanged",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-11",
+      "current_revision": 11,
+      "code": "invalid_insertion_index",
+      "detail": "golden fixture for invalid_insertion_index",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-12",
+      "current_revision": 11,
+      "code": "incomplete_reorder",
+      "detail": "golden fixture for incomplete_reorder",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-13",
+      "current_revision": 11,
+      "code": "duplicate_reorder_member",
+      "detail": "golden fixture for duplicate_reorder_member",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-14",
+      "current_revision": 11,
+      "code": "foreign_reorder_member",
+      "detail": "golden fixture for foreign_reorder_member",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-15",
+      "current_revision": 11,
+      "code": "empty_window_not_allowed",
+      "detail": "golden fixture for empty_window_not_allowed",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:error-16",
+      "current_revision": 11,
+      "code": "invalid_candidate",
+      "detail": "golden fixture for invalid_candidate",
+      "authoritative_document": {
+        "revision": 11,
+        "surfaces": [
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    }
+  ],
+  "responses": [
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:create",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_created",
+          "surface_id": "surface:new"
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:new",
+              "layout_container_id": "container:new",
+              "label": "New",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 2
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 3
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:duplicate",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_duplicated",
+          "source_surface_id": "surface:mix",
+          "surface_id": "surface:copy"
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:copy",
+              "layout_container_id": "container:duplicate",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 2
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 3
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:rename",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_renamed",
+          "surface_id": "surface:mix"
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix room",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:activate",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_activated",
+          "window_id": "window:main",
+          "surface_id": "surface:mix",
+          "previous_active_surface_id": "surface:edit"
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:mix"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:reorder",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "window_reordered",
+          "window_id": "window:main",
+          "surface_ids": [
+            "surface:edit",
+            "surface:mix"
+          ]
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:move",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_moved",
+          "surface_id": "surface:mix",
+          "source_window_id": "window:main",
+          "target_window_id": "window:tools",
+          "insertion_index": 1
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:close",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_closed",
+          "surface_id": "surface:plugins",
+          "cleanup": {
+            "layout_container_id": "container:plugins"
+          }
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:mix"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-00",
+        "current_revision": 11,
+        "code": "invalid_current_document",
+        "detail": "golden fixture for invalid_current_document",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:stale",
+        "current_revision": 11,
+        "code": "stale_revision",
+        "detail": "expected Surface revision 0; current revision is 11",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-02",
+        "current_revision": 11,
+        "code": "revision_overflow",
+        "detail": "golden fixture for revision_overflow",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-03",
+        "current_revision": 11,
+        "code": "unknown_surface",
+        "detail": "golden fixture for unknown_surface",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-04",
+        "current_revision": 11,
+        "code": "duplicate_surface",
+        "detail": "golden fixture for duplicate_surface",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-05",
+        "current_revision": 11,
+        "code": "unknown_layout_container",
+        "detail": "golden fixture for unknown_layout_container",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-06",
+        "current_revision": 11,
+        "code": "layout_container_already_bound",
+        "detail": "golden fixture for layout_container_already_bound",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-07",
+        "current_revision": 11,
+        "code": "unknown_window",
+        "detail": "golden fixture for unknown_window",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-08",
+        "current_revision": 11,
+        "code": "duplicate_host_preference",
+        "detail": "golden fixture for duplicate_host_preference",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-09",
+        "current_revision": 11,
+        "code": "undeclared_target_window",
+        "detail": "golden fixture for undeclared_target_window",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-10",
+        "current_revision": 11,
+        "code": "move_target_unchanged",
+        "detail": "golden fixture for move_target_unchanged",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-11",
+        "current_revision": 11,
+        "code": "invalid_insertion_index",
+        "detail": "golden fixture for invalid_insertion_index",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-12",
+        "current_revision": 11,
+        "code": "incomplete_reorder",
+        "detail": "golden fixture for incomplete_reorder",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-13",
+        "current_revision": 11,
+        "code": "duplicate_reorder_member",
+        "detail": "golden fixture for duplicate_reorder_member",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-14",
+        "current_revision": 11,
+        "code": "foreign_reorder_member",
+        "detail": "golden fixture for foreign_reorder_member",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-15",
+        "current_revision": 11,
+        "code": "empty_window_not_allowed",
+        "detail": "golden fixture for empty_window_not_allowed",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "request_id": "request:error-16",
+        "current_revision": 11,
+        "code": "invalid_candidate",
+        "detail": "golden fixture for invalid_candidate",
+        "authoritative_document": {
+          "revision": 11,
+          "surfaces": [
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    }
+  ],
+  "incompatibility": {
+    "future_protocol_version": 2,
+    "unknown_command": {
+      "kind": "future_surface_command"
+    },
+    "unknown_outcome": {
+      "kind": "future_surface_outcome"
+    },
+    "unknown_rejection_code": "future_surface_rejection"
+  }
+}

@@ -19,7 +19,8 @@ pub use geometry::{
 pub use opaque_id::{
     DisplayId, DropZoneId, LayoutContainerId, LayoutRequestId, LayoutSchemaId, OpaqueIdError,
     PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId, SurfaceId,
-    SurfaceRequestId, TransferClientId, TransferHostBindingId, TransferSubjectId, WindowId,
+    SurfaceRequestId, TransferClientId, TransferHostBindingId, TransferRequestId,
+    TransferSubjectId, WindowId,
 };
 pub use revision::{
     LayoutRevision, LayoutRevisionOverflow, SurfaceRevision, SurfaceRevisionOverflow,

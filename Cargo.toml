@@ -8,14 +8,17 @@ members = [
   "crates/longhorn-layout",
   "crates/longhorn-layout-config",
   "crates/longhorn-surface-windowing",
+  "crates/longhorn-surface-transfer",
   "crates/longhorn-surfaces",
   "crates/longhorn-surfaces-config",
   "crates/longhorn-transfer",
   "crates/longhorn-tauri-config",
+  "crates/longhorn-tauri-transfer",
   "crates/longhorn-tauri-windowing",
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
   "examples/nucleus-no-surface-proof",
+  "examples/tauri-transfer-proof/src-tauri",
   "examples/tauri-windowing-proof/src-tauri",
 ]
 resolver = "2"
@@ -38,9 +41,11 @@ longhorn-display = { path = "crates/longhorn-display" }
 longhorn-layout = { path = "crates/longhorn-layout" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config" }
 longhorn-surface-windowing = { path = "crates/longhorn-surface-windowing" }
+longhorn-surface-transfer = { path = "crates/longhorn-surface-transfer" }
 longhorn-surfaces = { path = "crates/longhorn-surfaces" }
 longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config" }
 longhorn-transfer = { path = "crates/longhorn-transfer" }
+longhorn-tauri-transfer = { path = "crates/longhorn-tauri-transfer" }
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing" }
 longhorn-windowing = { path = "crates/longhorn-windowing" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config" }

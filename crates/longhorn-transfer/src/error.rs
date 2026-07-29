@@ -1,7 +1,11 @@
 use std::{error::Error, fmt};
 
+use serde::{Deserialize, Serialize};
+
 /// Stable transfer rejection category.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
 pub enum TransferErrorCode {
     /// An injected clock moved backwards.
     ClockRegressed,

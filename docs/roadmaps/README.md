@@ -7,7 +7,7 @@
 
 ## Active Milestone
 
-`g01.005` is complete. `g01.006` is active; Card 032 is ready.
+`g01.005` through `g01.007` are complete. No execution card is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -48,8 +48,44 @@ full Loophole hierarchy conformance, and a no-Surface Nucleus build proof.
 Card 031 implements exact injected session identity and time, finite
 process-local registries, complete replacement drop-zone leases, client-epoch
 invalidation, terminal single-use, and deterministic target resolution.
+Card 032 implements fresh movable-panel admission, opaque host-binding
+re-resolution, same-document revision checks, and coordinated
+expected-revision panel move with exact abort invariance.
+Card 033 implements fresh whole-Surface admission, ordinary and empty-display
+target re-resolution, one expected-revision Surface move, exact
+layout-binding retention, and explicit provision, cleanup, and reconciliation
+receipts.
+Card 034 implements Rust-authoritative Surface and transfer generation,
+framework-neutral clients, epoch-safe renderer connection, narrow Tauri
+transport and handler assembly, managed-window geometry projection, optional
+Surface commands, and capability audits.
+Card 035 adds separate direct and Surface-enabled Rust 1.85 packaged
+artifacts. Real renderer windows prove leases, authoritative panel and Surface
+moves, explicit empty-display provision, exact failed-attempt invariance,
+2× scale geometry, and narrow dependency, payload, capability, and authority
+boundaries. `g01.006` is complete.
+
+Research memo 011 and revised contracts 011-013 compile g01.007 into Cards
+036-041. The runway covers client lifetime, domain-free Tauri transport,
+per-window Svelte state, a Poodle public drag and artifact checkpoint, public
+layout bindings, armed cross-window drag, shared titlebar behavior, and
+minimal, Surface-free, and full shell proofs.
+Card 036 provides the structural client lifetime, migrated Surface and
+transfer connections, and domain-free raw Tauri transport. Card 037 provides
+per-instance rune state, consumer-fed layout projection, optional domain
+subpaths, bounded optimism, and exact mounted transfer teardown. Card 038
+provides Poodle's public drag seam and the exact preview artifact set required
+by the private adapter. Card 039 provides the private Surface-free adapter,
+consumer-owned presentation snippets, revisioned controlled-state mutation,
+and mounted Nucleus and Loophole shapes. Card 040 provides armed panel and
+Surface transfer, protocol-only payloads, measured replacement leases,
+projection-only reveal, and injected titlebar drag.
+Card 041 provides isolated artifact-installed Bovine, Surface-free Nucleus,
+and full Loophole shells, public Poodle bootstrap, guarded reveal, visible
+failures, and dependency/capability audits. `g01.007` is complete.
 
 ## Next Task
 
-Start
-[Card 032 Authoritative Layout Panel Transfer](g01/batch-cards/032-authoritative-layout-panel-transfer.md).
+Resolve the g01 post-007 intent gate. Choose settings compilation under
+g01.008 or bridge/topology research under g01.009 before promoting another
+execution card.

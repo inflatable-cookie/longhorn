@@ -2386,6 +2386,9 @@ version = "0.1.0"
 dependencies = [
  "longhorn-core",
  "longhorn-layout",
+ "longhorn-surface-transfer",
+ "longhorn-surfaces",
+ "longhorn-transfer",
  "serde",
  "serde_json",
  "ts-rs",
@@ -2465,7 +2468,24 @@ version = "0.1.0"
 dependencies = [
  "longhorn-core",
  "longhorn-layout",
+ "longhorn-transfer",
  "longhorn-windowing",
+]
+
+[[package]]
+name = "longhorn-surface-transfer"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-layout",
+ "longhorn-surfaces",
+ "longhorn-surfaces-config",
+ "longhorn-transfer",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "ts-rs",
 ]
 
 [[package]]
@@ -2487,6 +2507,7 @@ dependencies = [
  "longhorn-core",
  "serde",
  "serde_json",
+ "ts-rs",
 ]
 
 [[package]]
@@ -2508,6 +2529,40 @@ name = "longhorn-tauri-config"
 version = "0.1.0"
 dependencies = [
  "longhorn-config",
+]
+
+[[package]]
+name = "longhorn-tauri-transfer"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-surface-transfer",
+ "longhorn-tauri-windowing",
+ "longhorn-transfer",
+ "longhorn-windowing",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-transfer-proof"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-layout",
+ "longhorn-layout-config",
+ "longhorn-surface-transfer",
+ "longhorn-surfaces",
+ "longhorn-surfaces-config",
+ "longhorn-tauri-transfer",
+ "longhorn-tauri-windowing",
+ "longhorn-transfer",
+ "longhorn-windowing",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
 ]
 
 [[package]]
@@ -2542,9 +2597,14 @@ dependencies = [
 name = "longhorn-transfer"
 version = "0.1.0"
 dependencies = [
+ "longhorn-config",
  "longhorn-core",
+ "longhorn-layout",
+ "longhorn-layout-config",
  "serde",
  "serde_json",
+ "tempfile",
+ "ts-rs",
 ]
 
 [[package]]

@@ -5,8 +5,9 @@ mod source;
 
 pub use lease::{DropZone, TransferTargetBinding};
 pub use protocol::{
-    SessionCancellationReceipt, SessionCancellationStatus, SessionCreationReceipt,
-    TRANSFER_PROTOCOL_VERSION, TerminalTransferAttempt, TransferPayload, TransferSessionRequest,
+    EmptyDisplayTransferAttempt, SessionCancellationReceipt, SessionCancellationStatus,
+    SessionCreationReceipt, TRANSFER_PROTOCOL_VERSION, TerminalTransferAttempt,
+    TerminalTransferResolution, TransferPayload, TransferSessionRequest,
 };
 pub use publication::{
     LeasePublication, LiveTransferWindow, ResolvedTransferTarget, TargetResolutionPath,

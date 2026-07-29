@@ -1,0 +1,116 @@
+<script lang="ts">
+  import { DockRegion } from "@poodle/svelte";
+  import type {
+    DockCollapsedPosture,
+    DockEdge,
+    DockEmphasis,
+    DockExternalDragSource,
+    DockExternalDropTarget,
+    DockSizing,
+    PanelTabItem,
+    TabVariant,
+  } from "@poodle/svelte";
+  import type { LayoutContainerId, RegionId } from "@longhorn/layout";
+  import type { Snippet } from "svelte";
+
+  import type { PoodleLayoutBinding } from "./binding.ts";
+  import type {
+    PanelPresentationResolver,
+    PanelRenderContext,
+  } from "./types.ts";
+
+  interface Props {
+    binding: PoodleLayoutBinding;
+    containerId: LayoutContainerId;
+    regionId: RegionId;
+    edge: DockEdge;
+    resolvePanel: PanelPresentationResolver;
+    ariaLabel: string;
+    sizing?: DockSizing;
+    collapsedPosture?: DockCollapsedPosture;
+    emphasis?: DockEmphasis;
+    tabVariant?: TabVariant;
+    externalDragSource?: DockExternalDragSource | null;
+    externalDropTarget?: DockExternalDropTarget | null;
+    body?: Snippet<[PanelRenderContext]>;
+    panel?: Snippet<[PanelRenderContext]>;
+  }
+
+  let {
+    binding,
+    containerId,
+    regionId,
+    edge,
+    resolvePanel,
+    ariaLabel,
+    sizing = "flexible",
+    collapsedPosture = "icon-strip",
+    emphasis = "standard",
+    tabVariant = "strip",
+    externalDragSource = null,
+    externalDropTarget = null,
+    body,
+    panel,
+  }: Props = $props();
+
+  const projection = $derived(
+    binding.region(containerId, regionId, resolvePanel),
+  );
+
+  function activate(panelInstanceId: string): void {
+    if (panelInstanceId !== projection.state.active_panel_instance_id) {
+      binding.activate(panelInstanceId);
+    }
+  }
+
+  function movePanel(panelInstanceId: string): void {
+    if (binding.canMove(panelInstanceId, containerId, regionId)) {
+      binding.move(
+        panelInstanceId,
+        containerId,
+        regionId,
+        projection.state.panel_instance_ids.length,
+      );
+    }
+  }
+</script>
+
+{#snippet renderBody(item: PanelTabItem | null)}
+  {@const context = item ? projection.panels.get(item.value) : undefined}
+  {#if context}
+    {@render body?.(context)}
+  {/if}
+{/snippet}
+
+{#snippet renderPanel(item: PanelTabItem)}
+  {@const context = projection.panels.get(item.value)}
+  {#if context}
+    {@render panel?.(context)}
+  {/if}
+{/snippet}
+
+<DockRegion
+  {edge}
+  {sizing}
+  collapsible={projection.definition.collapsible}
+  collapsed={projection.state.collapsed ?? false}
+  {collapsedPosture}
+  {emphasis}
+  {tabVariant}
+  {externalDragSource}
+  {externalDropTarget}
+  items={[...projection.items]}
+  value={projection.state.active_panel_instance_id}
+  {ariaLabel}
+  canAcceptPanel={(panelInstanceId) =>
+    binding.canMove(panelInstanceId, containerId, regionId)}
+  onValueChange={activate}
+  onCollapsedChange={(collapsed) =>
+    binding.setCollapsed(containerId, regionId, collapsed)}
+  onClose={(panelInstanceId) => binding.close(panelInstanceId)}
+  onReorder={(panelInstanceIds) =>
+    binding.reorder(containerId, regionId, panelInstanceIds)}
+  onPanelDrop={({ panel: dropped }) => movePanel(dropped.panelId)}
+  children={body ? renderBody : undefined}
+  panel={panel ? renderPanel : undefined}
+/>

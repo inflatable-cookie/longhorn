@@ -4,6 +4,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Exact 128-bit process-local transfer-session identity.
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "string"))]
 pub struct DragSessionId([u8; 16]);
 
 impl DragSessionId {
@@ -131,6 +133,8 @@ macro_rules! unsigned_identity {
         #[derive(
             Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
         )]
+        #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
         #[serde(transparent)]
         pub struct $name($inner);
 

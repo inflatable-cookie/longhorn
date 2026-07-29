@@ -1,6 +1,6 @@
 # 035 Packaged Multi-window Transfer Proof And Closeout
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.006 batch 5
 Governing refs: contracts 001-004 and 009-014; research memos 003 and 010
@@ -94,5 +94,25 @@ claim Windows or Linux runtime behavior.
 
 ## Next Task
 
-Close g01.006, then compile g01.007 against the delivered framework-neutral
-clients. Do not start reusable Svelte or Poodle adapters from this card.
+Start Card 036 from the compiled g01.007 runway. Do not start reusable Svelte
+or Poodle adapters from this completed card.
+
+## Closeout
+
+Completed 2026-07-29.
+
+- direct and Surface-enabled Rust 1.85 packaged artifacts passed on macOS arm64
+- two real renderer webviews exercised snapshot, lease, admission, and commit
+- direct panel transfer advanced one registered layout document
+- Surface mode advanced panel and Surface documents independently
+- explicit-zone and screen-point paths passed
+- empty-display policy created, placed, showed, and registered a third window
+- cancellation, expiry, overlap, target loss, stale geometry, stale revision,
+  and replay retained exact authority bytes
+- direct dependency graph contains no Surface package
+- payload and capability audits contain no product or broad ambient authority
+- Windows, Linux, mixed-scale, multi-display, UI, copy, cross-document, and
+  consumer migration work remains explicit
+
+Evidence:
+[Packaged Multi-window Transfer Proof And Closeout](../../../logs/2026-07/29-packaged-multi-window-transfer-proof-and-closeout.md).

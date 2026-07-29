@@ -1,10 +1,11 @@
 //! Direct window-to-layout composition without optional Surface packages.
 
 use longhorn_core::{
-    LayoutContainerId, LayoutRevision, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize, WindowId,
-    WindowPlacement,
+    DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize,
+    TransferHostBindingId, WindowId, WindowPlacement,
 };
 use longhorn_layout::{LayoutContainer, LayoutDocument, RegionState};
+use longhorn_transfer::{PanelHostBinding, PanelHostBindings};
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, WindowDiffInput, plan_window_diff,
 };
@@ -43,5 +44,12 @@ fn main() {
 
     assert_eq!(host_plan.generation(), ApplyGeneration::new(1));
     assert!(layout.container(&container_id).is_some());
+    let _transfer_bindings = PanelHostBindings::new([PanelHostBinding::direct_window(
+        TransferHostBindingId::new("binding:main").unwrap(),
+        window_id.clone(),
+        DomainId::new("layout.workspace").unwrap(),
+        container_id,
+    )])
+    .unwrap();
     assert_eq!(window_id.as_str(), "window:main");
 }

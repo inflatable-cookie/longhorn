@@ -1,6 +1,6 @@
 # g01.006 Optional Surfaces And Cross-window Drag
 
-Status: active; Card 032 ready
+Status: complete
 Owner: Tom
 Updated: 2026-07-29
 Governing refs: contracts 001-004 and 009-014; research memos 003 and 010
@@ -24,11 +24,11 @@ consumer lanes without making Surface state mandatory.
 - [x] implement expected-revision Surface lifecycle and registered persistence
 - [x] compose full Surface hosting through the existing window host
 - [x] implement bounded host-created transfer sessions and drop-zone leases
-- [ ] commit same-document cross-window panel moves authoritatively
-- [ ] commit whole-Surface moves with explicit window-provision policy
-- [ ] generate checked framework-neutral Surface and transfer clients
-- [ ] prove both composition shapes in a packaged multi-window app
-- [ ] preserve deferred cross-document, copy, UI, migration, and platform work
+- [x] commit same-document cross-window panel moves authoritatively
+- [x] commit whole-Surface moves with explicit window-provision policy
+- [x] generate checked framework-neutral Surface and transfer clients
+- [x] prove both composition shapes in a packaged multi-window app
+- [x] preserve deferred cross-document, copy, UI, migration, and platform work
 
 ## Execution Plan
 
@@ -50,13 +50,13 @@ consumer lanes without making Surface state mandatory.
 
 ### Batch 4: Authoritative commits
 
-- [ ] Card 032 — same-document panel transfer through existing layout mutation
-- [ ] Card 033 — whole-Surface transfer and opt-in window provisioning
+- [x] Card 032 — same-document panel transfer through existing layout mutation
+- [x] Card 033 — whole-Surface transfer and opt-in window provisioning
 
 ### Batch 5: Protocol and packaged proof
 
-- [ ] Card 034 — generated TypeScript protocol and Tauri host assembly
-- [ ] Card 035 — packaged multi-window proof, boundary audit, and closeout
+- [x] Card 034 — generated TypeScript protocol and Tauri host assembly
+- [x] Card 035 — packaged multi-window proof, boundary audit, and closeout
 
 ## Authority Decisions
 
@@ -101,14 +101,14 @@ injected provisioner with explicit cleanup receipts.
 - [x] session and lease registries are finite, expiring, and single-use
 - [x] ambiguous, stale, expired, replayed, or disappeared targets abort
 - [x] direct and Surface target bindings share the target-resolution core
-- [ ] panel move publishes exactly one registered layout document
-- [ ] cross-document and copy transfer fail before mutation
-- [ ] whole-Surface movement retains its layout-container binding
-- [ ] new-window provisioning is explicit and cleanup is receipted
-- [ ] Rust-generated TypeScript fixtures round-trip exactly
-- [ ] packaged proof covers real multi-window success, cancellation, expiry,
+- [x] panel move publishes exactly one registered layout document
+- [x] cross-document and copy transfer fail before mutation
+- [x] whole-Surface movement retains its layout-container binding
+- [x] new-window provisioning is explicit and cleanup is receipted
+- [x] Rust-generated TypeScript fixtures round-trip exactly
+- [x] packaged proof covers real multi-window success, cancellation, expiry,
   target loss, overlap, and scale boundaries
-- [ ] Rust 1.85 and full Effigy QA pass
+- [x] Rust 1.85 and full Effigy QA pass
 
 ## Planning Gaps Kept Visible
 
@@ -119,16 +119,28 @@ injected provisioner with explicit cleanup receipts.
 - non-macOS packaged transfer behavior remains platform evidence, not an
   inferred guarantee
 
-None blocks Card 032.
+These gaps remain owned by later milestones.
 
 ## Planning Checkpoint
 
 Card 030 closed the Surface foundation checkpoint. Cards 028-030 preserved the
 promoted binding, revision, and persistence boundary. Contract 011 remains
 current. Card 031 now supplies the shared bounded session, lease, and target
-core. Card 032 is ready to bind panel transfer to existing layout mutation.
+core. Card 032 now binds consumed attempts to fresh opaque host bindings and
+the existing same-document expected-revision `MovePanel` publication. Card
+033 adds fresh whole-Surface admission, ordinary and empty-display target
+re-resolution, expected-revision `MoveSurface` publication, exact
+layout-binding retention, and explicit provision, cleanup, partial-failure,
+and reconciliation evidence. Card 034 now supplies checked Surface, transfer,
+and optional Surface-transfer protocols, framework-neutral clients, one
+epoch-safe renderer connection, narrow Tauri transport and handler assembly,
+managed-window geometry projection, optional Surface commands, and minimal
+capability matrices. Card 035 adds separate direct and Surface-enabled Rust
+1.85 packaged artifacts, real multi-webview commands, authoritative panel and
+Surface commits, explicit empty-display provision, failure invariance,
+2× scale and half-open boundary evidence, and dependency, payload, capability,
+and authority audits. `g01.006` is complete.
 
 ## Next Task
 
-Start
-[Card 032 Authoritative Layout Panel Transfer](batch-cards/032-authoritative-layout-panel-transfer.md).
+Start Card 036 from the compiled g01.007 runway.

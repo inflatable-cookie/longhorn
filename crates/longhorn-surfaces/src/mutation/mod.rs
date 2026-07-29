@@ -9,4 +9,5 @@ pub use error::{SurfaceMutationRejection, SurfaceMutationRejectionCode};
 pub use policy::{EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory};
 pub use protocol::{
     SurfaceMutationCommand, SurfaceMutationOutcome, SurfaceMutationReceipt, SurfaceMutationRequest,
+    SurfaceMutationResponse,
 };

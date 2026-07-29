@@ -1,7 +1,7 @@
 use longhorn_core::ScreenPoint;
 use longhorn_transfer::{
-    DropZoneId, TargetResolutionPath, TargetSelector, TransferDuration, TransferErrorCode,
-    TransferSessionRequest,
+    DropZoneId, TargetResolutionPath, TargetSelector, TerminalTransferResolution, TransferDuration,
+    TransferErrorCode, TransferSessionRequest,
 };
 
 use super::support::{
@@ -145,6 +145,48 @@ fn overlapping_windows_and_zones_reject_without_enumeration_order() {
             TransferErrorCode::AmbiguousWindow
         );
     }
+}
+
+#[test]
+fn empty_display_is_distinct_only_outside_every_fresh_managed_window() {
+    let clock = FakeClock::new(0);
+    let mut coordinator = coordinator();
+    bind(
+        &mut coordinator,
+        &clock,
+        "window:source",
+        "client:source",
+        1,
+    );
+    let mut allocator = SequenceAllocator::new([[6; 16], [7; 16]]);
+    let outside = create_panel_session(&mut coordinator, &clock, &mut allocator);
+    let inside = create_panel_session(&mut coordinator, &clock, &mut allocator);
+    let bounds = rect(100, 100, 400, 300);
+
+    let resolution = coordinator
+        .attempt_target_or_empty_display(
+            &clock,
+            outside,
+            TargetSelector::ScreenPoint(ScreenPoint::new(20, 30)),
+            &[live("window:target", bounds)],
+        )
+        .unwrap();
+    let TerminalTransferResolution::EmptyDisplay(attempt) = resolution else {
+        panic!("outside point should retain empty-display evidence");
+    };
+    assert_eq!(attempt.session_id(), outside);
+    assert_eq!(attempt.screen_point(), ScreenPoint::new(20, 30));
+
+    let error = coordinator
+        .attempt_target_or_empty_display(
+            &clock,
+            inside,
+            TargetSelector::ScreenPoint(ScreenPoint::new(150, 150)),
+            &[live("window:target", bounds)],
+        )
+        .unwrap_err();
+    assert_eq!(error.code(), TransferErrorCode::NoTarget);
+    assert!(error.session_consumed());
 }
 
 fn create_panel_session(

@@ -1,0 +1,744 @@
+{
+  "protocol_version": 1,
+  "client_snapshot": {
+    "protocol_version": 1,
+    "client_id": "client:main",
+    "client_epoch": 8,
+    "current_lease_generation": 2
+  },
+  "session_requests": [
+    {
+      "protocol_version": 1,
+      "request_id": "request:start-panel",
+      "panel_instance_id": "instance:inspector"
+    }
+  ],
+  "lease_requests": [
+    {
+      "protocol_version": 1,
+      "request_id": "request:lease",
+      "client_id": "client:main",
+      "client_epoch": 8,
+      "generation": 3,
+      "zones": [
+        {
+          "id": "zone:center",
+          "bounds": {
+            "origin": {
+              "x": 20.0,
+              "y": 30.0
+            },
+            "size": {
+              "width": 400.0,
+              "height": 260.0
+            }
+          },
+          "insertion_position": 1,
+          "accepted_capability": "move_panel",
+          "target": {
+            "kind": "panel_region",
+            "host_binding_id": "binding:target",
+            "document_id": "app.layout",
+            "revision": 7,
+            "container_id": "container:target",
+            "region_id": "center"
+          }
+        },
+        {
+          "id": "zone:surface",
+          "bounds": {
+            "origin": {
+              "x": 440.0,
+              "y": 30.0
+            },
+            "size": {
+              "width": 300.0,
+              "height": 260.0
+            }
+          },
+          "insertion_position": null,
+          "accepted_capability": "move_surface",
+          "target": {
+            "kind": "surface_window",
+            "host_binding_id": "binding:surface",
+            "document_id": "app.surfaces",
+            "revision": 9
+          }
+        }
+      ]
+    }
+  ],
+  "commit_requests": [
+    {
+      "protocol_version": 1,
+      "request_id": "request:commit-zone",
+      "session_id": "abababababababababababababababab",
+      "selector": {
+        "kind": "explicit_zone",
+        "drop_zone_id": "zone:center"
+      }
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:commit-point",
+      "session_id": "abababababababababababababababab",
+      "selector": {
+        "kind": "screen_point",
+        "point": {
+          "x": 220,
+          "y": 160
+        }
+      }
+    }
+  ],
+  "cancel_requests": [
+    {
+      "protocol_version": 1,
+      "request_id": "request:cancel",
+      "session_id": "abababababababababababababababab"
+    }
+  ],
+  "session_responses": [
+    {
+      "status": "started",
+      "session": {
+        "protocol_version": 1,
+        "request_id": "request:start-panel",
+        "payload": {
+          "protocol_version": 1,
+          "session_id": "abababababababababababababababab"
+        }
+      }
+    },
+    {
+      "status": "aborted",
+      "abort": {
+        "protocol_version": 1,
+        "request_id": "request:transfer-error-00",
+        "source": {
+          "domain": "transfer",
+          "code": "clock_regressed"
+        },
+        "message": "golden fixture for clock_regressed",
+        "retryable": false,
+        "session_consumed": true
+      }
+    }
+  ],
+  "lease_responses": [
+    {
+      "status": "published",
+      "lease": {
+        "protocol_version": 1,
+        "request_id": "request:lease",
+        "client_id": "client:main",
+        "client_epoch": 8,
+        "generation": 3,
+        "zone_count": 2
+      }
+    },
+    {
+      "status": "aborted",
+      "abort": {
+        "protocol_version": 1,
+        "request_id": "request:transfer-error-01",
+        "source": {
+          "domain": "transfer",
+          "code": "invalid_lifetime"
+        },
+        "message": "golden fixture for invalid_lifetime",
+        "retryable": false,
+        "session_consumed": false
+      }
+    }
+  ],
+  "commit_responses": [
+    {
+      "status": "committed",
+      "completion": {
+        "protocol_version": 1,
+        "request_id": "request:commit-zone",
+        "session_id": "abababababababababababababababab",
+        "source_host_binding_id": "binding:source",
+        "target_host_binding_id": "binding:target",
+        "source_binding_kind": "direct_window",
+        "target_binding_kind": "surface_container",
+        "previous_revision": 7,
+        "committed_revision": 8,
+        "authoritative_document": {
+          "revision": 8,
+          "containers": [],
+          "panel_instances": []
+        },
+        "target": {
+          "path": "explicit_zone",
+          "window_id": "window:target",
+          "drop_zone_id": "zone:center",
+          "insertion_position": 1,
+          "binding": {
+            "kind": "panel_region",
+            "host_binding_id": "binding:target",
+            "document_id": "app.layout",
+            "revision": 7,
+            "container_id": "container:target",
+            "region_id": "center"
+          }
+        }
+      }
+    },
+    {
+      "status": "aborted",
+      "abort": {
+        "protocol_version": 1,
+        "request_id": "request:transfer-error-02",
+        "source": {
+          "domain": "transfer",
+          "code": "session_capacity"
+        },
+        "message": "golden fixture for session_capacity",
+        "retryable": false,
+        "session_consumed": true
+      }
+    }
+  ],
+  "cancel_responses": [
+    {
+      "status": "cancelled",
+      "cancellation": {
+        "protocol_version": 1,
+        "request_id": "request:cancel",
+        "session_id": "abababababababababababababababab",
+        "status": "cancelled"
+      }
+    },
+    {
+      "status": "aborted",
+      "abort": {
+        "protocol_version": 1,
+        "request_id": "request:transfer-error-03",
+        "source": {
+          "domain": "transfer",
+          "code": "session_id_allocation"
+        },
+        "message": "golden fixture for session_id_allocation",
+        "retryable": false,
+        "session_consumed": false
+      }
+    }
+  ],
+  "aborts": [
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-00",
+      "source": {
+        "domain": "transfer",
+        "code": "clock_regressed"
+      },
+      "message": "golden fixture for clock_regressed",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-01",
+      "source": {
+        "domain": "transfer",
+        "code": "invalid_lifetime"
+      },
+      "message": "golden fixture for invalid_lifetime",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-02",
+      "source": {
+        "domain": "transfer",
+        "code": "session_capacity"
+      },
+      "message": "golden fixture for session_capacity",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-03",
+      "source": {
+        "domain": "transfer",
+        "code": "session_id_allocation"
+      },
+      "message": "golden fixture for session_id_allocation",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-04",
+      "source": {
+        "domain": "transfer",
+        "code": "session_id_collision"
+      },
+      "message": "golden fixture for session_id_collision",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-05",
+      "source": {
+        "domain": "transfer",
+        "code": "unknown_session"
+      },
+      "message": "golden fixture for unknown_session",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-06",
+      "source": {
+        "domain": "transfer",
+        "code": "session_expired"
+      },
+      "message": "golden fixture for session_expired",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-07",
+      "source": {
+        "domain": "transfer",
+        "code": "session_cancelled"
+      },
+      "message": "golden fixture for session_cancelled",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-08",
+      "source": {
+        "domain": "transfer",
+        "code": "session_replayed"
+      },
+      "message": "golden fixture for session_replayed",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-09",
+      "source": {
+        "domain": "transfer",
+        "code": "source_window_destroyed"
+      },
+      "message": "golden fixture for source_window_destroyed",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-10",
+      "source": {
+        "domain": "transfer",
+        "code": "source_client_changed"
+      },
+      "message": "golden fixture for source_client_changed",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-11",
+      "source": {
+        "domain": "transfer",
+        "code": "client_window_capacity"
+      },
+      "message": "golden fixture for client_window_capacity",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-12",
+      "source": {
+        "domain": "transfer",
+        "code": "unknown_client_epoch"
+      },
+      "message": "golden fixture for unknown_client_epoch",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-13",
+      "source": {
+        "domain": "transfer",
+        "code": "stale_client_epoch"
+      },
+      "message": "golden fixture for stale_client_epoch",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-14",
+      "source": {
+        "domain": "transfer",
+        "code": "stale_lease_generation"
+      },
+      "message": "golden fixture for stale_lease_generation",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-15",
+      "source": {
+        "domain": "transfer",
+        "code": "lease_capacity"
+      },
+      "message": "golden fixture for lease_capacity",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-16",
+      "source": {
+        "domain": "transfer",
+        "code": "invalid_lease"
+      },
+      "message": "golden fixture for invalid_lease",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-17",
+      "source": {
+        "domain": "transfer",
+        "code": "lease_expired"
+      },
+      "message": "golden fixture for lease_expired",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-18",
+      "source": {
+        "domain": "transfer",
+        "code": "invalid_live_windows"
+      },
+      "message": "golden fixture for invalid_live_windows",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-19",
+      "source": {
+        "domain": "transfer",
+        "code": "target_window_missing"
+      },
+      "message": "golden fixture for target_window_missing",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-20",
+      "source": {
+        "domain": "transfer",
+        "code": "stale_window_geometry"
+      },
+      "message": "golden fixture for stale_window_geometry",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-21",
+      "source": {
+        "domain": "transfer",
+        "code": "no_target"
+      },
+      "message": "golden fixture for no_target",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-22",
+      "source": {
+        "domain": "transfer",
+        "code": "ambiguous_window"
+      },
+      "message": "golden fixture for ambiguous_window",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-23",
+      "source": {
+        "domain": "transfer",
+        "code": "ambiguous_zone"
+      },
+      "message": "golden fixture for ambiguous_zone",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:transfer-error-24",
+      "source": {
+        "domain": "transfer",
+        "code": "ineligible_capability"
+      },
+      "message": "golden fixture for ineligible_capability",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-00",
+      "source": {
+        "domain": "panel",
+        "code": "invalid_binding_snapshot"
+      },
+      "message": "golden fixture for invalid_binding_snapshot",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-01",
+      "source": {
+        "domain": "panel",
+        "code": "unknown_host_binding"
+      },
+      "message": "golden fixture for unknown_host_binding",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-02",
+      "source": {
+        "domain": "panel",
+        "code": "stale_host_binding"
+      },
+      "message": "golden fixture for stale_host_binding",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-03",
+      "source": {
+        "domain": "panel",
+        "code": "layout_load_failed"
+      },
+      "message": "golden fixture for layout_load_failed",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-04",
+      "source": {
+        "domain": "panel",
+        "code": "layout_unavailable"
+      },
+      "message": "golden fixture for layout_unavailable",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-05",
+      "source": {
+        "domain": "panel",
+        "code": "unknown_panel"
+      },
+      "message": "golden fixture for unknown_panel",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-06",
+      "source": {
+        "domain": "panel",
+        "code": "panel_not_movable"
+      },
+      "message": "golden fixture for panel_not_movable",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-07",
+      "source": {
+        "domain": "panel",
+        "code": "source_changed"
+      },
+      "message": "golden fixture for source_changed",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-08",
+      "source": {
+        "domain": "panel",
+        "code": "unsupported_source"
+      },
+      "message": "golden fixture for unsupported_source",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-09",
+      "source": {
+        "domain": "panel",
+        "code": "unsupported_target"
+      },
+      "message": "golden fixture for unsupported_target",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-10",
+      "source": {
+        "domain": "panel",
+        "code": "cross_document"
+      },
+      "message": "golden fixture for cross_document",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-11",
+      "source": {
+        "domain": "panel",
+        "code": "copy_unsupported"
+      },
+      "message": "golden fixture for copy_unsupported",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-12",
+      "source": {
+        "domain": "panel",
+        "code": "stale_layout_revision"
+      },
+      "message": "golden fixture for stale_layout_revision",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-13",
+      "source": {
+        "domain": "panel",
+        "code": "target_changed"
+      },
+      "message": "golden fixture for target_changed",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-14",
+      "source": {
+        "domain": "panel",
+        "code": "ineligible_target"
+      },
+      "message": "golden fixture for ineligible_target",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-15",
+      "source": {
+        "domain": "panel",
+        "code": "instance_policy_exceeded"
+      },
+      "message": "golden fixture for instance_policy_exceeded",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-16",
+      "source": {
+        "domain": "panel",
+        "code": "invalid_insertion_position"
+      },
+      "message": "golden fixture for invalid_insertion_position",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-17",
+      "source": {
+        "domain": "panel",
+        "code": "layout_mutation_rejected"
+      },
+      "message": "golden fixture for layout_mutation_rejected",
+      "retryable": false,
+      "session_consumed": false
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-18",
+      "source": {
+        "domain": "panel",
+        "code": "publication_failed"
+      },
+      "message": "golden fixture for publication_failed",
+      "retryable": false,
+      "session_consumed": true
+    },
+    {
+      "protocol_version": 1,
+      "request_id": "request:panel-error-19",
+      "source": {
+        "domain": "panel",
+        "code": "transfer_rejected"
+      },
+      "message": "golden fixture for transfer_rejected",
+      "retryable": false,
+      "session_consumed": false
+    }
+  ],
+  "incompatibility": {
+    "future_protocol_version": 2,
+    "unknown_target_binding": {
+      "kind": "future_target"
+    },
+    "unknown_commit_selector": {
+      "kind": "future_selector"
+    },
+    "unknown_response_status": {
+      "status": "future_response"
+    },
+    "unknown_abort_domain": {
+      "code": "future_code",
+      "domain": "future_domain"
+    },
+    "unknown_transfer_error_code": "future_transfer_error",
+    "unknown_panel_error_code": "future_panel_error"
+  }
+}

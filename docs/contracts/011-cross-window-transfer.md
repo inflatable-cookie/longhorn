@@ -4,7 +4,8 @@ Status: active compiled boundary
 Owner: Tom
 Updated: 2026-07-29
 Depends on: contracts 002, 004, 009, 010, and 014
-Evidence: `../research/translation-memos/010-surface-hosting-and-transfer-boundary.md`
+Evidence: `../research/translation-memos/010-surface-hosting-and-transfer-boundary.md`,
+`../research/translation-memos/011-client-svelte-poodle-and-shell-boundary.md`
 
 ## Boundary
 
@@ -68,6 +69,22 @@ invalid lifetime rejects session creation without allocating a partial record.
 bits and serializes it as 32 lowercase hexadecimal bytes. The package supplies
 no random or wall-clock implementation. Consumers inject both the
 cryptographically strong allocator and monotonic clock.
+
+## UI Session Arming
+
+The host-created session must exist before a native `dragstart` handler writes
+the payload. A renderer cannot await session creation and then mutate
+`DataTransfer` after that handler returns.
+
+The reusable UI adapter therefore arms a session from an explicit pre-drag
+gesture and binds the prepared result to the exact subject, source binding,
+client epoch, and pointer sequence. If preparation has not completed when
+native drag starts, the cross-window gesture is rejected. It does not emit a
+renderer-authored fallback payload.
+
+Unused, superseded, ended, unmounted, or window-destroyed preparations cancel
+their host session. Same-window Poodle reorder may remain local, but any
+gesture advertised as cross-window uses the armed Longhorn session.
 
 ## Drop-zone Leases
 
@@ -199,7 +216,6 @@ The first protocol line does not claim:
 - cross-document panel transactions
 - copy transfer
 - keyboard drag presentation
-- Poodle or Svelte adapter behavior
 - non-Tauri native hosts
 - automatic panel-to-new-window creation
 - durable recovery of in-flight sessions
@@ -209,12 +225,40 @@ These require separate contract evidence.
 ## Implementation Evidence
 
 Card 031 implements the process-local session, lease, and deterministic target
-core in `longhorn-transfer`. The package depends only on `longhorn-core` and
-serde. Panel and hosted-Surface authority use the same opaque source and target
-mechanics without importing `longhorn-surfaces`.
+core in `longhorn-transfer`. Card 032 adds fresh movable-panel admission,
+opaque direct-window and Surface-container host projections, same-domain and
+revision rechecks, and the existing coordinated expected-revision `MovePanel`
+publication.
 
-Panel mutation, whole-Surface mutation, Tauri handlers, generated TypeScript,
-and renderer geometry projection remain Cards 032-034.
+The package now depends on core, config, layout, layout-config, and serde. It
+still imports no `longhorn-surfaces` type or package. Cross-document and copy
+attempts consume the terminal session and publish no bytes. Success returns
+the existing authoritative layout and configuration receipt.
+
+Card 033 adds `longhorn-surface-transfer`. Admission resolves the fresh
+registered Surface and primary host binding. Terminal commit rechecks the
+recorded revision, current primary host, target participation, declared host
+preference, consumer policy, insertion, and empty-window policy before using
+the existing expected-revision `MoveSurface` publication.
+
+The transfer core preserves a distinct empty-display terminal result only for
+a screen point outside all fresh managed-window bounds. The optional adapter
+then requires consumer-supplied display bounds, logical window, placement,
+and target policy before calling an injected provisioner. Provision returns a
+hidden, placed, ready receipt and retained authority. Publication failure
+invokes cleanup; unresolved cleanup or post-publication host commit failure
+returns typed reconciliation evidence.
+
+Card 034 adds Rust-generated `@longhorn/surfaces`, `@longhorn/transfer`, and
+`@longhorn/surface-transfer` protocols and clients. `@longhorn/tauri` is the
+sole raw invoke/listen transport. `longhorn-tauri-transfer` binds commands to
+the caller's current managed-window identity, projects checked client
+geometry, and exposes optional Surface commands over the same coordinator.
+The client installs the epoch listener before requesting its initial snapshot,
+accepts only the newest epoch, and tears down safely even when listener
+registration resolves late.
+
+Packaged multi-window runtime evidence remains Card 035.
 
 ## Acceptance
 

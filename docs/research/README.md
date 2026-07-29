@@ -15,5 +15,6 @@ contracts.
 - [Tauri Window Host And Lifecycle](translation-memos/008-tauri-window-host-and-lifecycle.md)
 - [Layout Core Boundary Characterization](translation-memos/009-layout-core-boundary-characterization.md)
 - [Surface Hosting And Transfer Boundary](translation-memos/010-surface-hosting-and-transfer-boundary.md)
+- [Client, Svelte, Poodle, And Shell Boundary](translation-memos/011-client-svelte-poodle-and-shell-boundary.md)
 
 Start from a problem. Promote stable conclusions before roadmap execution.

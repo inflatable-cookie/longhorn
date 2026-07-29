@@ -155,7 +155,9 @@ impl<R: Runtime> ManagedWebviewWindow<R> {
         self.window_id.as_ref()
     }
 
-    pub(crate) const fn window(&self) -> &WebviewWindow<R> {
+    /// Returns the managed Tauri window at the host-adapter edge.
+    #[must_use]
+    pub const fn webview_window(&self) -> &WebviewWindow<R> {
         &self.window
     }
 
