@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "allow-longhorn-backup-mutate"
+description = "Allows backup publication, user-selected export, and confirmed retention."
+commands.allow = [
+  "longhorn_config_backup_create",
+  "longhorn_config_backup_export",
+  "longhorn_config_backup_retention",
+]

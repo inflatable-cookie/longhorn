@@ -211,6 +211,11 @@ impl StorageTransitionPreview {
     pub fn target_layout_digest(&self) -> &Sha256Digest {
         &self.target_layout_digest
     }
+    /// Returns the inspected target selection.
+    #[must_use]
+    pub fn target_selection(&self) -> &StorageProfileSelection {
+        &self.target_selection
+    }
     /// Returns registered inventory.
     #[must_use]
     pub fn domains(&self) -> &[StorageTransitionDomain] {

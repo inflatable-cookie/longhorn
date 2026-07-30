@@ -125,5 +125,17 @@ bindings, consumer-owned presentation snippets, serialized revisioned
 mutation, and mounted Nucleus and Loophole shapes. Card 040 is complete with
 armed transfer, checked leases, compatible reveal, and injected titlebar
 drag. Card 041 closes `g01.007` with isolated artifact-installed Bovine,
-Nucleus, and Loophole shells. No execution card is ready; the g01 post-007
-intent gate is active.
+Nucleus, and Loophole shells. Research memo 012 and compiled contract 005 now
+define the settings registry, one-domain apply units, policy/activation
+projection, checked clients, public-Poodle shell, shared recovery pages, and
+artifact proof. Cards 042-048 form g01.008. Card 042 now supplies the pure
+sealed registry and authority protocol. Card 043 adds checked one-domain
+configuration apply, policy enforcement, scoped reset, exact durability, and
+post-publication activation. Card 044 adds generated TypeScript, checked
+clients, registry helpers, and injected Tauri host assembly. Card 045 adds
+isolated Svelte settings sessions and one public-Poodle shell for modal,
+window, and panel hosts. Cards 046-047 add exact storage, backup, restore, and
+recovery pages. Card 048 adds isolated artifact-installed Bovine, Soundcheck,
+Loophole, and Nucleus compositions with exact dependency, capability,
+authority, transaction, recovery, and UI audits. `g01.008` is complete.
+Northstar is paused at the explicit post-008 intent checkpoint.

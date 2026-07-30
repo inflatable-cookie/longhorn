@@ -11,7 +11,7 @@
 | [g01.005](005-layout-container-region-and-panel-core.md) | complete | Surface-independent layout state |
 | [g01.006](006-optional-surfaces-and-cross-window-drag.md) | complete | optional full hosting and transfer |
 | [g01.007](007-typescript-svelte-poodle-and-app-shell.md) | complete | checked clients and thin UI adapters |
-| [g01.008](008-settings-registry-and-shell.md) | planning gate | centralized composable settings |
+| [g01.008](008-settings-registry-and-shell.md) | complete | centralized composable settings |
 | [g01.009](009-typed-bridge-and-optional-backend-topology.md) | researchable | direct/local/remote semantic seam |
 | [g01.010](010-command-registry-keymaps-and-palette.md) | blocked | commands, input, keymaps, palette |
 | [g01.011](011-history-kernel-and-branching-prototype.md) | researchable | proven linear kernel, fork decision |
@@ -42,7 +42,8 @@ not research activity, gates dependent implementation.
 
 ## Active Milestone
 
-`g01.005` through `g01.007` are complete. No execution card is ready.
+`g01.005` through `g01.008` are complete. Northstar is paused at the explicit
+post-008 intent checkpoint.
 
 `g01.002` is complete. The delivered storage foundation includes domain
 storage, coordinated mutation, backup, restore, encrypted envelopes, custom
@@ -133,6 +134,29 @@ artifact-installed shell graphs, public Poodle bootstrap, guarded reveal,
 visible failures, narrow capabilities, and package-boundary audits.
 `g01.007` is complete.
 
+Research memo 012 and compiled contract 005 promote the settings boundary.
+Cards 042-048 cover the pure registry and authority protocol, config-backed
+one-domain apply units, generated TypeScript and Tauri host assembly,
+per-instance Svelte state, a public-Poodle shell, shared storage/profile/backup
+pages, exact restore/recovery flow, and artifact-installed composition proof.
+Immediate and staged remain mutation timing; activation is a separate receipt.
+Managed policy stays host authority. Cross-domain atomicity requires an
+explicit consumer transaction authority. Card 042 now supplies the bounded
+identities, sealed capability-gated registry, deterministic digest, authority
+projection, commands, conflicts, and receipts. Card 043 adds the checked
+configuration mutation seam and one-domain settings adapter with stale-token,
+policy, reset, durability, recovery, and activation evidence. Card 044 adds
+checked TypeScript generation, framework-neutral clients, registry helpers,
+and narrow injected Tauri host assembly. Card 045 adds per-instance Svelte
+state and one public-Poodle shell for modal, window, and panel hosts. Card 046
+adds checked storage/backup operations, an injected Tauri edge,
+capability-gated settings registration, and public-Poodle diagnostics and
+operation pages. Card 047 adds checked restore inspection, explicit conflict
+planning, exact terminal receipts, adapter separation, recovery gating, and a
+public-Poodle destructive flow. Card 048 adds four isolated artifact-installed
+compositions, exact optional-boundary audits, and the canonical composition
+guide. `g01.008` is complete.
+
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
@@ -140,10 +164,9 @@ envelopes, not execution authority. Cards 001 through 022 preserve the
 completed configuration, display, and window-host runway. Cards 023-027 form
 the completed layout runway. Cards 028-035 form the completed Surface and
 transfer runway. Cards 036-041 form the completed client and UI-adapter
-runway.
+runway. Cards 042-048 form the completed settings runway.
 
 ## Next Task
 
-Resolve the post-g01.007 intent gate. Choose whether to compile the g01.008
-settings runway or begin g01.009 bridge/topology research. Do not start
-execution without a promoted ready card.
+Resolve the post-008 intent checkpoint. Choose g01.009 bridge/topology
+research or another explicitly promoted lane before resuming implementation.

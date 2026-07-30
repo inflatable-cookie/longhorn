@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "allow-longhorn-storage-mutate"
+description = "Allows confirmed storage transition, recovery, and receipt-bound cleanup."
+commands.allow = [
+  "longhorn_config_storage_execute",
+  "longhorn_config_storage_recover",
+  "longhorn_config_storage_cleanup",
+]

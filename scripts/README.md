@@ -32,6 +32,13 @@ App-shell proof work packs Longhorn and installs three isolated consumers:
 effigy proof:app-shells
 ```
 
+Settings composition proof packs Longhorn and installs four isolated
+consumers:
+
+```sh
+effigy proof:settings-composition
+```
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

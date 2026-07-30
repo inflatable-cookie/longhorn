@@ -16,6 +16,5 @@ None.
 
 ## Next Task
 
-`g01.002` through `g01.007` are complete. No execution card is ready. Resolve
-the g01 post-007 intent gate between settings compilation and bridge/topology
-research.
+`g01.002` through `g01.008` are complete. Resolve the post-008 intent
+checkpoint before promoting g01.009 or another lane.

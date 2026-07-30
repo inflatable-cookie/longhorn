@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-tauri-settings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-settings.workspace = true
+serde.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

@@ -1,9 +1,11 @@
+mod checked;
 pub(crate) mod document;
 pub(crate) mod load;
 pub(super) mod mutation;
 pub(crate) mod publication;
 mod types;
 
+pub use checked::{CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome};
 pub use types::{
     CoordinatedLoadError, Durability, DurabilityRequirement, LoadDiagnostic, LoadDiagnosticCode,
     LoadOutcome, LoadedConfig, LoadedOrigin, MutationError, MutationOptions, MutationReceipt,
@@ -232,6 +234,23 @@ impl ConfigStore {
         F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
     {
         mutation::mutate(self, domain, options, patch)
+    }
+
+    /// Checks and patches fresh state under one coordinator acquisition.
+    ///
+    /// A check failure publishes nothing. An accepted patch is validated and
+    /// atomically published unless its encoded bytes are unchanged.
+    pub fn mutate_checked<D, R, E, F>(
+        &self,
+        domain: &D,
+        options: MutationOptions,
+        check_and_patch: F,
+    ) -> Result<CheckedMutationOutcome<R, D::Value>, CheckedMutationError<E>>
+    where
+        D: ConfigDomain,
+        F: FnOnce(&mut CheckedMutationContext<'_, D::Value>) -> Result<R, E>,
+    {
+        mutation::mutate_checked(self, domain, options, check_and_patch)
     }
 
     pub(super) fn ensure_registered<D: ConfigDomain>(&self, domain: &D) -> Result<(), StoreError> {

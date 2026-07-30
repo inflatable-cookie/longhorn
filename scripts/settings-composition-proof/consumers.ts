@@ -1,0 +1,293 @@
+import { randomUUID } from "node:crypto";
+import { join, resolve } from "node:path";
+import {
+  cp,
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  writeFile,
+} from "node:fs/promises";
+
+import { fileDependency, run, testCount } from "./shared.ts";
+import { POODLE_ARTIFACT_SET } from "./artifacts.ts";
+import type {
+  PackageManifest,
+  ProofContext,
+  ShapePolicy,
+} from "./types.ts";
+
+const shapes: Record<string, ShapePolicy> = {
+  bovine: {
+    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    forbidden: [
+      "@longhorn/config",
+      "@longhorn/layout",
+      "@longhorn/surfaces",
+      "@longhorn/commands",
+      "@longhorn/backend",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+    ],
+    host: "modal",
+    pages: ["Preferences"],
+  },
+  soundcheck: {
+    longhorn: ["@longhorn/core", "@longhorn/config", "@longhorn/settings"],
+    forbidden: [
+      "@longhorn/layout",
+      "@longhorn/surfaces",
+      "@longhorn/commands",
+      "@longhorn/backend",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "allow-longhorn-config-read",
+      "allow-longhorn-storage-mutate",
+      "allow-longhorn-backup-mutate",
+      "allow-longhorn-restore-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+    ],
+    host: "window",
+    pages: ["Audio", "Storage", "Backups", "Restore & Recovery"],
+  },
+  loophole: {
+    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    forbidden: [
+      "@longhorn/config",
+      "@longhorn/layout",
+      "@longhorn/surfaces",
+      "@longhorn/commands",
+      "@longhorn/backend",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+      "loophole:allow-hardware-probe",
+      "loophole:allow-keybinding-editor",
+    ],
+    host: "panel",
+    pages: ["Application", "Appearance", "Hardware", "Keybindings"],
+  },
+  nucleus: {
+    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    forbidden: [
+      "@longhorn/config",
+      "@longhorn/surfaces",
+      "@longhorn/surface-transfer",
+      "@longhorn/commands",
+      "@longhorn/backend",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+    ],
+    host: "window",
+    pages: ["General"],
+  },
+};
+
+export async function verifyConsumers(context: ProofContext) {
+  const reports = [];
+  for (const [shape, policy] of Object.entries(shapes)) {
+    reports.push(await verifyConsumer(context, shape, policy));
+  }
+  return reports;
+}
+
+async function verifyConsumer(
+  context: ProofContext,
+  shape: string,
+  policy: ShapePolicy,
+) {
+  const source = join(context.proofRoot, shape);
+  const stage = join(
+    context.temporaryRoot,
+    `consumer-${shape}-${randomUUID()}`,
+  );
+  await mkdir(join(stage, "src", "fixtures"), { recursive: true });
+  for (const filename of await readdir(join(context.proofRoot, "common", "src"))) {
+    if (filename === "config-proof.ts" && shape !== "soundcheck") continue;
+    await cp(
+      join(context.proofRoot, "common", "src", filename),
+      join(stage, "src", filename),
+      { recursive: true },
+    );
+  }
+  for (const filename of await readdir(join(source, "src"))) {
+    await cp(join(source, "src", filename), join(stage, "src", filename), {
+      recursive: true,
+    });
+  }
+  await cp(join(source, "capability.json"), join(stage, "capability.json"));
+  for (const filename of ["tsconfig.json", "vitest.config.ts", "setup.ts"]) {
+    await cp(
+      join(context.proofRoot, "common", filename),
+      join(stage, filename),
+    );
+  }
+  await cp(
+    join(context.repoRoot, "fixtures/settings/protocol-v1.json"),
+    join(stage, "src/fixtures/settings-protocol-v1.json"),
+  );
+  await cp(
+    join(context.repoRoot, "fixtures/config/protocol-v1.json"),
+    join(stage, "src/fixtures/config-protocol-v1.json"),
+  );
+
+  const manifest = JSON.parse(
+    await readFile(join(source, "package.json"), "utf8"),
+  ) as PackageManifest;
+  manifest.dependencies = rewriteDependencies(
+    manifest.dependencies,
+    context.artifacts,
+  );
+  const allArtifacts = new Map(context.artifacts);
+  for (const artifact of context.poodle.artifacts) {
+    allArtifacts.set(
+      artifact.name,
+      resolve(context.poodle.packDirectory, artifact.filename),
+    );
+  }
+  manifest.overrides = Object.fromEntries(
+    [...allArtifacts].map(([name, path]) => [name, fileDependency(path)]),
+  );
+  await writeFile(
+    join(stage, "package.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
+
+  await run(["bun", "install", "--ignore-scripts"], stage);
+  await run(["bun", "x", "svelte-check", "--tsconfig", "./tsconfig.json"], stage);
+  const testOutput = await run(
+    ["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"],
+    stage,
+  );
+
+  const resolved = [];
+  for (const name of policy.longhorn) {
+    resolved.push(await assertArtifactInstall(stage, name));
+  }
+  for (const artifact of context.poodle.artifacts) {
+    await assertArtifactInstall(stage, artifact.name);
+  }
+  for (const name of policy.forbidden) {
+    await assertPackageAbsent(stage, name);
+  }
+  const svelte = await installedPackage(stage, "svelte");
+  if (svelte.manifest.version !== "5.38.6") {
+    throw new Error(`${shape} installed unexpected Svelte version`);
+  }
+  await assertSingleSvelteRuntime(stage);
+  const capability = JSON.parse(
+    await readFile(join(stage, "capability.json"), "utf8"),
+  ) as { readonly permissions: readonly string[] };
+  assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
+  const lock = await readFile(join(stage, "bun.lock"), "utf8");
+  if (
+    lock.includes("workspace:") ||
+    lock.includes("link:") ||
+    lock.includes(resolve(context.repoRoot, "packages"))
+  ) {
+    throw new Error(`${shape} lockfile contains workspace/source resolution`);
+  }
+
+  return {
+    shape,
+    host: policy.host,
+    pages: policy.pages,
+    longhornPackages: policy.longhorn,
+    forbiddenPackagesAbsent: policy.forbidden,
+    permissions: policy.permissions,
+    artifactResolution: resolved,
+    poodleArtifactSet: POODLE_ARTIFACT_SET,
+    svelte: svelte.manifest.version,
+    mountedTests: testCount(testOutput),
+    cleanInstall: true,
+    siblingSourceAliases: false,
+  };
+}
+
+function rewriteDependencies(
+  dependencies: Record<string, string>,
+  artifacts: ReadonlyMap<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(dependencies).map(([name, version]) => [
+      name,
+      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+    ]),
+  );
+}
+
+async function assertArtifactInstall(stage: string, name: string) {
+  const installed = await installedPackage(stage, name);
+  const sourceRoots = [
+    "/Dev/projects/longhorn/packages/",
+    "/Dev/projects/poodle/packages/",
+  ];
+  if (sourceRoots.some((root) => installed.realPath.includes(root))) {
+    throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
+  }
+  if (installed.manifest.version !== "0.1.0") {
+    throw new Error(`${name} installed unexpected version`);
+  }
+  return { name, version: installed.manifest.version };
+}
+
+async function installedPackage(stage: string, name: string) {
+  const path = join(stage, "node_modules", ...name.split("/"));
+  const manifest = JSON.parse(
+    await readFile(join(path, "package.json"), "utf8"),
+  ) as { readonly name: string; readonly version: string };
+  if (manifest.name !== name) {
+    throw new Error(`installed package identity mismatch for ${name}`);
+  }
+  return { path, realPath: await realpath(path), manifest };
+}
+
+async function assertPackageAbsent(stage: string, name: string): Promise<void> {
+  try {
+    await lstat(join(stage, "node_modules", ...name.split("/")));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+  throw new Error(`${name} unexpectedly entered the install graph`);
+}
+
+async function assertSingleSvelteRuntime(stage: string): Promise<void> {
+  const manifests = (await readdir(join(stage, "node_modules"), {
+    recursive: true,
+  })).filter(
+    (path) =>
+      path === "svelte/package.json" ||
+      path.endsWith("/node_modules/svelte/package.json"),
+  );
+  if (manifests.length !== 1) {
+    throw new Error(`expected one Svelte runtime, found ${manifests.length}`);
+  }
+}
+
+function assertExactSet(
+  label: string,
+  actual: readonly string[],
+  expected: readonly string[],
+): void {
+  const left = [...actual].sort();
+  const right = [...expected].sort();
+  if (JSON.stringify(left) !== JSON.stringify(right)) {
+    throw new Error(`${label} mismatch: ${left.join(", ")}`);
+  }
+}

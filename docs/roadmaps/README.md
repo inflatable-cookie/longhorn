@@ -7,7 +7,8 @@
 
 ## Active Milestone
 
-`g01.005` through `g01.007` are complete. No execution card is ready.
+`g01.005` through `g01.008` are complete. Northstar is paused at the explicit
+post-008 intent checkpoint.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -84,8 +85,20 @@ Card 041 provides isolated artifact-installed Bovine, Surface-free Nucleus,
 and full Loophole shells, public Poodle bootstrap, guarded reveal, visible
 failures, and dependency/capability audits. `g01.007` is complete.
 
+Research memo 012 and compiled contract 005 promote settings registry,
+one-domain apply, managed-policy, activation, client, Poodle-shell, and
+recovery boundaries. Cards 042-048 form the g01.008 runway. Card 042 supplies
+the pure sealed registry and authority protocol. Card 043 supplies checked
+one-domain configuration apply, policy, reset, durability, recovery, and
+activation. Card 044 supplies generated TypeScript, checked clients, registry
+helpers, and injected Tauri host assembly. Card 045 adds isolated Svelte
+settings sessions and one public-Poodle shell for modal, window, and panel
+hosts. Card 046 adds storage and backup pages. Card 047 adds exact restore,
+conflict, adapter, rollback, and recovery flow. Card 048 adds four isolated
+artifact-installed compositions, package/capability/authority audits, and the
+canonical composition guide. `g01.008` is complete.
+
 ## Next Task
 
-Resolve the g01 post-007 intent gate. Choose settings compilation under
-g01.008 or bridge/topology research under g01.009 before promoting another
-execution card.
+Resolve the post-008 intent checkpoint. Choose g01.009 bridge/topology
+research or another explicitly promoted lane before resuming implementation.

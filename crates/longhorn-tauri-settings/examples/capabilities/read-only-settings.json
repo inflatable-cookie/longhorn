@@ -1,0 +1,10 @@
+{
+  "identifier": "longhorn-settings-read-only",
+  "description": "Read-only settings authority for selected app windows.",
+  "windows": ["main", "settings"],
+  "permissions": [
+    "allow-longhorn-settings-read",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

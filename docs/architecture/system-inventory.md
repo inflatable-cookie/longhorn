@@ -1,6 +1,6 @@
 # System Inventory
 
-Status: complete inventory; g01.007 paused at Card 038 checkpoint
+Status: complete inventory; g01.008 complete
 Owner: Tom  
 Updated: 2026-07-29
 Architecture: `system-architecture.md`
@@ -59,7 +59,26 @@ titlebar behavior, and shell proof into Cards 036-041. Card 036 is complete
 with the structural client lifetime and raw Tauri adapter. Card 037 adds the
 Surface-free Svelte root, consumer-fed layout state, optional domain subpaths,
 request-keyed optimism, and exact mounted teardown. Card 038 is the named
-Poodle-local contract and artifact checkpoint.
+Poodle-local contract and artifact checkpoint. Cards 038-041 and g01.007 are
+complete.
+Research memo 012 and compiled contract 005 now bound the settings registry,
+one-domain apply units, policy projection, activation state, Svelte/Poodle
+shell, shared storage/recovery pages, and artifact proof. Cards 042-048 form
+the g01.008 runway. Card 042 implements the bounded identity, sealed registry,
+capability admission, deterministic digest, authority projection, and command
+protocol foundation. Card 043 implements the checked configuration mutation
+seam and one-domain settings adapter with stale-token, policy, reset,
+durability, recovery, and activation evidence. Card 044 implements generated
+TypeScript, checked framework-neutral clients, registry helpers, and injected
+Tauri host assembly. Card 045 implements isolated Svelte sessions and one
+public-Poodle modal/window/panel shell. Card 046 implements checked storage and
+backup operations, exact Rust projections, an injected Tauri edge,
+capability-gated page registration, and public-Poodle storage/backup pages.
+Card 047 adds checked restore inspection, explicit conflict planning, exact
+terminal receipts, recovery gating, and the public-Poodle destructive flow.
+Card 048 proves Bovine, Soundcheck, Loophole, and Nucleus compositions from
+produced artifacts with exact package, capability, authority, transaction, and
+UI boundaries. `g01.008` is complete.
 
 ## In-Scope Elements
 
@@ -72,12 +91,12 @@ Poodle-local contract and artifact checkpoint.
 | Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
 | Surface hosting | optional Rust + config + TS packages | Surface lifecycle, persistence, and window hosting | Loophole Aura/Echo | pure identity, topology, presence, resolution, lifecycle, persistence, and window-host composition implemented |
 | Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | g01.006 complete; direct and Surface-enabled packaged macOS proofs pass |
-| Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | first boundary contracted |
-| Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | first boundary contracted |
-| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Bovine, Poodle | Svelte state complete; paused at Card 038 Poodle checkpoint |
+| Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | g01.002 complete |
+| Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | g01.002 complete |
+| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Bovine, Poodle | g01.007 complete |
 | Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | contract 010 |
 | Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | Card 040 |
-| Settings registry/shell | Rust + TS/Svelte package | page composition and config transactions | Loophole plus cross-app demand | first boundary contracted |
+| Settings registry/shell | Rust + TS/Svelte package | sealed page composition, checked apply units, policy/activation projection | Loophole, Soundcheck, Bovine, Nucleus | Cards 042-048 implement authority, config apply, checked clients/Tauri host, isolated sessions, public-Poodle shell, exact recovery pages, and four artifact-installed compositions; g01.008 complete |
 | Command/keymap/palette | Rust + TS/Svelte packages | catalogue, context, input, palette projection | Loophole full system; Jetstream basic shortcuts | first boundary contracted |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | first boundary contracted |
 | History kernel | optional Rust package | generic linear navigation; branch prototype | Loophole Pulse | research boundary contracted |
@@ -101,11 +120,11 @@ Poodle-local contract and artifact checkpoint.
 
 | Surface | Role | Planning state |
 | --- | --- | --- |
-| platform filesystem roots | config/data/cache/log/temp location authority | contract 004; adapter details pending |
+| platform filesystem roots | config/data/cache/log/temp location authority | contract 004; pure layouts and Tauri path mapping implemented |
 | secure credential store | secrets outside ordinary config/backups | trait required; provider choice pending |
 | Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 |
 | local or remote service transport | optional product authority seam | contract 007; v1 transports pending |
-| Poodle packages | component and presentation authority | contract 013; Card 038 public-seam and artifact checkpoint |
+| Poodle packages | component and presentation authority | contract 013; exact Card 038 artifact set proven through Card 041 |
 | Rust/TS package registries | distribution and versioning | contract 012; names pending verification |
 
 ## Validation Surfaces
@@ -121,7 +140,6 @@ Poodle-local contract and artifact checkpoint.
 
 ## Planning Gaps
 
-- settings transaction and restart-required semantics
 - backend transport and offline mutation policy
 - generic history payload and branching/checkpoint policy
 - async operation/notification shared lifecycle

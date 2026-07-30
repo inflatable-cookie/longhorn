@@ -7,6 +7,9 @@ members = [
   "crates/longhorn-display",
   "crates/longhorn-layout",
   "crates/longhorn-layout-config",
+  "crates/longhorn-settings",
+  "crates/longhorn-settings-config",
+  "crates/longhorn-tauri-settings",
   "crates/longhorn-surface-windowing",
   "crates/longhorn-surface-transfer",
   "crates/longhorn-surfaces",
@@ -34,12 +37,15 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 age = { version = "=0.12.1", default-features = false }
 cap-std = "4.0.2"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
-longhorn-core = { path = "crates/longhorn-core" }
-longhorn-config = { path = "crates/longhorn-config" }
+longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
+longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
 longhorn-config-age = { path = "crates/longhorn-config-age" }
 longhorn-display = { path = "crates/longhorn-display" }
 longhorn-layout = { path = "crates/longhorn-layout" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config" }
+longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
+longhorn-settings-config = { path = "crates/longhorn-settings-config" }
+longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings" }
 longhorn-surface-windowing = { path = "crates/longhorn-surface-windowing" }
 longhorn-surface-transfer = { path = "crates/longhorn-surface-transfer" }
 longhorn-surfaces = { path = "crates/longhorn-surfaces" }

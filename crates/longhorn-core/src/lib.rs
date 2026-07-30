@@ -7,6 +7,7 @@ mod opaque_id;
 mod revision;
 mod scale;
 mod schema_version;
+mod settings_id;
 mod window_metrics;
 
 pub use client_geometry::{ClientCssPx, ClientGeometryError, ClientPoint, ClientRect, ClientSize};
@@ -17,9 +18,9 @@ pub use geometry::{
     ScreenSpace, ScreenVector, Size, Vector,
 };
 pub use opaque_id::{
-    DisplayId, DropZoneId, LayoutContainerId, LayoutRequestId, LayoutSchemaId, OpaqueIdError,
-    PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId, SurfaceId,
-    SurfaceRequestId, TransferClientId, TransferHostBindingId, TransferRequestId,
+    ConfigRequestId, DisplayId, DropZoneId, LayoutContainerId, LayoutRequestId, LayoutSchemaId,
+    OpaqueIdError, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId,
+    SurfaceId, SurfaceRequestId, TransferClientId, TransferHostBindingId, TransferRequestId,
     TransferSubjectId, WindowId,
 };
 pub use revision::{
@@ -27,4 +28,10 @@ pub use revision::{
 };
 pub use scale::{RoundingMode, ScaleConversionError, ScaleFactor, ScaleFactorError};
 pub use schema_version::{SchemaVersion, SchemaVersionError};
+pub use settings_id::{
+    SettingsActivationTargetId, SettingsAnchorId, SettingsApplyUnitId, SettingsAuthorityToken,
+    SettingsCapabilityId, SettingsEntryId, SettingsModuleId, SettingsPageId,
+    SettingsPolicySourceId, SettingsRendererId, SettingsRequestId, SettingsScopeId,
+    SettingsSectionId,
+};
 pub use window_metrics::{LiveWindowMetrics, WindowPlacement};

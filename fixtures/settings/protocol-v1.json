@@ -1,0 +1,2703 @@
+{
+  "protocolVersion": 1,
+  "registry": {
+    "protocolVersion": 1,
+    "generation": 7,
+    "digest": "efea00a7354fa42da2ff71ec1c9f1e487573ff30b51f3d778c27dc0096095884",
+    "limits": {
+      "maximumModules": 128,
+      "maximumSections": 512,
+      "maximumPages": 2048,
+      "maximumRenderers": 512,
+      "maximumScopes": 2048,
+      "maximumApplyUnits": 2048,
+      "maximumCapabilities": 512,
+      "maximumAnchorsPerPage": 128,
+      "maximumKeywordsPerPage": 128,
+      "maximumLabelBytes": 1024,
+      "maximumKeywordBytes": 256,
+      "maximumOpaqueValueBytes": 65536
+    },
+    "composedCapabilities": [
+      "app:audio-capable"
+    ],
+    "modules": [
+      {
+        "id": "app:module",
+        "label": "Application",
+        "order": 0
+      }
+    ],
+    "sections": [
+      {
+        "id": "app:general",
+        "moduleId": "app:module",
+        "label": "General",
+        "order": 0
+      }
+    ],
+    "pages": [
+      {
+        "id": "app:audio",
+        "moduleId": "app:module",
+        "sectionId": "app:general",
+        "rendererId": "app:form",
+        "label": "Audio",
+        "keywords": [
+          "device",
+          "output"
+        ],
+        "order": 10,
+        "anchors": [
+          {
+            "id": "app:output",
+            "label": "Output device",
+            "order": 0
+          }
+        ],
+        "requiredCapabilities": [
+          "app:audio-capable"
+        ],
+        "readableScopeIds": [
+          "app:preferences"
+        ],
+        "writableApplyUnitIds": [
+          "app:audio"
+        ],
+        "features": {
+          "reset": true,
+          "import": true,
+          "backup": true,
+          "restore": true,
+          "confirmation": true
+        }
+      }
+    ],
+    "renderers": [
+      {
+        "id": "app:form",
+        "moduleId": "app:module"
+      }
+    ],
+    "scopes": [
+      {
+        "id": "app:preferences",
+        "moduleId": "app:module"
+      }
+    ],
+    "applyUnits": [
+      {
+        "id": "app:audio",
+        "moduleId": "app:module",
+        "scopeId": "app:preferences",
+        "timing": "staged",
+        "resetSupported": true
+      }
+    ],
+    "capabilities": [
+      {
+        "id": "app:audio-capable",
+        "moduleId": "app:module"
+      }
+    ]
+  },
+  "snapshots": [
+    {
+      "protocolVersion": 1,
+      "scopeId": "app:preferences",
+      "authority": {
+        "registryGeneration": 7,
+        "scopeRevision": 3,
+        "authorityToken": "authority:current"
+      },
+      "values": [
+        {
+          "entryId": "audio:output",
+          "configured": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "effective": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "compiledDefault": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:system"
+            }
+          },
+          "effectiveSource": "userConfiguration",
+          "policy": null,
+          "editability": "editable",
+          "sourceDiagnostics": [
+            {
+              "code": "fixture",
+              "detail": {
+                "codecVersion": 1,
+                "value": {
+                  "source": "test"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "entryId": "audio:managed",
+          "configured": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "effective": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "compiledDefault": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:system"
+            }
+          },
+          "effectiveSource": "managedPolicy",
+          "policy": {
+            "sourceId": "policy:administrator",
+            "effect": "override",
+            "constraints": null
+          },
+          "editability": "readOnly",
+          "sourceDiagnostics": [
+            {
+              "code": "fixture",
+              "detail": {
+                "codecVersion": 1,
+                "value": {
+                  "source": "test"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "entryId": "audio:hidden",
+          "configured": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "effective": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "compiledDefault": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:system"
+            }
+          },
+          "effectiveSource": "compiledDefault",
+          "policy": {
+            "sourceId": "policy:administrator",
+            "effect": "constraint",
+            "constraints": {
+              "codecVersion": 1,
+              "value": {
+                "maximum": 100
+              }
+            }
+          },
+          "editability": "hidden",
+          "sourceDiagnostics": [
+            {
+              "code": "fixture",
+              "detail": {
+                "codecVersion": 1,
+                "value": {
+                  "source": "test"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "entryId": "audio:unsupported",
+          "configured": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "effective": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:main"
+            }
+          },
+          "compiledDefault": {
+            "codecVersion": 1,
+            "value": {
+              "selected": "device:system"
+            }
+          },
+          "effectiveSource": "compiledDefault",
+          "policy": null,
+          "editability": "unsupported",
+          "sourceDiagnostics": [
+            {
+              "code": "fixture",
+              "detail": {
+                "codecVersion": 1,
+                "value": {
+                  "source": "test"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "recovery": null,
+      "activationRequirements": [
+        {
+          "targetId": "activation:app",
+          "state": "pending"
+        },
+        {
+          "targetId": "activation:audio",
+          "state": "satisfied"
+        }
+      ]
+    }
+  ],
+  "loadCommands": [
+    {
+      "protocolVersion": 1,
+      "requestId": "request:load",
+      "registryGeneration": 7,
+      "scopeId": "app:preferences",
+      "knownAuthority": null
+    },
+    {
+      "protocolVersion": 1,
+      "requestId": "request:reload",
+      "registryGeneration": 7,
+      "scopeId": "app:preferences",
+      "knownAuthority": {
+        "registryGeneration": 7,
+        "scopeRevision": 3,
+        "authorityToken": "authority:current"
+      }
+    }
+  ],
+  "applyCommands": [
+    {
+      "protocolVersion": 1,
+      "requestId": "request:apply",
+      "pageId": "app:audio",
+      "applyUnitId": "app:audio",
+      "scopeId": "app:preferences",
+      "authority": {
+        "registryGeneration": 7,
+        "scopeRevision": 2,
+        "authorityToken": "authority:previous"
+      },
+      "intent": {
+        "codecVersion": 1,
+        "value": {
+          "kind": "setOutput",
+          "outputId": "device:main"
+        }
+      }
+    }
+  ],
+  "resetCommands": [
+    {
+      "protocolVersion": 1,
+      "requestId": "request:reset",
+      "pageId": "app:audio",
+      "applyUnitId": "app:audio",
+      "scopeId": "app:preferences",
+      "authority": {
+        "registryGeneration": 7,
+        "scopeRevision": 2,
+        "authorityToken": "authority:previous"
+      },
+      "entryIds": [
+        "audio:output"
+      ]
+    }
+  ],
+  "loadOutcomes": [
+    {
+      "status": "loaded",
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "unauthorized",
+        "diagnostic": null
+      }
+    }
+  ],
+  "mutationResults": [
+    {
+      "status": "applied",
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      },
+      "receipt": {
+        "requestId": "request:apply",
+        "pageId": "app:audio",
+        "applyUnitId": "app:audio",
+        "scopeId": "app:preferences",
+        "previousAuthority": {
+          "registryGeneration": 7,
+          "scopeRevision": 2,
+          "authorityToken": "authority:previous"
+        },
+        "committedAuthority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "outcome": "changed",
+        "durability": {
+          "kind": "confirmed",
+          "evidence": {
+            "codecVersion": 1,
+            "value": {
+              "generation": 3
+            }
+          }
+        },
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "applied",
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      },
+      "receipt": {
+        "requestId": "request:unchanged",
+        "pageId": "app:audio",
+        "applyUnitId": "app:audio",
+        "scopeId": "app:preferences",
+        "previousAuthority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "committedAuthority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "outcome": "unchanged",
+        "durability": {
+          "kind": "notApplicable"
+        },
+        "activationRequirements": []
+      }
+    },
+    {
+      "status": "conflict",
+      "conflict": {
+        "expected": {
+          "registryGeneration": 7,
+          "scopeRevision": 2,
+          "authorityToken": "authority:previous"
+        },
+        "actual": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "invalidIntent",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "policyBlocked",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "readOnly",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "hidden",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "unsupported",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "recoveryRequired",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "unauthorized",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "registryChanged",
+        "diagnostic": {
+          "codecVersion": 1,
+          "value": {
+            "reason": "fixture"
+          }
+        }
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "scopeId": "app:preferences",
+        "authority": {
+          "registryGeneration": 7,
+          "scopeRevision": 3,
+          "authorityToken": "authority:current"
+        },
+        "values": [
+          {
+            "entryId": "audio:output",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "userConfiguration",
+            "policy": null,
+            "editability": "editable",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:managed",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "managedPolicy",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "override",
+              "constraints": null
+            },
+            "editability": "readOnly",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:hidden",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": {
+              "sourceId": "policy:administrator",
+              "effect": "constraint",
+              "constraints": {
+                "codecVersion": 1,
+                "value": {
+                  "maximum": 100
+                }
+              }
+            },
+            "editability": "hidden",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "entryId": "audio:unsupported",
+            "configured": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "effective": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:main"
+              }
+            },
+            "compiledDefault": {
+              "codecVersion": 1,
+              "value": {
+                "selected": "device:system"
+              }
+            },
+            "effectiveSource": "compiledDefault",
+            "policy": null,
+            "editability": "unsupported",
+            "sourceDiagnostics": [
+              {
+                "code": "fixture",
+                "detail": {
+                  "codecVersion": 1,
+                  "value": {
+                    "source": "test"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "recovery": null,
+        "activationRequirements": [
+          {
+            "targetId": "activation:app",
+            "state": "pending"
+          },
+          {
+            "targetId": "activation:audio",
+            "state": "satisfied"
+          }
+        ]
+      }
+    }
+  ],
+  "recoveryStates": [
+    {
+      "code": "corrupt",
+      "diagnostic": {
+        "codecVersion": 1,
+        "value": {
+          "fixture": true
+        }
+      }
+    },
+    {
+      "code": "futureSchema",
+      "diagnostic": {
+        "codecVersion": 1,
+        "value": {
+          "fixture": true
+        }
+      }
+    },
+    {
+      "code": "authorityUnavailable",
+      "diagnostic": {
+        "codecVersion": 1,
+        "value": {
+          "fixture": true
+        }
+      }
+    },
+    {
+      "code": "recoveryInProgress",
+      "diagnostic": {
+        "codecVersion": 1,
+        "value": {
+          "fixture": true
+        }
+      }
+    },
+    {
+      "code": "recoveryRequired",
+      "diagnostic": {
+        "codecVersion": 1,
+        "value": {
+          "fixture": true
+        }
+      }
+    }
+  ],
+  "registryEvents": [
+    {
+      "protocolVersion": 1,
+      "registryGeneration": 7
+    }
+  ],
+  "scopeEvents": [
+    {
+      "protocolVersion": 1,
+      "registryGeneration": 7,
+      "scopeId": "app:preferences",
+      "scopeRevision": 3
+    }
+  ],
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownMutationStatus": {
+      "status": "merged"
+    },
+    "unknownLoadStatus": {
+      "status": "cached"
+    },
+    "unknownDurabilityKind": {
+      "kind": "eventual"
+    },
+    "unknownRejectionCode": "futurePolicy",
+    "unknownRecoveryCode": "futureRecovery",
+    "unknownEditability": "delegated"
+  }
+}

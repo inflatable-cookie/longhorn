@@ -1,0 +1,11 @@
+{
+  "identifier": "longhorn-config-operations",
+  "description": "Confirmed storage, backup, restore, and recovery operations for the settings window.",
+  "windows": ["settings"],
+  "permissions": [
+    "allow-longhorn-config-read",
+    "allow-longhorn-storage-mutate",
+    "allow-longhorn-backup-mutate",
+    "allow-longhorn-restore-mutate"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "identifier": "longhorn-config-diagnostics",
+  "description": "Read-only storage and backup diagnostics for selected app windows.",
+  "windows": ["main", "settings"],
+  "permissions": [
+    "allow-longhorn-config-read"
+  ]
+}

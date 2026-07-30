@@ -1,0 +1,13 @@
+{
+  "identifier": "loophole-settings",
+  "description": "Consumer-owned advanced pages in a routed settings panel.",
+  "windows": ["main", "workspace-*"],
+  "permissions": [
+    "allow-longhorn-settings-read",
+    "allow-longhorn-settings-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "loophole:allow-hardware-probe",
+    "loophole:allow-keybinding-editor"
+  ]
+}

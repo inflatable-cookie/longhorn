@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-longhorn-restore-mutate"
+description = "Allows conflict planning, confirmed restore, adapter restore, and recovery."
+commands.allow = [
+  "longhorn_config_restore_plan",
+  "longhorn_config_restore_execute",
+  "longhorn_config_restore_adapter_execute",
+  "longhorn_config_restore_recover",
+]

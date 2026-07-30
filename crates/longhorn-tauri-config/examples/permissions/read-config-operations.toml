@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "allow-longhorn-config-read"
+description = "Allows exact snapshots plus non-mutating storage and restore inspection."
+commands.allow = [
+  "longhorn_config_snapshot",
+  "longhorn_config_storage_inspect",
+  "longhorn_config_restore_inspect",
+]

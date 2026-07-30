@@ -13,6 +13,7 @@ mod coordination;
 mod debounce;
 mod domain;
 mod location;
+mod operations;
 mod registry;
 mod storage_layout;
 mod store;
@@ -68,6 +69,38 @@ pub use domain::{
 pub use location::{
     AccessMode, DomainLocation, ResolvedFile, RootKind, StorageRootError, StorageRoots,
 };
+pub use operations::{
+    BackupArchiveProjection, BackupCaptureReceiptProjection, BackupCreateCommand,
+    BackupCreateOutcome, BackupEncryptionState, BackupExportCommand, BackupExportOutcome,
+    BackupInventoryEntry, BackupInventoryEntryState, BackupInventoryProjection,
+    BackupOperationsProjection, BackupPendingState, BackupPublicationReceiptProjection,
+    BackupRetentionApplyCommand, BackupRetentionApplyOutcome, BackupRetentionProjection,
+    BackupRetentionReasonProjection, CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration,
+    ConfigOperationCapability, ConfigOperationProjectionError, ConfigOperationRejection,
+    ConfigOperationRejectionCode, ConfigOperationsSnapshot, ConfigProtocolVersion,
+    ConfigSnapshotCommand, PendingBackupPolicy, RestoreAdapterExecuteCommand,
+    RestoreAdapterExecuteOutcome, RestoreAdapterParticipationProjection,
+    RestoreAdapterReceiptProjection, RestoreAdapterRequirementProjection, RestoreArchiveSelection,
+    RestoreAuthenticityProjection, RestoreConflictChoiceProjection,
+    RestoreConsistencyGroupProjection, RestoreCurrentEvidenceProjection, RestoreDomainChoice,
+    RestoreDomainCompatibilityProjection, RestoreDomainInspectionProjection,
+    RestoreExclusionProjection, RestoreExecuteCommand, RestoreExecuteOutcome,
+    RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection,
+    RestoreIdentityProjection, RestoreIdentityStatusProjection, RestoreInspectCommand,
+    RestoreInspectOutcome, RestoreInspectionProjection, RestoreInspectionReceiptProjection,
+    RestoreIntegrityProjection, RestoreOperationStateProjection, RestoreOperationsProjection,
+    RestorePlanCommand, RestorePlanEntryProjection, RestorePlanOutcome, RestorePlanProjection,
+    RestorePlanReceiptProjection, RestoreRecoveryCommand, RestoreRecoveryOutcomeProjection,
+    RestoreRecoveryReceiptProjection, RestoreStagingReceiptProjection, StorageBootstrapProjection,
+    StorageCleanupCommand, StorageCleanupOutcome, StorageCleanupReceiptProjection,
+    StorageLayoutProjection, StorageLeafProvenanceProjection, StorageOperationsProjection,
+    StorageProfileId, StorageRecoveryCommand, StorageRecoveryOutcome,
+    StorageRecoveryReceiptProjection, StorageRootProjection, StorageTransitionConflictProjection,
+    StorageTransitionDomainProjection, StorageTransitionExecuteCommand,
+    StorageTransitionExecuteOutcome, StorageTransitionInspectCommand,
+    StorageTransitionInspectOutcome, StorageTransitionPreviewProjection,
+    StorageTransitionReceiptProjection,
+};
 pub use registry::RegistrationError;
 pub use storage_layout::{
     LegacyStorageCandidate, LegacyStorageDiscovery, PlatformDirectoryFact, PlatformDirectoryFacts,
@@ -91,8 +124,9 @@ pub use storage_layout::{
     resolve_storage_layout,
 };
 pub use store::{
-    ConfigStore, CoordinatedLoadError, CoordinatedLoadSet, Durability, DurabilityRequirement,
-    LoadDiagnostic, LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, MutationError,
-    MutationOptions, MutationReceipt, MutationRefusal, PublicationFailure, PublicationStage,
-    RecoveryKind, RecoveryState, SourceDocument, StoreError, UnavailableState,
+    CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore,
+    CoordinatedLoadError, CoordinatedLoadSet, Durability, DurabilityRequirement, LoadDiagnostic,
+    LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, MutationError, MutationOptions,
+    MutationReceipt, MutationRefusal, PublicationFailure, PublicationStage, RecoveryKind,
+    RecoveryState, SourceDocument, StoreError, UnavailableState,
 };

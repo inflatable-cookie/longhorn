@@ -1,9 +1,9 @@
 use crate::{AccessMode, ConfigDomain, DomainIssue, DomainLocation, ResolvedFile, RootKind};
 
 use super::{
-    ConfigStore, LoadOutcome, LoadedOrigin, MutationError, MutationOptions, MutationReceipt,
-    MutationRefusal, UnavailableState, document::SerializedDocument, load::load_file,
-    publication::publish,
+    CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore, LoadOutcome,
+    LoadedOrigin, MutationError, MutationOptions, MutationReceipt, MutationRefusal,
+    UnavailableState, document::SerializedDocument, load::load_file, publication::publish,
 };
 
 pub(super) fn mutate<D, F>(
@@ -16,10 +16,37 @@ where
     D: ConfigDomain,
     F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
 {
-    match mutate_inner(store, domain, options, patch, false)? {
-        MutationOutcome::Published(receipt) => Ok(receipt),
-        MutationOutcome::Unchanged => unreachable!("immediate mutation always publishes"),
+    match mutate_inner(
+        store,
+        domain,
+        options,
+        |context| patch(context.value_mut()),
+        false,
+    ) {
+        Ok(outcome) => Ok(outcome
+            .publication
+            .expect("immediate mutation always publishes")),
+        Err(CheckedMutationError::Check(issue)) => Err(MutationError::Patch(issue)),
+        Err(CheckedMutationError::Mutation(error)) => Err(error),
     }
+}
+
+pub(super) fn mutate_checked<D, R, E, F>(
+    store: &ConfigStore,
+    domain: &D,
+    options: MutationOptions,
+    check_and_patch: F,
+) -> Result<CheckedMutationOutcome<R, D::Value>, CheckedMutationError<E>>
+where
+    D: ConfigDomain,
+    F: FnOnce(&mut CheckedMutationContext<'_, D::Value>) -> Result<R, E>,
+{
+    let outcome = mutate_inner(store, domain, options, check_and_patch, true)?;
+    Ok(CheckedMutationOutcome::new(
+        outcome.checked,
+        outcome.value,
+        outcome.publication,
+    ))
 }
 
 pub(crate) fn mutate_if_changed<D, F>(
@@ -32,49 +59,67 @@ where
     D: ConfigDomain,
     F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
 {
-    mutate_inner(store, domain, options, patch, true)
+    match mutate_inner(
+        store,
+        domain,
+        options,
+        |context| patch(context.value_mut()),
+        true,
+    ) {
+        Ok(outcome) => Ok(match outcome.publication {
+            Some(receipt) => MutationOutcome::Published(receipt),
+            None => MutationOutcome::Unchanged,
+        }),
+        Err(CheckedMutationError::Check(issue)) => Err(MutationError::Patch(issue)),
+        Err(CheckedMutationError::Mutation(error)) => Err(error),
+    }
 }
 
-fn mutate_inner<D, F>(
+fn mutate_inner<D, R, E, F>(
     store: &ConfigStore,
     domain: &D,
     options: MutationOptions,
-    patch: F,
+    check_and_patch: F,
     skip_unchanged: bool,
-) -> Result<MutationOutcome, MutationError>
+) -> Result<InnerMutationOutcome<R, D::Value>, CheckedMutationError<E>>
 where
     D: ConfigDomain,
-    F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
+    F: FnOnce(&mut CheckedMutationContext<'_, D::Value>) -> Result<R, E>,
 {
     store
         .ensure_registered(domain)
-        .map_err(MutationError::Store)?;
+        .map_err(MutationError::Store)
+        .map_err(CheckedMutationError::Mutation)?;
     let location = store.roots.resolve(domain.descriptor());
-    let file = writable_file(location)?;
+    let file = writable_file(location).map_err(CheckedMutationError::Mutation)?;
     let guard = store
         .coordinator
         .acquire(options.lock_timeout)
-        .map_err(MutationError::Coordination)?;
+        .map_err(MutationError::Coordination)
+        .map_err(CheckedMutationError::Mutation)?;
     crate::backup::restore::recover_guarded(store, &guard)
-        .map_err(MutationError::RestoreRecovery)?;
+        .map_err(MutationError::RestoreRecovery)
+        .map_err(CheckedMutationError::Mutation)?;
     let loaded = load_file(domain, &file);
 
-    let mut value = match loaded {
+    let loaded = match loaded {
         LoadOutcome::Ready(loaded) => match loaded.origin {
-            LoadedOrigin::Default | LoadedOrigin::File => loaded.value,
+            LoadedOrigin::Default | LoadedOrigin::File => loaded,
             LoadedOrigin::MigratedInMemory { from, to } => {
-                return Err(MutationError::Refused(
+                return Err(CheckedMutationError::Mutation(MutationError::Refused(
                     MutationRefusal::MigrationBackupRequired { from, to },
-                ));
+                )));
             }
         },
         LoadOutcome::Recovery(recovery) => {
-            return Err(MutationError::Refused(MutationRefusal::Recovery(recovery)));
+            return Err(CheckedMutationError::Mutation(MutationError::Refused(
+                MutationRefusal::Recovery(recovery),
+            )));
         }
         LoadOutcome::Unavailable(UnavailableState::Authority { location }) => {
-            return Err(MutationError::Refused(MutationRefusal::Unavailable {
-                location,
-            }));
+            return Err(CheckedMutationError::Mutation(MutationError::Refused(
+                MutationRefusal::Unavailable { location },
+            )));
         }
         LoadOutcome::Unavailable(
             UnavailableState::RestoreActive | UnavailableState::RestoreRecoveryRequired,
@@ -83,41 +128,77 @@ where
         }
     };
 
+    let mut value = loaded.value;
     let previous = skip_unchanged
-        .then(|| domain.encode(&value).map_err(MutationError::Encode))
+        .then(|| {
+            domain
+                .encode(&value)
+                .map_err(MutationError::Encode)
+                .map_err(CheckedMutationError::Mutation)
+        })
         .transpose()?;
-    patch(&mut value).map_err(MutationError::Patch)?;
-    domain.validate(&value).map_err(MutationError::Validation)?;
-    let encoded = domain.encode(&value).map_err(MutationError::Encode)?;
+    let checked = check_and_patch(&mut CheckedMutationContext {
+        value: &mut value,
+        schema_version: loaded.schema_version,
+        origin: loaded.origin,
+        diagnostics: &loaded.diagnostics,
+        source: loaded.source.as_ref(),
+    })
+    .map_err(CheckedMutationError::Check)?;
+    domain
+        .validate(&value)
+        .map_err(MutationError::Validation)
+        .map_err(CheckedMutationError::Mutation)?;
+    let encoded = domain
+        .encode(&value)
+        .map_err(MutationError::Encode)
+        .map_err(CheckedMutationError::Mutation)?;
     domain
         .validate_raw(domain.descriptor().schema_version(), &encoded)
-        .map_err(MutationError::EncodedValueInvalid)?;
+        .map_err(MutationError::EncodedValueInvalid)
+        .map_err(CheckedMutationError::Mutation)?;
     if previous.as_ref() == Some(&encoded) {
-        return Ok(MutationOutcome::Unchanged);
+        return Ok(InnerMutationOutcome {
+            checked,
+            value,
+            publication: None,
+        });
     }
     let document = SerializedDocument::new(
         domain.descriptor().id().clone(),
         domain.descriptor().schema_version(),
         encoded,
     );
-    let bytes =
-        serde_json::to_vec_pretty(&document).map_err(|error| MutationError::Serialization {
+    let bytes = serde_json::to_vec_pretty(&document)
+        .map_err(|error| MutationError::Serialization {
             detail: error.to_string(),
-        })?;
-    let durability =
-        publish(&file, &bytes, options.durability).map_err(MutationError::Publication)?;
+        })
+        .map_err(CheckedMutationError::Mutation)?;
+    let durability = publish(&file, &bytes, options.durability)
+        .map_err(MutationError::Publication)
+        .map_err(CheckedMutationError::Mutation)?;
 
-    Ok(MutationOutcome::Published(MutationReceipt {
-        domain: domain.descriptor().id().clone(),
-        path: file.full_path().to_path_buf(),
-        schema_version: domain.descriptor().schema_version(),
-        durability,
-    }))
+    Ok(InnerMutationOutcome {
+        checked,
+        value,
+        publication: Some(MutationReceipt {
+            domain: domain.descriptor().id().clone(),
+            path: file.full_path().to_path_buf(),
+            schema_version: domain.descriptor().schema_version(),
+            durability,
+        }),
+    })
 }
 
 pub(crate) enum MutationOutcome {
     Unchanged,
     Published(MutationReceipt),
+}
+
+struct InnerMutationOutcome<R, T> {
+    checked: R,
+    value: T,
+    publication: Option<MutationReceipt>,
 }
 
 fn writable_file(location: DomainLocation) -> Result<ResolvedFile, MutationError> {

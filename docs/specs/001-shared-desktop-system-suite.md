@@ -47,14 +47,12 @@ shape and admission questions.
 - Optional systems depend downward; the foundation never depends on Surface,
   Poodle, a specific server, or a product domain.
 
-## Configuration Questions
+## Remaining Configuration Question
 
-- exact domain registration API
-- file-per-domain versus grouped transaction boundaries
-- multi-process locking support in v1
-- backup archive format and encryption
-- policy/config precedence for managed installations
-- server-synchronized configuration conflict semantics
+Local domain registration, transaction boundaries, multi-process coordination,
+backup/encryption, storage profiles, and managed-policy projection are promoted
+through contracts 004 and 005. Server-synchronized configuration and remote
+conflict semantics remain gated by g01.009.
 
 ## History Questions
 

@@ -113,6 +113,12 @@ pub struct BackupOperationalListing {
 }
 
 impl BackupOperationalListing {
+    /// Returns the exact operational root that was inspected.
+    #[must_use]
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
     /// Returns proven same-app retention candidates in newest-first order.
     #[must_use]
     pub fn candidates(&self) -> &[BackupOperationalCandidate] {

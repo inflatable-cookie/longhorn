@@ -1,0 +1,11 @@
+{
+  "identifier": "longhorn-settings-mutable",
+  "description": "Checked settings read and mutation authority for selected app windows.",
+  "windows": ["settings"],
+  "permissions": [
+    "allow-longhorn-settings-read",
+    "allow-longhorn-settings-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

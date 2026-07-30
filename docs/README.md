@@ -87,7 +87,18 @@ Surface-free public layout bindings and mounted Nucleus and Loophole shapes.
 Card 040 adds armed transfer, checked leases, compatible reveal, and titlebar
 drag. Card 041 adds isolated artifact-installed Bovine, Surface-free Nucleus,
 and full Loophole shells, public Poodle bootstrap, guarded reveal, narrow
-capabilities, and explicit failures. `g01.007` is complete. No execution card
-is ready; the g01 post-007 intent gate is active.
+capabilities, and explicit failures. `g01.007` is complete. Research memo 012
+and compiled contract 005 define the settings registry, one-domain apply
+units, policy and activation projection, checked clients, public-Poodle shell,
+shared storage/recovery pages, and artifact proof. Cards 042-048 form g01.008.
+Card 042 supplies the pure sealed registry and authority protocol. Card 043
+adds checked one-domain configuration apply, policy enforcement, scoped reset,
+exact durability, recovery, and post-publication activation. Card 044 adds
+generated TypeScript, checked clients, registry helpers, and injected Tauri
+host assembly. Card 045 adds isolated Svelte settings sessions and one
+public-Poodle shell for modal, window, and panel hosts. Cards 046-047 add exact
+storage, backup, restore, and recovery pages. Card 048 proves four isolated
+artifact-installed settings compositions and closes `g01.008`. The spine is
+paused at the explicit post-008 intent checkpoint.
 
 The live next-task pointer lives in the roadmap front doors.

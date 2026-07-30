@@ -2,8 +2,10 @@
 
 use std::{env, error::Error, process::ExitCode};
 
+mod config;
 mod generation;
 mod layout;
+mod settings;
 mod surface_transfer;
 mod surfaces;
 mod transfer;
@@ -33,7 +35,9 @@ fn run() -> Result<(), Box<dyn Error>> {
         _ => return Err(usage().into()),
     };
     match domain.as_deref() {
+        Some("config") => config::run(mode),
         Some("layout") => layout::run(mode),
+        Some("settings") => settings::run(mode),
         Some("surfaces") => surfaces::run(mode),
         Some("surface-transfer") => surface_transfer::run(mode),
         Some("transfer") => transfer::run(mode),
@@ -42,5 +46,6 @@ fn run() -> Result<(), Box<dyn Error>> {
 }
 
 fn usage() -> &'static str {
-    "usage: longhorn-bindings <layout|surfaces|surface-transfer|transfer> <write|check>"
+    "usage: longhorn-bindings \
+     <config|layout|settings|surfaces|surface-transfer|transfer> <write|check>"
 }

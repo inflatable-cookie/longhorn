@@ -55,7 +55,15 @@ None.
 - [039 Poodle Layout Bindings](039-poodle-layout-bindings.md)
 - [040 Cross-window Drag And Titlebar Actions](040-cross-window-drag-and-titlebar-actions.md)
 - [041 Three-shape App Shell Proof And Closeout](041-three-shape-app-shell-proof-and-closeout.md)
+- [042 Settings Identity, Registry, And Authority Protocol](042-settings-identity-registry-and-authority-protocol.md)
+- [043 Config-backed Settings Apply Units](043-config-backed-settings-apply-units.md)
+- [044 Generated Settings Protocol And Tauri Host](044-generated-settings-protocol-and-tauri-host.md)
+- [045 Svelte Settings Session And Poodle Shell](045-svelte-settings-session-and-poodle-shell.md)
+- [046 Storage Profile, Diagnostics, And Backup Pages](046-storage-profile-diagnostics-and-backup-pages.md)
+- [047 Restore, Conflict, And Recovery Settings Flow](047-restore-conflict-and-recovery-settings-flow.md)
+- [048 Settings Composition Proof And Closeout](048-settings-composition-proof-and-closeout.md)
 
 ## Next Task
 
-No execution card is ready. Resolve the g01 post-007 intent gate.
+Cards 042-048 and g01.008 are complete. Resolve the post-008 intent checkpoint
+before promoting another card.

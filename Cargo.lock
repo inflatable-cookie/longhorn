@@ -2384,8 +2384,10 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 name = "longhorn-bindings"
 version = "0.1.0"
 dependencies = [
+ "longhorn-config",
  "longhorn-core",
  "longhorn-layout",
+ "longhorn-settings",
  "longhorn-surface-transfer",
  "longhorn-surfaces",
  "longhorn-transfer",
@@ -2406,6 +2408,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
+ "ts-rs",
  "zip",
 ]
 
@@ -2473,6 +2476,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-settings"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "ts-rs",
+]
+
+[[package]]
+name = "longhorn-settings-config"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-settings",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+]
+
+[[package]]
 name = "longhorn-surface-transfer"
 version = "0.1.0"
 dependencies = [
@@ -2529,6 +2556,21 @@ name = "longhorn-tauri-config"
 version = "0.1.0"
 dependencies = [
  "longhorn-config",
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-settings"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-settings",
+ "serde",
+ "serde_json",
+ "tauri",
 ]
 
 [[package]]

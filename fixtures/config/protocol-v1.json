@@ -1,0 +1,3050 @@
+{
+  "protocolVersion": 1,
+  "snapshot": {
+    "protocolVersion": 1,
+    "generation": 7,
+    "capabilities": [
+      "storageDiagnostics",
+      "storageTransition",
+      "backupInventory",
+      "backupCreate",
+      "backupExport",
+      "backupRetention",
+      "backupEncryption",
+      "restoreInspection",
+      "restoreExecution",
+      "restoreAdapterExecution",
+      "restoreRecovery"
+    ],
+    "storage": {
+      "layout": {
+        "profile": "platform-native-v1",
+        "platform": "macos",
+        "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+        "effectiveLeaf": "audio.infiniteloop.soundcheck",
+        "leafProvenance": "canonicalApplicationId",
+        "roots": [
+          {
+            "kind": "config",
+            "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+            "provenance": "platform:config"
+          },
+          {
+            "kind": "cache",
+            "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+            "provenance": "platform:cache"
+          }
+        ],
+        "warnings": [],
+        "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "bootstrap": {
+        "state": "selected",
+        "origin": "locator",
+        "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+        "transitionId": null,
+        "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "availableProfiles": [
+        "platform-native-v1",
+        "unified-app-root-v1",
+        "portable-v1"
+      ]
+    },
+    "backup": {
+      "inventory": {
+        "root": "/backups",
+        "archives": [
+          {
+            "path": "/backups/current.longhorn-backup",
+            "archiveId": "backup:fixture",
+            "createdAt": "2026-07-29T12:00:00Z",
+            "kind": "manual",
+            "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        ],
+        "entries": [
+          {
+            "path": "/backups/locked.archive",
+            "state": "locked",
+            "diagnosticKind": "locked",
+            "detail": "locked fixture"
+          },
+          {
+            "path": "/backups/corrupt.archive",
+            "state": "corrupt",
+            "diagnosticKind": "corrupt",
+            "detail": "corrupt fixture"
+          },
+          {
+            "path": "/backups/foreignApplication.archive",
+            "state": "foreign",
+            "diagnosticKind": "foreignApplication",
+            "detail": "foreignApplication fixture"
+          },
+          {
+            "path": "/backups/unknownFormat.archive",
+            "state": "unknown",
+            "diagnosticKind": "unknownFormat",
+            "detail": "unknownFormat fixture"
+          },
+          {
+            "path": "/backups/unreadable.archive",
+            "state": "unreadable",
+            "diagnosticKind": "unreadable",
+            "detail": "unreadable fixture"
+          },
+          {
+            "path": "/backups/unmanaged.archive",
+            "state": "unmanaged",
+            "diagnosticKind": "unmanaged",
+            "detail": "unmanaged fixture"
+          },
+          {
+            "path": "/backups/valid.archive",
+            "state": "valid",
+            "diagnosticKind": "valid",
+            "detail": "valid fixture"
+          }
+        ],
+        "complete": true
+      },
+      "pending": {
+        "state": "pending",
+        "domainCount": 1,
+        "domainIds": [
+          "app.preferences"
+        ]
+      },
+      "encryption": {
+        "state": "available",
+        "provider": "age"
+      },
+      "retention": {
+        "deletionPaths": [
+          "/backups/old.longhorn-backup"
+        ],
+        "retained": [
+          [
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            [
+              "newestCount"
+            ]
+          ]
+        ],
+        "diagnostics": [
+          {
+            "path": "/backups/locked.archive",
+            "state": "locked",
+            "diagnosticKind": "locked",
+            "detail": "locked fixture"
+          },
+          {
+            "path": "/backups/corrupt.archive",
+            "state": "corrupt",
+            "diagnosticKind": "corrupt",
+            "detail": "corrupt fixture"
+          },
+          {
+            "path": "/backups/foreignApplication.archive",
+            "state": "foreign",
+            "diagnosticKind": "foreignApplication",
+            "detail": "foreignApplication fixture"
+          },
+          {
+            "path": "/backups/unknownFormat.archive",
+            "state": "unknown",
+            "diagnosticKind": "unknownFormat",
+            "detail": "unknownFormat fixture"
+          },
+          {
+            "path": "/backups/unreadable.archive",
+            "state": "unreadable",
+            "diagnosticKind": "unreadable",
+            "detail": "unreadable fixture"
+          },
+          {
+            "path": "/backups/unmanaged.archive",
+            "state": "unmanaged",
+            "diagnosticKind": "unmanaged",
+            "detail": "unmanaged fixture"
+          },
+          {
+            "path": "/backups/valid.archive",
+            "state": "valid",
+            "diagnosticKind": "valid",
+            "detail": "valid fixture"
+          }
+        ],
+        "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "restore": {
+      "state": "inactive",
+      "safetyBackupSha256": null
+    }
+  },
+  "commands": {
+    "snapshot": {
+      "protocolVersion": 1,
+      "requestId": "request:snapshot"
+    },
+    "inspectTransition": {
+      "protocolVersion": 1,
+      "requestId": "request:inspect",
+      "targetProfile": "unified-app-root-v1",
+      "includeLogs": true
+    },
+    "executeTransition": {
+      "protocolVersion": 1,
+      "requestId": "request:execute",
+      "generation": 7,
+      "confirmationDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "recoverStorage": {
+      "protocolVersion": 1,
+      "requestId": "request:recover"
+    },
+    "cleanupStorage": {
+      "protocolVersion": 1,
+      "requestId": "request:cleanup",
+      "transitionId": "transition:fixture",
+      "transitionReceiptDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "createBackup": {
+      "protocolVersion": 1,
+      "requestId": "request:create-backup",
+      "pendingPolicy": "flush"
+    },
+    "exportBackup": {
+      "protocolVersion": 1,
+      "requestId": "request:export-backup",
+      "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "applyRetention": {
+      "protocolVersion": 1,
+      "requestId": "request:retention",
+      "generation": 7,
+      "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "inspectRestore": {
+      "protocolVersion": 1,
+      "requestId": "request:inspect-restore",
+      "selection": {
+        "source": "hostPicker"
+      }
+    },
+    "planRestore": {
+      "protocolVersion": 1,
+      "requestId": "request:plan-restore",
+      "generation": 7,
+      "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "choices": [
+        {
+          "domainId": "app.preferences",
+          "choice": "useArchive"
+        },
+        {
+          "domainId": "app.database",
+          "choice": "keepCurrent"
+        }
+      ]
+    },
+    "executeRestore": {
+      "protocolVersion": 1,
+      "requestId": "request:execute-restore",
+      "generation": 8,
+      "confirmationDigest": "8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    "executeAdapterRestore": {
+      "protocolVersion": 1,
+      "requestId": "request:adapter-restore",
+      "generation": 8,
+      "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "domainId": "app.database",
+      "confirmationDigest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "requirement": "allowSeparate"
+    },
+    "recoverRestore": {
+      "protocolVersion": 1,
+      "requestId": "request:recover-restore"
+    }
+  },
+  "outcomes": {
+    "inspectTransition": {
+      "status": "ready",
+      "generation": 7,
+      "preview": {
+        "sourceLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "targetLayoutDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "targetProfile": "unified-app-root-v1",
+        "domains": [
+          {
+            "domainId": "app.preferences",
+            "storageClass": "userConfig",
+            "action": "copy",
+            "sourcePath": "/old/config/preferences.json",
+            "targetPath": "/new/config/preferences.json",
+            "sourceSha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "unknownSourcePaths": [
+          "/old/config/unregistered.json"
+        ],
+        "conflicts": [
+          {
+            "kind": "targetExists",
+            "path": "/new/config/preferences.json",
+            "detail": "target contains different bytes"
+          }
+        ],
+        "evidenceDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "confirmationDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "executeTransition": {
+      "status": "committed",
+      "receipt": {
+        "transitionId": "transition:fixture",
+        "outcome": "committed",
+        "targetLayoutDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "copiedDomainIds": [
+          "app.preferences"
+        ],
+        "customDomainIds": [
+          "app.database"
+        ],
+        "retainedSourcePaths": [
+          "/old/config/preferences.json"
+        ],
+        "receiptDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "recoverStorage": {
+      "status": "recovered",
+      "receipt": {
+        "transitionId": "transition:fixture",
+        "outcome": "rolledForward",
+        "activeLayoutDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "detail": "locator and journal agree"
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "cleanupStorage": {
+      "status": "applied",
+      "receipt": {
+        "transitionId": "transition:fixture",
+        "transitionReceiptDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "removedPaths": [
+          "/old/config/preferences.json"
+        ]
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "createBackup": {
+      "status": "published",
+      "capture": {
+        "selectedDomains": 3,
+        "capturedDomains": 2,
+        "absentDomains": 0,
+        "sourcePreservedDomains": 0,
+        "excludedDomains": 1,
+        "customDomains": 1,
+        "externalConsistencyGroups": 1,
+        "totalPayloadBytes": 4096,
+        "flushedPendingPublication": true
+      },
+      "publication": {
+        "path": "/backups/operational.longhorn-backup",
+        "destination": "operational",
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "durability": "synced",
+        "replacedExisting": false
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "exportBackup": {
+      "status": "published",
+      "publication": {
+        "path": "/backups/userExport.longhorn-backup",
+        "destination": "userExport",
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "durability": "synced",
+        "replacedExisting": false
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "applyRetention": {
+      "status": "applied",
+      "deletedPaths": [
+        "/backups/old.longhorn-backup"
+      ],
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "inspectRestore": {
+      "status": "ready",
+      "generation": 8,
+      "inspection": {
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "archiveId": "backup:fixture",
+        "createdAt": "2026-07-29T12:00:00Z",
+        "kind": "operational",
+        "applicationVersion": "1.2.3",
+        "producerVersion": "0.1.0",
+        "integrity": "verified",
+        "authenticity": "authenticated",
+        "identity": {
+          "application": {
+            "status": "compatible"
+          },
+          "producer": {
+            "status": "compatible"
+          }
+        },
+        "consistencyGroups": [
+          {
+            "id": "longhorn-config-store",
+            "mode": "coordinatedBounded",
+            "authority": "longhorn-config-store-coordinator"
+          },
+          {
+            "id": "sqlite-main",
+            "mode": "externalSnapshot",
+            "authority": "sqlite-online-backup"
+          }
+        ],
+        "domains": [
+          {
+            "domainId": "app.preferences",
+            "storageClass": "user-config",
+            "consistencyGroup": "longhorn-config-store",
+            "adapter": "longhorn-json-v1",
+            "sourceState": "present",
+            "sourceSchemaVersion": 1,
+            "targetSchemaVersion": 2,
+            "compatibility": {
+              "status": "migrationRequired",
+              "from": 1,
+              "to": 2
+            }
+          },
+          {
+            "domainId": "app.database",
+            "storageClass": "machine-state",
+            "consistencyGroup": "sqlite-main",
+            "adapter": "sqlite-v1",
+            "sourceState": "present",
+            "sourceSchemaVersion": 1,
+            "targetSchemaVersion": 1,
+            "compatibility": {
+              "status": "customAdapterReady",
+              "adapter": "sqlite-v1",
+              "participation": {
+                "kind": "separate"
+              },
+              "confirmationDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+            }
+          },
+          {
+            "domainId": "app.future",
+            "storageClass": "user-config",
+            "consistencyGroup": "longhorn-config-store",
+            "adapter": "longhorn-json-v1",
+            "sourceState": "sourcePreserved",
+            "sourceSchemaVersion": 9,
+            "targetSchemaVersion": 2,
+            "compatibility": {
+              "status": "sourcePreserved",
+              "issue": "FutureSchema"
+            }
+          }
+        ],
+        "exclusions": [
+          {
+            "domainId": "app.secrets",
+            "storageClass": "secret",
+            "reason": "secret",
+            "registered": true
+          }
+        ],
+        "receipt": {
+          "manifestDomains": 3,
+          "exclusions": 1,
+          "restorable": 1,
+          "migrations": 1,
+          "adapterRestorable": 1,
+          "blocked": 1
+        }
+      }
+    },
+    "planRestore": {
+      "status": "ready",
+      "generation": 8,
+      "plan": {
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "confirmationDigest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "entries": [
+          {
+            "domainId": "app.preferences",
+            "choice": "useArchive",
+            "action": "migrate",
+            "current": {
+              "state": "present",
+              "byteLength": 128,
+              "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+            }
+          },
+          {
+            "domainId": "app.future",
+            "choice": "keepCurrent",
+            "action": null,
+            "current": null
+          }
+        ],
+        "receipt": {
+          "selected": 1,
+          "skipped": 1,
+          "creates": 0,
+          "replaces": 0,
+          "deletes": 0,
+          "migrations": 1,
+          "unchanged": 0
+        }
+      }
+    },
+    "executeRestore": {
+      "status": "succeeded",
+      "receipt": {
+        "confirmationDigest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "staging": {
+          "selected": 1,
+          "documents": 1,
+          "deletions": 0,
+          "unchanged": 0,
+          "totalDocumentBytes": 256
+        },
+        "safetyBackup": {
+          "path": "/backups/pre-restore.longhorn-backup",
+          "destination": "operational",
+          "archiveSha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "durability": "fileAndDirectorySynced",
+          "replacedExisting": false
+        },
+        "restoredDomainIds": [
+          "app.preferences"
+        ],
+        "deletedDomainIds": [],
+        "migratedDomainIds": [
+          "app.preferences"
+        ],
+        "unchangedDomainIds": [],
+        "skippedDomainIds": [
+          "app.future"
+        ],
+        "excludedDomainIds": [
+          "app.secrets"
+        ]
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "executeAdapterRestore": {
+      "status": "completed",
+      "receipt": {
+        "domainId": "app.database",
+        "adapter": "sqlite-v1",
+        "participation": {
+          "kind": "separate"
+        },
+        "confirmationDigest": "7777777777777777777777777777777777777777777777777777777777777777",
+        "outcome": "verified",
+        "evidence": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    "recoverRestore": {
+      "status": "recovered",
+      "receipt": {
+        "outcome": "rolledBack",
+        "domainIds": [
+          "app.preferences"
+        ]
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    }
+  },
+  "inventoryStates": [
+    {
+      "path": "/backups/locked.archive",
+      "state": "locked",
+      "diagnosticKind": "locked",
+      "detail": "locked fixture"
+    },
+    {
+      "path": "/backups/corrupt.archive",
+      "state": "corrupt",
+      "diagnosticKind": "corrupt",
+      "detail": "corrupt fixture"
+    },
+    {
+      "path": "/backups/foreignApplication.archive",
+      "state": "foreign",
+      "diagnosticKind": "foreignApplication",
+      "detail": "foreignApplication fixture"
+    },
+    {
+      "path": "/backups/unknownFormat.archive",
+      "state": "unknown",
+      "diagnosticKind": "unknownFormat",
+      "detail": "unknownFormat fixture"
+    },
+    {
+      "path": "/backups/unreadable.archive",
+      "state": "unreadable",
+      "diagnosticKind": "unreadable",
+      "detail": "unreadable fixture"
+    },
+    {
+      "path": "/backups/unmanaged.archive",
+      "state": "unmanaged",
+      "diagnosticKind": "unmanaged",
+      "detail": "unmanaged fixture"
+    },
+    {
+      "path": "/backups/valid.archive",
+      "state": "valid",
+      "diagnosticKind": "valid",
+      "detail": "valid fixture"
+    }
+  ],
+  "restoreInspectionStates": [
+    {
+      "status": "ready",
+      "generation": 8,
+      "inspection": {
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "archiveId": "backup:fixture",
+        "createdAt": "2026-07-29T12:00:00Z",
+        "kind": "operational",
+        "applicationVersion": "1.2.3",
+        "producerVersion": "0.1.0",
+        "integrity": "verified",
+        "authenticity": "authenticated",
+        "identity": {
+          "application": {
+            "status": "compatible"
+          },
+          "producer": {
+            "status": "compatible"
+          }
+        },
+        "consistencyGroups": [
+          {
+            "id": "longhorn-config-store",
+            "mode": "coordinatedBounded",
+            "authority": "longhorn-config-store-coordinator"
+          },
+          {
+            "id": "sqlite-main",
+            "mode": "externalSnapshot",
+            "authority": "sqlite-online-backup"
+          }
+        ],
+        "domains": [
+          {
+            "domainId": "app.preferences",
+            "storageClass": "user-config",
+            "consistencyGroup": "longhorn-config-store",
+            "adapter": "longhorn-json-v1",
+            "sourceState": "present",
+            "sourceSchemaVersion": 1,
+            "targetSchemaVersion": 2,
+            "compatibility": {
+              "status": "migrationRequired",
+              "from": 1,
+              "to": 2
+            }
+          },
+          {
+            "domainId": "app.database",
+            "storageClass": "machine-state",
+            "consistencyGroup": "sqlite-main",
+            "adapter": "sqlite-v1",
+            "sourceState": "present",
+            "sourceSchemaVersion": 1,
+            "targetSchemaVersion": 1,
+            "compatibility": {
+              "status": "customAdapterReady",
+              "adapter": "sqlite-v1",
+              "participation": {
+                "kind": "separate"
+              },
+              "confirmationDigest": "7777777777777777777777777777777777777777777777777777777777777777"
+            }
+          },
+          {
+            "domainId": "app.future",
+            "storageClass": "user-config",
+            "consistencyGroup": "longhorn-config-store",
+            "adapter": "longhorn-json-v1",
+            "sourceState": "sourcePreserved",
+            "sourceSchemaVersion": 9,
+            "targetSchemaVersion": 2,
+            "compatibility": {
+              "status": "sourcePreserved",
+              "issue": "FutureSchema"
+            }
+          }
+        ],
+        "exclusions": [
+          {
+            "domainId": "app.secrets",
+            "storageClass": "secret",
+            "reason": "secret",
+            "registered": true
+          }
+        ],
+        "receipt": {
+          "manifestDomains": 3,
+          "exclusions": 1,
+          "restorable": 1,
+          "migrations": 1,
+          "adapterRestorable": 1,
+          "blocked": 1
+        }
+      }
+    },
+    {
+      "status": "locked",
+      "detail": "configured identity is unavailable"
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "archiveCorrupt",
+        "detail": "fixture refusal",
+        "snapshot": null
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "archiveFutureVersion",
+        "detail": "fixture refusal",
+        "snapshot": null
+      }
+    }
+  ],
+  "restorePlanStates": [
+    {
+      "status": "ready",
+      "generation": 8,
+      "plan": {
+        "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "confirmationDigest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "entries": [
+          {
+            "domainId": "app.preferences",
+            "choice": "useArchive",
+            "action": "migrate",
+            "current": {
+              "state": "present",
+              "byteLength": 128,
+              "sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+            }
+          },
+          {
+            "domainId": "app.future",
+            "choice": "keepCurrent",
+            "action": null,
+            "current": null
+          }
+        ],
+        "receipt": {
+          "selected": 1,
+          "skipped": 1,
+          "creates": 0,
+          "replaces": 0,
+          "deletes": 0,
+          "migrations": 1,
+          "unchanged": 0
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "rejection": {
+        "code": "restorePlanStale",
+        "detail": "fixture refusal",
+        "snapshot": null
+      }
+    }
+  ],
+  "restoreExecutionStates": [
+    {
+      "status": "succeeded",
+      "receipt": {
+        "confirmationDigest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "staging": {
+          "selected": 1,
+          "documents": 1,
+          "deletions": 0,
+          "unchanged": 0,
+          "totalDocumentBytes": 256
+        },
+        "safetyBackup": {
+          "path": "/backups/pre-restore.longhorn-backup",
+          "destination": "operational",
+          "archiveSha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "durability": "fileAndDirectorySynced",
+          "replacedExisting": false
+        },
+        "restoredDomainIds": [
+          "app.preferences"
+        ],
+        "deletedDomainIds": [],
+        "migratedDomainIds": [
+          "app.preferences"
+        ],
+        "unchangedDomainIds": [],
+        "skippedDomainIds": [
+          "app.future"
+        ],
+        "excludedDomainIds": [
+          "app.secrets"
+        ]
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": null
+        }
+      }
+    },
+    {
+      "status": "rolledBack",
+      "failure": {
+        "stage": "publishTarget",
+        "domainId": "app.preferences",
+        "terminal": "rolledBack",
+        "detail": "fixture publication failure"
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "inactive",
+          "safetyBackupSha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      }
+    },
+    {
+      "status": "recoveryRequired",
+      "failure": {
+        "stage": "publishTarget",
+        "domainId": "app.preferences",
+        "terminal": "recoveryRequired",
+        "detail": "fixture publication failure"
+      },
+      "snapshot": {
+        "protocolVersion": 1,
+        "generation": 7,
+        "capabilities": [
+          "storageDiagnostics",
+          "storageTransition",
+          "backupInventory",
+          "backupCreate",
+          "backupExport",
+          "backupRetention",
+          "backupEncryption",
+          "restoreInspection",
+          "restoreExecution",
+          "restoreAdapterExecution",
+          "restoreRecovery"
+        ],
+        "storage": {
+          "layout": {
+            "profile": "platform-native-v1",
+            "platform": "macos",
+            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
+            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "leafProvenance": "canonicalApplicationId",
+            "roots": [
+              {
+                "kind": "config",
+                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "provenance": "platform:config"
+              },
+              {
+                "kind": "cache",
+                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "provenance": "platform:cache"
+              }
+            ],
+            "warnings": [],
+            "layoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "bootstrap": {
+            "state": "selected",
+            "origin": "locator",
+            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "transitionId": null,
+            "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "availableProfiles": [
+            "platform-native-v1",
+            "unified-app-root-v1",
+            "portable-v1"
+          ]
+        },
+        "backup": {
+          "inventory": {
+            "root": "/backups",
+            "archives": [
+              {
+                "path": "/backups/current.longhorn-backup",
+                "archiveId": "backup:fixture",
+                "createdAt": "2026-07-29T12:00:00Z",
+                "kind": "manual",
+                "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+              }
+            ],
+            "entries": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "complete": true
+          },
+          "pending": {
+            "state": "pending",
+            "domainCount": 1,
+            "domainIds": [
+              "app.preferences"
+            ]
+          },
+          "encryption": {
+            "state": "available",
+            "provider": "age"
+          },
+          "retention": {
+            "deletionPaths": [
+              "/backups/old.longhorn-backup"
+            ],
+            "retained": [
+              [
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                [
+                  "newestCount"
+                ]
+              ]
+            ],
+            "diagnostics": [
+              {
+                "path": "/backups/locked.archive",
+                "state": "locked",
+                "diagnosticKind": "locked",
+                "detail": "locked fixture"
+              },
+              {
+                "path": "/backups/corrupt.archive",
+                "state": "corrupt",
+                "diagnosticKind": "corrupt",
+                "detail": "corrupt fixture"
+              },
+              {
+                "path": "/backups/foreignApplication.archive",
+                "state": "foreign",
+                "diagnosticKind": "foreignApplication",
+                "detail": "foreignApplication fixture"
+              },
+              {
+                "path": "/backups/unknownFormat.archive",
+                "state": "unknown",
+                "diagnosticKind": "unknownFormat",
+                "detail": "unknownFormat fixture"
+              },
+              {
+                "path": "/backups/unreadable.archive",
+                "state": "unreadable",
+                "diagnosticKind": "unreadable",
+                "detail": "unreadable fixture"
+              },
+              {
+                "path": "/backups/unmanaged.archive",
+                "state": "unmanaged",
+                "diagnosticKind": "unmanaged",
+                "detail": "unmanaged fixture"
+              },
+              {
+                "path": "/backups/valid.archive",
+                "state": "valid",
+                "diagnosticKind": "valid",
+                "detail": "valid fixture"
+              }
+            ],
+            "confirmationDigest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        "restore": {
+          "state": "recoveryRequired",
+          "safetyBackupSha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      }
+    }
+  ],
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownCapability": "restoreMerge",
+    "unknownInventoryState": "decrypted",
+    "unknownBootstrapState": {
+      "state": "guessed"
+    },
+    "unknownOutcomeStatus": {
+      "status": "scheduled"
+    },
+    "unknownRestoreCompatibility": {
+      "status": "mergeAutomatically"
+    }
+  }
+}

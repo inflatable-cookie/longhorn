@@ -100,3 +100,13 @@ Poodle tarballs.
 
 Evidence:
 `../logs/2026-07/29-three-shape-app-shell-proof-and-closeout.md`.
+
+Card 048 packs the settings TypeScript family and installs isolated Bovine,
+Soundcheck, Loophole, and Nucleus consumers against the same exact Poodle set.
+Each root contains one Svelte `5.38.6` runtime, no sibling source alias, and
+only its declared Longhorn optional systems. Six private Rust crate
+inventories also unpack and build offline. Registry-normalized Cargo packages
+remain a public release-lane gate while the interdependent crates are private.
+
+Evidence:
+`../logs/2026-07/29-settings-composition-proof-and-closeout.md`.

@@ -523,11 +523,18 @@ restore operate at explicit scopes.
 - a crash journal recovers before later mutation
 - Loophole, Soundcheck, and Bovine state map without sharing product schemas
 
+## Settings Policy Resolution
+
+Contract 005 resolves the local managed-policy seam. Host authority projects
+configured and effective values, policy provenance, constraints, and
+editability. Explicit policy overrides or constrains user configuration;
+settings cannot mutate a policy-controlled field. Reset removes only the user
+override.
+
 ## Open Decisions
 
 | Decision | First gate |
 | --- | --- |
-| managed-policy precedence | `g01.008` settings composition |
 | remote synchronization and conflict behavior | `g01.009` topology adapters |
 
 The initial domain-store card performs read, validation, and in-memory

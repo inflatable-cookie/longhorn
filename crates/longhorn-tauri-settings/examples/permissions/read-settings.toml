@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-settings-read"
+description = "Allows checked Longhorn settings registry and scope reads."
+commands.allow = [
+  "longhorn_settings_registry",
+  "longhorn_settings_load",
+]

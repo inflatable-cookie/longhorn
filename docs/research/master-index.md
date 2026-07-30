@@ -22,6 +22,7 @@ Updated: 2026-07-29
 | layout container, region, and panel core | [Layout Core Boundary Characterization](translation-memos/009-layout-core-boundary-characterization.md) | `../architecture/system-architecture.md`; `../contracts/014-layout-container-region-and-panel-core.md`; `../roadmaps/g01/005-layout-container-region-and-panel-core.md`; cards 023-027 |
 | optional Surface hosting and cross-window transfer | [Surface Hosting And Transfer Boundary](translation-memos/010-surface-hosting-and-transfer-boundary.md) | `../architecture/system-architecture.md`; `../contracts/002-composable-workspace-hosting.md`; `../contracts/011-cross-window-transfer.md`; `../roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md`; cards 028-035 |
 | client, Svelte, Poodle, drag, and shell adapters | [Client, Svelte, Poodle, And Shell Boundary](translation-memos/011-client-svelte-poodle-and-shell-boundary.md) | `../architecture/package-topology.md`; `../contracts/012-distribution-and-compatibility.md`; `../contracts/013-svelte-and-poodle-adapter-lifecycle.md`; `../roadmaps/g01/007-typescript-svelte-poodle-and-app-shell.md`; cards 036-041 |
+| settings registry, transactions, and shell | [Settings Registry And Transaction Boundary](translation-memos/012-settings-registry-and-transaction-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/005-settings-and-system-registration.md`; `../roadmaps/g01/008-settings-registry-and-shell.md`; cards 042-048 |
 
 ## Open Research
 
@@ -29,7 +30,6 @@ Updated: 2026-07-29
 - non-macOS packaged cross-window transfer across platforms and display scales
 - cross-document panel transaction and copy-transfer authority
 - server-synchronized settings and remote transaction authority
-- backup and restore settings UX
 - public registry name verification
 - generic history payload plus branch/checkpoint performance
 - async operation and notification lifecycle

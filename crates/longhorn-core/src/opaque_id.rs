@@ -103,6 +103,10 @@ opaque_id!(
     "Opaque identity for one layout mutation request."
 );
 opaque_id!(
+    ConfigRequestId,
+    "Opaque identity for one storage or backup operation request."
+);
+opaque_id!(
     SurfaceId,
     "Opaque identity for one optional hosted workspace Surface."
 );
@@ -130,8 +134,7 @@ opaque_id!(
     TransferHostBindingId,
     "Opaque adapter-supplied identity for one transfer host binding."
 );
-
-fn validate_opaque_id(value: &str) -> Result<(), OpaqueIdError> {
+pub(crate) fn validate_opaque_id(value: &str) -> Result<(), OpaqueIdError> {
     if value.is_empty() {
         return Err(OpaqueIdError::Empty);
     }

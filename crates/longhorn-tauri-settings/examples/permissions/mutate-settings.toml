@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-settings-mutate"
+description = "Allows checked Longhorn settings apply and reset commands."
+commands.allow = [
+  "longhorn_settings_apply",
+  "longhorn_settings_reset",
+]

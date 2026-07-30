@@ -1,51 +1,98 @@
 # g01.008 Settings Registry And Shell
 
-Status: planning gate; dependencies complete, implementation cards not compiled
-Owner: Tom  
-Updated: 2026-07-27  
-Governing refs: contract 005
+Status: complete
+Owner: Tom
+Updated: 2026-07-29
+Governing refs: contracts 001, 004, 005, 010, 012, and 013; research memo 012
 
 ## Outcome
 
-Provide one composable settings experience for app and optional-module
-configuration.
+Provide an optional settings authority and shell that composes a one-page
+Bovine preference, Soundcheck product and recovery pages, and Loophole custom
+pages without importing their product schemas or optional systems.
 
-## Batches
+## Generation Runway
 
-### 1. Registry and transactions
+This milestone advances the shared-system foundation from app-shell
+composition into centralized configuration UX. It consumes the completed
+g01.002 configuration mechanisms and g01.007 client/UI boundaries. It does not
+pull bridge, command, history, or consumer-migration work forward.
 
-- stable sections/pages, ordering, keywords, capabilities, deep links
-- immediate, staged, and restart-required policies
-- validation, dirty state, reset, and scoped apply/cancel
+## Goals
 
-### 2. Shell and Poodle adapters
+- [x] seal one deterministic registry of modules, sections, pages, and apply
+  units
+- [x] provide checked one-domain configuration mutation with policy and
+  activation projection
+- [x] generate framework-neutral TypeScript and narrow Tauri host bindings
+- [x] provide per-instance Svelte session state and a public-Poodle shell
+- [x] expose storage profile and backup workflows without weakening contract
+  004
+- [x] expose restore and recovery workflows without weakening contract 004
+- [x] prove minimal, product-rich, and advanced custom-page compositions from
+  produced artifacts
 
-- navigation, search, errors, and accessibility
-- modal, window, and panel hosts over one registry
-- extension slots for app-rendered pages
+## Execution Plan
 
-### 3. Shared pages
+### Batch 1 — authority and configuration transactions
 
-- storage/backup/restore and diagnostics
-- windowing where composed
-- keybindings after command system lands
-- backend connection where composed
+- [x] Card 042: pure settings identity, sealed registry, and authority protocol
+- [x] Card 043: config-backed apply units, policy projection, and activation
+  receipts
 
-### 4. Consumer fixtures
+### Batch 2 — checked clients and shell
 
-- Loophole keybinding/settings shape
-- Soundcheck product settings
-- Bovine minimal preference page
+- [x] Card 044: generated TypeScript protocol and narrow Tauri host
+- [x] Card 045: Svelte session lifecycle and public-Poodle shell
 
-## Acceptance
+### Batch 3 — shared recovery pages and proof
 
-- absent modules produce no dead navigation
-- invalid staged changes do not persist
-- all persistence passes through configuration commands
-- product pages retain app ownership and use Poodle primitives
+- [x] Card 046: storage profile, diagnostics, and backup settings modules
+- [x] Card 047: restore, conflict, and recovery settings flow
+- [x] Card 048: artifact-installed composition proof and milestone closeout
 
-## Planning Gate
+## Lane Runway
 
-`g01.002` and `g01.007` are complete. Revalidate contract 005 against the
-delivered configuration and shell surfaces, then compile a multi-card runway
-only if settings is the selected next priority.
+Cards 042-048 are complete. The isolated proof installs four distinct
+compositions from produced artifacts and closes the milestone.
+
+After Card 048, return to the g01 front door. The next intent checkpoint chooses
+g01.009 bridge/topology research or another explicitly promoted lane. g01.010
+remains blocked by g01.009 even though settings can host a consumer-owned
+keybinding page.
+
+## Deferred
+
+- command-aware keybinding registration and editing
+- backend connection pages and remote conflict policy
+- server-synchronized settings
+- schema-generated product forms
+- live module installation and mutable registries
+- donor migration
+- public package release
+
+## Acceptance Criteria
+
+- [x] Bovine installs settings without layout, Surfaces, commands, or backend
+- [x] Soundcheck-shaped product pages coexist with shared recovery pages
+- [x] Loophole-shaped hardware and keybinding pages retain consumer authority
+- [x] optional modules produce no dead navigation or upward dependency
+- [x] invalid, stale, or policy-blocked changes cannot persist
+- [x] immediate/staged timing is distinct from activation requirements
+- [x] one-domain atomicity is exact and broader transaction limits are visible
+- [x] modal, window, and panel hosts use one registry/session contract
+- [x] storage, backup, restore, and recovery retain exact g01.002 plans and
+  receipts
+- [x] packages install from produced artifacts with one Svelte/Poodle runtime
+- [x] full Effigy QA and milestone boundary audits pass
+
+## Planning Gaps
+
+Closed by Card 043. The narrow checked mutation seam compares fresh authority,
+vetoes, patches, validates, and publishes under one existing coordinator
+acquisition.
+
+## Next Task
+
+Resolve the post-008 intent checkpoint before promoting g01.009
+bridge/topology research or another milestone.

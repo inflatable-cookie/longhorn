@@ -157,14 +157,42 @@ coordinated state; sizing and collapse may use bounded explicit-flush debounce.
 
 ### Settings and system registration
 
-- one registry-driven shell for modal, window, or panel presentation
-- app and module registration of pages, keywords, scopes, and capabilities
-- staged/immediate application, validation, dirty state, reset, and deep links
-- backup, restore, and storage diagnostics as registered pages
+- one sealed, generation-stamped registry for modal, window, or panel
+  presentation
+- app and module registration of stable pages, renderer keys, scopes, apply
+  units, keywords, anchors, and composed capabilities
+- pure Rust settings authority plus a config adapter that binds one
+  failure-atomic apply unit to one registered domain
+- immediate or staged mutation timing; restart is a separate activation result
+- configured/effective values, managed-policy provenance, editability, and
+  recovery state projected by host authority
+- deterministic search, structural deep links, dirty navigation guards, and
+  explicit conflict/error state
+- storage profile, backup, restore, and diagnostics as registered modules over
+  the existing configuration receipts
 - no empty UI for modules the app did not compose
 
 Poodle supplies the visual primitives. Longhorn supplies registry state,
-configuration transactions, and Svelte bindings.
+checked authority, configuration apply units, session state, and Svelte
+bindings. Product schemas and specialist page bodies remain in consumers.
+
+The pure `longhorn-settings` slice implements bounded declaration identity,
+capability admission, immutable generations, canonical digests, checked
+projection, and load/apply/reset protocol types. `longhorn-settings-config`
+now adds fresh checked one-domain mutation, managed editability enforcement,
+exact conflict and durability evidence, scoped reset, and post-publication
+activation. `longhorn-tauri-settings` and `@longhorn/settings` provide the
+narrow injected host, checked client, and optional per-instance Svelte and
+public-Poodle subpaths. `longhorn-config` projects exact storage and backup
+evidence into a renderer-safe protocol. `longhorn-tauri-config` injects
+authorization, plan custody, pickers, retention policy, pending flush, and
+encryption authority. `@longhorn/config/poodle` supplies the optional shared
+pages, while `longhorn-settings-config` admits them by capability. Product
+pages and schemas remain downstream in consumers.
+
+The canonical bootstrap, mutation, capability, artifact, and migration rules
+are in [Settings Composition](settings-composition.md). Card 048 proves modal,
+window, and panel hosts across four isolated app shapes.
 
 ### Command, action, and input
 
