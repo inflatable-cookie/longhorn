@@ -12,7 +12,7 @@
 
 ## Posture
 
-`strict-paused`
+`strict-ready`
 
 The strict spine is installed. Three audit passes are preserved, the complete
 shared-system suite is inventoried, and a 16-milestone g01 runway covers
@@ -98,7 +98,33 @@ generated TypeScript, checked clients, registry helpers, and injected Tauri
 host assembly. Card 045 adds isolated Svelte settings sessions and one
 public-Poodle shell for modal, window, and panel hosts. Cards 046-047 add exact
 storage, backup, restore, and recovery pages. Card 048 proves four isolated
-artifact-installed settings compositions and closes `g01.008`. The spine is
-paused at the explicit post-008 intent checkpoint.
+artifact-installed settings compositions and closes `g01.008`. Research memo
+013 and compiled contracts 007 and 010 define the bridge session, authority,
+ordering, retry, and optional-supervision boundary. Cards 049-055 form
+g01.009. Card 049 implements the pure negotiation and authority substrate.
+Card 050 implements typed operations, failure/retry semantics, ordered
+snapshots/events, and optional correlated jobs. Card 051 adds checked
+TypeScript generation, strict clients, and direct/serialized-loopback
+conformance. Card 052 adds checked registered-domain Tauri host/client
+assembly. Card 053 adds authority-gated lifecycle, bounded retry,
+session/epoch invalidation, and optional injected supervision. Card 054 adds
+five-shape source conformance, adapter parity, and optional-edge audits. Card
+055 adds five clean artifact installs, Rust optional-graph proof, boundary
+audits, and the composition guide. `g01.009` is complete. Research memo 014
+and compiled contract 006 define the command, keyboard, keymap, and palette
+boundary. Cards 056-058 implement the registry, fresh admission, and
+deterministic physical-key foundation. Card 059 adds coordinated keymap
+persistence, generated protocol, and the narrow Tauri host. Card 060 adds
+checked clients, cross-language browser semantics, per-instance Svelte state,
+public Poodle bindings, and capability-gated settings. Card 061 adds isolated
+rich/minimal artifact installs, native and renderer semantic traces, boundary
+audits, and composition guidance. `g01.010` is complete. Research memo 015 and
+compiled contract 008 define a lossless typed linear history boundary around
+Loophole's product-owned mutation, apply, snapshot, journal, recovery, and
+version semantics. Cards 062-067 form the public linear runway. Card 062
+implements bounded history identity, typed policy seams, validated
+applied/future state, explicit record/coalesce outcomes, and Loophole plus
+document fixtures. Card 068 is a private fork prototype and Card 069 the
+mandatory promotion decision. Card 063 is ready.
 
 The live next-task pointer lives in the roadmap front doors.

@@ -1,0 +1,9 @@
+{
+  "identifier": "nucleus-bridge-proof",
+  "description": "Embedded and optional-host authority bridge proof.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-longhorn-bridge-query",
+    "allow-longhorn-bridge-mutate"
+  ]
+}

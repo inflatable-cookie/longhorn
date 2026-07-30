@@ -10,6 +10,11 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./events": {
+      "types": "./src/events.ts",
+      "import": "./src/events.ts",
+      "default": "./src/events.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [

@@ -1,14 +1,21 @@
 [workspace]
 members = [
   "crates/longhorn-bindings",
+  "crates/longhorn-bridge",
+  "crates/longhorn-command",
+  "crates/longhorn-command-config",
+  "crates/longhorn-command-settings",
   "crates/longhorn-config",
   "crates/longhorn-config-age",
   "crates/longhorn-core",
   "crates/longhorn-display",
+  "crates/longhorn-history",
   "crates/longhorn-layout",
   "crates/longhorn-layout-config",
   "crates/longhorn-settings",
   "crates/longhorn-settings-config",
+  "crates/longhorn-tauri-bridge",
+  "crates/longhorn-tauri-command",
   "crates/longhorn-tauri-settings",
   "crates/longhorn-surface-windowing",
   "crates/longhorn-surface-transfer",
@@ -37,14 +44,21 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 age = { version = "=0.12.1", default-features = false }
 cap-std = "4.0.2"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
+longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
+longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
+longhorn-command-config = { path = "crates/longhorn-command-config", version = "0.1.0" }
+longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "0.1.0" }
 longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
 longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
 longhorn-config-age = { path = "crates/longhorn-config-age" }
 longhorn-display = { path = "crates/longhorn-display" }
+longhorn-history = { path = "crates/longhorn-history", version = "0.1.0" }
 longhorn-layout = { path = "crates/longhorn-layout" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config" }
+longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge" }
+longhorn-tauri-command = { path = "crates/longhorn-tauri-command" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings" }
 longhorn-surface-windowing = { path = "crates/longhorn-surface-windowing" }
 longhorn-surface-transfer = { path = "crates/longhorn-surface-transfer" }

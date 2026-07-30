@@ -1,0 +1,11 @@
+{
+  "identifier": "soundcheck-bridge-proof",
+  "description": "Correlated job and optional local-service bridge proof.",
+  "windows": ["main", "settings"],
+  "permissions": [
+    "allow-longhorn-bridge-query",
+    "allow-longhorn-bridge-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

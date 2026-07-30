@@ -1,0 +1,16 @@
+[package]
+name = "longhorn-command-settings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Optional capability-gated command keybinding settings registration"
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-settings.workspace = true
+
+[lints]
+workspace = true

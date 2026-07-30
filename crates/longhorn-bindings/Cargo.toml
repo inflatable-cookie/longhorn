@@ -9,6 +9,9 @@ publish = false
 
 [dependencies]
 longhorn-core = { workspace = true, features = ["bindings"] }
+longhorn-bridge = { workspace = true, features = ["bindings"] }
+longhorn-command = { workspace = true, features = ["bindings"] }
+longhorn-command-config = { workspace = true, features = ["bindings"] }
 longhorn-config = { workspace = true, features = ["bindings"] }
 longhorn-layout = { workspace = true, features = ["bindings"] }
 longhorn-settings = { workspace = true, features = ["bindings"] }

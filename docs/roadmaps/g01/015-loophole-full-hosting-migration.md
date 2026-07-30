@@ -2,8 +2,8 @@
 
 Status: blocked on `g01.014` and optional Surface packages  
 Owner: Tom  
-Updated: 2026-07-27  
-Governing refs: contracts 002 and 003
+Updated: 2026-07-30
+Governing refs: contracts 002, 003, and 008
 
 ## Outcome
 
@@ -29,7 +29,11 @@ settings, and command composition without moving DAW authority.
 
 - Surface hosting and cross-window movement
 - settings and command/input projections
-- history linear-kernel adoption only if g01.011 promotes it
+- history linear-kernel adoption after Cards 062-067 and g01.011 closeout
+- explicit import of existing Pulse history; retain journal recovery and
+  cross-session undo
+- branch mode remains disabled unless Card 069 promotes it and a later lane
+  implements it
 
 ### 4. Cleanup and proof
 
@@ -43,4 +47,6 @@ settings, and command composition without moving DAW authority.
 - Pulse, Signal, Aura workflows and panel catalogue remain Loophole-owned
 - no dual active implementation remains after each cutover
 - behavior deltas are deliberate and documented
-
+- all 83 Pulse mutation variants remain Loophole-owned and usable through the
+  shared policy/apply seam
+- project versions remain separate from undo branches

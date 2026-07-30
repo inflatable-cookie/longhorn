@@ -102,5 +102,5 @@ application frame.
 
 ## Next Task
 
-Return to the g01 roadmap front door. Resolve the post-008 intent checkpoint
-before starting bridge/topology research or another milestone.
+The post-008 checkpoint selected g01.009. Continue from the g01 front door;
+Card 049 is ready.

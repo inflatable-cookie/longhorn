@@ -134,6 +134,74 @@ opaque_id!(
     TransferHostBindingId,
     "Opaque adapter-supplied identity for one transfer host binding."
 );
+opaque_id!(
+    BridgeId,
+    "Opaque identity for one bridge client installation or process."
+);
+opaque_id!(
+    BridgeSessionId,
+    "Opaque identity for one negotiated bridge session."
+);
+opaque_id!(
+    HostInstanceId,
+    "Opaque identity for one running authoritative host instance."
+);
+opaque_id!(
+    BridgeCapabilityId,
+    "Opaque identity for one domain capability advertised by a bridge host."
+);
+opaque_id!(
+    AuthorityScopeId,
+    "Opaque identity for one independently owned bridge authority scope."
+);
+opaque_id!(
+    TransportFeatureId,
+    "Opaque identity for one transport-level bridge feature."
+);
+opaque_id!(
+    BridgeDiagnosticId,
+    "Opaque stable identity for one bridge diagnostic category."
+);
+opaque_id!(
+    BridgeRequestId,
+    "Opaque correlation identity for one bridge request and its replies or events."
+);
+opaque_id!(
+    BridgeIdempotencyKey,
+    "Opaque durable replay identity distinct from bridge request correlation."
+);
+opaque_id!(
+    BridgeJobId,
+    "Opaque identity for one optional request-correlated bridge job."
+);
+opaque_id!(
+    BridgeErrorCode,
+    "Opaque stable code for one domain or bridge protocol failure."
+);
+opaque_id!(
+    BridgeCredentialRef,
+    "Opaque reference to consumer-owned credential material."
+);
+opaque_id!(
+    HistoryId,
+    "Opaque identity for one independently owned history authority."
+);
+opaque_id!(
+    HistoryEntryId,
+    "Stable opaque identity for one retained history entry."
+);
+opaque_id!(
+    HistoryKindId,
+    "Consumer-owned kind identity for history metadata and presentation."
+);
+opaque_id!(
+    HistoryGroupId,
+    "Explicit identity for one committed history group."
+);
+opaque_id!(
+    HistoryPlanId,
+    "Opaque identity for one revision-bound history navigation plan."
+);
 pub(crate) fn validate_opaque_id(value: &str) -> Result<(), OpaqueIdError> {
     if value.is_empty() {
         return Err(OpaqueIdError::Empty);
@@ -235,6 +303,22 @@ mod tests {
         assert!(TransferClientId::new("client:main").is_ok());
         assert!(TransferSubjectId::new("panel:inspector").is_ok());
         assert!(TransferHostBindingId::new("host:main").is_ok());
+        assert!(BridgeId::new("bridge:renderer").is_ok());
+        assert!(BridgeSessionId::new("session:0198f97e").is_ok());
+        assert!(HostInstanceId::new("host:embedded").is_ok());
+        assert!(BridgeCapabilityId::new("query").is_ok());
+        assert!(AuthorityScopeId::new("scope:workspace").is_ok());
+        assert!(TransportFeatureId::new("request_reply").is_ok());
+        assert!(BridgeDiagnosticId::new("authority:degraded").is_ok());
+        assert!(BridgeRequestId::new("request:0198f97e").is_ok());
+        assert!(BridgeIdempotencyKey::new("idempotency:0198f97e").is_ok());
+        assert!(BridgeJobId::new("job:0198f97e").is_ok());
+        assert!(BridgeErrorCode::new("workspace:stale").is_ok());
+        assert!(HistoryId::new("history:project").is_ok());
+        assert!(HistoryEntryId::new("entry:0198f97e").is_ok());
+        assert!(HistoryKindId::new("track:rename").is_ok());
+        assert!(HistoryGroupId::new("gesture:0198f97e").is_ok());
+        assert!(HistoryPlanId::new("plan:0198f97e").is_ok());
     }
 
     #[test]

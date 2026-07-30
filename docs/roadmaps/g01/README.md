@@ -12,9 +12,9 @@
 | [g01.006](006-optional-surfaces-and-cross-window-drag.md) | complete | optional full hosting and transfer |
 | [g01.007](007-typescript-svelte-poodle-and-app-shell.md) | complete | checked clients and thin UI adapters |
 | [g01.008](008-settings-registry-and-shell.md) | complete | centralized composable settings |
-| [g01.009](009-typed-bridge-and-optional-backend-topology.md) | researchable | direct/local/remote semantic seam |
-| [g01.010](010-command-registry-keymaps-and-palette.md) | blocked | commands, input, keymaps, palette |
-| [g01.011](011-history-kernel-and-branching-prototype.md) | researchable | proven linear kernel, fork decision |
+| [g01.009](009-typed-bridge-and-optional-backend-topology.md) | complete | direct/local/remote semantic seam |
+| [g01.010](010-command-registry-keymaps-and-palette.md) | complete | commands, input, keymaps, palette |
+| [g01.011](011-history-kernel-and-branching-prototype.md) | ready | typed linear kernel, lossless Loophole seam, private fork decision |
 | [g01.012](012-async-operations-and-notifications.md) | incubation | jobs, progress, cancellation, notifications |
 | [g01.013](013-native-content-islands-prototype.md) | prototype | child webview/native/render host seam |
 | [g01.014](014-nucleus-no-surface-migration.md) | blocked | first simple consumer |
@@ -29,7 +29,7 @@
  │                     ├─ 005 layout core ─ 006 optional Surfaces/drag
  │                     └─ 008 settings
  ├─ 009 bridge/topology ─ 010 commands/input/palette
- ├─ 011 history research
+ ├─ 011 typed linear history + private fork decision
  ├─ 012 async operations research
  └─ 013 native islands prototype
 
@@ -40,10 +40,33 @@ Research/prototype work in 009, 011, 012, and 013 may run beside foundation
 implementation after their named contract questions are bounded. Promotion,
 not research activity, gates dependent implementation.
 
-## Active Milestone
+## Current Checkpoint
 
-`g01.005` through `g01.008` are complete. Northstar is paused at the explicit
-post-008 intent checkpoint.
+`g01.005` through `g01.010` are complete. Research memo 013 and compiled
+contracts 007 and 010 promoted g01.009. Card 049 implements the pure
+bridge negotiation and authority substrate. Card 050 implements typed
+operations, retry/deduplication, ordered projections, and correlated jobs.
+Card 051 adds checked TypeScript generation, strict clients, and
+direct/serialized-loopback conformance. Card 052 adds checked registered-domain
+Tauri host/client assembly, mock parity, and optional event support. Card 053
+adds authority-gated lifecycle, bounded retry, session/epoch invalidation,
+and optional injected supervision. Card 054 adds five-shape source
+conformance, adapter parity, and exact optional-edge audits. Card 055 adds
+five isolated artifact installs, separate Rust graph proofs, the composition
+guide, and closeout. `g01.009` is complete. Research memo 014 and compiled
+contract 006 define Cards 056-061. Card 056 implements the pure sealed
+command/context registry, closed bounded arguments, deterministic discovery,
+and shared search. Card 057 adds fresh availability, context/capability
+revalidation, injected execution admission, typed outcomes, and bounded
+evidence. Card 058 adds deterministic physical chords, immutable presets,
+sparse directives, contextual resolution, gates, conflicts, and shortcut
+projection. Card 059 adds coordinated keymap persistence, generated protocol,
+and narrow Tauri hosting. Card 060 adds checked framework-neutral clients,
+cross-language search and keyboard semantics, per-instance Svelte state,
+public Poodle bindings, and capability-gated keybinding settings. Card 061
+adds clean rich and minimal artifact installs, native and renderer semantic
+traces, exact optional-edge and capability audits, composition guidance, and
+closeout. `g01.010` is complete.
 
 `g01.002` is complete. The delivered storage foundation includes domain
 storage, coordinated mutation, backup, restore, encrypted envelopes, custom
@@ -157,6 +180,36 @@ public-Poodle destructive flow. Card 048 adds four isolated artifact-installed
 compositions, exact optional-boundary audits, and the canonical composition
 guide. `g01.008` is complete.
 
+Research memo 013 promotes exact bridge negotiation, connection and host
+identity, separate capability and domain authority, typed correlation,
+ordered streams, job cancellation, retry/idempotency, indeterminate writes,
+and injected service supervision. Cards 049-055 cover the pure Rust protocol,
+generated TypeScript, direct and serialized-loopback conformance, narrow Tauri
+assembly, reconnect/supervision lifecycle, five donor-shaped topology
+fixtures, and artifact closeout. Production network transport, discovery,
+authentication, service acquisition/update, and offline mutation queues stay
+deferred.
+
+Research memo 014 and compiled contract 006 promote the product-neutral
+command boundary. Cards 056-061 cover a sealed command/context registry,
+bounded arguments, fresh execution admission, deterministic physical-keyboard
+resolution, config-backed sparse overrides, generated clients and narrow
+keymap host assembly, per-instance Svelte state, public-Poodle projections,
+and rich/minimal artifact proof. Command ids remain semantic input to injected
+consumer executors; they do not become bridge or generic Tauri operations.
+Macros, extended triggers, native accelerators, automation, and synchronized
+keymaps stay deferred.
+
+Research memo 015 and compiled contract 008 promote the history boundary.
+Cards 062-067 cover typed payload policy, checked linear navigation,
+coalescing and explicit groups, retention, structural persistence, committed
+transition records, generated metadata clients, narrow Tauri assembly,
+Svelte/Poodle composition, and rich/minimal artifact proof. Card 068 is a
+non-publishable fork-tree prototype. Card 069 makes the explicit promote,
+retain, or reject decision. Loophole keeps all DAW payload meaning, atomic
+runtime apply, project snapshots and versions, autosave, journal file policy,
+and recovery choice.
+
 ## Milestones
 
 The complete known g01 suite is compiled above. Milestones are planning
@@ -164,9 +217,22 @@ envelopes, not execution authority. Cards 001 through 022 preserve the
 completed configuration, display, and window-host runway. Cards 023-027 form
 the completed layout runway. Cards 028-035 form the completed Surface and
 transfer runway. Cards 036-041 form the completed client and UI-adapter
-runway. Cards 042-048 form the completed settings runway.
+runway. Cards 042-048 form the completed settings runway. Cards 049-053 form
+the implemented bridge protocol, direct/Tauri clients, lifecycle, retry, and
+supervision substrate. Card 054 adds five-shape topology conformance. Card 055
+adds artifact-installed proof and closes g01.009. Card 056 implements the
+registry, context, argument, discovery, and search foundation. Card 057
+implements fresh availability and injected execution admission. Card 058
+implements deterministic keyboard and effective-keymap resolution. Card 059
+implements coordinated persistence, checked protocol, and narrow Tauri
+hosting. Card 060 adds projection and UI adapters. Card 061 adds isolated
+artifact proof and closes g01.010. Card 062 adds typed policy, bounded
+identity, validated linear state, record/coalesce outcomes, and two-shape
+fixtures. Cards 063-067 complete the public linear history runway. Card 068 is
+the private fork prototype. Card 069 is the mandatory promotion decision and
+g01.011 closeout.
 
 ## Next Task
 
-Resolve the post-008 intent checkpoint. Choose g01.009 bridge/topology
-research or another explicitly promoted lane before resuming implementation.
+Execute Card 063: revision-bound transactional navigation and failure
+invariance.

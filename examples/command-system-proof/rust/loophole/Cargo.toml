@@ -1,0 +1,13 @@
+[package]
+name = "longhorn-loophole-command-artifact-proof"
+version = "0.0.0"
+edition.workspace = true
+
+[dependencies]
+longhorn-command.workspace = true
+longhorn-command-config.workspace = true
+longhorn-command-settings.workspace = true
+longhorn-core.workspace = true
+longhorn-settings.workspace = true
+longhorn-tauri-command.workspace = true
+serde_json.workspace = true

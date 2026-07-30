@@ -2,6 +2,8 @@
 
 use std::{env, error::Error, process::ExitCode};
 
+mod bridge;
+mod commands;
 mod config;
 mod generation;
 mod layout;
@@ -35,6 +37,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         _ => return Err(usage().into()),
     };
     match domain.as_deref() {
+        Some("bridge") => bridge::run(mode),
+        Some("commands") => commands::run(mode),
         Some("config") => config::run(mode),
         Some("layout") => layout::run(mode),
         Some("settings") => settings::run(mode),
@@ -47,5 +51,5 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn usage() -> &'static str {
     "usage: longhorn-bindings \
-     <config|layout|settings|surfaces|surface-transfer|transfer> <write|check>"
+     <bridge|commands|config|layout|settings|surfaces|surface-transfer|transfer> <write|check>"
 }

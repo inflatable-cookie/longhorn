@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "allow-longhorn-command-mutate"
+description = "Allows checked Longhorn keymap preview, commit, and reset."
+commands.allow = [
+  "longhorn_command_keymap_preview",
+  "longhorn_command_keymap_commit",
+  "longhorn_command_keymap_reset",
+]

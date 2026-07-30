@@ -1,0 +1,6 @@
+{
+  "identifier": "longhorn-bridge-query-only",
+  "description": "Generic query-only bridge admission without an event channel.",
+  "windows": ["main"],
+  "permissions": ["allow-longhorn-bridge-query"]
+}

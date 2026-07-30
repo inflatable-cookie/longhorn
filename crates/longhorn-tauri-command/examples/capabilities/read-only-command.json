@@ -1,0 +1,10 @@
+{
+  "identifier": "longhorn-command-read-only",
+  "description": "Read-only command catalogue and keymap authority.",
+  "windows": ["main", "settings"],
+  "permissions": [
+    "allow-longhorn-command-read",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

@@ -2384,6 +2384,9 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 name = "longhorn-bindings"
 version = "0.1.0"
 dependencies = [
+ "longhorn-bridge",
+ "longhorn-command",
+ "longhorn-command-config",
  "longhorn-config",
  "longhorn-core",
  "longhorn-layout",
@@ -2394,6 +2397,49 @@ dependencies = [
  "serde",
  "serde_json",
  "ts-rs",
+]
+
+[[package]]
+name = "longhorn-bridge"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "ts-rs",
+]
+
+[[package]]
+name = "longhorn-command"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "ts-rs",
+]
+
+[[package]]
+name = "longhorn-command-config"
+version = "0.1.0"
+dependencies = [
+ "longhorn-command",
+ "longhorn-config",
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "ts-rs",
+]
+
+[[package]]
+name = "longhorn-command-settings"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-settings",
 ]
 
 [[package]]
@@ -2441,6 +2487,13 @@ dependencies = [
  "longhorn-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "longhorn-history"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
 ]
 
 [[package]]
@@ -2549,6 +2602,27 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "longhorn-tauri-bridge"
+version = "0.1.0"
+dependencies = [
+ "longhorn-bridge",
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-command"
+version = "0.1.0"
+dependencies = [
+ "longhorn-command-config",
+ "serde",
+ "serde_json",
+ "tauri",
 ]
 
 [[package]]

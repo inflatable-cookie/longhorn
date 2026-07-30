@@ -42,6 +42,9 @@ atomic transactions, backup policy, and recovery reporting.
 
 ## History Evidence
 
+Superseded for current donor facts and implementation planning by
+`015-history-kernel-and-fork-boundary.md`.
+
 Loophole's live `pulse-history` crate currently provides:
 
 - serializable typed mutations with inverse and no-op logic
@@ -82,4 +85,3 @@ Promoted into:
 - history payload strategy: inverse operations, patches, snapshots, or events
 - branch-tree retention, checkpointing, migration, and recovery performance
 - whether async operations and notifications share a generic lifecycle
-

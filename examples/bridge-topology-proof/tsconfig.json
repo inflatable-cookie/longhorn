@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@longhorn/bridge": ["../../packages/bridge/src/index.ts"],
+      "@longhorn/bridge/stream": ["../../packages/bridge/src/stream.ts"],
+      "@longhorn/bridge/supervision": [
+        "../../packages/bridge/src/supervision.ts"
+      ],
+      "@longhorn/bridge/tauri": ["../../packages/bridge/src/tauri.ts"],
+      "@longhorn/bridge/tauri-events": [
+        "../../packages/bridge/src/tauri-events.ts"
+      ]
+    },
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["bun"]
+  },
+  "include": ["*.ts"]
+}

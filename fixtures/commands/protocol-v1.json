@@ -1,0 +1,1784 @@
+{
+  "catalogue": {
+    "commands": [
+      {
+        "arguments": {
+          "shape": "none"
+        },
+        "categoryPath": [
+          "general"
+        ],
+        "description": null,
+        "icon": null,
+        "id": "app:open",
+        "keywords": [],
+        "label": "app:open",
+        "textInputPolicy": "blocked",
+        "visibility": {
+          "help": true,
+          "hidden": false,
+          "menu": true,
+          "palette": true,
+          "settings": true,
+          "shortcut": true
+        }
+      },
+      {
+        "arguments": {
+          "shape": "none"
+        },
+        "categoryPath": [
+          "general"
+        ],
+        "description": null,
+        "icon": null,
+        "id": "app:save",
+        "keywords": [],
+        "label": "app:save",
+        "textInputPolicy": "blocked",
+        "visibility": {
+          "help": true,
+          "hidden": false,
+          "menu": true,
+          "palette": true,
+          "settings": true,
+          "shortcut": true
+        }
+      }
+    ],
+    "presets": [
+      {
+        "id": "app:default",
+        "version": 1
+      }
+    ],
+    "protocolVersion": 1,
+    "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+    "registryGeneration": 0
+  },
+  "events": {
+    "catalogueChanged": {
+      "protocolVersion": 1,
+      "registryGeneration": 0
+    },
+    "keymapChanged": {
+      "keymapRevision": 1,
+      "protocolVersion": 1,
+      "registryGeneration": 0
+    }
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownBindingSource": "futureSource",
+    "unknownDurability": "futureDurability",
+    "unknownLoadOrigin": "futureOrigin",
+    "unknownLoadStatus": "futureLoad",
+    "unknownMutationOutcome": "futureOutcome",
+    "unknownMutationStatus": "futureMutation",
+    "unknownOverrideKind": "futureOverride",
+    "unknownPreviewStatus": "futurePreview",
+    "unknownRecoveryCode": "futureRecovery",
+    "unknownRejectionCode": "futureRejection"
+  },
+  "loadOutcomes": [
+    {
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "default"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [],
+          "revision": 0
+        }
+      },
+      "status": "loaded"
+    },
+    {
+      "recovery": {
+        "code": "corrupt",
+        "detail": "fixture corrupt source",
+        "sourcePreserved": true
+      },
+      "status": "recovery"
+    },
+    {
+      "detail": "fixture unavailable",
+      "status": "unavailable"
+    }
+  ],
+  "mutationResults": [
+    {
+      "receipt": {
+        "committedRevision": 1,
+        "durability": "fileSynced",
+        "outcome": "changed",
+        "patchDigest": "80f4cae239e6e5a9b48f21a318c366eab4336bedc2f228b12931efa304975eee",
+        "previousRevision": 0,
+        "requestId": "request:fixture"
+      },
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "file"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [
+            {
+              "bindingId": "base:open",
+              "kind": "disable"
+            }
+          ],
+          "revision": 1
+        }
+      },
+      "status": "applied"
+    },
+    {
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "default"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [],
+          "revision": 0
+        }
+      },
+      "status": "stale"
+    },
+    {
+      "conflicts": [],
+      "rejection": {
+        "code": "conflict",
+        "detail": "fixture conflict"
+      },
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "default"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [],
+          "revision": 0
+        }
+      },
+      "status": "rejected"
+    }
+  ],
+  "previewResults": [
+    {
+      "evidence": {
+        "activePresetId": "app:default",
+        "activePresetVersion": 1,
+        "keymapRevision": 0,
+        "patchDigest": "80f4cae239e6e5a9b48f21a318c366eab4336bedc2f228b12931efa304975eee",
+        "registryGeneration": 0
+      },
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "file"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [
+            {
+              "bindingId": "base:open",
+              "kind": "disable"
+            }
+          ],
+          "revision": 1
+        }
+      },
+      "status": "accepted"
+    },
+    {
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "default"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [],
+          "revision": 0
+        }
+      },
+      "status": "stale"
+    },
+    {
+      "conflicts": [],
+      "rejection": {
+        "code": "conflict",
+        "detail": "fixture conflict"
+      },
+      "snapshot": {
+        "activePresetVersion": 1,
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "conflicts": [],
+        "diagnostics": [],
+        "origin": {
+          "kind": "default"
+        },
+        "protocolVersion": 1,
+        "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+        "registryGeneration": 0,
+        "state": {
+          "activePresetId": "app:default",
+          "overrides": [],
+          "revision": 0
+        }
+      },
+      "status": "rejected"
+    }
+  ],
+  "protocolVersion": 1,
+  "requests": {
+    "commit": {
+      "evidence": {
+        "activePresetId": "app:default",
+        "activePresetVersion": 1,
+        "keymapRevision": 0,
+        "patchDigest": "80f4cae239e6e5a9b48f21a318c366eab4336bedc2f228b12931efa304975eee",
+        "registryGeneration": 0
+      },
+      "patch": {
+        "activePresetId": null,
+        "clearOverrides": false,
+        "removeBindingIds": [],
+        "upsertOverrides": [
+          {
+            "bindingId": "base:open",
+            "kind": "disable"
+          }
+        ]
+      },
+      "requestId": "request:fixture"
+    },
+    "preview": {
+      "activePresetId": "app:default",
+      "activePresetVersion": 1,
+      "keymapRevision": 0,
+      "patch": {
+        "activePresetId": null,
+        "clearOverrides": false,
+        "removeBindingIds": [],
+        "upsertOverrides": [
+          {
+            "bindingId": "base:open",
+            "kind": "disable"
+          }
+        ]
+      },
+      "registryGeneration": 0
+    },
+    "reset": {
+      "activePresetId": "app:default",
+      "activePresetVersion": 1,
+      "keymapRevision": 0,
+      "registryGeneration": 0,
+      "requestId": "request:reset"
+    }
+  },
+  "semantics": {
+    "context": {
+      "path": [
+        "global"
+      ],
+      "revision": 7
+    },
+    "keyboard": [
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": true,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": true,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "macOs",
+        "resolution": {
+          "candidates": [
+            {
+              "bindingId": "base:open",
+              "disposition": {
+                "kind": "winner"
+              },
+              "invocation": {
+                "arguments": {},
+                "commandId": "app:open"
+              },
+              "matchedContextId": "global",
+              "source": {
+                "kind": "preset",
+                "presetId": "app:default",
+                "presetVersion": 1
+              },
+              "specificity": 0
+            }
+          ],
+          "kind": "resolved",
+          "winner": {
+            "bindingId": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "matchedContextId": "global"
+          }
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyS",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": true
+        },
+        "mode": "dispatch",
+        "platform": "windows",
+        "resolution": {
+          "candidates": [],
+          "gate": "repeat",
+          "kind": "gated"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyS",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "shift": false
+            }
+          },
+          "composing": true,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "windows",
+        "resolution": {
+          "candidates": [],
+          "gate": "composition",
+          "kind": "gated"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyQ",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": true,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "macOs",
+        "resolution": {
+          "candidates": [],
+          "gate": "reserved",
+          "kind": "gated"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": true,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": true,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "macOs",
+        "resolution": {
+          "candidates": [
+            {
+              "bindingId": "base:open",
+              "disposition": {
+                "kind": "winner"
+              },
+              "invocation": {
+                "arguments": {},
+                "commandId": "app:open"
+              },
+              "matchedContextId": "global",
+              "source": {
+                "kind": "preset",
+                "presetId": "app:default",
+                "presetVersion": 1
+              },
+              "specificity": 0
+            }
+          ],
+          "gate": "textInput",
+          "kind": "gated"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:conflict",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": true,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "macOs",
+        "resolution": {
+          "candidates": [
+            {
+              "bindingId": "base:conflict",
+              "disposition": {
+                "kind": "conflict"
+              },
+              "invocation": {
+                "arguments": {},
+                "commandId": "app:save"
+              },
+              "matchedContextId": "global",
+              "source": {
+                "kind": "preset",
+                "presetId": "app:default",
+                "presetVersion": 1
+              },
+              "specificity": 0
+            },
+            {
+              "bindingId": "base:open",
+              "disposition": {
+                "kind": "conflict"
+              },
+              "invocation": {
+                "arguments": {},
+                "commandId": "app:open"
+              },
+              "matchedContextId": "global",
+              "source": {
+                "kind": "preset",
+                "presetId": "app:default",
+                "presetVersion": 1
+              },
+              "specificity": 0
+            }
+          ],
+          "conflict": {
+            "bindingIds": [
+              "base:conflict",
+              "base:open"
+            ],
+            "chord": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": true,
+                "shift": false
+              }
+            },
+            "contextId": "global",
+            "invocations": [
+              {
+                "arguments": {},
+                "commandId": "app:open"
+              },
+              {
+                "arguments": {},
+                "commandId": "app:save"
+              }
+            ],
+            "platform": "macOs"
+          },
+          "kind": "conflict"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": true,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyK",
+            "modifiers": {
+              "alt": false,
+              "control": true,
+              "meta": false,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "capture",
+        "platform": "linux",
+        "resolution": {
+          "chord": {
+            "code": "KeyK",
+            "modifiers": {
+              "alt": false,
+              "control": true,
+              "meta": false,
+              "shift": false
+            }
+          },
+          "kind": "captured",
+          "label": "Ctrl+K"
+        }
+      },
+      {
+        "bindings": [
+          {
+            "contextId": "global",
+            "id": "base:open",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:open"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          },
+          {
+            "contextId": "global",
+            "id": "base:save",
+            "invocation": {
+              "arguments": {},
+              "commandId": "app:save"
+            },
+            "platform": "any",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            },
+            "trigger": {
+              "code": "KeyS",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": false,
+                "primary": true,
+                "shift": false
+              }
+            }
+          }
+        ],
+        "consumed": false,
+        "contextPath": [
+          "global"
+        ],
+        "input": {
+          "chord": {
+            "code": "KeyZ",
+            "modifiers": {
+              "alt": false,
+              "control": true,
+              "meta": false,
+              "shift": false
+            }
+          },
+          "composing": false,
+          "editableText": false,
+          "repeat": false
+        },
+        "mode": "dispatch",
+        "platform": "linux",
+        "resolution": {
+          "kind": "unbound"
+        }
+      }
+    ],
+    "search": [
+      {
+        "hits": [
+          {
+            "record": {
+              "arguments": {
+                "shape": "none"
+              },
+              "categoryPath": [
+                "general"
+              ],
+              "description": null,
+              "icon": null,
+              "id": "app:open",
+              "keywords": [],
+              "label": "app:open",
+              "textInputPolicy": "blocked",
+              "visibility": {
+                "help": true,
+                "hidden": false,
+                "menu": true,
+                "palette": true,
+                "settings": true,
+                "shortcut": true
+              }
+            },
+            "score": 0
+          },
+          {
+            "record": {
+              "arguments": {
+                "shape": "none"
+              },
+              "categoryPath": [
+                "general"
+              ],
+              "description": null,
+              "icon": null,
+              "id": "app:save",
+              "keywords": [],
+              "label": "app:save",
+              "textInputPolicy": "blocked",
+              "visibility": {
+                "help": true,
+                "hidden": false,
+                "menu": true,
+                "palette": true,
+                "settings": true,
+                "shortcut": true
+              }
+            },
+            "score": 0
+          }
+        ],
+        "query": ""
+      },
+      {
+        "hits": [
+          {
+            "record": {
+              "arguments": {
+                "shape": "none"
+              },
+              "categoryPath": [
+                "general"
+              ],
+              "description": null,
+              "icon": null,
+              "id": "app:open",
+              "keywords": [],
+              "label": "app:open",
+              "textInputPolicy": "blocked",
+              "visibility": {
+                "help": true,
+                "hidden": false,
+                "menu": true,
+                "palette": true,
+                "settings": true,
+                "shortcut": true
+              }
+            },
+            "score": 20
+          }
+        ],
+        "query": "open"
+      },
+      {
+        "hits": [
+          {
+            "record": {
+              "arguments": {
+                "shape": "none"
+              },
+              "categoryPath": [
+                "general"
+              ],
+              "description": null,
+              "icon": null,
+              "id": "app:save",
+              "keywords": [],
+              "label": "app:save",
+              "textInputPolicy": "blocked",
+              "visibility": {
+                "help": true,
+                "hidden": false,
+                "menu": true,
+                "palette": true,
+                "settings": true,
+                "shortcut": true
+              }
+            },
+            "score": 20
+          }
+        ],
+        "query": "save"
+      },
+      {
+        "hits": [],
+        "query": "missing"
+      }
+    ],
+    "shortcuts": [
+      {
+        "commandId": "app:open",
+        "platform": "macOs",
+        "shortcuts": [
+          {
+            "bindingId": "base:open",
+            "chord": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": false,
+                "meta": true,
+                "shift": false
+              }
+            },
+            "contextId": "global",
+            "label": "⌘O",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            }
+          }
+        ]
+      },
+      {
+        "commandId": "app:open",
+        "platform": "windows",
+        "shortcuts": [
+          {
+            "bindingId": "base:open",
+            "chord": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": true,
+                "meta": false,
+                "shift": false
+              }
+            },
+            "contextId": "global",
+            "label": "Ctrl+O",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            }
+          }
+        ]
+      },
+      {
+        "commandId": "app:open",
+        "platform": "linux",
+        "shortcuts": [
+          {
+            "bindingId": "base:open",
+            "chord": {
+              "code": "KeyO",
+              "modifiers": {
+                "alt": false,
+                "control": true,
+                "meta": false,
+                "shift": false
+              }
+            },
+            "contextId": "global",
+            "label": "Ctrl+O",
+            "source": {
+              "kind": "preset",
+              "presetId": "app:default",
+              "presetVersion": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "snapshots": [
+    {
+      "activePresetVersion": 1,
+      "bindings": [
+        {
+          "contextId": "global",
+          "id": "base:open",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:open"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        },
+        {
+          "contextId": "global",
+          "id": "base:save",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:save"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyS",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "diagnostics": [],
+      "origin": {
+        "kind": "default"
+      },
+      "protocolVersion": 1,
+      "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+      "registryGeneration": 0,
+      "state": {
+        "activePresetId": "app:default",
+        "overrides": [],
+        "revision": 0
+      }
+    },
+    {
+      "activePresetVersion": 1,
+      "bindings": [
+        {
+          "contextId": "global",
+          "id": "base:open",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:open"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        },
+        {
+          "contextId": "global",
+          "id": "base:save",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:save"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyS",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "diagnostics": [],
+      "origin": {
+        "kind": "file"
+      },
+      "protocolVersion": 1,
+      "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+      "registryGeneration": 0,
+      "state": {
+        "activePresetId": "app:default",
+        "overrides": [],
+        "revision": 0
+      }
+    },
+    {
+      "activePresetVersion": 1,
+      "bindings": [
+        {
+          "contextId": "global",
+          "id": "base:open",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:open"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyO",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        },
+        {
+          "contextId": "global",
+          "id": "base:save",
+          "invocation": {
+            "arguments": {},
+            "commandId": "app:save"
+          },
+          "platform": "any",
+          "source": {
+            "kind": "preset",
+            "presetId": "app:default",
+            "presetVersion": 1
+          },
+          "trigger": {
+            "code": "KeyS",
+            "modifiers": {
+              "alt": false,
+              "control": false,
+              "meta": false,
+              "primary": true,
+              "shift": false
+            }
+          }
+        }
+      ],
+      "conflicts": [],
+      "diagnostics": [
+        {
+          "code": "migrated",
+          "detail": "fixture migration"
+        }
+      ],
+      "origin": {
+        "from": 1,
+        "kind": "migrated",
+        "to": 2
+      },
+      "protocolVersion": 1,
+      "registryDigest": "fcdd53c004f48f7c114d616c2b9b30476a592e9283eb347127f655e5546c635d",
+      "registryGeneration": 0,
+      "state": {
+        "activePresetId": "app:default",
+        "overrides": [],
+        "revision": 0
+      }
+    }
+  ]
+}

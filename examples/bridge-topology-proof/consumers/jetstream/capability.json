@@ -1,0 +1,10 @@
+{
+  "identifier": "jetstream-bridge-proof",
+  "description": "Listener-first whole-snapshot bridge proof.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-longhorn-bridge-query",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

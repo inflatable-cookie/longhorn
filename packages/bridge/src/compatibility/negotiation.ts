@@ -1,0 +1,265 @@
+import {
+  BRIDGE_AUTHENTICATION_POSTURES,
+  BRIDGE_CONNECTION_REASONS,
+  BRIDGE_CONNECTION_STATES,
+  BRIDGE_DOMAIN_AVAILABILITIES,
+  BRIDGE_EXECUTION_AUTHORITIES,
+  BRIDGE_HOST_FORMS,
+  BRIDGE_PROTOCOL_VERSION,
+  BRIDGE_READ_AUTHORITIES,
+  BRIDGE_WRITE_AUTHORITIES,
+  type BridgeConnectionReason,
+  type BridgeConnectionState,
+  type BridgeConnectionStatus,
+  type BridgeDiagnostic,
+  type BridgeHelloRequest,
+  type BridgeHostDescriptor,
+  type BridgeNegotiationReceipt,
+  type DomainAuthorityDescriptor,
+  type DomainCapabilityDescriptor,
+} from "../generated/protocol.ts";
+import {
+  array,
+  domainId,
+  incompatible,
+  integer,
+  nullable,
+  oneOf,
+  opaqueId,
+  record,
+  unique,
+} from "./base.ts";
+
+export function assertBridgeProtocolVersion(value: unknown): asserts value is 1 {
+  if (value !== BRIDGE_PROTOCOL_VERSION) {
+    incompatible("unsupported_protocol_version", value);
+  }
+}
+
+export function parseBridgeHelloRequest(value: unknown): BridgeHelloRequest {
+  const source = record(value, [
+    "protocolVersion",
+    "bridgeId",
+    "requestedDomains",
+  ]);
+  assertBridgeProtocolVersion(source.protocolVersion);
+  const requestedDomains = array(source.requestedDomains, 256).map(domainId);
+  unique(requestedDomains, String);
+  return {
+    protocolVersion: BRIDGE_PROTOCOL_VERSION,
+    bridgeId: opaqueId(source.bridgeId),
+    requestedDomains,
+  };
+}
+
+export function parseBridgeNegotiationReceipt(
+  value: unknown,
+  request?: BridgeHelloRequest,
+): BridgeNegotiationReceipt {
+  const source = record(value, [
+    "protocolVersion",
+    "host",
+    "sessionId",
+    "connection",
+    "authentication",
+    "transportFeatures",
+    "domainCapabilities",
+    "domainAuthorities",
+    "diagnostics",
+  ]);
+  assertBridgeProtocolVersion(source.protocolVersion);
+  const capabilities = array(source.domainCapabilities, 256).map(
+    parseDomainCapability,
+  );
+  const authorities = array(source.domainAuthorities, 256).map(
+    parseDomainAuthority,
+  );
+  const connection = parseConnectionStatus(source.connection);
+  if (connection.state !== "ready") {
+    incompatible("invalid_connection_status", connection);
+  }
+  const features = array(source.transportFeatures, 128).map(opaqueId);
+  const diagnostics = array(source.diagnostics, 64).map(parseDiagnostic);
+  unique(features, String);
+  unique(capabilities, (item) => item.domainId);
+  unique(authorities, (item) => item.domainId);
+  unique(diagnostics, (item) => item.diagnosticId);
+
+  const capabilityDomains = new Set(
+    capabilities.map((item) => item.domainId),
+  );
+  const writerScopes = new Set<string>();
+  for (const authority of authorities) {
+    if (!capabilityDomains.has(authority.domainId)) {
+      incompatible("authority_without_capability", authority);
+    }
+    if (authority.writeAuthority === "authoritative") {
+      if (writerScopes.has(authority.scopeId)) {
+        incompatible("multiple_writers", authority.scopeId);
+      }
+      writerScopes.add(authority.scopeId);
+    }
+  }
+  if (request !== undefined) {
+    const requested = new Set(request.requestedDomains);
+    for (const capability of capabilities) {
+      if (!requested.has(capability.domainId)) {
+        incompatible("unrequested_domain", capability.domainId);
+      }
+    }
+  }
+
+  return {
+    protocolVersion: BRIDGE_PROTOCOL_VERSION,
+    host: parseHost(source.host),
+    sessionId: opaqueId(source.sessionId),
+    connection,
+    authentication: oneOf(
+      source.authentication,
+      BRIDGE_AUTHENTICATION_POSTURES,
+      "unknown_authentication_posture",
+    ),
+    transportFeatures: features,
+    domainCapabilities: capabilities,
+    domainAuthorities: authorities,
+    diagnostics,
+  };
+}
+
+function parseHost(value: unknown): BridgeHostDescriptor {
+  const source = record(value, ["hostInstanceId", "form"]);
+  return {
+    hostInstanceId: opaqueId(source.hostInstanceId),
+    form: oneOf(source.form, BRIDGE_HOST_FORMS, "unknown_host_form"),
+  };
+}
+
+function parseConnectionStatus(value: unknown): BridgeConnectionStatus {
+  const source = record(value, ["state", "reason"]);
+  const state = oneOf(
+    source.state,
+    BRIDGE_CONNECTION_STATES,
+    "unknown_connection_state",
+  );
+  const reason = nullable(source.reason, (candidate) =>
+    oneOf(
+      candidate,
+      BRIDGE_CONNECTION_REASONS,
+      "invalid_connection_status",
+    )
+  );
+  if (!validConnectionReason(state, reason)) {
+    incompatible("invalid_connection_status", value);
+  }
+  return { state, reason };
+}
+
+function validConnectionReason(
+  state: BridgeConnectionState,
+  reason: BridgeConnectionReason | null,
+): boolean {
+  const valid: Record<
+    BridgeConnectionState,
+    readonly (BridgeConnectionReason | null)[]
+  > = {
+    idle: [null],
+    connecting: ["connectRequested"],
+    negotiating: ["transportReady"],
+    ready: ["negotiationAccepted", "capabilityChanged"],
+    degraded: ["capabilityChanged", "transportLost", "hostFailure"],
+    reconnecting: ["retryScheduled", "transportLost"],
+    offline: ["transportLost"],
+    incompatible: ["versionMismatch"],
+    unauthorized: ["authorizationRejected"],
+    failed: ["hostFailure"],
+    closed: ["shutdown"],
+  };
+  return valid[state].includes(reason);
+}
+
+function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {
+  const source = record(value, ["domainId", "capabilities"]);
+  const capabilities = array(source.capabilities, 128).map(opaqueId);
+  if (capabilities.length === 0) {
+    incompatible("invalid_array", value);
+  }
+  unique(capabilities, String);
+  return {
+    domainId: domainId(source.domainId),
+    capabilities,
+  };
+}
+
+function parseDomainAuthority(value: unknown): DomainAuthorityDescriptor {
+  const source = record(value, [
+    "domainId",
+    "scopeId",
+    "availability",
+    "readAuthority",
+    "writeAuthority",
+    "executionAuthority",
+    "authorityEpoch",
+    "authoritativeRevision",
+  ]);
+  const availability = oneOf(
+    source.availability,
+    BRIDGE_DOMAIN_AVAILABILITIES,
+    "unknown_availability",
+  );
+  const readAuthority = oneOf(
+    source.readAuthority,
+    BRIDGE_READ_AUTHORITIES,
+    "unknown_read_authority",
+  );
+  const writeAuthority = oneOf(
+    source.writeAuthority,
+    BRIDGE_WRITE_AUTHORITIES,
+    "unknown_write_authority",
+  );
+  const executionAuthority = oneOf(
+    source.executionAuthority,
+    BRIDGE_EXECUTION_AUTHORITIES,
+    "unknown_execution_authority",
+  );
+  const authoritativeRevision = nullable(
+    source.authoritativeRevision,
+    integer,
+  );
+  const ownsAnything = readAuthority !== "none" ||
+    writeAuthority !== "none" ||
+    executionAuthority !== "none";
+  const revisionIsAuthoritative = readAuthority === "authoritative" ||
+    writeAuthority === "authoritative";
+  if (
+    (availability === "offline" &&
+      (ownsAnything || authoritativeRevision !== null)) ||
+    (authoritativeRevision !== null && !revisionIsAuthoritative)
+  ) {
+    incompatible("invalid_authority_descriptor", value);
+  }
+  return {
+    domainId: domainId(source.domainId),
+    scopeId: opaqueId(source.scopeId),
+    availability,
+    readAuthority,
+    writeAuthority,
+    executionAuthority,
+    authorityEpoch: integer(source.authorityEpoch, 1),
+    authoritativeRevision,
+  };
+}
+
+function parseDiagnostic(value: unknown): BridgeDiagnostic {
+  const source = record(value, ["diagnosticId", "message"]);
+  if (
+    typeof source.message !== "string" ||
+    source.message.length === 0 ||
+    new TextEncoder().encode(source.message).length > 4096
+  ) {
+    incompatible("invalid_message", source.message);
+  }
+  return {
+    diagnosticId: opaqueId(source.diagnosticId),
+    message: source.message,
+  };
+}

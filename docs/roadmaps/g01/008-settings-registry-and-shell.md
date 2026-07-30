@@ -56,10 +56,10 @@ pull bridge, command, history, or consumer-migration work forward.
 Cards 042-048 are complete. The isolated proof installs four distinct
 compositions from produced artifacts and closes the milestone.
 
-After Card 048, return to the g01 front door. The next intent checkpoint chooses
-g01.009 bridge/topology research or another explicitly promoted lane. g01.010
-remains blocked by g01.009 even though settings can host a consumer-owned
-keybinding page.
+The post-008 checkpoint selected g01.009. Research memo 013 promoted its
+bridge/topology boundary. G01.009 is complete. Research memo 014 now compiles
+g01.010. Settings may host the optional keybinding page only through the
+command settings adapter and composed command/keymap capabilities.
 
 ## Deferred
 
@@ -94,5 +94,4 @@ acquisition.
 
 ## Next Task
 
-Resolve the post-008 intent checkpoint before promoting g01.009
-bridge/topology research or another milestone.
+Continue from the g01 front door. Card 049 is the ready g01.009 entry.

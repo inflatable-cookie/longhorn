@@ -6,11 +6,16 @@ None.
 
 ## Ready
 
-None.
+- [063 Transactional Linear Navigation And Failure Invariance](063-transactional-linear-navigation-and-failure-invariance.md)
 
 ## Planned
 
-None.
+- [064 History Coalescing, Grouping, Retention, And Projections](064-history-coalescing-grouping-retention-and-projections.md)
+- [065 History Persistence And Committed Transition Stream](065-history-persistence-and-committed-transition-stream.md)
+- [066 Generated History Client, Tauri, Svelte, And Poodle](066-generated-history-client-tauri-svelte-and-poodle.md)
+- [067 Linear History Artifact Proof And Checkpoint](067-linear-history-artifact-proof-and-checkpoint.md)
+- [068 Private Forkable History Tree Prototype](068-private-forkable-history-tree-prototype.md)
+- [069 Forkable History Promotion Decision And Closeout](069-forkable-history-promotion-decision-and-closeout.md)
 
 ## Complete
 
@@ -62,8 +67,22 @@ None.
 - [046 Storage Profile, Diagnostics, And Backup Pages](046-storage-profile-diagnostics-and-backup-pages.md)
 - [047 Restore, Conflict, And Recovery Settings Flow](047-restore-conflict-and-recovery-settings-flow.md)
 - [048 Settings Composition Proof And Closeout](048-settings-composition-proof-and-closeout.md)
+- [049 Bridge Identity, Negotiation, And Authority Protocol](049-bridge-identity-negotiation-and-authority-protocol.md)
+- [050 Typed Operations, Streams, And Job Lifecycle](050-typed-operations-streams-and-job-lifecycle.md)
+- [051 Generated Bridge Client And Direct Conformance](051-generated-bridge-client-and-direct-conformance.md)
+- [052 Tauri Bridge Host And Client Assembly](052-tauri-bridge-host-and-client-assembly.md)
+- [053 Reconnect, Retry, And Injected Supervision](053-reconnect-retry-and-injected-supervision.md)
+- [054 Five-shape Topology Conformance](054-five-shape-topology-conformance.md)
+- [055 Bridge Topology Artifact Proof And Closeout](055-bridge-topology-artifact-proof-and-closeout.md)
+- [056 Command Registry, Context, And Argument Foundation](056-command-registry-context-and-argument-foundation.md)
+- [057 Fresh Availability And Injected Execution Admission](057-fresh-availability-and-injected-execution-admission.md)
+- [058 Deterministic Keyboard And Keymap Resolution](058-deterministic-keyboard-and-keymap-resolution.md)
+- [059 Config-backed Keymaps And Generated Host Protocol](059-config-backed-keymaps-and-generated-host-protocol.md)
+- [060 Command Clients, Svelte Sessions, And Poodle Projections](060-command-clients-svelte-sessions-and-poodle-projections.md)
+- [061 Command System Artifact Proof And Closeout](061-command-system-artifact-proof-and-closeout.md)
+- [062 Lossless History Donor Fixtures And Typed Foundation](062-lossless-history-donor-fixtures-and-typed-foundation.md)
 
 ## Next Task
 
-Cards 042-048 and g01.008 are complete. Resolve the post-008 intent checkpoint
-before promoting another card.
+Execute Card 063. Keep navigation plan/apply/commit revision-bound and leave
+product mutation authority in the consumer.

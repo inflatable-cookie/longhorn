@@ -1,0 +1,22 @@
+[package]
+name = "longhorn-command"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure bounded command registry, argument, context, and discovery primitives for Longhorn"
+publish = false
+
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+
+[dependencies]
+longhorn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[lints]
+workspace = true

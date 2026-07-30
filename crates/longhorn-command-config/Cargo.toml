@@ -1,0 +1,32 @@
+[package]
+name = "longhorn-command-config"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Coordinated sparse command keymap persistence for Longhorn"
+publish = false
+
+[features]
+bindings = [
+  "dep:ts-rs",
+  "longhorn-command/bindings",
+  "longhorn-config/bindings",
+  "longhorn-core/bindings",
+]
+
+[dependencies]
+longhorn-command.workspace = true
+longhorn-config.workspace = true
+longhorn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-longhorn-bridge-query"
+description = "Allows checked Longhorn bridge negotiation, authority, query, and resync commands."
+commands.allow = [
+  "longhorn_bridge_hello",
+  "longhorn_bridge_authority",
+  "longhorn_bridge_query",
+  "longhorn_bridge_resync",
+]

@@ -27,7 +27,7 @@ effigy qa
 
 ## Current State
 
-Strict-paused Northstar docs spine installed. The five-app audit, promoted
+Strict-ready Northstar docs spine installed. The five-app audit, promoted
 foundation contracts, package topology, and full g01 runway are preserved.
 The configuration domain store, coordinated atomic patch mutation, bounded
 debounce, explicit flush, and coordinated backup capture are implemented.
@@ -138,4 +138,39 @@ window, and panel hosts. Cards 046-047 add exact storage, backup, restore, and
 recovery pages. Card 048 adds isolated artifact-installed Bovine, Soundcheck,
 Loophole, and Nucleus compositions with exact dependency, capability,
 authority, transaction, recovery, and UI audits. `g01.008` is complete.
-Northstar is paused at the explicit post-008 intent checkpoint.
+Research memo 013 compiles the typed bridge and optional-backend boundary into
+Cards 049-055. Card 049 now supplies the pure exact-v1 identity, negotiation,
+connection, capability, and authority protocol. Card 050 adds generic typed
+operations, coded failures, explicit replay rules, ordered live projections,
+and correlated job lifecycle. Card 051 adds checked TypeScript generation,
+strict clients, and direct/serialized-loopback conformance. Card 052 adds the
+registered-domain Tauri host/client assembly. Card 053 adds authority-gated
+lifecycle, bounded retry, session/epoch invalidation, and optional injected
+supervision. Card 054 adds five-shape source conformance, adapter parity, and
+optional-edge audits. Card 055 adds five clean artifact installs, separate
+query-only and full-host Rust graphs, exact package/capability audits, and the
+bridge topology composition guide. `g01.009` is complete. The closed g01.010
+command-system lane starts with Card 056, which adds the pure sealed
+command/context registry, closed bounded arguments, deterministic discovery,
+shared search, and Loophole/Jetstream-shaped fixtures. Card 057 adds fresh
+availability, context/capability revalidation, injected execution admission,
+typed outcomes, and bounded evidence. Card 058 adds deterministic physical
+chords, immutable presets, sparse directives, contextual resolution, gates,
+conflicts, reverse lookup, and labels. Card 059 adds coordinated keymap
+persistence, generated checked protocol, and
+narrow Tauri catalogue/keymap hosting. Card 060 adds checked clients,
+cross-language browser semantics, per-instance Svelte state, public Poodle
+bindings, and capability-gated settings. Card 061 adds isolated Jetstream and
+Loophole artifact installs, native and
+renderer semantic traces, exact optional-edge, capability, payload, authority,
+and public-Poodle audits, and the command-system composition guide.
+`g01.010` is complete. Research memo 015 revalidates Loophole's live linear
+history, recovery journal, UI, and separate project-version seams. Compiled
+contract 008 selects a typed consumer payload, revision-bound
+plan/apply/commit navigation, explicit grouping, bounded retention, structural
+persistence, committed transition records, and metadata-only clients.
+Cards 062-067 form the public linear runway. Card 062 now supplies bounded
+history identity, typed policy seams, validated applied/future state, explicit
+record/coalesce outcomes, and Loophole plus document fixtures. Card 068 is a
+private fork-tree prototype; Card 069 makes the explicit promotion decision.
+Card 063 is ready.

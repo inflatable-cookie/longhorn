@@ -1,0 +1,8 @@
+{
+  "identifier": "jetstream-command-proof",
+  "description": "Minimal global keyboard command authority.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-longhorn-command-read"
+  ]
+}

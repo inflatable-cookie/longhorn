@@ -7,8 +7,8 @@
 
 ## Active Milestone
 
-`g01.005` through `g01.008` are complete. Northstar is paused at the explicit
-post-008 intent checkpoint.
+`g01.005` through `g01.010` are complete. Research memo 015 and compiled
+contract 008 open g01.011. Card 062 is complete; Card 063 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -98,7 +98,27 @@ conflict, adapter, rollback, and recovery flow. Card 048 adds four isolated
 artifact-installed compositions, package/capability/authority audits, and the
 canonical composition guide. `g01.008` is complete.
 
+Research memo 013 and compiled contracts 007 and 010 promote the bridge and
+optional-backend boundary. Cards 049-055 complete pure negotiation and
+authority, typed operations and streams, generated clients, direct/loopback
+conformance, Tauri assembly, reconnect and injected supervision, five
+donor-shaped topologies, artifact proof, and closeout.
+
+Research memo 014 and compiled contract 006 promote the command, keyboard,
+keymap, and palette boundary. Cards 056-061 cover the sealed registry, closed
+arguments, fresh admission, physical-keyboard resolution, durable sparse
+overrides, generated host protocol, optional Svelte/Poodle/settings
+projections, and rich/minimal artifact proof. Cards 056-061 and g01.010 are
+complete.
+
+Research memo 015 and compiled contract 008 promote typed consumer payload
+policy, revision-bound plan/apply/commit navigation, explicit grouping,
+bounded retention, structural persistence, committed transition records,
+metadata-only clients, and a private fork gate. Cards 062-067 form the public
+linear runway. Card 068 prototypes forkable topology without publication.
+Card 069 records the promotion decision.
+
 ## Next Task
 
-Resolve the post-008 intent checkpoint. Choose g01.009 bridge/topology
-research or another explicitly promoted lane before resuming implementation.
+Execute Card 063: transactional linear navigation and exact failure
+invariance.

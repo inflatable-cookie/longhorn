@@ -16,5 +16,5 @@ None.
 
 ## Next Task
 
-`g01.002` through `g01.008` are complete. Resolve the post-008 intent
-checkpoint before promoting g01.009 or another lane.
+`g01.002` through `g01.010` are complete. g01.011 is compiled through Cards
+062-069. Card 062 is complete; execute Card 063.

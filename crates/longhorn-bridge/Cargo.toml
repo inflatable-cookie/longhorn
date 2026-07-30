@@ -1,0 +1,23 @@
+[package]
+name = "longhorn-bridge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings", "supervision"]
+supervision = []
+
+[dependencies]
+longhorn-core.workspace = true
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

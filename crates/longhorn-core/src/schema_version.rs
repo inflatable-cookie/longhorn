@@ -4,6 +4,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Positive schema version for a serialized Longhorn domain.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
 pub struct SchemaVersion(NonZeroU32);
 
 impl SchemaVersion {

@@ -2,7 +2,7 @@
 
 Status: promoted
 Owner: Tom  
-Updated: 2026-07-29
+Updated: 2026-07-30
 Vision: `../vision/001-shared-tauri-systems.md`
 
 ## Boundary
@@ -196,26 +196,48 @@ window, and panel hosts across four isolated app shapes.
 
 ### Command, action, and input
 
-- one namespaced command catalogue
-- typed arguments, context, capabilities, availability, and execution routes
-- deterministic input resolution, keymaps, sparse overrides, and conflicts
-- command palette, menus, keybinding settings, and automation as projections
-  of the same registry
-- optional macros that still pass command validation
+- one bounded sealed command and context registry
+- closed structural v1 arguments, current availability, and fresh execution
+  admission
+- consumer-injected routes to renderer-local or typed domain operations
+- deterministic physical-keyboard resolution over one hot-context path
+- immutable presets plus sparse disable, replace, and add overrides
+- coordinated config persistence with revision-bound conflict preview
+- command palette, menus, shortcuts, help, and keybinding settings as
+  projections of the same registry and effective keymap
 
 Consumer commands register through the same seam. Longhorn does not own
-product verbs.
+product verbs or expose a generic Tauri/bridge execute-by-string bus. V1 is
+single-chord keyboard input. Macros, multi-stroke input, extended trigger
+families, native accelerators, and automation remain deferred.
 
 ### History
 
-- generic linear navigation mechanics
-- inverse/apply adapter seam
-- compound and gesture grouping
-- coalescing policy, limits, persistence, and UI projections
-- optional branch-tree research lane
+- generic typed payload with consumer-owned inverse, coalesce, and no-op policy
+- record-after-product-success
+- revision-bound plan, atomic apply, and checked commit navigation
+- compounds, explicit gesture groups, bounded count and encoded weight
+- versioned structural persistence and committed transition receipts
+- authoritative metadata pages for past, current, and future entries
+- optional checked TypeScript, Tauri, Svelte, and public-Poodle edges
+- private branch-tree prototype and promotion gate
 
-Loophole's Pulse mutations and runtime apply logic remain app-specific.
-Branching is not part of the current extraction claim.
+`longhorn-history` owns structural state. Consumers own payload meaning,
+product authorization, atomic model mutation, labels, canonical snapshots,
+storage paths, checkpointing, and recovery policy.
+
+Loophole retains its 83-variant Pulse mutation enum, runtime apply match,
+tempo/cache reconciliation, project snapshot and version lineage, autosave,
+and session-journal file policy. A committed-transition seam preserves its
+cross-session undo and crash-recovery flow. Linear mode retains current
+successful behavior while replacing move-before-apply and renderer-remembered
+redo with checked shared semantics.
+
+Forkable undo is not live donor behavior. The prototype must prove divergent
+retention, lowest-common-ancestor checkout, pruning, checkpoints, migration,
+performance, and a linear-default projection before any public branch package
+exists. Undo branches remain distinct from project versions, collaboration,
+and event sourcing.
 
 ### Async operations and notifications
 
@@ -240,7 +262,9 @@ host-authoritative snapshot.
 
 ### Tauri bridge
 
-- command/event contract registration
+- Rust-owned domain contract registration through generated checked clients
+- structural bridge negotiation, correlation, coded errors, retry classes, and
+  authority descriptors
 - listener lifetime and current-snapshot handshake
 - testable command handler assembly
 - primary-window coordinator identity
@@ -249,15 +273,82 @@ host-authoritative snapshot.
 The implemented window-host assembly and capability posture are in the
 [Tauri Window Host Integration guide](tauri-window-host-integration.md).
 
+`longhorn-bridge` now implements the pure exact-v1 negotiation substrate:
+bounded bridge, host, session, domain, capability, scope, feature, and
+diagnostic identity; checked connection state/reason pairs; five host forms;
+authentication posture; separate capability and per-domain authority
+descriptors; nonzero authority epochs; and optional authoritative revision
+evidence. It imports no Tauri, async runtime, network, renderer, or consumer.
+
+The same pure crate now adds generic query, command, and cancellation
+envelopes; typed success, rejection, and indeterminate terminals; coded
+failure phase, retry, message, and details; bounded no-eviction deduplication
+evidence; session/epoch/sequence stream tracking; and request-correlated
+progress, cancellation, and terminal job metadata. Domain routes and payload
+types remain external generic parameters.
+
+`longhorn-bindings` generates that protocol and a Rust-owned semantic fixture.
+`@longhorn/bridge` validates exact compatibility before exposing a session,
+projects capability and authority through injected domain codecs, and runs one
+host router through direct or deterministic JSON-loopback adapters. Its
+optional stream subpath preserves listener-before-snapshot ordering and exact
+late-registration disposal. Query-only root imports include no event, Tauri,
+service, Svelte, Poodle, or consumer runtime.
+
+`longhorn-tauri-bridge` now registers typed domain handlers behind stable
+generic Tauri commands. It checks caller session, domain metadata, capability,
+authority posture, and authority epoch before dispatch. `@longhorn/tauri`
+keeps its root invoke-only; optional events live at `/events`.
+`@longhorn/bridge/tauri` composes the checked client over that root, while
+`/tauri-events` adds checked listener-first resync and correlated job events.
+Tauri capabilities admit command reachability but never grant domain
+authority.
+
+The pure connection machine now receipts every admitted transition. A
+successful checked negotiation becomes ready only after consumer-declared
+domain authority requirements pass. Reconnect clears the current session and
+authority map before scheduling injected bounded backoff; old sessions and
+old or future unnegotiated authority epochs are classified explicitly.
+Transport re-entry before the scheduled deadline is rejected.
+Queries use a separate bounded retry controller. Command transport failure
+continues through the durable-idempotency and advertised-deduplication gate;
+uncertain writes outside that gate are indeterminate.
+
+Optional Rust supervision is feature-gated. The TypeScript implementation is
+available only at `@longhorn/bridge/supervision`. Both accept consumer-injected
+spawn/attach/readiness/restart/reconnect/shutdown observations, expose stable
+receipts, and permit restart or shutdown only for owned local services.
+Credential input is an opaque secure-store reference; arbitrary adapter
+failure text is not admitted or propagated.
+
+Five clean artifact-installed consumers now prove query-only, ordered
+snapshot, correlated-job, embedded/optional-host, and local-first/remote-attach
+shapes. Separate offline Rust consumers prove that supervision and Tauri stay
+removable graph edges. Composition, migration, and production limits are in
+the [Bridge Topology Composition guide](bridge-topology-composition.md).
+
 The bridge must not become a product command bus.
 
 ### Optional backend topology
 
-- transport-independent domain command/query/event contracts
-- direct, Tauri-local, local-service, remote, and local-first adapters
-- capability and version negotiation
-- explicit readiness, failure, reconnect, and offline state
-- one declared write authority per domain
+- transport-independent domain command, query, cancellation, snapshot, event,
+  and error contracts
+- direct and Tauri execution plus serialized-loopback conformance
+- injected service transport and supervisor ports without a selected
+  production network protocol
+- exact-version negotiation, host/session identity, capability advertisement,
+  and separate per-domain authority descriptors
+- explicit connecting, negotiating, ready, degraded, reconnecting, offline,
+  incompatible, unauthorized, failed, and closed state
+- one declared write authority per domain and authority scope
+- retry only for queries under adapter policy or commands with durable
+  idempotency plus advertised deduplication
+- no generic offline mutation queue; offline caches remain projections
+
+Host form changes transport and lifecycle ownership, not domain semantics.
+Consumers own service acquisition, installation, update policy, endpoint
+selection, and remote lifecycle. Longhorn may project injected supervision,
+readiness, reconnect, and shutdown state.
 
 Local configuration, windowing, and layout do not require a service.
 

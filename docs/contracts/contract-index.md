@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-29
+Updated: 2026-07-30
 
 ## Contract Register
 
@@ -13,11 +13,11 @@ Updated: 2026-07-29
 | [003 Extraction And Consumer Migration](003-extraction-and-consumer-migration.md) | donor admission, cutover, ownership | active |
 | [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md) | roots, domains, safe writes, migration, backup, restore | active |
 | [005 Settings And System Registration](005-settings-and-system-registration.md) | registry, apply units, policy, activation, and shell composition | active compiled boundary |
-| [006 Command, Action, And Input](006-command-action-and-input.md) | registry, availability, input, palette projection | active first pass |
-| [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters and domain authority | active first pass |
-| [008 History Kernel Boundary](008-history-kernel-boundary.md) | generic linear history and branching research gate | active research boundary |
+| [006 Command, Action, And Input](006-command-action-and-input.md) | sealed registry, fresh admission, keyboard, durable keymaps, projections | active compiled boundary |
+| [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters, lifecycle, retry, and domain authority | active compiled boundary |
+| [008 History Kernel Boundary](008-history-kernel-boundary.md) | typed linear history, atomic navigation, persistence seams, and private fork gate | active compiled boundary |
 | [009 Display Identity, Coordinates, And Window Planning](009-display-identity-coordinates-and-window-planning.md) | display correlation, typed geometry, pure window plans | active first pass |
-| [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md) | type authority, handler/client seam, revisions, lifecycle | active first pass |
+| [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md) | type authority, handler/client seam, correlation, revisions, lifecycle | active compiled boundary |
 | [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only sessions, leased targets, authoritative move | active compiled boundary |
 | [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
 | [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
@@ -60,3 +60,9 @@ three isolated artifact-installed shell shapes and closes `g01.007`.
 Research memo 012 and compiled contract 005 make Cards 042-048 the completed
 g01.008 settings runway. Card 048 proves four artifact-installed compositions,
 exact optional boundaries, and one Svelte/Poodle runtime.
+Research memo 013 compiles contracts 007 and 010. Cards 049-055 implement,
+artifact-prove, and close g01.009. Research memo 014 compiles contract 006
+against the bridge, config, settings, Svelte, and Poodle foundations. Cards
+056-061 and g01.010 are complete. Research memo 015 revalidates Loophole
+history and compiles contract 008. Cards 062-069 form the g01.011 linear
+kernel and private fork-prototype runway; Card 062 is ready.

@@ -1,0 +1,11 @@
+{
+  "identifier": "loophole-command-proof",
+  "description": "Rich catalogue, keymap, palette, and settings authority.",
+  "windows": ["main", "settings"],
+  "permissions": [
+    "allow-longhorn-command-read",
+    "allow-longhorn-command-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

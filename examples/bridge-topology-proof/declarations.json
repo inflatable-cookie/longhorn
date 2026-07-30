@@ -1,0 +1,209 @@
+{
+  "schema": "longhorn.bridge-topology-declarations.v1",
+  "shapes": {
+    "bovine": {
+      "hostForms": ["tauriLocal"],
+      "transportFeatures": ["request_reply"],
+      "imports": ["@longhorn/bridge", "@longhorn/bridge/tauri"],
+      "tauriPermissions": ["allow-longhorn-bridge-query"],
+      "serviceOwnership": null,
+      "maximumQueryRetries": 0,
+      "domains": [
+        {
+          "domainId": "fixture.catalog",
+          "capabilities": ["query"],
+          "authority": {
+            "scopeId": "scope:fixture-catalog",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "none",
+            "executionAuthority": "none",
+            "authorityEpoch": 1,
+            "authoritativeRevision": 4
+          }
+        }
+      ]
+    },
+    "jetstream": {
+      "hostForms": ["direct", "tauriLocal"],
+      "transportFeatures": ["request_reply", "ordered_streams"],
+      "imports": [
+        "@longhorn/bridge",
+        "@longhorn/bridge/stream",
+        "@longhorn/bridge/tauri",
+        "@longhorn/bridge/tauri-events"
+      ],
+      "tauriPermissions": [
+        "allow-longhorn-bridge-query",
+        "core:event:allow-listen",
+        "core:event:allow-unlisten"
+      ],
+      "serviceOwnership": null,
+      "maximumQueryRetries": 1,
+      "domains": [
+        {
+          "domainId": "fixture.snapshot",
+          "capabilities": ["query", "subscribe"],
+          "authority": {
+            "scopeId": "scope:fixture-snapshot",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "none",
+            "executionAuthority": "none",
+            "authorityEpoch": 2,
+            "authoritativeRevision": 0
+          }
+        }
+      ]
+    },
+    "soundcheck": {
+      "hostForms": ["tauriLocal", "localService"],
+      "transportFeatures": [
+        "request_reply",
+        "ordered_streams",
+        "job_execution"
+      ],
+      "imports": [
+        "@longhorn/bridge",
+        "@longhorn/bridge/supervision",
+        "@longhorn/bridge/tauri",
+        "@longhorn/bridge/tauri-events"
+      ],
+      "tauriPermissions": [
+        "allow-longhorn-bridge-query",
+        "allow-longhorn-bridge-mutate",
+        "core:event:allow-listen",
+        "core:event:allow-unlisten"
+      ],
+      "serviceOwnership": "externalLocal",
+      "maximumQueryRetries": 2,
+      "domains": [
+        {
+          "domainId": "fixture.local_config",
+          "capabilities": ["query", "mutate"],
+          "authority": {
+            "scopeId": "scope:fixture-local-config",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "authoritative",
+            "executionAuthority": "none",
+            "authorityEpoch": 3,
+            "authoritativeRevision": 6
+          }
+        },
+        {
+          "domainId": "fixture.local_window",
+          "capabilities": ["query", "mutate"],
+          "authority": {
+            "scopeId": "scope:fixture-local-window",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "authoritative",
+            "executionAuthority": "none",
+            "authorityEpoch": 3,
+            "authoritativeRevision": 7
+          }
+        },
+        {
+          "domainId": "fixture.local_settings",
+          "capabilities": ["query", "mutate"],
+          "authority": {
+            "scopeId": "scope:fixture-local-settings",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "authoritative",
+            "executionAuthority": "none",
+            "authorityEpoch": 3,
+            "authoritativeRevision": 8
+          }
+        },
+        {
+          "domainId": "fixture.analysis",
+          "capabilities": ["query", "start_job", "cancel_job"],
+          "authority": {
+            "scopeId": "scope:fixture-analysis",
+            "availability": "offline",
+            "readAuthority": "none",
+            "writeAuthority": "none",
+            "executionAuthority": "none",
+            "authorityEpoch": 3,
+            "authoritativeRevision": null
+          }
+        }
+      ]
+    },
+    "nucleus": {
+      "hostForms": ["direct", "localService"],
+      "transportFeatures": ["request_reply", "job_execution"],
+      "imports": [
+        "@longhorn/bridge",
+        "@longhorn/bridge/supervision",
+        "@longhorn/bridge/tauri"
+      ],
+      "tauriPermissions": [
+        "allow-longhorn-bridge-query",
+        "allow-longhorn-bridge-mutate"
+      ],
+      "serviceOwnership": "externalLocal",
+      "maximumQueryRetries": 2,
+      "domains": [
+        {
+          "domainId": "fixture.local_config",
+          "capabilities": ["query", "mutate", "cancel_job"],
+          "authority": {
+            "scopeId": "scope:fixture-local-config",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "authoritative",
+            "executionAuthority": "none",
+            "authorityEpoch": 5,
+            "authoritativeRevision": 13
+          }
+        },
+        {
+          "domainId": "fixture.index",
+          "capabilities": ["query", "mutate", "start_job", "cancel_job"],
+          "authority": {
+            "scopeId": "scope:fixture-index",
+            "availability": "available",
+            "readAuthority": "projection",
+            "writeAuthority": "none",
+            "executionAuthority": "executor",
+            "authorityEpoch": 5,
+            "authoritativeRevision": null
+          }
+        }
+      ]
+    },
+    "loophole": {
+      "hostForms": ["localFirst", "remote"],
+      "transportFeatures": ["request_reply", "ordered_streams"],
+      "imports": [
+        "@longhorn/bridge",
+        "@longhorn/bridge/supervision",
+        "@longhorn/bridge/tauri"
+      ],
+      "tauriPermissions": [
+        "allow-longhorn-bridge-query",
+        "allow-longhorn-bridge-mutate"
+      ],
+      "serviceOwnership": "externalRemote",
+      "maximumQueryRetries": 3,
+      "domains": [
+        {
+          "domainId": "fixture.workspace",
+          "capabilities": ["query", "mutate", "subscribe"],
+          "authority": {
+            "scopeId": "scope:fixture-workspace",
+            "availability": "available",
+            "readAuthority": "authoritative",
+            "writeAuthority": "authoritative",
+            "executionAuthority": "none",
+            "authorityEpoch": 9,
+            "authoritativeRevision": 82
+          }
+        }
+      ]
+    }
+  }
+}

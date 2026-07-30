@@ -2,6 +2,8 @@ use std::{error::Error, fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
+const MAX_DOMAIN_ID_BYTES: usize = 128;
+
 /// Stable, namespaced identifier for a registered Longhorn domain.
 ///
 /// Identifiers contain lowercase ASCII segments separated by dots. Each
@@ -19,6 +21,12 @@ impl DomainId {
 
         if value.is_empty() {
             return Err(DomainIdError::Empty);
+        }
+        if value.len() > MAX_DOMAIN_ID_BYTES {
+            return Err(DomainIdError::TooLong {
+                maximum: MAX_DOMAIN_ID_BYTES,
+                actual: value.len(),
+            });
         }
 
         for (index, segment) in value.split('.').enumerate() {
@@ -85,6 +93,13 @@ impl<'de> Deserialize<'de> for DomainId {
 pub enum DomainIdError {
     /// The identifier was empty.
     Empty,
+    /// The identifier exceeded the bounded serialized length.
+    TooLong {
+        /// Maximum accepted byte length.
+        maximum: usize,
+        /// Supplied byte length.
+        actual: usize,
+    },
     /// A segment did not match the required grammar.
     InvalidSegment {
         /// Zero-based segment index.
@@ -96,6 +111,12 @@ impl fmt::Display for DomainIdError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => formatter.write_str("domain id cannot be empty"),
+            Self::TooLong { maximum, actual } => {
+                write!(
+                    formatter,
+                    "domain id is {actual} bytes; maximum is {maximum}"
+                )
+            }
             Self::InvalidSegment { index } => {
                 write!(formatter, "domain id segment {index} is invalid")
             }
@@ -119,6 +140,13 @@ mod tests {
     #[test]
     fn rejects_empty_or_invalid_segments() {
         assert_eq!(DomainId::new(""), Err(DomainIdError::Empty));
+        assert_eq!(
+            DomainId::new(format!("a{}", "b".repeat(MAX_DOMAIN_ID_BYTES))),
+            Err(DomainIdError::TooLong {
+                maximum: MAX_DOMAIN_ID_BYTES,
+                actual: MAX_DOMAIN_ID_BYTES + 1,
+            })
+        );
         assert_eq!(
             DomainId::new("Example.settings"),
             Err(DomainIdError::InvalidSegment { index: 0 })

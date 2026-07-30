@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-command-read"
+description = "Allows checked Longhorn command catalogue and keymap reads."
+commands.allow = [
+  "longhorn_command_catalogue",
+  "longhorn_command_keymap",
+]

@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-07-30
 Architecture: `../architecture/package-topology.md`
 
 ## Boundary
@@ -39,6 +39,11 @@ policy remain consumer-owned.
   them.
 - `@longhorn/tauri` is a structural invoke/listen transport. Tauri is its peer;
   no domain package is its mandatory dependency.
+- `longhorn-bridge` and `@longhorn/bridge` own only generic session,
+  topology, authority, correlation, retry, and ordering contracts. Domain
+  payloads stay in their owning packages.
+- Service-supervision and production network transports are optional adapter
+  edges. A no-service consumer resolves none of them.
 - Generated TypeScript bindings live with their owning domain package.
 - No umbrella package is published in g01.
 - Empty placeholder packages are not scaffolded before their implementation
@@ -65,6 +70,8 @@ A release candidate requires:
 - generated-binding drift check
 - cross-language fixtures
 - direct and Tauri adapter conformance
+- deterministic serialized-loopback conformance without a production-network
+  compatibility claim
 - declared consumer compatibility matrix
 - install proof from produced artifacts, not workspace source
 - migration and rollback notes
@@ -110,3 +117,16 @@ remain a public release-lane gate while the interdependent crates are private.
 
 Evidence:
 `../logs/2026-07/29-settings-composition-proof-and-closeout.md`.
+
+Card 055 packs `@longhorn/core`, `@longhorn/tauri`, and
+`@longhorn/bridge`, then installs Bovine, Jetstream, Soundcheck, Nucleus, and
+Loophole-shaped consumers in isolated roots. Every consumer resolves version
+`0.1.0`, one Tauri API `2.10.1` peer, exact declared bridge subpaths, and no
+workspace or sibling source alias. Separate offline Rust consumers prove a
+query-only graph without supervision/Tauri and a selected full-host graph.
+
+The private Rust evidence uses `cargo package --list` plus exact source
+archives. Registry-normalized Cargo packaging remains a release-lane gate.
+
+Evidence:
+`../logs/2026-07/30-bridge-topology-artifact-proof-and-closeout.md`.

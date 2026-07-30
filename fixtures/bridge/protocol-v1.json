@@ -1,0 +1,271 @@
+{
+  "cancellationReceipt": {
+    "jobId": "job:scan",
+    "outcome": "accepted",
+    "requestId": "request:cancel",
+    "targetRequestId": "request:scan"
+  },
+  "cancellationRequest": {
+    "context": {
+      "domainId": "example.workspace",
+      "requestId": "request:cancel",
+      "sessionId": "session:fixture"
+    },
+    "jobId": "job:scan",
+    "targetRequestId": "request:scan"
+  },
+  "commandReplies": [
+    {
+      "authoritativeRevision": 9,
+      "outcome": {
+        "applied": {
+          "value": 6
+        }
+      },
+      "requestId": "request:command"
+    },
+    {
+      "authoritativeRevision": null,
+      "outcome": {
+        "indeterminate": {
+          "code": "workspace:unavailable",
+          "details": {
+            "source": "fixture"
+          },
+          "message": "workspace authority is unavailable",
+          "phase": "response",
+          "retryClass": "never"
+        }
+      },
+      "requestId": "request:uncertain"
+    }
+  ],
+  "commandRequests": [
+    {
+      "authorityEpoch": 3,
+      "context": {
+        "domainId": "example.workspace",
+        "requestId": "request:command",
+        "sessionId": "session:fixture"
+      },
+      "expectedRevision": 8,
+      "idempotencyKey": "idempotency:command",
+      "payload": {
+        "delta": 2
+      }
+    },
+    {
+      "authorityEpoch": 3,
+      "context": {
+        "domainId": "example.workspace",
+        "requestId": "request:uncertain",
+        "sessionId": "session:fixture"
+      },
+      "expectedRevision": 9,
+      "idempotencyKey": null,
+      "payload": {
+        "delta": 3
+      }
+    }
+  ],
+  "events": [
+    {
+      "cursor": {
+        "authorityEpoch": 3,
+        "domainId": "example.workspace",
+        "sequence": 9,
+        "sessionId": "session:fixture"
+      },
+      "payload": {
+        "delta": 1
+      }
+    },
+    {
+      "cursor": {
+        "authorityEpoch": 3,
+        "domainId": "example.workspace",
+        "sequence": 11,
+        "sessionId": "session:fixture"
+      },
+      "payload": {
+        "delta": 2
+      }
+    }
+  ],
+  "hello": {
+    "bridgeId": "bridge:fixture",
+    "protocolVersion": 1,
+    "requestedDomains": [
+      "example.workspace"
+    ]
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownAuthorityShape": {
+      "authoritativeRevision": null,
+      "authorityEpoch": 1,
+      "availability": "available",
+      "domainId": "example.workspace",
+      "executionAuthority": "none",
+      "readAuthority": "futureAuthority",
+      "scopeId": "scope:workspace",
+      "writeAuthority": "none"
+    },
+    "unknownCommandOutcome": {
+      "future": {
+        "value": 1
+      }
+    },
+    "unknownConnectionState": "futureState",
+    "unknownQueryOutcome": {
+      "future": {
+        "value": 1
+      }
+    },
+    "unknownRetryClass": "futureRetry",
+    "unknownTerminalOutcome": {
+      "future": {
+        "value": 1
+      }
+    }
+  },
+  "negotiation": {
+    "authentication": "notRequired",
+    "connection": {
+      "reason": "negotiationAccepted",
+      "state": "ready"
+    },
+    "diagnostics": [],
+    "domainAuthorities": [
+      {
+        "authoritativeRevision": 8,
+        "authorityEpoch": 3,
+        "availability": "available",
+        "domainId": "example.workspace",
+        "executionAuthority": "executor",
+        "readAuthority": "authoritative",
+        "scopeId": "scope:workspace",
+        "writeAuthority": "authoritative"
+      }
+    ],
+    "domainCapabilities": [
+      {
+        "capabilities": [
+          "query",
+          "mutate",
+          "subscribe",
+          "start_job"
+        ],
+        "domainId": "example.workspace"
+      }
+    ],
+    "host": {
+      "form": "direct",
+      "hostInstanceId": "host:fixture"
+    },
+    "protocolVersion": 1,
+    "sessionId": "session:fixture",
+    "transportFeatures": [
+      "request_reply",
+      "ordered_streams",
+      "job_execution"
+    ]
+  },
+  "progress": {
+    "jobId": "job:scan",
+    "progress": {
+      "completed": 2,
+      "total": 4
+    },
+    "requestId": "request:scan"
+  },
+  "protocolVersion": 1,
+  "queryReplies": [
+    {
+      "outcome": {
+        "success": {
+          "value": 4
+        }
+      },
+      "requestId": "request:query"
+    },
+    {
+      "outcome": {
+        "rejected": {
+          "code": "workspace:unavailable",
+          "details": {
+            "source": "fixture"
+          },
+          "message": "workspace authority is unavailable",
+          "phase": "transport",
+          "retryClass": "afterReconnect"
+        }
+      },
+      "requestId": "request:query-failed"
+    }
+  ],
+  "queryRequests": [
+    {
+      "context": {
+        "domainId": "example.workspace",
+        "requestId": "request:query",
+        "sessionId": "session:fixture"
+      },
+      "payload": {
+        "includeArchived": false
+      }
+    }
+  ],
+  "semanticTrace": {
+    "command_retry": [
+      "retrySameRequest",
+      "indeterminate",
+      "doNotRetry"
+    ],
+    "job": [
+      "accept",
+      "ignoreWrongCorrelation",
+      "accept",
+      "ignoreAfterTerminal",
+      "ignoreAlreadyTerminal"
+    ],
+    "listener_first": [
+      "resnapshotRequired",
+      "acceptedResnapshotRequired",
+      "accepted"
+    ],
+    "ordered_stream": [
+      "accepted",
+      "ignoreDuplicate",
+      "ignoreStale",
+      "apply",
+      "resnapshotGap",
+      "resnapshotRequired"
+    ],
+    "query_retry": [
+      "retry",
+      "doNotRetry",
+      "doNotRetry"
+    ]
+  },
+  "snapshot": {
+    "cursor": {
+      "authorityEpoch": 3,
+      "domainId": "example.workspace",
+      "sequence": 8,
+      "sessionId": "session:fixture"
+    },
+    "payload": {
+      "value": 6
+    }
+  },
+  "terminal": {
+    "jobId": "job:scan",
+    "outcome": {
+      "succeeded": {
+        "value": 12
+      }
+    },
+    "requestId": "request:scan"
+  }
+}

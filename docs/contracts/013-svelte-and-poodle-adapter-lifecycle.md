@@ -4,7 +4,8 @@ Status: active compiled boundary
 Owner: Tom
 Updated: 2026-07-29
 Evidence: `../research/translation-memos/003-foundation-boundary-characterization.md`,
-`../research/translation-memos/011-client-svelte-poodle-and-shell-boundary.md`
+`../research/translation-memos/011-client-svelte-poodle-and-shell-boundary.md`,
+`../research/translation-memos/014-command-input-and-palette-boundary.md`
 
 ## Boundary
 
@@ -49,6 +50,12 @@ primitives without copying component source or durable state.
 - No adapter imports Poodle internals or copies Poodle source.
 - Poodle's `WorkspaceLayoutSnapshot` is presentation state, not a second
   durable Longhorn document.
+- Command palette and keybinding adapters project the sealed command registry,
+  effective keymap, and current availability through public controlled Poodle
+  APIs. Poodle owns focus and visual semantics; Longhorn owns ids, search,
+  conflict records, and injected dispatch.
+- A command selection calls a consumer executor. No Svelte or Poodle adapter
+  invents a generic Tauri execution route.
 - Same-window drag remains Poodle-owned. Cross-window binding requires public
   drag start, end, eligibility, and external-drop extension points.
 - Poodle `g12.016` supplies those public points through typed asynchronous

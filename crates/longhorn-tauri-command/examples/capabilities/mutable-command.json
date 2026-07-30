@@ -1,0 +1,11 @@
+{
+  "identifier": "longhorn-command-mutable",
+  "description": "Checked command catalogue and keymap mutation authority.",
+  "windows": ["settings"],
+  "permissions": [
+    "allow-longhorn-command-read",
+    "allow-longhorn-command-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

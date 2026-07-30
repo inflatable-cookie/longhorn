@@ -1,0 +1,15 @@
+[package]
+name = "longhorn-history"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure typed linear history state and policy seams for Longhorn"
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+
+[lints]
+workspace = true

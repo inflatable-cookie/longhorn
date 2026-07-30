@@ -1,0 +1,11 @@
+{
+  "name": "longhorn-jetstream-command-artifact-proof",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@longhorn/commands": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

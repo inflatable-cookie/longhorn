@@ -1,8 +1,8 @@
 # System Inventory
 
-Status: complete inventory; g01.008 complete
-Owner: Tom  
-Updated: 2026-07-29
+Status: complete inventory; g01.010 compiled
+Owner: Tom
+Updated: 2026-07-30
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
@@ -79,6 +79,26 @@ terminal receipts, recovery gating, and the public-Poodle destructive flow.
 Card 048 proves Bovine, Soundcheck, Loophole, and Nucleus compositions from
 produced artifacts with exact package, capability, authority, transaction, and
 UI boundaries. `g01.008` is complete.
+Research memo 013 and compiled contracts 007 and 010 bound the generic bridge
+session, exact-version negotiation, separate capability and authority,
+operations, ordered streams, correlated jobs, retry/idempotency, lifecycle,
+and injected supervision. Cards 049-055 implement direct, Tauri, and
+serialized-loopback semantics, five donor-shaped topologies, clean artifact
+installs, optional Rust graphs, and the composition guide. `g01.009` is
+complete. Production network transport, discovery, authentication, service
+acquisition, and offline mutation queues remain deferred.
+
+Research memo 014 and compiled contract 006 now bound the command/context
+registry, closed arguments, fresh execution admission, physical-keyboard
+resolution, immutable presets, durable sparse overrides, and shared
+palette/menu/shortcut/help/settings projections. Cards 056-061 form g01.010.
+Cards 056-058 implement the pure registry, fresh admission, and deterministic
+physical-key foundation. Card 059 adds coordinated keymap persistence,
+generated protocol, and the narrow Tauri host. Card 060 adds checked clients,
+cross-language browser semantics, per-instance Svelte state, public Poodle
+bindings, and capability-gated settings. Card 061 adds isolated rich/minimal
+artifact installs, native and renderer traces, exact boundary audits, and the
+composition guide. `g01.010` is complete.
 
 ## In-Scope Elements
 
@@ -94,12 +114,12 @@ UI boundaries. `g01.008` is complete.
 | Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | g01.002 complete |
 | Backup and recovery | Rust library + adapters | inventory, verify, rotate, restore receipts | cross-app need; partial Loophole recovery | g01.002 complete |
 | Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Bovine, Poodle | g01.007 complete |
-| Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | contract 010 |
+| Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | Cards 049-053 implement pure semantics, generated clients, direct/loopback adapters, registered-domain Tauri assembly, bounded reconnect, and optional events/supervision |
 | Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | Card 040 |
 | Settings registry/shell | Rust + TS/Svelte package | sealed page composition, checked apply units, policy/activation projection | Loophole, Soundcheck, Bovine, Nucleus | Cards 042-048 implement authority, config apply, checked clients/Tauri host, isolated sessions, public-Poodle shell, exact recovery pages, and four artifact-installed compositions; g01.008 complete |
-| Command/keymap/palette | Rust + TS/Svelte packages | catalogue, context, input, palette projection | Loophole full system; Jetstream basic shortcuts | first boundary contracted |
-| Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | first boundary contracted |
-| History kernel | optional Rust package | generic linear navigation; branch prototype | Loophole Pulse | research boundary contracted |
+| Command/keymap/palette | Rust + config + TS/Svelte/Poodle packages | sealed catalogue, fresh admission, keyboard resolution, durable overrides, shared projections | Loophole full system; Jetstream basic shortcuts | Cards 056-061 and g01.010 complete; rich/minimal artifact proof passes |
+| Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | five host forms, separate authority, explicit replay, checked direct/loopback/Tauri sessions, bounded lifecycle, stream/job semantics, and injected supervision implemented |
+| History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams; private fork prototype | Loophole Pulse plus non-editor fixture | compiled contract 008; Cards 062-069 |
 | Long-running job controller | later package | progress/cancel/listener lifecycle | Soundcheck | second consumer needed |
 | Notifications | later Rust + Svelte package | bounded records and presentation | Loophole, Soundcheck | research needed |
 | Native content islands | later adapter family | native child/webview/embedded content geometry | Nucleus, Soundcheck, Jetstream | prototype needed |
@@ -140,8 +160,12 @@ UI boundaries. `g01.008` is complete.
 
 ## Planning Gaps
 
-- backend transport and offline mutation policy
-- generic history payload and branching/checkpoint policy
+- production backend transport and endpoint-security policy
+- durable offline mutation policy, if a domain proves it
+- macros, extended input triggers, native accelerators, and synchronized
+  keymaps
+- branch reference, checkpoint, pruning, migration, and performance promotion
+  decision after the private history-tree prototype
 - async operation/notification shared lifecycle
 - native-content-island common denominator
 - cross-document panel transaction and copy-transfer authority

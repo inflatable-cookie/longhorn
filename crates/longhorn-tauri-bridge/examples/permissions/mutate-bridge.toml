@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-bridge-mutate"
+description = "Allows checked Longhorn bridge authoritative command and cancellation commands."
+commands.allow = [
+  "longhorn_bridge_command",
+  "longhorn_bridge_cancel",
+]

@@ -2,9 +2,10 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-27  
+Updated: 2026-07-30
 Evidence: `../research/translation-memos/001-tauri-application-extraction-audit.md`,
-`../research/translation-memos/002-shared-desktop-systems-follow-up.md`
+`../research/translation-memos/002-shared-desktop-systems-follow-up.md`,
+`../research/translation-memos/015-history-kernel-and-fork-boundary.md`
 
 ## Purpose
 
@@ -28,10 +29,10 @@ shape and admission questions.
 | settings | registry-driven dialog shell and domain pages | promoted first pass | Loophole plus cross-app demand |
 | typed bridge | checked commands, events, errors, subscriptions | contract 010 | all five apps |
 | optional backend topology | local, embedded, or remote authority adapters | promoted first pass | Nucleus, Loophole |
-| commands/actions | registry, context, availability, execution | promoted first pass | Loophole, Jetstream |
-| input/keymaps | triggers, contexts, conflicts, overrides | promoted first pass | Loophole |
-| command palette | Poodle-backed projection of command registry | promoted first pass | Loophole |
-| history | generic linear kernel, then branch prototype | promoted research boundary | Loophole |
+| commands/actions | sealed registry, bounded arguments, fresh admission, injected execution | compiled boundary | Loophole, Jetstream |
+| input/keymaps | physical keyboard, contexts, conflicts, durable sparse overrides | compiled boundary | Loophole, Jetstream |
+| command palette | Poodle-backed projection of command registry | compiled boundary | Loophole, Jetstream |
+| history | typed linear kernel, checked clients, then private fork prototype | compiled boundary | Loophole plus non-editor fixture |
 | async operations | progress, cancellation, stale-request protection | incubating | Soundcheck |
 | notifications | bounded host events and UI projection | incubating | Loophole, Soundcheck |
 | native content islands | geometry/input host adapters | prototype required | Nucleus, Soundcheck, Jetstream |
@@ -52,17 +53,23 @@ shape and admission questions.
 Local domain registration, transaction boundaries, multi-process coordination,
 backup/encryption, storage profiles, and managed-policy projection are promoted
 through contracts 004 and 005. Server-synchronized configuration and remote
-conflict semantics remain gated by g01.009.
+conflict semantics remain deferred after g01.009; no production authority has
+proved that contract.
 
-## History Questions
+## History Decisions
 
-- whether the generic payload is typed by a trait, opaque serialized data, or
-  a consumer-owned enum
-- how apply and inverse failure leave state and history
-- whether coalescing is payload behavior or stack policy
-- how persisted entries migrate with product schemas
-- branch identity, pruning, annotations, checkpoints, and recovery
-- which histories are local UI state versus shared product state
+- The Rust payload is consumer-owned and typed.
+- Consumers inject inverse, coalesce, and no-op policy.
+- Navigation uses revision-bound plan, atomic product apply, then checked
+  commit. Failure leaves model and history unchanged.
+- Longhorn owns structural envelopes. Consumers own payload codecs, model
+  snapshots, storage, journals, checkpoints, and recovery choices.
+- Clients receive authoritative metadata pages, not product payloads or
+  renderer-reconstructed redo entries.
+- Linear mode is public first. Forking stays private until branch references,
+  pruning, checkpoints, migration, performance, and linear-default UI pass.
+- Undo branches remain distinct from project versions, collaboration, and
+  event sourcing.
 
 ## Promotion Rules
 
