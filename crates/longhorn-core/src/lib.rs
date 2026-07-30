@@ -26,11 +26,11 @@ pub use geometry::{
 pub use opaque_id::{
     AuthorityScopeId, BridgeCapabilityId, BridgeCredentialRef, BridgeDiagnosticId, BridgeErrorCode,
     BridgeId, BridgeIdempotencyKey, BridgeJobId, BridgeRequestId, BridgeSessionId, ConfigRequestId,
-    DisplayId, DropZoneId, HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId,
-    HostInstanceId, LayoutContainerId, LayoutRequestId, LayoutSchemaId, OpaqueIdError,
-    PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId, SurfaceId,
-    SurfaceRequestId, TransferClientId, TransferHostBindingId, TransferRequestId,
-    TransferSubjectId, TransportFeatureId, WindowId,
+    DisplayId, DropZoneId, HistoryEntryId, HistoryGroupId, HistoryGroupKeyId, HistoryId,
+    HistoryKindId, HistoryPlanId, HostInstanceId, LayoutContainerId, LayoutRequestId,
+    LayoutSchemaId, OpaqueIdError, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
+    SizingSlotId, SurfaceId, SurfaceRequestId, TransferClientId, TransferHostBindingId,
+    TransferRequestId, TransferSubjectId, TransportFeatureId, WindowId,
 };
 pub use revision::{
     HistoryRevision, HistoryRevisionOverflow, LayoutRevision, LayoutRevisionOverflow,

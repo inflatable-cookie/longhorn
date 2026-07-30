@@ -1,4 +1,4 @@
-use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId, HistoryRevision};
 use longhorn_history::{
     AppliedHistoryRecord, HistoryEntry, HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel,
 };
@@ -16,14 +16,6 @@ pub(crate) fn metadata(label: &str, kind: &str) -> HistoryEntryMetadata {
         HistoryLabel::new(label).expect("fixture label"),
         Some(HistoryKindId::new(kind).expect("fixture kind")),
         None,
-    )
-}
-
-pub(crate) fn grouped_metadata(label: &str, kind: &str, group: &str) -> HistoryEntryMetadata {
-    HistoryEntryMetadata::new(
-        HistoryLabel::new(label).expect("fixture label"),
-        Some(HistoryKindId::new(kind).expect("fixture kind")),
-        Some(HistoryGroupId::new(group).expect("fixture group")),
     )
 }
 
@@ -54,6 +46,7 @@ pub(crate) fn entry<P>(
         metadata(label, kind),
         HistoryEntrySequence::new(sequence).expect("fixture sequence"),
         HistoryRevision::new(revision),
+        1,
         payload,
     )
 }

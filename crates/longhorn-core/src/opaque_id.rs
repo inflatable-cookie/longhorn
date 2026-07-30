@@ -199,6 +199,10 @@ opaque_id!(
     "Explicit identity for one committed history group."
 );
 opaque_id!(
+    HistoryGroupKeyId,
+    "Consumer-owned key identity for one timed history grouping policy."
+);
+opaque_id!(
     HistoryPlanId,
     "Opaque identity for one revision-bound history navigation plan."
 );
@@ -318,6 +322,7 @@ mod tests {
         assert!(HistoryEntryId::new("entry:0198f97e").is_ok());
         assert!(HistoryKindId::new("track:rename").is_ok());
         assert!(HistoryGroupId::new("gesture:0198f97e").is_ok());
+        assert!(HistoryGroupKeyId::new("gesture:clip_move").is_ok());
         assert!(HistoryPlanId::new("plan:0198f97e").is_ok());
     }
 

@@ -39,10 +39,15 @@ impl HistoryPolicy<DocumentMutation> for DocumentPolicy {
         matches!(payload, DocumentMutation::SetTitle { before, after } if before == after)
     }
 
+    fn encoded_weight(&self, _: &DocumentMutation) -> Result<u64, Self::Error> {
+        Ok(1)
+    }
+
     fn coalesce(
         &self,
         previous: &DocumentMutation,
         incoming: &DocumentMutation,
+        _: longhorn_history::HistoryCoalesceContext<'_>,
     ) -> Result<HistoryCoalesce<DocumentMutation>, Self::Error> {
         Ok(match (previous, incoming) {
             (
@@ -156,10 +161,15 @@ impl HistoryPolicy<DocumentMutation> for RejectingPolicy {
         false
     }
 
+    fn encoded_weight(&self, _: &DocumentMutation) -> Result<u64, Self::Error> {
+        Err(RejectCoalesce)
+    }
+
     fn coalesce(
         &self,
         _: &DocumentMutation,
         _: &DocumentMutation,
+        _: longhorn_history::HistoryCoalesceContext<'_>,
     ) -> Result<HistoryCoalesce<DocumentMutation>, Self::Error> {
         Err(RejectCoalesce)
     }

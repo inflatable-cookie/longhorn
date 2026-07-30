@@ -2,14 +2,14 @@ use std::{error::Error, fmt};
 
 use longhorn_core::HistoryRevision;
 use longhorn_history::{
-    HistoryCoalesce, HistoryEntrySequence, HistoryLimits, HistoryPolicy, HistoryRecordError,
+    HistoryCoalesce, HistoryCoalesceContext, HistoryEntrySequence, HistoryLimits, HistoryPolicy,
     HistoryRecordOutcome, LinearHistory, LinearHistoryState,
 };
 
 use crate::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-enum PulseFixtureMutation {
+pub(crate) enum PulseFixtureMutation {
     RenameTrack {
         track_id: u32,
         before: String,
@@ -23,11 +23,14 @@ enum PulseFixtureMutation {
         track_id: u32,
         snapshot: String,
     },
+    Compound {
+        mutations: Vec<PulseFixtureMutation>,
+    },
     Unsupported,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PulseFixturePolicyError;
+pub(crate) struct PulseFixturePolicyError;
 
 impl fmt::Display for PulseFixturePolicyError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -37,7 +40,7 @@ impl fmt::Display for PulseFixturePolicyError {
 
 impl Error for PulseFixturePolicyError {}
 
-struct PulseFixturePolicy;
+pub(crate) struct PulseFixturePolicy;
 
 impl HistoryPolicy<PulseFixtureMutation> for PulseFixturePolicy {
     type Error = PulseFixturePolicyError;
@@ -65,6 +68,13 @@ impl HistoryPolicy<PulseFixtureMutation> for PulseFixturePolicy {
                     snapshot: snapshot.clone(),
                 })
             }
+            PulseFixtureMutation::Compound { mutations } => Ok(PulseFixtureMutation::Compound {
+                mutations: mutations
+                    .iter()
+                    .rev()
+                    .map(|mutation| self.inverse(mutation))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
             PulseFixtureMutation::Unsupported => Err(PulseFixturePolicyError),
         }
     }
@@ -73,13 +83,40 @@ impl HistoryPolicy<PulseFixtureMutation> for PulseFixturePolicy {
         matches!(
             payload,
             PulseFixtureMutation::RenameTrack { before, after, .. } if before == after
+        ) || matches!(
+            payload,
+            PulseFixtureMutation::Compound { mutations }
+                if mutations.iter().all(|mutation| self.is_noop(mutation))
         )
+    }
+
+    fn encoded_weight(&self, payload: &PulseFixtureMutation) -> Result<u64, Self::Error> {
+        match payload {
+            PulseFixtureMutation::RenameTrack { before, after, .. } => {
+                u64::try_from(before.len() + after.len() + std::mem::size_of::<u32>())
+                    .map_err(|_| PulseFixturePolicyError)
+            }
+            PulseFixtureMutation::DeleteTrack { snapshot, .. }
+            | PulseFixtureMutation::RestoreTrack { snapshot, .. } => {
+                u64::try_from(snapshot.len() + std::mem::size_of::<u32>())
+                    .map_err(|_| PulseFixturePolicyError)
+            }
+            PulseFixtureMutation::Compound { mutations } => {
+                mutations.iter().try_fold(0_u64, |total, mutation| {
+                    total
+                        .checked_add(self.encoded_weight(mutation)?)
+                        .ok_or(PulseFixturePolicyError)
+                })
+            }
+            PulseFixtureMutation::Unsupported => Ok(1),
+        }
     }
 
     fn coalesce(
         &self,
         previous: &PulseFixtureMutation,
         incoming: &PulseFixtureMutation,
+        context: HistoryCoalesceContext<'_>,
     ) -> Result<HistoryCoalesce<PulseFixtureMutation>, Self::Error> {
         match (previous, incoming) {
             (
@@ -104,12 +141,22 @@ impl HistoryPolicy<PulseFixtureMutation> for PulseFixturePolicy {
                     ))
                 }
             }
-            _ => Ok(HistoryCoalesce::KeepSeparate),
+            _ => Ok(match context {
+                HistoryCoalesceContext::Adjacent => HistoryCoalesce::KeepSeparate,
+                HistoryCoalesceContext::Group { .. } => {
+                    let mut mutations = match previous {
+                        PulseFixtureMutation::Compound { mutations } => mutations.clone(),
+                        previous => vec![previous.clone()],
+                    };
+                    mutations.push(incoming.clone());
+                    HistoryCoalesce::Replace(PulseFixtureMutation::Compound { mutations })
+                }
+            }),
         }
     }
 }
 
-fn rename(track_id: u32, before: &str, after: &str) -> PulseFixtureMutation {
+pub(crate) fn rename(track_id: u32, before: &str, after: &str) -> PulseFixtureMutation {
     PulseFixtureMutation::RenameTrack {
         track_id,
         before: before.to_owned(),
@@ -272,9 +319,9 @@ fn pulse_shaped_import_preserves_full_linear_shape_and_divergence_clears_future(
         &entry_id("entry:0004")
     );
 
-    let restored =
-        LinearHistory::from_state(HistoryLimits::default(), history.clone().into_state()).unwrap();
-    assert_eq!(restored, history);
+    let structural = history.clone().into_state();
+    let restored = LinearHistory::from_state(HistoryLimits::default(), structural.clone()).unwrap();
+    assert_eq!(restored.into_state(), structural);
 }
 
 #[test]
@@ -327,10 +374,10 @@ fn standalone_noop_is_explicit_and_does_not_destroy_future() {
 }
 
 #[test]
-fn donor_default_limit_is_preserved_without_stealing_retention_policy() {
+fn donor_default_limit_prunes_oldest_with_explicit_baseline_evidence() {
     assert_eq!(HistoryLimits::default().maximum_entries(), 100);
 
-    let limits = HistoryLimits::new(1, 1_024).unwrap();
+    let limits = HistoryLimits::new(1, 1_024, 1_024).unwrap();
     let mut history = LinearHistory::new(history_id("history:pulse"), limits);
     history
         .record_applied(
@@ -346,10 +393,8 @@ fn donor_default_limit_is_preserved_without_stealing_retention_policy() {
             &PulseFixturePolicy,
         )
         .unwrap();
-    let before = history.clone();
-
-    assert_eq!(
-        history.record_applied(
+    let result = history
+        .record_applied(
             record(
                 1,
                 "entry:0002",
@@ -360,8 +405,16 @@ fn donor_default_limit_is_preserved_without_stealing_retention_policy() {
                 },
             ),
             &PulseFixturePolicy,
-        ),
-        Err(HistoryRecordError::EntryLimitReached { maximum: 1 })
+        )
+        .unwrap();
+    assert_eq!(history.applied().len(), 1);
+    assert_eq!(
+        history.current().unwrap().entry_id(),
+        &entry_id("entry:0002")
     );
-    assert_eq!(history, before);
+    assert_eq!(
+        result.pruning().advanced_baseline()[0].entry_id(),
+        &entry_id("entry:0001")
+    );
+    assert_eq!(history.retained_baseline().pruned_entry_count(), 1);
 }

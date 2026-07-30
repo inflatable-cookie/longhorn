@@ -1,6 +1,6 @@
 # 065 History Persistence And Committed Transition Stream
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.011 batch 2
 Governing refs: contracts 003, 004, 008, 010, and 012; research memo 015

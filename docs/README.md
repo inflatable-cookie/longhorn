@@ -124,7 +124,11 @@ Loophole's product-owned mutation, apply, snapshot, journal, recovery, and
 version semantics. Cards 062-067 form the public linear runway. Card 062
 implements bounded history identity, typed policy seams, validated
 applied/future state, explicit record/coalesce outcomes, and Loophole plus
-document fixtures. Card 068 is a private fork prototype and Card 069 the
-mandatory promotion decision. Card 063 is ready.
+document fixtures. Card 063 adds immutable undo/redo/checkout plans, injected
+atomic product transactions, checked commit, failure invariance, and
+authoritative position receipts. Card 064 adds explicit and timed grouping,
+count and encoded-weight retention, exact pruning, and authoritative
+past/current/future pages. Card 068 is a private fork prototype and Card 069
+the mandatory promotion decision. Card 065 is ready.
 
 The live next-task pointer lives in the roadmap front doors.

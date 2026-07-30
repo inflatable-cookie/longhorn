@@ -1,6 +1,6 @@
 # 063 Transactional Linear Navigation And Failure Invariance
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 1
 Governing refs: contracts 007, 008, and 010; research memo 015
@@ -81,5 +81,5 @@ ids authorize checkout.
 
 ## Next Task
 
-Card 064 is planned. Add explicit coalescing, gesture groups, retention, and
+Card 064 is ready. Add explicit coalescing, gesture groups, retention, and
 authoritative projections over the transactional core.

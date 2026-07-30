@@ -6,12 +6,10 @@ None.
 
 ## Ready
 
-- [063 Transactional Linear Navigation And Failure Invariance](063-transactional-linear-navigation-and-failure-invariance.md)
+- [065 History Persistence And Committed Transition Stream](065-history-persistence-and-committed-transition-stream.md)
 
 ## Planned
 
-- [064 History Coalescing, Grouping, Retention, And Projections](064-history-coalescing-grouping-retention-and-projections.md)
-- [065 History Persistence And Committed Transition Stream](065-history-persistence-and-committed-transition-stream.md)
 - [066 Generated History Client, Tauri, Svelte, And Poodle](066-generated-history-client-tauri-svelte-and-poodle.md)
 - [067 Linear History Artifact Proof And Checkpoint](067-linear-history-artifact-proof-and-checkpoint.md)
 - [068 Private Forkable History Tree Prototype](068-private-forkable-history-tree-prototype.md)
@@ -81,8 +79,10 @@ None.
 - [060 Command Clients, Svelte Sessions, And Poodle Projections](060-command-clients-svelte-sessions-and-poodle-projections.md)
 - [061 Command System Artifact Proof And Closeout](061-command-system-artifact-proof-and-closeout.md)
 - [062 Lossless History Donor Fixtures And Typed Foundation](062-lossless-history-donor-fixtures-and-typed-foundation.md)
+- [063 Transactional Linear Navigation And Failure Invariance](063-transactional-linear-navigation-and-failure-invariance.md)
+- [064 History Coalescing, Grouping, Retention, And Projections](064-history-coalescing-grouping-retention-and-projections.md)
 
 ## Next Task
 
-Execute Card 063. Keep navigation plan/apply/commit revision-bound and leave
-product mutation authority in the consumer.
+Execute Card 065. Keep persistence compatibility, recovery, and committed
+transition records separate from product snapshots and journal I/O.

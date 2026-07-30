@@ -8,7 +8,7 @@
 ## Active Milestone
 
 `g01.005` through `g01.010` are complete. Research memo 015 and compiled
-contract 008 open g01.011. Card 062 is complete; Card 063 is ready.
+contract 008 open g01.011. Cards 062-064 are complete; Card 065 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -120,5 +120,5 @@ Card 069 records the promotion decision.
 
 ## Next Task
 
-Execute Card 063: transactional linear navigation and exact failure
-invariance.
+Execute Card 065: structural persistence, explicit compatibility and recovery,
+and committed transition records.

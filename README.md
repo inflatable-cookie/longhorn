@@ -171,6 +171,10 @@ plan/apply/commit navigation, explicit grouping, bounded retention, structural
 persistence, committed transition records, and metadata-only clients.
 Cards 062-067 form the public linear runway. Card 062 now supplies bounded
 history identity, typed policy seams, validated applied/future state, explicit
-record/coalesce outcomes, and Loophole plus document fixtures. Card 068 is a
+record/coalesce outcomes, and Loophole plus document fixtures. Card 063 adds
+immutable undo/redo/checkout plans, injected atomic product transactions,
+checked commit, failure invariance, and authoritative position receipts. Card
+064 adds explicit and timed grouping, count and encoded-weight retention,
+exact pruning, and authoritative past/current/future pages. Card 068 is a
 private fork-tree prototype; Card 069 makes the explicit promotion decision.
-Card 063 is ready.
+Card 065 is ready.

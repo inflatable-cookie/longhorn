@@ -1,13 +1,15 @@
 use std::convert::Infallible;
 
 use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-    OpaqueIdError,
+    HistoryEntryId, HistoryGroupId, HistoryGroupKeyId, HistoryId, HistoryKindId, HistoryPlanId,
+    HistoryRevision, OpaqueIdError,
 };
 use longhorn_history::{
     HistoryCoalesce, HistoryEntry, HistoryEntrySequence, HistoryLabel, HistoryLabelError,
-    HistoryLimits, HistoryLimitsError, HistoryPolicy, HistoryRecordError, HistoryStateError,
-    LinearHistory, LinearHistoryState, MAXIMUM_HISTORY_LABEL_BYTES,
+    HistoryLimits, HistoryLimitsError, HistoryNavigationLimits, HistoryNavigationLimitsError,
+    HistoryPolicy, HistoryProjectionLimits, HistoryProjectionLimitsError, HistoryRecordError,
+    HistoryRetainedBaseline, HistoryStateError, LinearHistory, LinearHistoryState,
+    MAXIMUM_HISTORY_ENCODED_WEIGHT, MAXIMUM_HISTORY_LABEL_BYTES,
 };
 
 use crate::support::*;
@@ -28,7 +30,16 @@ impl HistoryPolicy<Value> for SeparatePolicy {
         false
     }
 
-    fn coalesce(&self, _: &Value, _: &Value) -> Result<HistoryCoalesce<Value>, Self::Error> {
+    fn encoded_weight(&self, _: &Value) -> Result<u64, Self::Error> {
+        Ok(1)
+    }
+
+    fn coalesce(
+        &self,
+        _: &Value,
+        _: &Value,
+        _: longhorn_history::HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<Value>, Self::Error> {
         Ok(HistoryCoalesce::KeepSeparate)
     }
 }
@@ -39,6 +50,7 @@ fn identities_labels_and_limits_are_bounded_and_distinct() {
     assert!(HistoryEntryId::new("entry:0001").is_ok());
     assert!(HistoryKindId::new("document:insert").is_ok());
     assert!(HistoryGroupId::new("gesture:title").is_ok());
+    assert!(HistoryGroupKeyId::new("gesture:title-key").is_ok());
     assert!(HistoryPlanId::new("plan:0001").is_ok());
     assert_eq!(
         HistoryEntryId::new("Entry"),
@@ -52,7 +64,22 @@ fn identities_labels_and_limits_are_bounded_and_distinct() {
             actual: MAXIMUM_HISTORY_LABEL_BYTES + 1,
         })
     );
-    assert_eq!(HistoryLimits::new(0, 10), Err(HistoryLimitsError::Zero));
+    assert_eq!(HistoryLimits::new(0, 10, 10), Err(HistoryLimitsError::Zero));
+    assert_eq!(
+        HistoryNavigationLimits::new(0, 10),
+        Err(HistoryNavigationLimitsError::Zero)
+    );
+    assert_eq!(
+        HistoryLimits::new(1, MAXIMUM_HISTORY_ENCODED_WEIGHT + 1, 10),
+        Err(HistoryLimitsError::EncodedWeightTooLarge {
+            maximum: MAXIMUM_HISTORY_ENCODED_WEIGHT,
+            actual: MAXIMUM_HISTORY_ENCODED_WEIGHT + 1,
+        })
+    );
+    assert_eq!(
+        HistoryProjectionLimits::new(0),
+        Err(HistoryProjectionLimitsError::Zero)
+    );
 }
 
 #[test]
@@ -105,13 +132,26 @@ fn imported_state_rejects_duplicate_ids_order_revision_and_next_sequence() {
         LinearHistory::from_state(limits, stale_next),
         Err(HistoryStateError::NextSequenceNotAfterEntries)
     );
+
+    let invalid_baseline = LinearHistoryState::with_retained_baseline(
+        history_id("history:invalid-baseline"),
+        HistoryRevision::INITIAL,
+        HistoryEntrySequence::FIRST,
+        HistoryRetainedBaseline::new(1, 0, None, None),
+        Vec::<HistoryEntry<Value>>::new(),
+        Vec::new(),
+    );
+    assert_eq!(
+        LinearHistory::from_state(limits, invalid_baseline),
+        Err(HistoryStateError::InvalidRetainedBaseline)
+    );
 }
 
 #[test]
 fn stale_duplicate_bound_and_overflow_rejections_are_failure_atomic() {
     let mut history = LinearHistory::new(
         history_id("history:test"),
-        HistoryLimits::new(4, 3).unwrap(),
+        HistoryLimits::new(4, 10, 3).unwrap(),
     );
     history
         .record_applied(
@@ -177,6 +217,7 @@ fn stale_duplicate_bound_and_overflow_rejections_are_failure_atomic() {
             metadata("One", "test:value"),
             HistoryEntrySequence::new(u64::MAX - 1).unwrap(),
             HistoryRevision::new(1),
+            1,
             Value(1),
         )],
         Vec::new(),
@@ -205,7 +246,16 @@ impl HistoryPolicy<Value> for ReplacingPolicy {
         false
     }
 
-    fn coalesce(&self, _: &Value, incoming: &Value) -> Result<HistoryCoalesce<Value>, Self::Error> {
+    fn encoded_weight(&self, _: &Value) -> Result<u64, Self::Error> {
+        Ok(1)
+    }
+
+    fn coalesce(
+        &self,
+        _: &Value,
+        incoming: &Value,
+        _: longhorn_history::HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<Value>, Self::Error> {
         Ok(HistoryCoalesce::Replace(incoming.clone()))
     }
 }
@@ -213,25 +263,22 @@ impl HistoryPolicy<Value> for ReplacingPolicy {
 #[test]
 fn committed_group_boundary_prevents_cross_group_coalescing() {
     let mut history = LinearHistory::new(history_id("history:groups"), HistoryLimits::default());
+    let group_1 = HistoryGroupId::new("group:1").unwrap();
+    history.open_group(group_1.clone()).unwrap();
     history
-        .record_applied(
-            record(
-                0,
-                "entry:1",
-                grouped_metadata("First", "test:value", "group:1"),
-                Value(1),
-            ),
+        .record_in_group(
+            record(0, "entry:1", metadata("First", "test:value"), Value(1)),
+            &group_1,
             &ReplacingPolicy,
         )
         .unwrap();
+    history.close_group(&group_1).unwrap();
+    let group_2 = HistoryGroupId::new("group:2").unwrap();
+    history.open_group(group_2.clone()).unwrap();
     history
-        .record_applied(
-            record(
-                1,
-                "entry:2",
-                grouped_metadata("Second", "test:value", "group:2"),
-                Value(2),
-            ),
+        .record_in_group(
+            record(1, "entry:2", metadata("Second", "test:value"), Value(2)),
+            &group_2,
             &ReplacingPolicy,
         )
         .unwrap();
@@ -261,7 +308,16 @@ impl HistoryPolicy<Value> for InvalidReplacementPolicy {
         payload.0 == 0
     }
 
-    fn coalesce(&self, _: &Value, _: &Value) -> Result<HistoryCoalesce<Value>, Self::Error> {
+    fn encoded_weight(&self, _: &Value) -> Result<u64, Self::Error> {
+        Ok(1)
+    }
+
+    fn coalesce(
+        &self,
+        _: &Value,
+        _: &Value,
+        _: longhorn_history::HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<Value>, Self::Error> {
         Ok(HistoryCoalesce::Replace(Value(0)))
     }
 }

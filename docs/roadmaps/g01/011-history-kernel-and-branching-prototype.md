@@ -24,8 +24,8 @@ forward.
 ### Batch 1: Pure linear authority
 
 - [x] Card 062: lossless donor fixtures and typed entry/policy foundation
-- [ ] Card 063: transactional navigation and failure invariance
-- [ ] Card 064: coalescing, grouping, retention, and projections
+- [x] Card 063: transactional navigation and failure invariance
+- [x] Card 064: coalescing, grouping, retention, and projections
 
 ### Batch 2: Persistence and client composition
 
@@ -119,6 +119,6 @@ checkpoint; it cannot auto-promote the prototype.
 
 ## Next Task
 
-Execute Card 063. Add revision-bound undo, redo, and entry-id checkout planning
-plus checked post-apply commit. Stop if the core must mutate the product model
-or stack position must move before product success.
+Execute Card 065. Add structural and payload compatibility, explicit recovery,
+and committed transition records without moving product snapshots, journal
+files, or durability policy into Longhorn.

@@ -108,6 +108,10 @@ impl HistoryEntryMetadata {
     pub const fn group_id(&self) -> Option<&HistoryGroupId> {
         self.group_id.as_ref()
     }
+
+    pub(crate) fn set_group_id(&mut self, group_id: Option<HistoryGroupId>) {
+        self.group_id = group_id;
+    }
 }
 
 /// One retained typed history entry.
@@ -117,6 +121,7 @@ pub struct HistoryEntry<P> {
     metadata: HistoryEntryMetadata,
     sequence: HistoryEntrySequence,
     committed_revision: HistoryRevision,
+    encoded_weight: u64,
     payload: P,
 }
 
@@ -128,6 +133,7 @@ impl<P> HistoryEntry<P> {
         metadata: HistoryEntryMetadata,
         sequence: HistoryEntrySequence,
         committed_revision: HistoryRevision,
+        encoded_weight: u64,
         payload: P,
     ) -> Self {
         Self {
@@ -135,6 +141,7 @@ impl<P> HistoryEntry<P> {
             metadata,
             sequence,
             committed_revision,
+            encoded_weight,
             payload,
         }
     }
@@ -163,6 +170,12 @@ impl<P> HistoryEntry<P> {
         self.committed_revision
     }
 
+    /// Returns the consumer-measured encoded payload weight.
+    #[must_use]
+    pub const fn encoded_weight(&self) -> u64 {
+        self.encoded_weight
+    }
+
     /// Returns the typed consumer payload.
     #[must_use]
     pub const fn payload(&self) -> &P {
@@ -173,10 +186,12 @@ impl<P> HistoryEntry<P> {
         &mut self,
         metadata: HistoryEntryMetadata,
         committed_revision: HistoryRevision,
+        encoded_weight: u64,
         payload: P,
     ) {
         self.metadata = metadata;
         self.committed_revision = committed_revision;
+        self.encoded_weight = encoded_weight;
         self.payload = payload;
     }
 }

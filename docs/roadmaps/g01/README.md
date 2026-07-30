@@ -228,11 +228,15 @@ implements coordinated persistence, checked protocol, and narrow Tauri
 hosting. Card 060 adds projection and UI adapters. Card 061 adds isolated
 artifact proof and closes g01.010. Card 062 adds typed policy, bounded
 identity, validated linear state, record/coalesce outcomes, and two-shape
-fixtures. Cards 063-067 complete the public linear history runway. Card 068 is
-the private fork prototype. Card 069 is the mandatory promotion decision and
+fixtures. Card 063 adds immutable navigation plans, injected atomic apply,
+checked commit, failure invariance, and authoritative position receipts.
+Card 064 adds explicit and injected-time grouping, count and encoded-weight
+retention, exact baseline/future pruning, and authoritative metadata pages.
+Cards 065-067 complete the public linear history runway. Card 068 is the
+private fork prototype. Card 069 is the mandatory promotion decision and
 g01.011 closeout.
 
 ## Next Task
 
-Execute Card 063: revision-bound transactional navigation and failure
-invariance.
+Execute Card 065: structural persistence, explicit compatibility and recovery,
+and committed transition records.

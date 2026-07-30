@@ -83,3 +83,5 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Command System Artifact Proof And Closeout](2026-07/30-command-system-artifact-proof-and-closeout.md)
 - [History Kernel And Fork Boundary Compilation](2026-07/30-history-kernel-and-fork-boundary-compilation.md)
 - [Lossless History Donor Fixtures And Typed Foundation](2026-07/30-lossless-history-donor-fixtures-and-typed-foundation.md)
+- [Transactional Linear Navigation And Failure Invariance](2026-07/30-transactional-linear-navigation-and-failure-invariance.md)
+- [History Coalescing, Grouping, Retention, And Projections](2026-07/30-history-coalescing-grouping-retention-and-projections.md)

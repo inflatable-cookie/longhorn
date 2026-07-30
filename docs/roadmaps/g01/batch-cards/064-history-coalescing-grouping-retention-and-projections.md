@@ -1,6 +1,6 @@
 # 064 History Coalescing, Grouping, Retention, And Projections
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 1
 Governing refs: contracts 008 and 010; research memo 015
@@ -84,5 +84,5 @@ do not remember lost entries as authority.
 
 ## Next Task
 
-Card 065 is planned. Add explicit structural persistence compatibility and the
+Card 065 is ready. Add explicit structural persistence compatibility and the
 committed transition seam used by consumer journals.
