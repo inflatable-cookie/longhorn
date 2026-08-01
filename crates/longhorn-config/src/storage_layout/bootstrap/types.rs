@@ -76,6 +76,15 @@ impl StorageProfileSelection {
         }
     }
 
+    /// Selects the shared durable product root profile.
+    #[must_use]
+    pub const fn shared_product() -> Self {
+        Self {
+            profile: StorageProfile::SharedProductRootV1,
+            explicit_root: None,
+        }
+    }
+
     /// Selects an explicit absolute portable root.
     pub fn portable(root: impl Into<PathBuf>) -> Result<Self, StorageProfileSelectionError> {
         let root = root.into();
@@ -105,6 +114,7 @@ impl StorageProfileSelection {
             (_, Some(root)) => Err(StorageProfileSelectionError::RootForbidden { profile, root }),
             (StorageProfile::PlatformNativeV1, None) => Ok(Self::platform_native()),
             (StorageProfile::UnifiedAppRootV1, None) => Ok(Self::unified()),
+            (StorageProfile::SharedProductRootV1, None) => Ok(Self::shared_product()),
         }
     }
 

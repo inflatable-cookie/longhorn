@@ -113,3 +113,50 @@ fn host_bypass_needs_no_bootstrap_fact_and_invalid_locators_fail_closed() {
         &StorageBootstrapRecoveryKind::InvalidDocument
     );
 }
+
+#[test]
+fn shared_product_profile_round_trips_through_the_canonical_locator() {
+    let temp = tempdir().unwrap();
+    let identity = StorageIdentity::new("com.inflatablecookie.loophole")
+        .unwrap()
+        .with_storage_name("Loophole")
+        .unwrap();
+    let facts = PlatformDirectoryFacts::new(TargetPlatform::Linux).with(
+        PlatformDirectoryFact::Config,
+        temp.path().join("xdg-config"),
+    );
+    let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    fs::create_dir_all(paths.directory()).unwrap();
+    fs::write(
+        paths.locator(),
+        serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "canonicalApplicationId": "com.inflatablecookie.loophole",
+            "profileId": "shared-product-root-v1",
+            "explicitRoot": null,
+            "transitionId": "loophole-storage-v1",
+            "lastCommittedLayoutSha256": null
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let StorageBootstrapState::Selected(selected) =
+        inspect_storage_bootstrap(&identity, &facts, None).unwrap()
+    else {
+        panic!("shared-product locator did not select");
+    };
+    assert_eq!(selected.origin(), StorageBootstrapOrigin::Locator);
+    assert_eq!(
+        selected.selection(),
+        &StorageProfileSelection::shared_product()
+    );
+    assert_eq!(selected.transition_id(), Some("loophole-storage-v1"));
+    assert!(
+        selected
+            .paths()
+            .unwrap()
+            .locator()
+            .starts_with(temp.path().join("xdg-config/com.inflatablecookie.loophole"))
+    );
+}

@@ -111,6 +111,20 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-loophole-card102-freeze" },
   { task = "verify:loophole-card102-freeze" },
 ]
+"check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
+"test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
+"check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"
+"qa:northstar:g01-loophole-card103-storage" = [
+  { task = "check:northstar:g01-loophole-card103-storage" },
+  { task = "check:config-bindings" },
+  { task = "test:loophole-card103-storage" },
+  { task = "check:config-ts" },
+  { task = "check:config-svelte" },
+  { task = "test:config-ts" },
+  { task = "test:config-svelte" },
+  { task = "check:config-package" },
+  { task = "check:loophole-card103-rust-packages" },
+]
 "check:northstar:g01-nucleus-card094-freeze" = "effigy docs check paths effigy.toml fixtures/migration/nucleus-card094/behavior-freeze-v1.json fixtures/layout/nucleus-conformance-v1.json scripts/verify-nucleus-card094.ts docs/architecture/nucleus-migration-map.md docs/architecture/poodle-overlay-geometry-boundary.md docs/architecture/repo-authority-map.md docs/contracts/contract-index.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/094-nucleus-behavior-authority-and-rollback-freeze.md docs/roadmaps/g01/batch-cards/095-nucleus-private-artifact-and-cutover-admission.md docs/logs/README.md docs/logs/2026-08/01-nucleus-behavior-authority-and-rollback-freeze.md docs/logs/2026-08/01-poodle-overlay-geometry-admission.md"
 "verify:nucleus-card094-freeze" = "bun scripts/verify-nucleus-card094.ts"
 "qa:northstar:g01-nucleus-card094-freeze" = [

@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: compiled; Card 103 operator-held; no donor migration writes admitted
+Status: executing; Card 103 complete; Card 104 ready
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: contracts 002-014;
@@ -24,7 +24,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
 ### Batch 1: freeze and admission
 
 - [x] freeze current behavior, authority, Echo disposition, and rollback
-- [ ] select the exact shared-product storage matrix and align contracts
+- [x] select the exact shared-product storage matrix and align contracts
 - [ ] restore clean Loophole baseline health
 - [ ] admit exact private Longhorn and Poodle source and artifact graphs
 
@@ -83,11 +83,11 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 Operator-held:
 
-- `batch-cards/103-loophole-storage-policy-and-profile-selection.md`
+- none
 
 Ready:
 
-- none
+- `batch-cards/104-loophole-baseline-and-private-artifact-admission.md`
 
 Active:
 
@@ -95,7 +95,6 @@ Active:
 
 Planned:
 
-- `batch-cards/104-loophole-baseline-and-private-artifact-admission.md`
 - `batch-cards/105-loophole-storage-and-domain-transition.md`
 - `batch-cards/106-loophole-display-and-window-host-cutover.md`
 - `batch-cards/107-loophole-registered-layout-authority-cutover.md`
@@ -108,6 +107,7 @@ Planned:
 Complete:
 
 - `batch-cards/102-loophole-behavior-authority-and-rollback-freeze.md`
+- `batch-cards/103-loophole-storage-policy-and-profile-selection.md`
 
 ## Planning Checkpoint
 
@@ -117,11 +117,11 @@ eight regions, storage mismatch, Echo disposition, public Poodle drag seam,
 baseline is blocked by two incompatible `libsqlite3-sys` link graphs. No donor
 migration writes are admitted.
 
-The canonical Aura id remains `com.inflatablecookie.loophole`, but Chorus
-explicitly chooses the stable product root `Loophole`. The nearest Longhorn
-profile is only a partial match: macOS matches, Windows differs on roaming
-versus local parent, and Linux differs on exact leaf casing. Card 103 is held
-for that matrix decision. Per-purpose overrides will not disguise the gap.
+The canonical Aura id remains `com.inflatablecookie.loophole`. Card 103 records
+the stable product root `Loophole` with exact casing on every platform and
+keeps roaming AppData on Windows. Longhorn now implements the matrix as
+`shared-product-root-v1` from one injected shared-data parent. Existing
+profile ids remain unchanged and per-purpose overrides are unnecessary.
 
 Keyboard, keymap, palette, and conflict semantics can migrate under contract
 006. Extended triggers and macros remain Loophole adapters. Linear history can
@@ -130,5 +130,5 @@ Pulse journal integration survive; branch mode stays disabled.
 
 ## Next Task
 
-Resolve Card 103's Windows parent and Linux leaf decisions. Then implement and
-prove the selected profile in Longhorn before touching Loophole migration code.
+Execute Card 104. Restore clean Loophole baseline health and admit the exact
+private dependency graph before migration writes.

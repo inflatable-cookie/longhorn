@@ -19,6 +19,7 @@ impl From<StorageProfile> for StorageProfileId {
         match value {
             StorageProfile::PlatformNativeV1 => Self::PlatformNativeV1,
             StorageProfile::UnifiedAppRootV1 => Self::UnifiedAppRootV1,
+            StorageProfile::SharedProductRootV1 => Self::SharedProductRootV1,
             StorageProfile::PortableV1 => Self::PortableV1,
         }
     }
@@ -188,6 +189,9 @@ fn root_provenance_id(value: StorageRootProvenance) -> String {
         StorageRootProvenance::UnifiedProfile(fact) => {
             format!("unified:{}", directory_fact_id(fact))
         }
+        StorageRootProvenance::SharedProductProfile(fact) => {
+            format!("shared-product:{}", directory_fact_id(fact))
+        }
         StorageRootProvenance::PortableProfile => "portable".into(),
         StorageRootProvenance::DerivedFrom(root) => {
             format!("derived:{}", root_kind_id(root))
@@ -200,6 +204,7 @@ const fn directory_fact_id(value: PlatformDirectoryFact) -> &'static str {
     match value {
         PlatformDirectoryFact::Config => "config",
         PlatformDirectoryFact::Data => "data",
+        PlatformDirectoryFact::SharedData => "shared-data",
         PlatformDirectoryFact::State => "state",
         PlatformDirectoryFact::Cache => "cache",
         PlatformDirectoryFact::Log => "log",
@@ -212,6 +217,12 @@ const fn warning_id(value: StorageLayoutWarning) -> &'static str {
         StorageLayoutWarning::UnifiedCacheLifecycle => "unified-cache-lifecycle",
         StorageLayoutWarning::UnifiedRuntimeLifecycle => "unified-runtime-lifecycle",
         StorageLayoutWarning::UnifiedBackupClassification => "unified-backup-classification",
+        StorageLayoutWarning::SharedProductCacheLifecycle => "shared-product-cache-lifecycle",
+        StorageLayoutWarning::SharedProductLogLifecycle => "shared-product-log-lifecycle",
+        StorageLayoutWarning::SharedProductRuntimeLifecycle => "shared-product-runtime-lifecycle",
+        StorageLayoutWarning::SharedProductBackupClassification => {
+            "shared-product-backup-classification"
+        }
         StorageLayoutWarning::PortableLifecycle => "portable-lifecycle",
     }
 }

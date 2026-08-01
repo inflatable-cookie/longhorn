@@ -125,6 +125,8 @@ pub enum StorageProfileId {
     PlatformNativeV1,
     /// One durable app root with typed child roots.
     UnifiedAppRootV1,
+    /// One shared durable product root with typed child roots.
+    SharedProductRootV1,
     /// One user-selected portable root with typed child roots.
     PortableV1,
 }

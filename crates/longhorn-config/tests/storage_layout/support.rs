@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use longhorn_config::{
-    PlatformDirectoryFacts, ResolvedStorageLayout, RootKind, StorageIdentity, StorageLayoutRequest,
-    TargetPlatform, resolve_storage_layout,
+    PlatformDirectoryFact, PlatformDirectoryFacts, ResolvedStorageLayout, RootKind,
+    StorageIdentity, StorageLayoutRequest, TargetPlatform, resolve_storage_layout,
 };
 
 pub(crate) const APP_ID: &str = "com.inflatablecookie.example";
@@ -17,6 +17,10 @@ pub(crate) fn facts(platform: TargetPlatform) -> PlatformDirectoryFacts {
             "/Users/example/Library/Caches",
             "/Users/example/Library/Logs",
             "/private/tmp",
+        )
+        .with(
+            PlatformDirectoryFact::SharedData,
+            "/Users/example/Library/Application Support",
         ),
         TargetPlatform::Windows => PlatformDirectoryFacts::complete(
             platform,
@@ -26,7 +30,8 @@ pub(crate) fn facts(platform: TargetPlatform) -> PlatformDirectoryFacts {
             "/windows/LocalAppData",
             "/windows/LocalAppData",
             "/windows/Temp",
-        ),
+        )
+        .with(PlatformDirectoryFact::SharedData, "/windows/RoamingAppData"),
         TargetPlatform::Linux => PlatformDirectoryFacts::complete(
             platform,
             "/home/example/.config",
@@ -35,6 +40,10 @@ pub(crate) fn facts(platform: TargetPlatform) -> PlatformDirectoryFacts {
             "/home/example/.cache",
             "/home/example/.local/state",
             "/run/user/1000",
+        )
+        .with(
+            PlatformDirectoryFact::SharedData,
+            "/home/example/.local/share",
         ),
     }
 }

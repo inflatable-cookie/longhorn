@@ -28,9 +28,10 @@ Card 102 compiles g01.015 into Cards 102-112 from a clean read-only Loophole
 and Poodle audit. The runway covers stable shared-product storage, exact
 private artifact admission, display/window hosting, registered layout,
 regional and focused Surfaces, public Poodle transfer, settings, keyboard and
-palette, full linear-history import, and closeout. Card 103 is operator-held
-on the Windows storage parent and Linux leaf. Loophole's pre-existing SQLite
-link conflict remains a later admission gate.
+palette, full linear-history import, and closeout. Card 103 selects and proves
+`shared-product-root-v1` with roaming AppData on Windows and exact `Loophole`
+casing everywhere. Loophole's pre-existing SQLite link conflict is Card 104's
+first admission gate.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -163,5 +164,5 @@ this host.
 
 ## Next Task
 
-Resolve g01.015 Card 103's two storage choices. Then implement and prove the
-selected profile before Loophole artifact admission or migration writes.
+Execute g01.015 Card 104. Restore clean Loophole baseline health and admit the
+exact private dependency graph before migration writes.

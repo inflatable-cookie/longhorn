@@ -162,6 +162,62 @@ fn unified_profile_matrix_needs_only_data_fact_and_reports_consequences() {
 }
 
 #[test]
+fn shared_product_profile_uses_one_exact_stable_leaf_across_platforms() {
+    let identity = StorageIdentity::new("com.inflatablecookie.loophole")
+        .unwrap()
+        .with_storage_name("Loophole")
+        .unwrap();
+
+    for (platform, parent) in [
+        (
+            TargetPlatform::MacOs,
+            "/Users/example/Library/Application Support",
+        ),
+        (TargetPlatform::Windows, "/windows/RoamingAppData"),
+        (TargetPlatform::Linux, "/home/example/.local/share"),
+    ] {
+        let supplied =
+            PlatformDirectoryFacts::new(platform).with(PlatformDirectoryFact::SharedData, parent);
+        let layout = resolve_storage_layout(
+            &StorageLayoutRequest::new(identity.clone(), supplied)
+                .with_profile(StorageProfile::SharedProductRootV1),
+        )
+        .unwrap();
+
+        assert_eq!(layout.effective_leaf(), "Loophole");
+        for (kind, child) in [
+            (RootKind::Config, "config"),
+            (RootKind::Data, "data"),
+            (RootKind::State, "state"),
+            (RootKind::Cache, "cache"),
+            (RootKind::Runtime, "runtime"),
+            (RootKind::Log, "logs"),
+            (RootKind::Backup, "backups"),
+        ] {
+            assert_eq!(
+                layout.root(kind).unwrap().path(),
+                PathBuf::from(parent).join("Loophole").join(child)
+            );
+            assert_eq!(
+                layout.root(kind).unwrap().provenance(),
+                longhorn_config::StorageRootProvenance::SharedProductProfile(
+                    PlatformDirectoryFact::SharedData,
+                )
+            );
+        }
+        assert_eq!(
+            layout.warnings(),
+            [
+                StorageLayoutWarning::SharedProductCacheLifecycle,
+                StorageLayoutWarning::SharedProductLogLifecycle,
+                StorageLayoutWarning::SharedProductRuntimeLifecycle,
+                StorageLayoutWarning::SharedProductBackupClassification,
+            ]
+        );
+    }
+}
+
+#[test]
 fn portable_profile_needs_no_platform_facts_or_leaf_overrides() {
     for platform in [
         TargetPlatform::MacOs,

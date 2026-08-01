@@ -62,6 +62,7 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
             available_profiles: vec![
                 StorageProfileId::PlatformNativeV1,
                 StorageProfileId::UnifiedAppRootV1,
+                StorageProfileId::SharedProductRootV1,
                 StorageProfileId::PortableV1,
             ],
         }),

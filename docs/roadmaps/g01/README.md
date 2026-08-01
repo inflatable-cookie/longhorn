@@ -18,7 +18,7 @@
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
-| [g01.015](015-loophole-full-hosting-migration.md) | compiled; operator-held | advanced full-stack consumer |
+| [g01.015](015-loophole-full-hosting-migration.md) | executing; Card 104 ready | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
@@ -330,12 +330,12 @@ freezes the five-level hierarchy, regional and focused-panel habitats, generic
 Echo disposition, stable `Loophole` storage identity, public drag seam,
 settings/command split, 83-variant Pulse history boundary, and rollback order.
 Cards 103-112 form the storage-policy, admission, foundation, hierarchy,
-shell-system, linear-history, and closeout runway. Card 103 is operator-held on
-the Windows storage parent and Linux leaf. Loophole donor health is separately
-blocked by a pre-existing SQLite link conflict. No migration writes are
-admitted.
+shell-system, linear-history, and closeout runway. Card 103 selects and proves
+`shared-product-root-v1`: roaming AppData on Windows and exact `Loophole`
+casing on every platform. Loophole donor health remains separately blocked by
+a pre-existing SQLite link conflict. No migration writes are admitted.
 
 ## Next Task
 
-Resolve Card 103's Windows parent and Linux leaf decisions. Then implement the
-selected shared-product storage profile before Loophole artifact admission.
+Execute Card 104. Restore clean Loophole baseline health and admit the exact
+private dependency graph before migration writes.

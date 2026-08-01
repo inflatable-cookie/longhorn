@@ -189,6 +189,8 @@
         return "Platform native";
       case "unified-app-root-v1":
         return "Unified app root";
+      case "shared-product-root-v1":
+        return "Shared product root";
       case "portable-v1":
         return "Portable";
     }

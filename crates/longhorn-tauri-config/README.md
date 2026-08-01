@@ -2,6 +2,11 @@
 
 Tauri path mapping plus an injected config-operation command edge.
 
+The path adapter injects lifecycle facts without app leaves. On Windows it
+keeps local data and roaming shared-product data distinct: consumers supply
+both `local_data_dir` and `roaming_data_dir`. macOS Application Support and
+Linux XDG data supply both ordinary durable data and shared-product data.
+
 The command assembly owns no storage policy. A consumer authority keeps
 authorization, idempotency, executable transition, retention, and restore
 plans, committed receipts, filesystem selection, pending-publication handling,

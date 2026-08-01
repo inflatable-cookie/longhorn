@@ -30,6 +30,7 @@ import {
 const STORAGE_PROFILES = [
   "platform-native-v1",
   "unified-app-root-v1",
+  "shared-product-root-v1",
   "portable-v1",
 ] as const;
 const RESTORE_CHOICES = ["useArchive", "keepCurrent"] as const;

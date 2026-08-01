@@ -293,6 +293,60 @@ fn target_state_and_overlapping_roots_block_before_mutation() {
 }
 
 #[test]
+fn shared_product_target_is_visible_in_transition_evidence() {
+    let fixture = TransitionFixture::new();
+    let identity = longhorn_config::StorageIdentity::new("com.inflatablecookie.loophole")
+        .unwrap()
+        .with_storage_name("Loophole")
+        .unwrap();
+    let facts = fixture.facts.clone().with(
+        longhorn_config::PlatformDirectoryFact::SharedData,
+        fixture.temp.path().join("shared-product-data"),
+    );
+    let source = longhorn_config::resolve_storage_layout(
+        &longhorn_config::StorageLayoutRequest::new(identity.clone(), facts.clone()),
+    )
+    .unwrap();
+    let target = longhorn_config::resolve_storage_layout(
+        &longhorn_config::StorageLayoutRequest::new(identity.clone(), facts.clone())
+            .with_profile(longhorn_config::StorageProfile::SharedProductRootV1),
+    )
+    .unwrap();
+    let domain = TestDomain::new(
+        "loophole.app-settings",
+        StorageClass::UserConfig,
+        "app/settings.json",
+    );
+    let mut source_store = fixture.store(&source);
+    let mut target_store = fixture.store(&target);
+    source_store.register(&domain).unwrap();
+    target_store.register(&domain).unwrap();
+    let mut catalog = StorageTransitionCatalog::new();
+    catalog.include(&domain).unwrap();
+    let selection = longhorn_config::StorageProfileSelection::shared_product();
+    let bootstrap = longhorn_config::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let request = StorageTransitionRequest::new(
+        &source_store,
+        &target_store,
+        &source,
+        &target,
+        selection.clone(),
+        &catalog,
+        bootstrap,
+    );
+
+    let preview = inspect_storage_transition(&request).unwrap();
+    assert!(preview.conflicts().is_empty());
+    assert_eq!(preview.target_selection(), &selection);
+    assert_eq!(
+        preview.target_layout_digest(),
+        target.digest(),
+        "transition evidence must bind the selected shared-product layout"
+    );
+    assert!(target.storage_roots().config().ends_with("Loophole/config"));
+}
+
+#[test]
 fn declared_legacy_candidates_are_discovered_read_only_with_unknowns_preserved() {
     let fixture = TransitionFixture::new();
     let domains = [

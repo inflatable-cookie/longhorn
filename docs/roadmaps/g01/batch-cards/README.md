@@ -6,11 +6,11 @@ None.
 
 ## Ready
 
-None.
+- [104 Loophole Baseline And Private Artifact Admission](104-loophole-baseline-and-private-artifact-admission.md)
 
 ## Operator-held
 
-- [103 Loophole Storage Policy And Profile Selection](103-loophole-storage-policy-and-profile-selection.md)
+None.
 
 ## Planned
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [104 Loophole Baseline And Private Artifact Admission](104-loophole-baseline-and-private-artifact-admission.md)
 - [105 Loophole Storage And Domain Transition](105-loophole-storage-and-domain-transition.md)
 - [106 Loophole Display And Window Host Cutover](106-loophole-display-and-window-host-cutover.md)
 - [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
@@ -128,8 +127,9 @@ None.
 - [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
 - [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
 - [102 Loophole Behavior, Authority, And Rollback Freeze](102-loophole-behavior-authority-and-rollback-freeze.md)
+- [103 Loophole Storage Policy And Profile Selection](103-loophole-storage-policy-and-profile-selection.md)
 
 ## Next Task
 
-Resolve Card 103's Windows storage parent and Linux leaf. Do not admit Loophole
-migration writes until the selected profile and Card 104 artifact gate pass.
+Execute Card 104. Restore clean Loophole baseline health and admit the exact
+private dependency graph before migration writes.

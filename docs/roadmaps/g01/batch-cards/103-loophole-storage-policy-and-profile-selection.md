@@ -1,6 +1,6 @@
 # 103 Loophole Storage Policy And Profile Selection
 
-Status: operator-held
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 1
 Governing refs: contracts 001, 003, 004, and 012; Card 102;
@@ -22,14 +22,15 @@ multi-process product root without per-purpose path overrides.
 
 ## Operator Decisions
 
-1. Windows root: keep Chorus `%APPDATA%\Loophole` roaming parent, or revise the
-   product contract to Longhorn's local-data parent.
-2. Linux leaf: keep lowercase `loophole`, or use the exact stable storage name
-   `Loophole` on every platform.
+Selected 2026-08-01:
 
-Recommended: keep the shared durable product parent on each platform and use
-one exact `Loophole` leaf everywhere. That produces a reusable
-`shared-product-root-v1` profile and avoids platform-specific identity.
+1. Windows keeps the shared roaming product-data parent: `%APPDATA%\Loophole`.
+2. Linux uses the exact stable storage name `Loophole`, matching macOS and
+   Windows without case normalization.
+
+The resulting immutable profile is `shared-product-root-v1`. It places typed
+children below each platform's shared durable product-data parent and requires
+one explicit stable leaf for Loophole.
 
 ## Scope
 

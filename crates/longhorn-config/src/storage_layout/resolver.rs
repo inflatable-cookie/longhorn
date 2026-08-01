@@ -85,6 +85,7 @@ fn resolve_required_root(
     match request.profile {
         StorageProfile::PlatformNativeV1 => native_root(request, kind, leaf),
         StorageProfile::UnifiedAppRootV1 => unified_root(request, kind, leaf),
+        StorageProfile::SharedProductRootV1 => shared_product_root(request, kind, leaf),
         StorageProfile::PortableV1 => portable_root(request, kind),
     }
 }
@@ -163,6 +164,20 @@ fn unified_root(
     ))
 }
 
+fn shared_product_root(
+    request: &StorageLayoutRequest,
+    kind: RootKind,
+    leaf: &str,
+) -> Result<ResolvedStorageRoot, StorageLayoutError> {
+    let base = required_fact(request, PlatformDirectoryFact::SharedData)?.join(leaf);
+    let child = typed_child(kind);
+    Ok(ResolvedStorageRoot::new(
+        kind,
+        base.join(child),
+        StorageRootProvenance::SharedProductProfile(PlatformDirectoryFact::SharedData),
+    ))
+}
+
 fn portable_root(
     request: &StorageLayoutRequest,
     kind: RootKind,
@@ -171,7 +186,16 @@ fn portable_root(
         .portable_root
         .as_deref()
         .ok_or(StorageLayoutError::PortableRootRequired)?;
-    let child = match kind {
+    let child = typed_child(kind);
+    Ok(ResolvedStorageRoot::new(
+        kind,
+        base.join(child),
+        StorageRootProvenance::PortableProfile,
+    ))
+}
+
+fn typed_child(kind: RootKind) -> &'static str {
+    match kind {
         RootKind::Config => "config",
         RootKind::Data => "data",
         RootKind::State => "state",
@@ -182,12 +206,7 @@ fn portable_root(
         RootKind::Policy | RootKind::Workspace | RootKind::Project => {
             unreachable!("optional roots have separate resolution")
         }
-    };
-    Ok(ResolvedStorageRoot::new(
-        kind,
-        base.join(child),
-        StorageRootProvenance::PortableProfile,
-    ))
+    }
 }
 
 fn required_fact(
@@ -289,6 +308,12 @@ fn warnings(profile: StorageProfile) -> Vec<StorageLayoutWarning> {
             StorageLayoutWarning::UnifiedCacheLifecycle,
             StorageLayoutWarning::UnifiedRuntimeLifecycle,
             StorageLayoutWarning::UnifiedBackupClassification,
+        ],
+        StorageProfile::SharedProductRootV1 => vec![
+            StorageLayoutWarning::SharedProductCacheLifecycle,
+            StorageLayoutWarning::SharedProductLogLifecycle,
+            StorageLayoutWarning::SharedProductRuntimeLifecycle,
+            StorageLayoutWarning::SharedProductBackupClassification,
         ],
         StorageProfile::PortableV1 => vec![StorageLayoutWarning::PortableLifecycle],
     }

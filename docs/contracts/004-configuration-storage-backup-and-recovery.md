@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-28  
+Updated: 2026-08-01
 Evidence: `../research/translation-memos/002-shared-desktop-systems-follow-up.md`;
 `../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`;
 `../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`;
@@ -95,6 +95,24 @@ but may not claim roaming or synchronization.
 `runtime`, and `backups` children below one native durable app root. Resolution
 warns that cache cleanup, runtime lifetime, and platform backup classification
 are no longer native.
+
+`shared-product-root-v1` places the same typed children below one native
+per-user product-data root intended for cooperating product processes:
+
+| Platform | Shared product-data parent | Root with stable name `Loophole` |
+| --- | --- | --- |
+| macOS | `Application Support` | `Application Support/Loophole` |
+| Windows | roaming `AppData` | `%APPDATA%\Loophole` |
+| Linux | `$XDG_DATA_HOME` | `$XDG_DATA_HOME/Loophole` |
+
+The host injects this parent as a distinct `shared-data` directory fact.
+Windows must not substitute LocalAppData. The profile does not derive a
+product leaf from display name and does not normalize its case; canonical id
+remains the default leaf unless the app explicitly registers a stable storage
+name. Cache, logs, runtime, and backups remain below the durable shared root,
+so resolution reports each non-native lifecycle/classification consequence.
+This profile supplies a common filesystem authority only. It does not grant
+multi-writer ownership or synchronization semantics.
 
 `portable-v1` requires an explicit absolute root and uses the same typed child
 layout. It never guesses the executable directory or current directory.

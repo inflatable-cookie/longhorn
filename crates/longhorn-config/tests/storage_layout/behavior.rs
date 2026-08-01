@@ -130,6 +130,10 @@ fn built_in_profile_ids_are_exact_and_round_trip() {
     for (profile, id) in [
         (StorageProfile::PlatformNativeV1, "platform-native-v1"),
         (StorageProfile::UnifiedAppRootV1, "unified-app-root-v1"),
+        (
+            StorageProfile::SharedProductRootV1,
+            "shared-product-root-v1",
+        ),
         (StorageProfile::PortableV1, "portable-v1"),
     ] {
         assert_eq!(profile.id(), id);

@@ -48,6 +48,7 @@
       "availableProfiles": [
         "platform-native-v1",
         "unified-app-root-v1",
+        "shared-product-root-v1",
         "portable-v1"
       ]
     },
@@ -367,6 +368,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -560,6 +562,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -754,6 +757,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -959,6 +963,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -1153,6 +1158,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -1343,6 +1349,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -1692,6 +1699,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -1889,6 +1897,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -2082,6 +2091,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -2509,6 +2519,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -2702,6 +2713,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },
@@ -2895,6 +2907,7 @@
           "availableProfiles": [
             "platform-native-v1",
             "unified-app-root-v1",
+            "shared-product-root-v1",
             "portable-v1"
           ]
         },

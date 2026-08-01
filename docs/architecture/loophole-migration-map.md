@@ -1,6 +1,6 @@
 # Loophole Migration Map
 
-Status: frozen read-only baseline; migration paused at storage-policy gate
+Status: frozen read-only baseline; storage policy selected and implementation active
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: contracts 002-014; `../roadmaps/g01/015-loophole-full-hosting-migration.md`
@@ -131,18 +131,21 @@ copying missing files. It has no fixed locator, durable journal, complete
 conflict inventory, verification receipt, native database adapter, or
 receipt-bound cleanup.
 
-No existing Longhorn profile exactly matches the active Chorus matrix:
+Card 103 selects one exact Chorus matrix and implements it as
+`shared-product-root-v1`:
 
-| Platform | Chorus target | Nearest Longhorn shape | Gap |
-| --- | --- | --- | --- |
-| macOS | `Application Support/Loophole/{config,cache,state,logs}` | `unified-app-root-v1` | none at root shape; native cache/log separation deliberately not used |
-| Windows | `%APPDATA%\Loophole\...` | unified root below Longhorn's local data fact | roaming versus local parent |
-| Linux | `$XDG_DATA_HOME/loophole/...` | unified root with stable leaf `Loophole` | lowercase platform leaf |
+| Platform | Shared durable parent | Exact product root |
+| --- | --- | --- |
+| macOS | `Application Support` | `Application Support/Loophole` |
+| Windows | roaming `%APPDATA%` | `%APPDATA%\Loophole` |
+| Linux | `$XDG_DATA_HOME` | `$XDG_DATA_HOME/Loophole` |
 
-Card 103 must select and contract one exact matrix before code changes. The
-recommended standard is one shared-product-root profile plus explicit stable
-identity, but the Windows parent and Linux casing remain operator choices.
-Per-purpose overrides are not an acceptable substitute for a missing profile.
+The explicit stable name is exactly `Loophole` on every platform. No
+platform-specific case normalization or display-name derivation applies. The
+canonical id still fixes app and bootstrap-locator identity. The new injected
+`shared-data` fact preserves the roaming/local distinction without changing
+`platform-native-v1` or disguising the product choice as per-purpose
+overrides.
 
 After selection, migration must inventory every current Echo root and old
 Tauri identifier root, use registered adapters, commit the canonical-id fixed

@@ -24,7 +24,7 @@ export type ConfigRequestId = string;
 
 export type ConfigOperationCapability = "storageDiagnostics" | "storageTransition" | "backupInventory" | "backupCreate" | "backupExport" | "backupRetention" | "backupEncryption" | "restoreInspection" | "restoreExecution" | "restoreAdapterExecution" | "restoreRecovery";
 
-export type StorageProfileId = "platform-native-v1" | "unified-app-root-v1" | "portable-v1";
+export type StorageProfileId = "platform-native-v1" | "unified-app-root-v1" | "shared-product-root-v1" | "portable-v1";
 
 export type StorageLeafProvenanceProjection = "canonicalApplicationId" | "stableStorageName";
 

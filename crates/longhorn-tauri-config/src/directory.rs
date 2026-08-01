@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use longhorn_config::{PlatformDirectoryFacts, TargetPlatform};
+use longhorn_config::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
 
 /// Raw desktop directory paths obtained at a Tauri application edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,10 +16,12 @@ pub enum TauriDirectorySnapshot {
         /// Temporary runtime base.
         temp_dir: PathBuf,
     },
-    /// Windows paths from `local_data_dir` and `temp_dir`.
+    /// Windows local-data, roaming-data, and temporary paths.
     Windows {
         /// Durable local application-data base.
         local_data_dir: PathBuf,
+        /// Durable roaming per-user product-data base.
+        roaming_data_dir: PathBuf,
         /// Temporary runtime base.
         temp_dir: PathBuf,
     },
@@ -54,13 +56,15 @@ pub fn platform_directory_facts(snapshot: TauriDirectorySnapshot) -> PlatformDir
             TargetPlatform::MacOs,
             local_data_dir.clone(),
             local_data_dir.clone(),
-            local_data_dir,
+            local_data_dir.clone(),
             cache_dir,
             home_dir.join("Library").join("Logs"),
             temp_dir,
-        ),
+        )
+        .with(PlatformDirectoryFact::SharedData, local_data_dir),
         TauriDirectorySnapshot::Windows {
             local_data_dir,
+            roaming_data_dir,
             temp_dir,
         } => PlatformDirectoryFacts::complete(
             TargetPlatform::Windows,
@@ -70,7 +74,8 @@ pub fn platform_directory_facts(snapshot: TauriDirectorySnapshot) -> PlatformDir
             local_data_dir.clone(),
             local_data_dir,
             temp_dir,
-        ),
+        )
+        .with(PlatformDirectoryFact::SharedData, roaming_data_dir),
         TauriDirectorySnapshot::Linux {
             config_dir,
             local_data_dir,
@@ -80,12 +85,13 @@ pub fn platform_directory_facts(snapshot: TauriDirectorySnapshot) -> PlatformDir
         } => PlatformDirectoryFacts::complete(
             TargetPlatform::Linux,
             config_dir,
-            local_data_dir,
+            local_data_dir.clone(),
             state_dir.clone(),
             cache_dir,
             state_dir,
             runtime_dir,
-        ),
+        )
+        .with(PlatformDirectoryFact::SharedData, local_data_dir),
     }
 }
 
@@ -115,12 +121,17 @@ mod tests {
             facts.get(PlatformDirectoryFact::Log),
             Some(Path::new("/Users/example/Library/Logs"))
         );
+        assert_eq!(
+            facts.get(PlatformDirectoryFact::SharedData),
+            Some(Path::new("/Users/example/Library/Application Support"))
+        );
     }
 
     #[test]
     fn windows_uses_local_data_for_non_runtime_facts() {
         let facts = platform_directory_facts(TauriDirectorySnapshot::Windows {
             local_data_dir: "/windows/LocalAppData".into(),
+            roaming_data_dir: "/windows/RoamingAppData".into(),
             temp_dir: "/windows/Temp".into(),
         });
 
@@ -136,6 +147,10 @@ mod tests {
         assert_eq!(
             facts.get(PlatformDirectoryFact::Runtime),
             Some(Path::new("/windows/Temp"))
+        );
+        assert_eq!(
+            facts.get(PlatformDirectoryFact::SharedData),
+            Some(Path::new("/windows/RoamingAppData"))
         );
     }
 
@@ -157,6 +172,10 @@ mod tests {
         assert_eq!(
             facts.get(PlatformDirectoryFact::Log),
             Some(Path::new("/home/example/.local/state"))
+        );
+        assert_eq!(
+            facts.get(PlatformDirectoryFact::SharedData),
+            Some(Path::new("/home/example/.local/share"))
         );
     }
 }

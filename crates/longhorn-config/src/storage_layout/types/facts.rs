@@ -31,6 +31,8 @@ pub enum PlatformDirectoryFact {
     Config,
     /// Durable application data base.
     Data,
+    /// Durable per-user product-data base shared by cooperating processes.
+    SharedData,
     /// Persistent machine-local state base.
     State,
     /// Rebuildable cache base.
@@ -46,6 +48,7 @@ impl PlatformDirectoryFact {
         match self {
             Self::Config => "config",
             Self::Data => "data",
+            Self::SharedData => "shared-data",
             Self::State => "state",
             Self::Cache => "cache",
             Self::Log => "log",
