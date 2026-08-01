@@ -212,6 +212,6 @@ backing-surface coordination, plus per-instance Svelte viewport lifetime. Card
 093 proves clean produced graphs, matching three-shape Rust/renderer traces,
 fresh packaged macOS evidence, and exact adoption gates. g01.018 is complete;
 The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
-behavior and rollback evidence with `pass_with_admission_gates`. Published
-prereleases, public Poodle built-in overlay geometry, and Nucleus layout
-acceptance gate donor writes.
+behavior and rollback evidence. Card 095 admits the exact private
+Longhorn/Poodle graph and both Nucleus layout checks. Card 096 is ready.
+Package-manager publication remains deferred.

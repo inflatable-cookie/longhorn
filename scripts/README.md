@@ -47,6 +47,9 @@ Tauri 2.11.5 graph:
 effigy proof:nucleus-private-artifacts
 ```
 
+The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
+checkout when unrelated Nucleus work is in progress.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

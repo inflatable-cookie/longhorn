@@ -22,7 +22,7 @@ assertEqual(
   "longhorn.nucleus-migration-freeze.v1",
   "fixture schema",
 );
-assertEqual(fixture.outcome, "pass_with_admission_gates", "fixture outcome");
+assertEqual(fixture.outcome, "pass", "fixture outcome");
 
 for (const [name, expected] of Object.entries(fixture.donors) as Array<
   [RepositoryName, DonorFixture]
@@ -342,7 +342,8 @@ function verifyFrozenSemantics(): void {
     "restore-intended-exact-intersection-not-broken-query",
     "Poodle seam migration policy",
   );
-  assertEqual(fixture.admission.donor_writes, false, "donor-write admission");
+  assertEqual(fixture.admission.donor_writes, true, "donor-write admission");
+  assertEqual(fixture.admission.gates.length, 0, "remaining admission gates");
   assert(
     fixture.rollback_slices.every((slice) => slice.dual_write === false),
     "a rollback slice permits dual write",

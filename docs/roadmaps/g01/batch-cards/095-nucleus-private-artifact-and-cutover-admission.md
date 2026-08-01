@@ -1,6 +1,6 @@
 # 095 Nucleus Private Artifact And Cutover Admission
 
-Status: active; artifact proof passes; operator-held
+Status: complete
 Owner: Tom
 Roadmap: g01.014 batch 1
 Governing refs: contracts 003, 010, 012, and 013; Card 094
@@ -16,7 +16,8 @@ consume before the first donor write. Do not publish to package managers.
 
 - Longhorn: private package metadata, artifacts, compatibility evidence, and
   docs.
-- Nucleus: read-only dependency and toolchain compatibility checks.
+- Nucleus: read-only application dependency and toolchain compatibility checks;
+  planning docs may record operator acceptance.
 - Poodle: read-only use of the exact g12.018 source and artifact evidence.
 - External registries: out of scope.
 
@@ -48,14 +49,14 @@ clean proof must install produced archives without sibling aliases.
    artifact identities.
 6. [x] Audit the exact optional graph, peers, locks, source receipts, and artifact
    integrity.
-7. [ ] Close Nucleus g05 Card 003's remaining new-project operator check and record
+7. [x] Close Nucleus g05 Card 003's remaining new-project operator check and record
    donor-write admission.
 8. [x] Preserve the prior source/build set and write rollback notes.
 
 ## Current Evidence
 
 `effigy proof:nucleus-private-artifacts` returns
-`pass_with_operator_gate`. It installs eight Longhorn TypeScript packages and
+`pass`. It installs eight Longhorn TypeScript packages and
 the exact five-package Poodle g12.018 set in a clean Nucleus-shaped renderer,
 then compiles eleven selected Longhorn Rust packages on Rust 1.85 with Tauri
 2.11.5 from an exact compatible lock. Neither Surface package enters either
@@ -63,8 +64,9 @@ consumer graph.
 
 The proof records exact source receipts, artifact SHA-256 identities, the
 private sibling-source plan, generated-binding checks, public Poodle geometry
-compilation, and the remaining operator gate. Nucleus and Poodle stay clean
-and read-only. Package-manager publication remains out of scope.
+compilation, and both accepted operator checks. The exact Nucleus receipt and
+Poodle source are clean. Package-manager publication remains out of scope.
+Donor writes are admitted for Card 096's bounded storage slice.
 
 ## Acceptance Criteria
 
@@ -105,6 +107,5 @@ and read-only. Package-manager publication remains out of scope.
 
 ## Next Task
 
-Record the remaining Nucleus g05 check: a previously unseen project opens with
-Agent Chat only. Then admit donor writes, complete this card, and promote Card
-096. Do not publish to package managers.
+Execute Card 096. Adopt canonical-id platform storage and receipted legacy
+import without publishing to package managers.

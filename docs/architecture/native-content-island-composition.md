@@ -153,14 +153,15 @@ remain exact and unchanged.
 
 | Consumer | Artifact gate | Next admission | Native-content cutover blocker |
 | --- | --- | --- | --- |
-| Nucleus | pass | Card 095 private graph admitted | remaining Nucleus g05 acceptance |
+| Nucleus | pass | Card 095 complete | Card 096 bounded storage cutover |
 | Soundcheck | pass | after g01.014 and g01.015 | Signal/plugin ABI and authorization, helper/process ownership, native content and media policy |
 | Jetstream | pass | after g01.014 and g01.015 | native storage/WGPU construction, renderer/world/camera/picking/gizmo/frame-loop authority, semantic input mapping |
 | Loophole | not applicable | no current native-content migration | none claimed |
 
 Artifact readiness is not donor cutover authority. The exact Nucleus Browser
 policy is in the canonical migration map and Card 094 freeze. Card 095 admits
-the private graph; the remaining consumer check still blocks donor writes.
+the private graph and both consumer checks; Card 096 may begin its bounded
+storage slice.
 
 ## Production Kernel Checkpoint
 

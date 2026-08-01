@@ -186,9 +186,9 @@ resolution can select transitive crates requiring newer Rust, so it does not
 prove Longhorn's MSRV. The selector emits the evolved lock digest with the
 artifact and source receipts.
 
-This checkpoint admits the private dependency graph, not donor writes. The
-Nucleus new-project operator check remains open. It makes no registry,
-publication, or public compatibility-range claim.
+The operator accepted both Nucleus layout checks after the dependency proof.
+Card 095 therefore admits bounded donor writes and promotes Card 096. This
+makes no registry, publication, or public compatibility-range claim.
 
 Evidence:
 `../logs/2026-08/01-nucleus-private-artifact-admission.md`.

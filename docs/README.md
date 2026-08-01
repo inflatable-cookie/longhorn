@@ -166,7 +166,8 @@ The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
 behavior and rollback evidence with `pass_with_admission_gates`. Poodle g12.018
 implemented and artifact-proved the public overlay geometry seam.
 Cross-project layout retention and the exact private Longhorn/Poodle artifact
-graph are accepted. Nucleus's remaining new-project check is the sole
-donor-write gate. Package-manager publication is deferred.
+graph are accepted. The new-project Agent Chat-only check also passes. Donor
+writes are admitted and Card 096 is ready. Package-manager publication is
+deferred.
 
 The live next-task pointer lives in the roadmap front doors.

@@ -227,8 +227,8 @@ native scale switching remains unproved for child-view and backing-surface.
 Card 093 proves isolated production artifacts, exact optional graphs, and
 three-shape Rust/renderer conformance. g01.014 Cards 094-101 compile the
 Nucleus migration. Card 094 is the read-only behavior and policy freeze;
-Card 095's private artifact graph passes. The remaining Nucleus consumer
-acceptance gates donor cutover.
+Card 095 admits the private artifact graph and both Nucleus consumer checks.
+Card 096 begins the bounded donor cutover.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 

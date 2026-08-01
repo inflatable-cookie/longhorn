@@ -133,4 +133,5 @@ Poodle g12.018 implements this contract at
 
 The source/API and private-artifact gates are resolved. Package-manager
 publication is not part of Card 095. Nucleus g05 has accepted cross-project
-layout retention; its new-project Agent Chat-only check remains open.
+layout retention and the new-project Agent Chat-only default. Card 095 admits
+donor writes.

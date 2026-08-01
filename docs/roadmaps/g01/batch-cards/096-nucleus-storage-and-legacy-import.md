@@ -1,6 +1,6 @@
 # 096 Nucleus Storage And Legacy Import
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.014 batch 2
 Governing refs: contracts 003, 004, and 012; Cards 094-095

@@ -2,11 +2,11 @@
 
 ## Active
 
-- [095 Nucleus Private Artifact And Cutover Admission](095-nucleus-private-artifact-and-cutover-admission.md)
+None.
 
 ## Ready
 
-None.
+- [096 Nucleus Storage And Legacy Import](096-nucleus-storage-and-legacy-import.md)
 
 ## Planned
 
@@ -15,7 +15,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [096 Nucleus Storage And Legacy Import](096-nucleus-storage-and-legacy-import.md)
 - [097 Nucleus Protected Window Host Cutover](097-nucleus-protected-window-host-cutover.md)
 - [098 Nucleus Project Layout Authority Cutover](098-nucleus-project-layout-authority-cutover.md)
 - [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
@@ -113,9 +112,9 @@ None.
 - [092 Svelte Native-content Session And Layout Seam](092-svelte-native-content-session-and-layout-seam.md)
 - [093 Native-content Artifact Proof And Closeout](093-native-content-artifact-proof-and-closeout.md)
 - [094 Nucleus Behavior, Authority, And Rollback Freeze](094-nucleus-behavior-authority-and-rollback-freeze.md)
+- [095 Nucleus Private Artifact And Cutover Admission](095-nucleus-private-artifact-and-cutover-admission.md)
 
 ## Next Task
 
-Record Nucleus g05 Card 003's remaining new-project check. Cross-project layout
-retention and the exact private Longhorn/Poodle artifact graph are accepted.
-Package-manager publication is deferred.
+Execute Card 096. Adopt canonical-id platform storage and receipted legacy
+import. Package-manager publication remains deferred.

@@ -2,20 +2,22 @@
 
 Date: 2026-08-01
 Card: 095
-Outcome: `pass_with_operator_gate`
+Outcome: `pass`
 
 ## What Changed
 
 - Added `effigy proof:nucleus-private-artifacts`.
-- Pinned clean read-only Nucleus commit
-  `c084d57ca15f9e4276f49a9b6b2923f5d10e7313`.
+- Pinned clean Nucleus commit
+  `df5af3da03f8392f948ff65d0a3cf16c36cb6c12`, which records both operator
+  checks without changing donor application code.
 - Pinned clean Poodle g12.018 commit
   `ef41f412ad7b45c2ee760c1da9bf41ef876855e8` and artifact set
   `ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`.
 - Recorded the exact Longhorn commit, selected-source tree digest, private
   sibling-source map, produced artifact identities, and rollback posture in
   selector output.
-- Removed the private artifact graph from Card 094's remaining gates.
+- Closed every Card 094 admission gate and admitted Card 096's bounded donor
+  writes.
 
 ## Renderer Proof
 
@@ -74,9 +76,9 @@ The admitted lock digest is
 
 The exact private graph is admitted. Longhorn and Poodle remain unpublished;
 registry ownership and public compatibility ranges stay in the later release
-lane. Nucleus and Poodle were not modified.
+lane. Admission did not modify Poodle or Nucleus application sources.
 
-Donor writes remain blocked only by Nucleus g05 Card 003: a previously unseen
-project must open with Agent Chat only. Cross-project layout retention is
-already accepted. The previous Nucleus build, legacy stores, and donor source
-remain the rollback set.
+The operator accepted cross-project layout retention and confirmed a previously
+unseen project opens with Agent Chat only. Donor writes are admitted. The
+previous Nucleus build, legacy stores, and donor source remain the rollback
+set for Card 096.

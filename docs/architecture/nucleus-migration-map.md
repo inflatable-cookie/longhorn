@@ -9,7 +9,9 @@ Governing refs: contracts 003, 004, 009, 012-014, and 017
 
 The read-only audit used Nucleus commit
 `c084d57ca15f9e4276f49a9b6b2923f5d10e7313` on `main`. The worktree was
-clean at audit start.
+clean at audit start. Card 095's final compatibility receipt uses clean commit
+`df5af3da03f8392f948ff65d0a3cf16c36cb6c12`, which adds only operator
+acceptance documentation.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
 is:
@@ -23,10 +25,9 @@ are local client state keyed by project id. Native window placement remains
 global. Product use has therefore strengthened, not weakened, the Longhorn
 no-Surface composition.
 
-Nucleus roadmap `g05/001` still has operator-held project-layout validation.
-No donor cutover may reinterpret that unaccepted behavior. It must close, or
-the operator must explicitly supersede it, before the first overlapping donor
-write.
+Nucleus roadmap `g05/001` is complete. The operator accepted cross-project
+layout retention and confirmed a previously unseen project opens with Agent
+Chat only. Card 095 admits bounded donor writes from exact clean receipts.
 
 ## Current Donor Authorities
 
@@ -159,9 +160,8 @@ Overlapping unrelated edits stop the card.
 Nucleus already uses explicit sibling `file:` dependencies for private Poodle
 development. Longhorn may use the same private source-link posture. A source
 link is never artifact evidence: Card 095 installs the matching produced graph
-in clean temporary consumers. That proof passes with only the new-project
-operator check still open. Package-manager publication is deferred to the
-later release lane.
+in clean temporary consumers. That proof and both Nucleus layout checks pass.
+Package-manager publication is deferred to the later release lane.
 
 Cutovers are vertical and single-authority:
 

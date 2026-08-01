@@ -1,6 +1,6 @@
 {
   "schema": "longhorn.nucleus-migration-freeze.v1",
-  "outcome": "pass_with_admission_gates",
+  "outcome": "pass",
   "donors": {
     "nucleus": {
       "repository": "nucleus",
@@ -397,9 +397,7 @@
     }
   ],
   "admission": {
-    "donor_writes": false,
-    "gates": [
-      "nucleus-g05-new-project-agent-chat-only-acceptance"
-    ]
+    "donor_writes": true,
+    "gates": []
   }
 }

@@ -12,7 +12,9 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
-const nucleusRoot = resolve(repoRoot, "../nucleus");
+const nucleusRoot = resolve(
+  process.env.NUCLEUS_REPO ?? resolve(repoRoot, "../nucleus"),
+);
 const poodleRoot = resolve(repoRoot, "../poodle");
 const poodleEvidencePath = resolve(
   poodleRoot,
@@ -21,7 +23,7 @@ const poodleEvidencePath = resolve(
 const expectedPoodleCommit = "ef41f412ad7b45c2ee760c1da9bf41ef876855e8";
 const expectedPoodleArtifactSet =
   "ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d";
-const expectedNucleusCommit = "c084d57ca15f9e4276f49a9b6b2923f5d10e7313";
+const expectedNucleusCommit = "df5af3da03f8392f948ff65d0a3cf16c36cb6c12";
 
 const typescriptPackages = [
   ["@longhorn/core", "core"],
@@ -90,7 +92,7 @@ try {
     JSON.stringify(
       {
         schema: "longhorn.nucleus-private-artifact-proof.v1",
-        outcome: "pass_with_operator_gate",
+        outcome: "pass",
         sources,
         privateDependencyPlan: privateDependencyPlan(),
         poodleArtifactSet: expectedPoodleArtifactSet,
@@ -114,9 +116,11 @@ try {
           donorRepositoriesWritten: false,
         },
         donorWriteAdmission: {
-          admitted: false,
-          remainingGate:
-            "nucleus-g05-new-project-agent-chat-only-operator-acceptance",
+          admitted: true,
+          acceptedChecks: [
+            "nucleus-g05-cross-project-layout-retention",
+            "nucleus-g05-new-project-agent-chat-only",
+          ],
         },
       },
       null,
