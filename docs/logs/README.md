@@ -114,3 +114,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Native-content Artifact Proof And Closeout](2026-08/01-native-content-artifact-proof-and-closeout.md)
 - [Nucleus No-Surface Migration Compilation](2026-08/01-nucleus-no-surface-migration-compilation.md)
 - [Nucleus Behavior, Authority, And Rollback Freeze](2026-08/01-nucleus-behavior-authority-and-rollback-freeze.md)
+- [Poodle Overlay Geometry Admission](2026-08/01-poodle-overlay-geometry-admission.md)

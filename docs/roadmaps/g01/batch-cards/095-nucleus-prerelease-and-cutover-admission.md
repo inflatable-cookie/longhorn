@@ -1,6 +1,6 @@
 # 095 Nucleus Prerelease And Cutover Admission
 
-Status: planned; public-overlay, operator, registry, and release gated
+Status: planned; operator, registry, and release gated
 Owner: Tom
 Roadmap: g01.014 batch 1
 Governing refs: contracts 003, 010, 012, and 013; Card 094
@@ -25,6 +25,8 @@ the first donor write.
 - Longhorn packages selected by Cards 096-100
 - compatible published Poodle prerelease exposing built-in overlay geometry
   without DOM selectors or host-runtime coupling
+- Poodle callback semantics matching
+  `../../../architecture/poodle-overlay-geometry-boundary.md`
 - Rust 1.85, Tauri 2.11, Svelte 5, and TypeScript compatibility
 - produced-artifact installs outside workspace resolution
 - exact Nucleus Cargo and renderer pin plan
@@ -49,6 +51,8 @@ the first donor write.
 - one compatible Svelte and Poodle runtime resolves
 - Poodle publicly reports built-in overlay geometry needed for exact Browser
   viewport intersection without exposing component internals
+- the produced Poodle contract reports immutable viewport snapshots for every
+  Popover/Menu surface and removes them on teardown
 - no Surface or Surface-transfer artifact enters the graph
 - generated Rust/TypeScript protocols match the published artifacts
 - exact pins and integrity evidence are recorded before donor mutation
@@ -75,5 +79,5 @@ the first donor write.
 
 ## Next Task
 
-Execute Card 096 only after every admission gate passes. Begin the donor lane
-with storage identity and receipted legacy import.
+Run Nucleus g05 Card 003's two operator checks and obtain explicit registry
+publication authority. Execute Card 096 only after every admission gate passes.

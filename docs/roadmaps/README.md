@@ -155,6 +155,7 @@ this host.
 
 ## Next Task
 
-Resolve the public Poodle overlay-geometry seam and Nucleus g05 operator
-acceptance. Do not promote Card 095 or any donor-writing card until its named
-release and consumer gates pass.
+Run Nucleus g05 Card 003's two operator-held layout checks. Poodle g12.018 has
+resolved the source/API seam; compatible Poodle and Longhorn publication still
+needs explicit registry authority. Keep Card 095 and every Nucleus-writing card
+planned until acceptance and publication pass.

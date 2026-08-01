@@ -117,6 +117,7 @@ None.
 
 ## Next Task
 
-Resolve the Poodle-owned public overlay-geometry seam and Nucleus g05 operator
-acceptance. Card 095 and every donor cutover remain planned; do not publish or
-modify either donor while admission is false.
+Run Nucleus g05 Card 003's two operator-held layout checks. Poodle g12.018 has
+resolved the source/API seam. Card 095 and every Nucleus cutover remain
+planned; compatible prerelease publication remains a separate external-action
+gate.

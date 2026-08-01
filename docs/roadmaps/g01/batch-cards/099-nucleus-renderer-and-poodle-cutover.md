@@ -3,7 +3,8 @@
 Status: planned
 Owner: Tom
 Roadmap: g01.014 batch 3
-Governing refs: contracts 003, 010, 012-014, and 017; Cards 094-095 and 098
+Governing refs: contracts 003, 010, 012-014, and 017; Poodle overlay geometry
+boundary; Cards 094-095 and 098
 Depends on: Card 098
 Auto-start next card: no
 
@@ -49,6 +50,8 @@ bindings without turning Longhorn into the Nucleus app shell.
 - public Poodle APIs own presentation and drag semantics
 - no Poodle class, generated id, private MIME, or source alias is inspected
 - native-content final visibility is explicit and preserves overlay intersection
+- Popover and Menu snapshot maps recompute intersection when either overlay or
+  Browser viewport geometry changes
 - loading, unsupported, reconnecting, and failure states remain visible
 - teardown releases listeners, observers, timers, optimism, and drag state
 - one exact published Svelte/Poodle graph resolves

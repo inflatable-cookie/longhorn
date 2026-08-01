@@ -317,7 +317,11 @@
     "public_custom_surface_anchoring": true,
     "public_builtin_surface_geometry": false,
     "current_nucleus_private_selector": ".poodle-popover__surface, [role=\"menu\"]",
+    "current_query_scope": "component-former-dom-ancestor",
+    "poodle_anchored_portal_target": "theme-root-outside-component-former-dom-ancestor",
+    "current_measurement_defect": "live-portalled-surface-structurally-unreachable-from-query-root",
     "required_behavior": "exact-intersection-not-global-hide",
+    "migration_policy": "restore-intended-exact-intersection-not-broken-query",
     "status": "missing-required-public-overlay-geometry-seam",
     "recommendation": "plan-a-poodle-owned-runtime-neutral-overlay-geometry-contract"
   },

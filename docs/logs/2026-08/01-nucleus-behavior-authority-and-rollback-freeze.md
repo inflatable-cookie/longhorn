@@ -55,14 +55,26 @@ Global hide-on-any-overlay would change behavior. The private selector cannot
 become a Longhorn contract. Exact preservation requires a Poodle-owned,
 runtime-neutral built-in overlay geometry seam and a compatible release.
 
+Post-freeze inspection found a stronger failure. Nucleus queries below the
+component's former DOM ancestor, but Poodle contract 002 portals the anchored
+surface to the theme root. The selector cannot reach the live surface after
+portalling. Treat this as a latent donor defect. Preserve the intended
+per-viewport intersection policy through public snapshots; do not preserve the
+broken lookup or replace it with global hide-on-open.
+
+Poodle later advanced through g12.018 at
+`ef41f412ad7b45c2ee760c1da9bf41ef876855e8`. The freeze verifier now reads
+donor files from the recorded commits rather than requiring donor HEAD to stay
+there forever. It still requires clean donor worktrees.
+
 ## Admission Gates
 
 - Poodle public built-in overlay geometry contract
 - Nucleus g05 project-layout operator acceptance or explicit supersession
 - published Longhorn and compatible Poodle prereleases
 
-Card 095 stays planned. Nucleus and Poodle remain read-only until these gates
-pass.
+Card 095 stays planned. Nucleus remains read-only. The Poodle source/API gate
+is resolved; compatible publication remains open.
 
 ## Evidence
 

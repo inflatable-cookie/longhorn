@@ -28,23 +28,18 @@ for (const [name, expected] of Object.entries(fixture.donors) as Array<
   [RepositoryName, DonorFixture]
 >) {
   const root = repositories[name];
-  assertEqual(
-    git(root, ["rev-parse", "HEAD"]),
-    expected.commit,
-    `${name} commit`,
-  );
-  assertEqual(
-    git(root, ["branch", "--show-current"]),
-    expected.branch,
-    `${name} branch`,
-  );
+  git(root, ["cat-file", "-e", `${expected.commit}^{commit}`]);
   const clean = git(root, ["status", "--porcelain"]) === "";
   assertEqual(clean, expected.expected_clean, `${name} worktree state`);
 }
 
 for (const check of fixture.source_checks) {
-  const path = resolve(repositories[check.repository], check.path);
-  const source = readFileSync(path, "utf8");
+  const donor = fixture.donors[check.repository];
+  const source = gitRead(
+    repositories[check.repository],
+    donor.commit,
+    check.path,
+  );
   for (const token of check.contains) {
     assert(
       source.includes(token),
@@ -96,10 +91,12 @@ console.log(
 );
 
 function verifyNucleusConfiguration(): void {
+  const donor = fixture.donors.nucleus;
   const tauri = JSON.parse(
-    readFileSync(
-      resolve(repositories.nucleus, "apps/desktop/src-tauri/tauri.conf.json"),
-      "utf8",
+    gitRead(
+      repositories.nucleus,
+      donor.commit,
+      "apps/desktop/src-tauri/tauri.conf.json",
     ),
   ) as {
     identifier: string;
@@ -142,9 +139,10 @@ function verifyNucleusConfiguration(): void {
   );
 
   const desktopManifest = JSON.parse(
-    readFileSync(
-      resolve(repositories.nucleus, "apps/desktop/package.json"),
-      "utf8",
+    gitRead(
+      repositories.nucleus,
+      donor.commit,
+      "apps/desktop/package.json",
     ),
   ) as { dependencies: Record<string, string> };
   assert(
@@ -334,6 +332,16 @@ function verifyFrozenSemantics(): void {
     "missing-required-public-overlay-geometry-seam",
     "Poodle seam gate",
   );
+  assertEqual(
+    fixture.poodle_seam.current_measurement_defect,
+    "live-portalled-surface-structurally-unreachable-from-query-root",
+    "Poodle portal/query defect",
+  );
+  assertEqual(
+    fixture.poodle_seam.migration_policy,
+    "restore-intended-exact-intersection-not-broken-query",
+    "Poodle seam migration policy",
+  );
   assertEqual(fixture.admission.donor_writes, false, "donor-write admission");
   assert(
     fixture.rollback_slices.every((slice) => slice.dual_write === false),
@@ -346,6 +354,10 @@ function git(root: string, arguments_: string[]): string {
     cwd: root,
     encoding: "utf8",
   }).trim();
+}
+
+function gitRead(root: string, commit: string, path: string): string {
+  return git(root, ["show", `${commit}:${path}`]);
 }
 
 function assert(condition: boolean, message: string): asserts condition {

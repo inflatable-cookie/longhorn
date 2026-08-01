@@ -165,6 +165,8 @@ fresh packaged macOS evidence, and exact adoption gates. g01.018 is complete;
 The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
 behavior and rollback evidence with `pass_with_admission_gates`. Published
 prereleases, public Poodle built-in overlay geometry, and Nucleus layout
-acceptance gate donor writes.
+acceptance gate donor writes. The Longhorn-side overlay boundary is now defined
+in `architecture/poodle-overlay-geometry-boundary.md`; Poodle g12.018 has
+implemented it, while compatible publication remains open.
 
 The live next-task pointer lives in the roadmap front doors.

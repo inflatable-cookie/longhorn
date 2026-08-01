@@ -127,11 +127,20 @@ Current overlay discovery queries the private selector
 `.poodle-popover__surface, [role="menu"]`. Poodle publicly exposes open-state
 callbacks plus `anchored` and `portal` for consumer-built overlays, but its
 built-in Popover and Menu surfaces expose neither their element nor geometry.
+The helper queries below the component's former DOM ancestor, while Poodle
+portals both anchored surfaces to the theme root. The live surface is therefore
+structurally outside the query root. This is a latent donor defect: migration
+preserves the stated exact-intersection policy, not the unreachable lookup.
 The private selector cannot move into Longhorn. Before renderer cutover,
-Nucleus must supply final visibility through explicit consumer state and a
-Poodle-owned built-in overlay-geometry seam. If that seam cannot preserve
+Nucleus must supply final visibility through explicit consumer state and the
+Poodle-owned snapshot seam defined in
+`poodle-overlay-geometry-boundary.md`. If that seam cannot preserve
 intersection behavior, stop rather than hiding native content for every open
 overlay.
+
+Poodle g12.018 now implements the public snapshot seam at
+`ef41f412ad7b45c2ee760c1da9bf41ef876855e8`. The compatible publication gate
+remains open; Nucleus must not pin the branch or sibling source.
 
 The current Tauri capability names only the bundled `main` webview. That is
 useful negative evidence: remote children receive no app capability. Cutover

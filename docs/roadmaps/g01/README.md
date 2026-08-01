@@ -316,6 +316,7 @@ behavior, and an overlap check.
 
 ## Next Task
 
-Resolve the Poodle-owned public overlay-geometry seam and Nucleus g05 operator
-acceptance before promoting Card 095. Published prereleases remain a separate
-external-action gate. Keep Nucleus and Poodle read-only.
+Run Nucleus g05 Card 003's two operator-held layout checks. Poodle g12.018 has
+resolved the source/API seam; compatible Poodle and Longhorn publication still
+needs explicit registry authority. Keep Card 095 and every Nucleus-writing card
+planned until acceptance and publication pass.
