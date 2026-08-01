@@ -19,8 +19,9 @@ use longhorn_native_content::{
 };
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
-    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewRuntime, ChildViewRuntimeEvent,
-    ChildViewRuntimeEventKind, ChildViewSpec, ChildViewTeardownOutcome, RuntimeAttachRequest,
+    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewPolicyHooks, ChildViewRuntime,
+    ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSpec, ChildViewTeardownOutcome,
+    RuntimeAttachRequest,
 };
 use tauri::Url;
 
@@ -295,6 +296,7 @@ fn spec() -> ChildViewSpec {
         source,
         Some(*b"longhorn-proof-1"),
         Arc::new(move |candidate| candidate.origin().ascii_serialization() == origin),
+        ChildViewPolicyHooks::new(None, Arc::new(|_| {})).unwrap(),
     )
     .unwrap()
 }

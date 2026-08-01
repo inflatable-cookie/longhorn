@@ -14,7 +14,10 @@ pub use adapter::{
     ChildViewTeardownOutcome, ChildViewTeardownReceipt,
 };
 pub use error::ChildViewError;
-pub use policy::{CHILD_VIEW_CAPABILITIES, ChildViewLabel, ChildViewSpec};
+pub use policy::{
+    CHILD_VIEW_CAPABILITIES, ChildViewLabel, ChildViewPolicyEvent, ChildViewPolicyHooks,
+    ChildViewSpec,
+};
 pub use runtime::{
     ChildViewAdapterEvent, ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind,
     RuntimeAttachRequest,

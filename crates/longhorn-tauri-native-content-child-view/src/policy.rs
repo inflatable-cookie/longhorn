@@ -10,6 +10,79 @@ use tauri::Url;
 use crate::ChildViewError;
 
 const MAX_LABEL_BYTES: usize = 128;
+const MAX_INITIALIZATION_SCRIPT_BYTES: usize = 64 * 1024;
+
+/// Consumer-owned browser event retained on the native side.
+///
+/// These events never enter the native-content renderer protocol. They let an
+/// application preserve trusted chrome and construction policy while the
+/// adapter owns only child-view mechanics.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ChildViewPolicyEvent {
+    /// A page load began for an admitted URL.
+    PageLoadStarted {
+        /// Admitted page URL.
+        url: Url,
+    },
+    /// A page load finished for an admitted URL.
+    PageLoadFinished {
+        /// Admitted page URL.
+        url: Url,
+    },
+    /// Native popup creation was denied closed.
+    PopupDenied {
+        /// Denied popup URL.
+        url: Url,
+    },
+    /// Native download persistence was denied closed.
+    DownloadDenied {
+        /// Denied download URL.
+        url: Url,
+    },
+    /// A document title changed. Consumers must treat it as untrusted content.
+    DocumentTitleChanged {
+        /// Untrusted document title.
+        title: String,
+    },
+}
+
+/// Consumer-owned child construction hooks with no renderer authority.
+#[derive(Clone)]
+pub struct ChildViewPolicyHooks {
+    initialization_script: Option<String>,
+    observer: Arc<dyn Fn(ChildViewPolicyEvent) + Send + Sync>,
+}
+
+impl ChildViewPolicyHooks {
+    /// Validates a bounded optional initialization script and native observer.
+    pub fn new(
+        initialization_script: Option<String>,
+        observer: Arc<dyn Fn(ChildViewPolicyEvent) + Send + Sync>,
+    ) -> Result<Self, ChildViewError> {
+        if initialization_script.as_ref().is_some_and(|script| {
+            script.is_empty()
+                || script.len() > MAX_INITIALIZATION_SCRIPT_BYTES
+                || script.contains('\0')
+        }) {
+            return Err(ChildViewError::InvalidInitializationScript);
+        }
+        Ok(Self {
+            initialization_script,
+            observer,
+        })
+    }
+
+    /// Returns the optional consumer initialization script.
+    #[must_use]
+    pub fn initialization_script(&self) -> Option<&str> {
+        self.initialization_script.as_deref()
+    }
+
+    /// Delivers one native-only policy event.
+    pub fn emit(&self, event: ChildViewPolicyEvent) {
+        (self.observer)(event);
+    }
+}
 
 /// Honest production capabilities of the Tauri child-view adapter.
 pub const CHILD_VIEW_CAPABILITIES: MechanismCapabilities = MechanismCapabilities::new(
@@ -63,6 +136,7 @@ pub struct ChildViewSpec {
     source: Url,
     data_store_identifier: Option<[u8; 16]>,
     navigation_policy: Arc<dyn Fn(&Url) -> bool + Send + Sync>,
+    policy_hooks: ChildViewPolicyHooks,
 }
 
 impl ChildViewSpec {
@@ -76,6 +150,7 @@ impl ChildViewSpec {
         source: Url,
         data_store_identifier: Option<[u8; 16]>,
         navigation_policy: Arc<dyn Fn(&Url) -> bool + Send + Sync>,
+        policy_hooks: ChildViewPolicyHooks,
     ) -> Result<Self, ChildViewError> {
         if !matches!(source.scheme(), "http" | "https") || source.host_str().is_none() {
             return Err(ChildViewError::InvalidContentSource);
@@ -91,6 +166,7 @@ impl ChildViewSpec {
             source,
             data_store_identifier,
             navigation_policy,
+            policy_hooks,
         })
     }
 
@@ -134,5 +210,48 @@ impl ChildViewSpec {
     #[must_use]
     pub fn allows_navigation(&self, candidate: &Url) -> bool {
         (self.navigation_policy)(candidate)
+    }
+
+    /// Returns consumer-owned construction and trusted-chrome hooks.
+    #[must_use]
+    pub const fn policy_hooks(&self) -> &ChildViewPolicyHooks {
+        &self.policy_hooks
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use super::{ChildViewPolicyEvent, ChildViewPolicyHooks};
+
+    #[test]
+    fn construction_hooks_bound_scripts_and_keep_events_native() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let recorded = events.clone();
+        let hooks = ChildViewPolicyHooks::new(
+            Some("globalThis.__fixture = true;".to_owned()),
+            Arc::new(move |event| recorded.lock().unwrap().push(event)),
+        )
+        .unwrap();
+        hooks.emit(ChildViewPolicyEvent::PopupDenied {
+            url: "https://example.com/popup".parse().unwrap(),
+        });
+
+        assert_eq!(
+            hooks.initialization_script(),
+            Some("globalThis.__fixture = true;")
+        );
+        assert!(matches!(
+            events.lock().unwrap().as_slice(),
+            [ChildViewPolicyEvent::PopupDenied { url }] if url.as_str() == "https://example.com/popup"
+        ));
+        assert!(ChildViewPolicyHooks::new(Some(String::new()), Arc::new(|_| {})).is_err());
+        assert!(
+            ChildViewPolicyHooks::new(Some("bad\0script".to_owned()), Arc::new(|_| {})).is_err()
+        );
+        assert!(
+            ChildViewPolicyHooks::new(Some("x".repeat(64 * 1024 + 1)), Arc::new(|_| {})).is_err()
+        );
     }
 }

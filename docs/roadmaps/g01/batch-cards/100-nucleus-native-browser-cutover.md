@@ -1,6 +1,6 @@
 # 100 Nucleus Native Browser Cutover
 
-Status: ready
+Status: active
 Owner: Tom
 Roadmap: g01.014 batch 4
 Governing refs: contracts 003, 010, 012, 013, and 017; Cards 089, 092-095, and 099
@@ -80,3 +80,12 @@ and Svelte session while retaining Nucleus browser policy.
 
 Execute Card 101. Prove the complete migration, remove remaining duplicate
 mechanisms, and transfer authority only where conformance passes.
+
+## Execution Note
+
+Card 100 started from clean Nucleus and Longhorn `main` worktrees. The frozen
+policy audit confirms that native-content may own island lifecycle, generation,
+geometry, visibility, focus, and teardown while Nucleus retains URL handling,
+trusted notices, toolbar commands, data-store choice, remote capability policy,
+and the allowlisted macOS cursor bridge. Consumer policy callbacks remain on the
+native side and do not enter the shared renderer protocol.

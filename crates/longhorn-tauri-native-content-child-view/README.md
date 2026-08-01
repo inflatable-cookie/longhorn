@@ -13,9 +13,13 @@ The crate owns:
 - stale callback rejection, explicit host invalidation, and idempotent teardown
 
 Consumers inject the source URL, navigation decision, data-store identity,
-logical-to-Tauri label mapping, and capability configuration. Popup and
-download creation are denied by the supplied Tauri runtime. Remote content
-receives no capabilities unless the app adds a matching remote capability.
+logical-to-Tauri label mapping, capability configuration, and bounded native
+policy hooks. The optional initialization script is limited to 64 KiB and
+never enters the renderer protocol. Page-load, denied-popup, denied-download,
+and supported document-title events return only through the native observer.
+Popup and download creation remain denied by the supplied Tauri runtime.
+Remote content receives no capabilities unless the app adds a matching remote
+capability.
 
 The crate does not own navigation products, browsing history, permissions,
 downloads, popups, page content, outer-window placement, Svelte, or Poodle.

@@ -50,6 +50,13 @@ operations. The isolated-window and backing-surface packages define generic
 coordination and injected host ports. Product helpers, plugins, native views,
 GPU surfaces, and renderers stay outside Longhorn.
 
+The child-view seam accepts a bounded optional initialization script and a
+native observer for page-load, denied-popup, denied-download, and supported
+document-title events. These hooks preserve consumer trusted-chrome and
+construction policy without adding browser payloads to the shared renderer
+protocol. Navigation admission, notices, cursor interpretation, data-store
+choice, and all persisted browser state remain consumer authority.
+
 `@longhorn/native-content` is generated from Rust authority. The Svelte
 package owns mounted connection lifetime, viewport measurement, explicit
 visibility and focus gates, stale async rejection, and teardown. It accepts a

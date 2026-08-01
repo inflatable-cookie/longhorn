@@ -169,7 +169,7 @@ Cross-project layout retention and the exact private Longhorn/Poodle artifact
 graph are accepted. The new-project Agent Chat-only check also passes. Donor
 writes are admitted. Cards 096-098 complete canonical storage,
 protected-window, project-layout authority, and checked renderer/Poodle
-cutovers. Card 100 is ready.
+cutovers. Card 100 is active.
 Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

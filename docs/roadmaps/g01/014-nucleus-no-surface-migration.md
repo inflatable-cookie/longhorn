@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 099 complete; Card 100 ready
+Status: active; Card 100 active
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -74,11 +74,11 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- `batch-cards/100-nucleus-native-browser-cutover.md`
+- none
 
 Active:
 
-- none
+- `batch-cards/100-nucleus-native-browser-cutover.md`
 
 Planned:
 
@@ -113,5 +113,5 @@ Nucleus. Raw schemas 1-10 migrate backup-first, stale and invalid mutations
 preserve the shared document, and window/layout writes remain independent.
 Card 099 removes renderer snapshot authority, adopts listener-first checked
 project sessions and public Poodle bindings, and replaces private overlay DOM
-inspection with explicit two-sided geometry. Card 100 is ready.
+inspection with explicit two-sided geometry. Card 100 is active.
 Package-manager publication remains deferred.

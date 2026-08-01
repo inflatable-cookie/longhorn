@@ -16,8 +16,8 @@ use longhorn_native_content::{
 };
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
-    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewRuntimeEvent, ChildViewRuntimeEventKind,
-    ChildViewSpec, ChildViewTeardownOutcome, TauriChildViewRuntime,
+    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewPolicyHooks, ChildViewRuntimeEvent,
+    ChildViewRuntimeEventKind, ChildViewSpec, ChildViewTeardownOutcome, TauriChildViewRuntime,
 };
 use serde_json::{Value, json};
 use tauri::{AppHandle, Position, Window, Wry};
@@ -58,6 +58,7 @@ pub(crate) fn run(
         source,
         Some(*b"longhorn-proof-1"),
         Arc::new(move |candidate| candidate.origin().ascii_serialization() == allowed_origin),
+        ChildViewPolicyHooks::new(None, Arc::new(|_| {})).map_err(string_error)?,
     )
     .map_err(string_error)?;
     let event_log = log.clone();

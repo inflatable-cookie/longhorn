@@ -156,5 +156,5 @@ this host.
 
 ## Next Task
 
-Execute Card 100. Replace Nucleus Browser child-view coordination with the
+Continue Card 100. Replace Nucleus Browser child-view coordination with the
 production native-content graph while retaining product and security policy.

@@ -11,6 +11,8 @@ pub enum ChildViewError {
     DuplicateTransportLabel,
     /// The initial child source is not a remote HTTP or HTTPS URL.
     InvalidContentSource,
+    /// The initialization script is empty, oversized, or contains NUL.
+    InvalidInitializationScript,
     /// The plan belongs to another island.
     ForeignIsland {
         /// Adapter island.
@@ -73,6 +75,7 @@ impl ChildViewError {
             Self::InvalidLabel => "child:invalid-label",
             Self::DuplicateTransportLabel => "child:duplicate-label",
             Self::InvalidContentSource => "child:invalid-source",
+            Self::InvalidInitializationScript => "child:invalid-script",
             Self::ForeignIsland { .. } => "child:foreign-island",
             Self::WrongMechanism => "child:wrong-mechanism",
             Self::StaleGeneration { .. } => "child:stale-generation",
@@ -111,6 +114,9 @@ impl fmt::Display for ChildViewError {
             }
             Self::InvalidContentSource => {
                 formatter.write_str("child content source must be remote HTTP or HTTPS")
+            }
+            Self::InvalidInitializationScript => {
+                formatter.write_str("invalid child initialization script")
             }
             Self::ForeignIsland { expected, supplied } => {
                 write!(
