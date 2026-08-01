@@ -20,16 +20,25 @@ struct RegionSpec {
     collapsible: bool,
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct SizingSpec {
+    pub(super) id: &'static str,
+    minimum: u32,
+    default: u32,
+    maximum: u32,
+}
+
 pub(super) struct ShapeSpec {
     pub(super) name: &'static str,
     pub(super) schema_id: &'static str,
     regions: &'static [RegionSpec],
-    pub(super) sizing_slots: &'static [&'static str],
+    pub(super) sizing_slots: &'static [SizingSpec],
     pub(super) source_region: &'static str,
     pub(super) target_region: &'static str,
     pub(super) singleton_region: &'static str,
     singleton_family: &'static str,
     pub(super) singleton_definition: &'static str,
+    singleton_policy: PanelInstancePolicy,
     pub(super) host_binding: HostBinding,
 }
 
@@ -62,13 +71,13 @@ pub(super) fn schema(spec: &ShapeSpec) -> LayoutSchemaDefinition {
                 region.collapsible,
             )
         }),
-        spec.sizing_slots.iter().enumerate().map(|(index, id)| {
+        spec.sizing_slots.iter().enumerate().map(|(index, slot)| {
             SizingSlotDefinition::new(
-                slot_id(id),
+                slot_id(slot.id),
                 u32::try_from(index).expect("fixture sizing count fits u32"),
-                ratio(100_000),
-                ratio(250_000),
-                ratio(900_000),
+                ratio(slot.minimum),
+                ratio(slot.default),
+                ratio(slot.maximum),
             )
         }),
     )
@@ -88,9 +97,9 @@ pub(super) fn panels(spec: &ShapeSpec) -> Vec<PanelDefinition> {
             definition_id(spec.singleton_definition),
             [PlacementSelector::Region(region_id(spec.singleton_region))],
             [PlacementSelector::Family(family_id(spec.singleton_family))],
-            PanelInstancePolicy::Singleton,
-            spec.name == "loophole",
-            spec.name == "loophole",
+            spec.singleton_policy,
+            true,
+            true,
         ),
     ]
 }
@@ -111,7 +120,7 @@ pub(super) fn initial_document(spec: &ShapeSpec) -> LayoutDocument {
             }),
             spec.sizing_slots
                 .iter()
-                .map(|id| SizingSlotState::new(slot_id(id), ratio(250_000))),
+                .map(|slot| SizingSlotState::new(slot_id(slot.id), ratio(slot.default))),
         )],
         [],
     )
@@ -132,18 +141,24 @@ pub(super) fn loophole_spec() -> (&'static str, ShapeSpec) {
         region("console", "utility", true, false),
         region("status", "chrome", false, true),
     ];
+    const SIZING: &[SizingSpec] = &[
+        sizing("navigation-width", 100_000, 250_000, 900_000),
+        sizing("inspector-width", 100_000, 250_000, 900_000),
+        sizing("utility-height", 100_000, 250_000, 900_000),
+    ];
     (
         LOOPHOLE_PATH,
         ShapeSpec {
             name: "loophole",
             schema_id: "schema:loophole",
             regions: REGIONS,
-            sizing_slots: &["navigation-width", "inspector-width", "utility-height"],
+            sizing_slots: SIZING,
             source_region: "primary",
             target_region: "secondary",
             singleton_region: "primary",
             singleton_family: "workspace",
             singleton_definition: "panel:transport",
+            singleton_policy: PanelInstancePolicy::Singleton,
             host_binding: HostBinding::Surface {
                 surface_id: FixtureSurfaceId("surface:mix".into()),
                 container_id: container_id("container:primary"),
@@ -154,11 +169,17 @@ pub(super) fn loophole_spec() -> (&'static str, ShapeSpec) {
 
 pub(super) fn nucleus_spec() -> (&'static str, ShapeSpec) {
     const REGIONS: &[RegionSpec] = &[
-        region("navigation", "activity", true, true),
-        region("main", "workspace", false, false),
-        region("detail", "workspace", true, false),
-        region("tasks", "utility", true, false),
-        region("status", "chrome", false, true),
+        region("left", "activity", false, false),
+        region("center_top", "workspace", false, false),
+        region("center_bottom", "workspace", true, false),
+        region("right_top", "workspace", true, false),
+        region("right_bottom", "workspace", true, false),
+    ];
+    const SIZING: &[SizingSpec] = &[
+        sizing("left-center", 200_000, 200_000, 900_000),
+        sizing("center-right", 200_000, 740_000, 900_000),
+        sizing("center-stack", 200_000, 740_000, 900_000),
+        sizing("right-stack", 200_000, 740_000, 900_000),
     ];
     (
         NUCLEUS_PATH,
@@ -166,23 +187,28 @@ pub(super) fn nucleus_spec() -> (&'static str, ShapeSpec) {
             name: "nucleus",
             schema_id: "schema:nucleus",
             regions: REGIONS,
-            sizing_slots: &[
-                "navigation-width",
-                "detail-width",
-                "tasks-height",
-                "content-scale",
-            ],
-            source_region: "main",
-            target_region: "detail",
-            singleton_region: "tasks",
-            singleton_family: "utility",
+            sizing_slots: SIZING,
+            source_region: "center_top",
+            target_region: "right_top",
+            singleton_region: "center_top",
+            singleton_family: "workspace",
             singleton_definition: "panel:tasks",
+            singleton_policy: PanelInstancePolicy::OnePerContainer,
             host_binding: HostBinding::Window {
-                window_id: WindowId::new("window:project").expect("fixture window id is valid"),
+                window_id: WindowId::new("window:primary").expect("fixture window id is valid"),
                 container_id: container_id("container:primary"),
             },
         },
     )
+}
+
+const fn sizing(id: &'static str, minimum: u32, default: u32, maximum: u32) -> SizingSpec {
+    SizingSpec {
+        id,
+        minimum,
+        default,
+        maximum,
+    }
 }
 
 const fn region(

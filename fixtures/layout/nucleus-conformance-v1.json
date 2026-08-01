@@ -3,10 +3,10 @@
   "name": "nucleus",
   "host_binding": {
     "kind": "window",
-    "window_id": "window:project",
+    "window_id": "window:primary",
     "container_id": "container:primary"
   },
-  "resolved_default_region": "main",
+  "resolved_default_region": "center_top",
   "definitions": {
     "limits": {
       "maximum_schemas": 4,
@@ -21,68 +21,68 @@
       "id": "schema:nucleus",
       "regions": [
         {
-          "id": "navigation",
+          "id": "left",
           "family_id": "activity",
           "order": 0,
-          "empty_policy": "keep_visible",
-          "collapsible": true
+          "empty_policy": "hide_when_empty",
+          "collapsible": false
         },
         {
-          "id": "main",
+          "id": "center_top",
           "family_id": "workspace",
           "order": 1,
           "empty_policy": "hide_when_empty",
           "collapsible": false
         },
         {
-          "id": "detail",
+          "id": "center_bottom",
           "family_id": "workspace",
           "order": 2,
           "empty_policy": "hide_when_empty",
           "collapsible": true
         },
         {
-          "id": "tasks",
-          "family_id": "utility",
+          "id": "right_top",
+          "family_id": "workspace",
           "order": 3,
           "empty_policy": "hide_when_empty",
           "collapsible": true
         },
         {
-          "id": "status",
-          "family_id": "chrome",
+          "id": "right_bottom",
+          "family_id": "workspace",
           "order": 4,
-          "empty_policy": "keep_visible",
-          "collapsible": false
+          "empty_policy": "hide_when_empty",
+          "collapsible": true
         }
       ],
       "sizing_slots": [
         {
-          "id": "navigation-width",
+          "id": "left-center",
           "order": 0,
-          "minimum": 100000,
-          "default": 250000,
+          "minimum": 200000,
+          "default": 200000,
           "maximum": 900000
         },
         {
-          "id": "detail-width",
+          "id": "center-right",
           "order": 1,
-          "minimum": 100000,
-          "default": 250000,
+          "minimum": 200000,
+          "default": 740000,
           "maximum": 900000
         },
         {
-          "id": "tasks-height",
+          "id": "center-stack",
           "order": 2,
-          "minimum": 100000,
-          "default": 250000,
+          "minimum": 200000,
+          "default": 740000,
           "maximum": 900000
         },
         {
-          "id": "content-scale",
+          "id": "right-stack",
           "order": 3,
-          "minimum": 100000,
-          "default": 250000,
+          "minimum": 200000,
+          "default": 740000,
           "maximum": 900000
         }
       ]
@@ -93,7 +93,7 @@
         "default_placements": [
           {
             "kind": "region",
-            "id": "main"
+            "id": "center_top"
           }
         ],
         "allowed_placements": [
@@ -113,20 +113,20 @@
         "default_placements": [
           {
             "kind": "region",
-            "id": "tasks"
+            "id": "center_top"
           }
         ],
         "allowed_placements": [
           {
             "kind": "family",
-            "id": "utility"
+            "id": "workspace"
           }
         ],
         "instance_policy": {
-          "kind": "singleton"
+          "kind": "one_per_container"
         },
-        "movable": false,
-        "closeable": false
+        "movable": true,
+        "closeable": true
       }
     ]
   },
@@ -138,52 +138,52 @@
         "schema_id": "schema:nucleus",
         "regions": [
           {
-            "region_id": "navigation",
-            "panel_instance_ids": [],
-            "active_panel_instance_id": null,
-            "collapsed": false
-          },
-          {
-            "region_id": "main",
+            "region_id": "left",
             "panel_instance_ids": [],
             "active_panel_instance_id": null,
             "collapsed": null
           },
           {
-            "region_id": "detail",
-            "panel_instance_ids": [],
-            "active_panel_instance_id": null,
-            "collapsed": false
-          },
-          {
-            "region_id": "tasks",
-            "panel_instance_ids": [],
-            "active_panel_instance_id": null,
-            "collapsed": false
-          },
-          {
-            "region_id": "status",
+            "region_id": "center_top",
             "panel_instance_ids": [],
             "active_panel_instance_id": null,
             "collapsed": null
+          },
+          {
+            "region_id": "center_bottom",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "right_top",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "right_bottom",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
           }
         ],
         "sizing_slots": [
           {
-            "sizing_slot_id": "navigation-width",
-            "ratio": 250000
+            "sizing_slot_id": "left-center",
+            "ratio": 200000
           },
           {
-            "sizing_slot_id": "detail-width",
-            "ratio": 250000
+            "sizing_slot_id": "center-right",
+            "ratio": 740000
           },
           {
-            "sizing_slot_id": "tasks-height",
-            "ratio": 250000
+            "sizing_slot_id": "center-stack",
+            "ratio": 740000
           },
           {
-            "sizing_slot_id": "content-scale",
-            "ratio": 250000
+            "sizing_slot_id": "right-stack",
+            "ratio": 740000
           }
         ]
       }
@@ -200,7 +200,7 @@
           "panel_instance_id": "instance:a",
           "panel_definition_id": "panel:workspace-tool",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "insertion_index": 0
         }
       },
@@ -212,7 +212,7 @@
           "kind": "panel_created",
           "panel_instance_id": "instance:a",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "insertion_index": 0
         },
         "authoritative_document": {
@@ -223,13 +223,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a"
                   ],
@@ -237,40 +237,40 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_top",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "status",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "left-center",
+                  "ratio": 200000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -293,7 +293,7 @@
           "panel_instance_id": "instance:b",
           "panel_definition_id": "panel:workspace-tool",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "insertion_index": 1
         }
       },
@@ -305,7 +305,7 @@
           "kind": "panel_created",
           "panel_instance_id": "instance:b",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "insertion_index": 1
         },
         "authoritative_document": {
@@ -316,13 +316,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a",
                     "instance:b"
@@ -331,40 +331,40 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_top",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "status",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "left-center",
+                  "ratio": 200000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -399,7 +399,7 @@
           "kind": "panel_activated",
           "panel_instance_id": "instance:a",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "previous_active_panel_instance_id": "instance:b"
         },
         "authoritative_document": {
@@ -410,13 +410,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a",
                     "instance:b"
@@ -425,40 +425,40 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_top",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "status",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "left-center",
+                  "ratio": 200000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -483,7 +483,7 @@
         "command": {
           "kind": "reorder_region",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "panel_instance_ids": [
             "instance:b",
             "instance:a"
@@ -497,7 +497,7 @@
         "outcome": {
           "kind": "region_reordered",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "panel_instance_ids": [
             "instance:b",
             "instance:a"
@@ -511,13 +511,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:b",
                     "instance:a"
@@ -526,40 +526,40 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_top",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
                 },
                 {
-                  "region_id": "status",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "left-center",
+                  "ratio": 200000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -585,7 +585,7 @@
           "kind": "move_panel",
           "panel_instance_id": "instance:b",
           "target_container_id": "container:primary",
-          "target_region_id": "detail",
+          "target_region_id": "right_top",
           "insertion_index": 0
         }
       },
@@ -597,10 +597,10 @@
           "kind": "panel_moved",
           "panel_instance_id": "instance:b",
           "source_container_id": "container:primary",
-          "source_region_id": "main",
+          "source_region_id": "center_top",
           "former_index": 0,
           "target_container_id": "container:primary",
-          "target_region_id": "detail",
+          "target_region_id": "right_top",
           "insertion_index": 0
         },
         "authoritative_document": {
@@ -611,13 +611,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a"
                   ],
@@ -625,7 +625,13 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "right_top",
                   "panel_instance_ids": [
                     "instance:b"
                   ],
@@ -633,34 +639,28 @@
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
-                },
-                {
-                  "region_id": "status",
-                  "panel_instance_ids": [],
-                  "active_panel_instance_id": null,
-                  "collapsed": null
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "left-center",
+                  "ratio": 200000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -685,7 +685,7 @@
         "command": {
           "kind": "set_sizing_slot",
           "container_id": "container:primary",
-          "sizing_slot_id": "navigation-width",
+          "sizing_slot_id": "left-center",
           "ratio": 300000
         }
       },
@@ -696,8 +696,8 @@
         "outcome": {
           "kind": "sizing_slot_set",
           "container_id": "container:primary",
-          "sizing_slot_id": "navigation-width",
-          "previous_ratio": 250000,
+          "sizing_slot_id": "left-center",
+          "previous_ratio": 200000,
           "committed_ratio": 300000
         },
         "authoritative_document": {
@@ -708,13 +708,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a"
                   ],
@@ -722,7 +722,13 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "right_top",
                   "panel_instance_ids": [
                     "instance:b"
                   ],
@@ -730,34 +736,28 @@
                   "collapsed": false
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
-                },
-                {
-                  "region_id": "status",
-                  "panel_instance_ids": [],
-                  "active_panel_instance_id": null,
-                  "collapsed": null
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
+                  "sizing_slot_id": "left-center",
                   "ratio": 300000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -782,7 +782,7 @@
         "command": {
           "kind": "set_region_collapsed",
           "container_id": "container:primary",
-          "region_id": "detail",
+          "region_id": "right_top",
           "collapsed": true
         }
       },
@@ -793,7 +793,7 @@
         "outcome": {
           "kind": "region_collapsed_set",
           "container_id": "container:primary",
-          "region_id": "detail",
+          "region_id": "right_top",
           "previous_collapsed": false,
           "committed_collapsed": true
         },
@@ -805,13 +805,13 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": false
+                  "collapsed": null
                 },
                 {
-                  "region_id": "main",
+                  "region_id": "center_top",
                   "panel_instance_ids": [
                     "instance:a"
                   ],
@@ -819,7 +819,13 @@
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_bottom",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "right_top",
                   "panel_instance_ids": [
                     "instance:b"
                   ],
@@ -827,34 +833,28 @@
                   "collapsed": true
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
-                },
-                {
-                  "region_id": "status",
-                  "panel_instance_ids": [],
-                  "active_panel_instance_id": null,
-                  "collapsed": null
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
+                  "sizing_slot_id": "left-center",
                   "ratio": 300000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -889,7 +889,7 @@
           "kind": "panel_closed",
           "panel_instance_id": "instance:a",
           "container_id": "container:primary",
-          "region_id": "main",
+          "region_id": "center_top",
           "former_index": 0
         },
         "authoritative_document": {
@@ -900,19 +900,25 @@
               "schema_id": "schema:nucleus",
               "regions": [
                 {
-                  "region_id": "navigation",
-                  "panel_instance_ids": [],
-                  "active_panel_instance_id": null,
-                  "collapsed": false
-                },
-                {
-                  "region_id": "main",
+                  "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": null
                 },
                 {
-                  "region_id": "detail",
+                  "region_id": "center_top",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": null
+                },
+                {
+                  "region_id": "center_bottom",
+                  "panel_instance_ids": [],
+                  "active_panel_instance_id": null,
+                  "collapsed": false
+                },
+                {
+                  "region_id": "right_top",
                   "panel_instance_ids": [
                     "instance:b"
                   ],
@@ -920,34 +926,28 @@
                   "collapsed": true
                 },
                 {
-                  "region_id": "tasks",
+                  "region_id": "right_bottom",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
                   "collapsed": false
-                },
-                {
-                  "region_id": "status",
-                  "panel_instance_ids": [],
-                  "active_panel_instance_id": null,
-                  "collapsed": null
                 }
               ],
               "sizing_slots": [
                 {
-                  "sizing_slot_id": "navigation-width",
+                  "sizing_slot_id": "left-center",
                   "ratio": 300000
                 },
                 {
-                  "sizing_slot_id": "detail-width",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-right",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "tasks-height",
-                  "ratio": 250000
+                  "sizing_slot_id": "center-stack",
+                  "ratio": 740000
                 },
                 {
-                  "sizing_slot_id": "content-scale",
-                  "ratio": 250000
+                  "sizing_slot_id": "right-stack",
+                  "ratio": 740000
                 }
               ]
             }
@@ -971,7 +971,7 @@
         "kind": "panel_created",
         "panel_instance_id": "instance:singleton-a",
         "container_id": "container:primary",
-        "region_id": "tasks",
+        "region_id": "center_top",
         "insertion_index": 0
       },
       "authoritative_document": {
@@ -982,54 +982,54 @@
             "schema_id": "schema:nucleus",
             "regions": [
               {
-                "region_id": "navigation",
-                "panel_instance_ids": [],
-                "active_panel_instance_id": null,
-                "collapsed": false
-              },
-              {
-                "region_id": "main",
+                "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
                 "collapsed": null
               },
               {
-                "region_id": "detail",
-                "panel_instance_ids": [],
-                "active_panel_instance_id": null,
-                "collapsed": false
-              },
-              {
-                "region_id": "tasks",
+                "region_id": "center_top",
                 "panel_instance_ids": [
                   "instance:singleton-a"
                 ],
                 "active_panel_instance_id": "instance:singleton-a",
+                "collapsed": null
+              },
+              {
+                "region_id": "center_bottom",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
                 "collapsed": false
               },
               {
-                "region_id": "status",
+                "region_id": "right_top",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
+              },
+              {
+                "region_id": "right_bottom",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
               }
             ],
             "sizing_slots": [
               {
-                "sizing_slot_id": "navigation-width",
-                "ratio": 250000
+                "sizing_slot_id": "left-center",
+                "ratio": 200000
               },
               {
-                "sizing_slot_id": "detail-width",
-                "ratio": 250000
+                "sizing_slot_id": "center-right",
+                "ratio": 740000
               },
               {
-                "sizing_slot_id": "tasks-height",
-                "ratio": 250000
+                "sizing_slot_id": "center-stack",
+                "ratio": 740000
               },
               {
-                "sizing_slot_id": "content-scale",
-                "ratio": 250000
+                "sizing_slot_id": "right-stack",
+                "ratio": 740000
               }
             ]
           }
@@ -1046,7 +1046,7 @@
       "request_id": "request:nucleus:singleton-b",
       "current_revision": 1,
       "code": "instance_policy_exceeded",
-      "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:tasks has 2 instances per document; maximum is 1",
+      "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:tasks has 2 instances per container; maximum is 1",
       "authoritative_document": {
         "revision": 1,
         "containers": [
@@ -1055,54 +1055,54 @@
             "schema_id": "schema:nucleus",
             "regions": [
               {
-                "region_id": "navigation",
-                "panel_instance_ids": [],
-                "active_panel_instance_id": null,
-                "collapsed": false
-              },
-              {
-                "region_id": "main",
+                "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
                 "collapsed": null
               },
               {
-                "region_id": "detail",
-                "panel_instance_ids": [],
-                "active_panel_instance_id": null,
-                "collapsed": false
-              },
-              {
-                "region_id": "tasks",
+                "region_id": "center_top",
                 "panel_instance_ids": [
                   "instance:singleton-a"
                 ],
                 "active_panel_instance_id": "instance:singleton-a",
+                "collapsed": null
+              },
+              {
+                "region_id": "center_bottom",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
                 "collapsed": false
               },
               {
-                "region_id": "status",
+                "region_id": "right_top",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
+              },
+              {
+                "region_id": "right_bottom",
+                "panel_instance_ids": [],
+                "active_panel_instance_id": null,
+                "collapsed": false
               }
             ],
             "sizing_slots": [
               {
-                "sizing_slot_id": "navigation-width",
-                "ratio": 250000
+                "sizing_slot_id": "left-center",
+                "ratio": 200000
               },
               {
-                "sizing_slot_id": "detail-width",
-                "ratio": 250000
+                "sizing_slot_id": "center-right",
+                "ratio": 740000
               },
               {
-                "sizing_slot_id": "tasks-height",
-                "ratio": 250000
+                "sizing_slot_id": "center-stack",
+                "ratio": 740000
               },
               {
-                "sizing_slot_id": "content-scale",
-                "ratio": 250000
+                "sizing_slot_id": "right-stack",
+                "ratio": 740000
               }
             ]
           }
@@ -1118,46 +1118,46 @@
   },
   "ordinary_visibility": [
     {
-      "region_id": "navigation",
-      "state": "visible"
-    },
-    {
-      "region_id": "main",
+      "region_id": "left",
       "state": "hidden"
     },
     {
-      "region_id": "detail",
-      "state": "visible"
-    },
-    {
-      "region_id": "tasks",
+      "region_id": "center_top",
       "state": "hidden"
     },
     {
-      "region_id": "status",
+      "region_id": "center_bottom",
+      "state": "hidden"
+    },
+    {
+      "region_id": "right_top",
       "state": "visible"
+    },
+    {
+      "region_id": "right_bottom",
+      "state": "hidden"
     }
   ],
   "transient_visibility": [
     {
-      "region_id": "navigation",
-      "state": "visible"
-    },
-    {
-      "region_id": "main",
-      "state": "transiently_revealed"
-    },
-    {
-      "region_id": "detail",
-      "state": "visible"
-    },
-    {
-      "region_id": "tasks",
+      "region_id": "left",
       "state": "hidden"
     },
     {
-      "region_id": "status",
+      "region_id": "center_top",
+      "state": "transiently_revealed"
+    },
+    {
+      "region_id": "center_bottom",
+      "state": "transiently_revealed"
+    },
+    {
+      "region_id": "right_top",
       "state": "visible"
+    },
+    {
+      "region_id": "right_bottom",
+      "state": "transiently_revealed"
     }
   ],
   "stale_rejection": {
@@ -1173,19 +1173,25 @@
           "schema_id": "schema:nucleus",
           "regions": [
             {
-              "region_id": "navigation",
-              "panel_instance_ids": [],
-              "active_panel_instance_id": null,
-              "collapsed": false
-            },
-            {
-              "region_id": "main",
+              "region_id": "left",
               "panel_instance_ids": [],
               "active_panel_instance_id": null,
               "collapsed": null
             },
             {
-              "region_id": "detail",
+              "region_id": "center_top",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            },
+            {
+              "region_id": "center_bottom",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "right_top",
               "panel_instance_ids": [
                 "instance:b"
               ],
@@ -1193,34 +1199,28 @@
               "collapsed": true
             },
             {
-              "region_id": "tasks",
+              "region_id": "right_bottom",
               "panel_instance_ids": [],
               "active_panel_instance_id": null,
               "collapsed": false
-            },
-            {
-              "region_id": "status",
-              "panel_instance_ids": [],
-              "active_panel_instance_id": null,
-              "collapsed": null
             }
           ],
           "sizing_slots": [
             {
-              "sizing_slot_id": "navigation-width",
+              "sizing_slot_id": "left-center",
               "ratio": 300000
             },
             {
-              "sizing_slot_id": "detail-width",
-              "ratio": 250000
+              "sizing_slot_id": "center-right",
+              "ratio": 740000
             },
             {
-              "sizing_slot_id": "tasks-height",
-              "ratio": 250000
+              "sizing_slot_id": "center-stack",
+              "ratio": 740000
             },
             {
-              "sizing_slot_id": "content-scale",
-              "ratio": 250000
+              "sizing_slot_id": "right-stack",
+              "ratio": 740000
             }
           ]
         }
@@ -1246,19 +1246,25 @@
           "schema_id": "schema:nucleus",
           "regions": [
             {
-              "region_id": "navigation",
-              "panel_instance_ids": [],
-              "active_panel_instance_id": null,
-              "collapsed": false
-            },
-            {
-              "region_id": "main",
+              "region_id": "left",
               "panel_instance_ids": [],
               "active_panel_instance_id": null,
               "collapsed": null
             },
             {
-              "region_id": "detail",
+              "region_id": "center_top",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": null
+            },
+            {
+              "region_id": "center_bottom",
+              "panel_instance_ids": [],
+              "active_panel_instance_id": null,
+              "collapsed": false
+            },
+            {
+              "region_id": "right_top",
               "panel_instance_ids": [
                 "instance:b"
               ],
@@ -1266,34 +1272,28 @@
               "collapsed": true
             },
             {
-              "region_id": "tasks",
+              "region_id": "right_bottom",
               "panel_instance_ids": [],
               "active_panel_instance_id": null,
               "collapsed": false
-            },
-            {
-              "region_id": "status",
-              "panel_instance_ids": [],
-              "active_panel_instance_id": null,
-              "collapsed": null
             }
           ],
           "sizing_slots": [
             {
-              "sizing_slot_id": "navigation-width",
+              "sizing_slot_id": "left-center",
               "ratio": 300000
             },
             {
-              "sizing_slot_id": "detail-width",
-              "ratio": 250000
+              "sizing_slot_id": "center-right",
+              "ratio": 740000
             },
             {
-              "sizing_slot_id": "tasks-height",
-              "ratio": 250000
+              "sizing_slot_id": "center-stack",
+              "ratio": 740000
             },
             {
-              "sizing_slot_id": "content-scale",
-              "ratio": 250000
+              "sizing_slot_id": "right-stack",
+              "ratio": 740000
             }
           ]
         }
@@ -1314,19 +1314,25 @@
         "schema_id": "schema:nucleus",
         "regions": [
           {
-            "region_id": "navigation",
-            "panel_instance_ids": [],
-            "active_panel_instance_id": null,
-            "collapsed": false
-          },
-          {
-            "region_id": "main",
+            "region_id": "left",
             "panel_instance_ids": [],
             "active_panel_instance_id": null,
             "collapsed": null
           },
           {
-            "region_id": "detail",
+            "region_id": "center_top",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": null
+          },
+          {
+            "region_id": "center_bottom",
+            "panel_instance_ids": [],
+            "active_panel_instance_id": null,
+            "collapsed": false
+          },
+          {
+            "region_id": "right_top",
             "panel_instance_ids": [
               "instance:b"
             ],
@@ -1334,34 +1340,28 @@
             "collapsed": true
           },
           {
-            "region_id": "tasks",
+            "region_id": "right_bottom",
             "panel_instance_ids": [],
             "active_panel_instance_id": null,
             "collapsed": false
-          },
-          {
-            "region_id": "status",
-            "panel_instance_ids": [],
-            "active_panel_instance_id": null,
-            "collapsed": null
           }
         ],
         "sizing_slots": [
           {
-            "sizing_slot_id": "navigation-width",
+            "sizing_slot_id": "left-center",
             "ratio": 300000
           },
           {
-            "sizing_slot_id": "detail-width",
-            "ratio": 250000
+            "sizing_slot_id": "center-right",
+            "ratio": 740000
           },
           {
-            "sizing_slot_id": "tasks-height",
-            "ratio": 250000
+            "sizing_slot_id": "center-stack",
+            "ratio": 740000
           },
           {
-            "sizing_slot_id": "content-scale",
-            "ratio": 250000
+            "sizing_slot_id": "right-stack",
+            "ratio": 740000
           }
         ]
       }

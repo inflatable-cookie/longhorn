@@ -181,7 +181,7 @@ fn run_shared_sequence(
         },
         LayoutMutationCommand::SetSizingSlot {
             container_id: container_id("container:primary"),
-            sizing_slot_id: slot_id(spec.sizing_slots[0]),
+            sizing_slot_id: slot_id(spec.sizing_slots[0].id),
             ratio: ratio(300_000),
         },
         LayoutMutationCommand::SetRegionCollapsed {

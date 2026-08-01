@@ -35,9 +35,9 @@ fn loophole_eight_region_shape_uses_only_shared_semantic_types() {
                 )
             }),
         [
-            sizing("navigation-width", 0),
-            sizing("inspector-width", 1),
-            sizing("utility-height", 2),
+            sizing("navigation-width", 0, 100_000, 250_000),
+            sizing("inspector-width", 1, 100_000, 250_000),
+            sizing("utility-height", 2, 100_000, 250_000),
         ],
     );
     let registry = LayoutDefinitionRegistry::new(
@@ -76,11 +76,11 @@ fn loophole_eight_region_shape_uses_only_shared_semantic_types() {
 #[test]
 fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
     let regions = [
-        ("navigation", "edge", true),
-        ("main", "workspace", false),
-        ("detail", "workspace", true),
-        ("tasks", "utility", true),
-        ("status", "chrome", false),
+        ("left", "activity", false),
+        ("center_top", "workspace", false),
+        ("center_bottom", "workspace", true),
+        ("right_top", "workspace", true),
+        ("right_bottom", "workspace", true),
     ];
     let schema = LayoutSchemaDefinition::new(
         schema_id("schema:nucleus"),
@@ -92,27 +92,27 @@ fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
                     region_id(id),
                     family_id(family),
                     u32::try_from(index).unwrap(),
-                    EmptyRegionPolicy::KeepVisible,
+                    EmptyRegionPolicy::HideWhenEmpty,
                     *collapsible,
                 )
             }),
         [
-            sizing("navigation-width", 0),
-            sizing("detail-width", 1),
-            sizing("tasks-height", 2),
-            sizing("content-scale", 3),
+            sizing("left-center", 0, 200_000, 200_000),
+            sizing("center-right", 1, 200_000, 740_000),
+            sizing("center-stack", 2, 200_000, 740_000),
+            sizing("right-stack", 3, 200_000, 740_000),
         ],
     );
     let registry = LayoutDefinitionRegistry::new(
         limits(),
         [schema],
         [PanelDefinition::new(
-            definition_id("panel:task"),
-            [PlacementSelector::Region(region_id("tasks"))],
-            [PlacementSelector::Family(family_id("utility"))],
+            definition_id("panel:tasks"),
+            [PlacementSelector::Region(region_id("center_top"))],
+            [PlacementSelector::Family(family_id("workspace"))],
             PanelInstancePolicy::OnePerContainer,
-            false,
-            false,
+            true,
+            true,
         )],
     )
     .unwrap();
@@ -121,12 +121,7 @@ fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
         regions
             .iter()
             .map(|(id, _, collapsible)| (*id, *collapsible)),
-        [
-            "navigation-width",
-            "detail-width",
-            "tasks-height",
-            "content-scale",
-        ],
+        ["left-center", "center-right", "center-stack", "right-stack"],
     );
 
     validate_document(&registry, &document).unwrap();
@@ -140,12 +135,12 @@ fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
     );
 }
 
-fn sizing(id: &str, order: u32) -> SizingSlotDefinition {
+fn sizing(id: &str, order: u32, minimum: u32, default: u32) -> SizingSlotDefinition {
     SizingSlotDefinition::new(
         slot_id(id),
         order,
-        ratio(100_000),
-        ratio(250_000),
+        ratio(minimum),
+        ratio(default),
         ratio(900_000),
     )
 }
