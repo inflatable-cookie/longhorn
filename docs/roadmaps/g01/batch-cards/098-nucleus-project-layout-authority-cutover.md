@@ -1,6 +1,6 @@
 # 098 Nucleus Project Layout Authority Cutover
 
-Status: ready
+Status: completed
 Owner: Tom
 Roadmap: g01.014 batch 3
 Governing refs: contracts 003, 004, 012, and 014; Cards 094, 096, and 097
@@ -53,12 +53,26 @@ layout authority while preserving project scope and product panel policy.
 
 ## Evidence Required
 
-- schemas 1-current migration and project-isolation fixtures
-- Rust shared/donor trace comparison
-- stale revision and failure-invariance report
-- package and Surface-absence inventory
-- removed-versus-retained `nucleus-workspaces` audit
-- focused persistence and mutation tests
+- [x] schemas 1-current migration and project-isolation fixtures
+- [x] Rust shared/donor trace comparison
+- [x] stale revision and failure-invariance report
+- [x] package and Surface-absence inventory
+- [x] removed-versus-retained `nucleus-workspaces` audit
+- [x] focused persistence and mutation tests
+
+## Completion
+
+Nucleus commit `fc083647f1bad76a7f544efe0f1644b66c042571`
+registers the exact five-region/four-slot layout, project-keyed containers,
+product panel definitions, backup-first schemas 1-10 import, strict revision
+checks, and a serialized transition save lane. Longhorn commit
+`01b9c0a79a8af9214984c29c3969db8a8dc790d3` freezes the accepted donor shape.
+
+Product presentation and runtime authority remain outside the shared layout
+document. Window and layout domains write independently. Seven unused generic
+`nucleus-workspaces` modules were removed. The Card 098 fixture and verifier
+pin both commits and prove exact Surface absence. Package publication remains
+deferred.
 
 ## Stop Conditions
 

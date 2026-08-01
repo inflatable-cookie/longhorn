@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 097 complete; Card 098 ready
+Status: active; Card 098 complete; Card 099 ready
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -33,7 +33,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 ### Batch 3: no-Surface workspace
 
-- [ ] replace generic Rust layout mechanics with registered Longhorn authority
+- [x] replace generic Rust layout mechanics with registered Longhorn authority
 - [ ] adopt checked renderer state and public Poodle bindings
 - [ ] retain project scope, panel bodies, resources, and product policy in Nucleus
 
@@ -50,7 +50,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
   `com.inflatablecookie.nucleus`
 - [x] existing `.nucleus` data migrates without loss or silent fallback
 - [x] the primary native window restores and flushes through Longhorn
-- [ ] project-keyed five-region layouts use one shared mutation authority
+- [x] project-keyed five-region layouts use one shared mutation authority
 - [ ] renderer clients reconcile checked snapshots and revisions
 - [ ] native Browser panels use the child-view and Svelte coordination packages
 - [ ] Nucleus retains all product and browser-policy authority
@@ -74,7 +74,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- `batch-cards/098-nucleus-project-layout-authority-cutover.md`
+- `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 
 Active:
 
@@ -82,7 +82,6 @@ Active:
 
 Planned:
 
-- `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 - `batch-cards/100-nucleus-native-browser-cutover.md`
 - `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
 
@@ -92,6 +91,7 @@ Complete:
 - `batch-cards/095-nucleus-private-artifact-and-cutover-admission.md`
 - `batch-cards/096-nucleus-storage-and-legacy-import.md`
 - `batch-cards/097-nucleus-protected-window-host-cutover.md`
+- `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 
 ## Planning Checkpoint
 
@@ -104,5 +104,11 @@ placement and project layouts now have separate runtime stores.
 Card 097 replaces the raw geometry worker with a protected predeclared
 Longhorn host, registered machine-state placement, canonical display
 correlation, guarded reveal, and bounded lifecycle flush. Fresh and restart
-native runs converge. Card 098 is ready. Package-manager publication remains
-deferred.
+native runs converge.
+
+Card 098 transfers the five-region/four-slot document to registered Longhorn
+layout authority. Deterministic project containers retain isolated order,
+active tabs, regions, and ratios. Product presentations and runtimes stay in
+Nucleus. Raw schemas 1-10 migrate backup-first, stale and invalid mutations
+preserve the shared document, and window/layout writes remain independent.
+Card 099 is ready. Package-manager publication remains deferred.

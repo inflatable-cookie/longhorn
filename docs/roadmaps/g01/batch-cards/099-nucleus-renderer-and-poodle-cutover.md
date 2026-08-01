@@ -1,6 +1,6 @@
 # 099 Nucleus Renderer And Poodle Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.014 batch 3
 Governing refs: contracts 003, 010, 012-014, and 017; Poodle overlay geometry

@@ -63,6 +63,15 @@ conversion, guarded reveal, retained capability policy, and Surface absence:
 effigy proof:nucleus-window-cutover
 ```
 
+Nucleus layout cutover proof reads the pinned consumer and Longhorn commits,
+checks the exact five-region/four-slot registry, project isolation, registered
+persistence and import, expected-revision mutation, product metadata split,
+duplicate removal, and Surface absence:
+
+```sh
+effigy proof:nucleus-layout-cutover
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

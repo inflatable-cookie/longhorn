@@ -129,6 +129,12 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-nucleus-card097-window" },
   { task = "proof:nucleus-window-cutover" },
 ]
+"proof:nucleus-layout-cutover" = "bun scripts/verify-nucleus-card098.ts"
+"check:northstar:g01-nucleus-card098-layout" = "effigy docs check paths effigy.toml scripts/README.md scripts/verify-nucleus-card098.ts fixtures/layout/nucleus-conformance-v1.json fixtures/migration/nucleus-card098/project-layout-cutover-v1.json crates/longhorn-bindings/src/layout/conformance.rs crates/longhorn-bindings/src/layout/conformance/shape.rs crates/longhorn-layout/tests/layout_model/donors.rs docs/architecture/nucleus-migration-map.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/014-layout-container-region-and-panel-core.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/098-nucleus-project-layout-authority-cutover.md docs/roadmaps/g01/batch-cards/099-nucleus-renderer-and-poodle-cutover.md docs/logs/README.md docs/logs/2026-08/01-nucleus-project-layout-authority-cutover.md"
+"qa:northstar:g01-nucleus-card098-layout" = [
+  { task = "check:northstar:g01-nucleus-card098-layout" },
+  { task = "proof:nucleus-layout-cutover" },
+]
 "check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
 "check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
 "check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
@@ -487,6 +493,7 @@ test = [
   { task = "qa:northstar:g01-nucleus-card095-private-artifacts" },
   { task = "qa:northstar:g01-nucleus-card096-storage" },
   { task = "qa:northstar:g01-nucleus-card097-window" },
+  { task = "qa:northstar:g01-nucleus-card098-layout" },
   { task = "qa:northstar:g01-native-content-child-webview" },
   { task = "qa:northstar:g01-native-content-isolated-window" },
   { task = "qa:northstar:g01-native-content-backing-surface" },

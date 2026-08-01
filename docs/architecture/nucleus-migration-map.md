@@ -19,6 +19,9 @@ Card 097's protected-window cutover is Nucleus commit
 `fa7f06e7dfdf4a8bde7f4ab48df360a3087a05e7`. It uses Longhorn commit
 `32f4bd66e7df813af07514c654ce3b03ddc21ccd`, including sole-primary Tauri
 display observation.
+Card 098's project-layout cutover is Nucleus commit
+`fc083647f1bad76a7f544efe0f1644b66c042571`. Its exact Longhorn shape freeze
+is commit `01b9c0a79a8af9214984c29c3969db8a8dc790d3`.
 An unrelated `TerminalPanel.svelte` worktree edit remained outside the cutover.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
@@ -42,20 +45,21 @@ Chat only. Card 095 admits bounded donor writes from exact clean receipts.
 | Concern | Current Nucleus authority | Migration target | Retained Nucleus authority |
 | --- | --- | --- | --- |
 | storage roots | `desktop_profile.rs` | `longhorn-config`, `longhorn-tauri-config` | app identity, domain registration, retention |
-| primary window placement | `window_geometry.rs`, `workspace_ui.rs` | `longhorn-windowing`, `longhorn-tauri-windowing`, `longhorn-windowing-config` | main-window role, defaults, close policy |
-| five-region document | `workspace_ui.rs`, `nucleus-workspaces` | `longhorn-layout`, `longhorn-layout-config` | schema registration, project scope, panel catalogue |
+| primary window placement | registered Longhorn host | complete | main-window role, defaults, close policy |
+| five-region document | registered Longhorn layout domain | complete | schema registration, project scope, panel catalogue |
 | renderer layout state | `workspaceUi.ts`, `ProjectWorkspaceStage.svelte` | `@longhorn/layout`, `@longhorn/svelte/layout` and public Poodle bindings | panel bodies, labels, resources, frame composition |
 | native Browser viewport | `browser_panel.rs`, `browserPanel.ts`, `BrowserPanel.svelte` | native-content kernel, Tauri child-view adapter, checked client and Svelte session | browser policy, toolbar, messages, source and lifecycle choices |
 | project/task/runtime state | Nucleus server and product crates | none | all authority remains in Nucleus |
 
-`nucleus-workspaces` is mixed. Generic display, geometry, window, region, and
-panel mechanics are cutover candidates. Project-panel planning, resource
-targets, panel kinds, and product defaults stay Nucleus-owned. Migration must
-split those responsibilities rather than delete the crate wholesale.
+`nucleus-workspaces` now retains server-facing product planning records only.
+Its unused display, geometry, window, region, local-layout, project-panel, and
+fallback-planning modules were removed. Product panel registration, project
+scope, presentation/resource bindings, and runtime cleanup remain Nucleus
+authority outside the retained crate and shared layout document.
 
 ## Storage Baseline And Target
 
-The current desktop default is `~/.nucleus`. It contains:
+The audited legacy desktop default was `~/.nucleus`. It contains:
 
 - `config/ui.json`
 - `state/nucleus.sqlite`
@@ -125,9 +129,11 @@ The migration preserves:
 - product-owned allowed-region and instance-count policy
 - resource targets outside the shared layout document
 
-It adds expected-revision mutation and separate coordinated persistence.
-Renderer whole-snapshot writes cease at cutover. No Surface package, state,
-protocol, or compatibility alias enters Nucleus.
+Card 098 adds expected-revision mutation and separate registered persistence.
+The transition DTO carries the authoritative revision and the renderer
+serializes snapshot submissions; Card 099 removes whole-snapshot mutation in
+favor of the checked generated client. No Surface package, state, protocol, or
+compatibility alias enters Nucleus.
 
 ## Browser Policy Map
 

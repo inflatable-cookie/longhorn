@@ -213,6 +213,7 @@ backing-surface coordination, plus per-instance Svelte viewport lifetime. Card
 fresh packaged macOS evidence, and exact adoption gates. g01.018 is complete;
 The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
 behavior and rollback evidence. Card 095 admits the exact private
-Longhorn/Poodle graph and both Nucleus layout checks. Cards 096-097 complete
-canonical storage plus the protected-window cutover. Card 098 is ready.
+Longhorn/Poodle graph and both Nucleus layout checks. Cards 096-098 complete
+canonical storage, protected-window, and project-layout authority cutovers.
+Card 099 is ready.
 Package-manager publication remains deferred.

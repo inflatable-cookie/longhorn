@@ -42,12 +42,29 @@ describe("two-shape layout conformance", () => {
     expect(nucleus.name).toBe("nucleus");
     expect(record(nucleus.host_binding)).toMatchObject({
       kind: "window",
-      window_id: "window:project",
+      window_id: "window:primary",
       container_id: "container:primary",
     });
     expect(schemaRegions(nucleus)).toHaveLength(5);
     expect(schemaSizingSlots(nucleus)).toHaveLength(4);
-    expect(nucleus.resolved_default_region).toBe("main");
+    expect(
+      schemaRegions(nucleus).map((region) => record(region).id),
+    ).toEqual([
+      "left",
+      "center_top",
+      "center_bottom",
+      "right_top",
+      "right_bottom",
+    ]);
+    expect(
+      schemaSizingSlots(nucleus).map((slot) => record(slot).id),
+    ).toEqual([
+      "left-center",
+      "center-right",
+      "center-stack",
+      "right-stack",
+    ]);
+    expect(nucleus.resolved_default_region).toBe("center_top");
   });
 
   test("keeps host and product authority outside layout protocol state", () => {

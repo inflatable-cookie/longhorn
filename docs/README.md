@@ -167,8 +167,8 @@ behavior and rollback evidence with `pass_with_admission_gates`. Poodle g12.018
 implemented and artifact-proved the public overlay geometry seam.
 Cross-project layout retention and the exact private Longhorn/Poodle artifact
 graph are accepted. The new-project Agent Chat-only check also passes. Donor
-writes are admitted. Cards 096-097 complete canonical storage plus the
-protected-window cutover; Card 098 is ready. Package-manager publication is
-deferred.
+writes are admitted. Cards 096-098 complete canonical storage,
+protected-window, and project-layout authority cutovers. Card 099 is ready.
+Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

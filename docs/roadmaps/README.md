@@ -156,5 +156,5 @@ this host.
 
 ## Next Task
 
-Execute Card 098. Transfer Nucleus project-keyed five-region layout authority
-to Longhorn without introducing Surface state.
+Execute Card 099. Replace renderer whole-snapshot mutation with checked
+per-window state and public Poodle composition.
