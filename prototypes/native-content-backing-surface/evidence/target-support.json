@@ -1,0 +1,17 @@
+{
+  "schema": "longhorn.native-content.backing-surface-target-support.v1",
+  "targets": {
+    "macos": {
+      "status": "packaged-proof-pass-with-native-scale-transition-unmet",
+      "notes": "macOS 26.5.2 arm64 proved a full-host AppKit backing view below a transparent Tauri webview, physical viewport clipping, deterministic absence outside the clip, renderer-forwarded input admission, zero collapse and restore, visibility and injected host-focus gates, host resize, stale-state invariance, destroy ordering, and reversible detach. The one-monitor host exposed only 2x scale, so a native scale transition remains unmet and unsimulated. Separate pure 1x/2x conversion fixtures pass."
+    },
+    "windows": {
+      "status": "unsupported",
+      "notes": "This private proof implements only the AppKit backing-view path. A Windows child HWND or compositor mechanism has not been selected or packaged."
+    },
+    "linux": {
+      "status": "unsupported",
+      "notes": "This private proof implements only the AppKit backing-view path. A Linux GTK/WebKitGTK subsurface mechanism has not been selected or packaged."
+    }
+  }
+}

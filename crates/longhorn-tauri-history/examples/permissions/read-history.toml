@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "allow-longhorn-history-read"
+description = "Allows checked Longhorn history snapshot and page reads."
+commands.allow = [
+  "longhorn_history_snapshot",
+  "longhorn_history_page",
+]

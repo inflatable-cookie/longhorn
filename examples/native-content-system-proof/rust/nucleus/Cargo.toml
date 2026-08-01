@@ -1,0 +1,10 @@
+[package]
+name = "longhorn-native-content-nucleus-artifact-proof"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+longhorn-native-content-artifact-proof-common.workspace = true
+longhorn-tauri-native-content-child-view.workspace = true

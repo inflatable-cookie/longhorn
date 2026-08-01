@@ -1,0 +1,509 @@
+{
+  "cancellationCommand": {
+    "authority": {
+      "authorityEpoch": 7,
+      "authorityId": "authority:fixture"
+    },
+    "expectedOperationRevision": 1,
+    "operationId": "operation:scan",
+    "protocolVersion": 1,
+    "requestId": "request:cancel"
+  },
+  "cancellationResult": {
+    "executorDispatch": {
+      "kind": "notRequired"
+    },
+    "receipt": {
+      "committedCatalogueRevision": 3,
+      "committedOperationRevision": 2,
+      "committedState": "cancelling",
+      "evicted": [],
+      "operationId": "operation:scan",
+      "outcome": "accepted",
+      "previousCatalogueRevision": 2,
+      "previousOperationRevision": 1,
+      "previousState": "running"
+    },
+    "requestId": "request:cancel",
+    "snapshot": {
+      "active": [
+        {
+          "authority": {
+            "authorityEpoch": 7,
+            "authorityId": "authority:fixture"
+          },
+          "cancellationSupport": "supported",
+          "encodedMetadataWeight": 175,
+          "kindId": "soundcheck.plugin-scan",
+          "label": "Scan plug-ins",
+          "lastChangedCatalogueRevision": 3,
+          "operationId": "operation:scan",
+          "progress": {
+            "overall": {
+              "completed": 2.0,
+              "kind": "units",
+              "total": 10.0
+            },
+            "phase": {
+              "completed": 2.0,
+              "label": "Introspecting",
+              "phaseId": "phase:introspect",
+              "total": 10.0
+            },
+            "sequence": 1
+          },
+          "retryOf": null,
+          "revision": 2,
+          "scopeId": null,
+          "sequence": 1,
+          "state": "cancelling"
+        }
+      ],
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "catalogueRevision": 3,
+      "closed": false,
+      "limits": {
+        "maximumActiveOperations": 8,
+        "maximumTerminalEncodedWeight": 16384,
+        "maximumTerminalOperations": 4
+      },
+      "protocolVersion": 1,
+      "recent": [],
+      "retainedTerminalEncodedWeight": 0,
+      "terminalEvictionCount": 0
+    },
+    "status": "committed"
+  },
+  "changedEvents": [
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedCatalogueRevision": 1,
+      "kind": "mutation",
+      "operationId": "operation:scan",
+      "previousCatalogueRevision": 0,
+      "protocolVersion": 1,
+      "requestId": "request:register"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedCatalogueRevision": 2,
+      "kind": "mutation",
+      "operationId": "operation:scan",
+      "previousCatalogueRevision": 1,
+      "protocolVersion": 1,
+      "requestId": "request:progress"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedCatalogueRevision": 3,
+      "kind": "cancellation",
+      "operationId": "operation:scan",
+      "previousCatalogueRevision": 2,
+      "protocolVersion": 1,
+      "requestId": "request:cancel"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedCatalogueRevision": 4,
+      "kind": "mutation",
+      "operationId": "operation:scan",
+      "previousCatalogueRevision": 3,
+      "protocolVersion": 1,
+      "requestId": "request:terminal"
+    }
+  ],
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownCancellationStatus": "stopped",
+    "unknownChangedKind": "product",
+    "unknownMutationKind": "executeProductPayload",
+    "unknownMutationStatus": "uncertain",
+    "unknownRejectionCode": "futureRejection",
+    "unknownState": "paused"
+  },
+  "mutationCommands": [
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "cancellationSupport": "supported",
+      "expectedCatalogueRevision": 0,
+      "initialState": "running",
+      "kind": "register",
+      "kindId": "soundcheck.plugin-scan",
+      "label": "Scan plug-ins",
+      "operationId": "operation:scan",
+      "protocolVersion": 1,
+      "requestId": "request:register",
+      "retryOf": null,
+      "scopeId": null
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "expectedOperationRevision": 0,
+      "kind": "progress",
+      "operationId": "operation:scan",
+      "overall": {
+        "completed": 2.0,
+        "kind": "units",
+        "total": 10.0
+      },
+      "phase": {
+        "completed": 2.0,
+        "label": "Introspecting",
+        "phaseId": "phase:introspect",
+        "total": 10.0
+      },
+      "protocolVersion": 1,
+      "requestId": "request:progress"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "expectedOperationRevision": 2,
+      "kind": "transition",
+      "nextState": "succeeded",
+      "operationId": "operation:scan",
+      "protocolVersion": 1,
+      "requestId": "request:terminal"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "expectedOperationRevision": 0,
+      "kind": "transition",
+      "nextState": "failed",
+      "operationId": "operation:scan",
+      "protocolVersion": 1,
+      "requestId": "request:stale"
+    }
+  ],
+  "mutationResults": [
+    {
+      "receipt": {
+        "committedCatalogueRevision": 1,
+        "kind": "registered",
+        "operation": {
+          "authority": {
+            "authorityEpoch": 7,
+            "authorityId": "authority:fixture"
+          },
+          "cancellationSupport": "supported",
+          "encodedMetadataWeight": 146,
+          "kindId": "soundcheck.plugin-scan",
+          "label": "Scan plug-ins",
+          "lastChangedCatalogueRevision": 1,
+          "operationId": "operation:scan",
+          "progress": {
+            "overall": {
+              "kind": "indeterminate"
+            },
+            "phase": null,
+            "sequence": 0
+          },
+          "retryOf": null,
+          "revision": 0,
+          "scopeId": null,
+          "sequence": 1,
+          "state": "running"
+        },
+        "previousCatalogueRevision": 0
+      },
+      "requestId": "request:register",
+      "snapshot": {
+        "active": [
+          {
+            "authority": {
+              "authorityEpoch": 7,
+              "authorityId": "authority:fixture"
+            },
+            "cancellationSupport": "supported",
+            "encodedMetadataWeight": 146,
+            "kindId": "soundcheck.plugin-scan",
+            "label": "Scan plug-ins",
+            "lastChangedCatalogueRevision": 1,
+            "operationId": "operation:scan",
+            "progress": {
+              "overall": {
+                "kind": "indeterminate"
+              },
+              "phase": null,
+              "sequence": 0
+            },
+            "retryOf": null,
+            "revision": 0,
+            "scopeId": null,
+            "sequence": 1,
+            "state": "running"
+          }
+        ],
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "catalogueRevision": 1,
+        "closed": false,
+        "limits": {
+          "maximumActiveOperations": 8,
+          "maximumTerminalEncodedWeight": 16384,
+          "maximumTerminalOperations": 4
+        },
+        "protocolVersion": 1,
+        "recent": [],
+        "retainedTerminalEncodedWeight": 0,
+        "terminalEvictionCount": 0
+      },
+      "status": "committed"
+    },
+    {
+      "receipt": {
+        "committedCatalogueRevision": 2,
+        "committedOperationRevision": 1,
+        "committedProgress": {
+          "overall": {
+            "completed": 2.0,
+            "kind": "units",
+            "total": 10.0
+          },
+          "phase": {
+            "completed": 2.0,
+            "label": "Introspecting",
+            "phaseId": "phase:introspect",
+            "total": 10.0
+          },
+          "sequence": 1
+        },
+        "kind": "progressed",
+        "operationId": "operation:scan",
+        "previousCatalogueRevision": 1,
+        "previousOperationRevision": 0,
+        "previousProgressSequence": 0
+      },
+      "requestId": "request:progress",
+      "snapshot": {
+        "active": [
+          {
+            "authority": {
+              "authorityEpoch": 7,
+              "authorityId": "authority:fixture"
+            },
+            "cancellationSupport": "supported",
+            "encodedMetadataWeight": 175,
+            "kindId": "soundcheck.plugin-scan",
+            "label": "Scan plug-ins",
+            "lastChangedCatalogueRevision": 2,
+            "operationId": "operation:scan",
+            "progress": {
+              "overall": {
+                "completed": 2.0,
+                "kind": "units",
+                "total": 10.0
+              },
+              "phase": {
+                "completed": 2.0,
+                "label": "Introspecting",
+                "phaseId": "phase:introspect",
+                "total": 10.0
+              },
+              "sequence": 1
+            },
+            "retryOf": null,
+            "revision": 1,
+            "scopeId": null,
+            "sequence": 1,
+            "state": "running"
+          }
+        ],
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "catalogueRevision": 2,
+        "closed": false,
+        "limits": {
+          "maximumActiveOperations": 8,
+          "maximumTerminalEncodedWeight": 16384,
+          "maximumTerminalOperations": 4
+        },
+        "protocolVersion": 1,
+        "recent": [],
+        "retainedTerminalEncodedWeight": 0,
+        "terminalEvictionCount": 0
+      },
+      "status": "committed"
+    },
+    {
+      "receipt": {
+        "committedCatalogueRevision": 4,
+        "committedOperationRevision": 3,
+        "committedState": "succeeded",
+        "evicted": [],
+        "kind": "transitioned",
+        "operationId": "operation:scan",
+        "previousCatalogueRevision": 3,
+        "previousOperationRevision": 2,
+        "previousState": "cancelling"
+      },
+      "requestId": "request:terminal",
+      "snapshot": {
+        "active": [],
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "catalogueRevision": 4,
+        "closed": false,
+        "limits": {
+          "maximumActiveOperations": 8,
+          "maximumTerminalEncodedWeight": 16384,
+          "maximumTerminalOperations": 4
+        },
+        "protocolVersion": 1,
+        "recent": [
+          {
+            "authority": {
+              "authorityEpoch": 7,
+              "authorityId": "authority:fixture"
+            },
+            "cancellationSupport": "supported",
+            "encodedMetadataWeight": 175,
+            "kindId": "soundcheck.plugin-scan",
+            "label": "Scan plug-ins",
+            "lastChangedCatalogueRevision": 4,
+            "operationId": "operation:scan",
+            "progress": {
+              "overall": {
+                "completed": 2.0,
+                "kind": "units",
+                "total": 10.0
+              },
+              "phase": {
+                "completed": 2.0,
+                "label": "Introspecting",
+                "phaseId": "phase:introspect",
+                "total": 10.0
+              },
+              "sequence": 1
+            },
+            "retryOf": null,
+            "revision": 3,
+            "scopeId": null,
+            "sequence": 1,
+            "state": "succeeded"
+          }
+        ],
+        "retainedTerminalEncodedWeight": 175,
+        "terminalEvictionCount": 0
+      },
+      "status": "committed"
+    },
+    {
+      "rejection": {
+        "code": "operationRevisionMismatch",
+        "detail": "operation revision mismatch: expected 3, got 0",
+        "refreshRequired": true
+      },
+      "requestId": "request:stale",
+      "snapshot": {
+        "active": [],
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "catalogueRevision": 4,
+        "closed": false,
+        "limits": {
+          "maximumActiveOperations": 8,
+          "maximumTerminalEncodedWeight": 16384,
+          "maximumTerminalOperations": 4
+        },
+        "protocolVersion": 1,
+        "recent": [
+          {
+            "authority": {
+              "authorityEpoch": 7,
+              "authorityId": "authority:fixture"
+            },
+            "cancellationSupport": "supported",
+            "encodedMetadataWeight": 175,
+            "kindId": "soundcheck.plugin-scan",
+            "label": "Scan plug-ins",
+            "lastChangedCatalogueRevision": 4,
+            "operationId": "operation:scan",
+            "progress": {
+              "overall": {
+                "completed": 2.0,
+                "kind": "units",
+                "total": 10.0
+              },
+              "phase": {
+                "completed": 2.0,
+                "label": "Introspecting",
+                "phaseId": "phase:introspect",
+                "total": 10.0
+              },
+              "sequence": 1
+            },
+            "retryOf": null,
+            "revision": 3,
+            "scopeId": null,
+            "sequence": 1,
+            "state": "succeeded"
+          }
+        ],
+        "retainedTerminalEncodedWeight": 175,
+        "terminalEvictionCount": 0
+      },
+      "status": "rejected"
+    }
+  ],
+  "protocolVersion": 1,
+  "snapshotQuery": {
+    "protocolVersion": 1,
+    "requestId": "request:snapshot"
+  },
+  "snapshotResponse": {
+    "requestId": "request:snapshot",
+    "snapshot": {
+      "active": [],
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "catalogueRevision": 0,
+      "closed": false,
+      "limits": {
+        "maximumActiveOperations": 8,
+        "maximumTerminalEncodedWeight": 16384,
+        "maximumTerminalOperations": 4
+      },
+      "protocolVersion": 1,
+      "recent": [],
+      "retainedTerminalEncodedWeight": 0,
+      "terminalEvictionCount": 0
+    }
+  }
+}

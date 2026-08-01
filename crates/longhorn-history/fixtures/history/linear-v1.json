@@ -1,0 +1,64 @@
+{
+  "formatFamily": "longhorn.linear-history",
+  "structuralVersion": 1,
+  "payloadCodec": {
+    "family": "fixture.counter",
+    "version": 1
+  },
+  "mode": "linear",
+  "historyId": "history:counter",
+  "revision": 3,
+  "limits": {
+    "maximumEntries": 10,
+    "maximumEncodedWeight": 1024,
+    "maximumLabelBytes": 64
+  },
+  "nextSequence": 3,
+  "retainedBaseline": {
+    "prunedEntryCount": 0,
+    "prunedEncodedWeight": 0,
+    "lastPrunedEntryId": null,
+    "lastPrunedSequence": null
+  },
+  "currentPosition": 1,
+  "entries": [
+    {
+      "entryId": "entry:counter-1",
+      "label": "Set counter to one",
+      "kindId": "fixture:counter",
+      "groupId": null,
+      "sequence": 1,
+      "committedRevision": 1,
+      "encodedWeight": 8,
+      "payload": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "entryId": "entry:counter-2",
+      "label": "Set counter to two",
+      "kindId": "fixture:counter",
+      "groupId": null,
+      "sequence": 2,
+      "committedRevision": 2,
+      "encodedWeight": 8,
+      "payload": [
+        1,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

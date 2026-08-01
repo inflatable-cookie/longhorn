@@ -1,0 +1,65 @@
+{
+  "schema": "longhorn.native-content.child-webview-inventory.v1",
+  "package": {
+    "name": "longhorn-native-content-child-webview-prototype",
+    "version": "0.0.0",
+    "publish": false,
+    "public_authority": false,
+    "direct_dependencies": [
+      "longhorn-core",
+      "longhorn-native-content-prototype",
+      "serde",
+      "tauri"
+    ],
+    "tauri": {
+      "version": "2.10.3",
+      "features": ["unstable", "wry"],
+      "unstable_api_isolation": "adapter/src/tauri_runtime.rs",
+      "unstable_symbols": ["WebviewBuilder", "Window::add_child"]
+    }
+  },
+  "exported_private_symbols": [
+    "AdapterEvent",
+    "ChildWebviewAdapter",
+    "ChildWebviewError",
+    "ChildWebviewLabel",
+    "ChildWebviewRuntime",
+    "ChildWebviewSpec",
+    "DownloadPolicy",
+    "InvalidatedAttachment",
+    "PopupPolicy",
+    "RemoteCapabilityPolicy",
+    "RuntimeAttachRequest",
+    "RuntimeEvent",
+    "RuntimeEventKind",
+    "TauriChildWebviewRuntime"
+  ],
+  "forbidden_edges": {
+    "isolated_window_adapter": false,
+    "plugin_adapter": false,
+    "gpu_adapter": false,
+    "svelte_adapter": false,
+    "poodle_adapter": false
+  },
+  "security": {
+    "controller_webview_capability": "empty local permission set",
+    "remote_child_capability": "none",
+    "global_tauri": false,
+    "navigation_policy": "consumer injected",
+    "popup_policy": "deny",
+    "download_policy": "deny",
+    "data_store_identifier": "consumer supplied 16-byte value on macOS"
+  },
+  "packaged_artifact": {
+    "platform": "macos-aarch64",
+    "path": "target/release/bundle/macos/Longhorn Child Webview Proof.app",
+    "size_kib": 9192,
+    "executable_sha256": "abc6eac90be904d72ce75b2c43159390eb71a120c91fa6d71ee9664b4b650086"
+  },
+  "packaged_run": {
+    "report": "evidence/runs/2026-07-31-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl",
+    "outcome": "pass_with_unmet_environment_claims",
+    "unmet": ["native_scale_switch"]
+  }
+}

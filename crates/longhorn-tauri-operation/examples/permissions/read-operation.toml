@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "read-operation"
+description = "Read payload-free operation catalogue snapshots"
+commands.allow = ["longhorn_operation_snapshot"]

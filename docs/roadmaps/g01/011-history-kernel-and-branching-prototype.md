@@ -1,8 +1,8 @@
 # g01.011 History Kernel And Fork Prototype
 
-Status: ready
+Status: complete
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-07-31
 Governing refs: contracts 001, 003, 007, 008, 010, 012, and 013; research
 memo 015
 
@@ -29,31 +29,31 @@ forward.
 
 ### Batch 2: Persistence and client composition
 
-- [ ] Card 065: structural persistence and committed transition stream
-- [ ] Card 066: generated client, Tauri host, Svelte, and Poodle projection
-- [ ] Card 067: two-shape artifact proof and linear closeout
+- [x] Card 065: structural persistence and committed transition stream
+- [x] Card 066: generated client, Tauri host, Svelte, and Poodle projection
+- [x] Card 067: two-shape artifact proof and linear closeout
 
 ### Batch 3: Private fork prototype
 
-- [ ] Card 068: divergent tree, checkout, pruning, checkpoint, migration, and
+- [x] Card 068: divergent tree, checkout, pruning, checkpoint, migration, and
   performance prototype
 
 ### Batch 4: Promotion decision
 
-- [ ] Card 069: promote, retain, or reject forkable history and close g01.011
+- [x] Card 069: promote forkable history semantics and close g01.011
 
 ## Goals
 
-- [ ] Keep payload types, inverse meaning, and apply logic consumer-owned.
-- [ ] Record only successful product mutations.
-- [ ] Make undo, redo, and checkout plan/apply/commit transactions.
-- [ ] Preserve Loophole's linear record, coalesce, limit, persistence,
+- [x] Keep payload types, inverse meaning, and apply logic consumer-owned.
+- [x] Record only successful product mutations.
+- [x] Make undo, redo, and checkout plan/apply/commit transactions.
+- [x] Preserve Loophole's linear record, coalesce, limit, persistence,
   journal, recovery, cross-session undo, and panel capability.
-- [ ] Replace renderer-remembered redo with authoritative metadata pages.
-- [ ] Prove a materially different non-editor fixture.
-- [ ] Keep config, bridge, Tauri, Svelte, Poodle, and branch code removable
+- [x] Replace renderer-remembered redo with authoritative metadata pages.
+- [x] Prove a materially different non-editor fixture.
+- [x] Keep config, bridge, Tauri, Svelte, Poodle, and branch code removable
   from the pure linear crate.
-- [ ] Decide forkable history from a private measured prototype.
+- [x] Decide forkable history from a private measured prototype.
 
 ## Public Linear Boundary
 
@@ -71,34 +71,37 @@ Loophole's 83 mutation variants, Pulse apply match, tempo/cache reconciliation,
 project format, autosave, journal file policy, recovery choice, versions, and
 variants stay in Loophole.
 
-## Private Fork Boundary
+## Promoted Fork Decision
 
 The prototype preserves abandoned futures after divergent edits, checks out
 through the lowest common ancestor, accounts for checkpoints and replay cost,
 and prunes under count and encoded-weight budgets without deleting pinned
 lineage.
 
-The prototype is non-publishable. Linear mode remains the only public
-compatibility claim until Card 069.
+Card 069 selects `Promote`. The accepted semantics move to planned g01.017 as
+a separate optional production layer. The prototype stays non-publishable and
+outside the root workspace. Linear mode remains the only current public
+compatibility claim.
 
 ## Acceptance Criteria
 
-- [ ] Loophole-shaped fixtures retain every live mechanic claimed in memo 015.
-- [ ] Failed, stale, or partial apply leaves exact model and history state
-  unchanged.
-- [ ] Compounds and multi-entry checkout require atomic apply or verified
+- [x] Loophole-shaped fixtures retain every live mechanic claimed in memo 015.
+- [x] Stale and verified-rollback failures leave exact model and history
+  state unchanged. Rollback failure leaves history exact and reports terminal
+  partial-model evidence.
+- [x] Compounds and multi-entry checkout require atomic apply or verified
   rollback.
-- [ ] Coalescing and grouping use consumer policy and injected time.
-- [ ] Structural and payload compatibility fail visibly.
-- [ ] Committed transitions can drive a Loophole-shaped journal without
+- [x] Coalescing and grouping use consumer policy and injected time.
+- [x] Structural and payload compatibility fail visibly.
+- [x] Committed transitions can drive a Loophole-shaped journal without
   moving file policy into Longhorn.
-- [ ] TypeScript clients expose authoritative past/current/future metadata.
-- [ ] The minimal fixture imports no Tauri, Svelte, Poodle, bridge, config, or
+- [x] TypeScript clients expose authoritative past/current/future metadata.
+- [x] The minimal fixture imports no Tauri, Svelte, Poodle, bridge, config, or
   journal package.
-- [ ] Fork evidence covers divergent record, preferred redo, branch
+- [x] Fork evidence covers divergent record, preferred redo, branch
   references, checkout, pruning, checkpoints, migration, and realistic
   payload weight.
-- [ ] Card 069 records one explicit promotion decision and updates canonical
+- [x] Card 069 records one explicit promotion decision and updates canonical
   architecture, contracts, package topology, and later migration gates.
 
 ## Explicit Non-goals
@@ -111,14 +114,15 @@ compatibility claim until Card 069.
 - silent empty-history fallback
 - public branch package before Card 069
 
-## Planning Checkpoint
+## Closeout
 
-Card 067 closes the public linear slice and pauses before private branch work.
-Card 068 produces evidence only. Card 069 is the mandatory product and package
-checkpoint; it cannot auto-promote the prototype.
+Cards 062-067 deliver and prove the public linear slice. Card 068 supplies
+private measured tree evidence. Card 069 promotes the semantics, retains the
+prototype as research, compiles g01.017, and closes this milestone without
+publishing branch behavior.
 
 ## Next Task
 
-Execute Card 065. Add structural and payload compatibility, explicit recovery,
-and committed transition records without moving product snapshots, journal
-files, or durability policy into Longhorn.
+Return to the generation runway. Start g01.012 async-operation and
+notification characterization; g01.017 waits for the first linear consumer
+and release checkpoint.

@@ -1,8 +1,8 @@
 # System Inventory
 
-Status: complete inventory; g01.010 compiled
+Status: complete inventory; g01.018 complete
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-07-31
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
@@ -100,6 +100,42 @@ bindings, and capability-gated settings. Card 061 adds isolated rich/minimal
 artifact installs, native and renderer traces, exact boundary audits, and the
 composition guide. `g01.010` is complete.
 
+Research memo 015 and compiled contract 008 bound typed linear history,
+transactional navigation, grouping, retention, persistence, transitions,
+metadata clients, and the private fork decision. Cards 062-065 implement the
+pure typed kernel, exact failure invariance, explicit and timed grouping,
+count/weight retention, authoritative pages, strict versioned envelopes,
+independent structural/payload migration, visible discard recovery, and
+committed-only payload-free transitions. Card 066 adds the payload-free
+generated protocol, exact clients, caller-aware Tauri assembly, per-instance
+Svelte lifecycle, and public-Poodle panel. Loophole-shaped snapshot/journal
+recovery and a non-editor round trip pass without moving product state,
+storage, or durability policy into Longhorn. Card 067 adds clean minimal and
+Loophole-shaped artifact installs, matching native/renderer traces, recovery
+and failure evidence, and the canonical composition guide. Card 068 proves the
+private fork tree. Card 069 promotes its semantics into a later optional
+production lane while leaving the current public slice linear.
+
+Research memo 016 and compiled contracts 015-016 separate the finite operation
+lifecycle from the retained notification ledger. Soundcheck plugin scan and
+Loophole render queue prove one operation authority without sharing scheduling
+or product payloads. Loophole operation and non-operation records prove an
+independent notification authority. Cards 075-076 implement bounded identity
+and progress, queued and direct-running registration, exact revision-bound
+lifecycle transitions, receipted cancellation races, count/weight retention,
+retry lineage, explicit dismissal, controlled teardown, and donor projections.
+Card 077 adds generated clients and direct, serialized, Tauri, and bridge
+composition without moving catalogue authority. Card 078 adds isolated
+Svelte sessions and public-Poodle projection without moving product detail or
+host truth into the renderer. Card 079 adds the independent finite retained
+ledger, exact read/removal transitions, explicit replacement and producer
+idempotency, newest-first projections, and failure-isolated optional operation
+observation. Card 080 adds checked clients, app-wide Tauri invalidation,
+isolated Svelte sessions, public-Poodle retained/toast projections, and fresh
+semantic-action admission. Card 081 proves four isolated graphs, matching
+native/renderer traces, multi-window teardown, remount, toast retention, and
+fresh action admission. `g01.012` is complete.
+
 ## In-Scope Elements
 
 | Element | Type | Authority | Evidence | Coverage |
@@ -119,10 +155,11 @@ composition guide. `g01.010` is complete.
 | Settings registry/shell | Rust + TS/Svelte package | sealed page composition, checked apply units, policy/activation projection | Loophole, Soundcheck, Bovine, Nucleus | Cards 042-048 implement authority, config apply, checked clients/Tauri host, isolated sessions, public-Poodle shell, exact recovery pages, and four artifact-installed compositions; g01.008 complete |
 | Command/keymap/palette | Rust + config + TS/Svelte/Poodle packages | sealed catalogue, fresh admission, keyboard resolution, durable overrides, shared projections | Loophole full system; Jetstream basic shortcuts | Cards 056-061 and g01.010 complete; rich/minimal artifact proof passes |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | five host forms, separate authority, explicit replay, checked direct/loopback/Tauri sessions, bounded lifecycle, stream/job semantics, and injected supervision implemented |
-| History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams; private fork prototype | Loophole Pulse plus non-editor fixture | compiled contract 008; Cards 062-069 |
-| Long-running job controller | later package | progress/cancel/listener lifecycle | Soundcheck | second consumer needed |
-| Notifications | later Rust + Svelte package | bounded records and presentation | Loophole, Soundcheck | research needed |
-| Native content islands | later adapter family | native child/webview/embedded content geometry | Nucleus, Soundcheck, Jetstream | prototype needed |
+| History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams | Loophole Pulse plus non-editor fixture | public linear slice complete through Card 067 artifact proof |
+| Forkable history tree | later optional Rust + TS/Svelte/Poodle layer | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints | Card 068 document and Loophole-shaped prototype | semantics promoted by Card 069; production packages and artifact proof remain planned |
+| Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
+| Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
+| Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts | Nucleus child webview; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 complete; isolated produced graphs and three-shape traces pass; Nucleus planning admitted while consumer policy gates remain |
 | Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | roadmap |
 
 ## Consumer Repos
@@ -142,7 +179,7 @@ composition guide. `g01.010` is complete.
 | --- | --- | --- |
 | platform filesystem roots | config/data/cache/log/temp location authority | contract 004; pure layouts and Tauri path mapping implemented |
 | secure credential store | secrets outside ordinary config/backups | trait required; provider choice pending |
-| Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 |
+| Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 and 017 |
 | local or remote service transport | optional product authority seam | contract 007; v1 transports pending |
 | Poodle packages | component and presentation authority | contract 013; exact Card 038 artifact set proven through Card 041 |
 | Rust/TS package registries | distribution and versioning | contract 012; names pending verification |
@@ -164,9 +201,9 @@ composition guide. `g01.010` is complete.
 - durable offline mutation policy, if a domain proves it
 - macros, extended input triggers, native accelerators, and synchronized
   keymaps
-- branch reference, checkpoint, pruning, migration, and performance promotion
-  decision after the private history-tree prototype
-- async operation/notification shared lifecycle
-- native-content-island common denominator
+- production fork-tree implementation: dense persistence, bounded lazy
+  alternate projections, generated metadata clients, and artifact proof
+- live native scale-transition evidence for child-view and backing-surface
+- Windows/Linux child-view proof and any future non-macOS native host support
 - cross-document panel transaction and copy-transfer authority
 - non-macOS strong display and packaged transfer evidence

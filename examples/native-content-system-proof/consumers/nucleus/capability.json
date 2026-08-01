@@ -1,0 +1,9 @@
+{
+  "identifier": "nucleus-native-content",
+  "permissions": [
+    "read-native-content",
+    "mutate-native-content",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

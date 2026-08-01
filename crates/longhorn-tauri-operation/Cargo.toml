@@ -1,0 +1,22 @@
+[package]
+name = "longhorn-tauri-operation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Narrow injected Tauri host for Longhorn operation catalogues"
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-operation.workspace = true
+serde.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

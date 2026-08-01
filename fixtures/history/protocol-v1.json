@@ -1,0 +1,182 @@
+{
+  "changedEvent": {
+    "authorityEpoch": 7,
+    "committedRevision": 12,
+    "historyId": "history:fixture",
+    "kind": "navigation",
+    "previousRevision": 11,
+    "protocolVersion": 1
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownChangedKind": "futureKind",
+    "unknownEntryPosition": "alternate",
+    "unknownMode": "forked",
+    "unknownNavigationDirection": "branch",
+    "unknownNavigationStatus": "futureStatus",
+    "unknownNavigationTarget": "branch",
+    "unknownRejectionCode": "futureRejection"
+  },
+  "navigationCommand": {
+    "authorityEpoch": 7,
+    "expectedRevision": 11,
+    "historyId": "history:fixture",
+    "planId": "plan:undo",
+    "protocolVersion": 1,
+    "target": {
+      "kind": "undo"
+    }
+  },
+  "navigationResults": [
+    {
+      "receipt": {
+        "authoritativePosition": {
+          "appliedDepth": 1,
+          "currentEntryId": "entry:past",
+          "futureDepth": 2,
+          "nextRedoEntryId": "entry:current",
+          "nextRedoLabel": "Move clip",
+          "nextUndoLabel": "Create clip"
+        },
+        "committedRevision": 12,
+        "direction": "undo",
+        "historyId": "history:fixture",
+        "movedEntryIds": [
+          "entry:current"
+        ],
+        "planId": "plan:undo",
+        "previousRevision": 11,
+        "sourcePosition": {
+          "appliedDepth": 2,
+          "currentEntryId": "entry:current",
+          "futureDepth": 1,
+          "nextRedoEntryId": "entry:future",
+          "nextRedoLabel": "Rename track",
+          "nextUndoLabel": "Move clip"
+        }
+      },
+      "snapshot": {
+        "authorityEpoch": 7,
+        "protocolVersion": 1,
+        "summary": {
+          "currentEntryId": "entry:past",
+          "historyId": "history:fixture",
+          "mode": "linear",
+          "nextRedoLabel": "Move clip",
+          "nextUndoLabel": "Create clip",
+          "redoDepth": 2,
+          "retainedBaseline": {
+            "lastPrunedEntryId": "entry:pruned",
+            "lastPrunedSequence": 2,
+            "prunedEncodedWeight": 48,
+            "prunedEntryCount": 2
+          },
+          "retainedEncodedWeight": 96,
+          "retainedEntryCount": 3,
+          "revision": 12,
+          "undoDepth": 1
+        }
+      },
+      "status": "committed"
+    },
+    {
+      "rejection": {
+        "code": "staleRevision",
+        "detail": "history changed before navigation",
+        "refreshRequired": true
+      },
+      "snapshot": {
+        "authorityEpoch": 7,
+        "protocolVersion": 1,
+        "summary": {
+          "currentEntryId": "entry:past",
+          "historyId": "history:fixture",
+          "mode": "linear",
+          "nextRedoLabel": "Move clip",
+          "nextUndoLabel": "Create clip",
+          "redoDepth": 2,
+          "retainedBaseline": {
+            "lastPrunedEntryId": "entry:pruned",
+            "lastPrunedSequence": 2,
+            "prunedEncodedWeight": 48,
+            "prunedEntryCount": 2
+          },
+          "retainedEncodedWeight": 96,
+          "retainedEntryCount": 3,
+          "revision": 12,
+          "undoDepth": 1
+        }
+      },
+      "status": "rejected"
+    }
+  ],
+  "page": {
+    "authorityEpoch": 7,
+    "entries": [
+      {
+        "committedRevision": 9,
+        "encodedWeight": 32,
+        "entryId": "entry:future",
+        "groupId": null,
+        "kindId": "track:rename",
+        "label": "Rename track",
+        "position": "future",
+        "sequence": 5
+      },
+      {
+        "committedRevision": 11,
+        "encodedWeight": 40,
+        "entryId": "entry:current",
+        "groupId": "gesture:move",
+        "kindId": "clip:move",
+        "label": "Move clip",
+        "position": "current",
+        "sequence": 4
+      }
+    ],
+    "historyId": "history:fixture",
+    "offset": 0,
+    "protocolVersion": 1,
+    "retainedBaseline": {
+      "lastPrunedEntryId": "entry:pruned",
+      "lastPrunedSequence": 2,
+      "prunedEncodedWeight": 48,
+      "prunedEntryCount": 2
+    },
+    "revision": 11,
+    "totalEntries": 3,
+    "truncatedAfter": true,
+    "truncatedBefore": false
+  },
+  "pageRequest": {
+    "authorityEpoch": 7,
+    "expectedRevision": 11,
+    "historyId": "history:fixture",
+    "limit": 2,
+    "offset": 0,
+    "protocolVersion": 1
+  },
+  "protocolVersion": 1,
+  "snapshot": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1,
+    "summary": {
+      "currentEntryId": "entry:current",
+      "historyId": "history:fixture",
+      "mode": "linear",
+      "nextRedoLabel": "Rename track",
+      "nextUndoLabel": "Move clip",
+      "redoDepth": 1,
+      "retainedBaseline": {
+        "lastPrunedEntryId": "entry:pruned",
+        "lastPrunedSequence": 2,
+        "prunedEncodedWeight": 48,
+        "prunedEntryCount": 2
+      },
+      "retainedEncodedWeight": 96,
+      "retainedEntryCount": 3,
+      "revision": 11,
+      "undoDepth": 2
+    }
+  }
+}

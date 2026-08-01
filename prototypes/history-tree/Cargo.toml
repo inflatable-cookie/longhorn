@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-history-tree-prototype"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+longhorn-core = { path = "../../crates/longhorn-core" }
+longhorn-history = { path = "../../crates/longhorn-history" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"

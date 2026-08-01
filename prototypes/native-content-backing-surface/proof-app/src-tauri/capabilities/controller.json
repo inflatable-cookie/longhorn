@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "backing-surface-proof-controller",
+  "description": "The controlled local proof has no command permissions.",
+  "local": true,
+  "webviews": ["controller"],
+  "permissions": []
+}

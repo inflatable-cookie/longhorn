@@ -2,7 +2,10 @@ use std::{error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryRevision};
 
-use crate::{HistoryEntry, HistoryEntrySequence, HistoryLimits, LinearHistory};
+use crate::{
+    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryEntry, HistoryEntrySequence,
+    HistoryLimits, LinearHistory,
+};
 
 /// Durable evidence for the product state before the oldest retained entry.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -183,6 +186,7 @@ pub struct HistoryLimitChangeReceipt {
     authoritative_limits: HistoryLimits,
     pruning: HistoryPruningReceipt,
     retained_encoded_weight: u64,
+    transition: Option<HistoryCommittedTransition>,
 }
 
 impl HistoryLimitChangeReceipt {
@@ -221,6 +225,12 @@ impl HistoryLimitChangeReceipt {
     pub const fn retained_encoded_weight(&self) -> u64 {
         self.retained_encoded_weight
     }
+
+    /// Returns the committed transition, absent when limits were unchanged.
+    #[must_use]
+    pub const fn transition(&self) -> Option<&HistoryCommittedTransition> {
+        self.transition.as_ref()
+    }
 }
 
 impl<P> LinearHistory<P> {
@@ -251,6 +261,7 @@ impl<P> LinearHistory<P> {
                 retained_encoded_weight: self
                     .retained_encoded_weight()
                     .map_err(HistoryLimitChangeError::Retention)?,
+                transition: None,
             });
         }
         if let Some(entry) = self
@@ -321,14 +332,26 @@ impl<P> LinearHistory<P> {
         self.limits = new_limits;
         self.state.revision = committed_revision;
         self.close_transient_group(crate::HistoryGroupCloseReason::AuthorityChange);
+        let pruning = HistoryPruningReceipt::new(advanced_baseline, discarded_future);
+        let transition = HistoryCommittedTransition::new(
+            self.state.history_id.clone(),
+            Some(expected_revision),
+            committed_revision,
+            HistoryCommittedTransitionKind::LimitsChanged {
+                previous_limits,
+                authoritative_limits: new_limits,
+                pruning: pruning.clone(),
+            },
+        );
 
         Ok(HistoryLimitChangeReceipt {
             previous_revision: expected_revision,
             committed_revision,
             previous_limits,
             authoritative_limits: new_limits,
-            pruning: HistoryPruningReceipt::new(advanced_baseline, discarded_future),
+            pruning,
             retained_encoded_weight: retained_weight,
+            transition: Some(transition),
         })
     }
 }

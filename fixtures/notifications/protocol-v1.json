@@ -1,0 +1,420 @@
+{
+  "changedEvents": [
+    {
+      "affectedNotificationIds": [
+        "notification:scan"
+      ],
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedLedgerRevision": 1,
+      "kind": "added",
+      "previousLedgerRevision": 0,
+      "protocolVersion": 1,
+      "requestId": "request:add"
+    },
+    {
+      "affectedNotificationIds": [
+        "notification:scan"
+      ],
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedLedgerRevision": 2,
+      "kind": "seen",
+      "previousLedgerRevision": 1,
+      "protocolVersion": 1,
+      "requestId": "request:seen"
+    },
+    {
+      "affectedNotificationIds": [
+        "notification:scan"
+      ],
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "committedLedgerRevision": 3,
+      "kind": "dismissed",
+      "previousLedgerRevision": 2,
+      "protocolVersion": 1,
+      "requestId": "request:dismiss"
+    }
+  ],
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownChangedKind": "product",
+    "unknownMutationKind": "executeAction",
+    "unknownMutationStatus": "uncertain",
+    "unknownRejectionCode": "futureRejection",
+    "unknownSeverity": "notice"
+  },
+  "mutationCommands": [
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "draft": {
+        "actions": [
+          {
+            "label": "Open result",
+            "referenceId": "action:open-result"
+          }
+        ],
+        "causeId": null,
+        "presentationTimeUnixMs": 1700000000000,
+        "producerToken": null,
+        "replacementKey": null,
+        "retentionClass": "standard",
+        "severity": "success",
+        "sourceId": "source:fixture",
+        "summary": "The fixture operation completed.",
+        "title": "Scan complete"
+      },
+      "expectedLedgerRevision": 0,
+      "kind": "add",
+      "notificationId": "notification:scan",
+      "protocolVersion": 1,
+      "requestId": "request:add"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "expectedLedgerRevision": 1,
+      "kind": "markSeen",
+      "notificationId": "notification:scan",
+      "protocolVersion": 1,
+      "requestId": "request:seen"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "expectedLedgerRevision": 2,
+      "kind": "dismiss",
+      "notificationId": "notification:scan",
+      "protocolVersion": 1,
+      "requestId": "request:dismiss"
+    },
+    {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "draft": {
+        "actions": [
+          {
+            "label": "Open result",
+            "referenceId": "action:open-result"
+          }
+        ],
+        "causeId": null,
+        "presentationTimeUnixMs": 1700000000000,
+        "producerToken": null,
+        "replacementKey": null,
+        "retentionClass": "standard",
+        "severity": "success",
+        "sourceId": "source:fixture",
+        "summary": "The fixture operation completed.",
+        "title": "Stale mutation"
+      },
+      "expectedLedgerRevision": 0,
+      "kind": "add",
+      "notificationId": "notification:stale",
+      "protocolVersion": 1,
+      "requestId": "request:stale"
+    }
+  ],
+  "mutationResults": [
+    {
+      "receipt": {
+        "committedLedgerRevision": 1,
+        "kind": "added",
+        "previousLedgerRevision": 0,
+        "pruned": [],
+        "record": {
+          "draft": {
+            "actions": [
+              {
+                "label": "Open result",
+                "referenceId": "action:open-result"
+              }
+            ],
+            "causeId": null,
+            "presentationTimeUnixMs": 1700000000000,
+            "producerToken": null,
+            "replacementKey": null,
+            "retentionClass": "standard",
+            "severity": "success",
+            "sourceId": "source:fixture",
+            "summary": "The fixture operation completed.",
+            "title": "Scan complete"
+          },
+          "encodedMetadataWeight": 153,
+          "lastChangedLedgerRevision": 1,
+          "notificationId": "notification:scan",
+          "readState": "unseen",
+          "sequence": 1
+        }
+      },
+      "requestId": "request:add",
+      "snapshot": {
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "ledgerRevision": 1,
+        "limits": {
+          "maximumEncodedWeight": 16384,
+          "maximumNotifications": 8
+        },
+        "page": {
+          "hasMore": false,
+          "offset": 0,
+          "records": [
+            {
+              "draft": {
+                "actions": [
+                  {
+                    "label": "Open result",
+                    "referenceId": "action:open-result"
+                  }
+                ],
+                "causeId": null,
+                "presentationTimeUnixMs": 1700000000000,
+                "producerToken": null,
+                "replacementKey": null,
+                "retentionClass": "standard",
+                "severity": "success",
+                "sourceId": "source:fixture",
+                "summary": "The fixture operation completed.",
+                "title": "Scan complete"
+              },
+              "encodedMetadataWeight": 153,
+              "lastChangedLedgerRevision": 1,
+              "notificationId": "notification:scan",
+              "readState": "unseen",
+              "sequence": 1
+            }
+          ],
+          "totalCount": 1
+        },
+        "protocolVersion": 1,
+        "prunedCount": 0,
+        "retainedCount": 1,
+        "retainedEncodedWeight": 153,
+        "unseenCount": 1
+      },
+      "status": "committed"
+    },
+    {
+      "receipt": {
+        "committedLedgerRevision": 2,
+        "kind": "seen",
+        "previousLedgerRevision": 1,
+        "record": {
+          "draft": {
+            "actions": [
+              {
+                "label": "Open result",
+                "referenceId": "action:open-result"
+              }
+            ],
+            "causeId": null,
+            "presentationTimeUnixMs": 1700000000000,
+            "producerToken": null,
+            "replacementKey": null,
+            "retentionClass": "standard",
+            "severity": "success",
+            "sourceId": "source:fixture",
+            "summary": "The fixture operation completed.",
+            "title": "Scan complete"
+          },
+          "encodedMetadataWeight": 153,
+          "lastChangedLedgerRevision": 2,
+          "notificationId": "notification:scan",
+          "readState": "seen",
+          "sequence": 1
+        }
+      },
+      "requestId": "request:seen",
+      "snapshot": {
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "ledgerRevision": 2,
+        "limits": {
+          "maximumEncodedWeight": 16384,
+          "maximumNotifications": 8
+        },
+        "page": {
+          "hasMore": false,
+          "offset": 0,
+          "records": [
+            {
+              "draft": {
+                "actions": [
+                  {
+                    "label": "Open result",
+                    "referenceId": "action:open-result"
+                  }
+                ],
+                "causeId": null,
+                "presentationTimeUnixMs": 1700000000000,
+                "producerToken": null,
+                "replacementKey": null,
+                "retentionClass": "standard",
+                "severity": "success",
+                "sourceId": "source:fixture",
+                "summary": "The fixture operation completed.",
+                "title": "Scan complete"
+              },
+              "encodedMetadataWeight": 153,
+              "lastChangedLedgerRevision": 2,
+              "notificationId": "notification:scan",
+              "readState": "seen",
+              "sequence": 1
+            }
+          ],
+          "totalCount": 1
+        },
+        "protocolVersion": 1,
+        "prunedCount": 0,
+        "retainedCount": 1,
+        "retainedEncodedWeight": 153,
+        "unseenCount": 0
+      },
+      "status": "committed"
+    },
+    {
+      "receipt": {
+        "committedLedgerRevision": 3,
+        "kind": "removed",
+        "previousLedgerRevision": 2,
+        "removals": [
+          {
+            "reason": "dismissed",
+            "record": {
+              "draft": {
+                "actions": [
+                  {
+                    "label": "Open result",
+                    "referenceId": "action:open-result"
+                  }
+                ],
+                "causeId": null,
+                "presentationTimeUnixMs": 1700000000000,
+                "producerToken": null,
+                "replacementKey": null,
+                "retentionClass": "standard",
+                "severity": "success",
+                "sourceId": "source:fixture",
+                "summary": "The fixture operation completed.",
+                "title": "Scan complete"
+              },
+              "encodedMetadataWeight": 153,
+              "lastChangedLedgerRevision": 2,
+              "notificationId": "notification:scan",
+              "readState": "seen",
+              "sequence": 1
+            }
+          }
+        ]
+      },
+      "requestId": "request:dismiss",
+      "snapshot": {
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "ledgerRevision": 3,
+        "limits": {
+          "maximumEncodedWeight": 16384,
+          "maximumNotifications": 8
+        },
+        "page": {
+          "hasMore": false,
+          "offset": 0,
+          "records": [],
+          "totalCount": 0
+        },
+        "protocolVersion": 1,
+        "prunedCount": 0,
+        "retainedCount": 0,
+        "retainedEncodedWeight": 0,
+        "unseenCount": 0
+      },
+      "status": "committed"
+    },
+    {
+      "rejection": {
+        "code": "ledgerRevisionMismatch",
+        "detail": "notification ledger revision mismatch: expected 3, got 0",
+        "refreshRequired": true
+      },
+      "requestId": "request:stale",
+      "snapshot": {
+        "authority": {
+          "authorityEpoch": 7,
+          "authorityId": "authority:fixture"
+        },
+        "ledgerRevision": 3,
+        "limits": {
+          "maximumEncodedWeight": 16384,
+          "maximumNotifications": 8
+        },
+        "page": {
+          "hasMore": false,
+          "offset": 0,
+          "records": [],
+          "totalCount": 0
+        },
+        "protocolVersion": 1,
+        "prunedCount": 0,
+        "retainedCount": 0,
+        "retainedEncodedWeight": 0,
+        "unseenCount": 0
+      },
+      "status": "rejected"
+    }
+  ],
+  "protocolVersion": 1,
+  "snapshotQuery": {
+    "limit": 4,
+    "offset": 0,
+    "protocolVersion": 1,
+    "requestId": "request:snapshot"
+  },
+  "snapshotResponse": {
+    "requestId": "request:snapshot",
+    "snapshot": {
+      "authority": {
+        "authorityEpoch": 7,
+        "authorityId": "authority:fixture"
+      },
+      "ledgerRevision": 0,
+      "limits": {
+        "maximumEncodedWeight": 16384,
+        "maximumNotifications": 8
+      },
+      "page": {
+        "hasMore": false,
+        "offset": 0,
+        "records": [],
+        "totalCount": 0
+      },
+      "protocolVersion": 1,
+      "prunedCount": 0,
+      "retainedCount": 0,
+      "retainedEncodedWeight": 0,
+      "unseenCount": 0
+    }
+  }
+}

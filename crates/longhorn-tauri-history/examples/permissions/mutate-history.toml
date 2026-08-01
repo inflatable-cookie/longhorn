@@ -1,0 +1,6 @@
+[[permission]]
+identifier = "allow-longhorn-history-mutate"
+description = "Allows checked Longhorn history navigation."
+commands.allow = [
+  "longhorn_history_navigate",
+]

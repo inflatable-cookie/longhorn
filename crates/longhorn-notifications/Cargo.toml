@@ -1,0 +1,25 @@
+[package]
+name = "longhorn-notifications"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure finite retained notification ledger for Longhorn"
+publish = false
+
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+operation = ["dep:longhorn-operation"]
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-operation = { workspace = true, optional = true }
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

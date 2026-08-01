@@ -1,0 +1,6 @@
+{
+  "identifier": "native-content-child-controller-only",
+  "description": "No-command capability scoped to the trusted local controller only.",
+  "webviews": ["controller"],
+  "permissions": []
+}

@@ -1,0 +1,9 @@
+{
+  "permissions": [
+    "allow-longhorn-operation-read",
+    "allow-longhorn-operation-manage",
+    "allow-longhorn-operation-cancel",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

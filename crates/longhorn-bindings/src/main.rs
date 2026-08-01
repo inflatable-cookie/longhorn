@@ -6,7 +6,11 @@ mod bridge;
 mod commands;
 mod config;
 mod generation;
+mod history;
 mod layout;
+mod native_content;
+mod notifications;
+mod operation;
 mod settings;
 mod surface_transfer;
 mod surfaces;
@@ -40,7 +44,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         Some("bridge") => bridge::run(mode),
         Some("commands") => commands::run(mode),
         Some("config") => config::run(mode),
+        Some("history") => history::run(mode),
         Some("layout") => layout::run(mode),
+        Some("native-content") => native_content::run(mode),
+        Some("notifications") => notifications::run(mode),
+        Some("operation") => operation::run(mode),
         Some("settings") => settings::run(mode),
         Some("surfaces") => surfaces::run(mode),
         Some("surface-transfer") => surface_transfer::run(mode),
@@ -51,5 +59,5 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn usage() -> &'static str {
     "usage: longhorn-bindings \
-     <bridge|commands|config|layout|settings|surfaces|surface-transfer|transfer> <write|check>"
+     <bridge|commands|config|history|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer> <write|check>"
 }

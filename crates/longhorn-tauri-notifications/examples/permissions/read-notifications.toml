@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "read-notifications"
+description = "Read bounded retained notification pages"
+commands.allow = ["longhorn_notifications_snapshot"]

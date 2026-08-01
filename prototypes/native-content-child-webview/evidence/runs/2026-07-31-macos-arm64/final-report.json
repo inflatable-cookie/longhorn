@@ -1,0 +1,456 @@
+{
+  "schema": "longhorn.native-content.child-webview-proof.v1",
+  "outcome": "pass_with_unmet_environment_claims",
+  "platform": "macOS 26.5.2",
+  "architecture": "aarch64",
+  "tauri_version": "2.10.3",
+  "evidence_root": "/Users/tom/Dev/projects/longhorn/prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64",
+  "checks": [
+    {
+      "id": "packaged_child_creation_and_interaction",
+      "status": "pass",
+      "detail": {
+        "controlled_page_loaded": true,
+        "initial_receipt": {
+          "desired_revision": 0,
+          "generation": 1,
+          "island_id": "island:child-proof",
+          "observed_revision": 0,
+          "steps": [
+            {
+              "operation": {
+                "host_window_id": "window:proof-host",
+                "kind": "attach",
+                "mechanism": "child_view"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            },
+            {
+              "operation": {
+                "bounds": {
+                  "origin": {
+                    "x": 48,
+                    "y": 60
+                  },
+                  "size": {
+                    "height": 560,
+                    "width": 960
+                  }
+                },
+                "kind": "set_child_bounds"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 2
+            },
+            {
+              "operation": {
+                "kind": "show"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 3
+            },
+            {
+              "operation": {
+                "kind": "set_input_routing",
+                "mode": "native_direct"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 4
+            },
+            {
+              "operation": {
+                "kind": "request_focus"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 5
+            }
+          ]
+        },
+        "native_page_load_finished": true
+      }
+    },
+    {
+      "id": "initial_native_bounds_converge",
+      "status": "pass",
+      "detail": {
+        "expected": {
+          "origin": {
+            "x": 48,
+            "y": 60
+          },
+          "size": {
+            "height": 560,
+            "width": 960
+          }
+        },
+        "observed": {
+          "focus": "unknown",
+          "generation": 1,
+          "geometry": {
+            "bounds": {
+              "origin": {
+                "x": 48,
+                "y": 60
+              },
+              "size": {
+                "height": 560,
+                "width": 960
+              }
+            },
+            "kind": "child_bounds"
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "unknown"
+        },
+        "scale_thousandths": 2000
+      }
+    },
+    {
+      "id": "focus_intent_is_distinct_from_observation",
+      "status": "observed_unknown",
+      "detail": {
+        "claim": "Tauri exposes focus request but no portable child-focus readback",
+        "observed_focus": "unknown",
+        "request_focus_applied": true
+      }
+    },
+    {
+      "id": "hide_show_and_renderer_unmount_preserve_session",
+      "status": "pass",
+      "detail": {
+        "counters": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "renderer_unmounted_without_close": true,
+        "session": "packaged-66052-1785521744563",
+        "visibility_observation": "unknown"
+      }
+    },
+    {
+      "id": "overlay_and_activity_are_explicit_consumer_inputs",
+      "status": "pass",
+      "detail": {
+        "reasons": [
+          "proof:inactive",
+          "proof:overlay",
+          "proof:dragged"
+        ]
+      }
+    },
+    {
+      "id": "host_resize_move_zero_and_restore",
+      "status": "pass",
+      "detail": {
+        "host_inner_size": {
+          "height": 1240,
+          "width": 1800
+        },
+        "moved_expected": {
+          "origin": {
+            "x": 172,
+            "y": 144
+          },
+          "size": {
+            "height": 620,
+            "width": 1040
+          }
+        },
+        "moved_observed": {
+          "focus": "unknown",
+          "generation": 1,
+          "geometry": {
+            "bounds": {
+              "origin": {
+                "x": 172,
+                "y": 144
+              },
+              "size": {
+                "height": 620,
+                "width": 1040
+              }
+            },
+            "kind": "child_bounds"
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "unknown"
+        },
+        "restored_observed": {
+          "focus": "unknown",
+          "generation": 1,
+          "geometry": {
+            "bounds": {
+              "origin": {
+                "x": 172,
+                "y": 144
+              },
+              "size": {
+                "height": 620,
+                "width": 1040
+              }
+            },
+            "kind": "child_bounds"
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "unknown"
+        },
+        "zero_observed": {
+          "focus": "unknown",
+          "generation": 1,
+          "geometry": {
+            "bounds": {
+              "origin": {
+                "x": 172,
+                "y": 144
+              },
+              "size": {
+                "height": 0,
+                "width": 0
+              }
+            },
+            "kind": "child_bounds"
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "unknown"
+        },
+        "zero_outcome": "native_call_applied",
+        "zero_receipt": {
+          "desired_revision": 8,
+          "generation": 1,
+          "island_id": "island:child-proof",
+          "observed_revision": 2,
+          "steps": [
+            {
+              "operation": {
+                "bounds": {
+                  "origin": {
+                    "x": 172,
+                    "y": 144
+                  },
+                  "size": {
+                    "height": 0,
+                    "width": 0
+                  }
+                },
+                "kind": "set_child_bounds"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            },
+            {
+              "operation": {
+                "kind": "show"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 2
+            },
+            {
+              "operation": {
+                "kind": "request_focus"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "deterministic_one_x_two_x_conversion",
+      "status": "pass",
+      "detail": {
+        "one_x": {
+          "origin": {
+            "x": 10,
+            "y": 21
+          },
+          "size": {
+            "height": 180,
+            "width": 320
+          }
+        },
+        "two_x": {
+          "origin": {
+            "x": 21,
+            "y": 41
+          },
+          "size": {
+            "height": 360,
+            "width": 640
+          }
+        }
+      }
+    },
+    {
+      "id": "native_scale_switch",
+      "status": "unmet",
+      "detail": {
+        "available_monitor_count": 1,
+        "initial_scale_thousandths": 2000,
+        "reason": "no available monitor with a different native scale",
+        "simulated": false
+      }
+    },
+    {
+      "id": "controlled_remote_content_security",
+      "status": "pass",
+      "detail": {
+        "data_store_identifier": "consumer_supplied_16_bytes",
+        "download_hook_observed": true,
+        "download_policy": "deny",
+        "global_tauri": false,
+        "navigation_policy_injected_and_denied": true,
+        "popup_hook_observed": false,
+        "popup_policy": "deny",
+        "remote_capabilities": "none"
+      }
+    },
+    {
+      "id": "explicit_close_invalidates_generation",
+      "status": "pass",
+      "detail": {
+        "observed": {
+          "focus": "unknown",
+          "generation": 1,
+          "geometry": {
+            "kind": "unknown"
+          },
+          "input_routing": null,
+          "lifecycle": "absent",
+          "readiness": "unknown",
+          "visibility": "unknown"
+        },
+        "receipt": {
+          "desired_revision": 10,
+          "generation": 1,
+          "island_id": "island:child-proof",
+          "observed_revision": 4,
+          "steps": [
+            {
+              "operation": {
+                "kind": "detach",
+                "policy": "reversible"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "rapid_replacement_rejects_stale_callback",
+      "status": "pass",
+      "detail": {
+        "replacement_loaded": true,
+        "replacement_receipt": {
+          "desired_revision": 11,
+          "generation": 2,
+          "island_id": "island:child-proof",
+          "observed_revision": 6,
+          "steps": [
+            {
+              "operation": {
+                "host_window_id": "window:proof-host",
+                "kind": "attach",
+                "mechanism": "child_view"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            },
+            {
+              "operation": {
+                "bounds": {
+                  "origin": {
+                    "x": 172,
+                    "y": 144
+                  },
+                  "size": {
+                    "height": 620,
+                    "width": 1040
+                  }
+                },
+                "kind": "set_child_bounds"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 2
+            },
+            {
+              "operation": {
+                "kind": "show"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 3
+            },
+            {
+              "operation": {
+                "kind": "set_input_routing",
+                "mode": "native_direct"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 4
+            },
+            {
+              "operation": {
+                "kind": "request_focus"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 5
+            }
+          ]
+        },
+        "stale_rejected": true
+      }
+    },
+    {
+      "id": "host_destroy_invalidates_without_stale_mutation",
+      "status": "pass",
+      "detail": {
+        "host_event_invalidated": true,
+        "late_generation_callback_rejected": true
+      }
+    }
+  ]
+}

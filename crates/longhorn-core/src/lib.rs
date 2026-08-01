@@ -28,12 +28,20 @@ pub use opaque_id::{
     BridgeId, BridgeIdempotencyKey, BridgeJobId, BridgeRequestId, BridgeSessionId, ConfigRequestId,
     DisplayId, DropZoneId, HistoryEntryId, HistoryGroupId, HistoryGroupKeyId, HistoryId,
     HistoryKindId, HistoryPlanId, HostInstanceId, LayoutContainerId, LayoutRequestId,
-    LayoutSchemaId, OpaqueIdError, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
-    SizingSlotId, SurfaceId, SurfaceRequestId, TransferClientId, TransferHostBindingId,
-    TransferRequestId, TransferSubjectId, TransportFeatureId, WindowId,
+    LayoutSchemaId, NativeContentFailureCode, NativeContentIslandId, NativeContentKindId,
+    NativeContentRequestId, NotificationActionReferenceId, NotificationAuthorityId,
+    NotificationCauseId, NotificationId, NotificationProducerToken, NotificationReplacementKey,
+    NotificationRequestId, NotificationSourceId, OpaqueIdError, OperationAuthorityId, OperationId,
+    OperationKindId, OperationPhaseId, OperationRequestId, OperationScopeId, PanelDefinitionId,
+    PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId, SurfaceId, SurfaceRequestId,
+    TransferClientId, TransferHostBindingId, TransferRequestId, TransferSubjectId,
+    TransportFeatureId, VisibilityReasonId, WindowId,
 };
 pub use revision::{
     HistoryRevision, HistoryRevisionOverflow, LayoutRevision, LayoutRevisionOverflow,
+    NativeContentRevision, NativeContentRevisionOverflow, NotificationLedgerRevision,
+    NotificationLedgerRevisionOverflow, OperationCatalogueRevision,
+    OperationCatalogueRevisionOverflow, OperationRevision, OperationRevisionOverflow,
     SurfaceRevision, SurfaceRevisionOverflow,
 };
 pub use scale::{RoundingMode, ScaleConversionError, ScaleFactor, ScaleFactorError};

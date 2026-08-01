@@ -1,0 +1,22 @@
+[package]
+name = "longhorn-tauri-notifications"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Narrow injected Tauri host for Longhorn notification ledgers"
+publish = false
+
+[dependencies]
+longhorn-notifications.workspace = true
+serde.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+longhorn-core.workspace = true
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

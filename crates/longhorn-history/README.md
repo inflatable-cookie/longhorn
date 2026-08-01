@@ -34,8 +34,32 @@ Card 064 adds:
 - checked runtime limit changes and safe future-tail truncation
 - payload-free summaries and bounded authoritative metadata pages
 
-Persistence encoding, transition journals, host adapters, and UI belong to
-later cards.
+Card 065 adds:
+
+- strict `longhorn.linear-history` JSON envelopes
+- independent structural and registered payload codec versions
+- explicit untrusted-envelope byte limits
+- exact codec-byte and policy-weight agreement
+- checked structural and payload migration hooks
+- preserve, migrate, reject, and explicit discard recovery outcomes
+- payload-free committed transitions for record, coalesce, navigation,
+  retention-limit change, import, discard, and reset
+- Loophole-shaped snapshot and disposable-journal recovery evidence
+
+Filesystem paths, product snapshots, journal files, durability policy, host
+adapters, and UI remain outside this crate.
+
+Card 066 adds:
+
+- exact version-1 metadata snapshots, entry pages, navigation commands,
+  receipts, rejections, and change hints
+- authority-epoch and history-revision invalidation
+- fixed safe-integer projection bounds for generated TypeScript
+- optional checked `ts-rs` bindings without making browser tooling a default
+  dependency
+
+The renderer protocol never contains `P`. Tauri, client lifecycle, Svelte,
+and Poodle composition live in separate packages.
 
 ## Loophole parity and corrections
 
@@ -47,12 +71,12 @@ later cards.
 | coalesce to no-op | fixture returns explicit removal | retained with an explicit structural outcome |
 | divergent record | imported applied/future shape clears the exact future ids | retained |
 | default limit 100 | shared default is 100 | retained with exact oldest-applied pruning and baseline evidence |
-| full undo/redo persistence shape | `LinearHistoryState<P>` round-trips without encoding | structural shape retained; envelope and codec wait for Card 065 |
+| full undo/redo persistence shape | strict structural envelope plus registered typed codec | retained across checked reload and current invariants |
 | current labels and depths | current, next-undo, next-redo, applied, and future metadata | retained through authoritative payload-free summaries and pages |
 | generated ordinal ids | caller injects bounded ids | corrected: no ambient allocation, time, or randomness |
 | saturating counters | checked revision and sequence advancement | corrected: overflow fails closed |
 | standalone no-op record | donor can retain it | corrected: explicit ignored no-op with no revision or future change |
-| incompatible persisted history | donor can silently discard it | prohibited; visible compatibility handling waits for Card 065 |
+| incompatible persisted history | donor can silently discard it | corrected: rejection is visible and discard requires an explicit receipt |
 | gesture grouping | donor API is not live-wired | explicit or timed; Loophole may inject 750 ms and construct product-owned compounds |
 | undo/redo/jump | typed undo, redo, and entry-id checkout fixtures | corrected: plan is immutable; injected apply is atomic; history commits only after success |
 
@@ -95,3 +119,44 @@ next labels, retained weight, and baseline evidence. `project_page` returns
 bounded payload-free entries newest-first across authoritative future,
 current, and past positions. Renderer memory is not required to reconstruct
 redo.
+
+## Renderer protocol
+
+`HistorySnapshot` and `HistoryPageSnapshot` project structural metadata only.
+Commands carry the exact authority epoch and expected history revision.
+Navigation returns either a committed receipt plus authoritative snapshot or
+a stable rejection plus authoritative snapshot.
+
+`HistoryChangedEvent` is a non-durable invalidation hint. Clients attach the
+listener before their initial snapshot, refresh across revision gaps or
+authority replacement, and never reconstruct durable history from events.
+
+## Persistence and recovery
+
+`HistoryPersistence` registers one bounded codec family/version, one
+structural migration hook, and one explicit envelope-byte ceiling. Payload
+migration belongs to the registered codec. Structural and payload versions
+advance independently and exactly one step at a time.
+
+Load checks the format family, versions, authority id, limits, cursor,
+baseline, entry topology, exact codec byte length, current payload decoding,
+inverse/no-op policy, and policy weight before returning an authority.
+Future, corrupt, foreign, unbounded, or incompatible input returns an error;
+it never creates empty history. `discard_persisted_history` is the separate
+visible recovery choice.
+
+The envelope contains structural history only. It has no product model,
+product revision, path, durability, checkpoint, autosave, or replay decision.
+
+## Committed transitions
+
+Successful record/coalesce, navigation, limit change, import, explicit
+discard, and reset operations expose one `HistoryCommittedTransition`.
+Ignored no-ops, unchanged limits, empty resets, and all rejected attempts
+expose none. Record- and limit-driven pruning stays inside the same committed
+revision and receipt.
+
+Transitions contain structural metadata, never `P`. A consumer journal may
+pair them with its typed payload, product revision, checkpoint lineage, and
+durability evidence. A journal write failure remains separate from the
+already committed in-memory transition.

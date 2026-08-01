@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-07-31
 Evidence: `../research/translation-memos/015-history-kernel-and-fork-boundary.md`
 
 ## Boundary
@@ -11,8 +11,9 @@ Longhorn may provide an optional generic history kernel. It owns structural
 history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
-The first public mode is linear. Forkable history remains a private prototype
-until the branch promotion gate passes.
+The first public mode is linear. Card 069 promotes forkable history semantics
+for a later optional production layer. Promotion is a contract and roadmap
+decision, not a claim that a public tree package exists.
 
 ## Package Shape
 
@@ -29,7 +30,9 @@ The pure crate depends only on `longhorn-core` plus bounded serialization and
 digest utilities. It imports no config, bridge, Tauri, async runtime, Svelte,
 Poodle, or consumer package.
 
-No branch package exists until the promotion decision.
+No public branch package exists in the current artifact set. A later optional
+tree layer may depend on the proven linear policy, entry, navigation-step, and
+transaction seams without replacing linear authority.
 
 ## Authority
 
@@ -225,9 +228,16 @@ The optional Tauri adapter exposes only registered history authorities and
 checks caller capability before dispatch. The consumer authority still owns
 product authorization and the atomic apply transaction.
 
-## Fork Prototype Gate
+Card 066 implements this edge as a strict version-1 metadata protocol,
+framework-neutral direct and serialized clients, caller-aware Tauri commands,
+listener-first per-instance Svelte state, and a controlled public-Poodle
+panel. Authority epoch plus history revision invalidate stale pages and
+navigation. Live events remain non-durable refresh hints; publication failure
+cannot disguise an already committed navigation result.
 
-The private prototype must prove:
+## Promoted Fork-tree Semantics
+
+Card 068 proves and Card 069 accepts:
 
 - immutable single-parent entry nodes
 - stable branch and current-node identity
@@ -241,14 +251,47 @@ The private prototype must prove:
 - structural and payload migration
 - linear-default projection with optional alternate-path metadata
 
-It must compare derived branch paths with first-class branch references.
+First-class branch references are structural authority. Derived root-to-leaf
+paths are optional read models: they have no stable identity and cannot own
+names, pinning, selection, or retention policy.
 
-Until promotion:
+A production tree layer must preserve these rules:
 
-- no public branch API or package exists
+- immutable single-parent nodes hold the only payload copy
+- stable injected branch ids point to mutable heads
+- branch name, annotation, and pin metadata stay outside nodes
+- divergent record preserves the prior future and creates or advances one
+  explicit branch reference
+- preferred redo is deterministic and changes only through committed record
+  or navigation
+- checkout plans inverse steps to the lowest common ancestor, then forward
+  steps to the target, through one atomic consumer transaction
+- current, named, and pinned lineage is protected from pruning
+- count and exact encoded-weight pruning terminates or returns an impossible
+  protected-budget result without mutation
+- checkpoints contain bounded opaque consumer references, not snapshot data
+- structural and payload versions migrate independently and reject future or
+  corrupt input visibly
+- the default projection remains one linear past/current/future path
+- alternate projections are opt-in, bounded, and lazy or paged
+
+The production persistence format must avoid the prototype's JSON numeric-byte
+array expansion. The implementation lane must prove a dense payload encoding,
+strict topology validation, and deterministic encode/load behavior.
+
+The later package boundary is optional and downward-only. The planned Rust
+tree layer depends on `longhorn-history`; the linear crate does not depend on
+tree state. Renderer and Poodle edges remain metadata-only and optional.
+
+Until production implementation and artifact proof:
+
+- no public branch API or package is claimed
 - linear mode remains the only compatibility promise
 - Loophole migration does not depend on branching
 - project versions, collaboration, and event sourcing stay separate
+
+The Card 068 prototype remains executable research evidence. It is not a
+release package or a donor dependency.
 
 ## Loophole Admission
 

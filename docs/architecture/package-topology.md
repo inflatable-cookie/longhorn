@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-08-01
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -40,7 +40,13 @@ discovery and validation entry points.
 | `longhorn-command` | optional sealed command/context registry, admission, keyboard/keymap resolution, search, and projections | core |
 | `longhorn-command-config` | registered active-preset and sparse-override domain plus coordinated mutation | core, config, command |
 | `longhorn-command-settings` | optional keybinding page registration over command/keymap capabilities | core, settings |
-| `longhorn-history` | optional typed linear history, checked navigation, persistence envelopes, projections, and transition receipts | core |
+| `longhorn-history` | optional typed linear history, checked navigation, persistence envelopes, metadata protocol, projections, and transition receipts | core |
+| `longhorn-operation` | optional finite operation authority with bounded progress, cancellation, retention, retry lineage, and teardown | core |
+| `longhorn-notifications` | optional finite retained notification ledger with explicit read/removal transitions and operation observation | core; optional operation feature |
+| `longhorn-native-content` | pure desired/observed native-content state, generation, planning, proposals, and receipts | core |
+| `longhorn-tauri-native-content-child-view` | isolated Tauri child-webview construction and native operation execution | core, native-content, Tauri |
+| `longhorn-native-content-isolated-window` | generic process-isolated content coordination, bounded helper protocol, and injected lifecycle ports | core, native-content, serde |
+| `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
@@ -49,14 +55,16 @@ discovery and validation entry points.
 | `longhorn-tauri-settings` | settings command/event handler assembly over injected authorities | core, settings, Tauri |
 | `longhorn-tauri-command` | command catalogue/keymap query, preview, and mutation assembly; no generic execution | core, command, command-config, Tauri |
 | `longhorn-tauri-history` | registered metadata query and navigation assembly over injected history authorities | core, history, Tauri |
+| `longhorn-tauri-operation` | read, manage, and cancel handlers over injected operation authority and executor ports | core, operation, Tauri |
+| `longhorn-tauri-notifications` | bounded page and mutation handlers over an injected notification authority; app-wide invalidation hints | notifications, Tauri |
 | `longhorn-bindings` | checked TypeScript generation | publishable domains |
 
 The bindings tool is development-only. Additional adapter crates stay narrow;
 there is no all-capabilities `longhorn-tauri` crate.
 
 Implemented generator slices cover config operations, settings, layout,
-Surface, transfer, optional Surface-transfer, and bridge protocols with
-Rust-produced golden fixtures.
+Surface, transfer, optional Surface-transfer, bridge, history, operation, and notification
+protocols with Rust-produced golden fixtures.
 
 ## TypeScript Packages
 
@@ -70,7 +78,11 @@ Rust-produced golden fixtures.
 | `@longhorn/transfer` | session, lease, target, and panel-transfer clients |
 | `@longhorn/surface-transfer` | optional whole-Surface transfer client |
 | `@longhorn/commands` | optional checked command/keymap clients and `/svelte` plus `/poodle` projections |
-| `@longhorn/history` | optional history client |
+| `@longhorn/history` | checked metadata clients plus optional `/tauri`, `/svelte`, and `/poodle` edges |
+| `@longhorn/operation` | checked finite-operation clients plus optional transport, Svelte, Poodle, and bridge edges |
+| `@longhorn/notifications` | checked retained-ledger client plus optional Tauri, isolated Svelte, and public-Poodle panel/toast edges |
+| `@longhorn/native-content` | checked native-content protocol and framework-neutral direct, serialized, and optional Tauri clients |
+| `@longhorn/native-content-svelte` | per-instance native-content connection, supplied-element measurement, explicit policy, and teardown |
 | `@longhorn/bridge` | checked bridge session, topology, authority, lifecycle, retry, and conformance runtime with optional `/supervision` |
 | `@longhorn/tauri` | domain-free raw invoke transport plus optional `/events` listen edge |
 | `@longhorn/svelte` | reactive client state, actions, and optional capability subpaths |
@@ -94,6 +106,18 @@ consumer-supplied operations and opaque credential references, rejects
 external lifecycle ownership, and imports no production transport.
 `@longhorn/svelte` now provides the per-instance reactive lifecycle, generic
 optimism, consumer-fed layout state, and optional domain adapters.
+
+`@longhorn/native-content` is generated from the pure Rust authority. Its root
+owns listener-first connection, renderer epochs, bounded correlation, and
+stale-result rejection over injected transports. `/tauri` maps only the
+native-content protocol commands and event. Mechanism construction, browser
+policy, plugin/GPU payloads, Svelte, and Poodle remain absent.
+
+`@longhorn/native-content-svelte` depends only on that checked client plus its
+Svelte peer. One session owns one mounted connection, exact supplied-element
+measurement, explicit scale and visibility/focus/input policy, serialized
+desired updates, remount invalidation, and observer teardown. Poodle remains
+consumer composition only; the package has no Poodle or private-DOM edge.
 
 The implemented Svelte root is Surface-free. Optional layout, Surface,
 transfer, and Surface-transfer bindings are subpath exports backed by optional
@@ -127,8 +151,108 @@ payloads never cross the generic renderer protocol.
 `longhorn-history` accepts typed payload policy and an atomic consumer apply
 transaction. Structural persistence and committed transition receipts are
 shared; canonical product snapshots, journal files, checkpoints, fsync,
-autosave, replay, and project versions remain consumer authority. No branch
-package exists before the g01.011 prototype decision.
+autosave, replay, and project versions remain consumer authority.
+
+## Operation And Notification Layers
+
+Contracts 015-016 compile working package names `longhorn-operation`,
+`longhorn-tauri-operation`, `@longhorn/operation`,
+`longhorn-notifications`, `longhorn-tauri-notifications`, and
+`@longhorn/notifications`. The pure `longhorn-operation` authority is
+implemented through progress, cancellation, retention, retry lineage, and
+teardown. `longhorn-tauri-operation` and `@longhorn/operation` add generated
+direct, serialized, Tauri, and optional bridge composition. The optional
+`/svelte` subpath owns one controller lifetime per renderer instance.
+`/poodle` maps the same state to public feedback primitives and accepts
+consumer detail snippets.
+
+The `longhorn-operation` root remains a pure transition authority. It
+does not execute work, schedule queues, interpret product progress, persist a
+durable scheduler, or require bridge. Direct, Tauri, and bridge-domain edges
+must expose the same catalogue truth. `longhorn-bridge` job metadata may carry
+one operation's correlation evidence but never owns the catalogue.
+
+The implemented `longhorn-notifications` root is independently usable over
+`longhorn-core`. It owns bounded records, explicit source/replacement identity,
+unseen/seen state, dismiss/clear/prune receipts, count/weight retention, and
+newest-first pages. The optional `operation` feature observes immutable
+committed terminal receipts through consumer policy and publishes by durable
+producer token. Operations never depend on notifications, and publication
+failure has no operation mutation path. The checked notification client uses
+listener-first reconciliation and bounded paging. Its per-instance Svelte
+session keeps selection and transient toasts renderer-local. Public Poodle
+`ToastHost` owns expiry timers; expiry never changes retained truth. Semantic
+action references cross the wire as data and call an injected fresh-admission
+executor at invocation. Native OS delivery is not part of the v1 graph.
+
+The operation/notification artifact proof installs four isolated TypeScript
+shapes from packed archives and compiles four offline Rust graphs from private
+source inventories. It proves operation-only and notification-only minimality,
+Soundcheck cancellation and late-progress invariance, Loophole direct/Tauri/
+bridge parity, two-window isolation, remount, teardown, retained truth after
+toast expiry, fresh action admission, and one public Poodle/Svelte runtime.
+See [Operation And Notification Composition](operation-notification-composition.md).
+
+## Promoted Native-content Coordination
+
+Card 086 promotes a split production direction:
+
+- `longhorn-native-content`: pure identity, generation, desired/observed
+  state, planning, proposals, receipts, and stale-result rejection
+- `longhorn-tauri-native-content-child-view`: Tauri child-view operations and
+  injected consumer browser/security policy
+- `longhorn-native-content-isolated-window`: generic content-area and
+  process-boundary coordination over consumer-owned native content
+- `longhorn-native-content-backing-surface`: generic clip, visibility, and
+  input-gate coordination over consumer-owned native storage and rendering
+- `@longhorn/native-content`: generated checked client
+- `@longhorn/native-content-svelte`: per-instance lifecycle, viewport
+  measurement, explicit gates, and teardown
+
+These are g01.018 working production names, not released registry promises.
+The mechanism crates depend downward on the pure kernel and never on each
+other. The pure graph has no Tauri, browser, plugin, GPU, Svelte, or Poodle
+edge. TypeScript depends on its owning Rust protocol. Svelte depends on the
+framework-neutral client.
+
+There is no Poodle-specific native-content package. Poodle retains panels,
+overlays, and presentation. Consumers bind public Poodle layout to the Svelte
+adapter through supplied elements and policy. `longhorn-windowing` retains
+outer-window authority.
+
+Cards 082-085 remain private evidence, not production source. Initial native
+host support is macOS-only. Child-view Windows and Linux are unproved;
+isolated-window and backing-surface Windows and Linux are unsupported. Live
+native scale switching remains unproved for child-view and backing-surface.
+Card 093 proves isolated production artifacts, exact optional graphs, and
+three-shape Rust/renderer conformance. g01.014 Cards 094-101 compile the
+Nucleus migration. Card 094 is the read-only behavior and policy freeze;
+published prereleases and consumer acceptance gate donor cutover.
+Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
+[Native-content Island Composition](native-content-island-composition.md).
+
+## Planned Optional History-tree Layer
+
+Card 069 promotes a later downward-only tree layer. Working package names are
+`longhorn-history-tree`, `longhorn-tauri-history-tree`, and
+`@longhorn/history-tree`; none is implemented or publishable yet.
+
+The Rust tree crate will depend on `longhorn-core` and `longhorn-history` for
+identity, typed payload policy, navigation steps, and rollback evidence. The
+linear crate will not depend on it. Optional TypeScript, Tauri, Svelte, and
+Poodle edges will expose metadata and bounded alternate projections only.
+Product payloads, model apply, snapshot content, checkpoint content, storage,
+and recovery remain consumer authority.
+
+This boundary keeps minimal linear consumers unchanged. The retained private
+prototype is evidence, not a workspace member or package source.
+
+The history artifact proof installs minimal and Loophole-shaped TypeScript
+consumers from packed archives and runs separate offline Rust graphs from
+private source inventories. The minimal graph contains core and history only.
+The rich graph adds the narrow Tauri adapter plus optional Svelte and Poodle
+subpaths. Rust-produced metadata fixtures and isolated renderer traces match.
+See [History Composition](history-composition.md).
 
 `@longhorn/config` keeps its framework-neutral root independent of settings,
 Svelte, Poodle, and Tauri. Its optional `/poodle` subpath exposes storage,
@@ -172,6 +296,8 @@ core
 ├─ command ─ command-config
 │                   └─ config
 ├─ history
+├─ operation
+├─ notifications
 └─ bridge
 
 domain packages -> narrow host adapters -> Svelte/Poodle presentation
@@ -194,6 +320,13 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
   Poodle, or consumer payload package.
 - History payload policy and atomic product apply remain injected. Generic
   renderer messages contain metadata, never payloads.
+- The operation root imports no executor, scheduler, bridge, config, Tauri,
+  async runtime, Svelte, Poodle, or consumer payload package.
+- The notification root imports no operation, command, bridge, Tauri, async
+  runtime, Svelte, or Poodle package. Optional observation and action execution
+  compose at adapter edges.
+- Operation cancellation receipts never claim terminal stop. Notification
+  publication never changes an operation outcome.
 - Forkable history remains a non-publishable prototype until contract 008's
   promotion gate passes.
 - Service supervision and production network transports are optional adapter
@@ -215,6 +348,10 @@ Examples arrive with the capability they prove:
   Nucleus settings installs
 - `bridge-topology-proof`: isolated Bovine, Jetstream, Soundcheck, Nucleus,
   and Loophole bridge installs plus query-only/full-host Rust graphs
+- `history-system-proof`: isolated minimal and Loophole-shaped linear history
+  installs plus pure and Tauri-hosted Rust graphs
+- `operation-notification-proof`: isolated minimal operation, Soundcheck scan,
+  Loophole render/notification, and notification-only installs
 - `nucleus-no-surface-proof`: window-bound workspace without Surface packages
 - `tauri-transfer-proof`: direct and optional full Surface transfer hosting
 - optional local or remote service

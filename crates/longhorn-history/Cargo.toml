@@ -8,8 +8,14 @@ repository.workspace = true
 description = "Pure typed linear history state and policy seams for Longhorn"
 publish = false
 
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+
 [dependencies]
 longhorn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [lints]
 workspace = true

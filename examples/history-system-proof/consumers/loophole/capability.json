@@ -1,0 +1,11 @@
+{
+  "identifier": "loophole-history",
+  "description": "Payload-free history metadata and checked navigation.",
+  "windows": ["history"],
+  "permissions": [
+    "allow-longhorn-history-read",
+    "allow-longhorn-history-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

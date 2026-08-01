@@ -107,6 +107,26 @@ opaque_id!(
     "Opaque identity for one storage or backup operation request."
 );
 opaque_id!(
+    NativeContentIslandId,
+    "Opaque identity for one independently coordinated native-content island."
+);
+opaque_id!(
+    NativeContentKindId,
+    "Consumer-owned kind identity for one native-content island."
+);
+opaque_id!(
+    NativeContentRequestId,
+    "Correlation identity for one native-content protocol request."
+);
+opaque_id!(
+    NativeContentFailureCode,
+    "Stable adapter-owned code for one native-content mechanism failure."
+);
+opaque_id!(
+    VisibilityReasonId,
+    "Consumer-owned reason for desired hidden native-content presentation."
+);
+opaque_id!(
     SurfaceId,
     "Opaque identity for one optional hosted workspace Surface."
 );
@@ -206,6 +226,62 @@ opaque_id!(
     HistoryPlanId,
     "Opaque identity for one revision-bound history navigation plan."
 );
+opaque_id!(
+    OperationAuthorityId,
+    "Opaque identity for one independently owned operation catalogue."
+);
+opaque_id!(
+    OperationId,
+    "Stable opaque identity for one retained asynchronous operation."
+);
+opaque_id!(
+    OperationRequestId,
+    "Correlation identity for one operation protocol request."
+);
+opaque_id!(
+    OperationKindId,
+    "Consumer-owned kind identity for operation admission and presentation."
+);
+opaque_id!(
+    OperationScopeId,
+    "Optional consumer-owned scope identity for an operation."
+);
+opaque_id!(
+    OperationPhaseId,
+    "Consumer-owned phase identity for later bounded progress projection."
+);
+opaque_id!(
+    NotificationAuthorityId,
+    "Opaque identity for one independently owned notification ledger."
+);
+opaque_id!(
+    NotificationId,
+    "Stable opaque identity for one retained notification."
+);
+opaque_id!(
+    NotificationRequestId,
+    "Correlation identity for one notification protocol request."
+);
+opaque_id!(
+    NotificationSourceId,
+    "Consumer-owned identity for the source of one notification."
+);
+opaque_id!(
+    NotificationReplacementKey,
+    "Consumer-owned key for explicit notification replacement."
+);
+opaque_id!(
+    NotificationActionReferenceId,
+    "Bounded semantic reference to a consumer-owned notification action."
+);
+opaque_id!(
+    NotificationCauseId,
+    "Opaque consumer-owned reference to a notification cause."
+);
+opaque_id!(
+    NotificationProducerToken,
+    "Durable producer token for idempotent notification publication."
+);
 pub(crate) fn validate_opaque_id(value: &str) -> Result<(), OpaqueIdError> {
     if value.is_empty() {
         return Err(OpaqueIdError::Empty);
@@ -282,6 +358,18 @@ mod tests {
         );
         assert!(DisplayId::new("0198f97e-8d2a-7e31-a302-6f23098ccb9d").is_ok());
         assert!(WindowId::new("editor:secondary_2").is_ok());
+        assert!(OperationAuthorityId::new("authority:desktop").is_ok());
+        assert!(OperationId::new("operation:scan-42").is_ok());
+        assert!(OperationKindId::new("soundcheck.plugin-scan").is_ok());
+        assert!(OperationScopeId::new("library:default").is_ok());
+        assert!(OperationPhaseId::new("scan:introspecting").is_ok());
+        assert!(NotificationAuthorityId::new("notifications:desktop").is_ok());
+        assert!(NotificationId::new("notification:render-42").is_ok());
+        assert!(NotificationSourceId::new("loophole.render").is_ok());
+        assert!(NotificationReplacementKey::new("render:42").is_ok());
+        assert!(NotificationActionReferenceId::new("render:open-report").is_ok());
+        assert!(NotificationCauseId::new("operation:render-42").is_ok());
+        assert!(NotificationProducerToken::new("operation:render-42:failed").is_ok());
         assert_eq!(LayoutSchemaId::new(""), Err(OpaqueIdError::Empty));
         assert_eq!(
             RegionId::new("Main"),

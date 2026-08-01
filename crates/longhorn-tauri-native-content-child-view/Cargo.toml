@@ -1,0 +1,20 @@
+[package]
+name = "longhorn-tauri-native-content-child-view"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Tauri child-view mechanism adapter for Longhorn native-content coordination"
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+serde.workspace = true
+tauri = { workspace = true, features = ["unstable"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

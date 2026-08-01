@@ -6,14 +6,22 @@ None.
 
 ## Ready
 
-- [065 History Persistence And Committed Transition Stream](065-history-persistence-and-committed-transition-stream.md)
+None.
 
 ## Planned
 
-- [066 Generated History Client, Tauri, Svelte, And Poodle](066-generated-history-client-tauri-svelte-and-poodle.md)
-- [067 Linear History Artifact Proof And Checkpoint](067-linear-history-artifact-proof-and-checkpoint.md)
-- [068 Private Forkable History Tree Prototype](068-private-forkable-history-tree-prototype.md)
-- [069 Forkable History Promotion Decision And Closeout](069-forkable-history-promotion-decision-and-closeout.md)
+- [070 Fork-tree Identity, Topology, And Branches](070-fork-tree-identity-topology-and-branches.md)
+- [071 Fork-tree Navigation, Retention, And Checkpoints](071-fork-tree-navigation-retention-and-checkpoints.md)
+- [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
+- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
+- [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
+- [095 Nucleus Prerelease And Cutover Admission](095-nucleus-prerelease-and-cutover-admission.md)
+- [096 Nucleus Storage And Legacy Import](096-nucleus-storage-and-legacy-import.md)
+- [097 Nucleus Protected Window Host Cutover](097-nucleus-protected-window-host-cutover.md)
+- [098 Nucleus Project Layout Authority Cutover](098-nucleus-project-layout-authority-cutover.md)
+- [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
+- [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
+- [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
 
 ## Complete
 
@@ -81,8 +89,34 @@ None.
 - [062 Lossless History Donor Fixtures And Typed Foundation](062-lossless-history-donor-fixtures-and-typed-foundation.md)
 - [063 Transactional Linear Navigation And Failure Invariance](063-transactional-linear-navigation-and-failure-invariance.md)
 - [064 History Coalescing, Grouping, Retention, And Projections](064-history-coalescing-grouping-retention-and-projections.md)
+- [065 History Persistence And Committed Transition Stream](065-history-persistence-and-committed-transition-stream.md)
+- [066 Generated History Client, Tauri, Svelte, And Poodle](066-generated-history-client-tauri-svelte-and-poodle.md)
+- [067 Linear History Artifact Proof And Checkpoint](067-linear-history-artifact-proof-and-checkpoint.md)
+- [068 Private Forkable History Tree Prototype](068-private-forkable-history-tree-prototype.md)
+- [069 Forkable History Promotion Decision And Closeout](069-forkable-history-promotion-decision-and-closeout.md)
+- [075 Operation Donor Fixtures, Identity, And Lifecycle Authority](075-operation-donor-fixtures-identity-and-lifecycle-authority.md)
+- [076 Operation Progress, Cancellation, Retention, And Teardown](076-operation-progress-cancellation-retention-and-teardown.md)
+- [077 Generated Operation Protocol And Tauri/Bridge Composition](077-generated-operation-protocol-and-tauri-bridge-composition.md)
+- [078 Operation Svelte Session And Poodle Projection](078-operation-svelte-session-and-poodle-projection.md)
+- [079 Retained Notification Ledger And Operation Observation](079-retained-notification-ledger-and-operation-observation.md)
+- [080 Notification Clients, Svelte, Poodle, And Semantic Actions](080-notification-clients-svelte-poodle-and-semantic-actions.md)
+- [081 Operation And Notification Artifact Proof And Closeout](081-operation-and-notification-artifact-proof-and-closeout.md)
+- [082 Private Native-content Coordination Prototype](082-private-native-content-coordination-prototype.md)
+- [083 Child-webview Mechanism Packaged Prototype](083-child-webview-mechanism-packaged-prototype.md)
+- [084 Isolated Native-window Packaged Prototype](084-isolated-native-window-packaged-prototype.md)
+- [085 Backing-surface Mechanism Packaged Prototype](085-backing-surface-mechanism-packaged-prototype.md)
+- [086 Native-content Promotion Decision And Closeout](086-native-content-promotion-decision-and-closeout.md)
+- [087 Native-content Identity, State, And Planning](087-native-content-identity-state-and-planning.md)
+- [088 Generated Native-content Client And Host Protocol](088-generated-native-content-client-and-host-protocol.md)
+- [089 Tauri Child-view Production Adapter](089-tauri-child-view-production-adapter.md)
+- [090 Isolated-window Production Adapter](090-isolated-window-production-adapter.md)
+- [091 Backing-surface Production Adapter](091-backing-surface-production-adapter.md)
+- [092 Svelte Native-content Session And Layout Seam](092-svelte-native-content-session-and-layout-seam.md)
+- [093 Native-content Artifact Proof And Closeout](093-native-content-artifact-proof-and-closeout.md)
+- [094 Nucleus Behavior, Authority, And Rollback Freeze](094-nucleus-behavior-authority-and-rollback-freeze.md)
 
 ## Next Task
 
-Execute Card 065. Keep persistence compatibility, recovery, and committed
-transition records separate from product snapshots and journal I/O.
+Resolve the Poodle-owned public overlay-geometry seam and Nucleus g05 operator
+acceptance. Card 095 and every donor cutover remain planned; do not publish or
+modify either donor while admission is false.

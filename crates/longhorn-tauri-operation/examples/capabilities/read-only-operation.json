@@ -1,0 +1,6 @@
+{
+  "identifier": "read-only-operation",
+  "description": "Passive operation projection",
+  "windows": ["main"],
+  "permissions": ["read-operation"]
+}

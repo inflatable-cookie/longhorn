@@ -5,10 +5,11 @@ use longhorn_history::{
     HistoryCoalesce, HistoryCoalesceContext, HistoryEntrySequence, HistoryLimits, HistoryPolicy,
     HistoryRecordOutcome, LinearHistory, LinearHistoryState,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::support::*;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub(crate) enum PulseFixtureMutation {
     RenameTrack {
         track_id: u32,

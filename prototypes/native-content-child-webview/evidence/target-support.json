@@ -1,0 +1,17 @@
+{
+  "schema": "longhorn.native-content.child-webview-target-support.v1",
+  "targets": {
+    "macos": {
+      "status": "packaged-proof-pass-with-native-scale-switch-unmet",
+      "notes": "macOS 26.5.2 arm64 proved WebKit child creation, 2x bounds, zero-size convergence, hide/show session reuse, renderer-unmount independence, focus request, close, replacement, host destruction, download denial, navigation denial, and capability isolation. Child visibility and focus readback are unavailable. The one-monitor host could not supply a native scale transition, so that claim remains unmet and unsimulated."
+    },
+    "windows": {
+      "status": "unproved",
+      "notes": "The selected Tauri API is compiled only on the local macOS host. No Windows packaged host was available; creation-handler deadlock behavior and WebView2 bounds, focus, visibility, and teardown remain unproved."
+    },
+    "linux": {
+      "status": "unproved",
+      "notes": "The selected Tauri API is compiled only on the local macOS host. No Linux packaged host was available; WebKitGTK bounds, focus, visibility, and teardown remain unproved. The macOS data-store identifier is rejected by this adapter on Linux."
+    }
+  }
+}

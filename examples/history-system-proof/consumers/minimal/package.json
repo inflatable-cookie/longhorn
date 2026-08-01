@@ -1,0 +1,11 @@
+{
+  "name": "longhorn-minimal-history-artifact-proof",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@longhorn/history": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

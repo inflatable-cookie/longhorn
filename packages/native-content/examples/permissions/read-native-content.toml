@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "read-native-content"
+description = "Connect to and read native-content coordination state"
+commands.allow = [
+  "longhorn_native_content_connect",
+  "longhorn_native_content_snapshot",
+]

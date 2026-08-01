@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-07-31
 
 ## Architecture Area To Research
 
@@ -25,6 +25,8 @@ Updated: 2026-07-30
 | settings registry, transactions, and shell | [Settings Registry And Transaction Boundary](translation-memos/012-settings-registry-and-transaction-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/005-settings-and-system-registration.md`; `../roadmaps/g01/008-settings-registry-and-shell.md`; cards 042-048 |
 | typed bridge and optional backend topology | [Typed Bridge And Backend Topology Boundary](translation-memos/013-typed-bridge-and-backend-topology-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/007-optional-backend-topology.md`; `../contracts/010-rust-typescript-ipc-and-events.md`; `../roadmaps/g01/009-typed-bridge-and-optional-backend-topology.md` |
 | command registry, keyboard, keymaps, and palette | [Command, Input, And Palette Boundary](translation-memos/014-command-input-and-palette-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/006-command-action-and-input.md`; `../roadmaps/g01/010-command-registry-keymaps-and-palette.md`; cards 056-061 |
+| async operations and notifications | [Async Operation And Notification Boundary](translation-memos/016-async-operation-and-notification-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/015-async-operation-lifecycle.md`; `../contracts/016-notification-ledger-and-projection.md`; `../roadmaps/g01/012-async-operations-and-notifications.md`; cards 075-081 |
+| native content islands | [Native Content Island Boundary](translation-memos/017-native-content-island-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/017-native-content-island-coordination.md`; `../roadmaps/g01/013-native-content-islands-prototype.md` |
 
 ## Open Research
 
@@ -38,5 +40,5 @@ Updated: 2026-07-30
 - public registry name verification
 - branch reference, checkpoint, pruning, migration, and performance decision
   after the private history-tree prototype
-- async operation and notification lifecycle
-- common native-content-island contract
+- packaged native-content proof across display scales and supported platforms
+- production child-webview, isolated-window, and backing-surface adapter split

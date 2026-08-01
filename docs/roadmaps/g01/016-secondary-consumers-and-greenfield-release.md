@@ -1,9 +1,9 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: blocked on first two migrations  
+Status: blocked on first two migrations and g01.018 artifacts
 Owner: Tom  
 Updated: 2026-07-27
-Governing refs: contracts 003 and 012
+Governing refs: contracts 003, 012, and 017; g01.018
 
 ## Outcome
 
@@ -16,7 +16,9 @@ greenfield path.
 
 - configuration/backup and single-window restore
 - async operation adoption if g01.012 promotes
+- isolated-window coordination after Cards 087, 090, and 093
 - retain scan/sync/inspection domain authority
+- retain Signal/plugin ABI, helper, authorization, and teardown policy
 
 ### 2. Bovine slice
 
@@ -27,7 +29,7 @@ greenfield path.
 ### 3. Jetstream slice
 
 - typed bridge and commands
-- native-island adapter only if g01.013 promotes
+- backing-surface coordination after Cards 087, 088, 091, 092, and 093
 - retain renderer/world/viewport authority
 
 ### 4. Greenfield and release

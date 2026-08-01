@@ -15,7 +15,7 @@
 `strict-ready`
 
 The strict spine is installed. Three audit passes are preserved, the complete
-shared-system suite is inventoried, and a 16-milestone g01 runway covers
+shared-system suite is inventoried, and a 17-milestone g01 runway covers
 foundation systems, optional systems, consumer migrations, and greenfield
 release. Foundation contracts and package topology are promoted. The
 configuration domain store, coordinated atomic mutation, bounded debounced
@@ -128,7 +128,43 @@ document fixtures. Card 063 adds immutable undo/redo/checkout plans, injected
 atomic product transactions, checked commit, failure invariance, and
 authoritative position receipts. Card 064 adds explicit and timed grouping,
 count and encoded-weight retention, exact pruning, and authoritative
-past/current/future pages. Card 068 is a private fork prototype and Card 069
-the mandatory promotion decision. Card 065 is ready.
+past/current/future pages. Card 065 adds strict structural persistence,
+independent codec migration, visible recovery, and committed-only payload-free
+transitions. Card 066 adds the generated metadata protocol, exact checked
+clients, narrow Tauri assembly, per-instance Svelte state, and a controlled
+public-Poodle panel. Card 067 adds isolated minimal and Loophole-shaped
+artifact installs, matching native/renderer traces, exact failure and recovery
+evidence, and composition/migration guidance. The public linear slice is
+complete. Card 068 adds passing non-publishable fork-tree evidence and
+measurements without changing public artifacts. Card 069 promotes the proven
+semantics into planned g01.017, retains the prototype as research, and closes
+g01.011. The public history artifacts remain linear.
+
+Research memo 016 and contracts 015-016 define separate operation and
+notification authorities. Cards 075-078 implement the Soundcheck-scan and
+Loophole-render lifecycle authority, generated transport composition,
+per-instance Svelte sessions, and public-Poodle presentation. Card 079 adds
+the independent finite retained notification ledger and optional
+failure-isolated operation observer. Card 080 adds checked clients,
+semantic-action admission, and transient presentation. Card 081 proves four
+isolated graphs, native/renderer parity, remount and teardown, and closes
+`g01.012`.
+
+Research memo 017 and contract 017 now characterize native-content islands as
+pure desired/observed coordination over separate child-webview, isolated
+native-window, and backing-surface mechanisms. Cards 082-085 prove one private
+pure model and three independently packaged mechanisms. Card 086 selects
+`Promote`, retains those prototypes as evidence, and compiles g01.018 Cards
+087-093 for the pure kernel, separate host layers, checked client, Svelte
+lifecycle, and artifact gate. Cards 087-092 now provide the production pure
+kernel, generated protocol, framework-neutral client, isolated Tauri
+child-view, generic process-isolated window coordination, and generic
+backing-surface coordination, plus per-instance Svelte viewport lifetime. Card
+093 proves clean produced graphs, matching three-shape Rust/renderer traces,
+fresh packaged macOS evidence, and exact adoption gates. g01.018 is complete;
+The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
+behavior and rollback evidence with `pass_with_admission_gates`. Published
+prereleases, public Poodle built-in overlay geometry, and Nucleus layout
+acceptance gate donor writes.
 
 The live next-task pointer lives in the roadmap front doors.

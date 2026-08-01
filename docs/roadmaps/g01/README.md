@@ -14,12 +14,14 @@
 | [g01.008](008-settings-registry-and-shell.md) | complete | centralized composable settings |
 | [g01.009](009-typed-bridge-and-optional-backend-topology.md) | complete | direct/local/remote semantic seam |
 | [g01.010](010-command-registry-keymaps-and-palette.md) | complete | commands, input, keymaps, palette |
-| [g01.011](011-history-kernel-and-branching-prototype.md) | ready | typed linear kernel, lossless Loophole seam, private fork decision |
-| [g01.012](012-async-operations-and-notifications.md) | incubation | jobs, progress, cancellation, notifications |
-| [g01.013](013-native-content-islands-prototype.md) | prototype | child webview/native/render host seam |
-| [g01.014](014-nucleus-no-surface-migration.md) | blocked | first simple consumer |
+| [g01.011](011-history-kernel-and-branching-prototype.md) | complete | public linear slice plus promoted private fork decision |
+| [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
+| [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
+| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 094 complete; donor cutover admission-gated |
 | [g01.015](015-loophole-full-hosting-migration.md) | blocked | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
+| [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
+| [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
 ## Dependency Shape
 
@@ -30,10 +32,11 @@
  │                     └─ 008 settings
  ├─ 009 bridge/topology ─ 010 commands/input/palette
  ├─ 011 typed linear history + private fork decision
- ├─ 012 async operations research
- └─ 013 native islands prototype
+ ├─ 012 async operations + notification ledger
+ └─ 013 native islands prototype ─ 018 native-content production
 
-004-010 ─ 014 Nucleus ─ 015 Loophole ─ 016 secondary consumers/release
+004-010 + 018 ─ 014 Nucleus ─ 015 Loophole ─ 016 secondary consumers/release
+                                           └─ 017 optional fork tree
 ```
 
 Research/prototype work in 009, 011, 012, and 013 may run beside foundation
@@ -205,10 +208,48 @@ Cards 062-067 cover typed payload policy, checked linear navigation,
 coalescing and explicit groups, retention, structural persistence, committed
 transition records, generated metadata clients, narrow Tauri assembly,
 Svelte/Poodle composition, and rich/minimal artifact proof. Card 068 is a
-non-publishable fork-tree prototype. Card 069 makes the explicit promote,
-retain, or reject decision. Loophole keeps all DAW payload meaning, atomic
-runtime apply, project snapshots and versions, autosave, journal file policy,
-and recovery choice.
+non-publishable fork-tree prototype. Card 069 promotes its proven semantics
+into planned g01.017 while retaining the prototype as research. Loophole keeps
+all DAW payload meaning, atomic runtime apply, project snapshots and versions,
+autosave, journal file policy, and recovery choice.
+
+Research memo 016 and compiled contracts 015-016 promote separate operation
+and notification authorities. Cards 075-076 implement bounded operation
+identity and progress, the exact lifecycle, receipted cancellation races,
+count/weight retention, retry lineage, controlled teardown, and
+Soundcheck/Loophole fixtures. Card 077 adds direct, serialized, Tauri, and
+bridge-domain composition. Card 078 adds per-instance Svelte state and a
+public-Poodle projection. Card 079 adds the independent retained ledger and
+optional failure-isolated operation observer. Card 080 adds checked clients,
+isolated Svelte state, retained panel/transient toast projections, and fresh
+action admission. Card 081 adds four isolated artifact graphs, equal native
+and renderer traces, multi-window/remount proof, and composition guidance.
+`g01.012` is complete. Cards 070-074 remain planned
+behind the linear-history adoption checkpoint.
+
+Research memo 017 and contract 017 characterize native content islands as one
+pure desired/observed coordination protocol over separate child-webview,
+isolated native-window, and backing-surface mechanisms. The viewport is
+semantic presentation and interaction geometry, not always a native child
+frame. Cards 082-086 compile the private pure model, three independently
+packaged mechanism proofs, and one promotion decision. Cards 082-085 prove the
+pure model plus private child-webview, isolated-window, and backing-surface
+mechanisms. Child-webview focus and visibility readback remain unknown. Native
+scale switching remains unmet and unsimulated for child-webview and
+backing-surface proofs on the one-monitor host. The isolated window passes its
+full macOS matrix. Card 085 proves full-host storage, clipped output/input,
+resize, stale invariance, destruction, and reversible detach. Card 086 selects
+`Promote`, retains all prototypes as evidence, and compiles g01.018 Cards
+087-093. Card 087 delivers the production pure kernel with exact generation,
+planning, invalidation, proposal, and receipt semantics. Card 088 adds the
+generated protocol, framework-neutral client, strict compatibility checks,
+and direct/serialized/Tauri-shaped conformance. Card 089 adds the production
+Tauri child-view package and packaged macOS proof. No donor migration is yet
+claimed. Card 090 adds generic isolated-window coordination, bounded helper
+correlation and teardown, and a passing 11-check packaged macOS proof. Card
+091 adds generic backing-surface coordination, full-host storage versus clip
+authority, deterministic output/input gates, and packaged macOS evidence with
+the unavailable live scale transition recorded as unmet.
 
 ## Milestones
 
@@ -232,11 +273,49 @@ fixtures. Card 063 adds immutable navigation plans, injected atomic apply,
 checked commit, failure invariance, and authoritative position receipts.
 Card 064 adds explicit and injected-time grouping, count and encoded-weight
 retention, exact baseline/future pruning, and authoritative metadata pages.
-Cards 065-067 complete the public linear history runway. Card 068 is the
-private fork prototype. Card 069 is the mandatory promotion decision and
-g01.011 closeout.
+Card 065 adds the strict versioned envelope, independent structural/payload
+migrations, explicit discard recovery, payload-free committed transitions,
+and Loophole-shaped snapshot/journal recovery. Card 066 adds the generated
+metadata protocol, checked clients, narrow Tauri assembly, per-instance
+Svelte lifecycle, and public-Poodle panel. Card 067 adds isolated minimal and
+Loophole-shaped artifact installs, equal native/renderer traces, exact
+recovery and failure evidence, and composition/migration guidance. The public
+linear runway is complete. Card 068 is the private fork prototype. Card 069
+promotes its semantics, retains the private evidence, compiles g01.017, and
+closes g01.011.
+
+Cards 075-078 implement operation authority, checked transports, and
+presentation. Card 079 implements the independent notification ledger and
+operation observer. Card 080 implements its clients. Card 081 proves isolated operation-only,
+Soundcheck-shaped, Loophole-shaped, and notification-only artifact graphs and
+closes g01.012.
+
+Cards 082-086 complete g01.013. Card 082 proves one private pure coordination
+model and three product-neutral traces. Cards 083-085 prove child-webview,
+isolated-window, and backing-surface mechanisms separately in packaged macOS
+apps, with explicit target and dependency evidence. Card 086 promotes the
+split graph and compiles g01.018 Cards 087-093. Card 087 now supplies the
+production pure kernel. Card 088 now supplies the checked renderer protocol
+and client. Card 089 now supplies the production child-view adapter and
+packaged macOS evidence. Card 090 now supplies production isolated-window
+coordination and matching packaged macOS evidence. Card 091 now supplies
+production backing-surface coordination and matching packaged macOS evidence.
+Card 092 now supplies isolated Svelte sessions, exact viewport measurement,
+serialized explicit policy, remount invalidation, and public Poodle
+composition without a package edge. Card 093 proves isolated Rust and
+renderer graphs, equal traces, fresh packaged macOS evidence, and exact
+consumer prerequisites. g01.018 is complete.
+
+Cards 094-101 compile g01.014 into four batches: read-only donor freeze and
+prerelease admission; canonical-id storage and protected-window cutover;
+project-keyed no-Surface layout and renderer cutover; native Browser adoption
+and conformance closeout. Card 094 is complete with
+`pass_with_admission_gates`. Every Nucleus write remains behind published
+artifacts, public Poodle built-in overlay geometry, accepted Nucleus layout
+behavior, and an overlap check.
 
 ## Next Task
 
-Execute Card 065: structural persistence, explicit compatibility and recovery,
-and committed transition records.
+Resolve the Poodle-owned public overlay-geometry seam and Nucleus g05 operator
+acceptance before promoting Card 095. Published prereleases remain a separate
+external-action gate. Keep Nucleus and Poodle read-only.

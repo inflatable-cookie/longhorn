@@ -1,0 +1,403 @@
+{
+  "schema": "longhorn.nucleus-migration-freeze.v1",
+  "outcome": "pass_with_admission_gates",
+  "donors": {
+    "nucleus": {
+      "repository": "nucleus",
+      "branch": "main",
+      "commit": "c084d57ca15f9e4276f49a9b6b2923f5d10e7313",
+      "expected_clean": true,
+      "app_id": "dev.nucleus.desktop",
+      "active_layout_card": "docs/roadmaps/g05/batch-cards/003-project-layout-validation.md",
+      "active_layout_card_status": "operator-held"
+    },
+    "poodle": {
+      "repository": "poodle",
+      "branch": "main",
+      "commit": "c6ef2a0fdc162092cdbcff092a121aedf5323bcb",
+      "expected_clean": true
+    }
+  },
+  "source_checks": [
+    {
+      "repository": "nucleus",
+      "path": "docs/README.md",
+      "contains": [
+        "display -> window -> region -> panel",
+        "disproved the inherited hosted-Surface layer"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "docs/roadmaps/g05/batch-cards/003-project-layout-validation.md",
+      "contains": [
+        "Status: operator-held",
+        "operator confirms two projects retain visibly different layouts",
+        "operator confirms a new project opens with Agent Chat only"
+      ],
+      "excludes": ["Status: complete"]
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src-tauri/src/desktop_profile.rs",
+      "contains": [
+        "NUCLEUS_DESKTOP_DATA_ROOT",
+        "home.join(\".nucleus\")",
+        "join(\"state\").join(\"nucleus.sqlite\")",
+        "join(\"config\").join(\"ui.json\")"
+      ],
+      "excludes": ["platform-native-v1", "dev.nucleus.desktop"]
+    },
+    {
+      "repository": "nucleus",
+      "path": "docs/contracts/021-checkpoint-diff-contract.md",
+      "contains": [
+        "immutable host-owned source",
+        "host-local and SCM-neutral",
+        "Snapshot refs remain resolvable",
+        "seven-day cleanup grace"
+      ],
+      "excludes": ["recreatable performance data"]
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src-tauri/src/workspace_ui.rs",
+      "contains": [
+        "const SCHEMA_VERSION: u32 = 10",
+        "project_layouts: BTreeMap<String, WorkspaceProjectLayoutDto>",
+        "pending_legacy_layout: Option<WorkspaceProjectLayoutDto>",
+        "resource_targets: BTreeMap<String, String>",
+        "LegacyWorkspaceUiConfigDto"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src-tauri/src/window_geometry.rs",
+      "contains": [
+        "Duration::from_millis(300)",
+        "Duration::from_secs(1)",
+        "WindowEvent::ScaleFactorChanged",
+        "restore_window",
+        "capture_placement"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src/lib/workspaceUi.ts",
+      "contains": [
+        "center_top",
+        "center_bottom",
+        "right_top",
+        "right_bottom",
+        "save_workspace_ui_config"
+      ],
+      "excludes": ["WorkspaceSurfaceDto"]
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src-tauri/src/tests/panel_guards.rs",
+      "contains": [
+        "product_workspace_uses_window_regions_without_surface_tabs",
+        "native_browser_yields_to_toolbar_and_modal_overlays",
+        "!config.contains(\"WorkspaceSurfaceDto\")"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src-tauri/src/browser_panel.rs",
+      "contains": [
+        "WebviewBuilder::new",
+        ".focused(false)",
+        ".on_navigation(is_supported_http_url)",
+        "NewWindowResponse::Deny",
+        "Downloads are not enabled in Nucleus yet.",
+        "get_window(\"main\")",
+        "matches!(url.scheme(), \"http\" | \"https\")"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src/lib/BrowserPanel.svelte",
+      "contains": [
+        "listen<BrowserRuntimeEvent>",
+        "ensureBrowserWebview",
+        "canShowNativeView",
+        "hideBrowserWebview",
+        "openOverlays"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src/lib/nativePanelVisibility.ts",
+      "contains": [
+        ".poodle-popover__surface, [role=\"menu\"]",
+        "rectanglesIntersect",
+        "data-native-browser-viewport"
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "nucleus",
+      "path": "apps/desktop/src/lib/ProjectWorkspaceStage.svelte",
+      "contains": [
+        "destroyBrowserWebview(panel.id)",
+        "closeTerminalPanel(selectedProject.project_id, panel.id)",
+        "workspaceWindowForProject"
+      ],
+      "excludes": ["Workspace surfaces"]
+    },
+    {
+      "repository": "poodle",
+      "path": "packages/svelte/components/src/index.ts",
+      "contains": [
+        "export { anchored, type AnchoredOptions } from \"./anchored\"",
+        "export { portal } from \"./portal\"",
+        "export { default as Menu } from \"./Menu.svelte\"",
+        "export { default as Popover } from \"./Popover.svelte\""
+      ],
+      "excludes": []
+    },
+    {
+      "repository": "poodle",
+      "path": "packages/svelte/components/src/Popover.svelte",
+      "contains": [
+        "onOpenChange?: ((open: boolean) => void)",
+        "let surfaceElement = $state<HTMLDivElement | null>(null)",
+        "class=\"poodle-popover__surface\""
+      ],
+      "excludes": ["onOverlayGeometryChange", "onSurfaceElementChange"]
+    },
+    {
+      "repository": "poodle",
+      "path": "packages/svelte/components/src/Menu.svelte",
+      "contains": [
+        "onOpenChange?: ((open: boolean) => void)",
+        "let overlayElement = $state<HTMLDivElement | null>(null)",
+        "bind:overlayElement"
+      ],
+      "excludes": ["onOverlayGeometryChange", "onSurfaceElementChange"]
+    }
+  ],
+  "storage": {
+    "current_default_root": "~/.nucleus",
+    "current_override": "NUCLEUS_DESKTOP_DATA_ROOT",
+    "target_profile": "platform-native-v1",
+    "target_leaf": "dev.nucleus.desktop",
+    "stable_storage_name": null,
+    "proof_profile": "portable-v1",
+    "cli_current_directory_policy_in_scope": false,
+    "stores": [
+      {
+        "source": "config/ui.json",
+        "target_class": "mixed-legacy-source",
+        "adapter": "ordinary-read-only-discovery",
+        "cutover": "split-window-and-project-layout-domains"
+      },
+      {
+        "source": "state/nucleus.sqlite",
+        "target_class": "data",
+        "adapter": "sqlite-native-snapshot",
+        "cutover": "databases/nucleus.sqlite"
+      },
+      {
+        "source": "state/task-review-snapshots",
+        "target_class": "workspace-local",
+        "adapter": "nucleus-snapshot-tree",
+        "cutover": "state/task-review-snapshots",
+        "backup": "excluded-by-nucleus-retention-policy",
+        "retention": "active-or-awaiting-review-then-seven-day-cleanup-grace"
+      },
+      {
+        "source": "state/editor-drafts",
+        "target_class": "workspace-local",
+        "adapter": "ordinary-tree",
+        "cutover": "state/editor-drafts"
+      }
+    ],
+    "locator_commit": "last",
+    "legacy_source_retained": true,
+    "dual_write": false,
+    "silent_fallback": false
+  },
+  "window": {
+    "host_shape": "protected-predeclared-main",
+    "placement_scope": "global-machine-state",
+    "capture_space": "physical-outer-bounds",
+    "maximized_keeps_normal_bounds": true,
+    "fallback_order": [
+      "saved-display",
+      "largest-intersection",
+      "primary-display",
+      "first-available",
+      "tauri-default-if-unobservable"
+    ],
+    "current_debounce_ms": 300,
+    "current_close_wait_ms": 1000,
+    "migration_changes": [
+      "canonical-display-correlation",
+      "typed-scale-mapping",
+      "programmatic-event-attribution",
+      "inspectable-flush-result",
+      "guarded-renderer-ready-reveal"
+    ]
+  },
+  "layout": {
+    "hierarchy": ["display", "window", "region", "panel"],
+    "surface_dependency": false,
+    "scope": "local-client-project",
+    "regions": [
+      "left",
+      "center_top",
+      "center_bottom",
+      "right_top",
+      "right_bottom"
+    ],
+    "sizing_slots": [
+      "left_center_ratio",
+      "center_right_ratio",
+      "center_stack_ratio",
+      "right_stack_ratio"
+    ],
+    "mutations": [
+      "create",
+      "close",
+      "activate",
+      "reorder",
+      "cross-region-move",
+      "resize"
+    ],
+    "new_project_seed": ["agentChat"],
+    "resource_targets_shared": false,
+    "longhorn_fixture": "fixtures/layout/nucleus-conformance-v1.json",
+    "longhorn_fixture_mapping": "compatible-shape-not-literal-current-donor"
+  },
+  "browser": {
+    "identity": "one-child-per-browser-panel-instance",
+    "parent": "main",
+    "initial_source": "https://example.com",
+    "schemes": ["http", "https"],
+    "missing_scheme": "https",
+    "popup": "deny-with-trusted-notice",
+    "download": "deny-with-trusted-notice",
+    "permission_prompt": "none-owned-by-nucleus",
+    "data_store": "platform-normal-shared-store",
+    "explicit_macos_data_store_id": null,
+    "persist_cookies_or_credentials_in_nucleus": false,
+    "remote_child_tauri_capabilities": false,
+    "trusted_controls": [
+      "back",
+      "forward",
+      "reload",
+      "url-entry",
+      "system-browser-open"
+    ],
+    "construction_focus": "unfocused",
+    "focus_observation": "unknown",
+    "mount_order": "listener-before-ensure",
+    "unmount": "hide-for-process-reuse",
+    "panel_close": "destroy",
+    "host_close": "destroy-all",
+    "visibility_requires": [
+      "mounted",
+      "nonzero-viewport",
+      "active-workspace",
+      "no-workspace-gesture",
+      "no-intersecting-overlay"
+    ],
+    "cursor_policy": "macos-allowlisted-title-sentinel"
+  },
+  "poodle_seam": {
+    "public_open_change": true,
+    "public_custom_surface_anchoring": true,
+    "public_builtin_surface_geometry": false,
+    "current_nucleus_private_selector": ".poodle-popover__surface, [role=\"menu\"]",
+    "required_behavior": "exact-intersection-not-global-hide",
+    "status": "missing-required-public-overlay-geometry-seam",
+    "recommendation": "plan-a-poodle-owned-runtime-neutral-overlay-geometry-contract"
+  },
+  "authorities": [
+    {
+      "concern": "storage-resolution-and-migration-mechanics",
+      "after_cutover": "longhorn"
+    },
+    {
+      "concern": "window-observation-planning-lifecycle",
+      "after_cutover": "longhorn"
+    },
+    {
+      "concern": "layout-identity-policy-mutation-persistence",
+      "after_cutover": "longhorn"
+    },
+    {
+      "concern": "renderer-client-lifetime-and-coordination",
+      "after_cutover": "longhorn"
+    },
+    {
+      "concern": "native-child-viewport-coordination",
+      "after_cutover": "longhorn"
+    },
+    {
+      "concern": "projects-tasks-runtime-resources-panel-catalogue",
+      "after_cutover": "nucleus"
+    },
+    {
+      "concern": "browser-navigation-security-data-store-toolbar-cursor-policy",
+      "after_cutover": "nucleus"
+    },
+    {
+      "concern": "tabs-regions-splits-overlays-presentation",
+      "after_cutover": "poodle-and-nucleus"
+    }
+  ],
+  "rollback_slices": [
+    {
+      "slice": "storage",
+      "source": "retained-.nucleus-plus-transition-journal",
+      "authority_commit": "canonical-id-locator-last",
+      "rollback": "previous-build-plus-last-committed-locator",
+      "dual_write": false
+    },
+    {
+      "slice": "window",
+      "source": "retained-legacy-ui-window-placement",
+      "authority_commit": "separate-window-domain",
+      "rollback": "previous-build-plus-retained-source",
+      "dual_write": false
+    },
+    {
+      "slice": "layout",
+      "source": "retained-schema-10-project-layouts",
+      "authority_commit": "registered-project-layout-domain",
+      "rollback": "previous-build-plus-retained-source",
+      "dual_write": false
+    },
+    {
+      "slice": "renderer",
+      "source": "host-authoritative-layout-snapshot",
+      "authority_commit": "checked-client-protocol",
+      "rollback": "previous-build-against-retained-old-store",
+      "dual_write": false
+    },
+    {
+      "slice": "browser",
+      "source": "process-local-child-state-no-cross-restart-promise",
+      "authority_commit": "native-content-generation",
+      "rollback": "previous-build-recreates-child-from-product-layout",
+      "dual_write": false
+    }
+  ],
+  "admission": {
+    "donor_writes": false,
+    "gates": [
+      "poodle-public-overlay-geometry-contract",
+      "nucleus-g05-project-layout-operator-acceptance",
+      "published-longhorn-and-compatible-poodle-prereleases"
+    ]
+  }
+}

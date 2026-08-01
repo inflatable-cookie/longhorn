@@ -1,0 +1,8 @@
+{
+  "permissions": [
+    "read-notifications",
+    "manage-notifications",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

@@ -2,7 +2,7 @@
 
 Status: promoted
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-07-31
 Vision: `../vision/001-shared-tauri-systems.md`
 
 ## Boundary
@@ -220,7 +220,7 @@ families, native accelerators, and automation remain deferred.
 - versioned structural persistence and committed transition receipts
 - authoritative metadata pages for past, current, and future entries
 - optional checked TypeScript, Tauri, Svelte, and public-Poodle edges
-- private branch-tree prototype and promotion gate
+- promoted fork-tree semantics for a later optional production layer
 
 `longhorn-history` owns structural state. Consumers own payload meaning,
 product authorization, atomic model mutation, labels, canonical snapshots,
@@ -233,20 +233,83 @@ cross-session undo and crash-recovery flow. Linear mode retains current
 successful behavior while replacing move-before-apply and renderer-remembered
 redo with checked shared semantics.
 
-Forkable undo is not live donor behavior. The prototype must prove divergent
-retention, lowest-common-ancestor checkout, pruning, checkpoints, migration,
-performance, and a linear-default projection before any public branch package
-exists. Undo branches remain distinct from project versions, collaboration,
-and event sourcing.
+The implemented renderer edge is metadata-only: a strict generated protocol,
+framework-neutral checked clients, caller-aware Tauri assembly, listener-first
+per-instance Svelte state, and one controlled public-Poodle panel. Authority
+epoch and history revision invalidate stale work. Events are non-durable
+refresh hints, never history authority.
+
+Minimal and Loophole-shaped produced-artifact compositions, recovery rules,
+and later donor-cutover gates are in
+[History Composition](history-composition.md).
+
+Forkable undo is not live donor behavior. Card 068 proves divergent retention,
+stable first-class branch refs, lowest-common-ancestor checkout, protected
+pruning, opaque checkpoints, independent migration, and credible document and
+Loophole-shaped costs. Card 069 promotes those semantics for a later optional
+tree layer.
+
+The tree layer composes downward over `longhorn-history`; it does not replace
+the linear authority or enter minimal dependency graphs. Immutable nodes own
+one payload copy. Stable branch refs own heads and bounded mutable metadata.
+Derived paths are bounded opt-in projections, not identity. The default client
+projection remains linear. Production persistence must use a dense payload
+representation rather than the prototype's expanded JSON byte arrays.
+
+No public tree package exists yet. Loophole adopts linear history first with
+branch mode disabled. Undo branches remain distinct from project versions,
+collaboration, merge, and event sourcing.
 
 ### Async operations and notifications
 
-- operation ids, state transitions, progress, cancellation, and terminal
-  outcomes
-- listener/subscription lifetime and stale-request protection
-- bounded notification records and presentation projections
+Soundcheck plugin scan and Loophole render queue prove one optional operation
+authority. `longhorn-operation` owns stable identity, revisioned queued,
+running, cancelling, and sticky terminal transitions, bounded progress,
+cancellation request receipts, explicit retention, teardown, and
+current/recent projections. Consumers own admission, scheduling, execution,
+product progress, reports, artifacts, retry policy, persistence, and recovery.
 
-These remain incubating until a second consumer confirms the common shape.
+Cards 075-076 implement the pure authority: bounded identity and progress,
+distinct revisions, finite registration, exact lifecycle transitions,
+receipted cancellation, count/weight retention, retry lineage, dismissal, and
+controlled teardown. Card 077 adds the Rust-generated payload-free protocol,
+framework-neutral checked client, direct and serialized adapters, injected
+Tauri authority/executor assembly, and optional bridge-domain correlation.
+Card 078 adds a framework-neutral presentation controller, per-instance
+Svelte sessions, request-keyed cancellation and dismissal, and a controlled
+public-Poodle panel. Soundcheck scan and Loophole queue shapes share the same
+controller. Product detail stays injected.
+
+Cancellation acceptance is not terminal cancellation. The executor may still
+report success or failure when it wins the race. Retry creates a new operation.
+Renderer teardown removes listeners and never cancels host work implicitly.
+
+Notifications form a separate optional authority. `longhorn-notifications`
+owns a finite retained ledger with explicit seen, dismiss, replace, and prune
+transitions. A consumer projector may observe selected operation terminal
+transitions, but non-operation domain events use the same ledger and operation
+state never depends on notification publication.
+
+Card 079 implements that root over `longhorn-core` alone. Adds always create a
+fresh identity; replacement requires an explicit source/key pair; producer
+tokens provide separate durable idempotency. Standard records prune oldest
+first under count and canonical encoded-weight limits. Consumer-selected
+protected records make an unsatisfiable mutation reject atomically. The
+feature-gated operation observer receives only an immutable committed record
+and transition receipt.
+
+Card 080 adds the Rust-generated exact-v1 protocol, direct/serialized/Tauri
+clients, app-wide invalidation hints, listener-first gap/epoch refresh, and
+bounded renderer paging. Svelte sessions are per instance. The retained panel
+survives remount by reloading host truth; transient toasts do not replay on an
+initial snapshot. Both `ToastHost` and controlled `ToastStack` integrations use
+public Poodle exports. Every semantic-action click calls a consumer-injected
+executor for fresh admission; Longhorn never executes an unchecked string.
+
+Transient toasts are renderer projections. Toast expiry does not dismiss a
+retained record. Poodle owns `Progress`, `StatusIndicator`, `ToastHost`, and
+`ToastStack`; Longhorn supplies checked state and public-component adapters.
+Native OS delivery remains a later privacy, permission, and host-policy edge.
 
 ### TypeScript and Svelte
 
@@ -354,12 +417,35 @@ Local configuration, windowing, and layout do not require a service.
 
 ### Native content islands
 
-- host-owned child webviews, isolated native windows, or embedded render views
-- checked geometry and input forwarding seams
-- lifecycle and occlusion/visibility coordination
+- optional coordination across host-owned child webviews, isolated native
+  windows, and embedded backing surfaces
+- opaque island identity, host binding, attach generation, revisions, desired
+  and observed state, and exact apply/teardown receipts
+- one host-local `ClientCssPx` presentation and interaction viewport with
+  explicit `ScaleFactor`
+- explicit presence, visibility, focus intent, and input-routing mode
 
-The current app implementations are too different for a promoted common API.
-This layer remains prototype-first.
+The desired viewport has mechanism-specific effect. A child view moves and
+resizes to it. An isolated window treats it as content size and delegates outer
+placement to windowing. A backing surface may fill the host while clipping
+rendering and forwarded input to it.
+
+Child-webview creation and security, plugin ABI and helper isolation, and GPU
+surface/render ownership remain separate adapters or consumer ports. Browser,
+plugin, render, pointer, and MIDI payloads do not enter the shared protocol.
+Poodle retains layout and overlay presentation.
+
+Visibility policy is explicit. Longhorn does not inspect DOM overlays or infer
+occlusion from focus or time. Unknown native visibility stays unknown unless a
+platform adapter supplies stronger evidence. The common coordination boundary
+is promoted through contract 017. Cards 082-085 prove the private pure model
+and three independently packaged macOS mechanisms. Card 086 promotes the split
+production graph: pure kernel, three opt-in mechanism layers, checked
+TypeScript, and per-instance Svelte support. Poodle remains a consumer
+composition seam. Initial native-host claims are macOS-only and preserve
+explicit unknown observations. Production artifacts and donor cutover remain
+gated by g01.018. See
+[Native-content Island Composition](native-content-island-composition.md).
 
 ## Drag And Drop
 
@@ -410,3 +496,5 @@ No g01 umbrella package or empty optional-package placeholders are allowed.
 - failure-injection fixtures for config writes, backup, migration, and restore
 - direct-versus-serialized backend adapter conformance
 - consumer-neutral history apply/failure fixtures
+- Soundcheck-scan versus Loophole-render operation fixtures
+- retained-ledger versus transient-toast notification fixtures

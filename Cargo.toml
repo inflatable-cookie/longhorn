@@ -12,10 +12,19 @@ members = [
   "crates/longhorn-history",
   "crates/longhorn-layout",
   "crates/longhorn-layout-config",
+  "crates/longhorn-native-content",
+  "crates/longhorn-native-content-backing-surface",
+  "crates/longhorn-native-content-isolated-window",
+  "crates/longhorn-tauri-native-content-child-view",
+  "crates/longhorn-notifications",
+  "crates/longhorn-operation",
   "crates/longhorn-settings",
   "crates/longhorn-settings-config",
   "crates/longhorn-tauri-bridge",
   "crates/longhorn-tauri-command",
+  "crates/longhorn-tauri-history",
+  "crates/longhorn-tauri-notifications",
+  "crates/longhorn-tauri-operation",
   "crates/longhorn-tauri-settings",
   "crates/longhorn-surface-windowing",
   "crates/longhorn-surface-transfer",
@@ -28,8 +37,15 @@ members = [
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
   "examples/nucleus-no-surface-proof",
+  "examples/tauri-native-content-child-view-proof/src-tauri",
+  "examples/tauri-native-content-isolated-window-proof/src-tauri",
+  "examples/tauri-native-content-backing-surface-proof/src-tauri",
   "examples/tauri-transfer-proof/src-tauri",
   "examples/tauri-windowing-proof/src-tauri",
+]
+exclude = [
+  "prototypes/native-content",
+  "prototypes/native-content-isolated-window",
 ]
 resolver = "2"
 
@@ -55,10 +71,19 @@ longhorn-display = { path = "crates/longhorn-display" }
 longhorn-history = { path = "crates/longhorn-history", version = "0.1.0" }
 longhorn-layout = { path = "crates/longhorn-layout" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config" }
+longhorn-native-content = { path = "crates/longhorn-native-content", version = "0.1.0" }
+longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "0.1.0" }
+longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "0.1.0" }
+longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-native-content-child-view", version = "0.1.0" }
+longhorn-notifications = { path = "crates/longhorn-notifications", version = "0.1.0" }
+longhorn-operation = { path = "crates/longhorn-operation", version = "0.1.0" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config" }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge" }
 longhorn-tauri-command = { path = "crates/longhorn-tauri-command" }
+longhorn-tauri-history = { path = "crates/longhorn-tauri-history" }
+longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications" }
+longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings" }
 longhorn-surface-windowing = { path = "crates/longhorn-surface-windowing" }
 longhorn-surface-transfer = { path = "crates/longhorn-surface-transfer" }

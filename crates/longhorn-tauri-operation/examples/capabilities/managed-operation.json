@@ -1,0 +1,6 @@
+{
+  "identifier": "managed-operation",
+  "description": "Trusted operation manager",
+  "windows": ["operations"],
+  "permissions": ["read-operation", "cancel-operation", "manage-operation"]
+}

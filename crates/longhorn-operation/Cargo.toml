@@ -1,0 +1,23 @@
+[package]
+name = "longhorn-operation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure asynchronous operation lifecycle authority for Longhorn"
+publish = false
+
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+
+[dependencies]
+longhorn-core.workspace = true
+serde.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

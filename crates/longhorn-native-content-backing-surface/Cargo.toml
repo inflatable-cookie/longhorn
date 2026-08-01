@@ -1,0 +1,17 @@
+[package]
+name = "longhorn-native-content-backing-surface"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Backing-surface coordination for Longhorn native-content islands"
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

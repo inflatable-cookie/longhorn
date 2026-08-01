@@ -15,6 +15,9 @@
 - [012 Distribution And Compatibility](012-distribution-and-compatibility.md)
 - [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md)
 - [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md)
+- [015 Async Operation Lifecycle](015-async-operation-lifecycle.md)
+- [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md)
+- [017 Native Content Island Coordination](017-native-content-island-coordination.md)
 
 Roadmap execution stops when its required boundary remains pending in the
 index.

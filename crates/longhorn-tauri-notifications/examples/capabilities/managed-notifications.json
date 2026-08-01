@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "managed-notifications",
+  "description": "A window that can inspect and manage retained notifications",
+  "windows": ["main"],
+  "permissions": ["manage-notifications"]
+}

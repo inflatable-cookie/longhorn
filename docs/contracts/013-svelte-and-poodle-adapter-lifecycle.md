@@ -105,6 +105,14 @@ transfer cancellation.
 Evidence: `../logs/2026-07/29-poodle-layout-bindings.md`,
 `../logs/2026-07/29-three-shape-app-shell-proof-and-closeout.md`.
 
+Card 078 applies the same boundary to operations. Per-instance sessions own
+listener lifetime and request-keyed pending state. Teardown never requests
+host cancellation. Public Poodle progress, status, list, button, and dialog
+composition covers Soundcheck scan and Loophole queue fixtures; consumer
+detail remains injected.
+
+Evidence: `../logs/2026-07/31-operation-svelte-session-and-poodle-projection.md`.
+
 ## Acceptance
 
 - repeated mount/unmount and destroyed-window tests leave no listener or timer

@@ -1,0 +1,11 @@
+{
+  "permissions": [
+    "allow-longhorn-operation-read",
+    "allow-longhorn-operation-manage",
+    "allow-longhorn-operation-cancel",
+    "read-notifications",
+    "manage-notifications",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

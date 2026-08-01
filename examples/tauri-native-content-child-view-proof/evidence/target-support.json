@@ -1,0 +1,17 @@
+{
+  "schema": "longhorn.native-content.child-view-production-target-support.v1",
+  "targets": {
+    "macos": {
+      "status": "packaged-proof-pass-with-native-scale-switch-unmet",
+      "notes": "macOS 26.5.2 arm64 proves production child creation, readiness, fresh 2x bounds, hide/show reuse, renderer-unmount independence, focus request, browser-policy injection, close, replacement, teardown, host destruction, generation retirement, and capability isolation. Portable visibility and focus readback remain unknown. The one-monitor host exposed only 2x scale, so live scale switching remains unmet and unsimulated."
+    },
+    "windows": {
+      "status": "unproved",
+      "notes": "No Windows packaged host was available. WebView2 child construction, bounds, focus, visibility, callback ordering, and teardown remain unproved."
+    },
+    "linux": {
+      "status": "unproved",
+      "notes": "No Linux packaged host was available. WebKitGTK child construction, bounds, focus, visibility, callback ordering, and teardown remain unproved. macOS data-store identity is rejected on this target."
+    }
+  }
+}

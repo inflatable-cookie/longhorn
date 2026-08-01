@@ -130,3 +130,24 @@ archives. Registry-normalized Cargo packaging remains a release-lane gate.
 
 Evidence:
 `../logs/2026-07/30-bridge-topology-artifact-proof-and-closeout.md`.
+
+## Native-content Artifact Checkpoint
+
+Card 093 inventories five private Rust source artifacts after successful
+`cargo package --list`, then compiles pure, child-view, isolated-window, and
+backing-surface consumers offline on Rust 1.85. Registry-normalized Cargo
+packages remain a release-lane gate.
+
+It packs `@longhorn/core`, `@longhorn/native-content`, and
+`@longhorn/native-content-svelte` and installs isolated Nucleus, Soundcheck,
+and Jetstream shapes. Each lock resolves version `0.1.0`, no workspace or
+sibling source alias, only its selected mechanism, and one Svelte/Poodle
+runtime where the Svelte adapter is selected. The exact Card 039 Poodle
+artifact set is reverified before mounted compilation.
+
+Rust-produced and renderer traces match across all three mechanism semantics.
+This is artifact-install evidence, not a registry-publication or donor-cutover
+claim.
+
+Evidence:
+`../logs/2026-08/01-native-content-artifact-proof-and-closeout.md`.

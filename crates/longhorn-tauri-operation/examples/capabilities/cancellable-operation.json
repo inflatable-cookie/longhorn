@@ -1,0 +1,6 @@
+{
+  "identifier": "cancellable-operation",
+  "description": "Operation projection with cancellation",
+  "windows": ["main"],
+  "permissions": ["read-operation", "cancel-operation"]
+}

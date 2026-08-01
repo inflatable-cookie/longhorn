@@ -1,0 +1,492 @@
+{
+  "schema": "longhorn.native-content.isolated-window-proof.v1",
+  "outcome": "pass",
+  "platform": "macOS 26.5.2",
+  "architecture": "aarch64",
+  "tauri_version": "2.10.3",
+  "evidence_root": "/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64",
+  "checks": [
+    {
+      "id": "packaged_fake_nsview_attach_and_progress",
+      "status": "pass",
+      "detail": {
+        "native_child_attached": true,
+        "observation": {
+          "focus": "focused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 480,
+              "width": 720
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "visible"
+        },
+        "receipt": {
+          "desired_revision": 0,
+          "generation": 1,
+          "island_id": "proof-isolated-window",
+          "observed_revision": 0,
+          "steps": [
+            {
+              "operation": {
+                "host_window_id": "proof-isolated-host",
+                "kind": "attach",
+                "mechanism": "isolated_window"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            },
+            {
+              "operation": {
+                "kind": "set_isolated_content_size",
+                "size": {
+                  "height": 480,
+                  "width": 720
+                }
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 2
+            },
+            {
+              "operation": {
+                "kind": "show"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 3
+            },
+            {
+              "operation": {
+                "kind": "set_input_routing",
+                "mode": "native_direct"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 4
+            },
+            {
+              "operation": {
+                "kind": "request_focus"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 5
+            }
+          ]
+        },
+        "startup_progress": [
+          {
+            "event": {
+              "kind": "progress",
+              "phase": "creating_native_window"
+            },
+            "generation": 1,
+            "kind": "runtime"
+          },
+          {
+            "event": {
+              "kind": "progress",
+              "phase": "attaching_fake_nsview"
+            },
+            "generation": 1,
+            "kind": "runtime"
+          }
+        ]
+      }
+    },
+    {
+      "id": "host_resize_converges_without_update_cycle",
+      "status": "pass",
+      "detail": {
+        "cycle_suppressed": true,
+        "expected_physical": {
+          "height": 560,
+          "width": 840
+        },
+        "observation": {
+          "focus": "focused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 560,
+              "width": 840
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "visible"
+        },
+        "pending_echo_requests": []
+      }
+    },
+    {
+      "id": "content_resize_requires_current_consumer_acceptance",
+      "status": "pass",
+      "detail": {
+        "apply": {
+          "desired_revision": 2,
+          "generation": 1,
+          "island_id": "proof-isolated-window",
+          "observed_revision": 2,
+          "steps": [
+            {
+              "operation": {
+                "kind": "set_isolated_content_size",
+                "size": {
+                  "height": 880,
+                  "width": 1200
+                }
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            }
+          ]
+        },
+        "decision": {
+          "accepted_size": {
+            "height": 440.0,
+            "width": 600.0
+          },
+          "decision": {
+            "kind": "constrained",
+            "size": {
+              "height": 440.0,
+              "width": 600.0
+            }
+          },
+          "proposal": {
+            "desired_revision": 1,
+            "generation": 1,
+            "size": {
+              "height": 700.0,
+              "width": 900.0
+            }
+          }
+        },
+        "observation": {
+          "focus": "focused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 880,
+              "width": 1200
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "visible"
+        },
+        "request": [
+          {
+            "kind": "resize",
+            "size": {
+              "height": 1400,
+              "width": 1800
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "rejected_content_resize_leaves_exact_state_unchanged",
+      "status": "pass",
+      "detail": {
+        "decision": {
+          "accepted_size": null,
+          "decision": {
+            "code": "proof:size-policy-rejected",
+            "kind": "rejected"
+          },
+          "proposal": {
+            "desired_revision": 2,
+            "generation": 1,
+            "size": {
+              "height": 1500.0,
+              "width": 2000.0
+            }
+          }
+        },
+        "desired_revision": 2,
+        "observation": {
+          "focus": "focused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 880,
+              "width": 1200
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "visible"
+        },
+        "request": [
+          {
+            "kind": "resize",
+            "size": {
+              "height": 3000,
+              "width": 4000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "child_show_hide_and_focus_loss_preserve_separation",
+      "status": "pass",
+      "detail": {
+        "focus_loss_event": true,
+        "hidden": {
+          "focus": "unfocused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 880,
+              "width": 1200
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "hidden"
+        },
+        "hide_request": [
+          {
+            "kind": "hide"
+          }
+        ],
+        "show_request": [
+          {
+            "kind": "show"
+          }
+        ],
+        "shown": {
+          "focus": "focused",
+          "generation": 1,
+          "geometry": {
+            "kind": "isolated_content",
+            "size": {
+              "height": 880,
+              "width": 1200
+            }
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "attached",
+          "readiness": "ready",
+          "visibility": "visible"
+        }
+      }
+    },
+    {
+      "id": "resize_hint_requires_explicit_admission",
+      "status": "pass",
+      "detail": {
+        "applied_sequence": [
+          false,
+          true
+        ],
+        "request": [
+          {
+            "kind": "resize_hint",
+            "resizable": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "child_close_returns_cooperative_teardown",
+      "status": "pass",
+      "detail": {
+        "receipt": {
+          "desired_revision": 5,
+          "generation": 1,
+          "island_id": "proof-isolated-window",
+          "observed_revision": 5,
+          "steps": [
+            {
+              "operation": {
+                "kind": "detach",
+                "policy": "owner_process_termination"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            }
+          ]
+        },
+        "request": [
+          {
+            "kind": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "outer_recenter_remains_longhorn_windowing_authority",
+      "status": "pass",
+      "detail": {
+        "adapter_spec": {
+          "contains_outer_placement": false,
+          "host_window_id": "proof-isolated-host"
+        },
+        "initial": {
+          "maximized": false,
+          "placement": {
+            "inner_size": {
+              "height": 240,
+              "width": 360
+            },
+            "outer_origin": {
+              "x": 100,
+              "y": 100
+            }
+          },
+          "visible": false,
+          "window_id": "proof-isolated-host"
+        },
+        "recentered": {
+          "maximized": false,
+          "placement": {
+            "inner_size": {
+              "height": 440,
+              "width": 600
+            },
+            "outer_origin": {
+              "x": -20,
+              "y": 0
+            }
+          },
+          "visible": false,
+          "window_id": "proof-isolated-host"
+        }
+      }
+    },
+    {
+      "id": "bounded_teardown_reports_timeout_and_owner_termination",
+      "status": "pass",
+      "detail": {
+        "teardown_reports": [
+          [
+            1,
+            {
+              "exit_status": 0,
+              "kind": "completed"
+            }
+          ],
+          [
+            2,
+            {
+              "kind": "timed_out",
+              "timeout_millis": 120
+            }
+          ],
+          [
+            2,
+            {
+              "exit_status": null,
+              "kind": "owner_process_terminated"
+            }
+          ]
+        ],
+        "termination_receipt": {
+          "desired_revision": 1,
+          "generation": 2,
+          "island_id": "proof-isolated-window",
+          "observed_revision": 1,
+          "steps": [
+            {
+              "operation": {
+                "kind": "detach",
+                "policy": "owner_process_termination"
+              },
+              "outcome": {
+                "kind": "applied"
+              },
+              "step": 1
+            }
+          ]
+        },
+        "timeout_receipt": {
+          "desired_revision": 1,
+          "generation": 2,
+          "island_id": "proof-isolated-window",
+          "observed_revision": 1,
+          "steps": [
+            {
+              "operation": {
+                "kind": "detach",
+                "policy": "owner_process_termination"
+              },
+              "outcome": {
+                "code": "isolated:teardown-failed",
+                "kind": "failed"
+              },
+              "step": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "helper_loss_is_terminal_and_stale_generation_is_rejected",
+      "status": "pass",
+      "detail": {
+        "exit_status": 73,
+        "loss_event": true,
+        "observation": {
+          "focus": "unknown",
+          "generation": 3,
+          "geometry": {
+            "kind": "unknown"
+          },
+          "input_routing": "native_direct",
+          "lifecycle": "failed",
+          "readiness": "not_ready",
+          "visibility": "unknown"
+        },
+        "stale_result": {
+          "Err": "stale generation 2; current is 3"
+        }
+      }
+    },
+    {
+      "id": "mechanism_and_platform_boundary",
+      "status": "pass",
+      "detail": {
+        "child_webview": false,
+        "gpu": false,
+        "linux": "unsupported_unproved",
+        "platform": "macos",
+        "plugin_sdk": false,
+        "poodle": false,
+        "raw_nsview_location": "proof-app/src-tauri/src/native_macos.rs",
+        "signal": false,
+        "svelte": false,
+        "unsafe_plugin_unload": false,
+        "windows": "unsupported_unproved"
+      }
+    }
+  ]
+}

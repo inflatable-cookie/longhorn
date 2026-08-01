@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "isolated-window-proof-controller",
+  "description": "The local hidden controller has no command permissions. The native helper has no webview.",
+  "local": true,
+  "webviews": [
+    "controller"
+  ],
+  "permissions": []
+}

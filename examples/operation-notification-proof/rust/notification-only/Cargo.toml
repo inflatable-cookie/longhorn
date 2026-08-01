@@ -1,0 +1,10 @@
+[package]
+name = "longhorn-notification-only-artifact-proof"
+version = "0.0.0"
+edition.workspace = true
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-notifications.workspace = true
+longhorn-tauri-notifications.workspace = true
+serde_json.workspace = true

@@ -2,7 +2,7 @@
 
 Status: blocked on `g01.014` and optional Surface packages  
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-07-31
 Governing refs: contracts 002, 003, and 008
 
 ## Outcome
@@ -32,8 +32,9 @@ settings, and command composition without moving DAW authority.
 - history linear-kernel adoption after Cards 062-067 and g01.011 closeout
 - explicit import of existing Pulse history; retain journal recovery and
   cross-session undo
-- branch mode remains disabled unless Card 069 promotes it and a later lane
-  implements it
+- branch mode remains disabled during this migration; Card 069 promotes the
+  semantics, while g01.017 must implement and prove the optional tree layer
+  before a separate Loophole adoption decision
 
 ### 4. Cleanup and proof
 

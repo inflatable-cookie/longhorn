@@ -1,0 +1,57 @@
+{
+  "schema": "longhorn.native-content.child-view-production-inventory.v1",
+  "package": {
+    "name": "longhorn-tauri-native-content-child-view",
+    "version": "0.1.0",
+    "publish": true,
+    "direct_dependencies": [
+      "longhorn-core",
+      "longhorn-native-content",
+      "serde",
+      "tauri"
+    ],
+    "tauri": {
+      "version": "2.10.3",
+      "features": ["unstable"],
+      "unstable_api_isolation": "crates/longhorn-tauri-native-content-child-view/src/tauri_runtime.rs",
+      "unstable_symbols": ["WebviewBuilder", "Window::add_child"]
+    }
+  },
+  "forbidden_edges": {
+    "isolated_window_adapter": false,
+    "backing_surface_adapter": false,
+    "plugin_adapter": false,
+    "gpu_adapter": false,
+    "svelte_adapter": false,
+    "poodle_adapter": false
+  },
+  "native_boundary": {
+    "raw_webview_export": false,
+    "renderer_protocol_handle": false,
+    "opaque_tauri_handle_wrapper": true
+  },
+  "security": {
+    "controller_webview_capability": "empty local permission set",
+    "remote_child_capability": "none",
+    "global_tauri": false,
+    "source_and_navigation_policy": "consumer injected",
+    "popup_policy": "deny",
+    "download_persistence_policy": "deny",
+    "data_store_identifier": "consumer supplied 16-byte value on macOS"
+  },
+  "packaged_artifact": {
+    "platform": "macos-aarch64",
+    "os_version": "26.5.2",
+    "path": "target/release/bundle/macos/Longhorn Native Content Child View Proof.app",
+    "size_kib": 9164,
+    "executable_sha256": "104ecd8efe99d84530bacea72b5976293ff5c719a8a9bd732be7cd29c6f3cd10"
+  },
+  "packaged_run": {
+    "report": "evidence/runs/2026-07-31-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl",
+    "outcome": "pass_with_unmet_environment_claims",
+    "passed_checks": 7,
+    "observed_unknown_checks": 1,
+    "unmet": ["native_scale_switch"]
+  }
+}

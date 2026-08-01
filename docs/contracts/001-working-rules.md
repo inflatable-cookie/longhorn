@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-27  
+Updated: 2026-07-31
 Depends on: `../architecture/system-architecture.md`
 
 ## Delivery Grammar
@@ -39,7 +39,11 @@ Depends on: `../architecture/system-architecture.md`
 
 ## Autonomy
 
-- Continue only across ready cards in the same valid lane.
+- Bare `continue` is standing operator authority to begin the next bounded
+  card or planning batch named by the roadmap front doors.
+- A planned card may move into execution when its governing refs, scope,
+  evidence, and stop conditions are complete; it need not pause for repeated
+  authorization.
 - Stop on missing contracts, contradictions, failed evidence, or unclear
   consumer impact.
 

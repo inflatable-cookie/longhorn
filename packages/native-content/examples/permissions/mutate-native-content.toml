@@ -1,0 +1,7 @@
+[[permission]]
+identifier = "mutate-native-content"
+description = "Submit desired coordination state and content-size decisions"
+commands.allow = [
+  "longhorn_native_content_update_desired",
+  "longhorn_native_content_decide_size",
+]

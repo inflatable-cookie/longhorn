@@ -11,6 +11,7 @@ const SCALE_BASE: i128 = 1000;
 
 /// Explicit rounding policy for scale conversion.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum RoundingMode {
     /// Round toward negative infinity.
@@ -27,6 +28,8 @@ pub enum RoundingMode {
 /// Nearest integer physical-to-screen-to-physical conversion has a maximum
 /// error of `ceil(thousandths / 2000)` physical pixels.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
 pub struct ScaleFactor(NonZeroU32);
 
 impl ScaleFactor {

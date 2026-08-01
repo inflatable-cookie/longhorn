@@ -60,9 +60,73 @@
       "name": "@longhorn/core",
       "version": "0.1.0",
     },
+    "packages/history": {
+      "name": "@longhorn/history",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/core": "0.1.0",
+      },
+      "peerDependencies": {
+        "@poodle/svelte": "0.1.0",
+        "svelte": ">=5.38.6 <6",
+      },
+      "optionalPeers": [
+        "@poodle/svelte",
+        "svelte",
+      ],
+    },
     "packages/layout": {
       "name": "@longhorn/layout",
       "version": "0.1.0",
+    },
+    "packages/native-content": {
+      "name": "@longhorn/native-content",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/core": "0.1.0",
+      },
+    },
+    "packages/native-content-svelte": {
+      "name": "@longhorn/native-content-svelte",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/native-content": "0.1.0",
+      },
+      "peerDependencies": {
+        "svelte": ">=5.38.6 <6",
+      },
+    },
+    "packages/notifications": {
+      "name": "@longhorn/notifications",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/core": "0.1.0",
+      },
+      "peerDependencies": {
+        "@poodle/svelte": "0.1.0",
+        "svelte": ">=5.38.6 <6",
+      },
+      "optionalPeers": [
+        "@poodle/svelte",
+        "svelte",
+      ],
+    },
+    "packages/operation": {
+      "name": "@longhorn/operation",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/core": "0.1.0",
+      },
+      "peerDependencies": {
+        "@longhorn/bridge": "0.1.0",
+        "@poodle/svelte": "0.1.0",
+        "svelte": ">=5.38.6 <6",
+      },
+      "optionalPeers": [
+        "@longhorn/bridge",
+        "@poodle/svelte",
+        "svelte",
+      ],
     },
     "packages/poodle": {
       "name": "@longhorn/poodle",
@@ -234,7 +298,17 @@
 
     "@longhorn/core": ["@longhorn/core@workspace:packages/core"],
 
+    "@longhorn/history": ["@longhorn/history@workspace:packages/history"],
+
     "@longhorn/layout": ["@longhorn/layout@workspace:packages/layout"],
+
+    "@longhorn/native-content": ["@longhorn/native-content@workspace:packages/native-content"],
+
+    "@longhorn/native-content-svelte": ["@longhorn/native-content-svelte@workspace:packages/native-content-svelte"],
+
+    "@longhorn/notifications": ["@longhorn/notifications@workspace:packages/notifications"],
+
+    "@longhorn/operation": ["@longhorn/operation@workspace:packages/operation"],
 
     "@longhorn/poodle": ["@longhorn/poodle@workspace:packages/poodle"],
 

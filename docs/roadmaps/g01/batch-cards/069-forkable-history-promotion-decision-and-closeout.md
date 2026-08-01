@@ -1,17 +1,26 @@
 # 069 Forkable History Promotion Decision And Closeout
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 4
 Governing refs: contracts 001, 003, 008, and 012; research memo 015
 Depends on: Card 068
 Auto-start next card: no
+Authorized: 2026-07-31
+Completed: 2026-07-31
 
 ## Objective
 
 Review the private fork prototype, choose promote, retain as research, or
 reject, update every canonical boundary, and close g01.011 without implying
 unimplemented branch behavior.
+
+## Decision
+
+`Promote` the proven fork-tree semantics into planned g01.017. Retain the
+Card 068 workspace as private executable research until production artifact
+proof. Do not publish it, add it to the root workspace, or enable branch mode
+in Loophole.
 
 ## Scope
 
@@ -94,5 +103,5 @@ shared branch system, and keep linear history plus consumer-owned versions.
 
 ## Next Task
 
-Return to the g01 generation runway. Choose the next ready milestone from the
-recorded Card 069 decision and current migration gates.
+Return to the g01 generation runway. Start g01.012 characterization. The
+optional tree implementation remains planned after g01.016.

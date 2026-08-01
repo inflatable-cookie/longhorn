@@ -1,0 +1,83 @@
+# Nucleus No-Surface Migration Compilation
+
+Date: 2026-08-01
+Roadmap: g01.014
+
+## Result
+
+Compiled Cards 094-101 into four migration batches. Card 094 is ready as a
+read-only donor behavior, authority, Browser-policy, and rollback freeze. No
+Nucleus or Poodle file changed.
+
+## Current Donor Evidence
+
+The audit used clean Nucleus `main` at
+`c084d57ca15f9e4276f49a9b6b2923f5d10e7313`. Current product behavior has
+removed hosted Surfaces and uses:
+
+```text
+display -> window -> region -> panel
+```
+
+Layouts are complete local-client documents keyed by project id. Native
+window placement remains global. The five-region model, project isolation,
+panel mutations, and child-webview Browser implementation are current donor
+authority.
+
+## Compiled Runway
+
+| Batch | Cards | Outcome |
+| --- | --- | --- |
+| admission and freeze | 094-095 | checked donor baseline and published prerelease pin gate |
+| durable state and window | 096-097 | canonical-id platform storage, `.nucleus` import, protected primary window |
+| no-Surface workspace | 098-099 | project-keyed shared layout authority and checked public-Poodle renderer |
+| native Browser and closeout | 100-101 | child-view coordination, duplicate removal, rollback and conformance |
+
+The roadmap keeps project, task, runtime, resource, panel-catalogue, shell, and
+Browser policy in Nucleus. Longhorn receives only product-neutral mechanism
+authority.
+
+## Storage Decision
+
+Nucleus uses canonical id `dev.nucleus.desktop`, no stable storage-name
+override, and `platform-native-v1`. The old `~/.nucleus` root is an explicit
+legacy candidate. Proof roots map to `portable-v1`. The combined `ui.json`
+must seed separate window and project-layout domains. SQLite uses native
+snapshot/import. The fixed locator commits last and old source remains until
+receipt-bound cleanup.
+
+The CLI's current-working-directory `.nucleus/local/nucleus.sqlite` default is
+outside the first desktop migration.
+
+## Browser Policy
+
+The first cutover preserves HTTP/HTTPS-only navigation, HTTPS normalization,
+popup/download denial, no app permission prompt, normal shared engine data
+store, no cookie/credential persistence in Nucleus state, trusted-toolbar
+controls, remote-child capability isolation, process-lifetime reuse, hide on
+unmount/project switch, and destroy on panel close.
+
+Current overlay intersection partly depends on private Poodle DOM. That code
+cannot move into Longhorn. Card 099 must preserve behavior through explicit
+consumer visibility and a public Poodle seam or stop for an upstream contract.
+
+## Gates
+
+- Card 094 is ready and writes only Longhorn evidence.
+- Contract 012 requires published prereleases for the real donor migration.
+- Registry names and Poodle prerelease compatibility remain Card 095 gates.
+- Nucleus g05 project-layout validation is operator-held and must close or be
+  explicitly superseded before overlapping donor writes.
+- Every donor card rechecks the Nucleus worktree and stops on overlapping work.
+
+## Validation
+
+- focused read-only Nucleus source, test, contract, roadmap, capability, and
+  dependency audit
+- Longhorn roadmap and contract reconciliation
+- `effigy qa:northstar:g01-nucleus-migration-compilation`
+
+## Next
+
+Execute Card 094. Convert the audit into checked donor-shaped fixtures and an
+exact rollback/admission dossier without modifying Nucleus or Poodle.

@@ -2389,7 +2389,11 @@ dependencies = [
  "longhorn-command-config",
  "longhorn-config",
  "longhorn-core",
+ "longhorn-history",
  "longhorn-layout",
+ "longhorn-native-content",
+ "longhorn-notifications",
+ "longhorn-operation",
  "longhorn-settings",
  "longhorn-surface-transfer",
  "longhorn-surfaces",
@@ -2494,6 +2498,9 @@ name = "longhorn-history"
 version = "0.1.0"
 dependencies = [
  "longhorn-core",
+ "serde",
+ "serde_json",
+ "ts-rs",
 ]
 
 [[package]]
@@ -2519,6 +2526,111 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-native-content"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "ts-rs",
+]
+
+[[package]]
+name = "longhorn-native-content-backing-surface"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "serde",
+]
+
+[[package]]
+name = "longhorn-native-content-backing-surface-proof"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "longhorn-native-content-backing-surface",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "objc2-quartz-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
+
+[[package]]
+name = "longhorn-native-content-child-view-proof"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "longhorn-tauri-native-content-child-view",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
+
+[[package]]
+name = "longhorn-native-content-isolated-window"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "longhorn-native-content-isolated-window-proof"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "longhorn-native-content-isolated-window",
+ "longhorn-native-content-isolated-window-prototype",
+ "longhorn-native-content-prototype",
+ "longhorn-windowing",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
+
+[[package]]
+name = "longhorn-native-content-isolated-window-prototype"
+version = "0.0.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content-prototype",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "longhorn-native-content-prototype"
+version = "0.0.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+]
+
+[[package]]
+name = "longhorn-notifications"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-operation",
+ "serde",
+ "serde_json",
+ "ts-rs",
+]
+
+[[package]]
 name = "longhorn-nucleus-no-surface-proof"
 version = "0.1.0"
 dependencies = [
@@ -2526,6 +2638,16 @@ dependencies = [
  "longhorn-layout",
  "longhorn-transfer",
  "longhorn-windowing",
+]
+
+[[package]]
+name = "longhorn-operation"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+ "serde_json",
+ "ts-rs",
 ]
 
 [[package]]
@@ -2631,6 +2753,49 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-history"
+version = "0.1.0"
+dependencies = [
+ "longhorn-history",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-native-content-child-view"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-native-content",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-notifications"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-notifications",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "longhorn-tauri-operation"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-operation",
  "serde",
  "serde_json",
  "tauri",
@@ -2993,7 +3158,9 @@ dependencies = [
  "block2",
  "objc2",
  "objc2-core-foundation",
+ "objc2-core-graphics",
  "objc2-foundation",
+ "objc2-quartz-core",
 ]
 
 [[package]]
@@ -3003,7 +3170,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a180dd8642fa45cdb7dd721cd4c11b1cadd4929ce112ebd8b9f5803cc79d536"
 dependencies = [
  "bitflags 2.13.1",
+ "block2",
  "dispatch2",
+ "libc",
  "objc2",
 ]
 
@@ -3066,6 +3235,7 @@ dependencies = [
  "bitflags 2.13.1",
  "objc2",
  "objc2-core-foundation",
+ "objc2-core-graphics",
  "objc2-foundation",
 ]
 

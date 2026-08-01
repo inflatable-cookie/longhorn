@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-08-01
 Architecture: `system-architecture.md`, `system-inventory.md`
 
 ## Topology
@@ -41,6 +41,7 @@ authority and migrate through explicit batches. Poodle remains independent.
 
 ## Planning Gaps
 
-- package publication/path-dependency strategy
-- first two consumer migration order
+- registry ownership, exact prerelease names, and publication authority
+- Poodle-owned public built-in overlay geometry and compatible prerelease
+- Nucleus g05 project-layout operator acceptance or explicit supersession
 - ownership transfer plan for generic Echo crates

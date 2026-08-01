@@ -94,6 +94,52 @@ impl fmt::Display for SurfaceRevisionOverflow {
 
 impl Error for SurfaceRevisionOverflow {}
 
+/// Monotonic revision of desired or observed native-content state.
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
+#[serde(transparent)]
+pub struct NativeContentRevision(u64);
+
+impl NativeContentRevision {
+    /// Initial revision for one native-content state channel.
+    pub const INITIAL: Self = Self(0);
+
+    /// Constructs a revision from its serialized value.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the serialized revision value.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Returns the next revision or fails instead of wrapping.
+    pub const fn checked_next(self) -> Result<Self, NativeContentRevisionOverflow> {
+        match self.0.checked_add(1) {
+            Some(value) => Ok(Self(value)),
+            None => Err(NativeContentRevisionOverflow),
+        }
+    }
+}
+
+/// A native-content revision could not advance without wrapping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NativeContentRevisionOverflow;
+
+impl fmt::Display for NativeContentRevisionOverflow {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("native-content revision cannot advance beyond u64::MAX")
+    }
+}
+
+impl Error for NativeContentRevisionOverflow {}
+
 /// Monotonic structural revision of one history authority.
 #[derive(
     Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
@@ -140,6 +186,144 @@ impl fmt::Display for HistoryRevisionOverflow {
 
 impl Error for HistoryRevisionOverflow {}
 
+/// Monotonic revision of one asynchronous operation.
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
+#[serde(transparent)]
+pub struct OperationRevision(u64);
+
+impl OperationRevision {
+    /// Initial revision assigned when an operation is registered.
+    pub const INITIAL: Self = Self(0);
+
+    /// Constructs a revision from its serialized value.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the serialized revision value.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Returns the next revision or fails instead of wrapping.
+    pub const fn checked_next(self) -> Result<Self, OperationRevisionOverflow> {
+        match self.0.checked_add(1) {
+            Some(value) => Ok(Self(value)),
+            None => Err(OperationRevisionOverflow),
+        }
+    }
+}
+
+/// An operation revision could not advance without wrapping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OperationRevisionOverflow;
+
+impl fmt::Display for OperationRevisionOverflow {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("operation revision cannot advance beyond u64::MAX")
+    }
+}
+
+impl Error for OperationRevisionOverflow {}
+
+/// Monotonic revision of one operation catalogue.
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
+#[serde(transparent)]
+pub struct OperationCatalogueRevision(u64);
+
+impl OperationCatalogueRevision {
+    /// Initial revision for an empty operation catalogue.
+    pub const INITIAL: Self = Self(0);
+
+    /// Constructs a revision from its serialized value.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the serialized revision value.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Returns the next revision or fails instead of wrapping.
+    pub const fn checked_next(self) -> Result<Self, OperationCatalogueRevisionOverflow> {
+        match self.0.checked_add(1) {
+            Some(value) => Ok(Self(value)),
+            None => Err(OperationCatalogueRevisionOverflow),
+        }
+    }
+}
+
+/// An operation catalogue revision could not advance without wrapping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OperationCatalogueRevisionOverflow;
+
+impl fmt::Display for OperationCatalogueRevisionOverflow {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("operation catalogue revision cannot advance beyond u64::MAX")
+    }
+}
+
+impl Error for OperationCatalogueRevisionOverflow {}
+
+/// Monotonic structural revision of one notification ledger.
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
+#[serde(transparent)]
+pub struct NotificationLedgerRevision(u64);
+
+impl NotificationLedgerRevision {
+    /// Initial revision for an empty notification ledger.
+    pub const INITIAL: Self = Self(0);
+
+    /// Constructs a revision from its serialized value.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the serialized revision value.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+
+    /// Returns the next revision or fails instead of wrapping.
+    pub const fn checked_next(self) -> Result<Self, NotificationLedgerRevisionOverflow> {
+        match self.0.checked_add(1) {
+            Some(value) => Ok(Self(value)),
+            None => Err(NotificationLedgerRevisionOverflow),
+        }
+    }
+}
+
+/// A notification ledger revision could not advance without wrapping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NotificationLedgerRevisionOverflow;
+
+impl fmt::Display for NotificationLedgerRevisionOverflow {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("notification ledger revision cannot advance beyond u64::MAX")
+    }
+}
+
+impl Error for NotificationLedgerRevisionOverflow {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,10 +340,45 @@ mod tests {
             SurfaceRevision::new(u64::MAX).checked_next(),
             Err(SurfaceRevisionOverflow)
         );
+        assert_eq!(
+            NativeContentRevision::INITIAL.checked_next().unwrap().get(),
+            1
+        );
+        assert_eq!(
+            NativeContentRevision::new(u64::MAX).checked_next(),
+            Err(NativeContentRevisionOverflow)
+        );
         assert_eq!(HistoryRevision::INITIAL.checked_next().unwrap().get(), 1);
         assert_eq!(
             HistoryRevision::new(u64::MAX).checked_next(),
             Err(HistoryRevisionOverflow)
+        );
+        assert_eq!(OperationRevision::INITIAL.checked_next().unwrap().get(), 1);
+        assert_eq!(
+            OperationRevision::new(u64::MAX).checked_next(),
+            Err(OperationRevisionOverflow)
+        );
+        assert_eq!(
+            OperationCatalogueRevision::INITIAL
+                .checked_next()
+                .unwrap()
+                .get(),
+            1
+        );
+        assert_eq!(
+            OperationCatalogueRevision::new(u64::MAX).checked_next(),
+            Err(OperationCatalogueRevisionOverflow)
+        );
+        assert_eq!(
+            NotificationLedgerRevision::INITIAL
+                .checked_next()
+                .unwrap()
+                .get(),
+            1
+        );
+        assert_eq!(
+            NotificationLedgerRevision::new(u64::MAX).checked_next(),
+            Err(NotificationLedgerRevisionOverflow)
         );
     }
 
@@ -190,6 +409,33 @@ mod tests {
             )
             .unwrap(),
             history_revision
+        );
+
+        let operation_revision = OperationRevision::new(103);
+        assert_eq!(
+            serde_json::from_str::<OperationRevision>(
+                &serde_json::to_string(&operation_revision).unwrap()
+            )
+            .unwrap(),
+            operation_revision
+        );
+
+        let catalogue_revision = OperationCatalogueRevision::new(107);
+        assert_eq!(
+            serde_json::from_str::<OperationCatalogueRevision>(
+                &serde_json::to_string(&catalogue_revision).unwrap()
+            )
+            .unwrap(),
+            catalogue_revision
+        );
+
+        let notification_revision = NotificationLedgerRevision::new(109);
+        assert_eq!(
+            serde_json::from_str::<NotificationLedgerRevision>(
+                &serde_json::to_string(&notification_revision).unwrap()
+            )
+            .unwrap(),
+            notification_revision
         );
     }
 }

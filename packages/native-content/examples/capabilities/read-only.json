@@ -1,0 +1,6 @@
+{
+  "identifier": "read-native-content",
+  "description": "Product-neutral native-content observation",
+  "windows": ["main"],
+  "permissions": ["read-native-content"]
+}

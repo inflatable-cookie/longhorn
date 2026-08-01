@@ -1,0 +1,10 @@
+{
+  "identifier": "longhorn-history-read-only",
+  "description": "Read-only history metadata authority.",
+  "windows": ["main", "history"],
+  "permissions": [
+    "allow-longhorn-history-read",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

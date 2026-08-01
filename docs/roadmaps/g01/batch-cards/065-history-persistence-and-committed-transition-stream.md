@@ -1,6 +1,6 @@
 # 065 History Persistence And Committed Transition Stream
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 2
 Governing refs: contracts 003, 004, 008, 010, and 012; research memo 015
@@ -87,5 +87,5 @@ in-memory success as durable success.
 
 ## Next Task
 
-Card 066 is planned. Generate metadata-only clients and compose narrow Tauri,
+Card 066 is ready. Generate metadata-only clients and compose narrow Tauri,
 Svelte, and public-Poodle edges.

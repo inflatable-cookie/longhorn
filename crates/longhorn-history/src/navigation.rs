@@ -2,7 +2,10 @@ use std::{error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
 
-use crate::{HistoryLabel, HistoryPolicy, LinearHistory};
+use crate::{
+    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryLabel, HistoryPolicy,
+    LinearHistory,
+};
 
 /// Stable navigation intent.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -385,7 +388,7 @@ impl<P> LinearHistory<P> {
             });
         }
 
-        let moved_entry_ids = plan
+        let moved_entry_ids: Vec<HistoryEntryId> = plan
             .steps
             .iter()
             .map(|step| step.entry_id().clone())
@@ -418,6 +421,18 @@ impl<P> LinearHistory<P> {
         self.close_transient_group(crate::HistoryGroupCloseReason::Navigation);
         let authoritative_position = self.position_at(target_depth);
         debug_assert_eq!(authoritative_position, plan.target_position);
+        let transition = HistoryCommittedTransition::new(
+            self.state.history_id.clone(),
+            Some(plan.source_revision),
+            committed_revision,
+            HistoryCommittedTransitionKind::Navigation {
+                plan_id: plan.plan_id.clone(),
+                direction: plan.direction,
+                moved_entry_ids: moved_entry_ids.clone(),
+                source_position: source_position.clone(),
+                authoritative_position: authoritative_position.clone(),
+            },
+        );
 
         Ok(HistoryNavigationReceipt {
             history_id: self.state.history_id.clone(),
@@ -428,6 +443,7 @@ impl<P> LinearHistory<P> {
             moved_entry_ids,
             source_position,
             authoritative_position,
+            transition,
         })
     }
 
@@ -613,6 +629,7 @@ pub struct HistoryNavigationReceipt {
     moved_entry_ids: Vec<HistoryEntryId>,
     source_position: HistoryNavigationPosition,
     authoritative_position: HistoryNavigationPosition,
+    transition: HistoryCommittedTransition,
 }
 
 impl HistoryNavigationReceipt {
@@ -662,6 +679,12 @@ impl HistoryNavigationReceipt {
     #[must_use]
     pub const fn authoritative_position(&self) -> &HistoryNavigationPosition {
         &self.authoritative_position
+    }
+
+    /// Returns the committed structural transition.
+    #[must_use]
+    pub const fn transition(&self) -> &HistoryCommittedTransition {
+        &self.transition
     }
 }
 

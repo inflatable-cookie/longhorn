@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "manage-operation"
+description = "Manage operation lifecycle, progress, retention, and teardown"
+commands.allow = ["longhorn_operation_mutate"]

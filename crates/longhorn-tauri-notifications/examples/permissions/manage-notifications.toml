@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "manage-notifications"
+description = "Read and mutate the retained notification ledger"
+commands.allow = ["longhorn_notifications_snapshot", "longhorn_notifications_mutate"]

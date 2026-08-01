@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-07-31
 Evidence: `../research/translation-memos/003-foundation-boundary-characterization.md`;
 `../research/translation-memos/013-typed-bridge-and-backend-topology-boundary.md`;
 `../research/translation-memos/014-command-input-and-palette-boundary.md`
@@ -100,6 +100,11 @@ durable delivery. Query-only domains do not require an event transport.
 The loopback proves serialization and semantic parity. It does not claim a
 production network protocol. Service transports implement the same injected
 port after their production security and platform contract is selected.
+
+The operation domain proves the same checked state through direct,
+JSON-serialized, Tauri, and bridge-domain composition. Bridge request and job
+ids remain correlation; operation id and authority cursor remain domain
+authority.
 
 ## Acceptance
 

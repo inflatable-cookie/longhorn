@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Longhorn Child Webview Proof",
+  "version": "0.0.0",
+  "identifier": "audio.infiniteloop.longhorn-child-webview-proof",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "controller",
+        "title": "Longhorn Child Webview Proof Controller",
+        "width": 420,
+        "height": 240,
+        "visible": false,
+        "resizable": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; connect-src 'none'; frame-src 'none'; object-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "icon": ["../../../../examples/tauri-windowing-proof/src-tauri/icons/icon.png"]
+  }
+}

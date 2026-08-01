@@ -1,0 +1,63 @@
+{
+  "schema": "longhorn.native-content.backing-surface-production-inventory.v1",
+  "package": {
+    "name": "longhorn-native-content-backing-surface",
+    "version": "0.1.0",
+    "publish": false,
+    "direct_dependencies": [
+      "longhorn-core",
+      "longhorn-native-content",
+      "serde"
+    ],
+    "consumer_ports": [
+      "native storage attach and detach",
+      "viewport clip",
+      "presentation lifecycle",
+      "input route",
+      "fresh native and renderer observation"
+    ]
+  },
+  "forbidden_edges": {
+    "tauri": false,
+    "prototype": false,
+    "child_view_adapter": false,
+    "isolated_window_adapter": false,
+    "gpu_stack": false,
+    "svelte": false,
+    "poodle": false
+  },
+  "native_boundary": {
+    "adapter_raw_pointer_exports": false,
+    "native_pointer_location": "proof-only native_macos.rs",
+    "gpu_types_in_shared_api": false,
+    "semantic_input_payload_in_shared_api": false
+  },
+  "authority": {
+    "shared": [
+      "generation and host admission",
+      "exact apply and detach receipts",
+      "storage versus viewport distinction",
+      "presentation and renderer-forwarded input gate",
+      "stale event and frame rejection"
+    ],
+    "consumer": [
+      "native storage implementation",
+      "renderer and pixel production",
+      "host focus evidence",
+      "typed semantic input"
+    ]
+  },
+  "packaged_artifact": {
+    "platform": "macos-aarch64",
+    "path": "target/release/bundle/macos/Longhorn Backing Surface Production Proof.app",
+    "size_kib": 9172,
+    "executable_sha256": "59197902507df2fa4ac34306a739bfca93862ef76bcdc7630278f3ffed5f6a32"
+  },
+  "packaged_run": {
+    "report": "evidence/runs/2026-08-01-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-08-01-macos-arm64/runtime-transcript.jsonl",
+    "outcome": "pass_with_unmet_environment_claims",
+    "passed_checks": 10,
+    "unmet": ["available_native_scale_transition"]
+  }
+}

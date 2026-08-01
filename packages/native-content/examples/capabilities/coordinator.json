@@ -1,0 +1,6 @@
+{
+  "identifier": "coordinate-native-content",
+  "description": "Trusted native-content coordination renderer",
+  "windows": ["main"],
+  "permissions": ["read-native-content", "mutate-native-content"]
+}

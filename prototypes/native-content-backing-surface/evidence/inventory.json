@@ -1,0 +1,75 @@
+{
+  "schema": "longhorn.native-content.backing-surface-inventory.v1",
+  "package": {
+    "name": "longhorn-native-content-backing-surface-prototype",
+    "version": "0.0.0",
+    "publish": false,
+    "public_authority": false,
+    "direct_dependencies": [
+      "longhorn-core",
+      "longhorn-native-content-prototype",
+      "serde"
+    ]
+  },
+  "exported_private_symbols": [
+    "AdapterEvent",
+    "BackingSurfaceAdapter",
+    "BackingSurfaceError",
+    "BackingSurfaceRuntime",
+    "BackingSurfaceSpec",
+    "DetachOutcome",
+    "InputAdmission",
+    "InputRejection",
+    "InvalidatedAttachment",
+    "RuntimeAttachRequest",
+    "RuntimeEvent",
+    "RuntimeEventKind",
+    "RuntimeSnapshot"
+  ],
+  "native_boundary": {
+    "adapter_raw_pointer_exports": false,
+    "proof_raw_pointer_file": "proof-app/src-tauri/src/native_macos.rs",
+    "native_root_geometry": "full host content bounds",
+    "viewport_application": "consumer output frame and interaction clip",
+    "selected_detach_policy": "reversible",
+    "detach_receipt": "detached"
+  },
+  "authority": {
+    "consumer_owns_renderer": true,
+    "consumer_owns_input_payload": true,
+    "adapter_input_shape": "physical point admission only",
+    "adapter_native_visibility_observation": "unknown",
+    "adapter_native_focus_observation": "unknown",
+    "host_focus_input": "consumer-injected gate evidence"
+  },
+  "forbidden_edges": {
+    "wgpu": false,
+    "scene": false,
+    "camera": false,
+    "picking": false,
+    "gizmo": false,
+    "child_webview_adapter": false,
+    "isolated_window_adapter": false,
+    "plugin_adapter": false,
+    "svelte_adapter": false,
+    "poodle_adapter": false
+  },
+  "poodle_seam": {
+    "private_dom_inspection": false,
+    "copied_visual_primitive": false,
+    "proof_chrome": "ordinary controlled HTML/CSS"
+  },
+  "packaged_artifact": {
+    "platform": "macos-aarch64",
+    "path": "target/release/bundle/macos/Longhorn Backing Surface Proof.app",
+    "size_kib": 9184,
+    "executable_sha256": "9532e7e53e30b4986481ce5bc81db40d010334c96166e247245f0d044f38d5f5"
+  },
+  "packaged_run": {
+    "report": "evidence/runs/2026-07-31-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl",
+    "outcome": "pass_with_unmet_environment_claims",
+    "passed_checks": 10,
+    "unmet": ["available_native_scale_transition"]
+  }
+}

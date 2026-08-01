@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Longhorn Backing Surface Proof",
+  "version": "0.0.0",
+  "identifier": "audio.infiniteloop.longhorn-backing-surface-proof",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "controller",
+        "title": "Longhorn Backing Surface Proof",
+        "width": 760,
+        "height": 520,
+        "visible": true,
+        "transparent": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; connect-src 'none'; frame-src 'none'; object-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "icon": ["../../../../examples/tauri-windowing-proof/src-tauri/icons/icon.png"]
+  }
+}

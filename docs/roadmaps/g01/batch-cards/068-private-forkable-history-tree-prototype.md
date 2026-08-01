@@ -1,11 +1,13 @@
 # 068 Private Forkable History Tree Prototype
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 3
 Governing refs: contract 008; research memo 015
 Depends on: Card 067
 Auto-start next card: no
+Authorized: 2026-07-30
+Completed: 2026-07-30
 
 ## Objective
 
@@ -96,5 +98,6 @@ linear artifacts, or become a Loophole dependency.
 
 ## Next Task
 
-Card 069 is planned. Make the explicit promote, retain, or reject decision from
-the prototype evidence.
+Closed by Card 069 on 2026-07-31. The selected outcome is `Promote` into a
+later optional production lane while retaining this prototype as private
+research.

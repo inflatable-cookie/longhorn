@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-tauri-history"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Narrow injected Tauri host for Longhorn history metadata and navigation"
+publish = false
+
+[dependencies]
+longhorn-history.workspace = true
+serde.workspace = true
+tauri.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,549 @@
+{
+  "applyEvent": {
+    "change": {
+      "kind": "apply_completed",
+      "receipt": {
+        "desired_revision": 1,
+        "generation": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 0,
+        "steps": [
+          {
+            "operation": {
+              "host_window_id": "window:main",
+              "kind": "attach",
+              "mechanism": "isolated_window"
+            },
+            "outcome": {
+              "kind": "applied"
+            },
+            "step": 1
+          },
+          {
+            "operation": {
+              "kind": "set_isolated_content_size",
+              "size": {
+                "height": 720,
+                "width": 1280
+              }
+            },
+            "outcome": {
+              "kind": "not_attempted"
+            },
+            "step": 2
+          },
+          {
+            "operation": {
+              "kind": "show"
+            },
+            "outcome": {
+              "blocked_by": 2,
+              "kind": "dependency_skipped"
+            },
+            "step": 3
+          },
+          {
+            "operation": {
+              "kind": "set_input_routing",
+              "mode": "native_direct"
+            },
+            "outcome": {
+              "blocked_by": 3,
+              "kind": "dependency_skipped"
+            },
+            "step": 4
+          },
+          {
+            "operation": {
+              "kind": "request_focus"
+            },
+            "outcome": {
+              "blocked_by": 4,
+              "kind": "dependency_skipped"
+            },
+            "step": 5
+          }
+        ]
+      },
+      "request_id": "request:apply"
+    },
+    "cursor": {
+      "attach_generation": 1,
+      "authority_epoch": 9,
+      "client_epoch": 1,
+      "desired_revision": 1,
+      "island_id": "island:fixture",
+      "observed_revision": 0
+    },
+    "protocol_version": 1
+  },
+  "connect": {
+    "request_id": "request:connect",
+    "snapshot": {
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 0,
+        "island_id": "island:fixture",
+        "observed_revision": 0
+      },
+      "desired": {
+        "capabilities": {
+          "accepts_content_size_requests": true,
+          "active_input_routing": "native_direct",
+          "detach_policy": "owner_process_termination",
+          "mechanism": "isolated_window",
+          "observes_focus": true,
+          "observes_visibility": true
+        },
+        "focus": "request",
+        "generation": 1,
+        "host_window_id": "window:main",
+        "input_routing": "native_direct",
+        "island_id": "island:fixture",
+        "kind_id": "fixture:isolated",
+        "presence": "present",
+        "revision": 0,
+        "rounding": "nearest",
+        "scale": 2000,
+        "viewport": {
+          "origin": {
+            "x": 12.0,
+            "y": 16.0
+          },
+          "size": {
+            "height": 360.0,
+            "width": 640.0
+          }
+        },
+        "visibility": {
+          "state": "visible"
+        }
+      },
+      "invalidated_generation": null,
+      "observed": {
+        "focus": "unknown",
+        "generation": 1,
+        "geometry": {
+          "kind": "unknown"
+        },
+        "input_routing": null,
+        "lifecycle": "absent",
+        "readiness": "unknown",
+        "revision": 0,
+        "visibility": "unknown"
+      },
+      "protocol_version": 1
+    },
+    "status": "connected"
+  },
+  "decision": {
+    "event": {
+      "change": {
+        "kind": "content_size_decided",
+        "receipt": {
+          "accepted_size": {
+            "height": 576.0,
+            "width": 768.0
+          },
+          "decision": {
+            "kind": "constrained",
+            "size": {
+              "height": 576.0,
+              "width": 768.0
+            }
+          },
+          "proposal": {
+            "desired_revision": 1,
+            "generation": 1,
+            "size": {
+              "height": 600.0,
+              "width": 800.0
+            }
+          }
+        },
+        "request_id": "request:decision"
+      },
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 1
+      },
+      "protocol_version": 1
+    },
+    "receipt": {
+      "accepted_size": {
+        "height": 576.0,
+        "width": 768.0
+      },
+      "decision": {
+        "kind": "constrained",
+        "size": {
+          "height": 576.0,
+          "width": 768.0
+        }
+      },
+      "proposal": {
+        "desired_revision": 1,
+        "generation": 1,
+        "size": {
+          "height": 600.0,
+          "width": 800.0
+        }
+      }
+    },
+    "request_id": "request:decision",
+    "snapshot": {
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 1
+      },
+      "desired": {
+        "capabilities": {
+          "accepts_content_size_requests": true,
+          "active_input_routing": "native_direct",
+          "detach_policy": "owner_process_termination",
+          "mechanism": "isolated_window",
+          "observes_focus": true,
+          "observes_visibility": true
+        },
+        "focus": "request",
+        "generation": 1,
+        "host_window_id": "window:main",
+        "input_routing": "native_direct",
+        "island_id": "island:fixture",
+        "kind_id": "fixture:isolated",
+        "presence": "present",
+        "revision": 1,
+        "rounding": "nearest",
+        "scale": 2000,
+        "viewport": {
+          "origin": {
+            "x": 24.0,
+            "y": 16.0
+          },
+          "size": {
+            "height": 360.0,
+            "width": 640.0
+          }
+        },
+        "visibility": {
+          "state": "visible"
+        }
+      },
+      "invalidated_generation": null,
+      "observed": {
+        "focus": "unknown",
+        "generation": 1,
+        "geometry": {
+          "kind": "unknown"
+        },
+        "input_routing": null,
+        "lifecycle": "attaching",
+        "readiness": "not_ready",
+        "revision": 1,
+        "visibility": "unknown"
+      },
+      "protocol_version": 1
+    },
+    "status": "decided"
+  },
+  "desiredUpdate": {
+    "event": {
+      "change": {
+        "kind": "desired_updated",
+        "receipt": {
+          "current_revision": 1,
+          "generation": 1,
+          "previous_revision": 0
+        },
+        "request_id": "request:update"
+      },
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 0
+      },
+      "protocol_version": 1
+    },
+    "receipt": {
+      "current_revision": 1,
+      "generation": 1,
+      "previous_revision": 0
+    },
+    "request_id": "request:update",
+    "snapshot": {
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 0
+      },
+      "desired": {
+        "capabilities": {
+          "accepts_content_size_requests": true,
+          "active_input_routing": "native_direct",
+          "detach_policy": "owner_process_termination",
+          "mechanism": "isolated_window",
+          "observes_focus": true,
+          "observes_visibility": true
+        },
+        "focus": "request",
+        "generation": 1,
+        "host_window_id": "window:main",
+        "input_routing": "native_direct",
+        "island_id": "island:fixture",
+        "kind_id": "fixture:isolated",
+        "presence": "present",
+        "revision": 1,
+        "rounding": "nearest",
+        "scale": 2000,
+        "viewport": {
+          "origin": {
+            "x": 24.0,
+            "y": 16.0
+          },
+          "size": {
+            "height": 360.0,
+            "width": 640.0
+          }
+        },
+        "visibility": {
+          "state": "visible"
+        }
+      },
+      "invalidated_generation": null,
+      "observed": {
+        "focus": "unknown",
+        "generation": 1,
+        "geometry": {
+          "kind": "unknown"
+        },
+        "input_routing": null,
+        "lifecycle": "absent",
+        "readiness": "unknown",
+        "revision": 0,
+        "visibility": "unknown"
+      },
+      "protocol_version": 1
+    },
+    "status": "committed"
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownChangeKind": "product_payload",
+    "unknownMechanism": "browser_plugin",
+    "unknownRejectionCode": "future_rejection",
+    "unknownUpdateStatus": "uncertain"
+  },
+  "incompatible": {
+    "rejection": {
+      "code": "unsupported_protocol_version",
+      "message": "native-content protocol 2 is unsupported; expected 1",
+      "phase": "compatibility",
+      "retry": "never"
+    },
+    "request_id": "request:future-protocol",
+    "status": "rejected"
+  },
+  "observationEvent": {
+    "change": {
+      "kind": "observation_admitted",
+      "receipt": {
+        "current_revision": 1,
+        "generation": 1,
+        "lifecycle": "attaching",
+        "previous_revision": 0
+      },
+      "request_id": "request:observe"
+    },
+    "cursor": {
+      "attach_generation": 1,
+      "authority_epoch": 9,
+      "client_epoch": 1,
+      "desired_revision": 1,
+      "island_id": "island:fixture",
+      "observed_revision": 1
+    },
+    "protocol_version": 1
+  },
+  "proposalEvent": {
+    "change": {
+      "kind": "content_size_proposed",
+      "proposal": {
+        "desired_revision": 1,
+        "generation": 1,
+        "size": {
+          "height": 600.0,
+          "width": 800.0
+        }
+      },
+      "request_id": "request:proposal"
+    },
+    "cursor": {
+      "attach_generation": 1,
+      "authority_epoch": 9,
+      "client_epoch": 1,
+      "desired_revision": 1,
+      "island_id": "island:fixture",
+      "observed_revision": 1
+    },
+    "protocol_version": 1
+  },
+  "protocolVersion": 1,
+  "remount": {
+    "request_id": "request:remount",
+    "snapshot": {
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 2,
+        "desired_revision": 1,
+        "island_id": "island:fixture",
+        "observed_revision": 1
+      },
+      "desired": {
+        "capabilities": {
+          "accepts_content_size_requests": true,
+          "active_input_routing": "native_direct",
+          "detach_policy": "owner_process_termination",
+          "mechanism": "isolated_window",
+          "observes_focus": true,
+          "observes_visibility": true
+        },
+        "focus": "request",
+        "generation": 1,
+        "host_window_id": "window:main",
+        "input_routing": "native_direct",
+        "island_id": "island:fixture",
+        "kind_id": "fixture:isolated",
+        "presence": "present",
+        "revision": 1,
+        "rounding": "nearest",
+        "scale": 2000,
+        "viewport": {
+          "origin": {
+            "x": 24.0,
+            "y": 16.0
+          },
+          "size": {
+            "height": 360.0,
+            "width": 640.0
+          }
+        },
+        "visibility": {
+          "state": "visible"
+        }
+      },
+      "invalidated_generation": null,
+      "observed": {
+        "focus": "unknown",
+        "generation": 1,
+        "geometry": {
+          "kind": "unknown"
+        },
+        "input_routing": null,
+        "lifecycle": "attaching",
+        "readiness": "not_ready",
+        "revision": 1,
+        "visibility": "unknown"
+      },
+      "protocol_version": 1
+    },
+    "status": "connected"
+  },
+  "snapshot": {
+    "request_id": "request:snapshot",
+    "snapshot": {
+      "cursor": {
+        "attach_generation": 1,
+        "authority_epoch": 9,
+        "client_epoch": 1,
+        "desired_revision": 0,
+        "island_id": "island:fixture",
+        "observed_revision": 0
+      },
+      "desired": {
+        "capabilities": {
+          "accepts_content_size_requests": true,
+          "active_input_routing": "native_direct",
+          "detach_policy": "owner_process_termination",
+          "mechanism": "isolated_window",
+          "observes_focus": true,
+          "observes_visibility": true
+        },
+        "focus": "request",
+        "generation": 1,
+        "host_window_id": "window:main",
+        "input_routing": "native_direct",
+        "island_id": "island:fixture",
+        "kind_id": "fixture:isolated",
+        "presence": "present",
+        "revision": 0,
+        "rounding": "nearest",
+        "scale": 2000,
+        "viewport": {
+          "origin": {
+            "x": 12.0,
+            "y": 16.0
+          },
+          "size": {
+            "height": 360.0,
+            "width": 640.0
+          }
+        },
+        "visibility": {
+          "state": "visible"
+        }
+      },
+      "invalidated_generation": null,
+      "observed": {
+        "focus": "unknown",
+        "generation": 1,
+        "geometry": {
+          "kind": "unknown"
+        },
+        "input_routing": null,
+        "lifecycle": "absent",
+        "readiness": "unknown",
+        "revision": 0,
+        "visibility": "unknown"
+      },
+      "protocol_version": 1
+    },
+    "status": "ready"
+  },
+  "staleRevision": {
+    "rejection": {
+      "code": "stale_revision",
+      "message": "stale revision 0; current is 1",
+      "phase": "coordination",
+      "retry": "refresh"
+    },
+    "request_id": "request:stale-revision",
+    "status": "rejected"
+  },
+  "staleSession": {
+    "rejection": {
+      "code": "stale_client_epoch",
+      "message": "renderer epoch 1 is stale; current is 2",
+      "phase": "admission",
+      "retry": "refresh"
+    },
+    "request_id": "request:stale-session",
+    "status": "rejected"
+  }
+}

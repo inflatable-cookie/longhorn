@@ -1,0 +1,11 @@
+{
+  "identifier": "longhorn-history-mutable",
+  "description": "History metadata and checked navigation authority.",
+  "windows": ["history"],
+  "permissions": [
+    "allow-longhorn-history-read",
+    "allow-longhorn-history-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

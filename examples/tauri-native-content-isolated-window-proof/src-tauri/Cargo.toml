@@ -1,0 +1,27 @@
+[package]
+name = "longhorn-native-content-isolated-window-proof"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+longhorn-native-content-isolated-window.workspace = true
+longhorn-native-content-isolated-window-prototype = { path = "../../../prototypes/native-content-isolated-window/adapter" }
+longhorn-native-content-prototype = { path = "../../../prototypes/native-content" }
+longhorn-windowing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { workspace = true, features = ["unstable", "wry"] }
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "allow"
+
+[lints.clippy]
+all = "deny"

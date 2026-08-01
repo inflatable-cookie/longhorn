@@ -1,0 +1,17 @@
+{
+  "schema": "longhorn.native-content.isolated-window-target-support.v1",
+  "targets": {
+    "macos": {
+      "status": "packaged-proof-pass",
+      "notes": "macOS 26.5.2 arm64 proved real fake-NSView attachment, startup progress, 2x content sizing, host and child resize convergence, rejection invariance, resize-cycle suppression, show, hide, focus loss, resize-hint admission, cooperative close, consumer-owned recentering, bounded timeout, owner termination, helper loss, and stale-generation rejection."
+    },
+    "windows": {
+      "status": "unsupported",
+      "notes": "The controlled native-child implementation is macOS AppKit only. The non-macOS proof port returns an explicit unsupported error. No Windows packaged host or native child was proved."
+    },
+    "linux": {
+      "status": "unsupported",
+      "notes": "The controlled native-child implementation is macOS AppKit only. The non-macOS proof port returns an explicit unsupported error. No Linux packaged host or native child was proved."
+    }
+  }
+}

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "cancel-operation"
+description = "Request cancellation of a revision-bound operation"
+commands.allow = ["longhorn_operation_cancel"]

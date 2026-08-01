@@ -1,0 +1,11 @@
+[package]
+name = "longhorn-native-content-artifact-proof-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+serde_json.workspace = true

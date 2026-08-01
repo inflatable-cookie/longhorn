@@ -20,5 +20,7 @@ contracts.
 - [Typed Bridge And Backend Topology Boundary](translation-memos/013-typed-bridge-and-backend-topology-boundary.md)
 - [Command, Input, And Palette Boundary](translation-memos/014-command-input-and-palette-boundary.md)
 - [History Kernel And Fork Boundary](translation-memos/015-history-kernel-and-fork-boundary.md)
+- [Async Operation And Notification Boundary](translation-memos/016-async-operation-and-notification-boundary.md)
+- [Native Content Island Boundary](translation-memos/017-native-content-island-boundary.md)
 
 Start from a problem. Promote stable conclusions before roadmap execution.

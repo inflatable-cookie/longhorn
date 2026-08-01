@@ -8,9 +8,10 @@ use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
 
 use crate::retention::retained_weight;
 use crate::{
-    AppliedHistoryRecord, HistoryCoalesce, HistoryCoalesceContext, HistoryEntry,
-    HistoryEntrySequence, HistoryLimits, HistoryNavigationLimits, HistoryPolicy,
-    HistoryProjectionLimits, HistoryPrunedEntry, HistoryPruningReceipt, HistoryRetainedBaseline,
+    AppliedHistoryRecord, HistoryCoalesce, HistoryCoalesceContext, HistoryCommittedTransition,
+    HistoryCommittedTransitionKind, HistoryEntry, HistoryEntrySequence, HistoryLimits,
+    HistoryNavigationLimits, HistoryPolicy, HistoryProjectionLimits, HistoryPrunedEntry,
+    HistoryPruningReceipt, HistoryRecordTransitionEffect, HistoryRetainedBaseline,
     HistoryRetentionError,
 };
 
@@ -349,6 +350,7 @@ impl<P> LinearHistory<P> {
                 pruning: HistoryPruningReceipt::default(),
                 retained_encoded_weight: retained_weight(&self.state.applied, &self.state.future)
                     .map_err(HistoryRecordError::Retention)?,
+                transition: None,
             });
         }
 
@@ -479,7 +481,7 @@ impl<P> LinearHistory<P> {
             .iter()
             .map(HistoryPrunedEntry::from_entry)
             .collect();
-        let cleared_future = self
+        let cleared_future: Vec<HistoryEntryId> = self
             .state
             .future
             .iter()
@@ -536,13 +538,27 @@ impl<P> LinearHistory<P> {
             outcome,
             HistoryRecordOutcome::Added { .. } | HistoryRecordOutcome::Replaced { .. }
         );
+        let pruning = HistoryPruningReceipt::new(advanced_baseline, Vec::new());
+        let effect = HistoryRecordTransitionEffect::from_outcome(&outcome)
+            .expect("committed record cannot be an ignored no-op");
+        let transition = HistoryCommittedTransition::new(
+            self.state.history_id.clone(),
+            Some(expected_revision),
+            committed_revision,
+            HistoryCommittedTransitionKind::Record {
+                effect,
+                cleared_future: cleared_future.clone(),
+                pruning: pruning.clone(),
+            },
+        );
         Ok(HistoryRecordResult {
             previous_revision: expected_revision,
             committed_revision,
             outcome,
             cleared_future,
-            pruning: HistoryPruningReceipt::new(advanced_baseline, Vec::new()),
+            pruning,
             retained_encoded_weight: retained_weight,
+            transition: Some(transition),
         })
     }
 }
@@ -674,6 +690,7 @@ pub struct HistoryRecordResult {
     cleared_future: Vec<HistoryEntryId>,
     pruning: HistoryPruningReceipt,
     retained_encoded_weight: u64,
+    transition: Option<HistoryCommittedTransition>,
 }
 
 impl HistoryRecordResult {
@@ -711,6 +728,12 @@ impl HistoryRecordResult {
     #[must_use]
     pub const fn retained_encoded_weight(&self) -> u64 {
         self.retained_encoded_weight
+    }
+
+    /// Returns the committed structural transition, absent for an ignored no-op.
+    #[must_use]
+    pub const fn transition(&self) -> Option<&HistoryCommittedTransition> {
+        self.transition.as_ref()
     }
 }
 

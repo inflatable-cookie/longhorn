@@ -1,0 +1,12 @@
+{
+  "name": "longhorn-native-content-soundcheck-artifact-proof",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@longhorn/core": "0.1.0",
+    "@longhorn/native-content": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

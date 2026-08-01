@@ -1,11 +1,12 @@
 # 066 Generated History Client, Tauri, Svelte, And Poodle
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 2
 Governing refs: contracts 007, 008, 010, 012, and 013; research memo 015
 Depends on: Card 065
 Auto-start next card: no
+Completed: 2026-07-30
 
 ## Objective
 
@@ -86,5 +87,5 @@ state is per instance. Poodle supplies public visual primitives.
 
 ## Next Task
 
-Card 067 is planned. Prove rich and minimal linear compositions from produced
+Card 067 is ready. Prove rich and minimal linear compositions from produced
 artifacts, publish guidance, and pause before fork work.

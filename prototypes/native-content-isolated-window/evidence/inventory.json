@@ -1,0 +1,71 @@
+{
+  "schema": "longhorn.native-content.isolated-window-inventory.v1",
+  "package": {
+    "name": "longhorn-native-content-isolated-window-prototype",
+    "version": "0.0.0",
+    "publish": false,
+    "public_authority": false,
+    "direct_dependencies": [
+      "longhorn-core",
+      "longhorn-native-content-prototype",
+      "serde",
+      "serde_json"
+    ]
+  },
+  "process_runtime": {
+    "helper": "same packaged executable",
+    "flag": "--longhorn-isolated-helper",
+    "channel": "newline-delimited JSON over stdin/stdout",
+    "owner": "disposable helper process",
+    "teardown_outcomes": [
+      "completed",
+      "timed_out",
+      "owner_process_terminated"
+    ]
+  },
+  "native_boundary": {
+    "platform_source": "proof-app/src-tauri/src/native_macos.rs",
+    "native_types": [
+      "NSView",
+      "NSWindow"
+    ],
+    "raw_pointer_exports": false,
+    "wire_pointer_fields": false,
+    "fake_child_observation": "boolean superview identity only"
+  },
+  "outer_placement": {
+    "owner": "consumer through longhorn-windowing",
+    "proof_type": "longhorn_windowing::WindowPlacement",
+    "adapter_position_operations": false,
+    "adapter_position_fields": false,
+    "transport": "consumer-supplied helper launch arguments"
+  },
+  "forbidden_edges": {
+    "plugin_sdk": false,
+    "signal": false,
+    "unsafe_plugin_unload": false,
+    "child_webview_adapter": false,
+    "backing_surface_adapter": false,
+    "gpu_adapter": false,
+    "svelte_adapter": false,
+    "poodle_adapter": false
+  },
+  "security": {
+    "controller_webview_capability": "empty local permission set",
+    "global_tauri": false,
+    "remote_content": false,
+    "invoke_commands": false
+  },
+  "packaged_artifact": {
+    "platform": "macos-aarch64",
+    "path": "target/release/bundle/macos/Longhorn Isolated Window Proof.app",
+    "size_kib": 9444,
+    "executable_sha256": "1b9a8a4aefeb7efc30e533f1811ce0086aeb92db3312de6f7df0f4ef4f9bf327"
+  },
+  "packaged_run": {
+    "report": "evidence/runs/2026-07-31-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl",
+    "outcome": "pass",
+    "passed_checks": 11
+  }
+}

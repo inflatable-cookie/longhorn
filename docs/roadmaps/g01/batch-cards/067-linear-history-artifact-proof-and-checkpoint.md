@@ -1,11 +1,12 @@
 # 067 Linear History Artifact Proof And Checkpoint
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.011 batch 2
 Governing refs: contracts 003, 008, 010, 012, and 013; research memo 015
 Depends on: Card 066
 Auto-start next card: no
+Completed: 2026-07-30
 
 ## Objective
 
@@ -60,7 +61,9 @@ evidence, not a donor cutover.
 - minimal graph contains no Tauri, bridge, config, journal, Svelte, or Poodle
 - rich graph keeps payload and model apply in consumer code
 - successful Loophole-shaped record/navigation semantics remain equal
-- apply and rollback failures preserve exact model and history
+- apply failure with verified rollback preserves exact model and history
+- rollback failure preserves exact history and reports terminal partial-model
+  evidence
 - persisted reload and journal suffix preserve cross-session undo
 - renderer receives authoritative future entries
 - no branch, project-version, or event-source claim enters public artifacts

@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-30
+Updated: 2026-08-01
 
 ## Contract Register
 
@@ -22,13 +22,15 @@ Updated: 2026-07-30
 | [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
 | [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
 | [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | registered layout policy, state, mutation, and persistence | active first pass |
+| [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active; lifecycle foundation implemented |
+| [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active; pure ledger implemented |
+| [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |
 
 ## Pending Contracts
 
-| Boundary | Why | Blocks |
-| --- | --- | --- |
-| async operations and notifications | lifecycle and ownership remain unclear | later package |
-| native content islands | three incompatible host shapes | later prototype |
+None. Contract 017 now has a production kernel and three separately selectable
+mechanism packages. It is not a cross-platform native-host support promise;
+Svelte lifetime and final artifact gates remain in g01.018.
 
 ## Roadmap Readiness
 
@@ -64,5 +66,14 @@ Research memo 013 compiles contracts 007 and 010. Cards 049-055 implement,
 artifact-prove, and close g01.009. Research memo 014 compiles contract 006
 against the bridge, config, settings, Svelte, and Poodle foundations. Cards
 056-061 and g01.010 are complete. Research memo 015 revalidates Loophole
-history and compiles contract 008. Cards 062-069 form the g01.011 linear
-kernel and private fork-prototype runway; Card 062 is ready.
+history and compiles contract 008. Cards 062-069 and g01.011 are complete.
+Research memo 016 promotes separate operation and notification authorities
+through contracts 015-016. Cards 075-081 implement and artifact-prove both
+systems; g01.012 is complete. Research memo 017 and contract 017 promote the
+native-content coordination boundary. Cards 082-085 provide retained private
+evidence. Card 086 selects the split production graph and compiles g01.018
+Cards 087-093 are complete. Nucleus Card 094 freezes its current no-Surface and
+native-Browser behavior. The policy maps to the production packages, but exact
+overlay intersection remains blocked on a public Poodle built-in geometry
+seam. Nucleus g05 acceptance and published prereleases also gate donor writes.
+Cards 070-074 remain planned behind the linear-history adoption checkpoint.

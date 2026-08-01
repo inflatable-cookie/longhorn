@@ -36,8 +36,12 @@ package scripts. Use `--repo <PATH>` only for another repository.
 
 ## Continuation
 
-In a ready strict lane, bare `continue` resumes from the roadmap front doors.
-If no card is ready, stop at the named planning gate.
+The operator has granted standing execution authority for bare `continue`.
+Resume the next bounded card or planning batch named by the roadmap front
+doors, promoting a planned card into execution when its governing refs and
+scope are complete. Stop only for a missing contract, contradictory evidence,
+failed gate, destructive external action, or product choice the recorded
+evidence cannot resolve.
 
 ## Style
 

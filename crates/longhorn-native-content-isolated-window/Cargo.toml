@@ -1,0 +1,20 @@
+[package]
+name = "longhorn-native-content-isolated-window"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Process-isolated native-window coordination for Longhorn"
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

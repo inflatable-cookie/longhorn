@@ -2,7 +2,7 @@
 
 Status: complete and promoted  
 Owner: Tom  
-Updated: 2026-07-30  
+Updated: 2026-07-31
 Promotes: `../../contracts/008-history-kernel-boundary.md`
 
 ## Prompt
@@ -208,9 +208,14 @@ Promoted into:
 - `../../specs/001-shared-desktop-system-suite.md`
 - `../../roadmaps/g01/011-history-kernel-and-branching-prototype.md`
 
-## Remaining Gate
+## Post-prototype Decision
 
-Linear implementation is ready. Forking remains a prototype and decision
-gate. It cannot become a public package or a Loophole migration dependency
-until Cards 068-069 close the graph, persistence, pruning, checkpoint, and
-performance questions.
+Cards 068-069 close the fork gate with `Promote`. Stable first-class branch
+refs, immutable nodes, divergent retention, atomic LCA checkout, protected
+pruning, opaque checkpoints, independent migration, and a linear-default
+projection are accepted for a later optional production layer.
+
+The prototype remains private research evidence. Production still requires
+dense persistence, bounded lazy alternate projections, generated clients, and
+isolated artifact proof through g01.017. Linear history remains the only
+current public mode and the only history dependency admitted into g01.015.

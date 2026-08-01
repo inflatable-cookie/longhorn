@@ -7,8 +7,22 @@
 
 ## Active Milestone
 
-`g01.005` through `g01.010` are complete. Research memo 015 and compiled
-contract 008 open g01.011. Cards 062-064 are complete; Card 065 is ready.
+`g01.005` through `g01.013` are complete. Card 081 closes the operation and
+notification lane with four isolated graphs, equal native/renderer traces,
+multi-window/remount evidence, and composition guidance. Research memo 017 and
+contract 017 govern g01.013 Cards 082-086: one private pure model, three
+separate packaged host mechanisms, and one promotion decision. Card 086
+selects `Promote`, retains the prototypes as evidence, and compiles g01.018
+Cards 087-093. Cards 087-092 deliver the production pure kernel, generated
+renderer protocol, framework-neutral client, Tauri child-view adapter,
+generic isolated-window adapter, generic backing-surface adapter, and isolated
+Svelte viewport lifetime. Card 093 proves isolated artifacts, three-shape
+parity, packaged support, and adoption gates; g01.018 is complete. g01.014 now
+has Cards 094-101 across read-only freeze, prerelease admission,
+storage/window, no-Surface workspace, native Browser, and closeout. Card 094
+is complete with admission gates; donor cutover remains gated.
+The history lane ships the public linear slice and keeps the optional tree
+work planned behind adoption.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -113,12 +127,34 @@ complete.
 
 Research memo 015 and compiled contract 008 promote typed consumer payload
 policy, revision-bound plan/apply/commit navigation, explicit grouping,
-bounded retention, structural persistence, committed transition records,
-metadata-only clients, and a private fork gate. Cards 062-067 form the public
-linear runway. Card 068 prototypes forkable topology without publication.
-Card 069 records the promotion decision.
+bounded retention, structural persistence, committed transition records, and
+metadata-only clients. Cards 062-067 form the public linear runway. Card 068
+proves forkable topology privately. Card 069 promotes its stable graph
+semantics, retains the prototype as research, and compiles planned g01.017.
+The current public artifacts remain linear.
+
+Research memo 016 and contracts 015-016 separate operation lifecycle from the
+retained notification ledger. Cards 075-077 implement bounded operation
+authority plus checked direct, serialized, Tauri, and bridge composition.
+Cards 078-081 cover presentation, notifications, artifact proof, and closeout.
+All are complete; `g01.012` is closed.
+
+Research memo 017 and contract 017 promote opaque island identity, attach
+generations, typed viewport and scale, explicit visibility/focus/input mode,
+observation, planning, and receipts. Cards 082-086 keep child-webview, isolated
+native-window, and backing-surface implementations separate. Private Cards
+082-085 complete the pure model plus packaged child-webview, isolated-window,
+and backing-surface proofs. The child and backing hosts exposed one 2x monitor,
+so native scale switching remains unmet and unsimulated. g01.018 implements
+the promoted kernel, separate mechanisms, checked client, Svelte lifecycle,
+and artifact gate. The pure Rust kernel, checked framework-neutral client,
+isolated Tauri child-view package, process-isolated window package, and
+backing-surface package now exist. All three macOS mechanisms have packaged
+evidence; child and backing live scale transitions remain explicitly unmet on
+this host.
 
 ## Next Task
 
-Execute Card 065: structural persistence, explicit compatibility and recovery,
-and committed transition records.
+Resolve the public Poodle overlay-geometry seam and Nucleus g05 operator
+acceptance. Do not promote Card 095 or any donor-writing card until its named
+release and consumer gates pass.

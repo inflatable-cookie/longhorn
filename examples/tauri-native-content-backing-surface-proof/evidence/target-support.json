@@ -1,0 +1,17 @@
+{
+  "schema": "longhorn.native-content.backing-surface-production-target-support.v1",
+  "targets": {
+    "macos": {
+      "status": "packaged-proof-pass-with-native-scale-transition-unmet",
+      "notes": "The production adapter is exercised over a real full-host AppKit NSView and deterministic consumer renderer. Storage, clip, presentation, input gate, resize, collapse, stale evidence, destruction, and reversible detach pass. The available host did not expose a distinct live scale transition; that claim remains unmet and unsimulated."
+    },
+    "windows": {
+      "status": "unsupported",
+      "notes": "No Windows backing-storage runtime or packaged proof exists. The product-free Rust adapter remains portable, but native storage and renderer integration are consumer work."
+    },
+    "linux": {
+      "status": "unsupported",
+      "notes": "No Linux backing-storage runtime or packaged proof exists. The product-free Rust adapter remains portable, but native storage and renderer integration are consumer work."
+    }
+  }
+}
