@@ -19,7 +19,7 @@ describe("LayoutTabs", () => {
   it("projects selection immediately and restores rejection authority", async () => {
     const shape = loadShape("nucleus");
     const document = shapeDocument(shape, {
-      main: [instance("instance:a"), instance("instance:b")],
+      left: [instance("instance:a"), instance("instance:b")],
     });
     const requests: LayoutMutationRequest[] = [];
     const pending = deferred<LayoutDispatchResult>();
@@ -35,7 +35,7 @@ describe("LayoutTabs", () => {
       props: {
         binding,
         containerId: "container:primary",
-        regionId: "main",
+        regionId: "left",
         resolvePanel,
       },
     });
@@ -71,7 +71,7 @@ describe("LayoutTabs", () => {
   it("projects close with the authoritative active-panel fallback", async () => {
     const shape = loadShape("nucleus");
     const document = shapeDocument(shape, {
-      main: [instance("instance:a"), instance("instance:b")],
+      left: [instance("instance:a"), instance("instance:b")],
     });
     const requests: LayoutMutationRequest[] = [];
     const pending = deferred<LayoutDispatchResult>();
@@ -87,7 +87,7 @@ describe("LayoutTabs", () => {
       props: {
         binding,
         containerId: "container:primary",
-        regionId: "main",
+        regionId: "left",
         resolvePanel,
       },
     });

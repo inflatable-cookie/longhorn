@@ -23,6 +23,11 @@ describe("@longhorn/poodle package boundary", () => {
     expect(metadata.peerDependenciesMeta).toEqual({
       "@longhorn/transfer": { optional: true },
     });
+    expect(metadata.exports["./binding"]).toEqual({
+      types: "./src/binding.ts",
+      import: "./src/binding.ts",
+      default: "./src/binding.ts",
+    });
 
     const source = (
       await Promise.all(

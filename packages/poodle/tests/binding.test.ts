@@ -22,7 +22,7 @@ describe("PoodleLayoutBinding", () => {
   it("makes missing consumer presentation explicit", () => {
     const shape = loadShape("nucleus");
     const document = shapeDocument(shape, {
-      main: [instance("instance:a")],
+      left: [instance("instance:a")],
     });
     const state: LayoutMutationState = {
       projected: document,
@@ -38,7 +38,7 @@ describe("PoodleLayoutBinding", () => {
     });
 
     expect(() =>
-      binding.region("container:primary", "main", () => null),
+      binding.region("container:primary", "left", () => null),
     ).toThrow(MissingPanelPresentationError);
   });
 
@@ -58,8 +58,8 @@ describe("PoodleLayoutBinding", () => {
     });
 
     expect(() =>
-      binding.collapsibleRegionState("container:primary", "main"),
-    ).toThrow("region does not support collapse: main");
+      binding.collapsibleRegionState("container:primary", "left"),
+    ).toThrow("region does not support collapse: left");
   });
 
   it("transiently reveals only compatible hidden regions without mutation", () => {
@@ -108,7 +108,7 @@ describe("PoodleLayoutBinding", () => {
       [];
     const shape = loadShape("nucleus");
     const document = shapeDocument(shape, {
-      navigation: [instance("instance:a"), instance("instance:b")],
+      center_bottom: [instance("instance:a"), instance("instance:b")],
     });
     const { binding, errors, state } = mountedBinding(
       shape.definitions,
@@ -122,7 +122,7 @@ describe("PoodleLayoutBinding", () => {
     );
 
     binding.activate("instance:b");
-    binding.setCollapsed("container:primary", "navigation", true);
+    binding.setCollapsed("container:primary", "center_bottom", true);
 
     await waitFor(() => expect(requests).toHaveLength(1));
     pendings[0].resolve(
@@ -136,7 +136,7 @@ describe("PoodleLayoutBinding", () => {
     expect(requests[1].command).toEqual({
       kind: "set_region_collapsed",
       container_id: "container:primary",
-      region_id: "navigation",
+      region_id: "center_bottom",
       collapsed: true,
     });
 

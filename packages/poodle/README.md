@@ -25,11 +25,18 @@ const binding = createPoodleLayoutBinding({
 });
 ```
 
+State-only consumers may import `@longhorn/poodle/binding` without loading the
+Svelte component or stylesheet graph.
+
 Pass the binding plus a container and region or sizing-slot id to the matching
 component. Missing layout members and panel presentation are explicit errors.
 
 `PoodleLayoutBinding.regionVisibilities()` adds projection-only compatible
 region reveal. It never dispatches or changes the durable layout.
+
+`LayoutSplitView` accepts `primaryHidden` and `secondaryHidden` for transient
+empty-pane projection. Hidden panes use zero visual size and expose no durable
+collapse action. Controlled collapse remains authoritative for region ids.
 
 ## Cross-window transfer
 

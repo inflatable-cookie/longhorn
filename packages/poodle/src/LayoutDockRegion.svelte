@@ -7,7 +7,10 @@
     DockExternalDragSource,
     DockExternalDropTarget,
     DockSizing,
+    ControlDensity,
+    ControlSize,
     PanelTabItem,
+    SemanticControlSizeRole,
     TabVariant,
   } from "@poodle/svelte";
   import type { LayoutContainerId, RegionId } from "@longhorn/layout";
@@ -30,6 +33,9 @@
     collapsedPosture?: DockCollapsedPosture;
     emphasis?: DockEmphasis;
     tabVariant?: TabVariant;
+    size?: ControlSize | null;
+    sizeRole?: SemanticControlSizeRole;
+    density?: ControlDensity | null;
     externalDragSource?: DockExternalDragSource | null;
     externalDropTarget?: DockExternalDropTarget | null;
     body?: Snippet<[PanelRenderContext]>;
@@ -47,6 +53,9 @@
     collapsedPosture = "icon-strip",
     emphasis = "standard",
     tabVariant = "strip",
+    size = null,
+    sizeRole = "chrome",
+    density = null,
     externalDragSource = null,
     externalDropTarget = null,
     body,
@@ -97,6 +106,9 @@
   {collapsedPosture}
   {emphasis}
   {tabVariant}
+  {size}
+  {sizeRole}
+  {density}
   {externalDragSource}
   {externalDropTarget}
   items={[...projection.items]}

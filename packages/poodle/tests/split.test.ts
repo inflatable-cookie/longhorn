@@ -14,6 +14,29 @@ import {
 } from "./support.ts";
 
 describe("LayoutSplitView", () => {
+  it("projects an empty hidden pane without dispatching durable collapse", () => {
+    const shape = loadShape("nucleus");
+    const { binding } = mountedBinding(
+      shape.definitions,
+      shapeDocument(shape, {}),
+      async () => {
+        throw new Error("hidden projection must not dispatch");
+      },
+    );
+    const screen = render(LayoutSplitHarness, {
+      props: { binding, primaryHidden: true },
+    });
+
+    expect(
+      screen.getByLabelText("Nucleus workspace split").dataset.primaryCollapsed,
+    ).toBe("true");
+    expect(screen.getByText("Navigation").style.flexBasis).toBe("0px");
+    expect(screen.getByRole("separator").tabIndex).toBe(-1);
+    expect(
+      screen.queryByRole("button", { name: "Expand primary" }),
+    ).toBeNull();
+  });
+
   it("binds collapse and sizing to authoritative commands", async () => {
     const requests: LayoutMutationRequest[] = [];
     const pendings: Array<ReturnType<typeof deferred<LayoutDispatchResult>>> =
@@ -40,7 +63,7 @@ describe("LayoutSplitView", () => {
     expect(requests[0].command).toEqual({
       kind: "set_region_collapsed",
       container_id: "container:primary",
-      region_id: "navigation",
+      region_id: "center_bottom",
       collapsed: true,
     });
     await waitFor(() =>

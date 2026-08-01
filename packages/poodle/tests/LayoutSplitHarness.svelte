@@ -6,17 +6,19 @@
 
   interface Props {
     binding: PoodleLayoutBinding;
+    primaryHidden?: boolean;
   }
 
-  let { binding }: Props = $props();
+  let { binding, primaryHidden = false }: Props = $props();
 </script>
 
 <LayoutSplitView
   {binding}
   containerId="container:primary"
-  sizingSlotId="navigation-width"
-  primaryRegionId="navigation"
-  secondaryRegionId="detail"
+  sizingSlotId="center-stack"
+  primaryRegionId="center_bottom"
+  secondaryRegionId="right_top"
+  {primaryHidden}
   ariaLabel="Nucleus workspace split"
 >
   {#snippet primary()}Navigation{/snippet}

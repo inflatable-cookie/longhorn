@@ -1,6 +1,11 @@
 <script lang="ts">
   import { SplitView } from "@poodle/svelte";
-  import type { SplitOrientation } from "@poodle/svelte";
+  import type {
+    ControlDensity,
+    ControlSize,
+    SemanticControlSizeRole,
+    SplitOrientation,
+  } from "@poodle/svelte";
   import {
     layoutRatioFromMillionths,
     layoutRatioToUnitInterval,
@@ -19,6 +24,11 @@
     orientation?: SplitOrientation;
     primaryRegionId?: RegionId | null;
     secondaryRegionId?: RegionId | null;
+    primaryHidden?: boolean;
+    secondaryHidden?: boolean;
+    size?: ControlSize | null;
+    sizeRole?: SemanticControlSizeRole;
+    density?: ControlDensity | null;
     ariaLabel: string;
     primary?: Snippet<[]>;
     secondary?: Snippet<[]>;
@@ -31,6 +41,11 @@
     orientation = "horizontal",
     primaryRegionId = null,
     secondaryRegionId = null,
+    primaryHidden = false,
+    secondaryHidden = false,
+    size = null,
+    sizeRole = "chrome",
+    density = null,
     ariaLabel,
     primary,
     secondary,
@@ -62,19 +77,25 @@
   ratio={layoutRatioToUnitInterval(sizing.ratio)}
   minRatio={layoutRatioToUnitInterval(sizing.definition.minimum)}
   maxRatio={layoutRatioToUnitInterval(sizing.definition.maximum)}
-  primaryCollapsed={primaryRegion?.collapsed ?? false}
-  secondaryCollapsed={secondaryRegion?.collapsed ?? false}
-  showCollapsePrimary={primaryRegionId !== null}
-  showCollapseSecondary={secondaryRegionId !== null}
+  primaryCollapsed={primaryHidden || (primaryRegion?.collapsed ?? false)}
+  secondaryCollapsed={secondaryHidden || (secondaryRegion?.collapsed ?? false)}
+  showCollapsePrimary={!primaryHidden && primaryRegionId !== null}
+  showCollapseSecondary={!secondaryHidden && secondaryRegionId !== null}
+  primaryCollapsedSize={primaryHidden ? 0 : null}
+  secondaryCollapsedSize={secondaryHidden ? 0 : null}
+  disabled={primaryHidden || secondaryHidden}
+  {size}
+  {sizeRole}
+  {density}
   {ariaLabel}
   onRatioChange={setRatio}
   onPrimaryCollapsedChange={(collapsed) => {
-    if (primaryRegionId) {
+    if (!primaryHidden && primaryRegionId) {
       binding.setCollapsed(containerId, primaryRegionId, collapsed);
     }
   }}
   onSecondaryCollapsedChange={(collapsed) => {
-    if (secondaryRegionId) {
+    if (!secondaryHidden && secondaryRegionId) {
       binding.setCollapsed(containerId, secondaryRegionId, collapsed);
     }
   }}

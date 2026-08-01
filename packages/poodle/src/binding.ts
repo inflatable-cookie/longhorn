@@ -42,6 +42,8 @@ import {
   type SizingSlotProjection,
 } from "./types.ts";
 
+export type { PanelPresentation } from "./types.ts";
+
 export class PoodleLayoutBinding {
   readonly #options: PoodleLayoutBindingOptions;
   readonly #schemas: ReadonlyMap<string, LayoutSchemaDefinition>;

@@ -12,6 +12,11 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./binding": {
+      "types": "./src/binding.ts",
+      "import": "./src/binding.ts",
+      "default": "./src/binding.ts"
+    },
     "./transfer": {
       "types": "./src/transfer.ts",
       "svelte": "./src/transfer.ts",
