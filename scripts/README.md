@@ -55,6 +55,14 @@ and retained-source posture:
 effigy proof:nucleus-storage-cutover
 ```
 
+Nucleus window cutover proof reads the pinned consumer and Longhorn commits,
+checks the protected host, registered placement domain, backup-first legacy
+conversion, guarded reveal, retained capability policy, and Surface absence:
+
+```sh
+effigy proof:nucleus-window-cutover
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

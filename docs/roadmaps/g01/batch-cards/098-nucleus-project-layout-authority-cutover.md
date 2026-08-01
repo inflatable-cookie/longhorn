@@ -1,6 +1,6 @@
 # 098 Nucleus Project Layout Authority Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.014 batch 3
 Governing refs: contracts 003, 004, 012, and 014; Cards 094, 096, and 097

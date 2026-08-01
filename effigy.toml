@@ -123,6 +123,12 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-nucleus-card096-storage" },
   { task = "proof:nucleus-storage-cutover" },
 ]
+"proof:nucleus-window-cutover" = "bun scripts/verify-nucleus-card097.ts"
+"check:northstar:g01-nucleus-card097-window" = "effigy docs check paths effigy.toml scripts/README.md scripts/verify-nucleus-card097.ts fixtures/migration/nucleus-card097/window-cutover-v1.json crates/longhorn-tauri-windowing/src/probe.rs crates/longhorn-tauri-windowing/src/probe/tests.rs docs/architecture/nucleus-migration-map.md docs/architecture/native-content-island-composition.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/012-distribution-and-compatibility.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/097-nucleus-protected-window-host-cutover.md docs/roadmaps/g01/batch-cards/098-nucleus-project-layout-authority-cutover.md docs/logs/README.md docs/logs/2026-08/01-nucleus-protected-window-host-cutover.md"
+"qa:northstar:g01-nucleus-card097-window" = [
+  { task = "check:northstar:g01-nucleus-card097-window" },
+  { task = "proof:nucleus-window-cutover" },
+]
 "check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
 "check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
 "check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
@@ -480,6 +486,7 @@ test = [
   { task = "qa:northstar:g01-nucleus-card094-freeze" },
   { task = "qa:northstar:g01-nucleus-card095-private-artifacts" },
   { task = "qa:northstar:g01-nucleus-card096-storage" },
+  { task = "qa:northstar:g01-nucleus-card097-window" },
   { task = "qa:northstar:g01-native-content-child-webview" },
   { task = "qa:northstar:g01-native-content-isolated-window" },
   { task = "qa:northstar:g01-native-content-backing-surface" },

@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 096 complete; Card 097 ready
+Status: active; Card 097 complete; Card 098 ready
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -29,7 +29,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 - [x] adopt canonical-id platform storage and receipted `.nucleus` import
 - [x] split window placement from project layouts
-- [ ] replace native geometry mechanics with the protected single-window host
+- [x] replace native geometry mechanics with the protected single-window host
 
 ### Batch 3: no-Surface workspace
 
@@ -49,7 +49,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 - [x] Nucleus uses platform-native storage with canonical leaf
   `com.inflatablecookie.nucleus`
 - [x] existing `.nucleus` data migrates without loss or silent fallback
-- [ ] the primary native window restores and flushes through Longhorn
+- [x] the primary native window restores and flushes through Longhorn
 - [ ] project-keyed five-region layouts use one shared mutation authority
 - [ ] renderer clients reconcile checked snapshots and revisions
 - [ ] native Browser panels use the child-view and Svelte coordination packages
@@ -74,7 +74,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- `batch-cards/097-nucleus-protected-window-host-cutover.md`
+- `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 
 Active:
 
@@ -82,7 +82,6 @@ Active:
 
 Planned:
 
-- `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 - `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 - `batch-cards/100-nucleus-native-browser-cutover.md`
 - `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
@@ -92,6 +91,7 @@ Complete:
 - `batch-cards/094-nucleus-behavior-authority-and-rollback-freeze.md`
 - `batch-cards/095-nucleus-private-artifact-and-cutover-admission.md`
 - `batch-cards/096-nucleus-storage-and-legacy-import.md`
+- `batch-cards/097-nucleus-protected-window-host-cutover.md`
 
 ## Planning Checkpoint
 
@@ -99,5 +99,10 @@ Card 096 moves desktop storage to `com.inflatablecookie.nucleus`, uses
 `platform-native-v1` by default, replaces the proof override with a portable
 profile, and imports `.nucleus` through four explicit adapters. The locator is
 committed last. The legacy root and unknown files remain recoverable. Window
-placement and project layouts now have separate runtime stores. Card 097 is
-ready. Package-manager publication remains deferred.
+placement and project layouts now have separate runtime stores.
+
+Card 097 replaces the raw geometry worker with a protected predeclared
+Longhorn host, registered machine-state placement, canonical display
+correlation, guarded reveal, and bounded lifecycle flush. Fresh and restart
+native runs converge. Card 098 is ready. Package-manager publication remains
+deferred.

@@ -17,7 +17,7 @@
 | [g01.011](011-history-kernel-and-branching-prototype.md) | complete | public linear slice plus promoted private fork decision |
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
-| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 096 complete; Card 097 ready |
+| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 097 complete; Card 098 ready |
 | [g01.015](015-loophole-full-hosting-migration.md) | blocked | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
@@ -314,9 +314,12 @@ and conformance closeout. Card 094 is complete with
 Longhorn/Poodle artifact graph, and both Nucleus layout checks are complete.
 Card 096 moves desktop storage to canonical-id platform roots, imports the
 retained `.nucleus` source through four explicit adapters, splits window and
-layout stores, and commits the fixed locator last. Card 097 is ready.
+layout stores, and commits the fixed locator last. Card 097 replaces the raw
+geometry worker with a protected Longhorn host, canonical display-backed
+placement, guarded reveal, and bounded flush. Fresh and restart native runs
+converge. Card 098 is ready.
 
 ## Next Task
 
-Execute Card 097. Replace Nucleus primary-window mechanics with the protected
-single-window host while retaining app policy and rollback evidence.
+Execute Card 098. Transfer Nucleus project-keyed five-region layout authority
+to Longhorn without introducing Surface state.

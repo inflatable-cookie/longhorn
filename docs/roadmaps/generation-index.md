@@ -22,5 +22,6 @@ native-browser, and closeout batches. Card 094 is complete with
 `pass_with_admission_gates`. Poodle geometry, the exact private
 Longhorn/Poodle artifact graph, and both Nucleus layout checks are complete.
 Card 096's canonical-id storage and receipted legacy import are complete.
-Execute Card 097's protected-window host cutover.
+Card 097's protected-window host cutover is complete. Execute Card 098's
+project-keyed layout authority cutover without introducing Surface state.
 Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.

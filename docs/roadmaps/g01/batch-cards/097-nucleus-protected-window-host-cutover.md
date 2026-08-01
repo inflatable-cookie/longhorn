@@ -1,6 +1,6 @@
 # 097 Nucleus Protected Window Host Cutover
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.014 batch 2
 Governing refs: contracts 003, 004, 009, and 012; Cards 094 and 096
@@ -60,6 +60,35 @@ and shutdown mechanics with the Longhorn protected single-window host.
 - capability diff
 - duplicate-code and retained-policy audit
 - focused Nucleus and Longhorn conformance tests
+
+## Outcome
+
+Nucleus commit `fa7f06e7dfdf4a8bde7f4ab48df360a3087a05e7` replaces
+`window_geometry.rs` with the protected Longhorn host. Longhorn commit
+`32f4bd66e7df813af07514c654ce3b03ddc21ccd` admits a valid Tauri primary
+monitor as the sole observation when the available-monitor list is empty.
+
+The cutover keeps `window:primary` distinct from transport label `main`, uses
+`NoWindowFactory`, stores `SavedWindowPlacement` plus canonical display state
+in registered machine-state domain `nucleus.window-placement`, and makes
+renderer layout saves placement-blind. Raw Card 096 placement state is backed
+up and digest-verified before conversion; interrupted receipt publication
+resumes without replaying the legacy placement.
+
+Fresh and restart macOS runs converged on the first hidden apply. Reveal waits
+for convergence and `desktop_window_page_ready`. Lifecycle timing is explicit:
+400 ms attribution, 400 ms user precedence, 200 ms settle, 100 ms persistence
+debounce, and one-second flush. Close retains quit-on-main-close policy;
+application exit performs aggregate teardown.
+
+Evidence:
+
+- fixture: `../../../../fixtures/migration/nucleus-card097/window-cutover-v1.json`
+- proof: `effigy proof:nucleus-window-cutover`
+- Nucleus: 71 Rust tests, 40 renderer tests, workspace and Northstar checks
+- Longhorn: all 44 `longhorn-tauri-windowing` tests and strict Clippy
+- capability config unchanged; only trusted webview `main`; no wildcard
+- dependency graph contains no Surface package
 
 ## Stop Conditions
 

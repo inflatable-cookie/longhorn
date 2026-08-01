@@ -117,3 +117,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Poodle Overlay Geometry Admission](2026-08/01-poodle-overlay-geometry-admission.md)
 - [Nucleus Private Artifact Admission](2026-08/01-nucleus-private-artifact-admission.md)
 - [Nucleus Storage And Legacy Import](2026-08/01-nucleus-storage-and-legacy-import.md)
+- [Nucleus Protected Window Host Cutover](2026-08/01-nucleus-protected-window-host-cutover.md)

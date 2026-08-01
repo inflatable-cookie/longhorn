@@ -15,6 +15,10 @@ acceptance documentation.
 Card 096's storage cutover is Nucleus commit
 `1c0f8e225849718888afdba63cee4745f623e906`. It uses Longhorn commit
 `973c89f260804a777747ead3218b50d146d16118` as its shared-library source.
+Card 097's protected-window cutover is Nucleus commit
+`fa7f06e7dfdf4a8bde7f4ab48df360a3087a05e7`. It uses Longhorn commit
+`32f4bd66e7df813af07514c654ce3b03ddc21ccd`, including sole-primary Tauri
+display observation.
 An unrelated `TerminalPanel.svelte` worktree edit remained outside the cutover.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
@@ -91,6 +95,19 @@ storage leaves the native target unselected. Corrupt or future UI state,
 occupied targets, overlap, and interrupted transitions fail or recover without
 creating a second authority. The source root and unknown files remain intact;
 cleanup is deferred.
+
+Card 097 converts the raw window file once into registered machine-state
+domain `nucleus.window-placement`. The legacy bytes are copied to the backup
+root and digest-verified before the raw target is removed. Receipt interruption
+resumes against the published envelope without replaying old placement. Normal
+startup has one writer: `ConfigWindowPlacementSink`.
+
+Logical id `window:primary` remains distinct from Tauri label `main`. The
+predeclared protected host has no factory and no Surface dependency. Restore
+uses canonical display correlation, saved/intersection/main/deterministic
+fallback, checked logical geometry, and hidden apply. Reveal requires both
+native convergence and `desktop_window_page_ready`. The old geometry listener,
+worker, raw read/write helpers, and unconditional `show()` are removed.
 
 ## Layout Baseline
 

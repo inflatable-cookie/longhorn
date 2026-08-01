@@ -156,5 +156,5 @@ this host.
 
 ## Next Task
 
-Execute Card 097. Replace Nucleus primary-window mechanics with the protected
-single-window host while retaining app policy and rollback evidence.
+Execute Card 098. Transfer Nucleus project-keyed five-region layout authority
+to Longhorn without introducing Surface state.
