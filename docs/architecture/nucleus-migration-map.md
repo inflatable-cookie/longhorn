@@ -25,6 +25,9 @@ is commit `01b9c0a79a8af9214984c29c3969db8a8dc790d3`.
 Card 099's renderer cutover is Nucleus commit
 `74ca4e7c72f447e064419de6dc72502265cbbf49`. It uses Longhorn Poodle commit
 `ca755cbd332260abd971d86509f6190a0e76d269`.
+Card 100's native Browser cutover is Nucleus commit
+`ce71af24c7f042c16d0f44ee4f13332cb4fdfa98`. Its native policy seam is
+Longhorn commit `920bb8c1f19e0ce3a6a5766598d2bfa488ddde63`.
 Card 098's unrelated `TerminalPanel.svelte` edit was independently committed
 before Card 099 and remained outside both migration diffs.
 
@@ -52,7 +55,7 @@ Chat only. Card 095 admits bounded donor writes from exact clean receipts.
 | primary window placement | registered Longhorn host | complete | main-window role, defaults, close policy |
 | five-region document | registered Longhorn layout domain | complete | schema registration, project scope, panel catalogue |
 | renderer layout state | checked Longhorn client and public Poodle bindings | complete | panel bodies, labels, icons, resources, frame composition, native-handle cleanup |
-| native Browser viewport | `browser_panel.rs`, `browserPanel.ts`, `BrowserPanel.svelte` | native-content kernel, Tauri child-view adapter, checked client and Svelte session | browser policy, toolbar, messages, source and lifecycle choices |
+| native Browser viewport | registered native-content host, child-view adapter, checked client, and Svelte session | complete | browser policy, toolbar, messages, source and lifecycle choices |
 | project/task/runtime state | Nucleus server and product crates | none | all authority remains in Nucleus |
 
 `nucleus-workspaces` now retains server-facing product planning records only.
@@ -194,6 +197,21 @@ useful negative evidence: remote children receive no app capability. Cutover
 must retain an exact capability audit and label validation; a broad wildcard
 is not an acceptable substitute.
 
+Card 100 completes that cutover. Stable panel ids map to native-content
+islands; destroy/replacement advances attach generation while ordinary unmount
+hides for process-lifetime reuse. The Svelte session measures the exact
+viewport, supplies explicit device scale, and resolves mounted, active,
+nonzero, gesture, and overlay inhibitors. The raw renderer Webview API and its
+show/hide/close capability grants are removed.
+
+The child adapter's bounded initialization script and native policy observer
+preserve page-load state, popup/download notices, and the macOS cursor bridge
+without admitting browser payloads into the shared protocol. Nucleus keeps
+HTTP/HTTPS admission, normal shared engine data-store selection, trusted
+toolbar, system open, and the rule that no cookies or credentials enter its
+stores or backups. Packaged macOS evidence proves attach, physical bounds,
+show, inactive hide, same-generation reuse, and remote-capability closure.
+
 ## Cutover And Rollback
 
 Each donor-writing card begins from a recorded clean or non-overlapping
@@ -215,7 +233,8 @@ Cutovers are vertical and single-authority:
 4. transfer checked renderer lifetime and public Poodle bindings
 5. transfer native child coordination
 
-Cards 096-099 complete the first four slices. Card 100 owns the fifth.
+Cards 096-100 complete all five authority slices. Card 101 owns final restart,
+rollback, artifact, duplicate-code, capability, and no-Surface conformance.
 
 Before a slice changes authority, freeze its donor fixtures and preserve its
 source data. After it passes, remove the superseded active mechanism in that

@@ -168,8 +168,9 @@ implemented and artifact-proved the public overlay geometry seam.
 Cross-project layout retention and the exact private Longhorn/Poodle artifact
 graph are accepted. The new-project Agent Chat-only check also passes. Donor
 writes are admitted. Cards 096-098 complete canonical storage,
-protected-window, project-layout authority, and checked renderer/Poodle
-cutovers. Card 100 is active.
+protected-window, and project-layout authority. Card 099 completes checked
+renderer/Poodle composition. Card 100 completes the native Browser cutover.
+Card 101 is ready.
 Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

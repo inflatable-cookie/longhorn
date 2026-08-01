@@ -141,6 +141,12 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-nucleus-card099-renderer" },
   { task = "proof:nucleus-renderer-cutover" },
 ]
+"proof:nucleus-native-browser-cutover" = "bun scripts/verify-nucleus-card100.ts"
+"check:northstar:g01-nucleus-card100-browser" = "effigy docs check paths docs/README.md effigy.toml scripts/README.md scripts/verify-nucleus-card100.ts fixtures/migration/nucleus-card100/native-browser-cutover-v1.json crates/longhorn-tauri-native-content-child-view/README.md crates/longhorn-tauri-native-content-child-view/src/policy.rs crates/longhorn-tauri-native-content-child-view/src/tauri_runtime.rs docs/architecture/native-content-island-composition.md docs/architecture/nucleus-migration-map.md docs/architecture/package-topology.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/017-native-content-island-coordination.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/100-nucleus-native-browser-cutover.md docs/roadmaps/g01/batch-cards/101-nucleus-migration-conformance-and-closeout.md docs/logs/README.md docs/logs/2026-08/01-nucleus-native-browser-cutover.md"
+"qa:northstar:g01-nucleus-card100-browser" = [
+  { task = "check:northstar:g01-nucleus-card100-browser" },
+  { task = "proof:nucleus-native-browser-cutover" },
+]
 "check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
 "check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
 "check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
@@ -501,6 +507,7 @@ test = [
   { task = "qa:northstar:g01-nucleus-card097-window" },
   { task = "qa:northstar:g01-nucleus-card098-layout" },
   { task = "qa:northstar:g01-nucleus-card099-renderer" },
+  { task = "qa:northstar:g01-nucleus-card100-browser" },
   { task = "qa:northstar:g01-native-content-child-webview" },
   { task = "qa:northstar:g01-native-content-isolated-window" },
   { task = "qa:northstar:g01-native-content-backing-surface" },

@@ -215,5 +215,6 @@ The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
 behavior and rollback evidence. Card 095 admits the exact private
 Longhorn/Poodle graph and both Nucleus layout checks. Cards 096-098 complete
 canonical storage, protected-window, and project-layout authority cutovers.
-Card 100 is active.
+Card 099 completes checked renderer/Poodle composition. Card 100 completes the
+native Browser cutover. Card 101 is ready.
 Package-manager publication remains deferred.

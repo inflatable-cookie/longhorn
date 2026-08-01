@@ -230,8 +230,10 @@ Nucleus migration. Card 094 is the read-only behavior and policy freeze;
 Card 095 admits the private artifact graph and both Nucleus consumer checks.
 Cards 096-098 complete storage, protected-window, and project-layout authority
 cutovers. Card 099 completes listener-first renderer state, public Poodle
-composition, and explicit overlay geometry. Card 100 is the next bounded
-native Browser slice.
+composition, and explicit overlay geometry. Card 100 completes the native
+Browser cutover through the child-view host, checked client, and Svelte
+session. Nucleus retains browser policy and gains no Surface dependency.
+Card 101 is the remaining migration-conformance gate.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 

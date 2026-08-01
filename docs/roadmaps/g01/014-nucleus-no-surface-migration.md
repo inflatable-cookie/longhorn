@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 100 active
+Status: active; Card 101 ready
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -39,8 +39,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 ### Batch 4: native browser and closeout
 
-- [ ] replace child-view coordination with the production native-content graph
-- [ ] preserve the explicit Nucleus browser and security policy map
+- [x] replace child-view coordination with the production native-content graph
+- [x] preserve the explicit Nucleus browser and security policy map
 - [ ] remove superseded donor copies and transfer test authority
 - [ ] prove restart, rollback, package, capability, and no-Surface conformance
 
@@ -52,8 +52,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 - [x] the primary native window restores and flushes through Longhorn
 - [x] project-keyed five-region layouts use one shared mutation authority
 - [x] renderer clients reconcile checked snapshots and revisions
-- [ ] native Browser panels use the child-view and Svelte coordination packages
-- [ ] Nucleus retains all product and browser-policy authority
+- [x] native Browser panels use the child-view and Svelte coordination packages
+- [x] Nucleus retains all product and browser-policy authority
 
 ## Acceptance Criteria
 
@@ -74,15 +74,15 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- none
+- `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
 
 Active:
 
-- `batch-cards/100-nucleus-native-browser-cutover.md`
+- none
 
 Planned:
 
-- `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
+- none
 
 Complete:
 
@@ -92,6 +92,7 @@ Complete:
 - `batch-cards/097-nucleus-protected-window-host-cutover.md`
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 - `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
+- `batch-cards/100-nucleus-native-browser-cutover.md`
 
 ## Planning Checkpoint
 
@@ -113,5 +114,10 @@ Nucleus. Raw schemas 1-10 migrate backup-first, stale and invalid mutations
 preserve the shared document, and window/layout writes remain independent.
 Card 099 removes renderer snapshot authority, adopts listener-first checked
 project sessions and public Poodle bindings, and replaces private overlay DOM
-inspection with explicit two-sided geometry. Card 100 is active.
+inspection with explicit two-sided geometry.
+Card 100 replaces raw renderer Webview authority with the native-content host,
+child-view adapter, checked client, and exact Svelte viewport session. Nucleus
+retains browser policy, trusted notices, data-store choice, toolbar, cursor,
+and capability authority. Packaged macOS attach/hide/reuse evidence passes.
+Card 101 is ready.
 Package-manager publication remains deferred.

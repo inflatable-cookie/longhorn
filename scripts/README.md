@@ -81,6 +81,15 @@ absence, and the frozen private renderer graph:
 effigy proof:nucleus-renderer-cutover
 ```
 
+Nucleus native Browser cutover proof reads the pinned consumer and Longhorn
+commits, checks the child-view host, checked renderer session, exact viewport
+and visibility policy, retained Nucleus browser policy, remote-capability
+closure, superseded-path removal, and the frozen private graph:
+
+```sh
+effigy proof:nucleus-native-browser-cutover
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

@@ -1,0 +1,90 @@
+{
+  "schema": "longhorn.nucleus-native-browser-cutover.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_policy_commit": "920bb8c1f19e0ce3a6a5766598d2bfa488ddde63",
+    "nucleus_prior_commit": "74ca4e7c72f447e064419de6dc72502265cbbf49",
+    "nucleus_cutover_commit": "ce71af24c7f042c16d0f44ee4f13332cb4fdfa98",
+    "nucleus_renderer_lock_sha256": "fac1058caf5f4aa3ff799b640ea41bb8ba0e9fbc8e425cd996f3943e2ebefef1"
+  },
+  "identity": {
+    "mapping": "island:nucleus-browser:{stable-panel-id}",
+    "one_current_child_per_panel": true,
+    "generation_advances_after_destroy": true,
+    "host_window": "window:nucleus-main"
+  },
+  "protocol": {
+    "listener_before_snapshot": true,
+    "checked_client": true,
+    "session_epoch_isolated": true,
+    "product_payloads_shared": false,
+    "raw_renderer_webview_api": false
+  },
+  "geometry": {
+    "exact_consumer_viewport": true,
+    "explicit_device_scale": true,
+    "rounding": "nearest",
+    "input_routing": "native_direct",
+    "visibility_inhibitors": [
+      "nucleus:unmounted",
+      "nucleus:inactive-panel",
+      "nucleus:empty-viewport",
+      "nucleus:workspace-gesture",
+      "nucleus:overlay"
+    ]
+  },
+  "lifecycle": {
+    "first_activation_attaches": true,
+    "tab_switch_hides": true,
+    "remount_reuses_generation": true,
+    "panel_close_destroys": true,
+    "replacement_advances_generation": true,
+    "host_teardown_idempotent": true
+  },
+  "policy": {
+    "initial_source": "https://example.com",
+    "navigation_schemes": ["http", "https"],
+    "missing_scheme_defaults_to_https": true,
+    "popup": "deny-and-notice",
+    "download": "deny-and-notice",
+    "permission_prompt": false,
+    "data_store_identifier": null,
+    "persisted_cookies_or_credentials": false,
+    "trusted_toolbar_retained": true,
+    "system_open_retained": true,
+    "macos_cursor_allowlist_retained": true
+  },
+  "capability": {
+    "controller_webviews": ["main"],
+    "remote_match": false,
+    "raw_webview_permissions": false,
+    "remote_child_tauri_capability": false
+  },
+  "packages": {
+    "private_file_graph": true,
+    "frozen_install": true,
+    "duplicate_svelte_runtime": false,
+    "surface_packages": false,
+    "package_manager_publication": false
+  },
+  "packaged_macos_smoke": {
+    "initial_visible_plan": ["attach", "set_child_bounds", "show", "set_input_routing"],
+    "inactive_plan": ["set_child_bounds", "hide"],
+    "reuse_plan": ["set_child_bounds", "show"],
+    "reuse_generation": 1,
+    "example_domain_rendered": true,
+    "overlay_precedence": true,
+    "window_resize_remeasured": true
+  },
+  "validation": {
+    "longhorn_child_view_unit_tests": 1,
+    "longhorn_child_view_adapter_tests": 8,
+    "nucleus_browser_policy_tests": 4,
+    "nucleus_panel_guards": 10,
+    "nucleus_renderer_unit_tests": 39,
+    "nucleus_mounted_lifecycle_tests": 2,
+    "nucleus_rust_check": "pass",
+    "nucleus_renderer_build": "pass",
+    "nucleus_svelte_check": "pass-with-one-pre-existing-aria-warning"
+  }
+}

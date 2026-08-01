@@ -1,6 +1,6 @@
 # 100 Nucleus Native Browser Cutover
 
-Status: active
+Status: completed
 Owner: Tom
 Roadmap: g01.014 batch 4
 Governing refs: contracts 003, 010, 012, 013, and 017; Cards 089, 092-095, and 099
@@ -60,12 +60,34 @@ and Svelte session while retaining Nucleus browser policy.
 
 ## Evidence Required
 
-- native/renderer policy trace
-- capability and remote-IPC negative audit
-- attach, replacement, stale, visibility, focus, close, and teardown receipts
-- popup, download, scheme, data-store, and cursor tests
-- packaged macOS Nucleus Browser smoke
-- dependency and duplicate-code inventory
+- [x] native/renderer policy trace
+- [x] capability and remote-IPC negative audit
+- [x] attach, replacement, stale, visibility, focus, close, and teardown receipts
+- [x] popup, download, scheme, data-store, and cursor tests
+- [x] packaged macOS Nucleus Browser smoke
+- [x] dependency and duplicate-code inventory
+
+## Completion
+
+Nucleus commit `ce71af24c7f042c16d0f44ee4f13332cb4fdfa98`
+uses one native-content host and child-view adapter per stable Browser island,
+one checked renderer client and Svelte session per mount, exact viewport and
+scale input, explicit final visibility, retained generation across ordinary
+unmount, destroy on panel close, and aggregate host teardown.
+
+Longhorn commit `920bb8c1f19e0ce3a6a5766598d2bfa488ddde63`
+adds bounded native-only construction and trusted-chrome hooks. Nucleus keeps
+HTTP/HTTPS admission, popup/download notices, normal shared engine data-store
+choice, toolbar, system open, cursor policy, and remote-capability closure.
+No browser payload enters the shared renderer protocol.
+
+The raw renderer Webview import and ensure/bounds/show/hide/close commands are
+removed. The main capability drops raw Webview permissions and still matches
+only `main`. An isolated macOS release bundle proves attach, physical bounds,
+show, hide on tab switch, generation-1 reuse without reattach, close, overlay
+precedence, URL policy, and Example Domain rendering. The exact fixture and
+static proof live under `fixtures/migration/nucleus-card100` and
+`scripts/verify-nucleus-card100.ts`.
 
 ## Stop Conditions
 

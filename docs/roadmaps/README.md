@@ -156,5 +156,6 @@ this host.
 
 ## Next Task
 
-Continue Card 100. Replace Nucleus Browser child-view coordination with the
-production native-content graph while retaining product and security policy.
+Execute Card 101. Run final migration conformance and close g01.014 only where
+restart, rollback, artifacts, capabilities, duplicate removal, and no-Surface
+evidence pass.
