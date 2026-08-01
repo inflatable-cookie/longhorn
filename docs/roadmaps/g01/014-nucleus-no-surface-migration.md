@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 094 complete; donor cutover admission-gated
+Status: active; Card 095 artifact proof passes; operator-held
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -22,7 +22,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 ### Batch 1: admission and freeze
 
 - [x] freeze the current no-Surface behavior, stores, policy, and rollback
-- [ ] admit the exact private Longhorn/Poodle source and artifact graph
+- [x] admit the exact private Longhorn/Poodle source and artifact graph
 - [ ] close the remaining Nucleus g05 new-project layout check
 
 ### Batch 2: durable state and native window
@@ -76,9 +76,12 @@ Ready:
 
 - none
 
-Planned:
+Active:
 
 - `batch-cards/095-nucleus-private-artifact-and-cutover-admission.md`
+
+Planned:
+
 - `batch-cards/096-nucleus-storage-and-legacy-import.md`
 - `batch-cards/097-nucleus-protected-window-host-cutover.md`
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
@@ -93,7 +96,8 @@ Complete:
 ## Planning Checkpoint
 
 Card 094 froze the exact donor behavior and returned
-`pass_with_admission_gates`. Poodle's public geometry seam and clean artifact
-proof are complete. Cross-project layout retention is operator-accepted.
-Card 095 remains planned until the new-project Agent Chat-only check is
-recorded. Package-manager publication is deferred and does not gate migration.
+`pass_with_admission_gates`. Card 095 now passes the exact private Longhorn and
+Poodle artifact graph on the Nucleus toolchain. Cross-project layout retention
+is operator-accepted. The new-project Agent Chat-only check is the sole
+remaining donor-write gate. Package-manager publication is deferred and does
+not gate migration.

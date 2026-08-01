@@ -39,6 +39,14 @@ consumers:
 effigy proof:settings-composition
 ```
 
+Nucleus private admission packs the exact Surface-free Longhorn graph, installs
+it with Poodle g12.018 in a clean renderer, and checks the locked Rust 1.85 /
+Tauri 2.11.5 graph:
+
+```sh
+effigy proof:nucleus-private-artifacts
+```
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

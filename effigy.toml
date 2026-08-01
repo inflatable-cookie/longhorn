@@ -111,6 +111,12 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-nucleus-card094-freeze" },
   { task = "verify:nucleus-card094-freeze" },
 ]
+"proof:nucleus-private-artifacts" = "bun scripts/verify-nucleus-private-artifacts.ts"
+"check:northstar:g01-nucleus-card095-private-artifacts" = "effigy docs check paths Cargo.toml Cargo.lock bun.lock effigy.toml scripts/README.md scripts/verify-nucleus-private-artifacts.ts packages/core packages/config packages/layout packages/svelte packages/poodle packages/native-content packages/native-content-svelte packages/tauri crates/longhorn-core crates/longhorn-config crates/longhorn-tauri-config crates/longhorn-display crates/longhorn-windowing crates/longhorn-tauri-windowing crates/longhorn-windowing-config crates/longhorn-layout crates/longhorn-layout-config crates/longhorn-native-content crates/longhorn-tauri-native-content-child-view examples/app-shell-proof/common examples/app-shell-proof/nucleus fixtures/migration/nucleus-card094/behavior-freeze-v1.json docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/architecture/nucleus-migration-map.md docs/architecture/poodle-overlay-geometry-boundary.md docs/architecture/package-topology.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/095-nucleus-private-artifact-and-cutover-admission.md docs/roadmaps/g01/batch-cards/096-nucleus-storage-and-legacy-import.md docs/logs/README.md docs/logs/2026-08/01-nucleus-private-artifact-admission.md"
+"qa:northstar:g01-nucleus-card095-private-artifacts" = [
+  { task = "check:northstar:g01-nucleus-card095-private-artifacts" },
+  { task = "proof:nucleus-private-artifacts" },
+]
 "check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
 "check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
 "check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
@@ -466,6 +472,7 @@ test = [
   { task = "qa:northstar:g01-native-content-artifacts" },
   { task = "qa:northstar:g01-nucleus-migration-compilation" },
   { task = "qa:northstar:g01-nucleus-card094-freeze" },
+  { task = "qa:northstar:g01-nucleus-card095-private-artifacts" },
   { task = "qa:northstar:g01-native-content-child-webview" },
   { task = "qa:northstar:g01-native-content-isolated-window" },
   { task = "qa:northstar:g01-native-content-backing-surface" },

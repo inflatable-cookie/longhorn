@@ -63,6 +63,9 @@ policy remain consumer-owned.
 - Registry names, normalized Cargo packages, versions, and public compatibility
   ranges remain a later release-lane decision.
 - Consumer lockfiles pin exact resolved versions.
+- An MSRV claim uses an exact compatible lock. A fresh unconstrained resolver
+  result is not MSRV evidence when transitive dependencies may raise their
+  toolchain floor.
 - Protocol compatibility and package compatibility are both tested.
 - A breaking serialized contract causes a coordinated major release.
 - Deprecations name a replacement and survive at least one compatible release
@@ -169,3 +172,23 @@ They are not gates for g01.014 or g01.015 donor migrations.
 
 Evidence:
 `../logs/2026-08/01-native-content-artifact-proof-and-closeout.md`.
+
+## Nucleus Private Migration Checkpoint
+
+Card 095 installs eight selected Longhorn TypeScript packages plus the exact
+five-package Poodle g12.018 artifact set in a clean Nucleus-shaped renderer.
+It compiles the public Poodle overlay geometry seam on Svelte 5.56.8,
+TypeScript 6.0.3, and Tauri API 2.11.1. No Surface package resolves.
+
+The Rust consumer compiles eleven selected Longhorn packages with Tauri
+2.11.5 on Rust 1.85 from an exact offline lock. An unlocked Tauri 2.11
+resolution can select transitive crates requiring newer Rust, so it does not
+prove Longhorn's MSRV. The selector emits the evolved lock digest with the
+artifact and source receipts.
+
+This checkpoint admits the private dependency graph, not donor writes. The
+Nucleus new-project operator check remains open. It makes no registry,
+publication, or public compatibility-range claim.
+
+Evidence:
+`../logs/2026-08/01-nucleus-private-artifact-admission.md`.

@@ -1,6 +1,6 @@
 # 095 Nucleus Private Artifact And Cutover Admission
 
-Status: planned; one operator check remains
+Status: active; artifact proof passes; operator-held
 Owner: Tom
 Roadmap: g01.014 batch 1
 Governing refs: contracts 003, 010, 012, and 013; Card 094
@@ -38,19 +38,33 @@ clean proof must install produced archives without sibling aliases.
 
 ## Steps
 
-1. Freeze exact clean Longhorn and Poodle source commits.
-2. Select the private package graph and produce every required Rust and npm
+1. [x] Freeze exact clean Longhorn and Poodle source commits.
+2. [x] Select the private package graph and produce every required Rust and npm
    artifact.
-3. Install the produced graph in clean Nucleus-shaped temporary consumers.
-4. Verify Rust, Tauri, Svelte, TypeScript, Poodle, protocol, and exact overlay
+3. [x] Install the produced graph in clean Nucleus-shaped temporary consumers.
+4. [x] Verify Rust, Tauri, Svelte, TypeScript, Poodle, protocol, and exact overlay
    intersection compatibility.
-5. Record the explicit Nucleus sibling-source dependency map and matching
+5. [x] Record the explicit Nucleus sibling-source dependency map and matching
    artifact identities.
-6. Audit the exact optional graph, peers, locks, source receipts, and artifact
+6. [x] Audit the exact optional graph, peers, locks, source receipts, and artifact
    integrity.
-7. Close Nucleus g05 Card 003's remaining new-project operator check and record
+7. [ ] Close Nucleus g05 Card 003's remaining new-project operator check and record
    donor-write admission.
-8. Preserve the prior source/build set and write rollback notes.
+8. [x] Preserve the prior source/build set and write rollback notes.
+
+## Current Evidence
+
+`effigy proof:nucleus-private-artifacts` returns
+`pass_with_operator_gate`. It installs eight Longhorn TypeScript packages and
+the exact five-package Poodle g12.018 set in a clean Nucleus-shaped renderer,
+then compiles eleven selected Longhorn Rust packages on Rust 1.85 with Tauri
+2.11.5 from an exact compatible lock. Neither Surface package enters either
+consumer graph.
+
+The proof records exact source receipts, artifact SHA-256 identities, the
+private sibling-source plan, generated-binding checks, public Poodle geometry
+compilation, and the remaining operator gate. Nucleus and Poodle stay clean
+and read-only. Package-manager publication remains out of scope.
 
 ## Acceptance Criteria
 
@@ -92,4 +106,5 @@ clean proof must install produced archives without sibling aliases.
 ## Next Task
 
 Record the remaining Nucleus g05 check: a previously unseen project opens with
-Agent Chat only. Then execute this card without registry publication.
+Agent Chat only. Then admit donor writes, complete this card, and promote Card
+096. Do not publish to package managers.

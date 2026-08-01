@@ -20,7 +20,8 @@ Svelte viewport lifetime. Card 093 proves isolated artifacts, three-shape
 parity, packaged support, and adoption gates; g01.018 is complete. g01.014 now
 has Cards 094-101 across read-only freeze, private artifact admission,
 storage/window, no-Surface workspace, native Browser, and closeout. Card 094
-is complete with admission gates; donor cutover remains gated.
+is complete. Card 095's private artifact graph passes; the new-project
+operator check is the sole donor-write gate.
 The history lane ships the public linear slice and keeps the optional tree
 work planned behind adoption.
 
@@ -156,6 +157,6 @@ this host.
 ## Next Task
 
 Record Nucleus g05 Card 003's remaining new-project check. Cross-project layout
-retention is accepted. Poodle g12.018 resolved the source/API and private
-artifact seam. Package-manager publication is deferred. Keep Nucleus-writing
-cards planned until operator acceptance and private artifact admission pass.
+retention and the exact private Longhorn/Poodle artifact graph are accepted.
+Package-manager publication is deferred. Keep Nucleus-writing cards planned
+until operator acceptance passes.

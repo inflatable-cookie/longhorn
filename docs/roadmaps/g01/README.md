@@ -17,7 +17,7 @@
 | [g01.011](011-history-kernel-and-branching-prototype.md) | complete | public linear slice plus promoted private fork decision |
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
-| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 094 complete; donor cutover admission-gated |
+| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 095 artifact proof passes; operator-held |
 | [g01.015](015-loophole-full-hosting-migration.md) | blocked | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
@@ -310,13 +310,13 @@ Cards 094-101 compile g01.014 into four batches: read-only donor freeze and
 private artifact admission; canonical-id storage and protected-window cutover;
 project-keyed no-Surface layout and renderer cutover; native Browser adoption
 and conformance closeout. Card 094 is complete with
-`pass_with_admission_gates`. Poodle geometry and private artifact proof are
-complete. Every Nucleus write remains behind the final new-project layout
-check, the exact private Longhorn graph, and an overlap check.
+`pass_with_admission_gates`. Poodle geometry and the exact private
+Longhorn/Poodle artifact graph are complete. Every Nucleus write remains
+behind the final new-project layout check and a fresh overlap check.
 
 ## Next Task
 
 Record Nucleus g05 Card 003's remaining new-project check. Cross-project layout
-retention is accepted. Poodle g12.018 resolved the source/API and private
-artifact seam. Package-manager publication is deferred. Keep Nucleus-writing
-cards planned until operator acceptance and private artifact admission pass.
+retention and the exact private Longhorn/Poodle artifact graph are accepted.
+Package-manager publication is deferred. Keep Nucleus-writing cards planned
+until operator acceptance passes.

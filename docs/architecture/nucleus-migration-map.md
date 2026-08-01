@@ -158,9 +158,10 @@ Overlapping unrelated edits stop the card.
 
 Nucleus already uses explicit sibling `file:` dependencies for private Poodle
 development. Longhorn may use the same private source-link posture. A source
-link is never artifact evidence: Card 095 must also install the matching
-produced graph in clean temporary consumers. Package-manager publication is
-deferred to the later release lane.
+link is never artifact evidence: Card 095 installs the matching produced graph
+in clean temporary consumers. That proof passes with only the new-project
+operator check still open. Package-manager publication is deferred to the
+later release lane.
 
 Cutovers are vertical and single-authority:
 

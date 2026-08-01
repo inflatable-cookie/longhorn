@@ -32,7 +32,8 @@ legacy `.nucleus` store without losing state or leaving two authorities.
 
 ## Steps
 
-1. Recheck Nucleus worktree and pin the Card 095 artifacts.
+1. Recheck Nucleus worktree and pin the exact Card 095 private source receipts;
+   verify them against its matching produced-artifact evidence.
 2. Register canonical identity, default profile, portable proof profile, and
    fixed locator.
 3. Register each current desktop store with its target class and adapter.

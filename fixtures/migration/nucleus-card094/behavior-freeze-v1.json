@@ -399,8 +399,7 @@
   "admission": {
     "donor_writes": false,
     "gates": [
-      "nucleus-g05-new-project-agent-chat-only-acceptance",
-      "exact-private-longhorn-and-poodle-artifact-graph"
+      "nucleus-g05-new-project-agent-chat-only-acceptance"
     ]
   }
 }

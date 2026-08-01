@@ -115,3 +115,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Nucleus No-Surface Migration Compilation](2026-08/01-nucleus-no-surface-migration-compilation.md)
 - [Nucleus Behavior, Authority, And Rollback Freeze](2026-08/01-nucleus-behavior-authority-and-rollback-freeze.md)
 - [Poodle Overlay Geometry Admission](2026-08/01-poodle-overlay-geometry-admission.md)
+- [Nucleus Private Artifact Admission](2026-08/01-nucleus-private-artifact-admission.md)
