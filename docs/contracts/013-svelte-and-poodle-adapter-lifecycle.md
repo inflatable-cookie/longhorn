@@ -79,8 +79,8 @@ an injected reporter.
 ## Compatibility
 
 - Svelte, Poodle, and Tauri compatibility ranges are declared peers.
-- Private Poodle adapter proof pins one exact packable preview artifact until a
-  published prerelease range exists.
+- Private Poodle adapter proof pins one exact source commit and packable preview
+  artifact until the later release lane proves a public range.
 - The current pin is Card 038 artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.
 - Every adapter has a framework-neutral client test and a mounted lifecycle

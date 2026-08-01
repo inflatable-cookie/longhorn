@@ -75,5 +75,6 @@ evidence. Card 086 selects the split production graph and compiles g01.018
 Cards 087-093 are complete. Nucleus Card 094 freezes its current no-Surface and
 native-Browser behavior. The policy maps to the production packages, but exact
 overlay intersection remains blocked on a public Poodle built-in geometry
-seam. Nucleus g05 acceptance and published prereleases also gate donor writes.
+seam. The private artifact gate is resolved; Nucleus g05's new-project check
+still gates donor writes. Package-manager publication is deferred.
 Cards 070-074 remain planned behind the linear-history adoption checkpoint.

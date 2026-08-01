@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-08-01
 Architecture: `../architecture/package-topology.md`
 
 ## Boundary
@@ -23,8 +23,9 @@ policy remain consumer-owned.
   duplicate runtimes.
 - The initial Svelte compatibility floor is `5.38.6`; a package must prove its
   declared upper bound instead of inheriting the newest donor version.
-- Private Poodle adapter work uses one exact packable preview artifact. It
-  claims no broader compatibility range before a published prerelease exists.
+- Private Poodle adapter work uses one exact source commit and packable preview
+  artifact. It claims no broader compatibility range before the release lane
+  proves one.
 - Package names are working names until registry ownership is verified before
   first publication.
 
@@ -51,11 +52,16 @@ policy remain consumer-owned.
 
 ## Consumer Adoption
 
-- First migrations consume published prerelease versions.
-- Local path or file dependencies are allowed for proof work but are not a
-  merge target.
-- Source aliases, private DOM selectors, and unpacked sibling workspaces are
-  not artifact-install or compatibility evidence.
+- Package-manager publication is deferred during the private development and
+  first-migration phase. It does not gate donor cutover.
+- Private consumer repos may merge explicit sibling path or `file:` sources.
+  Each adopted graph records the exact clean Longhorn and Poodle commits.
+- Moving branch references and unrecorded dirty sources are not valid pins.
+- Every source-linked graph also passes an isolated install from produced
+  artifacts. Source aliases, private DOM selectors, and unpacked sibling
+  workspaces are not artifact-install or compatibility evidence.
+- Registry names, normalized Cargo packages, versions, and public compatibility
+  ranges remain a later release-lane decision.
 - Consumer lockfiles pin exact resolved versions.
 - Protocol compatibility and package compatibility are both tested.
 - A breaking serialized contract causes a coordinated major release.
@@ -148,6 +154,18 @@ artifact set is reverified before mounted compilation.
 Rust-produced and renderer traces match across all three mechanism semantics.
 This is artifact-install evidence, not a registry-publication or donor-cutover
 claim.
+
+## Private Migration Distribution Decision
+
+Nucleus and the other development apps may consume Longhorn and Poodle from
+explicit sibling sources while both libraries remain private. The source
+receipt names the exact clean commit. A separate clean temporary consumer must
+install the matching packed npm archives and Rust source artifacts without
+workspace or sibling resolution before the dependency graph is admitted.
+
+Package-manager publication, registry ownership, normalized Cargo archives,
+and public version-range promises are deferred to g01.016 release preparation.
+They are not gates for g01.014 or g01.015 donor migrations.
 
 Evidence:
 `../logs/2026-08/01-native-content-artifact-proof-and-closeout.md`.

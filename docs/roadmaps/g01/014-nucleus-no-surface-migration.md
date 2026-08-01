@@ -22,8 +22,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 ### Batch 1: admission and freeze
 
 - [x] freeze the current no-Surface behavior, stores, policy, and rollback
-- [ ] publish and pin the exact Longhorn/Poodle prerelease graph
-- [ ] close or explicitly supersede Nucleus g05 project-layout validation
+- [ ] admit the exact private Longhorn/Poodle source and artifact graph
+- [ ] close the remaining Nucleus g05 new-project layout check
 
 ### Batch 2: durable state and native window
 
@@ -65,8 +65,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
   policy remain Nucleus authority
 - [ ] browser construction, navigation, data-store, capability, visibility,
   focus, and teardown policy match the migration map
-- [ ] the Nucleus lockfiles pin published prereleases with no Longhorn sibling
-  path, source alias, or duplicate Svelte/Poodle runtime
+- [ ] Nucleus records exact clean sibling-source commits; matching packed
+  artifacts install without source aliases or duplicate Svelte/Poodle runtimes
 - [ ] old stores remain recoverable until receipted cleanup; no dual-write or
   compatibility shim survives closeout
 
@@ -78,7 +78,7 @@ Ready:
 
 Planned:
 
-- `batch-cards/095-nucleus-prerelease-and-cutover-admission.md`
+- `batch-cards/095-nucleus-private-artifact-and-cutover-admission.md`
 - `batch-cards/096-nucleus-storage-and-legacy-import.md`
 - `batch-cards/097-nucleus-protected-window-host-cutover.md`
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
@@ -93,7 +93,7 @@ Complete:
 ## Planning Checkpoint
 
 Card 094 froze the exact donor behavior and returned
-`pass_with_admission_gates`. Card 095 remains planned until Poodle exposes
-public built-in overlay geometry, Nucleus g05 project-layout validation is
-accepted or explicitly superseded, and registry publication is authorized and
-available. No donor write starts before every gate passes.
+`pass_with_admission_gates`. Poodle's public geometry seam and clean artifact
+proof are complete. Cross-project layout retention is operator-accepted.
+Card 095 remains planned until the new-project Agent Chat-only check is
+recorded. Package-manager publication is deferred and does not gate migration.

@@ -28,7 +28,7 @@ authority.
 
 | Batch | Cards | Outcome |
 | --- | --- | --- |
-| admission and freeze | 094-095 | checked donor baseline and published prerelease pin gate |
+| admission and freeze | 094-095 | checked donor baseline and private artifact/source receipt gate |
 | durable state and window | 096-097 | canonical-id platform storage, `.nucleus` import, protected primary window |
 | no-Surface workspace | 098-099 | project-keyed shared layout authority and checked public-Poodle renderer |
 | native Browser and closeout | 100-101 | child-view coordination, duplicate removal, rollback and conformance |
@@ -64,11 +64,20 @@ consumer visibility and a public Poodle seam or stop for an upstream contract.
 ## Gates
 
 - Card 094 is ready and writes only Longhorn evidence.
-- Contract 012 requires published prereleases for the real donor migration.
-- Registry names and Poodle prerelease compatibility remain Card 095 gates.
-- Nucleus g05 project-layout validation is operator-held and must close or be
-  explicitly superseded before overlapping donor writes.
+- Private migrations use exact clean sibling sources plus separate packed
+  artifact proof. Package-manager publication is deferred.
+- Poodle g12.018 satisfies the public geometry and private artifact seam.
+- Cross-project layout retention is operator-accepted. The new-project Agent
+  Chat-only check remains open before overlapping donor writes.
 - Every donor card rechecks the Nucleus worktree and stops on overlapping work.
+
+## Post-compilation Correction
+
+The original compilation incorrectly made registry publication a donor-write
+gate. That contradicts the private development posture already used by
+Nucleus and Poodle. Contract 012 and Card 095 now separate private source
+linkage from clean produced-artifact evidence. Registry publication moves to
+g01.016 release preparation.
 
 ## Validation
 
@@ -79,5 +88,5 @@ consumer visibility and a public Poodle seam or stop for an upstream contract.
 
 ## Next
 
-Execute Card 094. Convert the audit into checked donor-shaped fixtures and an
-exact rollback/admission dossier without modifying Nucleus or Poodle.
+Record Nucleus g05's remaining new-project check, then execute Card 095's
+private artifact admission without modifying Nucleus or publishing packages.

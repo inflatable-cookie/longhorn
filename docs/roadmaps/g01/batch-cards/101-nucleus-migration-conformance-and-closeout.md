@@ -30,7 +30,7 @@ mechanisms, transfer test authority, and close g01.014 with rollback evidence.
 
 ## Steps
 
-1. Rebuild from clean published artifacts and exact lockfiles.
+1. Rebuild from exact clean private sources and matching produced artifacts.
 2. Run fresh-profile and legacy-profile install/restart matrices.
 3. Compare native and renderer traces across every migrated system.
 4. Audit optional dependencies, capabilities, peers, and Surface absence.
@@ -43,7 +43,8 @@ mechanisms, transfer test authority, and close g01.014 with rollback evidence.
 
 ## Acceptance Criteria
 
-- published prerelease artifacts are the only Longhorn dependencies in Nucleus
+- private Longhorn dependencies map to exact clean source commits and matching
+  produced artifact identities
 - fresh install and `.nucleus` migration both survive restart
 - window, project layout, panel, project switch, and Browser behavior passes
 - native and renderer traces match the shared fixtures

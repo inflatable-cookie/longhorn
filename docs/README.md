@@ -163,10 +163,10 @@ backing-surface coordination, plus per-instance Svelte viewport lifetime. Card
 093 proves clean produced graphs, matching three-shape Rust/renderer traces,
 fresh packaged macOS evidence, and exact adoption gates. g01.018 is complete;
 The Nucleus migration is compiled as Cards 094-101. Card 094 froze read-only
-behavior and rollback evidence with `pass_with_admission_gates`. Published
-prereleases, public Poodle built-in overlay geometry, and Nucleus layout
-acceptance gate donor writes. The Longhorn-side overlay boundary is now defined
-in `architecture/poodle-overlay-geometry-boundary.md`; Poodle g12.018 has
-implemented it, while compatible publication remains open.
+behavior and rollback evidence with `pass_with_admission_gates`. Poodle g12.018
+implemented and artifact-proved the public overlay geometry seam.
+Cross-project layout retention is accepted. The exact private Longhorn graph
+and Nucleus's remaining new-project check gate donor writes. Package-manager
+publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

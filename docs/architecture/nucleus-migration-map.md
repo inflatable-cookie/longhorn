@@ -138,9 +138,11 @@ Poodle-owned snapshot seam defined in
 intersection behavior, stop rather than hiding native content for every open
 overlay.
 
-Poodle g12.018 now implements the public snapshot seam at
-`ef41f412ad7b45c2ee760c1da9bf41ef876855e8`. The compatible publication gate
-remains open; Nucleus must not pin the branch or sibling source.
+Poodle g12.018 implements the public snapshot seam at
+`ef41f412ad7b45c2ee760c1da9bf41ef876855e8`. Its clean Svelte artifact proof is
+`ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`.
+Nucleus may consume the exact clean sibling source during private development;
+the artifact proof remains the compatibility evidence.
 
 The current Tauri capability names only the bundled `main` webview. That is
 useful negative evidence: remote children receive no app capability. Cutover
@@ -150,8 +152,15 @@ is not an acceptable substitute.
 ## Cutover And Rollback
 
 Each donor-writing card begins from a recorded clean or non-overlapping
-Nucleus worktree and pins the exact Longhorn and Poodle prerelease artifacts.
+Nucleus worktree and records exact clean Longhorn and Poodle source commits
+plus their produced artifact identities.
 Overlapping unrelated edits stop the card.
+
+Nucleus already uses explicit sibling `file:` dependencies for private Poodle
+development. Longhorn may use the same private source-link posture. A source
+link is never artifact evidence: Card 095 must also install the matching
+produced graph in clean temporary consumers. Package-manager publication is
+deferred to the later release lane.
 
 Cutovers are vertical and single-authority:
 

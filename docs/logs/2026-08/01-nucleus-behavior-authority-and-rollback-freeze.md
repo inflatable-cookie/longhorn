@@ -53,7 +53,7 @@ only when an overlay intersects its viewport.
 
 Global hide-on-any-overlay would change behavior. The private selector cannot
 become a Longhorn contract. Exact preservation requires a Poodle-owned,
-runtime-neutral built-in overlay geometry seam and a compatible release.
+runtime-neutral built-in overlay geometry seam and matching artifact proof.
 
 Post-freeze inspection found a stronger failure. Nucleus queries below the
 component's former DOM ancestor, but Poodle contract 002 portals the anchored
@@ -69,12 +69,18 @@ there forever. It still requires clean donor worktrees.
 
 ## Admission Gates
 
-- Poodle public built-in overlay geometry contract
-- Nucleus g05 project-layout operator acceptance or explicit supersession
-- published Longhorn and compatible Poodle prereleases
+- Nucleus g05 new-project Agent Chat-only operator acceptance
+- exact private Longhorn and Poodle source/artifact graph
 
-Card 095 stays planned. Nucleus remains read-only. The Poodle source/API gate
-is resolved; compatible publication remains open.
+Card 095 stays planned. Nucleus remains read-only. Poodle's source/API and
+private artifact gates are resolved. Cross-project layout retention is
+operator-accepted. Package-manager publication is deferred.
+
+## Post-freeze Correction
+
+Registry publication was incorrectly carried into the migration gate. Private
+consumer development uses exact clean sibling sources, backed by separate
+produced-artifact proof. Public package publication belongs to g01.016.
 
 ## Evidence
 
@@ -85,5 +91,5 @@ is resolved; compatible publication remains open.
 
 ## Next
 
-Define the upstream Poodle overlay-geometry contract and reconcile Nucleus g05
-operator acceptance. Then review Card 095 publication readiness.
+Record Nucleus g05's remaining new-project check, then execute Card 095's
+private artifact admission.

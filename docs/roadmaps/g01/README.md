@@ -307,16 +307,16 @@ renderer graphs, equal traces, fresh packaged macOS evidence, and exact
 consumer prerequisites. g01.018 is complete.
 
 Cards 094-101 compile g01.014 into four batches: read-only donor freeze and
-prerelease admission; canonical-id storage and protected-window cutover;
+private artifact admission; canonical-id storage and protected-window cutover;
 project-keyed no-Surface layout and renderer cutover; native Browser adoption
 and conformance closeout. Card 094 is complete with
-`pass_with_admission_gates`. Every Nucleus write remains behind published
-artifacts, public Poodle built-in overlay geometry, accepted Nucleus layout
-behavior, and an overlap check.
+`pass_with_admission_gates`. Poodle geometry and private artifact proof are
+complete. Every Nucleus write remains behind the final new-project layout
+check, the exact private Longhorn graph, and an overlap check.
 
 ## Next Task
 
-Run Nucleus g05 Card 003's two operator-held layout checks. Poodle g12.018 has
-resolved the source/API seam; compatible Poodle and Longhorn publication still
-needs explicit registry authority. Keep Card 095 and every Nucleus-writing card
-planned until acceptance and publication pass.
+Record Nucleus g05 Card 003's remaining new-project check. Cross-project layout
+retention is accepted. Poodle g12.018 resolved the source/API and private
+artifact seam. Package-manager publication is deferred. Keep Nucleus-writing
+cards planned until operator acceptance and private artifact admission pass.

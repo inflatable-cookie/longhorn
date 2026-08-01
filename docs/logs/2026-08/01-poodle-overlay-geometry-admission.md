@@ -28,13 +28,15 @@ DOMRect, Tauri, Browser, or Nucleus vocabulary.
   `ef41f412ad7b45c2ee760c1da9bf41ef876855e8`
 - clean Poodle Svelte artifact proof:
   `ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`
-- compatible Poodle prerelease: missing
-- Nucleus g05 layout operator acceptance: open
+- exact Poodle private artifact: complete
+- Nucleus g05 cross-project layout retention: accepted
+- Nucleus g05 new-project Agent Chat-only check: open
 - Card 095: planned
+
+Package-manager publication is deferred and is not an admission gate.
 
 ## Next
 
-Run the two operator-held Nucleus g05 layout checks. Separately resolve registry
-names and grant explicit publication authority for the compatible Longhorn and
-Poodle prerelease graph. Keep Card 095 and all Nucleus writes planned until
-both gates pass.
+Record the remaining Nucleus g05 new-project check. Then run Card 095 against
+the exact private Longhorn/Poodle source and artifact graph. Keep Nucleus
+writes planned until both the operator and private artifact gates pass.

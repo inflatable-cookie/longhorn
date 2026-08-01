@@ -32,7 +32,7 @@ bindings without turning Longhorn into the Nucleus app shell.
 
 ## Steps
 
-1. Pin the published checked renderer and public Poodle artifact graph.
+1. Pin the exact private renderer and public Poodle source/artifact graph.
 2. Connect one per-window layout state listener before its first snapshot.
 3. Replace whole-snapshot persistence with revisioned command dispatch.
 4. Bind regions, tabs, and sizing through public controlled Poodle APIs.
@@ -54,7 +54,7 @@ bindings without turning Longhorn into the Nucleus app shell.
   Browser viewport geometry changes
 - loading, unsupported, reconnecting, and failure states remain visible
 - teardown releases listeners, observers, timers, optimism, and drag state
-- one exact published Svelte/Poodle graph resolves
+- one exact private Svelte/Poodle graph resolves
 
 ## Evidence Required
 
@@ -68,7 +68,7 @@ bindings without turning Longhorn into the Nucleus app shell.
 ## Stop Conditions
 
 - preserving overlay behavior requires a private Poodle selector
-- no published compatible Poodle seam exists
+- the exact Poodle source or artifact lacks the compatible public seam
 - renderer must fabricate a durable fallback snapshot
 - one mandatory shared app frame becomes necessary
 - donor worktree changes overlap renderer layout files

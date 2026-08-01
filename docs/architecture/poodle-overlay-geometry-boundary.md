@@ -1,6 +1,6 @@
 # Poodle Overlay Geometry Boundary
 
-Status: implemented upstream; compatible publication still blocks Card 095
+Status: implemented upstream; private artifact admitted for Card 095
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: Poodle contract 002; Longhorn contract 017; Nucleus migration
@@ -105,7 +105,8 @@ then prove in Svelte and React:
 - public declarations expose no element, selector, or host-runtime type
 - existing consumers that omit the callback retain current behavior
 
-The compatible Poodle prerelease remains an external publication gate.
+The exact Poodle source commit and clean artifact proof are the private
+migration gate. Package-manager publication is deferred.
 
 ## Nucleus Adoption
 
@@ -130,6 +131,6 @@ Poodle g12.018 implements this contract at
 `agent/public-overlay-geometry-observation`. Its clean Svelte artifact proof is
 `ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`.
 
-The source/API gate is resolved. Card 095 stays planned until the compatible
-Poodle graph is published, the Longhorn graph is published, and Nucleus g05
-project-layout validation is accepted or explicitly superseded.
+The source/API and private-artifact gates are resolved. Package-manager
+publication is not part of Card 095. Nucleus g05 has accepted cross-project
+layout retention; its new-project Agent Chat-only check remains open.

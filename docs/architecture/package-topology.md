@@ -122,9 +122,9 @@ consumer composition only; the package has no Poodle or private-DOM edge.
 The implemented Svelte root is Surface-free. Optional layout, Surface,
 transfer, and Surface-transfer bindings are subpath exports backed by optional
 peers, not root re-exports. The implemented private Poodle root is also
-Surface-free and owns public Tabs, DockRegion, and SplitView integration.
-It is tested against the exact Card 038 preview artifact. A published peer
-range remains a release gate, not an inferred promise from sibling source.
+Surface-free and owns public Tabs, DockRegion, and SplitView integration. It is
+tested against the exact Card 038 preview artifact. A public peer range remains
+a later release-lane gate, not an inferred promise from sibling source.
 
 `@longhorn/settings` keeps its framework-neutral root UI-free. Its optional
 `/svelte` subpath owns per-instance settings sessions; `/poodle` composes one
@@ -227,7 +227,7 @@ native scale switching remains unproved for child-view and backing-surface.
 Card 093 proves isolated production artifacts, exact optional graphs, and
 three-shape Rust/renderer conformance. g01.014 Cards 094-101 compile the
 Nucleus migration. Card 094 is the read-only behavior and policy freeze;
-published prereleases and consumer acceptance gate donor cutover.
+private artifact admission and consumer acceptance gate donor cutover.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 
@@ -357,6 +357,7 @@ Examples arrive with the capability they prove:
 - optional local or remote service
 - installation from produced release artifacts
 
-Local path dependencies are proof inputs only. The settings verifier rewrites
-them to produced archives in clean temporary roots. Consumer migration targets
-published prerelease artifacts with exact lockfile resolution.
+Private consumers may use explicit sibling source links covered by exact clean
+commit receipts. The settings verifier rewrites source links to produced
+archives in clean temporary roots. Artifact claims come only from those clean
+installs. Package-manager publication remains deferred to g01.016.

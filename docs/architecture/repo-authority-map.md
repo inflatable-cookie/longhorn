@@ -41,7 +41,6 @@ authority and migrate through explicit batches. Poodle remains independent.
 
 ## Planning Gaps
 
-- registry ownership, exact prerelease names, and publication authority
-- Poodle-owned public built-in overlay geometry and compatible prerelease
-- Nucleus g05 project-layout operator acceptance or explicit supersession
+- later release-lane registry ownership, public names, and publication policy
+- Nucleus g05 new-project layout operator acceptance
 - ownership transfer plan for generic Echo crates

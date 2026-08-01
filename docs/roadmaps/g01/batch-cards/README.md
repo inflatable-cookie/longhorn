@@ -15,7 +15,7 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [095 Nucleus Prerelease And Cutover Admission](095-nucleus-prerelease-and-cutover-admission.md)
+- [095 Nucleus Private Artifact And Cutover Admission](095-nucleus-private-artifact-and-cutover-admission.md)
 - [096 Nucleus Storage And Legacy Import](096-nucleus-storage-and-legacy-import.md)
 - [097 Nucleus Protected Window Host Cutover](097-nucleus-protected-window-host-cutover.md)
 - [098 Nucleus Project Layout Authority Cutover](098-nucleus-project-layout-authority-cutover.md)
@@ -117,7 +117,6 @@ None.
 
 ## Next Task
 
-Run Nucleus g05 Card 003's two operator-held layout checks. Poodle g12.018 has
-resolved the source/API seam. Card 095 and every Nucleus cutover remain
-planned; compatible prerelease publication remains a separate external-action
-gate.
+Record Nucleus g05 Card 003's remaining new-project check. Cross-project layout
+retention is accepted. Poodle g12.018 resolved the source/API and private
+artifact seam. Package-manager publication is deferred.

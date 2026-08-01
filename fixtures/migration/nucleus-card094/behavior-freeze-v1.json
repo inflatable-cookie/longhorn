@@ -399,9 +399,8 @@
   "admission": {
     "donor_writes": false,
     "gates": [
-      "poodle-public-overlay-geometry-contract",
-      "nucleus-g05-project-layout-operator-acceptance",
-      "published-longhorn-and-compatible-poodle-prereleases"
+      "nucleus-g05-new-project-agent-chat-only-acceptance",
+      "exact-private-longhorn-and-poodle-artifact-graph"
     ]
   }
 }
