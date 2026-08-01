@@ -12,6 +12,10 @@ The read-only audit used Nucleus commit
 clean at audit start. Card 095's final compatibility receipt uses clean commit
 `df5af3da03f8392f948ff65d0a3cf16c36cb6c12`, which adds only operator
 acceptance documentation.
+Card 096's storage cutover is Nucleus commit
+`1c0f8e225849718888afdba63cee4745f623e906`. It uses Longhorn commit
+`973c89f260804a777747ead3218b50d146d16118` as its shared-library source.
+An unrelated `TerminalPanel.svelte` worktree edit remained outside the cutover.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
 is:
@@ -60,7 +64,7 @@ policy and is outside the first desktop cutover.
 
 The first desktop cutover uses:
 
-- canonical app id `dev.nucleus.desktop`
+- canonical app id `com.inflatablecookie.nucleus`
 - no stable storage-name override
 - default profile `platform-native-v1`
 - canonical id as the storage leaf
@@ -80,6 +84,13 @@ read-only, use the SQLite snapshot adapter for the live database, split the
 combined `ui.json` authority into distinct window and layout domains, commit
 the fixed canonical-id locator last, and retain the source until receipted
 cleanup. There is no dual-write or silent old-path fallback.
+
+Card 096 implements that target. Startup selects the fixed locator before it
+considers import, so a committed transition is not replayed. Missing legacy
+storage leaves the native target unselected. Corrupt or future UI state,
+occupied targets, overlap, and interrupted transitions fail or recover without
+creating a second authority. The source root and unknown files remain intact;
+cleanup is deferred.
 
 ## Layout Baseline
 

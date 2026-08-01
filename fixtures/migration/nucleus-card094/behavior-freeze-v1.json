@@ -188,7 +188,7 @@
     "current_default_root": "~/.nucleus",
     "current_override": "NUCLEUS_DESKTOP_DATA_ROOT",
     "target_profile": "platform-native-v1",
-    "target_leaf": "dev.nucleus.desktop",
+    "target_leaf": "com.inflatablecookie.nucleus",
     "stable_storage_name": null,
     "proof_profile": "portable-v1",
     "cli_current_directory_policy_in_scope": false,

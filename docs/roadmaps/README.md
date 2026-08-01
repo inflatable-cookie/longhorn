@@ -156,6 +156,5 @@ this host.
 
 ## Next Task
 
-Execute Card 096. Adopt canonical-id platform storage and receipted `.nucleus`
-import while preserving rollback. Package-manager publication remains
-deferred.
+Execute Card 097. Replace Nucleus primary-window mechanics with the protected
+single-window host while retaining app policy and rollback evidence.

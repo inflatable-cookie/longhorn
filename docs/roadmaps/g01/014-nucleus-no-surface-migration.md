@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 095 complete; Card 096 ready
+Status: active; Card 096 complete; Card 097 ready
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -27,8 +27,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 ### Batch 2: durable state and native window
 
-- [ ] adopt canonical-id platform storage and receipted `.nucleus` import
-- [ ] split window placement from project layouts
+- [x] adopt canonical-id platform storage and receipted `.nucleus` import
+- [x] split window placement from project layouts
 - [ ] replace native geometry mechanics with the protected single-window host
 
 ### Batch 3: no-Surface workspace
@@ -46,9 +46,9 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 ## Goals
 
-- [ ] Nucleus uses platform-native storage with canonical leaf
-  `dev.nucleus.desktop`
-- [ ] existing `.nucleus` data migrates without loss or silent fallback
+- [x] Nucleus uses platform-native storage with canonical leaf
+  `com.inflatablecookie.nucleus`
+- [x] existing `.nucleus` data migrates without loss or silent fallback
 - [ ] the primary native window restores and flushes through Longhorn
 - [ ] project-keyed five-region layouts use one shared mutation authority
 - [ ] renderer clients reconcile checked snapshots and revisions
@@ -74,7 +74,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- `batch-cards/096-nucleus-storage-and-legacy-import.md`
+- `batch-cards/097-nucleus-protected-window-host-cutover.md`
 
 Active:
 
@@ -82,7 +82,6 @@ Active:
 
 Planned:
 
-- `batch-cards/097-nucleus-protected-window-host-cutover.md`
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 - `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 - `batch-cards/100-nucleus-native-browser-cutover.md`
@@ -92,11 +91,13 @@ Complete:
 
 - `batch-cards/094-nucleus-behavior-authority-and-rollback-freeze.md`
 - `batch-cards/095-nucleus-private-artifact-and-cutover-admission.md`
+- `batch-cards/096-nucleus-storage-and-legacy-import.md`
 
 ## Planning Checkpoint
 
-Card 094 froze the exact donor behavior and returned
-`pass_with_admission_gates`. Card 095 now passes the exact private Longhorn and
-Poodle artifact graph on the Nucleus toolchain. Both Nucleus layout checks are
-operator-accepted, donor writes are admitted, and Card 096 is ready.
-Package-manager publication is deferred and does not gate migration.
+Card 096 moves desktop storage to `com.inflatablecookie.nucleus`, uses
+`platform-native-v1` by default, replaces the proof override with a portable
+profile, and imports `.nucleus` through four explicit adapters. The locator is
+committed last. The legacy root and unknown files remain recoverable. Window
+placement and project layouts now have separate runtime stores. Card 097 is
+ready. Package-manager publication remains deferred.

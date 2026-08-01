@@ -47,6 +47,14 @@ Tauri 2.11.5 graph:
 effigy proof:nucleus-private-artifacts
 ```
 
+Nucleus storage cutover proof reads the pinned consumer commit, validates its
+canonical identity, Longhorn profile use, migration adapters, split stores,
+and retained-source posture:
+
+```sh
+effigy proof:nucleus-storage-cutover
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

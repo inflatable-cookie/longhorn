@@ -1,6 +1,6 @@
 # 097 Nucleus Protected Window Host Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.014 batch 2
 Governing refs: contracts 003, 004, 009, and 012; Cards 094 and 096

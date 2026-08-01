@@ -222,7 +222,7 @@ function verifyFrozenSemantics(): void {
   );
   assertEqual(
     fixture.storage.target_leaf,
-    "dev.nucleus.desktop",
+    "com.inflatablecookie.nucleus",
     "storage leaf",
   );
   assertEqual(fixture.storage.stable_storage_name, null, "stable storage name");

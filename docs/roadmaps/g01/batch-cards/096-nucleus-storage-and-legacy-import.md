@@ -1,6 +1,6 @@
 # 096 Nucleus Storage And Legacy Import
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.014 batch 2
 Governing refs: contracts 003, 004, and 012; Cards 094-095
@@ -20,7 +20,7 @@ legacy `.nucleus` store without losing state or leaving two authorities.
 
 ## Scope
 
-- canonical id `dev.nucleus.desktop`
+- canonical id `com.inflatablecookie.nucleus`
 - `platform-native-v1` default with no storage-name override
 - `portable-v1` replacement for isolated proof roots
 - fixed canonical-id locator
@@ -32,22 +32,22 @@ legacy `.nucleus` store without losing state or leaving two authorities.
 
 ## Steps
 
-1. Recheck Nucleus worktree and pin the exact Card 095 private source receipts;
+1. [x] Recheck Nucleus worktree and pin the exact Card 095 private source receipts;
    verify them against its matching produced-artifact evidence.
-2. Register canonical identity, default profile, portable proof profile, and
+2. [x] Register canonical identity, default profile, portable proof profile, and
    fixed locator.
-3. Register each current desktop store with its target class and adapter.
-4. Add read-only `.nucleus` discovery and exact source inventory.
-5. Split `ui.json` into window and project-layout migration outputs.
-6. Stage ordinary files and invoke the SQLite snapshot adapter.
-7. Verify target state, journal the transition, and commit the locator last.
-8. Exercise interruption recovery and retain source plus cleanup receipts.
-9. Remove the old normal-startup path authority and update focused docs/tests.
+3. [x] Register each current desktop store with its target class and adapter.
+4. [x] Add read-only `.nucleus` discovery and exact source inventory.
+5. [x] Split `ui.json` into window and project-layout migration outputs.
+6. [x] Stage ordinary files and invoke the SQLite snapshot adapter.
+7. [x] Verify target state, journal the transition, and commit the locator last.
+8. [x] Exercise interruption recovery and retain source plus cleanup receipts.
+9. [x] Remove the old normal-startup path authority and update focused docs/tests.
 
 ## Acceptance Criteria
 
 - macOS, Windows, and Linux roots resolve from one selected profile
-- default paths contain `dev.nucleus.desktop`, not display name or home dotfile
+- default paths contain `com.inflatablecookie.nucleus`, not display name or home dotfile
 - explicit proof roots are absolute portable profiles and isolate every store
 - SQLite, `ui.json`, snapshots, and drafts have explicit classes and adapters
 - old schemas import idempotently with checksums and typed receipts
@@ -64,6 +64,23 @@ legacy `.nucleus` store without losing state or leaving two authorities.
 - locator commit and recovery evidence
 - before/after store inventory
 - Nucleus lockfile and focused test report
+
+## Completion Evidence
+
+- Nucleus cutover commit:
+  `1c0f8e225849718888afdba63cee4745f623e906`
+- Longhorn source commit:
+  `973c89f260804a777747ead3218b50d146d16118`
+- Nucleus lock SHA-256:
+  `608ebcfad93e417fb3c25a4b907a76c61678f47cdc58d6f5d4c97f26c819ea51`
+- fixture: `../../../../fixtures/migration/nucleus-card096/storage-cutover-v1.json`
+- proof: `effigy proof:nucleus-storage-cutover`
+- Nucleus: 70 Rust tests and 40 renderer tests pass
+- platform matrix: macOS, Windows, and Linux pass
+- migration scenarios: missing, corrupt, future, occupied, live WAL, committed
+  replay, overlap, and interruption recovery pass
+- source and unknown files retained; cleanup deferred; package publication
+  deferred
 
 ## Stop Conditions
 
