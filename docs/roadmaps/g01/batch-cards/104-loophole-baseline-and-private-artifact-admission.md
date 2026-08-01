@@ -1,6 +1,6 @@
 # 104 Loophole Baseline And Private Artifact Admission
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 1
 Governing refs: contracts 003, 010, 012, and 013; Cards 102-103

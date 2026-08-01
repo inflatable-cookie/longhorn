@@ -1,6 +1,6 @@
 # 105 Loophole Storage And Domain Transition
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.015 batch 2
 Governing refs: contracts 003-005 and 012; Cards 102-104

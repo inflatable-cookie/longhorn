@@ -109,6 +109,14 @@ command, settings, and 83-variant history freeze:
 effigy verify:loophole-card102-freeze
 ```
 
+Loophole private admission restores and pins the clean donor baseline, checks
+the selected Soundcheck SQLite graph, packs the complete Cards 105-111
+Longhorn/Poodle graph, and installs isolated renderer and Rust 1.85 consumers:
+
+```sh
+effigy proof:loophole-private-artifacts
+```
+
 The default donors are `../loophole` and `../poodle`. Override them with
 `LOOPHOLE_REPO` and `POODLE_REPO` only for exact clean checkouts.
 

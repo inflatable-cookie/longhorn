@@ -124,3 +124,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Nucleus Migration Conformance Closeout](2026-08/01-nucleus-migration-conformance-closeout.md)
 - [Loophole Full-hosting Migration Compilation](2026-08/01-loophole-full-hosting-migration-compilation.md)
 - [Loophole Storage Policy And Profile Selection](2026-08/01-loophole-storage-policy-and-profile-selection.md)
+- [Loophole Baseline And Private Artifact Admission](2026-08/01-loophole-baseline-private-artifact-admission.md)
