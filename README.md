@@ -216,5 +216,7 @@ behavior and rollback evidence. Card 095 admits the exact private
 Longhorn/Poodle graph and both Nucleus layout checks. Cards 096-098 complete
 canonical storage, protected-window, and project-layout authority cutovers.
 Card 099 completes checked renderer/Poodle composition. Card 100 completes the
-native Browser cutover. Card 101 is ready.
+native Browser cutover. Card 101 closes exact artifacts, restart, rollback,
+capability, duplicate-authority, and no-Surface conformance. g01.014 is
+complete.
 Package-manager publication remains deferred.

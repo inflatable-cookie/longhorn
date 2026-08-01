@@ -1,6 +1,6 @@
 # Nucleus Migration Map
 
-Status: active migration baseline
+Status: complete migration record
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017
@@ -28,6 +28,11 @@ Card 099's renderer cutover is Nucleus commit
 Card 100's native Browser cutover is Nucleus commit
 `ce71af24c7f042c16d0f44ee4f13332cb4fdfa98`. Its native policy seam is
 Longhorn commit `920bb8c1f19e0ce3a6a5766598d2bfa488ddde63`.
+Card 101's final Nucleus receipt is
+`40a8314d067a3e33eb2254499e53a6db5a8962d5`. Its admitted Longhorn selected
+source is `4f09e1c8a9b55965605f74dfc364c1bb8a836570`; its Poodle source is
+`208532f0d18dcd1683cdef157e370d0ba0f0d3b3` with artifact set
+`25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69`.
 Card 098's unrelated `TerminalPanel.svelte` edit was independently committed
 before Card 099 and remained outside both migration diffs.
 
@@ -51,7 +56,7 @@ Chat only. Card 095 admits bounded donor writes from exact clean receipts.
 
 | Concern | Current Nucleus authority | Migration target | Retained Nucleus authority |
 | --- | --- | --- | --- |
-| storage roots | `desktop_profile.rs` | `longhorn-config`, `longhorn-tauri-config` | app identity, domain registration, retention |
+| storage roots | registered Longhorn profile plus Nucleus adapter | complete | app identity, domain registration, retention |
 | primary window placement | registered Longhorn host | complete | main-window role, defaults, close policy |
 | five-region document | registered Longhorn layout domain | complete | schema registration, project scope, panel catalogue |
 | renderer layout state | checked Longhorn client and public Poodle bindings | complete | panel bodies, labels, icons, resources, frame composition, native-handle cleanup |
@@ -73,7 +78,7 @@ The audited legacy desktop default was `~/.nucleus`. It contains:
 - `state/task-review-snapshots`
 - `state/editor-drafts`
 
-`NUCLEUS_DESKTOP_DATA_ROOT` replaces the whole root for proof runs. The CLI
+`NUCLEUS_DESKTOP_PORTABLE_ROOT` selects an isolated `portable-v1` profile for proof runs. The CLI
 default `.nucleus/local/nucleus.sqlite` is a separate current-working-directory
 policy and is outside the first desktop cutover.
 
@@ -233,7 +238,7 @@ Cutovers are vertical and single-authority:
 4. transfer checked renderer lifetime and public Poodle bindings
 5. transfer native child coordination
 
-Cards 096-100 complete all five authority slices. Card 101 owns final restart,
+Cards 096-100 complete all five authority slices. Card 101 completes restart,
 rollback, artifact, duplicate-code, capability, and no-Surface conformance.
 
 Before a slice changes authority, freeze its donor fixtures and preserve its
@@ -242,7 +247,8 @@ slice. Rollback uses the recorded migration receipt and retained source with
 the previous app build. It never means live dual-write, a silent legacy read,
 or two active implementations.
 
-Final cleanup requires restart evidence across the old and new stores, exact
-dependency and capability inventories, duplicate-code searches, and explicit
-retained-policy records. Only then does Longhorn become mechanism authority
-for the migrated systems.
+Card 101 supplies the final restart evidence, exact dependency and capability
+inventories, duplicate-code searches, and retained-policy records. Longhorn is
+now mechanism authority for the migrated systems. The old source remains
+recoverable; deletion still requires its exact import receipt and separate
+operator authority.

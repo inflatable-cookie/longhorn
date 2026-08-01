@@ -17,7 +17,7 @@ authority and migrate through explicit batches. Poodle remains independent.
 | `longhorn` | generic Rust/TS/Svelte desktop mechanisms | n/a | app schemas, commands, history payloads, panel catalogues, workflows |
 | `poodle` | components, tokens, interaction primitives | optional shared types only | host state and persistence |
 | `loophole` | DAW shell policy, history payload/apply/recovery, and panel catalogue | full hosting, config, command, settings, optional linear history mechanics | Pulse/Signal/Aura product authority |
-| `nucleus` | agent workspace policy, resources, and server data | window + region/panel, config, settings, topology adapters | project/task/runtime authority |
+| `nucleus` | agent workspace policy, resources, server data, panel and Browser policy | storage, protected window, registered layout, checked renderer, native content | project/task/runtime authority |
 | `soundcheck` | plugin-library workflows | foundation modules as adopted | scan/sync/inspection domain |
 | `jetstream` | engine/editor and native renderer | bridge or native-host adapters as adopted | frame/render/world authority |
 | `acowtancy/bovine-accelerator-desktop` | content workspace | simple preferences/layout adapters as adopted | content/navigation/editorial domain |
@@ -42,5 +42,4 @@ authority and migrate through explicit batches. Poodle remains independent.
 ## Planning Gaps
 
 - later release-lane registry ownership, public names, and publication policy
-- Nucleus g05 new-project layout operator acceptance
 - ownership transfer plan for generic Echo crates

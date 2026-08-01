@@ -1,6 +1,6 @@
 # 101 Nucleus Migration Conformance And Closeout
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.014 batch 4
 Governing refs: contracts 001, 003, 004, 009, 012-014, and 017; Cards 094-100

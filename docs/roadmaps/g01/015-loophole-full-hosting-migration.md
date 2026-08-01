@@ -1,14 +1,18 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: blocked on `g01.014` and optional Surface packages  
+Status: ready for bounded compilation; no donor writes admitted
 Owner: Tom  
-Updated: 2026-07-31
+Updated: 2026-08-01
 Governing refs: contracts 002, 003, and 008
 
 ## Outcome
 
 Migrate Loophole to Longhorn's full display, window, Surface, region, panel,
 settings, and command composition without moving DAW authority.
+
+g01.014 and the optional Surface packages are complete. A fresh read-only
+Loophole audit must now freeze current authority and compile bounded cards
+before this roadmap can become active.
 
 ## Batches
 

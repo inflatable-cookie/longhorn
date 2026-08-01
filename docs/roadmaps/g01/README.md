@@ -17,8 +17,8 @@
 | [g01.011](011-history-kernel-and-branching-prototype.md) | complete | public linear slice plus promoted private fork decision |
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
-| [g01.014](014-nucleus-no-surface-migration.md) | active | Card 101 ready |
-| [g01.015](015-loophole-full-hosting-migration.md) | blocked | advanced full-stack consumer |
+| [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
+| [g01.015](015-loophole-full-hosting-migration.md) | ready for compilation | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
@@ -321,10 +321,12 @@ converge. Card 098 transfers project-keyed layout structure to registered
 Longhorn authority while retaining product presentation and runtime policy in
 Nucleus. Card 099 completes the checked renderer and public Poodle cutover.
 Card 100 completes the native Browser cutover with retained Nucleus policy and
-packaged macOS attach/hide/reuse evidence. Card 101 is ready.
+packaged macOS attach/hide/reuse evidence. Card 101 closes exact artifacts,
+restart, rollback, capability, duplicate-authority, retained-policy, and
+Surface-absence conformance. g01.014 is complete.
 
 ## Next Task
 
-Execute Card 101. Run final migration conformance and close g01.014 only where
-restart, rollback, artifacts, capabilities, duplicate removal, and no-Surface
-evidence pass.
+Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
+Freeze the full `display -> window -> Surface -> region -> panel` hierarchy,
+Echo/Aura ownership, and rollback seams before admitting donor writes.

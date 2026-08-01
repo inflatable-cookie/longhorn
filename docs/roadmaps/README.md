@@ -17,11 +17,10 @@ Cards 087-093. Cards 087-092 deliver the production pure kernel, generated
 renderer protocol, framework-neutral client, Tauri child-view adapter,
 generic isolated-window adapter, generic backing-surface adapter, and isolated
 Svelte viewport lifetime. Card 093 proves isolated artifacts, three-shape
-parity, packaged support, and adoption gates; g01.018 is complete. g01.014 now
-has Cards 094-101 across read-only freeze, private artifact admission,
-storage/window, no-Surface workspace, native Browser, and closeout. Card 094
-is complete. Card 095 admits the private graph and both operator checks. Card
-096 is ready.
+parity, packaged support, and adoption gates; g01.018 is complete. Cards
+094-101 complete g01.014 across read-only freeze, private artifact admission,
+canonical storage, protected-window and no-Surface workspace authority,
+native Browser coordination, restart, rollback, and final conformance.
 The history lane ships the public linear slice and keeps the optional tree
 work planned behind adoption.
 
@@ -156,6 +155,6 @@ this host.
 
 ## Next Task
 
-Execute Card 101. Run final migration conformance and close g01.014 only where
-restart, rollback, artifacts, capabilities, duplicate removal, and no-Surface
-evidence pass.
+Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
+Freeze full-hosting behavior, generic Echo/Aura ownership, migration receipts,
+and rollback before admitting donor writes.

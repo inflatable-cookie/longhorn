@@ -233,7 +233,9 @@ cutovers. Card 099 completes listener-first renderer state, public Poodle
 composition, and explicit overlay geometry. Card 100 completes the native
 Browser cutover through the child-view host, checked client, and Svelte
 session. Nucleus retains browser policy and gains no Surface dependency.
-Card 101 is the remaining migration-conformance gate.
+Card 101 closes the migration with exact private artifacts, restart and
+rollback drills, capability and duplicate-authority audits, and no Surface
+edge in the Nucleus graph.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 

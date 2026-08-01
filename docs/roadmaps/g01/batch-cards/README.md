@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
+None.
 
 ## Planned
 
@@ -113,9 +113,10 @@ None.
 - [098 Nucleus Project Layout Authority Cutover](098-nucleus-project-layout-authority-cutover.md)
 - [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
 - [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
+- [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
 
 ## Next Task
 
-Execute Card 101. Run final migration conformance and close g01.014 only where
-restart, rollback, artifacts, capabilities, duplicate removal, and no-Surface
-evidence pass.
+Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
+Do not admit donor writes until its full-hosting batches and rollback seams are
+bounded.

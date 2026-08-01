@@ -90,6 +90,15 @@ closure, superseded-path removal, and the frozen private graph:
 effigy proof:nucleus-native-browser-cutover
 ```
 
+Nucleus migration closeout proof regenerates the current exact private
+artifact graph, replays Cards 096-100, runs fresh and legacy restart tests,
+audits capabilities and duplicate mechanisms, proves the Surface-free graph,
+and verifies the recorded previous-build readback and cleanup gate:
+
+```sh
+effigy proof:nucleus-migration-closeout
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

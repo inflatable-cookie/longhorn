@@ -121,3 +121,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Nucleus Project Layout Authority Cutover](2026-08/01-nucleus-project-layout-authority-cutover.md)
 - [Nucleus Renderer And Poodle Cutover](2026-08/01-nucleus-renderer-and-poodle-cutover.md)
 - [Nucleus Native Browser Cutover](2026-08/01-nucleus-native-browser-cutover.md)
+- [Nucleus Migration Conformance Closeout](2026-08/01-nucleus-migration-conformance-closeout.md)

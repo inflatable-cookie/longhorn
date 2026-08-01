@@ -127,6 +127,15 @@ remain a public release-lane gate while the interdependent crates are private.
 Evidence:
 `../logs/2026-07/29-settings-composition-proof-and-closeout.md`.
 
+Card 101 repeats the Nucleus graph against exact current clean sources:
+Longhorn `4f09e1c8`, Poodle `208532f0`, Poodle artifact set `25083fe0`, and
+Nucleus `40a8314d`. The isolated renderer resolves one Svelte/Poodle runtime
+and no Surface package. The Rust graph contains no Surface package. Registry
+publication remains deferred.
+
+Evidence:
+`../logs/2026-08/01-nucleus-migration-conformance-closeout.md`.
+
 Card 055 packs `@longhorn/core`, `@longhorn/tauri`, and
 `@longhorn/bridge`, then installs Bovine, Jetstream, Soundcheck, Nucleus, and
 Loophole-shaped consumers in isolated roots. Every consumer resolves version

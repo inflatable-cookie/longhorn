@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 101 ready
+Status: complete
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -41,8 +41,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 - [x] replace child-view coordination with the production native-content graph
 - [x] preserve the explicit Nucleus browser and security policy map
-- [ ] remove superseded donor copies and transfer test authority
-- [ ] prove restart, rollback, package, capability, and no-Surface conformance
+- [x] remove superseded donor copies and transfer test authority
+- [x] prove restart, rollback, package, capability, and no-Surface conformance
 
 ## Goals
 
@@ -57,24 +57,24 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 ## Acceptance Criteria
 
-- [ ] Nucleus carries no Surface dependency or state
-- [ ] current window, project-layout, panel, and Browser behavior passes
-- [ ] Longhorn owns the migrated mechanism tests and Nucleus retains only
+- [x] Nucleus carries no Surface dependency or state
+- [x] current window, project-layout, panel, and Browser behavior passes
+- [x] Longhorn owns the migrated mechanism tests and Nucleus retains only
   product adapters and conformance checks
-- [ ] projects, tasks, resources, runtime, panel catalogue, and native browser
+- [x] projects, tasks, resources, runtime, panel catalogue, and native browser
   policy remain Nucleus authority
-- [ ] browser construction, navigation, data-store, capability, visibility,
+- [x] browser construction, navigation, data-store, capability, visibility,
   focus, and teardown policy match the migration map
-- [ ] Nucleus records exact clean sibling-source commits; matching packed
+- [x] Nucleus records exact clean sibling-source commits; matching packed
   artifacts install without source aliases or duplicate Svelte/Poodle runtimes
-- [ ] old stores remain recoverable until receipted cleanup; no dual-write or
+- [x] old stores remain recoverable until receipted cleanup; no dual-write or
   compatibility shim survives closeout
 
 ## Batch Cards
 
 Ready:
 
-- `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
+- none
 
 Active:
 
@@ -93,6 +93,7 @@ Complete:
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
 - `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 - `batch-cards/100-nucleus-native-browser-cutover.md`
+- `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
 
 ## Planning Checkpoint
 
@@ -119,5 +120,8 @@ Card 100 replaces raw renderer Webview authority with the native-content host,
 child-view adapter, checked client, and exact Svelte viewport session. Nucleus
 retains browser policy, trusted notices, data-store choice, toolbar, cursor,
 and capability authority. Packaged macOS attach/hide/reuse evidence passes.
-Card 101 is ready.
+Card 101 proves exact current private artifacts, fresh and legacy restart,
+interrupted recovery, previous-build readback, capability closure, duplicate
+removal, retained product adapters, and complete Surface absence. Legacy
+source remains receipt-bound and was not deleted. g01.014 is complete.
 Package-manager publication remains deferred.

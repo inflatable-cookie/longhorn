@@ -16,14 +16,9 @@ None.
 
 ## Next Task
 
-`g01.002` through `g01.013` and g01.018 are complete. g01.014 is compiled as
-Cards 094-101 across admission, storage/window, no-Surface workspace,
-native-browser, and closeout batches. Card 094 is complete with
-`pass_with_admission_gates`. Poodle geometry, the exact private
-Longhorn/Poodle artifact graph, and both Nucleus layout checks are complete.
-Card 096's canonical-id storage and receipted legacy import are complete.
-Card 097's protected-window host cutover and Card 098's project-keyed layout
-authority cutover are complete. Card 099's checked renderer and public Poodle
-composition cutover and Card 100's native Browser cutover are complete.
-Execute Card 101's migration conformance and closeout.
+`g01.002` through `g01.014` and g01.018 are complete. Nucleus now proves exact
+private artifacts, canonical storage, protected-window and registered-layout
+authority, checked renderer/Poodle composition, native Browser coordination,
+restart, rollback, capability closure, duplicate removal, and no Surface edge.
+Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
 Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.
