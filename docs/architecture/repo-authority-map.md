@@ -42,4 +42,8 @@ authority and migrate through explicit batches. Poodle remains independent.
 ## Planning Gaps
 
 - later release-lane registry ownership, public names, and publication policy
-- ownership transfer plan for generic Echo crates
+- exact Loophole shared-product storage matrix: Windows parent and Linux leaf
+
+The generic Echo transfer plan is frozen in `loophole-migration-map.md`.
+Generic mechanisms move only through g01.015's vertical cards; product schemas,
+policies, payloads, and adapters remain in Loophole.

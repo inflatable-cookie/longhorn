@@ -18,7 +18,7 @@
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
-| [g01.015](015-loophole-full-hosting-migration.md) | ready for compilation | advanced full-stack consumer |
+| [g01.015](015-loophole-full-hosting-migration.md) | compiled; operator-held | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
@@ -325,8 +325,17 @@ packaged macOS attach/hide/reuse evidence. Card 101 closes exact artifacts,
 restart, rollback, capability, duplicate-authority, retained-policy, and
 Surface-absence conformance. g01.014 is complete.
 
+Card 102 compiles g01.015 from a fresh read-only Loophole/Poodle audit. It
+freezes the five-level hierarchy, regional and focused-panel habitats, generic
+Echo disposition, stable `Loophole` storage identity, public drag seam,
+settings/command split, 83-variant Pulse history boundary, and rollback order.
+Cards 103-112 form the storage-policy, admission, foundation, hierarchy,
+shell-system, linear-history, and closeout runway. Card 103 is operator-held on
+the Windows storage parent and Linux leaf. Loophole donor health is separately
+blocked by a pre-existing SQLite link conflict. No migration writes are
+admitted.
+
 ## Next Task
 
-Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
-Freeze the full `display -> window -> Surface -> region -> panel` hierarchy,
-Echo/Aura ownership, and rollback seams before admitting donor writes.
+Resolve Card 103's Windows parent and Linux leaf decisions. Then implement the
+selected shared-product storage profile before Loophole artifact admission.

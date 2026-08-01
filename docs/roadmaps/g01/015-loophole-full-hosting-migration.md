@@ -1,57 +1,134 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: ready for bounded compilation; no donor writes admitted
-Owner: Tom  
+Status: compiled; Card 103 operator-held; no donor migration writes admitted
+Owner: Tom
 Updated: 2026-08-01
-Governing refs: contracts 002, 003, and 008
+Governing refs: contracts 002-014;
+`../../architecture/loophole-migration-map.md`
 
 ## Outcome
 
 Migrate Loophole to Longhorn's full display, window, Surface, region, panel,
-settings, and command composition without moving DAW authority.
+settings, keyboard/command, and linear-history composition without moving DAW
+authority.
 
-g01.014 and the optional Surface packages are complete. A fresh read-only
-Loophole audit must now freeze current authority and compile bounded cards
-before this roadmap can become active.
+## Generation Runway Goal
 
-## Batches
+Prove the advanced optional hierarchy in a real multi-window consumer. Replace
+generic Echo/Aura/Pulse mechanisms one vertical slice at a time while Pulse,
+Signal, Aura, Spark, panel catalogue, product policy, extended inputs, history
+payloads, journal recovery, and project versions remain Loophole authority.
 
-### 1. Seam freeze
+## Execution Plan
 
-- map Echo/Aura crates and renderer modules to Longhorn packages
-- capture display correlation, window apply, Surface lifecycle, panel, drag,
-  settings, command, and history fixtures
-- choose ownership for generic Echo crates
+### Batch 1: freeze and admission
 
-### 2. Foundation cutover
+- [x] freeze current behavior, authority, Echo disposition, and rollback
+- [ ] select the exact shared-product storage matrix and align contracts
+- [ ] restore clean Loophole baseline health
+- [ ] admit exact private Longhorn and Poodle source and artifact graphs
 
-- configuration/backup and machine state
-- display/window planner and Tauri host
-- layout core and client bindings
+### Batch 2: durable foundation
 
-### 3. Optional systems
+- [ ] adopt stable `Loophole` storage identity and receipted legacy transition
+- [ ] register separate app, profile, machine, window, Surface, and layout domains
+- [ ] replace display/window planning and native host mechanics
 
-- Surface hosting and cross-window movement
-- settings and command/input projections
-- history linear-kernel adoption after Cards 062-067 and g01.011 closeout
-- explicit import of existing Pulse history; retain journal recovery and
-  cross-session undo
-- branch mode remains disabled during this migration; Card 069 promotes the
-  semantics, while g01.017 must implement and prove the optional tree layer
-  before a separate Loophole adoption decision
+### Batch 3: full optional hierarchy
 
-### 4. Cleanup and proof
+- [ ] replace generic eight-region layout mutation and persistence
+- [ ] replace Surface lifecycle, binding, movement, provision, and restoration
+- [ ] adopt checked renderer lifetime and public Poodle transfer seams
 
-- remove active donor duplicates
-- packaged multi-display/multi-window proof
-- record product adapters left in Loophole
+### Batch 4: shell systems
 
-## Acceptance
+- [ ] adopt the settings registry, shared shell, storage, and recovery pages
+- [ ] adopt keyboard keymaps, command discovery, palette, and conflict projection
+- [ ] retain unsupported extended triggers behind a named Loophole adapter
+- [ ] import complete persisted linear history without losing Pulse semantics
 
-- full hierarchy remains `display -> window -> Surface -> region -> panel`
-- Pulse, Signal, Aura workflows and panel catalogue remain Loophole-owned
-- no dual active implementation remains after each cutover
-- behavior deltas are deliberate and documented
-- all 83 Pulse mutation variants remain Loophole-owned and usable through the
-  shared policy/apply seam
-- project versions remain separate from undo branches
+### Batch 5: closeout
+
+- [ ] remove superseded active donor mechanisms
+- [ ] prove restart, recovery, rollback, capabilities, artifacts, and hierarchy
+- [ ] record every retained product adapter and deferred system
+
+## Goals
+
+- [ ] hierarchy remains `display -> window -> Surface -> region -> panel`
+- [ ] regional and focused-panel Surface habitats retain current behavior
+- [ ] storage uses one selected cross-platform profile with explicit stable name
+- [ ] window, Surface, and layout persistence are independent authorities
+- [ ] panels and Surfaces transfer through checked authoritative sessions
+- [ ] settings and command surfaces share generic Longhorn mechanisms
+- [ ] all persisted undo and redo state imports into the linear kernel
+- [ ] no product authority moves into Longhorn
+
+## Acceptance Criteria
+
+- [ ] all 83 Pulse mutation variants remain Loophole-owned and usable
+- [ ] project snapshots, versions, autosave, journal path/replay, and recovery
+  remain Pulse authority
+- [ ] branch mode remains disabled
+- [ ] extended mouse, wheel, gesture, playback, MIDI, and macro semantics are not
+  claimed by Longhorn
+- [ ] panel catalogue, region schema, focused eligibility, presence, close,
+  empty-host, and fullscreen policy remain Loophole-owned
+- [ ] private Poodle MIME or DOM knowledge does not enter Longhorn
+- [ ] each cutover has one active authority and one receipt-backed rollback route
+- [ ] source-linked private graphs have matching clean artifact-install proof
+- [ ] package-manager publication remains deferred
+
+## Batch Cards
+
+Operator-held:
+
+- `batch-cards/103-loophole-storage-policy-and-profile-selection.md`
+
+Ready:
+
+- none
+
+Active:
+
+- none
+
+Planned:
+
+- `batch-cards/104-loophole-baseline-and-private-artifact-admission.md`
+- `batch-cards/105-loophole-storage-and-domain-transition.md`
+- `batch-cards/106-loophole-display-and-window-host-cutover.md`
+- `batch-cards/107-loophole-registered-layout-authority-cutover.md`
+- `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
+- `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
+- `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
+- `batch-cards/111-loophole-linear-history-adoption.md`
+- `batch-cards/112-loophole-migration-conformance-and-closeout.md`
+
+Complete:
+
+- `batch-cards/102-loophole-behavior-authority-and-rollback-freeze.md`
+
+## Planning Checkpoint
+
+Card 102 freezes clean Loophole and Poodle commits, the two Surface habitats,
+eight regions, storage mismatch, Echo disposition, public Poodle drag seam,
+83-variant history boundary, and rollback order. The current Loophole Rust
+baseline is blocked by two incompatible `libsqlite3-sys` link graphs. No donor
+migration writes are admitted.
+
+The canonical Aura id remains `com.inflatablecookie.loophole`, but Chorus
+explicitly chooses the stable product root `Loophole`. The nearest Longhorn
+profile is only a partial match: macOS matches, Windows differs on roaming
+versus local parent, and Linux differs on exact leaf casing. Card 103 is held
+for that matrix decision. Per-purpose overrides will not disguise the gap.
+
+Keyboard, keymap, palette, and conflict semantics can migrate under contract
+006. Extended triggers and macros remain Loophole adapters. Linear history can
+migrate under contract 008 only if complete persisted undo/redo ordering and
+Pulse journal integration survive; branch mode stays disabled.
+
+## Next Task
+
+Resolve Card 103's Windows parent and Linux leaf decisions. Then implement and
+prove the selected profile in Longhorn before touching Loophole migration code.

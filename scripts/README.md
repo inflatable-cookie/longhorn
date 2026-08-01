@@ -102,6 +102,16 @@ effigy proof:nucleus-migration-closeout
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 
+Loophole Card 102 verifies the pinned read-only hierarchy, storage, Poodle,
+command, settings, and 83-variant history freeze:
+
+```sh
+effigy verify:loophole-card102-freeze
+```
+
+The default donors are `../loophole` and `../poodle`. Override them with
+`LOOPHOLE_REPO` and `POODLE_REPO` only for exact clean checkouts.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

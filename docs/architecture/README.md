@@ -10,6 +10,7 @@
 - [Operation And Notification Composition](operation-notification-composition.md)
 - [Native-content Island Composition](native-content-island-composition.md)
 - [Nucleus Migration Map](nucleus-migration-map.md)
+- [Loophole Migration Map](loophole-migration-map.md)
 - [Poodle Overlay Geometry Boundary](poodle-overlay-geometry-boundary.md)
 - [Package Topology](package-topology.md)
 - [System Inventory](system-inventory.md)

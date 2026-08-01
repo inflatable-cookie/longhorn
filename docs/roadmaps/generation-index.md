@@ -20,5 +20,7 @@ None.
 private artifacts, canonical storage, protected-window and registered-layout
 authority, checked renderer/Poodle composition, native Browser coordination,
 restart, rollback, capability closure, duplicate removal, and no Surface edge.
-Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
-Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.
+g01.015 is compiled through Cards 102-112. Card 103 is operator-held on the
+exact Loophole Windows storage parent and Linux stable-leaf policy. Resolve
+that matrix before artifact admission or donor migration writes. Fork-tree
+Cards 070-074 remain planned behind the linear adoption checkpoint.

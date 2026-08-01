@@ -71,10 +71,16 @@ Research memo 016 promotes separate operation and notification authorities
 through contracts 015-016. Cards 075-081 implement and artifact-prove both
 systems; g01.012 is complete. Research memo 017 and contract 017 promote the
 native-content coordination boundary. Cards 082-085 provide retained private
-evidence. Card 086 selects the split production graph and compiles g01.018
-Cards 087-093 are complete. Nucleus Card 094 freezes its current no-Surface and
-native-Browser behavior. The policy maps to the production packages, but exact
-overlay intersection remains blocked on a public Poodle built-in geometry
-seam. The private artifact gate is resolved; Nucleus g05's new-project check
-still gates donor writes. Package-manager publication is deferred.
-Cards 070-074 remain planned behind the linear-history adoption checkpoint.
+evidence. Card 086 selects the split production graph and compiles g01.018.
+Cards 087-093 are complete. Nucleus Cards 094-101 complete its no-Surface
+migration, including the public Poodle geometry seam, accepted project checks,
+private artifacts, canonical storage, native host, renderer, Browser,
+rollback, and closeout.
+
+Loophole Card 102 freezes the current full hierarchy, generic Echo transfer,
+stable product storage identity, public Poodle drag seam, and 83-variant Pulse
+history boundary. g01.015 is compiled through Card 112 but paused on Card 103's
+Windows storage parent and Linux leaf decisions. Loophole donor health also has
+a pre-existing SQLite link conflict; no migration writes are admitted.
+Package-manager publication remains deferred. Cards 070-074 remain planned
+behind the linear-history adoption checkpoint.

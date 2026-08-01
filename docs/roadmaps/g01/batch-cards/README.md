@@ -8,6 +8,10 @@ None.
 
 None.
 
+## Operator-held
+
+- [103 Loophole Storage Policy And Profile Selection](103-loophole-storage-policy-and-profile-selection.md)
+
 ## Planned
 
 - [070 Fork-tree Identity, Topology, And Branches](070-fork-tree-identity-topology-and-branches.md)
@@ -15,6 +19,15 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
+- [104 Loophole Baseline And Private Artifact Admission](104-loophole-baseline-and-private-artifact-admission.md)
+- [105 Loophole Storage And Domain Transition](105-loophole-storage-and-domain-transition.md)
+- [106 Loophole Display And Window Host Cutover](106-loophole-display-and-window-host-cutover.md)
+- [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
+- [108 Loophole Surface Lifecycle And Hosting Cutover](108-loophole-surface-lifecycle-and-hosting-cutover.md)
+- [109 Loophole Renderer, Poodle, And Transfer Cutover](109-loophole-renderer-poodle-and-transfer-cutover.md)
+- [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
+- [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
+- [112 Loophole Migration Conformance And Closeout](112-loophole-migration-conformance-and-closeout.md)
 
 ## Complete
 
@@ -114,9 +127,9 @@ None.
 - [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
 - [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
 - [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
+- [102 Loophole Behavior, Authority, And Rollback Freeze](102-loophole-behavior-authority-and-rollback-freeze.md)
 
 ## Next Task
 
-Compile g01.015 from a fresh read-only Loophole authority and behavior audit.
-Do not admit donor writes until its full-hosting batches and rollback seams are
-bounded.
+Resolve Card 103's Windows storage parent and Linux leaf. Do not admit Loophole
+migration writes until the selected profile and Card 104 artifact gate pass.
