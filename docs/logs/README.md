@@ -119,3 +119,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Nucleus Storage And Legacy Import](2026-08/01-nucleus-storage-and-legacy-import.md)
 - [Nucleus Protected Window Host Cutover](2026-08/01-nucleus-protected-window-host-cutover.md)
 - [Nucleus Project Layout Authority Cutover](2026-08/01-nucleus-project-layout-authority-cutover.md)
+- [Nucleus Renderer And Poodle Cutover](2026-08/01-nucleus-renderer-and-poodle-cutover.md)

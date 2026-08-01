@@ -22,7 +22,11 @@ display observation.
 Card 098's project-layout cutover is Nucleus commit
 `fc083647f1bad76a7f544efe0f1644b66c042571`. Its exact Longhorn shape freeze
 is commit `01b9c0a79a8af9214984c29c3969db8a8dc790d3`.
-An unrelated `TerminalPanel.svelte` worktree edit remained outside the cutover.
+Card 099's renderer cutover is Nucleus commit
+`74ca4e7c72f447e064419de6dc72502265cbbf49`. It uses Longhorn Poodle commit
+`ca755cbd332260abd971d86509f6190a0e76d269`.
+Card 098's unrelated `TerminalPanel.svelte` edit was independently committed
+before Card 099 and remained outside both migration diffs.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
 is:
@@ -31,10 +35,10 @@ is:
 display -> window -> region -> panel
 ```
 
-The primary window contains one project-selected five-region layout. Layouts
-are local client state keyed by project id. Native window placement remains
-global. Product use has therefore strengthened, not weakened, the Longhorn
-no-Surface composition.
+The primary window contains one project-selected five-region layout. One
+checked client session projects the selected project and dispatches exact
+revisioned commands. Native window placement remains global. Product use has
+therefore strengthened, not weakened, the Longhorn no-Surface composition.
 
 Nucleus roadmap `g05/001` is complete. The operator accepted cross-project
 layout retention and confirmed a previously unseen project opens with Agent
@@ -47,7 +51,7 @@ Chat only. Card 095 admits bounded donor writes from exact clean receipts.
 | storage roots | `desktop_profile.rs` | `longhorn-config`, `longhorn-tauri-config` | app identity, domain registration, retention |
 | primary window placement | registered Longhorn host | complete | main-window role, defaults, close policy |
 | five-region document | registered Longhorn layout domain | complete | schema registration, project scope, panel catalogue |
-| renderer layout state | `workspaceUi.ts`, `ProjectWorkspaceStage.svelte` | `@longhorn/layout`, `@longhorn/svelte/layout` and public Poodle bindings | panel bodies, labels, resources, frame composition |
+| renderer layout state | checked Longhorn client and public Poodle bindings | complete | panel bodies, labels, icons, resources, frame composition, native-handle cleanup |
 | native Browser viewport | `browser_panel.rs`, `browserPanel.ts`, `BrowserPanel.svelte` | native-content kernel, Tauri child-view adapter, checked client and Svelte session | browser policy, toolbar, messages, source and lifecycle choices |
 | project/task/runtime state | Nucleus server and product crates | none | all authority remains in Nucleus |
 
@@ -130,10 +134,12 @@ The migration preserves:
 - resource targets outside the shared layout document
 
 Card 098 adds expected-revision mutation and separate registered persistence.
-The transition DTO carries the authoritative revision and the renderer
-serializes snapshot submissions; Card 099 removes whole-snapshot mutation in
-favor of the checked generated client. No Surface package, state, protocol, or
-compatibility alias enters Nucleus.
+Card 099 removes the transition DTO and whole-snapshot save. The renderer now
+registers its listener before the first snapshot, rejects older projection
+revisions and foreign projects, scopes optimism by request id, and invalidates
+late results by client generation. Project switch and unmount destroy the
+listener, binding, snapshot, pending presentation map, and optimistic state.
+No Surface package, state, protocol, or compatibility alias enters Nucleus.
 
 ## Browser Policy Map
 
@@ -158,26 +164,30 @@ The native child remains a mechanism under Nucleus browser policy.
 | close | panel close destroys the child; ordinary unmount or project switch hides it for reuse |
 | focus | construction stays unfocused; focus behavior must be observed, not fabricated |
 
-Current overlay discovery queries the private selector
-`.poodle-popover__surface, [role="menu"]`. Poodle publicly exposes open-state
-callbacks plus `anchored` and `portal` for consumer-built overlays, but its
-built-in Popover and Menu surfaces expose neither their element nor geometry.
-The helper queries below the component's former DOM ancestor, while Poodle
-portals both anchored surfaces to the theme root. The live surface is therefore
-structurally outside the query root. This is a latent donor defect: migration
-preserves the stated exact-intersection policy, not the unreachable lookup.
-The private selector cannot move into Longhorn. Before renderer cutover,
-Nucleus must supply final visibility through explicit consumer state and the
-Poodle-owned snapshot seam defined in
-`poodle-overlay-geometry-boundary.md`. If that seam cannot preserve
-intersection behavior, stop rather than hiding native content for every open
-overlay.
+Card 099 removes the private selector
+`.poodle-popover__surface, [role="menu"]` and all Browser viewport DOM
+discovery. Popover and Menu publish public surface-geometry changes into a
+Nucleus-owned overlay map. Browser panels publish their viewport rectangles
+into the same adapter. Any change on either side recomputes the exact final set
+of intersected Browser panel ids. Full-screen project management retains its
+separate explicit hide-all policy.
+
+The adapter imports only public Poodle geometry types. It knows no Poodle
+class, role, portal structure, generated id, MIME, Tauri type, or Longhorn
+native-content mechanism. Mounted and unit tests cover movement between two
+Browser viewports, nested Menu surfaces, Browser movement, project switch,
+late result rejection, teardown, and remount.
 
 Poodle g12.018 implements the public snapshot seam at
 `ef41f412ad7b45c2ee760c1da9bf41ef876855e8`. Its clean Svelte artifact proof is
 `ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`.
 Nucleus may consume the exact clean sibling source during private development;
 the artifact proof remains the compatibility evidence.
+
+The renderer lock at Card 099 pins local private Longhorn and Poodle sources
+through one override graph. Frozen install, Svelte check, mounted tests, and
+production build pass without a duplicate Svelte runtime. Package-manager
+publication remains deferred.
 
 The current Tauri capability names only the bundled `main` webview. That is
 useful negative evidence: remote children receive no app capability. Cutover
@@ -204,6 +214,8 @@ Cutovers are vertical and single-authority:
 3. transfer project-keyed layout mechanics
 4. transfer checked renderer lifetime and public Poodle bindings
 5. transfer native child coordination
+
+Cards 096-099 complete the first four slices. Card 100 owns the fifth.
 
 Before a slice changes authority, freeze its donor fixtures and preserve its
 source data. After it passes, remove the superseded active mechanism in that

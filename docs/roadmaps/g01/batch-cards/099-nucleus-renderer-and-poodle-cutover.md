@@ -1,6 +1,6 @@
 # 099 Nucleus Renderer And Poodle Cutover
 
-Status: ready
+Status: completed
 Owner: Tom
 Roadmap: g01.014 batch 3
 Governing refs: contracts 003, 010, 012-014, and 017; Poodle overlay geometry
@@ -58,12 +58,32 @@ bindings without turning Longhorn into the Nucleus app shell.
 
 ## Evidence Required
 
-- mounted project-switch and mutation traces
-- listener, stale-result, remount, and teardown tests
-- Poodle public-API audit
-- dependency and peer-runtime inventory
-- renderer authority and private-selector diff
-- focused Svelte and Nucleus desktop checks
+- [x] mounted project-switch and mutation traces
+- [x] listener, stale-result, remount, and teardown tests
+- [x] Poodle public-API audit
+- [x] dependency and peer-runtime inventory
+- [x] renderer authority and private-selector diff
+- [x] focused Svelte and Nucleus desktop checks
+
+## Completion
+
+Nucleus commit `74ca4e7c72f447e064419de6dc72502265cbbf49`
+replaces aggregate workspace snapshot mutation with exact checked commands,
+one project-scoped Svelte session, request-keyed optimism, public Longhorn
+Poodle composition, and explicit Popover/Menu-to-Browser geometry.
+
+Longhorn commit `ca755cbd332260abd971d86509f6190a0e76d269`
+adds the state-only binding entry point, presentation pass-through, and
+projection-only hidden SplitView panes. Nucleus retains project scope, panel
+bodies and presentation, resources, frame composition, native handles, and
+cleanup. No private selector, Poodle MIME, generated tab id, Surface package,
+or unversioned renderer save remains.
+
+Mounted tests prove project switch, late load, late mutation, listener
+teardown, optimism cleanup, and remount. Overlay tests recompute final Browser
+visibility when either surface or viewport geometry moves. The frozen private
+file graph installs without a second Svelte runtime. Package-manager
+publication remains deferred.
 
 ## Stop Conditions
 

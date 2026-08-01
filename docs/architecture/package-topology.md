@@ -228,7 +228,10 @@ Card 093 proves isolated production artifacts, exact optional graphs, and
 three-shape Rust/renderer conformance. g01.014 Cards 094-101 compile the
 Nucleus migration. Card 094 is the read-only behavior and policy freeze;
 Card 095 admits the private artifact graph and both Nucleus consumer checks.
-Card 096 begins the bounded donor cutover.
+Cards 096-098 complete storage, protected-window, and project-layout authority
+cutovers. Card 099 completes listener-first renderer state, public Poodle
+composition, and explicit overlay geometry. Card 100 is the next bounded
+native Browser slice.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 

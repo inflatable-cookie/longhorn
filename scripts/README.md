@@ -72,6 +72,15 @@ duplicate removal, and Surface absence:
 effigy proof:nucleus-layout-cutover
 ```
 
+Nucleus renderer cutover proof reads the pinned consumer and Longhorn commits,
+checks listener-first project epochs, exact revisioned commands, public Poodle
+composition, explicit overlay geometry, lifecycle teardown, private-selector
+absence, and the frozen private renderer graph:
+
+```sh
+effigy proof:nucleus-renderer-cutover
+```
+
 The default donor is `../nucleus`. Set `NUCLEUS_REPO` to an exact clean
 checkout when unrelated Nucleus work is in progress.
 

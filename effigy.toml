@@ -135,6 +135,12 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-nucleus-card098-layout" },
   { task = "proof:nucleus-layout-cutover" },
 ]
+"proof:nucleus-renderer-cutover" = "bun scripts/verify-nucleus-card099.ts"
+"check:northstar:g01-nucleus-card099-renderer" = "effigy docs check paths docs/README.md effigy.toml scripts/README.md scripts/verify-nucleus-card099.ts fixtures/migration/nucleus-card099/renderer-cutover-v1.json packages/poodle/package.json packages/poodle/README.md packages/poodle/src/binding.ts packages/poodle/src/LayoutDockRegion.svelte packages/poodle/src/LayoutSplitView.svelte packages/poodle/tests docs/architecture/native-content-island-composition.md docs/architecture/nucleus-migration-map.md docs/architecture/package-topology.md docs/architecture/poodle-overlay-geometry-boundary.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/014-layout-container-region-and-panel-core.md docs/contracts/017-native-content-island-coordination.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/099-nucleus-renderer-and-poodle-cutover.md docs/roadmaps/g01/batch-cards/100-nucleus-native-browser-cutover.md docs/logs/README.md docs/logs/2026-08/01-nucleus-renderer-and-poodle-cutover.md"
+"qa:northstar:g01-nucleus-card099-renderer" = [
+  { task = "check:northstar:g01-nucleus-card099-renderer" },
+  { task = "proof:nucleus-renderer-cutover" },
+]
 "check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
 "check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
 "check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
@@ -494,6 +500,7 @@ test = [
   { task = "qa:northstar:g01-nucleus-card096-storage" },
   { task = "qa:northstar:g01-nucleus-card097-window" },
   { task = "qa:northstar:g01-nucleus-card098-layout" },
+  { task = "qa:northstar:g01-nucleus-card099-renderer" },
   { task = "qa:northstar:g01-native-content-child-webview" },
   { task = "qa:northstar:g01-native-content-isolated-window" },
   { task = "qa:northstar:g01-native-content-backing-surface" },

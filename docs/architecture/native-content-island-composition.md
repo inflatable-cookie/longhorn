@@ -153,7 +153,7 @@ remain exact and unchanged.
 
 | Consumer | Artifact gate | Next admission | Native-content cutover blocker |
 | --- | --- | --- | --- |
-| Nucleus | pass | Card 097 complete | Card 098 project-layout cutover |
+| Nucleus | pass | Card 099 complete | Card 100 native Browser cutover |
 | Soundcheck | pass | after g01.014 and g01.015 | Signal/plugin ABI and authorization, helper/process ownership, native content and media policy |
 | Jetstream | pass | after g01.014 and g01.015 | native storage/WGPU construction, renderer/world/camera/picking/gizmo/frame-loop authority, semantic input mapping |
 | Loophole | not applicable | no current native-content migration | none claimed |
@@ -162,7 +162,8 @@ Artifact readiness is not donor cutover authority. The exact Nucleus Browser
 policy is in the canonical migration map and Card 094 freeze. Card 095 admits
 the private graph and both consumer checks. Card 096 completes the bounded
 storage slice. Card 097 replaces protected-window mechanics and keeps the
-native-content capability unchanged. Card 098 may replace project layout
+native-content capability unchanged. Cards 098-099 replace project layout
+authority and the checked renderer/Poodle edge. Card 100 may replace Browser
 authority without adding Surface state.
 
 ## Production Kernel Checkpoint

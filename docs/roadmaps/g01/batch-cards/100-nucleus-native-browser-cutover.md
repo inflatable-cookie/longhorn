@@ -1,6 +1,6 @@
 # 100 Nucleus Native Browser Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.014 batch 4
 Governing refs: contracts 003, 010, 012, 013, and 017; Cards 089, 092-095, and 099

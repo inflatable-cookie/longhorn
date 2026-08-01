@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
+- [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
 
 ## Planned
 
@@ -15,7 +15,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [100 Nucleus Native Browser Cutover](100-nucleus-native-browser-cutover.md)
 - [101 Nucleus Migration Conformance And Closeout](101-nucleus-migration-conformance-and-closeout.md)
 
 ## Complete
@@ -113,8 +112,9 @@ None.
 - [096 Nucleus Storage And Legacy Import](096-nucleus-storage-and-legacy-import.md)
 - [097 Nucleus Protected Window Host Cutover](097-nucleus-protected-window-host-cutover.md)
 - [098 Nucleus Project Layout Authority Cutover](098-nucleus-project-layout-authority-cutover.md)
+- [099 Nucleus Renderer And Poodle Cutover](099-nucleus-renderer-and-poodle-cutover.md)
 
 ## Next Task
 
-Execute Card 099. Replace renderer whole-snapshot mutation with checked
-per-window state and public Poodle composition.
+Execute Card 100. Replace Nucleus Browser child-view coordination with the
+production native-content graph while retaining product and security policy.

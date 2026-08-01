@@ -115,7 +115,7 @@ Nucleus adapter keeps a surface map per product overlay and intersects all
 visible snapshots with all mounted Browser viewport snapshots. It recomputes
 when either side changes; opening time alone is insufficient.
 
-Acceptance must cover:
+Completed acceptance covers:
 
 - a portalled Popover intersecting one of two Browser viewports
 - a Menu moving from non-intersecting to intersecting while open
@@ -123,6 +123,11 @@ Acceptance must cover:
 - close, project switch, and component destruction clearing stale ids
 - no private Poodle selector remaining in Nucleus or Longhorn
 - the project-manager modal retaining its separate hide-all policy
+
+Nucleus commit `74ca4e7c72f447e064419de6dc72502265cbbf49`
+implements the adapter and removes DOM discovery. Popover/Menu and Browser
+movement tests pass. Card 099's mounted session proof covers project switch,
+late mutation, teardown, and remount.
 
 ## Admission Decision
 

@@ -1,6 +1,6 @@
 # g01.014 Nucleus No-Surface Migration
 
-Status: active; Card 098 complete; Card 099 ready
+Status: active; Card 099 complete; Card 100 ready
 Owner: Tom  
 Updated: 2026-08-01
 Governing refs: contracts 003, 004, 009, 012-014, and 017; g01.018;
@@ -34,8 +34,8 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 ### Batch 3: no-Surface workspace
 
 - [x] replace generic Rust layout mechanics with registered Longhorn authority
-- [ ] adopt checked renderer state and public Poodle bindings
-- [ ] retain project scope, panel bodies, resources, and product policy in Nucleus
+- [x] adopt checked renderer state and public Poodle bindings
+- [x] retain project scope, panel bodies, resources, and product policy in Nucleus
 
 ### Batch 4: native browser and closeout
 
@@ -51,7 +51,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 - [x] existing `.nucleus` data migrates without loss or silent fallback
 - [x] the primary native window restores and flushes through Longhorn
 - [x] project-keyed five-region layouts use one shared mutation authority
-- [ ] renderer clients reconcile checked snapshots and revisions
+- [x] renderer clients reconcile checked snapshots and revisions
 - [ ] native Browser panels use the child-view and Svelte coordination packages
 - [ ] Nucleus retains all product and browser-policy authority
 
@@ -74,7 +74,7 @@ task, runtime, resource, panel-catalogue, or browser policy into Longhorn.
 
 Ready:
 
-- `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
+- `batch-cards/100-nucleus-native-browser-cutover.md`
 
 Active:
 
@@ -82,7 +82,6 @@ Active:
 
 Planned:
 
-- `batch-cards/100-nucleus-native-browser-cutover.md`
 - `batch-cards/101-nucleus-migration-conformance-and-closeout.md`
 
 Complete:
@@ -92,6 +91,7 @@ Complete:
 - `batch-cards/096-nucleus-storage-and-legacy-import.md`
 - `batch-cards/097-nucleus-protected-window-host-cutover.md`
 - `batch-cards/098-nucleus-project-layout-authority-cutover.md`
+- `batch-cards/099-nucleus-renderer-and-poodle-cutover.md`
 
 ## Planning Checkpoint
 
@@ -111,4 +111,7 @@ layout authority. Deterministic project containers retain isolated order,
 active tabs, regions, and ratios. Product presentations and runtimes stay in
 Nucleus. Raw schemas 1-10 migrate backup-first, stale and invalid mutations
 preserve the shared document, and window/layout writes remain independent.
-Card 099 is ready. Package-manager publication remains deferred.
+Card 099 removes renderer snapshot authority, adopts listener-first checked
+project sessions and public Poodle bindings, and replaces private overlay DOM
+inspection with explicit two-sided geometry. Card 100 is ready.
+Package-manager publication remains deferred.
