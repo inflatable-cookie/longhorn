@@ -5,8 +5,6 @@ fn key(x: i32, scale: f64) -> MonitorMatchKey {
         name: Some("Display".to_string()),
         position: (x, 0),
         size: (1920, 1080),
-        work_position: (x, 24),
-        work_size: (1920, 1056),
         scale_bits: scale.to_bits(),
     }
 }
@@ -17,15 +15,23 @@ fn primary_key_keeps_raw_scale_bits_exact() {
     assert_ne!(primary, key(0, 1.250_49));
     assert_eq!(primary, key(0, 1.250_4));
     assert_eq!(
-        exact_primary_key_index(&[key(-1920, 1.0), primary.clone()], &primary),
-        Ok(1)
+        match_primary_key_index(&[key(-1920, 1.0), primary.clone()], &primary),
+        Ok(PrimaryMonitorMatch::Existing(1))
     );
     assert_eq!(
-        exact_primary_key_index(&[primary.clone(), primary.clone()], &primary),
+        match_primary_key_index(&[primary.clone(), primary.clone()], &primary),
         Err(TauriProbeError::AmbiguousPrimaryMonitor { matches: 2 })
     );
     assert_eq!(
-        exact_primary_key_index(&[key(1920, 1.0)], &primary),
+        match_primary_key_index(&[key(1920, 1.0)], &primary),
         Err(TauriProbeError::PrimaryMonitorNotFound)
+    );
+}
+
+#[test]
+fn valid_primary_becomes_the_sole_observation_when_available_is_empty() {
+    assert_eq!(
+        match_primary_key_index(&[], &key(0, 2.0)),
+        Ok(PrimaryMonitorMatch::SoleObservedPrimary)
     );
 }

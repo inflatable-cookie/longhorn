@@ -17,7 +17,7 @@ pub fn probe_tauri_desktop<R: Runtime>(
     managed_windows: &[ManagedWebviewWindow<R>],
     metadata_provider: &mut impl DisplayMetadataProvider,
 ) -> Result<PhysicalDesktopSnapshot, TauriProbeError> {
-    let available = host_result(
+    let mut available = host_result(
         app.available_monitors(),
         HostProbeOperation::AvailableMonitors,
         None,
@@ -27,13 +27,24 @@ pub fn probe_tauri_desktop<R: Runtime>(
         HostProbeOperation::PrimaryMonitor,
         None,
     )?;
-    let primary_index = primary
-        .as_ref()
-        .map(|primary| {
+    let primary_index = match primary.as_ref() {
+        Some(primary) => {
             monitor_facts(primary, ProbeTarget::PrimaryDisplay)?;
-            exact_primary_index(&available, primary)
-        })
-        .transpose()?;
+            let primary_key = MonitorMatchKey::from(primary);
+            let available_keys = available
+                .iter()
+                .map(MonitorMatchKey::from)
+                .collect::<Vec<_>>();
+            match match_primary_key_index(&available_keys, &primary_key)? {
+                PrimaryMonitorMatch::Existing(index) => Some(index),
+                PrimaryMonitorMatch::SoleObservedPrimary => {
+                    available.push(primary.clone());
+                    Some(0)
+                }
+            }
+        }
+        None => None,
+    };
 
     let mut monitors = available
         .iter()
@@ -61,19 +72,19 @@ pub fn probe_tauri_desktop<R: Runtime>(
     Ok(PhysicalDesktopSnapshot::new(displays, windows))
 }
 
-fn exact_primary_index(monitors: &[Monitor], primary: &Monitor) -> Result<usize, TauriProbeError> {
-    let primary = MonitorMatchKey::from(primary);
-    let monitors = monitors
-        .iter()
-        .map(MonitorMatchKey::from)
-        .collect::<Vec<_>>();
-    exact_primary_key_index(&monitors, &primary)
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PrimaryMonitorMatch {
+    Existing(usize),
+    SoleObservedPrimary,
 }
 
-fn exact_primary_key_index(
+fn match_primary_key_index(
     monitors: &[MonitorMatchKey],
     primary: &MonitorMatchKey,
-) -> Result<usize, TauriProbeError> {
+) -> Result<PrimaryMonitorMatch, TauriProbeError> {
+    if monitors.is_empty() {
+        return Ok(PrimaryMonitorMatch::SoleObservedPrimary);
+    }
     let matches = monitors
         .iter()
         .enumerate()
@@ -81,7 +92,7 @@ fn exact_primary_key_index(
         .collect::<Vec<_>>();
     match matches.as_slice() {
         [] => Err(TauriProbeError::PrimaryMonitorNotFound),
-        [index] => Ok(*index),
+        [index] => Ok(PrimaryMonitorMatch::Existing(*index)),
         _ => Err(TauriProbeError::AmbiguousPrimaryMonitor {
             matches: matches.len(),
         }),
@@ -90,11 +101,11 @@ fn exact_primary_key_index(
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct MonitorMatchKey {
+    // Work area is deliberately excluded. Tauri may return primary and
+    // available snapshots across a menu-bar or dock transition.
     name: Option<String>,
     position: (i32, i32),
     size: (u32, u32),
-    work_position: (i32, i32),
-    work_size: (u32, u32),
     scale_bits: u64,
 }
 
@@ -102,13 +113,10 @@ impl From<&Monitor> for MonitorMatchKey {
     fn from(monitor: &Monitor) -> Self {
         let position = monitor.position();
         let size = monitor.size();
-        let work = monitor.work_area();
         Self {
             name: monitor.name().cloned(),
             position: (position.x, position.y),
             size: (size.width, size.height),
-            work_position: (work.position.x, work.position.y),
-            work_size: (work.size.width, work.size.height),
             scale_bits: monitor.scale_factor().to_bits(),
         }
     }
