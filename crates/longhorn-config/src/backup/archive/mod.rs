@@ -10,7 +10,7 @@ mod retention;
 mod types;
 
 pub use codec::inspect_backup_archive;
-pub use encoding::encode_backup_archive;
+pub use encoding::{encode_backup_archive, encode_backup_export_archive};
 pub use error::BackupArchiveError;
 pub use publication::{export_backup, publish_operational_backup};
 pub use publication_types::{

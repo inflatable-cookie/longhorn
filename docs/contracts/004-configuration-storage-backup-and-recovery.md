@@ -370,6 +370,15 @@ Inspection and receipts report those states separately.
 Operational backup uses an injected app-data backup root. User export uses an
 explicit user-selected parent and never enters operational retention.
 
+Exporting an inventoried operational archive revalidates its exact digest,
+inspects it within the configured archive bounds, and re-encodes the verified
+manifest and payload set through the canonical encoder with only the manifest
+kind changed to `user-export`. Archive id, creation time, application,
+producer, consistency groups, domains, exclusions, payload bytes, and payload
+checksums remain unchanged. The operational source is not mutated. A consumer
+must not recapture current state, byte-copy an operational archive, or carry a
+second ZIP codec to implement export.
+
 Both write a unique sibling partial, sync it, reopen and verify it, rename it
 once, and report achieved durability. Export does not overwrite an existing
 file without explicit caller authority.

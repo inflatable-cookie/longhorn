@@ -50,8 +50,8 @@ pub use backup::{
     RestorePlanError, RestorePlanReceipt, RestorePrepareError, RestorePrepareOptions,
     RestoreRecoveryError, RestoreRecoveryOptions, RestoreRecoveryOutcome, RestoreRecoveryReceipt,
     RestoreSafetyBackupOptions, RestoreStaging, RestoreStagingReceipt, Sha256Digest,
-    Sha256DigestError, apply_backup_retention, encode_backup_archive, export_backup,
-    inspect_backup_archive, list_operational_backups, plan_backup_retention,
+    Sha256DigestError, apply_backup_retention, encode_backup_archive, encode_backup_export_archive,
+    export_backup, inspect_backup_archive, list_operational_backups, plan_backup_retention,
     publish_operational_backup,
 };
 pub use coordination::{

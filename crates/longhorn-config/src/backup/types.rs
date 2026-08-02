@@ -409,6 +409,12 @@ impl BackupManifest {
     pub fn exclusions(&self) -> &[BackupExclusion] {
         &self.exclusions
     }
+
+    pub(crate) fn with_kind(&self, kind: BackupKind) -> Self {
+        let mut manifest = self.clone();
+        manifest.kind = kind;
+        manifest
+    }
 }
 
 fn deserialize_format<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {

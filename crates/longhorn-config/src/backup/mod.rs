@@ -47,7 +47,7 @@ pub use archive::{
     BackupRetentionDiagnosticKind, BackupRetentionPlan, BackupRetentionPlanError,
     BackupRetentionPolicy, BackupRetentionPolicyError, BackupRetentionReason, EncodedBackupArchive,
     ExportOverwrite, InspectedBackupPayload, MilestoneRetention, apply_backup_retention,
-    encode_backup_archive, export_backup, inspect_backup_archive, list_operational_backups,
-    plan_backup_retention, publish_operational_backup,
+    encode_backup_archive, encode_backup_export_archive, export_backup, inspect_backup_archive,
+    list_operational_backups, plan_backup_retention, publish_operational_backup,
 };
 pub(crate) use catalog::CatalogDecision;

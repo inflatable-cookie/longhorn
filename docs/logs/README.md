@@ -2,6 +2,8 @@
 
 Logs record meaningful batch evidence, not individual tasks.
 
+- [Canonical User-export Re-encoding](2026-08/02-canonical-user-export-reencoding.md)
+
 ## 2026-07
 
 - [Initial Northstar Setup And Tauri Audit](2026-07/27-231720-initial-northstar-and-tauri-audit.md)
