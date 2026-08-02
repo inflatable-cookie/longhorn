@@ -167,6 +167,20 @@ The default donor is `../soundcheck`. Override it with `SOUNDCHECK_REPO` only
 for a checkout containing the recorded cutover commit. Full native GUI
 fresh/restart proof remains Card 119 work.
 
+Soundcheck Card 116 verifies the sealed modal settings registry, exact admitted
+config capabilities, one-domain Agent Review apply unit, native SQLite backup
+inventory and confirmation-bound restore adapter, removed renderer authority,
+and retained soundcheck-library commit:
+
+```sh
+effigy qa:northstar:g01-soundcheck-card116
+```
+
+The default sibling checkouts are `../soundcheck` and
+`../soundcheck-library`. Override them only with `SOUNDCHECK_REPO` or
+`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Native
+restore/restart conformance remains Card 119 work.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

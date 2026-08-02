@@ -1,6 +1,6 @@
 # 117 Soundcheck Plugin-scan Operation Adoption
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003, 010, 012-013, and 015; Card 116

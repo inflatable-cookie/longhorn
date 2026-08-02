@@ -1,6 +1,6 @@
 # 116 Soundcheck Settings, Backup, And Recovery Cutover
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003-005, 010, 012-013; Card 115

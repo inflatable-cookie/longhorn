@@ -1,0 +1,97 @@
+{
+  "schema": "longhorn.soundcheck-settings-backup-recovery-cutover.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_prior_commit": "ea566ea4d7c9727641401048e91f55d545f0168c",
+    "longhorn_shell_commit": "31022048064ac0b49345b7df6a19f6653e37a70d",
+    "soundcheck_prior_commit": "c2351a9f7f8de3a5a16ca633f4172ddb10f4665e",
+    "soundcheck_cutover_commit": "af715e2fafca8c14d91bd352740f671ff41f24e9",
+    "soundcheck_library_commit": "40418635674d598f7e311bf311c3165300edd35b",
+    "soundcheck_cargo_lock_sha256": "4183ea91ae56e88788a10fdf265f4a83df04643795d82815ab948d4345898fd2",
+    "soundcheck_bun_lock_sha256": "2460e9db82353ff302bae5bf7b9572c3a283b9e26bae836ba832cc7ebd78c13f"
+  },
+  "registry": {
+    "generation": 1,
+    "module": "soundcheck:settings",
+    "section": "soundcheck:preferences",
+    "scope": "soundcheck:app",
+    "apply_unit": "soundcheck:app.apply",
+    "timing": "immediate",
+    "reset_supported": false,
+    "product_pages": [
+      "soundcheck:agent-review",
+      "soundcheck:custom-tags",
+      "soundcheck:vendors",
+      "soundcheck:composer",
+      "soundcheck:keepsake"
+    ],
+    "shared_pages": ["longhorn:storage", "longhorn:backup", "longhorn:restore"],
+    "capabilities": [
+      "longhorn:config.storage-diagnostics",
+      "longhorn:config.backup-inventory",
+      "longhorn:config.restore-inspection",
+      "longhorn:config.restore-adapter-execution"
+    ]
+  },
+  "settings": {
+    "entries": [
+      "soundcheck:agent-review.model",
+      "soundcheck:agent-review.reasoning-effort"
+    ],
+    "pair_is_atomic": true,
+    "product_validation_retained": true,
+    "renderer_save_loop_removed": true,
+    "direct_tauri_mutation_removed": true
+  },
+  "backup_restore": {
+    "domain": "soundcheck.library-database",
+    "authority": "soundcheck-library",
+    "adapter": "soundcheck-library-sqlite-online-v1",
+    "inventory": "automatic-backups-newest-first",
+    "integrity": "sqlite-quick-check-plus-exact-sha256",
+    "authenticity": "unauthenticated",
+    "selection": "inventory-only",
+    "confirmation_binds": [
+      "backup-id",
+      "archive-sha256",
+      "current-database-online-snapshot-sha256"
+    ],
+    "participation": "failureAtomic",
+    "terminal_outcomes": ["verified", "rolledBack", "recoveryRequired"],
+    "restore_event": "soundcheck://library-restored",
+    "renderer_filesystem_authority": false,
+    "schema_authority_moved": false,
+    "retention_authority_moved": false
+  },
+  "unsupported": {
+    "storage_transition": true,
+    "backup_create": true,
+    "backup_export": true,
+    "backup_retention": true,
+    "ordinary_restore": true,
+    "restore_recovery": true
+  },
+  "packages": {
+    "rust": [
+      "longhorn-settings",
+      "longhorn-settings-config",
+      "longhorn-tauri-settings"
+    ],
+    "typescript": [
+      "@longhorn/core",
+      "@longhorn/config",
+      "@longhorn/settings",
+      "@longhorn/tauri"
+    ],
+    "package_manager_publication": false
+  },
+  "validation": {
+    "soundcheck_app_library_passed": 105,
+    "soundcheck_app_library_ignored": 2,
+    "soundcheck_renderer_tests": 28,
+    "longhorn_settings_shell_tests": 20,
+    "renderer_build": "pass",
+    "native_gui_proof": "deferred-to-card119",
+    "live_data_mutated": false
+  }
+}

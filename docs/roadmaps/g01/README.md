@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 116 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 117 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -362,6 +362,6 @@ releases remain outside the chain.
 
 ## Next Task
 
-Execute Card 116. Compose Soundcheck product pages with shared settings,
-storage, backup, restore, conflict, and recovery modules while retaining
-soundcheck-library authority.
+Execute Card 117. Move plugin-scan structural lifecycle onto Longhorn operation
+authority while retaining soundcheck-library execution, reports, retry
+meaning, and recovery.

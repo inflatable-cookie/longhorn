@@ -146,6 +146,6 @@ None.
 
 ## Next Task
 
-Execute Card 116. Compose Soundcheck product pages with shared settings,
-storage, backup, restore, conflict, and recovery modules while retaining
-soundcheck-library authority.
+Execute Card 117. Move plugin-scan structural lifecycle onto Longhorn operation
+authority while retaining soundcheck-library execution, reports, retry
+meaning, and recovery.

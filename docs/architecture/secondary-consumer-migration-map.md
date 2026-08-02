@@ -68,9 +68,9 @@ The exact aggregate set ids are:
 - Longhorn TypeScript: `7f62a7d21889c778803cda687248a9048e497cee80d2c2ceb7fa6957e18b3ce0`
 - Longhorn Rust: `42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8`
 
-Card 115's Soundcheck storage, config, and protected-window slice is complete.
-Card 116's settings/recovery slice is ready. Bovine and Jetstream remain
-read-only.
+Cards 115-116 complete Soundcheck storage, protected-window, settings, backup,
+and restore structure. Card 117's plugin-scan operation slice is ready. Bovine
+and Jetstream remain read-only.
 
 ## Card 115 Soundcheck Cutover
 
@@ -100,6 +100,29 @@ hidden restore, known-display reconciliation, `320x240` minimum, guarded
 restore/page-ready reveal, 300 ms capture debounce, and two-second close flush.
 The previous settings-file window worker is removed. Full native GUI and
 rollback conformance remains the Card 119 closeout gate.
+
+## Card 116 Soundcheck Settings And Recovery Cutover
+
+One sealed registry and one modal `SettingsShell` now own settings structure.
+Soundcheck retains the five product renderers and Agent Review schema. Its
+model/reasoning pair publishes through one immediate
+`soundcheck:app.apply` unit; direct renderer save coordination and the direct
+Tauri mutation command are gone.
+
+The shared Storage, Backups, and Restore pages are admitted for exactly four
+capabilities: storage diagnostics, backup inventory, restore inspection, and
+custom-adapter execution. Storage transitions, backup create/export/retention,
+ordinary restore, and recovery remain absent instead of rendering empty
+actions.
+
+`soundcheck-library` still owns automatic backup ids, ordering, retention,
+SQLite validation, safety backup, schema migration, restore, and rollback.
+Longhorn projects exact inventory and coordinates confirmation only. Restore
+inspection binds the native backup id, exact archive hash, and a fresh online
+snapshot hash of the current database. Execution rechecks that evidence before
+calling the sibling restore path and reports verified, rolled-back, or
+recovery-required terminal state. The renderer receives no filesystem or
+direct backup command.
 
 ## Soundcheck
 
