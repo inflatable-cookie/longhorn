@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [119 Soundcheck Migration Conformance And Closeout](119-soundcheck-migration-conformance-and-closeout.md)
+- [121 Bovine Minimal Composition Conformance And Closeout](121-bovine-minimal-composition-conformance-and-closeout.md)
 
 ## Operator-held
 
@@ -19,8 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [120 Bovine Config And Settings Cutover](120-bovine-config-and-settings-cutover.md)
-- [121 Bovine Minimal Composition Conformance And Closeout](121-bovine-minimal-composition-conformance-and-closeout.md)
 - [122 Jetstream Bridge, Command, And Keyboard Cutover](122-jetstream-bridge-command-and-keyboard-cutover.md)
 - [123 Jetstream Backing-surface Coordination Cutover](123-jetstream-backing-surface-coordination-cutover.md)
 - [124 Jetstream Migration Conformance And Closeout](124-jetstream-migration-conformance-and-closeout.md)
@@ -36,6 +34,8 @@ None.
 - [116 Soundcheck Settings, Backup, And Recovery Cutover](116-soundcheck-settings-backup-and-recovery-cutover.md)
 - [117 Soundcheck Plugin-scan Operation Adoption](117-soundcheck-plugin-scan-operation-adoption.md)
 - [118 Soundcheck Isolated-window Coordination Cutover](118-soundcheck-isolated-window-coordination-cutover.md)
+- [119 Soundcheck Migration Conformance And Closeout](119-soundcheck-migration-conformance-and-closeout.md)
+- [120 Bovine Config And Settings Cutover](120-bovine-config-and-settings-cutover.md)
 - [001 Configuration Domain Store](001-configuration-domain-store.md)
 - [002 Coordinated Atomic Configuration Mutation](002-coordinated-atomic-configuration-mutation.md)
 - [003 Debounced Mutation And Explicit Flush](003-debounced-mutation-and-explicit-flush.md)
@@ -146,5 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 120. Preserve Bovine's unrelated docs work and migrate only its
-minimal config/settings composition after rechecking exact path overlap.
+Execute Card 121. Prove Bovine's minimal composition, failure paths, settings
+lifetime, exact artifacts, duplicate cleanup, and retained product authority.

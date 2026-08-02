@@ -1,0 +1,92 @@
+{
+  "schema": "longhorn.bovine-config-settings-cutover.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_selected_source_commit": "b25a46f6ab5d06fa1cc06867f2cae61712b7c162",
+    "bovine_prior_commit": "b713644e08be384d20879b0ac31f7899589c8a9b",
+    "bovine_cutover_commit": "6afc8da9f4ccc2989541312560eaeb4a154057d2",
+    "bovine_cargo_lock_sha256": "4637e40f72b48f9404f8080b2764af03ab0da9993b4f77ed8411508e9283132c",
+    "bovine_bun_lock_sha256": "a8753f68c4bb67c5a908ef66ecd13a33cc2b5735bb26aa239c9052f1e22b829f"
+  },
+  "identity": {
+    "canonical_application_id": "com.acowtancy.bovine-accelerator",
+    "profile": "platform-native-v1",
+    "stable_storage_name": null,
+    "effective_leaf": "com.acowtancy.bovine-accelerator"
+  },
+  "domain": {
+    "id": "bovine.workspace-preferences",
+    "schema_version": 1,
+    "storage_class": "user-config",
+    "relative_path": "workspace-preferences.json",
+    "lock_timeout_ms": 1000,
+    "durability": "durable"
+  },
+  "legacy_import": {
+    "source": "app_config_dir/workspace.json",
+    "backup": "migration/bovine-workspace-card120-v1.json",
+    "receipt": "migration/bovine-workspace-card120-v1.receipt.json",
+    "exact_source_digest": true,
+    "exact_target_digest": true,
+    "interrupted_resume": true,
+    "receipt_reverified_on_startup": true,
+    "source_retained": true,
+    "cleanup_authorized": false,
+    "dual_write": false,
+    "silent_fallback": false,
+    "conflict_policy": "refuse"
+  },
+  "settings": {
+    "host": "modal",
+    "pages": ["bovine:workspace", "longhorn:storage"],
+    "capabilities": ["storageDiagnostics"],
+    "apply_units": ["bovine:workspace.apply"],
+    "timing": "staged",
+    "editable_fields": ["navigationRatio"],
+    "read_only_fields": ["workspaceRoot"]
+  },
+  "composition": {
+    "typescript_packages": [
+      "@longhorn/core",
+      "@longhorn/config",
+      "@longhorn/settings",
+      "@longhorn/tauri"
+    ],
+    "rust_packages": [
+      "longhorn-core",
+      "longhorn-config",
+      "longhorn-settings",
+      "longhorn-settings-config",
+      "longhorn-tauri-config",
+      "longhorn-tauri-settings"
+    ],
+    "forbidden_systems": [
+      "layout",
+      "surfaces",
+      "transfer",
+      "bridge",
+      "commands",
+      "history",
+      "operation",
+      "notifications",
+      "native-content"
+    ],
+    "poodle_public_packages": 5,
+    "source_aliases": false,
+    "package_manager_publication": false
+  },
+  "authority": {
+    "longhorn": ["storage layout", "config persistence", "settings structure", "Tauri transport"],
+    "bovine": ["content", "repository", "hierarchy", "search", "editorial", "validation", "Git", "navigation meaning"],
+    "poodle": ["visual primitives", "SplitView presentation"]
+  },
+  "validation": {
+    "rust_tests": 60,
+    "svelte_errors": 0,
+    "svelte_warnings": 0,
+    "native_debug_bundle": "src-tauri/target/debug/bundle/macos/Bovine Accelerator.app",
+    "private_artifact_fixture": "fixtures/migration/bovine-card120/private-artifact-admission-v1.json",
+    "unrelated_dirty_paths": 19,
+    "live_storage_mutated": false
+  }
+}

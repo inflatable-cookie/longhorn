@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 120 ready
+Status: executing; Card 121 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -51,8 +51,8 @@ lane from current evidence; it does not infer package publication.
 
 ### Batch 3: Bovine
 
-- [ ] preserve unrelated docs work and migrate one minimal preference domain
-- [ ] compose the minimal settings shell and exact Poodle artifacts
+- [x] preserve unrelated docs work and migrate one minimal preference domain
+- [x] compose the minimal settings shell and exact Poodle artifacts
 - [ ] close with no layout, Surface, service, command, history, or native-content edge
 
 ### Batch 4: Jetstream
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
+- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 
 Active:
 
@@ -104,8 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/120-bovine-config-and-settings-cutover.md`
-- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 - `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
@@ -121,13 +119,16 @@ Complete:
 - `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
 - `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
 - `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
+- `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
+- `batch-cards/120-bovine-config-and-settings-cutover.md`
 
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
-artifact graphs without consumer writes. Cards 115-119 complete Soundcheck's
-storage/window, settings/recovery, plugin-scan operation, isolated-window, and
-closeout slices. Card 120 is ready.
+artifact graphs without consumer writes. Cards 115-119 complete Soundcheck.
+Card 120 completes Bovine's canonical storage, one preference domain, minimal
+settings shell, and exact artifact cutover. Card 121 is ready for conformance
+and closeout.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -149,5 +150,5 @@ authority.
 
 ## Next Task
 
-Execute Card 120. Preserve Bovine's unrelated docs work and migrate only its
-minimal config/settings composition after rechecking exact path overlap.
+Execute Card 121. Prove Bovine's fresh, legacy, failure, restart, settings,
+artifact, duplicate-authority, and minimal optional-graph closeout.

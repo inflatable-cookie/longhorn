@@ -1,11 +1,11 @@
 # 120 Bovine Config And Settings Cutover
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 3
 Governing refs: contracts 003-005, 010, 012-013; Cards 113-114 and 119
 Depends on: Card 119
-Auto-start next card: no
+Auto-start next card: yes
 
 ## Objective
 
@@ -23,7 +23,7 @@ command, history, or native-content systems.
 ## Scope
 
 - canonical id `com.acowtancy.bovine-accelerator`
-- `native-platform-v1` with no stable-name override
+- `platform-native-v1` with no stable-name override
 - versioned workspace-preference domain and safe partial mutation
 - import of existing `app_config_dir/workspace.json`
 - selected workspace root plus presentation fields without content mutation
@@ -58,6 +58,46 @@ command, history, or native-content systems.
 - Longhorn would interpret content, navigation, editorial, or Git semantics
 - the selected content root would move into managed app storage
 - a Poodle source alias is required for the clean artifact graph
+
+## Result
+
+Bovine now resolves `platform-native-v1` from canonical id
+`com.acowtancy.bovine-accelerator` with no stable storage leaf. One versioned
+UserConfig domain owns workspace root and presentation preferences through
+coordinated durable mutation. Unknown preference fields survive round trips.
+
+Legacy `app_config_dir/workspace.json` import publishes and re-verifies exact
+backup, source, target, and receipt digests. Interrupted imports resume from
+the verified backup. Conflicts fail closed. The source remains in place and
+cleanup is not authorized.
+
+The modal registry contains only Bovine Workspace and shared Storage pages.
+Workspace root is read-only; navigation ratio is the sole staged setting.
+Only storage diagnostics are admitted. The renderer uses four Longhorn and
+five public Poodle packages. Six Longhorn Rust crates resolve. Layout,
+Surfaces, transfer, bridge, commands, history, operation, notifications, and
+native content remain absent.
+
+## Evidence
+
+- Bovine cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
+- fixture: `fixtures/migration/bovine-card120/config-settings-cutover-v1.json`
+- refreshed artifacts:
+  `fixtures/migration/bovine-card120/private-artifact-admission-v1.json`
+- verifier: `effigy proof:bovine-card120`
+
+All 19 pre-existing dirty paths remain confined to `docs/` and
+`CHANGELOG.md`. The cutover commit changed exactly 19 runtime, manifest, lock,
+and renderer paths. It changed no authored content or unrelated docs.
+
+## Validation
+
+Bovine `effigy qa` passes with 60 Rust tests and zero Svelte diagnostics. The
+renderer production build and macOS debug app bundle pass. Focused cases cover
+invalid selection, publication failure, restart, interrupted import, exact
+unknown-field retention, and completed-receipt drift. The isolated artifact
+proof reproduces all selected Longhorn and Poodle sets with one Svelte runtime
+and no package-manager publication. Live operator storage was not opened.
 
 ## Next Task
 

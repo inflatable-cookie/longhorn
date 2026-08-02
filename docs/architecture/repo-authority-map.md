@@ -51,4 +51,7 @@ Secondary-consumer selection and retained authority are compiled under
 behavior seams, selected packages, rollback inputs, and the protected Bovine
 docs-only overlap before any new consumer write. Card 119 closes Soundcheck's
 selected graph and retains every SQLite, scan, plugin, DAW, Composer,
-Keepsake, Signal, Swallowtail, and visual-product authority downstream.
+Keepsake, Signal, Swallowtail, and visual-product authority downstream. Card
+120 moves only Bovine's storage, preference persistence, settings structure,
+and Tauri transport to Longhorn; content, hierarchy, navigation meaning,
+editorial, validation, Git, and SplitView presentation remain downstream.

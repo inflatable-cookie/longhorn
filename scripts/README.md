@@ -152,9 +152,19 @@ three locked/offline Rust 1.85 and Tauri 2.11.5 graphs:
 effigy proof:secondary-consumer-private-artifacts
 ```
 
-The default receipt is the latest Card 119 refresh. Set
+The default receipt is the Card 119 refresh. Card 120 supplies a Bovine-refreshed
+receipt through its focused verifier. Set
 `SECONDARY_CONSUMER_ADMISSION_FIXTURE` to Card 114's fixture only when running
 against its exact historical consumer checkouts.
+
+Card 120 verifies Bovine's canonical native-platform storage, versioned
+workspace-preference domain, exact retained legacy import, two-page modal
+settings composition, storage-only capability, scoped source diff, and the
+refreshed isolated private artifact graph:
+
+```sh
+effigy qa:northstar:g01-bovine-card120
+```
 
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by

@@ -1,6 +1,6 @@
 # 121 Bovine Minimal Composition Conformance And Closeout
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 3
 Governing refs: contracts 003-005 and 010-013; Card 120

@@ -24,7 +24,7 @@ receipts plus isolated produced-artifact proof.
 | Soundcheck | `f4544e621b8ba3f4558c6b068db1cb36d6ef161f` | clean | desktop consumer |
 | soundcheck-library | `40418635674d598f7e311bf311c3165300edd35b` | clean | shared plugin-library and SQLite authority |
 | Signal | `4c5b60681071095aedbf9013720e76c1c89e91ed` | clean | plugin ABI, discovery, audio, and runtime authority |
-| Bovine Accelerator Desktop | `b713644e08be384d20879b0ac31f7899589c8a9b` | unrelated docs work present | small local consumer; no writes before overlap clearance |
+| Bovine Accelerator Desktop | `6afc8da9f4ccc2989541312560eaeb4a154057d2` | unrelated docs work preserved | minimal config/settings consumer; Card 120 cut over |
 | Jetstream | `4df74e756c222a3b207391c44775e5b3148c46dd` | clean | editor and backing-surface consumer |
 | Poodle | `208532f0d18dcd1683cdef157e370d0ba0f0d3b3` | clean | visual primitives and exact private artifact set |
 
@@ -73,7 +73,8 @@ and restore structure. Card 117 moved plugin-scan lifecycle structure onto
 Longhorn while retaining soundcheck-library job truth. Card 118 wraps the
 disposable inspection helper in isolated-window coordination while retaining
 Soundcheck and Signal policy. Card 119 closes the exact composition, artifact,
-restart, and rollback gates. Bovine and Jetstream remain read-only.
+restart, and rollback gates. Card 120 cuts over Bovine's minimal
+config/settings graph. Jetstream remains read-only.
 
 ## Card 115 Soundcheck Cutover
 
@@ -216,14 +217,14 @@ recovery rules.
 
 ## Bovine Accelerator Desktop
 
-Bovine is the minimal no-service, no-Surface case. It currently stores one
-unversioned `workspace.json` below Tauri `app_config_dir`; that document mixes
-the selected content root with navigation ratio, expanded nodes, and selected
-node. The renderer uses public Poodle controls through sibling source aliases.
+Bovine is the minimal no-service, no-Surface case. Card 120 replaces its
+unversioned `workspace.json` writer and sibling aliases with one versioned
+preference authority and exact source-linked development packages backed by
+produced-artifact proof.
 
 ### Selected shared composition
 
-- `native-platform-v1`, canonical id
+- `platform-native-v1`, canonical id
   `com.acowtancy.bovine-accelerator`, no stable-name override
 - one registered configuration domain with safe mutation, explicit flush, and
   receipt-backed legacy import
@@ -241,6 +242,26 @@ node. The renderer uses public Poodle controls through sibling source aliases.
 The current SplitView alone does not justify a Longhorn layout dependency.
 g01.016 proves the smaller graph and keeps layout, Surfaces, history, commands,
 backend topology, and native content absent.
+
+### Card 120 checked cutover
+
+Commit `6afc8da9f4ccc2989541312560eaeb4a154057d2` selects canonical leaf
+`com.acowtancy.bovine-accelerator` under `platform-native-v1`, with config,
+cache, state, logs, runtime, and backups kept in their native lifecycle roots.
+No stable-name override exists.
+
+`bovine.workspace-preferences` schema 1 is the sole UserConfig authority for
+workspace root, split ratio, expanded nodes, and selected node. Mutations are
+store-coordinated and durable. The legacy file is imported backup-first with
+source and target SHA-256 receipts, restart revalidation, conflict refusal,
+interrupted resume, retained source, and no cleanup authority.
+
+The sealed modal registry contains product Workspace plus shared Storage.
+Workspace root is projected read-only; navigation ratio is the one staged
+apply unit. Storage diagnostics is the only config-operation capability. Four
+Longhorn TypeScript packages, six Rust crates, and five public Poodle packages
+resolve. No optional system edge enters either graph. All 19 unrelated dirty
+docs/CHANGELOG paths remain outside the cutover commit.
 
 ## Jetstream
 

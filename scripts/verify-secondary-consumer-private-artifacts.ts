@@ -48,6 +48,7 @@ type AdmissionFixture = {
     longhorn_selected_tree_sha256: string;
     poodle_commit: string;
     soundcheck_commit?: string;
+    bovine_commit?: string;
   };
   artifact_sets: {
     poodle: string;
@@ -291,7 +292,7 @@ async function verifySources() {
       admission.sources.soundcheck_commit ?? fixture.sources.soundcheck_commit,
     soundcheck_library: fixture.sources.soundcheck_library_commit,
     signal: fixture.sources.signal_commit,
-    bovine: fixture.sources.bovine_commit,
+    bovine: admission.sources.bovine_commit ?? fixture.sources.bovine_commit,
     jetstream: fixture.sources.jetstream_commit,
   } as const;
   for (const [name, root] of Object.entries(consumerRepositories)) {
@@ -898,15 +899,18 @@ function verifyAdmissionEvidence(
   );
   assertEqual(admission.audits.tags, false, "tags");
   assertEqual(admission.audits.hosted_releases, false, "hosted releases");
+  const refreshedBovineAdmission = admission.sources.bovine_commit !== undefined;
   const refreshedSoundcheckAdmission = admission.sources.soundcheck_commit !== undefined;
   assertEqual(
     admission.write_admission.next_card,
-    refreshedSoundcheckAdmission ? 120 : 115,
+    refreshedBovineAdmission ? 121 : refreshedSoundcheckAdmission ? 120 : 115,
     "next admitted card",
   );
   assertEqual(
     admission.write_admission.scope,
-    refreshedSoundcheckAdmission
+    refreshedBovineAdmission
+      ? "bovine-minimal-composition-conformance-closeout"
+      : refreshedSoundcheckAdmission
       ? "bovine-config-and-settings-cutover"
       : "soundcheck-storage-config-protected-primary-window",
     "write admission scope",
