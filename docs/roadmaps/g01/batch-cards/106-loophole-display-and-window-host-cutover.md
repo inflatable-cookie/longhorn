@@ -1,6 +1,6 @@
 # 106 Loophole Display And Window Host Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.015 batch 2
 Governing refs: contracts 002, 003, 009, 010, and 012; Card 105

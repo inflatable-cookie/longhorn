@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 105 ready
+Status: executing; Card 106 ready
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: contracts 002-014;
@@ -30,7 +30,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 ### Batch 2: durable foundation
 
-- [ ] adopt stable `Loophole` storage identity and receipted legacy transition
+- [x] adopt stable `Loophole` storage identity and receipted legacy transition
 - [ ] register separate app, profile, machine, window, Surface, and layout domains
 - [ ] replace display/window planning and native host mechanics
 
@@ -87,7 +87,7 @@ Operator-held:
 
 Ready:
 
-- `batch-cards/105-loophole-storage-and-domain-transition.md`
+- `batch-cards/106-loophole-display-and-window-host-cutover.md`
 
 Active:
 
@@ -95,7 +95,6 @@ Active:
 
 Planned:
 
-- `batch-cards/106-loophole-display-and-window-host-cutover.md`
 - `batch-cards/107-loophole-registered-layout-authority-cutover.md`
 - `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
 - `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
@@ -108,6 +107,7 @@ Complete:
 - `batch-cards/102-loophole-behavior-authority-and-rollback-freeze.md`
 - `batch-cards/103-loophole-storage-policy-and-profile-selection.md`
 - `batch-cards/104-loophole-baseline-and-private-artifact-admission.md`
+- `batch-cards/105-loophole-storage-and-domain-transition.md`
 
 ## Planning Checkpoint
 
@@ -126,8 +126,8 @@ Soundcheck-owned `rusqlite 0.40.1` graph without schema or data-meaning change.
 The complete Loophole health, test, and validation gates pass at clean commit
 `4b9835ef328f13a761fe2037c45aecfb48314d21`. Isolated private artifacts prove
 the full Cards 105-111 Surface-enabled graph on one Svelte/Poodle runtime and
-Rust 1.85/Tauri 2.11.5. Fork-tree and later systems remain absent. Only Card
-105's storage slice is admitted.
+Rust 1.85/Tauri 2.11.5. Fork-tree and later systems remain absent. Card 105's
+storage slice is implemented and proven. Card 106 is ready.
 
 Keyboard, keymap, palette, and conflict semantics can migrate under contract
 006. Extended triggers and macros remain Loophole adapters. Linear history can
@@ -136,5 +136,5 @@ Pulse journal integration survive; branch mode stays disabled.
 
 ## Next Task
 
-Execute Card 105. Transition Loophole storage and registered domains through
-the admitted private graph.
+Execute Card 106. Cut over display observation, window planning, and native
+Tauri application.

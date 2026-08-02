@@ -10,6 +10,9 @@ use super::{
 pub(super) fn root_conflicts(
     request: &StorageTransitionRequest<'_>,
 ) -> Vec<StorageTransitionConflict> {
+    if request.source_layout.digest() == request.target_layout.digest() {
+        return Vec::new();
+    }
     let mut conflicts = Vec::new();
     for source_kind in MIGRATING_ROOTS {
         let Some(source) = request.source_layout.root(source_kind) else {

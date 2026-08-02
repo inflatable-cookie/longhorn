@@ -125,3 +125,5 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Loophole Full-hosting Migration Compilation](2026-08/01-loophole-full-hosting-migration-compilation.md)
 - [Loophole Storage Policy And Profile Selection](2026-08/01-loophole-storage-policy-and-profile-selection.md)
 - [Loophole Baseline And Private Artifact Admission](2026-08/01-loophole-baseline-private-artifact-admission.md)
+
+- [`2026-08/02-012529-loophole-storage-and-domain-transition.md`](./2026-08/02-012529-loophole-storage-and-domain-transition.md)

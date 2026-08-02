@@ -1,6 +1,6 @@
 # 105 Loophole Storage And Domain Transition
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 2
 Governing refs: contracts 003-005 and 012; Cards 102-104
@@ -53,6 +53,37 @@ transition.
 - transition journal, locator-last commit, recovery, and cleanup receipts
 - SQLite/native adapter and backup/restore proof
 - embedded, local-server, remote-server, and interrupted-start traces
+
+## Result
+
+Loophole now owns one `echo-storage-profile` adapter over Longhorn. Aura,
+embedded Pulse, the local brokered Pulse host, Spark, and profile config use
+the same canonical id, stable `Loophole` leaf, locator, and selected layout.
+Remote Pulse keeps server and project storage outside the client profile.
+
+Aura replaces copy-if-missing import with an inspected, planned, adapter-backed
+transition. Existing `Loophole` roots adopt in place. The old Tauri id root is
+eligible only when the established product root has no recognized durable
+domain. Sources and unknown files remain retained. JSON files and profile trees
+are staged, validated, verified, and receipted. Soundcheck's SQLite database
+remains external authority; no Loophole-owned live database enters this card.
+
+App settings, profiles, recent projects, plugin presets, hosting policy, and
+plugin preferences are user config. Windowing, hardware settings, input
+bindings, and plugin-editor reopen state are machine state. Plugin catalogue
+projection is excluded rebuildable cache. Recording recovery is excluded
+incomplete state. Project documents, autosaves, journals, and media remain
+project/Pulse authority.
+
+Five renderer preference keys now import once from WebView storage into one
+registered Longhorn config domain. Production mounts wait for host hydration.
+There is no post-import local read or dual-write path.
+
+Longhorn now admits same-layout locator adoption when a derived workspace root
+nests beneath state. The regression proof prevents false overlap conflicts
+without weakening transitions between different layouts.
+
+Evidence: `../../../logs/2026-08/02-012529-loophole-storage-and-domain-transition.md`.
 
 ## Next Task
 

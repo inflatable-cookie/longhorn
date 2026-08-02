@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [105 Loophole Storage And Domain Transition](105-loophole-storage-and-domain-transition.md)
+- [106 Loophole Display And Window Host Cutover](106-loophole-display-and-window-host-cutover.md)
 
 ## Operator-held
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [106 Loophole Display And Window Host Cutover](106-loophole-display-and-window-host-cutover.md)
 - [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
 - [108 Loophole Surface Lifecycle And Hosting Cutover](108-loophole-surface-lifecycle-and-hosting-cutover.md)
 - [109 Loophole Renderer, Poodle, And Transfer Cutover](109-loophole-renderer-poodle-and-transfer-cutover.md)
@@ -128,8 +127,9 @@ None.
 - [102 Loophole Behavior, Authority, And Rollback Freeze](102-loophole-behavior-authority-and-rollback-freeze.md)
 - [103 Loophole Storage Policy And Profile Selection](103-loophole-storage-policy-and-profile-selection.md)
 - [104 Loophole Baseline And Private Artifact Admission](104-loophole-baseline-and-private-artifact-admission.md)
+- [105 Loophole Storage And Domain Transition](105-loophole-storage-and-domain-transition.md)
 
 ## Next Task
 
-Execute Card 105. Transition Loophole storage and registered domains through
-the admitted private graph.
+Execute Card 106. Replace Loophole display observation, window planning, and
+native Tauri application while preserving product window policy.

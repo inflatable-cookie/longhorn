@@ -1,6 +1,6 @@
 # Loophole Migration Map
 
-Status: frozen read-only baseline; storage policy selected and implementation active
+Status: frozen baseline; storage cutover complete; window cutover ready
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: contracts 002-014; `../roadmaps/g01/015-loophole-full-hosting-migration.md`
@@ -56,7 +56,7 @@ not a second layout tree and is not persisted.
 
 | Concern | Current implementation | Longhorn target | Retained Loophole authority |
 | --- | --- | --- | --- |
-| path resolution | `echo-os-paths`; Aura bootstrap import | configuration layout and transition | product identity, scope, legacy candidates, retention |
+| path resolution | Longhorn profile through `echo-storage-profile`; receipted Aura import | configuration layout and transition | product identity, scope, legacy candidates, retention |
 | configuration IO | Echo config/profile crates plus Aura/Pulse stores | registered domains, atomic mutation, backup/recovery | schemas, writer choice, server/project boundaries |
 | display facts | Echo machine/display types plus Aura local plane | display inventory and correlation | machine labels and Loophole diagnostics |
 | window plan/apply | `echo-windowing`; Aura `window_apply.rs` and `bootstrap/windows.rs` | window planner and protected/dynamic Tauri host | logical roles, main retag, close and empty-host policy |
@@ -151,6 +151,23 @@ After selection, migration must inventory every current Echo root and old
 Tauri identifier root, use registered adapters, commit the canonical-id fixed
 locator last, retain sources, and expose diagnostics. No dual-write or silent
 old-path read survives cutover.
+
+Card 105 completes that cutover. Aura, embedded Pulse, the local brokered Pulse
+host, Spark, and Echo profile config use `echo-storage-profile`. The old
+`echo-os-paths` crate is no longer an active workspace member or dependency.
+Existing `Loophole` roots adopt in place. The old canonical-id Tauri root is
+eligible only when the established product root has no recognized durable
+domain. Sources and unknown files remain retained.
+
+User config and machine state now have separate live roots. Project files,
+Pulse journals/autosaves/media, remote server data, and Soundcheck's SQLite
+database stay outside Loophole app-profile authority. Five durable renderer
+preference keys import once into a registered Longhorn domain; `localStorage`
+is retained only as the explicit legacy source during first host hydration.
+
+Aura exposes a diagnostic projection containing canonical identity, stable
+name, selected profile, selection origin, effective leaf, root paths and
+provenance, warnings, layout digest, locator, and transition receipt.
 
 ## Window And Surface Cutover
 
