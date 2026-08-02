@@ -55,3 +55,6 @@ Keepsake, Signal, Swallowtail, and visual-product authority downstream. Card
 120 moves only Bovine's storage, preference persistence, settings structure,
 and Tauri transport to Longhorn; content, hierarchy, navigation meaning,
 editorial, validation, Git, and SplitView presentation remain downstream.
+Card 121 closes the minimal graph with one preference authority, exact
+settings-session teardown, retained legacy rollback, and no layout or optional
+system edge.

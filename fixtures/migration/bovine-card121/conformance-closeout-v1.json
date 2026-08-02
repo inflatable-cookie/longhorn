@@ -1,0 +1,80 @@
+{
+  "schema": "longhorn.bovine-minimal-composition-conformance-closeout.v1",
+  "outcome": "pass-with-environment-unmet-native-gui",
+  "sources": {
+    "longhorn_selected_source_commit": "da3c53dd3c8df9a64fd58fb517059bf88a826876",
+    "bovine_previous_authority_commit": "b713644e08be384d20879b0ac31f7899589c8a9b",
+    "bovine_cutover_commit": "6afc8da9f4ccc2989541312560eaeb4a154057d2",
+    "bovine_closeout_commit": "8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28",
+    "bovine_cargo_lock_sha256": "4637e40f72b48f9404f8080b2764af03ab0da9993b4f77ed8411508e9283132c",
+    "bovine_bun_lock_sha256": "e846820d856edcaf9b8171f485056220013d1cbd71d0fbb204319fd2fb6b1861"
+  },
+  "composition": {
+    "canonical_application_id": "com.acowtancy.bovine-accelerator",
+    "hierarchy": [],
+    "typescript_packages": ["@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+    "rust_packages": ["longhorn-config", "longhorn-core", "longhorn-settings", "longhorn-settings-config", "longhorn-tauri-config", "longhorn-tauri-settings"],
+    "forbidden_systems": ["layout", "surfaces", "transfer", "bridge", "commands", "history", "operation", "notifications", "native-content"],
+    "settings_pages": ["bovine:workspace", "longhorn:storage"],
+    "settings_capabilities": ["storageDiagnostics"],
+    "poodle_public_packages": 5,
+    "package_manager_publication": false
+  },
+  "matrices": {
+    "storage": [
+      "acceptance_profile_is_explicit_and_confined",
+      "legacy_import_backs_up_exact_bytes_and_preserves_unknown_fields",
+      "interrupted_legacy_import_resumes_from_verified_backup",
+      "completed_legacy_import_rejects_backup_drift",
+      "completed_legacy_import_allows_valid_target_evolution",
+      "completed_legacy_import_rejects_corrupt_target_evolution",
+      "failed_publication_leaves_the_last_valid_document_intact",
+      "restart_loads_the_same_versioned_preference_authority"
+    ],
+    "renderer": ["loads, applies, closes, and remounts one modal session"]
+  },
+  "native": {
+    "platform": "macos",
+    "debug_bundle_built": true,
+    "acceptance_root_debug_only": true,
+    "first_launch_stable": true,
+    "restart_stable": true,
+    "source_sha256": "acceef92e04b80327617afaba4fc64e510df85449dd7ec81b1d18590ff1388c6",
+    "backup_sha256": "acceef92e04b80327617afaba4fc64e510df85449dd7ec81b1d18590ff1388c6",
+    "target_sha256": "79f8603027fe40862a72f8b2bd94cf0ad4d45ffd0c342fbb092f328befd0b11b",
+    "receipt_sha256": "e7092c1402a685f998e4e385f102851f79d02a7dcc2e8ab789af359e568fd3db",
+    "workspace_root": "/Users/tom/Dev/projects/acowtancy/bovine-accelerator",
+    "navigation_ratio": 0.18,
+    "expanded_node_ids": ["pathway:cat-fia"],
+    "selected_node_id": "pathway:cat-fia",
+    "unknown_fields_retained": true,
+    "live_gui": "environment-unmet-duplicate-bundle-identifier-window-attach",
+    "live_storage_mutated": false
+  },
+  "rollback": {
+    "mode": "retained-legacy-plus-previous-source-suite",
+    "previous_workspace_tests": 7,
+    "previous_workspace_tests_passed": true,
+    "previous_source_accepts_unknown_fields": true,
+    "legacy_source_retained": true,
+    "temporary_worktree_removed": true,
+    "dual_write": false,
+    "silent_fallback": false,
+    "cleanup_authorized": false
+  },
+  "authority": {
+    "longhorn": ["storage-layout", "config-persistence", "settings-structure", "tauri-transport"],
+    "bovine": ["content", "repository", "hierarchy", "search", "editorial", "validation", "git", "navigation-meaning", "splitview-presentation"],
+    "poodle": ["visual-primitives"]
+  },
+  "validation": {
+    "rust_tests": 63,
+    "renderer_tests": 1,
+    "svelte_errors": 0,
+    "svelte_warnings": 0,
+    "current_binary_sha256": "5b1edcd350c9b5313aa964a6491a7887e3cb5eac05f8c3c6894d73a12e42a3d2",
+    "private_artifact_fixture": "fixtures/migration/bovine-card121/private-artifact-admission-v1.json",
+    "unrelated_dirty_paths": 19,
+    "authored_content_changed": false
+  }
+}

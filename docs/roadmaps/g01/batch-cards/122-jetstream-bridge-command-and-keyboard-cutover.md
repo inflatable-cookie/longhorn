@@ -1,6 +1,6 @@
 # 122 Jetstream Bridge, Command, And Keyboard Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 4
 Governing refs: contracts 003, 006-007, 010, 012-013; Cards 113-114 and 121

@@ -901,18 +901,21 @@ function verifyAdmissionEvidence(
   assertEqual(admission.audits.hosted_releases, false, "hosted releases");
   const refreshedBovineAdmission = admission.sources.bovine_commit !== undefined;
   const refreshedSoundcheckAdmission = admission.sources.soundcheck_commit !== undefined;
-  assertEqual(
-    admission.write_admission.next_card,
-    refreshedBovineAdmission ? 121 : refreshedSoundcheckAdmission ? 120 : 115,
-    "next admitted card",
+  const admittedScopes = refreshedBovineAdmission
+    ? new Map([
+        [121, "bovine-minimal-composition-conformance-closeout"],
+        [122, "jetstream-bridge-command-keyboard-cutover"],
+      ])
+    : refreshedSoundcheckAdmission
+      ? new Map([[120, "bovine-config-and-settings-cutover"]])
+      : new Map([[115, "soundcheck-storage-config-protected-primary-window"]]);
+  assert(
+    admittedScopes.has(admission.write_admission.next_card),
+    `next admitted card is invalid: ${admission.write_admission.next_card}`,
   );
   assertEqual(
     admission.write_admission.scope,
-    refreshedBovineAdmission
-      ? "bovine-minimal-composition-conformance-closeout"
-      : refreshedSoundcheckAdmission
-      ? "bovine-config-and-settings-cutover"
-      : "soundcheck-storage-config-protected-primary-window",
+    admittedScopes.get(admission.write_admission.next_card),
     "write admission scope",
   );
 }

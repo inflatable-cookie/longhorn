@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 121 ready
+Status: executing; Card 122 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -53,7 +53,7 @@ lane from current evidence; it does not infer package publication.
 
 - [x] preserve unrelated docs work and migrate one minimal preference domain
 - [x] compose the minimal settings shell and exact Poodle artifacts
-- [ ] close with no layout, Surface, service, command, history, or native-content edge
+- [x] close with no layout, Surface, service, command, history, or native-content edge
 
 ### Batch 4: Jetstream
 
@@ -72,7 +72,7 @@ lane from current evidence; it does not infer package publication.
 
 - [ ] each app adopts only useful packages
 - [x] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
-- [ ] Bovine proves the smallest config/settings graph
+- [x] Bovine proves the smallest config/settings graph
 - [ ] Jetstream proves bridge, command, and backing-surface composition
 - [ ] product, sibling, renderer, plugin, content, and engine authority stay downstream
 - [ ] examples prove optional dependency boundaries outside workspace resolution
@@ -85,7 +85,7 @@ lane from current evidence; it does not infer package publication.
 - [ ] every source-linked graph has matching produced-artifact proof
 - [ ] each migrated concern has one active structural authority
 - [ ] rollback uses retained sources and exact receipts, not dual writes or silent fallback
-- [ ] Bovine's unrelated work and authored content are untouched
+- [x] Bovine's unrelated work and authored content are untouched
 - [x] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
 - [ ] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
 - [ ] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
+- `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 - `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 - `batch-cards/125-greenfield-composition-matrix.md`
@@ -121,14 +120,15 @@ Complete:
 - `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 - `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
 - `batch-cards/120-bovine-config-and-settings-cutover.md`
+- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
 artifact graphs without consumer writes. Cards 115-119 complete Soundcheck.
-Card 120 completes Bovine's canonical storage, one preference domain, minimal
-settings shell, and exact artifact cutover. Card 121 is ready for conformance
-and closeout.
+Cards 120-121 complete Bovine's canonical storage, one preference domain,
+minimal settings shell, settings lifetime, failure/restart/rollback matrix,
+exact artifact graph, and no-optional-system closeout. Card 122 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -150,5 +150,5 @@ authority.
 
 ## Next Task
 
-Execute Card 121. Prove Bovine's fresh, legacy, failure, restart, settings,
-artifact, duplicate-authority, and minimal optional-graph closeout.
+Execute Card 122. Adopt Jetstream's checked editor-state bridge plus command
+and keyboard projection while retaining execution and engine authority.

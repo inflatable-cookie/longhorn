@@ -166,6 +166,15 @@ refreshed isolated private artifact graph:
 effigy qa:northstar:g01-bovine-card120
 ```
 
+Card 121 verifies Bovine's debug-only isolated profile, native first launch
+and restart receipt, valid and corrupt target evolution, modal session
+teardown/remount, exact minimal graph, retained product authority, previous
+source rollback suite, and refreshed artifact admission for Jetstream:
+
+```sh
+effigy qa:northstar:g01-bovine-card121
+```
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

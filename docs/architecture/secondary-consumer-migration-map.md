@@ -24,7 +24,7 @@ receipts plus isolated produced-artifact proof.
 | Soundcheck | `f4544e621b8ba3f4558c6b068db1cb36d6ef161f` | clean | desktop consumer |
 | soundcheck-library | `40418635674d598f7e311bf311c3165300edd35b` | clean | shared plugin-library and SQLite authority |
 | Signal | `4c5b60681071095aedbf9013720e76c1c89e91ed` | clean | plugin ABI, discovery, audio, and runtime authority |
-| Bovine Accelerator Desktop | `6afc8da9f4ccc2989541312560eaeb4a154057d2` | unrelated docs work preserved | minimal config/settings consumer; Card 120 cut over |
+| Bovine Accelerator Desktop | `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` | unrelated docs work preserved | minimal config/settings consumer; Card 121 closed |
 | Jetstream | `4df74e756c222a3b207391c44775e5b3148c46dd` | clean | editor and backing-surface consumer |
 | Poodle | `208532f0d18dcd1683cdef157e370d0ba0f0d3b3` | clean | visual primitives and exact private artifact set |
 
@@ -74,7 +74,8 @@ Longhorn while retaining soundcheck-library job truth. Card 118 wraps the
 disposable inspection helper in isolated-window coordination while retaining
 Soundcheck and Signal policy. Card 119 closes the exact composition, artifact,
 restart, and rollback gates. Card 120 cuts over Bovine's minimal
-config/settings graph. Jetstream remains read-only.
+config/settings graph. Card 121 closes exact conformance and optional-edge
+audits. Jetstream remains read-only.
 
 ## Card 115 Soundcheck Cutover
 
@@ -262,6 +263,33 @@ apply unit. Storage diagnostics is the only config-operation capability. Four
 Longhorn TypeScript packages, six Rust crates, and five public Poodle packages
 resolve. No optional system edge enters either graph. All 19 unrelated dirty
 docs/CHANGELOG paths remain outside the cutover commit.
+
+### Card 121 checked closeout
+
+Bovine commit `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` adds a debug-only,
+absolute, confinement-checked acceptance root without changing release storage
+selection. A fresh native macOS launch and restart preserve canonical root,
+ratio, valid expanded and selected ids, and an unknown product field. Retained
+legacy source and backup bytes share SHA-256
+`acceef92e04b80327617afaba4fc64e510df85449dd7ec81b1d18590ff1388c6`.
+
+Restart verification now distinguishes valid post-import target evolution
+from corrupt recovery state. Exact backup, source, receipt paths, and retained
+source bytes remain immutable. Fresh, legacy, interrupted, drift, valid
+evolution, corrupt evolution, failed publication, and restart cases pass. The
+previous `b713644` workspace suite passes seven tests from a removed temporary
+worktree; rollback uses the retained legacy document, not a second writer.
+
+The real modal settings component now owns one session per opening. Apply,
+close, listener teardown, reopen, and retained value pass in the renderer.
+Bovine QA reports 63 Rust tests, one renderer test, and zero Svelte errors or
+warnings. Produced-artifact proof retains four TypeScript, six Rust, and five
+public Poodle packages with one Svelte runtime. Layout, Surfaces, transfer,
+bridge, commands, history, operations, notifications, and native content are
+absent. Native GUI attachment remains environment-unmet because installed and
+debug bundles share an identifier; native startup/restart and actual component
+behavior are proved separately. All 19 unrelated docs/CHANGELOG paths remain
+untouched.
 
 ## Jetstream
 

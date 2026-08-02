@@ -143,3 +143,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Soundcheck Isolated-window Coordination Cutover](2026-08/02-soundcheck-isolated-window-coordination-cutover.md)
 - [Soundcheck Migration Conformance Closeout](2026-08/02-soundcheck-migration-conformance-closeout.md)
 - [Bovine Config And Settings Cutover](2026-08/02-bovine-config-settings-cutover.md)
+- [Bovine Minimal Composition Conformance Closeout](2026-08/02-bovine-minimal-composition-conformance-closeout.md)
