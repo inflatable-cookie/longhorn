@@ -219,4 +219,8 @@ Card 099 completes checked renderer/Poodle composition. Card 100 completes the
 native Browser cutover. Card 101 closes exact artifacts, restart, rollback,
 capability, duplicate-authority, and no-Surface conformance. g01.014 is
 complete.
+Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 now
+compile Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption
+guides, and a deterministic private compatibility candidate. Card 113 is the
+ready read-only freeze.
 Package-manager publication remains deferred.

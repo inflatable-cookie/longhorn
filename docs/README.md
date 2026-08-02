@@ -175,8 +175,11 @@ duplicate-authority, retained-policy, and no-Surface conformance. g01.014 is
 complete. g01.015 Cards 102-108 complete the Loophole freeze, storage and
 artifact admission, display/window host, registered layout, and registered
 regional Surface lifecycle. Cards 109-110 complete renderer/transfer,
-settings, commands, keymaps, palette, and retained extended input. Card 111 is
-active for linear history.
+settings, commands, keymaps, palette, and retained extended input. Cards
+111-112 complete lossless linear history and full migration conformance;
+g01.015 is complete. g01.016 is compiled as Cards 113-127 across exact common
+admission, Soundcheck, Bovine, Jetstream, greenfield examples, guides, and a
+private compatibility candidate. Card 113 is ready.
 Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

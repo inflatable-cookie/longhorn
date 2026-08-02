@@ -3,7 +3,8 @@
 Status: active first pass  
 Owner: Tom  
 Updated: 2026-08-02
-Architecture: `system-architecture.md`, `system-inventory.md`
+Architecture: `system-architecture.md`, `system-inventory.md`,
+`secondary-consumer-migration-map.md`
 
 ## Topology
 
@@ -18,9 +19,9 @@ authority and migrate through explicit batches. Poodle remains independent.
 | `poodle` | components, tokens, interaction primitives | optional shared types only | host state and persistence |
 | `loophole` | DAW shell policy, history payload/apply/recovery, and panel catalogue | full hosting, config, command, settings, and structural linear history | Pulse/Signal/Aura product authority |
 | `nucleus` | agent workspace policy, resources, server data, panel and Browser policy | storage, protected window, registered layout, checked renderer, native content | project/task/runtime authority |
-| `soundcheck` | plugin-library workflows | foundation modules as adopted | scan/sync/inspection domain |
-| `jetstream` | engine/editor and native renderer | bridge or native-host adapters as adopted | frame/render/world authority |
-| `acowtancy/bovine-accelerator-desktop` | content workspace | simple preferences/layout adapters as adopted | content/navigation/editorial domain |
+| `soundcheck` | plugin-library workflows and desktop policy | stable-name storage, config, window, settings/recovery, operation, isolated-window coordination | soundcheck-library SQLite/scan plus Signal plugin, DAW, sync, and inspection policy |
+| `jetstream` | engine/editor and native renderer | bridge, command/keymap, backing-surface coordination | command execution, frame/render/WGPU/world/input authority |
+| `acowtancy/bovine-accelerator-desktop` | content workspace | minimal config/settings and public Poodle artifacts | content/navigation/editorial/Git domain; no forced layout |
 
 ## Cross-Repo Rules
 
@@ -45,3 +46,6 @@ authority and migrate through explicit batches. Poodle remains independent.
 
 The generic Echo transfer is complete under `loophole-migration-map.md`.
 Product schemas, policies, payloads, and named adapters remain in Loophole.
+Secondary-consumer selection and retained authority are compiled under
+`secondary-consumer-migration-map.md`; Card 113 refreshes exact receipts before
+any new consumer write.

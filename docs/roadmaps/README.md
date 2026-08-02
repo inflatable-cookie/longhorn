@@ -38,8 +38,8 @@ Card 110 completes shared settings, storage diagnostics, command discovery,
 keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
-and rollback conformance. g01.015 is complete. g01.016 is ready for
-compilation.
+and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
+113-127; Card 113 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -172,5 +172,6 @@ this host.
 
 ## Next Task
 
-Compile g01.016 into bounded secondary-consumer, greenfield, and release-
-readiness cards. Do not publish packages during compilation.
+Execute Card 113. Refresh exact Soundcheck, Bovine, Jetstream, Poodle, and
+sibling receipts and freeze behavior, authority, selected packages, overlap,
+and rollback without consumer writes.

@@ -1,48 +1,153 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: ready for compilation
-Owner: Tom  
+Status: executing; Card 113 ready
+Owner: Tom
 Updated: 2026-08-02
-Governing refs: contracts 003, 012, and 017; g01.018
+Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
+`../../architecture/secondary-consumer-migration-map.md`
 
 ## Outcome
 
-Prove Longhorn outside its two main donors and leave a useful, versioned
-greenfield path.
+Prove Longhorn in Soundcheck, Bovine, and Jetstream; leave four buildable
+greenfield compositions and a deterministic private `0.1.0` compatibility
+candidate. Package-manager publication, release tags, and hosted releases are
+not part of this roadmap.
 
-## Batches
+## Generation Runway
 
-### 1. Soundcheck slice
+This milestone advances g01 from main-donor migration into materially
+different secondary consumers and a greenfield adoption path. It proves the
+smallest useful graph, optional native-content mechanisms, product-authority
+retention, and produced-artifact use before the remaining fork-tree lane.
 
-- configuration/backup and single-window restore
-- async operation adoption if g01.012 promotes
-- isolated-window coordination after Cards 087, 090, and 093
-- retain scan/sync/inspection domain authority
-- retain Signal/plugin ABI, helper, authorization, and teardown policy
+Immediate runway:
 
-### 2. Bovine slice
+1. refresh read-only consumer behavior and authority evidence
+2. admit one exact private artifact graph
+3. migrate Soundcheck sequentially
+4. migrate Bovine only after unrelated-work clearance
+5. migrate Jetstream sequentially
+6. prove greenfield compositions and usage docs
+7. close on a private compatibility candidate without publication
 
-- minimal configuration and settings shell
-- optional simple layout binding
-- prove no Surface/server/history dependency
+The next planning checkpoint follows Card 127. It selects the remaining g01
+lane from current evidence; it does not infer package publication.
 
-### 3. Jetstream slice
+## Execution Plan
 
-- typed bridge and commands
-- backing-surface coordination after Cards 087, 088, 091, 092, and 093
-- retain renderer/world/viewport authority
+### Batch 1: common admission
 
-### 4. Greenfield and release
+- [ ] freeze exact current behavior, authority, overlap, and rollback inputs
+- [ ] prove selected private artifacts for all three consumer shapes
+- [ ] admit only the first bounded Soundcheck write slice
 
-- minimal, workspace, full-hosting, and optional-server examples
-- package compatibility and upgrade policy
-- API docs, configuration location/backup guide, migration guide
-- release checks and first pre-1.0 version
+### Batch 2: Soundcheck
 
-## Acceptance
+- [ ] migrate stable-name storage, app config, and protected primary window
+- [ ] compose product settings with shared storage/backup/recovery modules
+- [ ] adopt structural operation authority for plugin scan
+- [ ] adopt isolated-window coordination for disposable plugin inspection
+- [ ] prove exact artifacts, behavior, rollback, and retained sibling authority
 
-- each app adopts only useful packages
-- examples prove optional dependency boundaries
-- public docs explain filesystem locations, backup, settings registration,
-  topology, commands, and history claims
-- release artifacts and consumer fixtures are reproducible
+### Batch 3: Bovine
+
+- [ ] preserve unrelated docs work and migrate one minimal preference domain
+- [ ] compose the minimal settings shell and exact Poodle artifacts
+- [ ] close with no layout, Surface, service, command, history, or native-content edge
+
+### Batch 4: Jetstream
+
+- [ ] adopt checked bridge state and command/keymap projection
+- [ ] adopt backing-surface coordination and Svelte viewport lifetime
+- [ ] prove engine, renderer, world, WGPU, and semantic-input authority remain local
+
+### Batch 5: greenfield and private release
+
+- [ ] build minimal, workspace, full-hosting, and optional-server examples
+- [ ] publish no packages; document APIs, storage, backup, composition, and migration
+- [ ] prove deterministic private `0.1.0` artifacts and compatibility
+- [ ] close g01.016 with registry ownership and publication visibly deferred
+
+## Goals
+
+- [ ] each app adopts only useful packages
+- [ ] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
+- [ ] Bovine proves the smallest config/settings graph
+- [ ] Jetstream proves bridge, command, and backing-surface composition
+- [ ] product, sibling, renderer, plugin, content, and engine authority stay downstream
+- [ ] examples prove optional dependency boundaries outside workspace resolution
+- [ ] filesystem, backup, settings, topology, command, history, and native-content docs are exact
+- [ ] one coordinated private compatibility candidate is reproducible
+
+## Acceptance Criteria
+
+- [ ] exact clean Longhorn/Poodle sources and consumer receipts are recorded per cutover
+- [ ] every source-linked graph has matching produced-artifact proof
+- [ ] each migrated concern has one active structural authority
+- [ ] rollback uses retained sources and exact receipts, not dual writes or silent fallback
+- [ ] Bovine's unrelated work and authored content are untouched
+- [ ] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
+- [ ] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
+- [ ] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
+- [ ] compatibility claims name MSRV, peers, protocol range, platform, and evidence
+- [ ] npm/Cargo publication, registry ownership, tags, and hosted releases remain deferred
+
+## Batch Cards
+
+Ready:
+
+- `batch-cards/113-secondary-consumer-behavior-authority-and-rollback-freeze.md`
+
+Active:
+
+- none
+
+Planned:
+
+- `batch-cards/114-secondary-consumer-private-artifact-admission.md`
+- `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
+- `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
+- `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
+- `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
+- `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
+- `batch-cards/120-bovine-config-and-settings-cutover.md`
+- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
+- `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
+- `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
+- `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
+- `batch-cards/125-greenfield-composition-matrix.md`
+- `batch-cards/126-api-storage-composition-and-migration-guides.md`
+- `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
+
+Complete:
+
+- none
+
+## Planning Checkpoint
+
+Current source evidence supports the selected package boundaries. Card 113
+must refresh the recorded receipts and may stop downstream admission if live
+consumer behavior has diverged. Card 114 is the only private-artifact gate.
+Consumer writes remain sequential so each app closes before the next opens.
+
+Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
+They are preserved and are not write authority for g01.016. Card 120 must
+recheck overlap before editing any Bovine path.
+
+The release portion ends at a local, deterministic candidate. Working package
+names, registry ownership, public compatibility ranges beyond proof, package
+publication, tags, and hosted releases remain outside standing `continue`
+authority.
+
+## Risks
+
+- Soundcheck's external SQLite and disposable helper need honest adapter boundaries.
+- Bovine is actively changing and may require overlap clearance at write time.
+- Jetstream native-content support is macOS-only and its current view is process-lived.
+- greenfield examples can accidentally become an umbrella framework.
+- release language can overstate registry or cross-platform availability.
+
+## Next Task
+
+Execute Card 113. Refresh exact consumer behavior, authority, selected-package,
+overlap, and rollback evidence without modifying a consumer or publishing.

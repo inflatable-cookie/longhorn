@@ -160,7 +160,7 @@ fresh action admission. `g01.012` is complete.
 | Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
 | Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
 | Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts | Nucleus child webview; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 complete; isolated produced graphs and three-shape traces pass; Nucleus planning admitted while consumer policy gates remain |
-| Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | roadmap |
+| Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | g01.016 Cards 125-127 compiled; execution follows secondary-consumer closeout |
 
 ## Consumer Repos
 

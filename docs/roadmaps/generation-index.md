@@ -26,6 +26,8 @@ layout, registered regional Surface lifecycle, and checked renderer/Poodle
 transfer slice. Card 110 completes settings, commands, keymaps, palette, and
 the retained extended-input edge. Card 111 completes lossless linear-history
 adoption. Card 112 closes exact artifacts, conformance, duplicate authority,
-retained adapters, and rollback posture. g01.015 is complete. g01.016 is ready
-for compilation. Fork-tree Cards 070-074 remain planned behind a separate
-product adoption decision.
+retained adapters, and rollback posture. g01.015 is complete. g01.016 is
+compiled as Cards 113-127 across common admission, Soundcheck, Bovine,
+Jetstream, greenfield examples, guides, and a private compatibility candidate.
+Card 113 is ready. Package publication remains deferred. Fork-tree Cards
+070-074 remain planned behind a separate product adoption decision.

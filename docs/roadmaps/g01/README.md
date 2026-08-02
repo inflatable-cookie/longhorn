@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | ready for compilation | Soundcheck, Bovine, Jetstream, first release |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 113 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -348,7 +348,20 @@ restart/recovery, capabilities, duplicate authority, retained adapters, and
 rollback posture. g01.015 is complete. Later systems and package publication
 remain outside the admitted graph.
 
+Cards 113-127 compile g01.016 into five batches. Cards 113-114 refresh exact
+secondary-consumer authority and admit one private artifact graph. Cards
+115-119 migrate and close Soundcheck across stable-name storage, protected
+windowing, settings/recovery, scan operations, and isolated plugin windows.
+Cards 120-121 prove Bovine's minimal config/settings graph while preserving
+unrelated work and excluding layout plus every optional system. Cards 122-124
+migrate Jetstream's bridge, commands, keyboard, and backing-surface
+coordination while retaining engine/WGPU authority. Cards 125-127 add four
+greenfield compositions, adoption guides, and one deterministic private
+`0.1.0` compatibility candidate. Registry publication, tags, and hosted
+releases remain outside the chain.
+
 ## Next Task
 
-Compile g01.016 into bounded secondary-consumer, greenfield, and release-
-readiness cards. Do not publish packages during compilation.
+Execute Card 113. Refresh exact Soundcheck, Bovine, Jetstream, Poodle, and
+sibling receipts and freeze behavior, authority, selected packages, overlap,
+and rollback without consumer writes.

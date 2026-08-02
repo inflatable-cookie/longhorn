@@ -82,5 +82,8 @@ stable product storage identity, public Poodle drag seam, and 83-variant Pulse
 history boundary. g01.015 is compiled through Card 112. Cards 103-108 complete
 the storage, artifact-admission, display/window, layout, and regional Surface
 authority slices. Card 109 owns renderer and transfer composition.
-Package-manager publication remains deferred. Cards 070-074 remain planned
-behind the linear-history adoption checkpoint.
+Cards 113-127 compile g01.016 across exact secondary-consumer admission,
+Soundcheck, Bovine, Jetstream, greenfield composition, documentation, and a
+private compatibility candidate. Card 113 is ready. Package-manager
+publication remains deferred. Cards 070-074 remain planned behind the
+linear-history adoption checkpoint.
