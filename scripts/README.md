@@ -181,6 +181,20 @@ The default sibling checkouts are `../soundcheck` and
 `SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Native
 restore/restart conformance remains Card 119 work.
 
+Soundcheck Card 117 verifies the database-reconciled payload-free operation
+authority, revision-bound and identity-checked cancellation, retry lineage,
+isolated renderer session, removed direct cancellation command, and retained
+soundcheck-library job/report authority:
+
+```sh
+effigy qa:northstar:g01-soundcheck-card117
+```
+
+The default sibling checkouts are `../soundcheck` and
+`../soundcheck-library`. Override them only with `SOUNDCHECK_REPO` or
+`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Native
+scan/restart and cancellation-race conformance remains Card 119 work.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

@@ -84,6 +84,6 @@ the storage, artifact-admission, display/window, layout, and regional Surface
 authority slices. Card 109 owns renderer and transfer composition.
 Cards 113-127 compile g01.016 across exact secondary-consumer admission,
 Soundcheck, Bovine, Jetstream, greenfield composition, documentation, and a
-private compatibility candidate. Cards 113-116 are complete; Card 117 is ready.
+private compatibility candidate. Cards 113-117 are complete; Card 118 is ready.
 Package-manager publication remains deferred. Cards 070-074 remain planned
 behind the linear-history adoption checkpoint.

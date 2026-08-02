@@ -29,6 +29,6 @@ adoption. Card 112 closes exact artifacts, conformance, duplicate authority,
 retained adapters, and rollback posture. g01.015 is complete. g01.016 is
 compiled as Cards 113-127 across common admission, Soundcheck, Bovine,
 Jetstream, greenfield examples, guides, and a private compatibility candidate.
-Cards 113-116 are complete; Card 117 is ready. Package publication remains
+Cards 113-117 are complete; Card 118 is ready. Package publication remains
 deferred. Fork-tree Cards 070-074 remain planned behind a separate product
 adoption decision.

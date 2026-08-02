@@ -179,7 +179,7 @@ settings, commands, keymaps, palette, and retained extended input. Cards
 111-112 complete lossless linear history and full migration conformance;
 g01.015 is complete. g01.016 is compiled as Cards 113-127 across exact common
 admission, Soundcheck, Bovine, Jetstream, greenfield examples, guides, and a
-private compatibility candidate. Cards 113-116 are complete; Card 117 is
+private compatibility candidate. Cards 113-117 are complete; Card 118 is
 ready.
 Package-manager publication is deferred.
 

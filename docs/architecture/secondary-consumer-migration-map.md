@@ -69,7 +69,8 @@ The exact aggregate set ids are:
 - Longhorn Rust: `42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8`
 
 Cards 115-116 complete Soundcheck storage, protected-window, settings, backup,
-and restore structure. Card 117's plugin-scan operation slice is ready. Bovine
+and restore structure. Card 117 moved plugin-scan lifecycle structure onto
+Longhorn while retaining soundcheck-library job truth. Card 118 is ready. Bovine
 and Jetstream remain read-only.
 
 ## Card 115 Soundcheck Cutover

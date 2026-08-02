@@ -139,3 +139,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Secondary-consumer Private Artifact Admission](2026-08/02-secondary-consumer-private-artifact-admission.md)
 - [Soundcheck Storage, Config, And Window Cutover](2026-08/02-soundcheck-storage-config-window-cutover.md)
 - [Soundcheck Settings, Backup, And Recovery Cutover](2026-08/02-soundcheck-settings-backup-recovery-cutover.md)
+- [Soundcheck Plugin-scan Operation Cutover](2026-08/02-soundcheck-plugin-scan-operation-cutover.md)

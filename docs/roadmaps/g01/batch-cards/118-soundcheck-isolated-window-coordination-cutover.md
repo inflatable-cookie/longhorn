@@ -1,6 +1,6 @@
 # 118 Soundcheck Isolated-window Coordination Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003, 009-010, 012-013, and 017; Card 117

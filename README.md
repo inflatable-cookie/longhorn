@@ -224,6 +224,7 @@ compile Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption
 guides, and a deterministic private compatibility candidate. Card 113 now
 freezes exact read-only behavior, authority, overlap, and rollback evidence.
 Card 114 admits exact private artifacts. Cards 115-116 complete Soundcheck
-storage/config/window and settings/backup/recovery adoption; Card 117 is ready
+storage/config/window, settings/backup/recovery, and scan-operation adoption;
+Card 118 is ready
 for plugin-scan operation adoption.
 Package-manager publication remains deferred.

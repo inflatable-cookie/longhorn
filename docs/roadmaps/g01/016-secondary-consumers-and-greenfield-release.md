@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 117 ready
+Status: executing; Card 118 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -45,7 +45,7 @@ lane from current evidence; it does not infer package publication.
 
 - [x] migrate stable-name storage, app config, and protected primary window
 - [x] compose product settings with shared storage/backup/recovery modules
-- [ ] adopt structural operation authority for plugin scan
+- [x] adopt structural operation authority for plugin scan
 - [ ] adopt isolated-window coordination for disposable plugin inspection
 - [ ] prove exact artifacts, behavior, rollback, and retained sibling authority
 
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
+- `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 - `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
 - `batch-cards/120-bovine-config-and-settings-cutover.md`
 - `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
@@ -121,13 +120,14 @@ Complete:
 - `batch-cards/114-secondary-consumer-private-artifact-admission.md`
 - `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
 - `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
+- `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
 
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
 artifact graphs without consumer writes. Cards 115-116 complete Soundcheck's
-storage/window and settings/recovery slices. Card 117 is the only active-ready
-Soundcheck slice.
+storage/window, settings/recovery, and plugin-scan operation slices. Card 118
+is the only ready Soundcheck slice.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -149,6 +149,6 @@ authority.
 
 ## Next Task
 
-Execute Card 117. Move plugin-scan structural lifecycle onto Longhorn operation
-authority while retaining soundcheck-library execution, reports, retry
-meaning, and recovery.
+Execute Card 118. Adopt isolated-window coordination around Soundcheck's
+disposable plugin-inspection helper while retaining plugin hosting, audio,
+screenshots, and helper-process policy downstream.
