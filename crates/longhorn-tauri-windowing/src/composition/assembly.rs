@@ -37,6 +37,18 @@ impl<R: Runtime> ManagedWindowRegistration<R> for LifecycleWindowRegistration<R>
             .install_window(window_id.clone(), window.clone(), None)
             .map_err(|error| format!("{error:?}"))
     }
+
+    fn retag_window(
+        &self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), String> {
+        self.0
+            .upgrade()
+            .ok_or_else(|| "window lifecycle host is unavailable".to_string())?
+            .retag_window(transport_handle, window_id.clone())
+            .map_err(|error| format!("{error:?}"))
+    }
 }
 
 /// Assembles the lifecycle-only path for one predeclared window.

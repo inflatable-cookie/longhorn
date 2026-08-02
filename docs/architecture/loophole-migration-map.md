@@ -58,8 +58,8 @@ not a second layout tree and is not persisted.
 | --- | --- | --- | --- |
 | path resolution | Longhorn profile through `echo-storage-profile`; receipted Aura import | configuration layout and transition | product identity, scope, legacy candidates, retention |
 | configuration IO | Echo config/profile crates plus Aura/Pulse stores | registered domains, atomic mutation, backup/recovery | schemas, writer choice, server/project boundaries |
-| display facts | Echo machine/display types plus Aura local plane | display inventory and correlation | machine labels and Loophole diagnostics |
-| window plan/apply | `echo-windowing`; Aura `window_apply.rs` and `bootstrap/windows.rs` | window planner and protected/dynamic Tauri host | logical roles, main retag, close and empty-host policy |
+| display facts | Longhorn inventory and correlation fed by the Loophole machine helper | complete | machine labels, canonical platform evidence, and Loophole diagnostics |
+| window plan/apply | Longhorn placement, protected/dynamic Tauri host, lifecycle, reveal, and shutdown | complete | logical roles, main retag, close, fullscreen, and empty-host policy |
 | workspace document | Echo profile/layout types; Aura `shell.rs` | distinct registered window, Surface, and layout domains | workspace preset scope and project restore input |
 | layout mutation | Echo `WorkspaceCommand`; Aura sequential host calls | expected-revision Longhorn commands | eight-region schema and panel policy |
 | Surface lifecycle | Aura shell service over Echo documents | optional Surface core and host binding | focused habitat, eligibility, presence, fallback policy |
@@ -197,6 +197,28 @@ Loophole adapter validate and resolve it.
 and performs best-effort whole-file persistence. A failed write is logged but
 the method still returns the in-memory snapshot. Cutover must publish through
 checked persistence before returning success.
+
+Card 106 completes the display and workspace-window slice. Aura now owns a
+registered `loophole.window-placement` machine-state domain separate from the
+workspace document. Its first publication imports retained canonical display
+facts and every per-display window geometry, then writes a digest-bound
+receipt without deleting either source. Later capture writes only this domain.
+
+One Longhorn host owns hidden restore, exact apply generations, fresh readback,
+settling, capture, guarded reveal, user close, flush, and teardown for `main`
+plus `workspace-*`. `main` remains the protected native slot and may change
+logical identity without changing its transport label. Longhorn now moves
+lifecycle identity with that retag. Plugin editor windows never enter the
+managed registry or capability wildcard.
+
+The Loophole machine helper remains a consumer platform-evidence provider. It
+supplies canonical ids, built-in status, labels, and logical display facts;
+Longhorn owns correlation, known-display retention, arrangement signatures,
+placement resolution, and native lifecycle. `echo-configuration` is read only
+during the one-shot import. `echo-windowing` remains active only for the shell
+topology that Cards 107-108 replace. The old Aura planner, three/five-second
+suppression windows, geometry timer, duplicate Tauri builder, and window
+coordinator are gone.
 
 ## Renderer And Poodle
 

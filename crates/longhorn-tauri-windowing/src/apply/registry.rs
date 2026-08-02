@@ -19,6 +19,12 @@ pub(crate) trait ManagedWindowRegistration<R: Runtime>: Send + Sync {
         window_id: &WindowId,
         window: &WebviewWindow<R>,
     ) -> Result<(), String>;
+
+    fn retag_window(
+        &self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), String>;
 }
 
 /// Managed native windows, stable-id bookkeeping, and current apply evidence.
@@ -214,6 +220,17 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
             .windows
             .get_mut(handle)
             .ok_or_else(|| ManagedWindowRegistryError::UnknownTransportHandle(handle.clone()))?;
+        if let Some(registration) = self.window_registration.as_ref() {
+            registration
+                .retag_window(handle, &window_id)
+                .map_err(
+                    |detail| ManagedWindowRegistryError::RetagRegistrationFailed {
+                        window_id: window_id.clone(),
+                        transport_handle: handle.clone(),
+                        detail,
+                    },
+                )?;
+        }
         managed.set_window_id(window_id);
         Ok(())
     }
@@ -310,6 +327,15 @@ pub enum ManagedWindowRegistryError {
         /// Listener diagnostic.
         detail: String,
     },
+    /// A protected-slot retag could not move lifecycle identity with it.
+    RetagRegistrationFailed {
+        /// New logical target.
+        window_id: WindowId,
+        /// Existing native handle.
+        transport_handle: HostWindowHandle,
+        /// Lifecycle diagnostic.
+        detail: String,
+    },
 }
 
 impl fmt::Display for ManagedWindowRegistryError {
@@ -365,6 +391,14 @@ impl fmt::Display for ManagedWindowRegistryError {
             } => write!(
                 formatter,
                 "lifecycle registration for window {window_id} handle {transport_handle} failed: {detail}"
+            ),
+            Self::RetagRegistrationFailed {
+                window_id,
+                transport_handle,
+                detail,
+            } => write!(
+                formatter,
+                "lifecycle retag for window {window_id} handle {transport_handle} failed: {detail}"
             ),
         }
     }

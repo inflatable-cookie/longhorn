@@ -127,3 +127,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Loophole Baseline And Private Artifact Admission](2026-08/01-loophole-baseline-private-artifact-admission.md)
 
 - [`2026-08/02-012529-loophole-storage-and-domain-transition.md`](./2026-08/02-012529-loophole-storage-and-domain-transition.md)
+- [`2026-08/02-020758-loophole-display-and-window-host-cutover.md`](./2026-08/02-020758-loophole-display-and-window-host-cutover.md)

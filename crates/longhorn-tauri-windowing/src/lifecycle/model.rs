@@ -439,6 +439,11 @@ pub enum TauriWindowLifecycleError {
         /// Missing identity.
         window_id: WindowId,
     },
+    /// Native handle has no installed lifecycle window.
+    UnknownWindowHandle {
+        /// Missing transport identity.
+        transport_handle: longhorn_windowing::HostWindowHandle,
+    },
     /// Stable id already has an installed window.
     DuplicateWindow {
         /// Repeated identity.

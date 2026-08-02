@@ -1,6 +1,6 @@
 # 106 Loophole Display And Window Host Cutover
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 2
 Governing refs: contracts 002, 003, 009, 010, and 012; Card 105
@@ -59,6 +59,36 @@ settling, persistence, reveal, and shutdown mechanics with the Longhorn host.
 - multi-display restart and loss/return report
 - generation, capture, flush, reveal, close, and shutdown receipts
 - capability and duplicate-mechanism audit
+
+## Result
+
+Aura now composes one Longhorn host over protected `main` and dynamic
+`workspace-*` windows. Longhorn owns canonical display reconciliation,
+arrangement signatures, placement resolution, exact apply generations,
+readback, event attribution, settled capture, reveal gates, close, flush, and
+teardown. Loophole retains its logical roles, titles, display-adoption rule,
+last-window policy, fullscreen action, and platform evidence helper.
+
+Window placement persists through the registered
+`loophole.window-placement` machine-state domain. First use imports the retained
+Echo display registry and every workspace per-display geometry. The target and
+both source projections are digest-bound in
+`state/migration/loophole-window-placement-v1.json`; sources remain intact.
+Restart, display loss/return, attached-display adoption, temporary fallback,
+and interrupted receipt publication have consumer tests.
+
+The old Aura apply planner, programmatic suppression clock, user-move window,
+geometry debounce, coordinator, duplicate dynamic-window builder, and direct
+Echo correlation are removed. Plugin GUI labels are excluded from the host.
+The existing `workspace-windows` capability is exact for `main` and
+`workspace-*`; no capability expansion was required. Partial convergence,
+flush failures, and reveal failures remain exact errors rather than reported
+success.
+
+Longhorn fixes protected-slot retagging so registry and lifecycle identity move
+together. The full shared window-host suite and Aura native/renderer validation
+pass. Evidence:
+`../../../logs/2026-08/02-020758-loophole-display-and-window-host-cutover.md`.
 
 ## Next Task
 

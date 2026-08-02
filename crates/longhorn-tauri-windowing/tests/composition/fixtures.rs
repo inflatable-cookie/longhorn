@@ -6,7 +6,9 @@ use longhorn_tauri_windowing::{
     TauriWindowHostInitializationStatus, TauriWindowHostTeardownStatus, WindowApplyOutcome,
     WindowFactoryError, WindowFlushOutcome, WindowRevealStatus, assemble_tauri_window_host,
 };
-use longhorn_windowing::{HostCapability, WindowLifecycleEvent, WindowOperationKind};
+use longhorn_windowing::{
+    HostCapability, ProtectedPrimaryPolicy, WindowLifecycleEvent, WindowOperationKind,
+};
 use tauri::{AppHandle, WebviewWindow, WebviewWindowBuilder, test::MockRuntime};
 
 use super::support::{
@@ -233,6 +235,61 @@ fn loophole_protected_main_and_dynamic_workspace_use_the_same_assembly() {
             && matches!(attempt.outcome(), WindowApplyOutcome::Failed { failure, .. }
                 if failure.call() == NativeWindowCall::ProtectPrimary)
     }));
+}
+
+#[test]
+fn protected_main_retag_moves_lifecycle_identity_with_registry_identity() {
+    let app = tauri::test::mock_app();
+    let main = WebviewWindowBuilder::new(&app, "main", Default::default())
+        .visible(false)
+        .build()
+        .unwrap();
+    let service_fixture = services(SinkMode::Succeed);
+    let initialized = assemble_tauri_window_host(
+        app.handle(),
+        policy(1_000),
+        service_fixture.services,
+        [PredeclaredTauriWindow::new(id("window:old"), main)],
+        Some(handle("main")),
+    )
+    .unwrap();
+    let target = placement(20, 30, 800, 600);
+    let apply = input(
+        [desired("window:new", target, false)],
+        [live("window:old", "main", target, false)],
+        1,
+    )
+    .with_capabilities(initialized.host().capabilities(false))
+    .with_protected_primary(ProtectedPrimaryPolicy::Reuse {
+        transport_handle: handle("main"),
+        window_id: id("window:new"),
+    })
+    .for_hidden_restore();
+
+    let receipt = initialized
+        .host()
+        .apply(
+            app.handle(),
+            apply,
+            NoWindowFactory,
+            RecordingBackend::default(),
+            StaticReadback::complete([live("window:new", "main", target, false)]),
+        )
+        .unwrap();
+
+    assert!(receipt.apply().is_converged());
+    assert!(
+        initialized
+            .host()
+            .mark_page_ready(&id("window:new"))
+            .is_ok()
+    );
+    assert!(
+        initialized
+            .host()
+            .mark_page_ready(&id("window:old"))
+            .is_err()
+    );
 }
 
 #[test]

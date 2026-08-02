@@ -8,8 +8,8 @@ use std::{
 
 use longhorn_core::{WindowId, WindowPlacement};
 use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, WindowLifecycleCoordinator, WindowLifecycleEvent,
-    WindowLifecyclePolicy, WindowOperation,
+    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
+    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
 };
 use tauri::{Runtime, WebviewWindow, WindowEvent};
 
@@ -99,6 +99,8 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         }
 
         let host = std::sync::Arc::downgrade(self);
+        let transport_handle = HostWindowHandle::new(window.label())
+            .expect("installed Tauri labels are valid host handles");
         window.on_window_event(move |event| {
             let Some(host) = host.upgrade() else {
                 return;
@@ -106,7 +108,18 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
             if !host.is_active() {
                 return;
             }
-            let result = host.handle_tauri_event(&window_id, event);
+            let current_window_id = match host.window_id_for_handle(&transport_handle) {
+                Ok(window_id) => window_id,
+                Err(error) => {
+                    host.services.reporter.report(WindowLifecycleReport::new(
+                        window_id.clone(),
+                        None,
+                        Err(error),
+                    ));
+                    return;
+                }
+            };
+            let result = host.handle_tauri_event(&current_window_id, event);
             let event_kind = result
                 .as_ref()
                 .ok()
@@ -131,12 +144,36 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
             }
             if let Some(receipt_result) = result.transpose() {
                 host.services.reporter.report(WindowLifecycleReport::new(
-                    window_id.clone(),
+                    current_window_id,
                     event_kind,
                     receipt_result,
                 ));
             }
         });
+        Ok(())
+    }
+
+    pub(crate) fn retag_window(
+        &self,
+        transport_handle: &HostWindowHandle,
+        window_id: WindowId,
+    ) -> Result<(), TauriWindowLifecycleError> {
+        self.ensure_active()?;
+        let mut windows = self.lock_windows()?;
+        if windows.contains_key(&window_id) {
+            return Err(TauriWindowLifecycleError::DuplicateWindow { window_id });
+        }
+        let previous = windows
+            .iter()
+            .find(|(_, installed)| installed.window.label() == transport_handle.as_str())
+            .map(|(window_id, _)| window_id.clone())
+            .ok_or_else(|| TauriWindowLifecycleError::UnknownWindowHandle {
+                transport_handle: transport_handle.clone(),
+            })?;
+        let installed = windows
+            .remove(&previous)
+            .expect("located lifecycle window remains present under lock");
+        windows.insert(window_id, installed);
         Ok(())
     }
 
@@ -229,6 +266,19 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                 window_id: window_id.clone(),
             })
         }
+    }
+
+    fn window_id_for_handle(
+        &self,
+        transport_handle: &HostWindowHandle,
+    ) -> Result<WindowId, TauriWindowLifecycleError> {
+        self.lock_windows()?
+            .iter()
+            .find(|(_, installed)| installed.window.label() == transport_handle.as_str())
+            .map(|(window_id, _)| window_id.clone())
+            .ok_or_else(|| TauriWindowLifecycleError::UnknownWindowHandle {
+                transport_handle: transport_handle.clone(),
+            })
     }
 
     fn lock_windows(
