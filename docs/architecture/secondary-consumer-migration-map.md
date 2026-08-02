@@ -31,6 +31,24 @@ receipts plus isolated produced-artifact proof.
 These receipts are compilation evidence. Card 113 refreshes them before
 admission; no migration may rely on a stale or dirty selected source.
 
+## Card 113 Checked Freeze
+
+Card 113 passed against Longhorn compilation commit
+`efe3483d499b5416cd6f1690d1c4598fd75cdfa4` and the exact consumer commits
+above. Soundcheck, soundcheck-library, Signal, Jetstream, and Poodle are clean
+on `main`. Bovine remains on its recorded commit with exactly 19 unrelated
+`docs/` or `CHANGELOG.md` paths; no runtime or package path overlaps.
+
+The checked freeze covers 23 source matrices and 27 unique selected Longhorn
+package paths. Every selected package exists, none changed after compilation,
+and no consumer graph contains a forbidden system. The prior exact Poodle
+artifact-set receipt is retained for comparison; Card 114 must produce a fresh
+set before consumer writes.
+
+Rollback requires retained consumer sources, exact source/artifact receipts,
+and previous locks. Dual writes, silent fallback, automatic source cleanup,
+package-manager publication, tags, and hosted releases remain forbidden.
+
 ## Soundcheck
 
 Soundcheck is a single primary-window app with a stable human-readable product

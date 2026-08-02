@@ -1,6 +1,6 @@
 # 113 Secondary-consumer Behavior, Authority, And Rollback Freeze
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 1
 Governing refs: contracts 001, 003-007, 009-010, 012-017;
@@ -67,7 +67,21 @@ package shape, and rollback inputs before any consumer migration write.
 - a required public Poodle seam is absent
 - rollback requires a second active write authority
 
+## Completion Evidence
+
+- fixture:
+  `../../../../fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`
+- verifier: `../../../../scripts/verify-secondary-consumer-card113.ts`
+- exact clean receipts: Soundcheck, soundcheck-library, Signal, Jetstream, and
+  Poodle; exact 19-path docs-only overlap in Bovine
+- checked graph: 23 source matrices, 27 selected Longhorn package paths, and
+  zero selected/forbidden overlap
+- rollback: retained sources, exact receipts, and previous locks required;
+  dual writes, silent fallback, and automatic cleanup forbidden
+- publication: package managers, tags, and hosted releases remain false
+- focused gate: `effigy qa:northstar:g01-secondary-consumer-card113`
+
 ## Next Task
 
-If the freeze passes, execute Card 114's private artifact admission. Do not
-modify a consumer or publish packages.
+Execute Card 114's private artifact admission. Do not modify a consumer or
+publish packages.

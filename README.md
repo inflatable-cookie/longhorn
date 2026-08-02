@@ -221,6 +221,7 @@ capability, duplicate-authority, and no-Surface conformance. g01.014 is
 complete.
 Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 now
 compile Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption
-guides, and a deterministic private compatibility candidate. Card 113 is the
-ready read-only freeze.
+guides, and a deterministic private compatibility candidate. Card 113 now
+freezes exact read-only behavior, authority, overlap, and rollback evidence;
+Card 114 is ready for private artifact admission.
 Package-manager publication remains deferred.

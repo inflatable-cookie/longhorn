@@ -131,6 +131,19 @@ effigy qa:northstar:g01-loophole-card112
 The default donors are `../loophole` and `../poodle`. Override them with
 `LOOPHOLE_REPO` and `POODLE_REPO` only for exact clean checkouts.
 
+Secondary-consumer Card 113 checks exact Soundcheck, soundcheck-library,
+Signal, Bovine, Jetstream, Poodle, and Longhorn receipts; freezes source-backed
+behavior and retained authority; rejects selected/forbidden package overlap;
+and protects Bovine's exact docs-only worktree overlap:
+
+```sh
+effigy qa:northstar:g01-secondary-consumer-card113
+```
+
+The default donors are sibling checkouts. Override them with
+`SOUNDCHECK_REPO`, `SOUNDCHECK_LIBRARY_REPO`, `SIGNAL_REPO`, `BOVINE_REPO`,
+`JETSTREAM_REPO`, or `POODLE_REPO` only for equivalent exact checkouts.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

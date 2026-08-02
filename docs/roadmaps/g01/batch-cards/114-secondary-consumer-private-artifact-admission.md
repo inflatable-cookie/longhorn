@@ -1,6 +1,6 @@
 # 114 Secondary-consumer Private Artifact Admission
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 1
 Governing refs: contracts 003, 010, 012, 013, and 017; Card 113

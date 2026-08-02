@@ -1,0 +1,185 @@
+{
+  "schema": "longhorn.secondary-consumer-behavior-authority-freeze.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_compilation_commit": "efe3483d499b5416cd6f1690d1c4598fd75cdfa4",
+    "soundcheck_commit": "f4544e621b8ba3f4558c6b068db1cb36d6ef161f",
+    "soundcheck_library_commit": "40418635674d598f7e311bf311c3165300edd35b",
+    "signal_commit": "4c5b60681071095aedbf9013720e76c1c89e91ed",
+    "bovine_commit": "b713644e08be384d20879b0ac31f7899589c8a9b",
+    "jetstream_commit": "4df74e756c222a3b207391c44775e5b3148c46dd",
+    "poodle_commit": "208532f0d18dcd1683cdef157e370d0ba0f0d3b3",
+    "poodle_prior_artifact_set": "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69"
+  },
+  "branches": {
+    "soundcheck": "main",
+    "soundcheck_library": "main",
+    "signal": "main",
+    "bovine": "main",
+    "jetstream": "main",
+    "poodle": "main"
+  },
+  "bovine_unrelated_dirty_paths": [
+    "CHANGELOG.md",
+    "docs/README.md",
+    "docs/architecture/002-bovine-source-content-model.md",
+    "docs/architecture/system-architecture.md",
+    "docs/architecture/system-inventory.md",
+    "docs/contracts/001-working-rules.md",
+    "docs/contracts/009-schema-coverage-inventory.md",
+    "docs/contracts/contract-index.md",
+    "docs/logs/2026-08/01-225825-schema-coverage-planning.md",
+    "docs/logs/README.md",
+    "docs/roadmaps/README.md",
+    "docs/roadmaps/g01/010-schema-coverage-inventory.md",
+    "docs/roadmaps/g01/README.md",
+    "docs/roadmaps/g01/batch-cards/052-schema-coverage-contract.md",
+    "docs/roadmaps/g01/batch-cards/053-rust-schema-coverage-projection.md",
+    "docs/roadmaps/g01/batch-cards/054-schema-coverage-ui.md",
+    "docs/roadmaps/g01/batch-cards/055-schema-coverage-integrated-proof.md",
+    "docs/roadmaps/g01/batch-cards/README.md",
+    "docs/roadmaps/generation-index.md"
+  ],
+  "consumers": {
+    "soundcheck": {
+      "app_id": "com.inflatablecookie.soundcheck",
+      "storage_profile": "shared-product-root-v1",
+      "stable_storage_name": "Soundcheck",
+      "selected_typescript": [
+        "@longhorn/core",
+        "@longhorn/config",
+        "@longhorn/settings",
+        "@longhorn/operation",
+        "@longhorn/native-content",
+        "@longhorn/native-content-svelte",
+        "@longhorn/tauri"
+      ],
+      "selected_rust": [
+        "longhorn-core",
+        "longhorn-config",
+        "longhorn-tauri-config",
+        "longhorn-display",
+        "longhorn-windowing",
+        "longhorn-windowing-config",
+        "longhorn-tauri-windowing",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-settings",
+        "longhorn-operation",
+        "longhorn-tauri-operation",
+        "longhorn-native-content",
+        "longhorn-native-content-isolated-window"
+      ],
+      "forbidden_systems": [
+        "layout",
+        "surfaces",
+        "transfer",
+        "commands",
+        "history",
+        "bridge",
+        "notifications",
+        "backing-surface",
+        "child-view"
+      ]
+    },
+    "bovine": {
+      "app_id": "com.acowtancy.bovine-accelerator",
+      "storage_profile": "native-platform-v1",
+      "stable_storage_name": null,
+      "selected_typescript": [
+        "@longhorn/core",
+        "@longhorn/config",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
+      "selected_rust": [
+        "longhorn-core",
+        "longhorn-config",
+        "longhorn-tauri-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-settings"
+      ],
+      "forbidden_systems": [
+        "windowing",
+        "layout",
+        "surfaces",
+        "transfer",
+        "commands",
+        "history",
+        "bridge",
+        "operation",
+        "notifications",
+        "native-content"
+      ]
+    },
+    "jetstream": {
+      "app_id": "com.inflatablecookie.jetstream.editor",
+      "storage_profile": null,
+      "stable_storage_name": null,
+      "selected_typescript": [
+        "@longhorn/core",
+        "@longhorn/bridge",
+        "@longhorn/commands",
+        "@longhorn/native-content",
+        "@longhorn/native-content-svelte",
+        "@longhorn/tauri"
+      ],
+      "selected_rust": [
+        "longhorn-core",
+        "longhorn-bridge",
+        "longhorn-tauri-bridge",
+        "longhorn-command",
+        "longhorn-native-content",
+        "longhorn-native-content-backing-surface"
+      ],
+      "forbidden_systems": [
+        "config",
+        "settings",
+        "windowing",
+        "layout",
+        "surfaces",
+        "transfer",
+        "history",
+        "operation",
+        "notifications",
+        "isolated-window",
+        "child-view"
+      ]
+    }
+  },
+  "authority": {
+    "soundcheck_retained": [
+      "soundcheck-library-sqlite-and-backups",
+      "soundcheck-library-scan-execution-and-reports",
+      "signal-plugin-abi-editor-audio-midi",
+      "soundcheck-daw-sync-inspection-and-product-pages"
+    ],
+    "bovine_retained": [
+      "repository-and-content-parsing",
+      "navigation-and-editorial-meaning",
+      "git-operations",
+      "local-two-pane-presentation"
+    ],
+    "jetstream_retained": [
+      "product-command-execution",
+      "editor-snapshot-payload",
+      "native-view-and-wgpu-storage",
+      "renderer-frame-world-camera-picking-gizmos",
+      "semantic-input-mapping"
+    ]
+  },
+  "rollback": {
+    "retained_sources_required": true,
+    "exact_receipts_required": true,
+    "previous_locks_required": true,
+    "dual_write_authority": false,
+    "silent_fallback": false,
+    "automatic_source_cleanup": false
+  },
+  "publication": {
+    "package_managers": false,
+    "tags": false,
+    "hosted_releases": false
+  }
+}

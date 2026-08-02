@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 113 ready
+Status: executing; Card 114 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -37,7 +37,7 @@ lane from current evidence; it does not infer package publication.
 
 ### Batch 1: common admission
 
-- [ ] freeze exact current behavior, authority, overlap, and rollback inputs
+- [x] freeze exact current behavior, authority, overlap, and rollback inputs
 - [ ] prove selected private artifacts for all three consumer shapes
 - [ ] admit only the first bounded Soundcheck write slice
 
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/113-secondary-consumer-behavior-authority-and-rollback-freeze.md`
+- `batch-cards/114-secondary-consumer-private-artifact-admission.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/114-secondary-consumer-private-artifact-admission.md`
 - `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
 - `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
 - `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
@@ -121,13 +120,13 @@ Planned:
 
 Complete:
 
-- none
+- `batch-cards/113-secondary-consumer-behavior-authority-and-rollback-freeze.md`
 
 ## Planning Checkpoint
 
-Current source evidence supports the selected package boundaries. Card 113
-must refresh the recorded receipts and may stop downstream admission if live
-consumer behavior has diverged. Card 114 is the only private-artifact gate.
+Card 113 refreshed exact source, worktree, behavior, authority, package, and
+rollback evidence without consumer writes. Card 114 is the only
+private-artifact gate.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -149,5 +148,5 @@ authority.
 
 ## Next Task
 
-Execute Card 113. Refresh exact consumer behavior, authority, selected-package,
-overlap, and rollback evidence without modifying a consumer or publishing.
+Execute Card 114. Prove the exact private Longhorn and Poodle graphs in
+isolated consumer shapes without modifying a consumer or publishing.
