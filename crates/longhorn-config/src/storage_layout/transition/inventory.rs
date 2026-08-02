@@ -70,14 +70,21 @@ pub fn inspect_storage_transition(
         domains.push(domain);
     }
 
-    let source_unknown = scan_layout(
-        request.source_layout,
-        &known_source,
-        request.limits,
-        &mut total_bytes,
-        &INVENTORY_ROOTS,
-        &BTreeSet::new(),
-    )?;
+    let same_layout = request.source_layout.digest() == request.target_layout.digest();
+    let source_unknown = if same_layout {
+        // Profile adoption changes no file authority. Walking unrelated retained
+        // product data here can be unbounded and cannot affect the plan.
+        Vec::new()
+    } else {
+        scan_layout(
+            request.source_layout,
+            &known_source,
+            request.limits,
+            &mut total_bytes,
+            &INVENTORY_ROOTS,
+            &BTreeSet::new(),
+        )?
+    };
     let equal_roots = equal_root_paths(request);
     let target_unknown = scan_layout(
         request.target_layout,

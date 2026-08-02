@@ -373,6 +373,12 @@ fn same_layout_adoption_allows_derived_workspace_under_state() {
     target_store.register(&domain).unwrap();
     let mut catalog = StorageTransitionCatalog::new();
     catalog.include(&domain).unwrap();
+    let retained = layout
+        .storage_roots()
+        .data()
+        .join("large-retained-product-data.bin");
+    fs::create_dir_all(retained.parent().unwrap()).unwrap();
+    fs::write(&retained, b"not transition input").unwrap();
     let bootstrap = longhorn_config::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
     let request = StorageTransitionRequest::new(
         &source_store,
@@ -386,6 +392,10 @@ fn same_layout_adoption_allows_derived_workspace_under_state() {
 
     let preview = inspect_storage_transition(&request).unwrap();
     assert!(preview.conflicts().is_empty());
+    assert!(
+        preview.source_unknown().is_empty(),
+        "same-layout profile adoption must not inventory unrelated retained data"
+    );
     assert_eq!(
         preview.domains()[0].action(),
         &StorageTransitionAction::SameAuthority
