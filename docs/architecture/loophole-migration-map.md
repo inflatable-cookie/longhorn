@@ -68,7 +68,7 @@ not a second layout tree and is not persisted.
 | renderer state | listener-first clients, epochs, leases, and Aura projection | transfer slice complete | bodies, labels, icons, chrome, workflow state |
 | settings | Aura five-tab modal plus host stores | registry, checked sessions, shared shell and storage pages | app, hardware, keybinding, and workspace page content |
 | commands | Echo registry/runtime/input/action crates plus Aura WASM | registry, keyboard keymap, palette and settings projections | command catalogue, availability, execution, extended input |
-| history | `pulse-history`, `history_apply.rs`, project snapshot and session journal | structural linear kernel and metadata UI | every payload and durability/recovery decision |
+| history | Longhorn linear authority behind the Pulse adapter, canonical project envelope, Pulse transaction/journal, and paged Aura panel | complete | every payload, apply, journal, and durability/recovery decision |
 | backend topology | embedded or remote Pulse composition | no g01.015 cutover | Pulse authority and transport lifecycle remain current |
 | plugin/native hosts | Aura/Signal native windows | no g01.015 cutover | all current policy and mechanism remain current |
 
@@ -282,7 +282,7 @@ undo, and redo; clean save removes it; autosave retains the unabsorbed suffix;
 recovery replays through Pulse apply and history. The journal is fenced to one
 app version and intentionally does not fsync every entry.
 
-Longhorn adoption is linear and structural:
+Longhorn adoption is complete, linear, and structural:
 
 1. register a Pulse-owned payload codec and inverse/coalesce/no-op policy;
 2. import the complete applied and future ordering without replaying entries
@@ -294,6 +294,13 @@ Longhorn adoption is linear and structural:
 6. expose authoritative paged past and future metadata to Aura;
 7. reject corrupt or future history visibly instead of silently returning an
    empty stack.
+
+The canonical Longhorn envelope is stored beside a complete legacy rollback
+projection. Canonical and legacy disagreement is rejected. Legacy-only state
+imports directly without replay. Aura's active panel reads authoritative
+paged metadata through the checked Tauri host. The old eight-entry
+`PulseSessionSnapshot` remains only as a compatibility projection and
+external-mutation invalidation signal; it is not an active history authority.
 
 Branch mode stays disabled. g01.017 implementation and a later product
 decision are both required before fork-tree adoption. Project versions remain

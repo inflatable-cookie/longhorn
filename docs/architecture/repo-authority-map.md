@@ -16,7 +16,7 @@ authority and migrate through explicit batches. Poodle remains independent.
 | --- | --- | --- | --- |
 | `longhorn` | generic Rust/TS/Svelte desktop mechanisms | n/a | app schemas, commands, history payloads, panel catalogues, workflows |
 | `poodle` | components, tokens, interaction primitives | optional shared types only | host state and persistence |
-| `loophole` | DAW shell policy, history payload/apply/recovery, and panel catalogue | full hosting, config, command, settings, optional linear history mechanics | Pulse/Signal/Aura product authority |
+| `loophole` | DAW shell policy, history payload/apply/recovery, and panel catalogue | full hosting, config, command, settings, and structural linear history | Pulse/Signal/Aura product authority |
 | `nucleus` | agent workspace policy, resources, server data, panel and Browser policy | storage, protected window, registered layout, checked renderer, native content | project/task/runtime authority |
 | `soundcheck` | plugin-library workflows | foundation modules as adopted | scan/sync/inspection domain |
 | `jetstream` | engine/editor and native renderer | bridge or native-host adapters as adopted | frame/render/world authority |

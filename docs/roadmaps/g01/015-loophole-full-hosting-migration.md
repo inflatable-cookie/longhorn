@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 111 active
+Status: executing; Card 112 active
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 002-014;
@@ -45,7 +45,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
 - [x] adopt the settings registry, shared shell, and storage diagnostics
 - [x] adopt keyboard keymaps, command discovery, palette, and conflict projection
 - [x] retain unsupported extended triggers behind a named Loophole adapter
-- [ ] import complete persisted linear history without losing Pulse semantics
+- [x] import complete persisted linear history without losing Pulse semantics
 
 ### Batch 5: closeout
 
@@ -61,15 +61,15 @@ payloads, journal recovery, and project versions remain Loophole authority.
 - [ ] window, Surface, and layout persistence are independent authorities
 - [x] panels and Surfaces transfer through checked authoritative sessions
 - [x] settings and command surfaces share generic Longhorn mechanisms
-- [ ] all persisted undo and redo state imports into the linear kernel
+- [x] all persisted undo and redo state imports into the linear kernel
 - [ ] no product authority moves into Longhorn
 
 ## Acceptance Criteria
 
-- [ ] all 83 Pulse mutation variants remain Loophole-owned and usable
-- [ ] project snapshots, versions, autosave, journal path/replay, and recovery
+- [x] all 83 Pulse mutation variants remain Loophole-owned and usable
+- [x] project snapshots, versions, autosave, journal path/replay, and recovery
   remain Pulse authority
-- [ ] branch mode remains disabled
+- [x] branch mode remains disabled
 - [ ] extended mouse, wheel, gesture, playback, MIDI, and macro semantics are not
   claimed by Longhorn
 - [ ] panel catalogue, region schema, focused eligibility, presence, close,
@@ -91,11 +91,11 @@ Ready:
 
 Active:
 
-- `batch-cards/111-loophole-linear-history-adoption.md`
+- `batch-cards/112-loophole-migration-conformance-and-closeout.md`
 
 Planned:
 
-- `batch-cards/112-loophole-migration-conformance-and-closeout.md`
+- none
 
 Complete:
 
@@ -108,6 +108,7 @@ Complete:
 - `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
 - `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
 - `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
+- `batch-cards/111-loophole-linear-history-adoption.md`
 
 ## Planning Checkpoint
 
@@ -145,7 +146,11 @@ Poodle shells. Autosave is an immediate apply unit; appearance is staged and
 activates all windows. Storage diagnostics are real. Backup and restore remain
 explicitly unadmitted until Loophole owns the required picker, atomicity, and
 recovery policy. Echo retains macros and extended triggers behind a named
-product adapter. Card 111 is active.
+product adapter. Card 111 replaces Pulse's generic stack with Longhorn's
+linear structure while retaining all 83 payloads, product apply, project
+lineage, autosave, and journal recovery. Canonical and legacy persistence,
+transaction rollback, paged metadata, and the Poodle panel pass. Card 112 is
+active.
 
 Linear history can migrate under contract 008 only if complete persisted
 undo/redo ordering and Pulse journal integration survive; branch mode stays
@@ -153,6 +158,5 @@ disabled.
 
 ## Next Task
 
-Execute Card 111. Adopt the structural linear-history kernel without losing
-Pulse payload, inverse, grouping, journal, recovery, or project-version
-semantics.
+Execute Card 112. Prove the full migration, remove superseded active generic
+mechanisms, record retained product adapters, and close g01.015.

@@ -117,6 +117,14 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-loophole-card110" },
   { task = "verify:loophole-card110" },
 ]
+"check:northstar:g01-loophole-card111" = "effigy docs check paths effigy.toml scripts/README.md scripts/verify-loophole-card111.ts fixtures/migration/loophole-card111/linear-history-cutover-v1.json packages/history/src/svelte/session.svelte.ts docs/architecture/loophole-migration-map.md docs/architecture/repo-authority-map.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/008-history-kernel-boundary.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/111-loophole-linear-history-adoption.md docs/roadmaps/g01/batch-cards/112-loophole-migration-conformance-and-closeout.md docs/logs/README.md docs/logs/2026-08/02-loophole-linear-history-adoption.md"
+"verify:loophole-card111" = "bun scripts/verify-loophole-card111.ts"
+"qa:northstar:g01-loophole-card111" = [
+  { task = "check:northstar:g01-loophole-card111" },
+  { task = "verify:loophole-card111" },
+  { task = "check:history-ts" },
+  { task = "check:history-svelte" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"

@@ -42,6 +42,10 @@ export class HistorySession {
     return this.#controller.stop();
   }
 
+  refresh(): Promise<void> {
+    return this.#controller.refresh();
+  }
+
   async dispose(): Promise<void> {
     this.#unobserve();
     await this.#controller.stop();

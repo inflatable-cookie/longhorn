@@ -1,0 +1,45 @@
+{
+  "schema": "longhorn.loophole-linear-history-cutover.v1",
+  "outcome": "pass_with_product_owned_payload_policy",
+  "payloads": {
+    "variant_count": 83,
+    "owner": "Pulse",
+    "codec_family": "loophole.pulse-history-mutation",
+    "codec_version": 1,
+    "inverse_and_apply_exhaustive": true
+  },
+  "structure": {
+    "authority": "longhorn-history LinearHistory<PulseHistoryMutation>",
+    "mode": "linear",
+    "branch_package_present": false,
+    "default_entry_limit": 100,
+    "automatic_group_window_ms": 750,
+    "navigation": "revision-bound plan/apply/commit with exact PulseRuntime rollback"
+  },
+  "persistence": {
+    "canonical": "Longhorn versioned envelope embedded in the project-adjacent history field",
+    "rollback_projection": "complete previous-build undo_stack and redo_stack",
+    "import": "direct applied/future state construction without product replay",
+    "corrupt_canonical_fallback": false,
+    "legacy_obsolete_vocabulary_exception": "pre-kernel project migration only"
+  },
+  "journal": {
+    "records": ["mutation", "undo", "redo"],
+    "checkout": "one committed undo or redo record per moved entry",
+    "checkpoint_suffix_replay": "retained"
+  },
+  "renderer": {
+    "protocol": "longhorn history protocol v1",
+    "page_size": 50,
+    "positions": ["past", "current", "future"],
+    "payloads_exposed": false,
+    "component": "@longhorn/history/poodle HistoryPanel",
+    "eight_entry_heuristic_active": false
+  },
+  "retained_product_edges": [
+    "Pulse mutation vocabulary, labels, inverse, no-op, coalescing, grouping keys, and apply",
+    "Pulse project save/autosave/session-journal orchestration",
+    "Aura caller authorization and Pulse product transaction adapter",
+    "legacy Aura jump command as a checked checkout compatibility route"
+  ]
+}

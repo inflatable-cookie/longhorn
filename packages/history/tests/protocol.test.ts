@@ -69,4 +69,15 @@ describe("Rust-generated history protocol", () => {
       /safe integer/,
     );
   });
+
+  test("matches the Rust opaque-id grammar without requiring a namespace colon", () => {
+    const value = fixture();
+    value.snapshot.summary.currentEntryId = "history-0001";
+    assertCompatibleHistorySnapshot(value.snapshot);
+
+    value.snapshot.summary.currentEntryId = "History-0001";
+    expect(() => assertCompatibleHistorySnapshot(value.snapshot)).toThrow(
+      /bounded lowercase opaque id/,
+    );
+  });
 });

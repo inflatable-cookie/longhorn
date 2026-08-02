@@ -316,7 +316,13 @@ function oneOf(
 
 function id(value: unknown, path: string): void {
   string(value, path);
-  if (!(value as string).includes(":")) fail(path, "expected opaque id");
+  if (
+    (value as string).length === 0 ||
+    (value as string).length > 128 ||
+    !/^[a-z0-9._:-]+$/.test(value as string)
+  ) {
+    fail(path, "expected bounded lowercase opaque id");
+  }
 }
 
 function optionalId(value: unknown, path: string): void {

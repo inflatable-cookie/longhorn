@@ -36,7 +36,7 @@ storage, Longhorn display/window hosting, registered regional layout, and
 registered regional Surface lifecycle, and checked renderer/Poodle transfer.
 Card 110 completes shared settings, storage diagnostics, command discovery,
 keymaps, palette, conflict projection, and the named Echo extended-input edge.
-Card 111 is active.
+Card 111 completes lossless linear-history adoption. Card 112 is active.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -169,5 +169,5 @@ this host.
 
 ## Next Task
 
-Execute g01.015 Card 111. Adopt the linear-history structure without moving
-Pulse payload, transaction, journal, recovery, or project-version policy.
+Execute g01.015 Card 112. Prove full migration conformance, remove superseded
+active mechanisms, record retained adapters, and close the milestone.
