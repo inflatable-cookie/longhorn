@@ -174,6 +174,15 @@ health = [{ task = "qa" }]
   { task = "test:tauri-operation" },
   { task = "test:operation-ts" },
 ]
+"check:northstar:g01-soundcheck-card118" = "effigy docs check paths README.md docs/README.md effigy.toml scripts/README.md scripts/verify-soundcheck-card118.ts fixtures/migration/soundcheck-card118/isolated-window-coordination-cutover-v1.json crates/longhorn-native-content/src crates/longhorn-native-content-isolated-window/src packages/native-content/src docs/architecture/secondary-consumer-migration-map.md docs/contracts/contract-index.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/017-native-content-island-coordination.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/118-soundcheck-isolated-window-coordination-cutover.md docs/roadmaps/g01/batch-cards/119-soundcheck-migration-conformance-and-closeout.md docs/logs/README.md docs/logs/2026-08/02-soundcheck-isolated-window-coordination-cutover.md"
+"proof:soundcheck-card118" = "bun scripts/verify-soundcheck-card118.ts"
+"qa:northstar:g01-soundcheck-card118" = [
+  { task = "check:northstar:g01-soundcheck-card118" },
+  { task = "proof:soundcheck-card118" },
+  { task = "test:native-content" },
+  { task = "test:native-content-ts" },
+  { task = "qa:native-content-isolated-window-production" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"

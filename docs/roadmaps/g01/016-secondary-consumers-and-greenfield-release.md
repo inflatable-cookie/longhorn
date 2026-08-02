@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 118 ready
+Status: executing; Card 119 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -46,7 +46,7 @@ lane from current evidence; it does not infer package publication.
 - [x] migrate stable-name storage, app config, and protected primary window
 - [x] compose product settings with shared storage/backup/recovery modules
 - [x] adopt structural operation authority for plugin scan
-- [ ] adopt isolated-window coordination for disposable plugin inspection
+- [x] adopt isolated-window coordination for disposable plugin inspection
 - [ ] prove exact artifacts, behavior, rollback, and retained sibling authority
 
 ### Batch 3: Bovine
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
+- `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
 - `batch-cards/120-bovine-config-and-settings-cutover.md`
 - `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
@@ -121,13 +120,14 @@ Complete:
 - `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
 - `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
 - `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
+- `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
-artifact graphs without consumer writes. Cards 115-116 complete Soundcheck's
-storage/window, settings/recovery, and plugin-scan operation slices. Card 118
-is the only ready Soundcheck slice.
+artifact graphs without consumer writes. Cards 115-118 complete Soundcheck's
+storage/window, settings/recovery, plugin-scan operation, and isolated-window
+slices. Card 119 is the only ready Soundcheck slice.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -149,6 +149,5 @@ authority.
 
 ## Next Task
 
-Execute Card 118. Adopt isolated-window coordination around Soundcheck's
-disposable plugin-inspection helper while retaining plugin hosting, audio,
-screenshots, and helper-process policy downstream.
+Execute Card 119. Prove and close Soundcheck's selected composition, native
+behavior, rollback posture, and retained downstream authority.

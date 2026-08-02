@@ -70,8 +70,10 @@ The exact aggregate set ids are:
 
 Cards 115-116 complete Soundcheck storage, protected-window, settings, backup,
 and restore structure. Card 117 moved plugin-scan lifecycle structure onto
-Longhorn while retaining soundcheck-library job truth. Card 118 is ready. Bovine
-and Jetstream remain read-only.
+Longhorn while retaining soundcheck-library job truth. Card 118 wraps the
+disposable inspection helper in isolated-window coordination while retaining
+Soundcheck and Signal policy. Card 119 is ready. Bovine and Jetstream remain
+read-only.
 
 ## Card 115 Soundcheck Cutover
 
@@ -124,6 +126,31 @@ snapshot hash of the current database. Execution rechecks that evidence before
 calling the sibling restore path and reports verified, rolled-back, or
 recovery-required terminal state. The renderer receives no filesystem or
 direct backup command.
+
+## Card 118 Soundcheck Isolated-window Cutover
+
+Each plugin inspection launch now maps to one
+`island:soundcheck-plugin-inspection:<request>` identity, one logical host id,
+and one attach generation. Longhorn installs the runtime listener before
+Soundcheck starts the helper. Ready evidence contains product-free size,
+visibility, focus, owner pid, and native attachment. The plugin's first editor
+size remains authoritative; a differing bootstrap size is a partial apply, not
+a forced resize or false receipt.
+
+Signal accepts plugin and user resize requests before projection. The helper
+retains the original request and accepted size in a bounded state channel.
+Longhorn records exact or constrained decisions, desired updates, applies, and
+fresh observations. Foreign generations and request-history gaps fail closed.
+Normal close still exits the disposable helper immediately; bounded owner
+termination is the only detach policy. No shared code loads or unloads a
+plugin.
+
+Renderer access is listener-first and observation-only. Product identity,
+authorization, native titlebar, screenshots, startup warnings, cancellation,
+parent keepalive, Browse usage, and disposable-exit policy remain Soundcheck.
+ABI, editor, state, audio/MIDI, and size constraints remain Signal. macOS is
+proved; Windows and Linux remain unsupported. Scale is limited to Signal's
+current native 1:1 editor coordinate contract pending Card 119 traces.
 
 ## Soundcheck
 

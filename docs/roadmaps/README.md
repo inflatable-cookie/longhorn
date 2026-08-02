@@ -39,7 +39,7 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; Cards 113-117 are complete and Card 118 is ready.
+113-127; Cards 113-118 are complete and Card 119 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -172,6 +172,5 @@ this host.
 
 ## Next Task
 
-Execute Card 118. Adopt isolated-window coordination around Soundcheck's
-disposable plugin-inspection helper while retaining plugin hosting, audio,
-screenshots, and helper-process policy downstream.
+Execute Card 119. Prove and close Soundcheck's selected composition, native
+behavior, rollback posture, and retained downstream authority.

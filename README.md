@@ -223,8 +223,7 @@ Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 now
 compile Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption
 guides, and a deterministic private compatibility candidate. Card 113 now
 freezes exact read-only behavior, authority, overlap, and rollback evidence.
-Card 114 admits exact private artifacts. Cards 115-116 complete Soundcheck
-storage/config/window, settings/backup/recovery, and scan-operation adoption;
-Card 118 is ready
-for plugin-scan operation adoption.
+Card 114 admits exact private artifacts. Cards 115-118 complete Soundcheck
+storage/config/window, settings/backup/recovery, scan-operation, and
+isolated-window adoption. Card 119 is ready for Soundcheck closeout.
 Package-manager publication remains deferred.

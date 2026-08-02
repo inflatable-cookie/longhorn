@@ -1,6 +1,6 @@
 # 119 Soundcheck Migration Conformance And Closeout
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003-005, 009-010, 012-013, 015, and 017;
