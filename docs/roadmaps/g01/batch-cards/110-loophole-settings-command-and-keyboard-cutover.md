@@ -1,6 +1,6 @@
 # 110 Loophole Settings, Command, And Keyboard Cutover
 
-Status: active
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 4
 Governing refs: contracts 004-007, 010, 012, and 013; Card 109
@@ -31,15 +31,31 @@ without moving Loophole settings content, command meaning, or extended input.
 
 ## Steps
 
-1. Register stable settings sections, fields, capabilities, and apply units.
-2. Move appearance and other durable renderer preferences from `localStorage`.
-3. Compose existing product pages inside the Longhorn/Poodle settings shell.
-4. Register command specs and contexts while retaining product execution.
-5. Import keyboard overrides through checked configuration migration.
-6. Replace Echo keyboard, conflict, and palette mechanics with Longhorn clients.
-7. Keep mouse, wheel, gesture, playback, MIDI, and macros behind an explicit
+1. [x] Register stable settings sections, fields, capabilities, and apply units.
+2. [x] Move appearance and other durable renderer preferences from `localStorage`.
+3. [x] Compose existing product pages inside the Longhorn/Poodle settings shell.
+4. [x] Register command specs and contexts while retaining product execution.
+5. [x] Import keyboard overrides through checked configuration migration.
+6. [x] Replace Echo keyboard, conflict, and palette mechanics with Longhorn clients.
+7. [x] Keep mouse, wheel, gesture, playback, MIDI, and macros behind an explicit
    Loophole adapter and exclude them from Longhorn compatibility claims.
-8. Remove only the generic donor code proven redundant by the selected slice.
+8. [x] Remove only the generic donor code proven redundant by the selected slice.
+
+## Recorded Boundary
+
+The sealed registry admits real storage diagnostics. Backup and restore pages
+remain absent. Loophole has no product-authorized archive picker, restore
+atomicity boundary, or destructive recovery policy, so rendering those pages
+would claim authority the app does not have. This is an explicit non-admission,
+not a fallback control. App and Appearance reset use the shared confirmation
+flow; storage transition, locator, warnings, roots, and provenance remain
+visible.
+
+Longhorn owns physical single-command keyboard presses. The named Loophole
+extended-input adapter retains ordered and delayed keyboard macros. Macro steps
+re-enter the command controller and receive fresh execution availability. Echo
+retains mouse, wheel, gesture, playback, MIDI, and macro infrastructure without
+moving those semantics into Longhorn.
 
 ## Acceptance Criteria
 

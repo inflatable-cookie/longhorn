@@ -13,6 +13,7 @@
     description?: string | null;
     invocationHint?: string | null;
     categoryLabel?: (categoryPath: readonly string[]) => string | null;
+    onOpenChange?: (open: boolean) => void;
   }
 
   let {
@@ -21,6 +22,7 @@
     description = null,
     invocationHint = null,
     categoryLabel = undefined,
+    onOpenChange = undefined,
   }: Props = $props();
 
   let records = $derived(session.paletteRecords);
@@ -38,7 +40,10 @@
   {title}
   {description}
   {invocationHint}
-  onOpenChange={(open) => session.setOpen(open)}
+  onOpenChange={(open) => {
+    session.setOpen(open);
+    onOpenChange?.(open);
+  }}
   onQueryChange={(query) => void session.setQuery(query)}
   onCommandSelect={(commandId) => {
     void session.select(commandId);

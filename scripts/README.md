@@ -117,6 +117,15 @@ Longhorn/Poodle graph, and installs isolated renderer and Rust 1.85 consumers:
 effigy proof:loophole-private-artifacts
 ```
 
+Loophole Card 110 verifies the exact admitted settings pages, immediate and
+staged apply units, storage-only configuration operations, sealed command and
+keymap path, one-shot Echo override import, retained macro edge, and redundant
+generic donor removal:
+
+```sh
+effigy qa:northstar:g01-loophole-card110
+```
+
 The default donors are `../loophole` and `../poodle`. Override them with
 `LOOPHOLE_REPO` and `POODLE_REPO` only for exact clean checkouts.
 

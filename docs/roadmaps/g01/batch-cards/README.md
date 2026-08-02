@@ -2,7 +2,7 @@
 
 ## Active
 
-- [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
+- [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
 
 ## Ready
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
 - [112 Loophole Migration Conformance And Closeout](112-loophole-migration-conformance-and-closeout.md)
 
 ## Complete
@@ -128,8 +127,9 @@ None.
 - [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
 - [108 Loophole Surface Lifecycle And Hosting Cutover](108-loophole-surface-lifecycle-and-hosting-cutover.md)
 - [109 Loophole Renderer, Poodle, And Transfer Cutover](109-loophole-renderer-poodle-and-transfer-cutover.md)
+- [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
 
 ## Next Task
 
-Execute Card 110. Adopt shared settings, command discovery, keyboard, palette,
-and conflict projection while retaining Loophole execution and extended input.
+Execute Card 111. Adopt Longhorn's linear-history structure without losing
+Pulse payload, transaction, journal, recovery, or project-version semantics.

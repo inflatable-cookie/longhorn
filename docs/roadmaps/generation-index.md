@@ -23,5 +23,6 @@ restart, rollback, capability closure, duplicate removal, and no Surface edge.
 g01.015 is compiled through Cards 102-112. Cards 103-109 complete the exact
 storage policy, private artifact admission, display/window hosting, registered
 layout, registered regional Surface lifecycle, and checked renderer/Poodle
-transfer slice. Card 110 is active.
+transfer slice. Card 110 completes settings, commands, keymaps, palette, and
+the retained extended-input edge. Card 111 is active.
 Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.

@@ -34,7 +34,9 @@ casing everywhere. Loophole's pre-existing SQLite link conflict is Card 104's
 first admission gate. Cards 104-108 now complete artifact admission, canonical
 storage, Longhorn display/window hosting, registered regional layout, and
 registered regional Surface lifecycle, and checked renderer/Poodle transfer.
-Card 110 is active.
+Card 110 completes shared settings, storage diagnostics, command discovery,
+keymaps, palette, conflict projection, and the named Echo extended-input edge.
+Card 111 is active.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -167,5 +169,5 @@ this host.
 
 ## Next Task
 
-Execute g01.015 Card 110. Adopt shared settings, command discovery, keyboard,
-palette, and conflict projection without moving Loophole execution policy.
+Execute g01.015 Card 111. Adopt the linear-history structure without moving
+Pulse payload, transaction, journal, recovery, or project-version policy.

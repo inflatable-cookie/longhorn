@@ -1,0 +1,105 @@
+{
+  "schema": "longhorn.loophole-settings-command-cutover.v1",
+  "outcome": "pass_with_retained_product_edges",
+  "settings": {
+    "registry_generation": 2,
+    "pages": [
+      "loophole:app",
+      "loophole:appearance",
+      "loophole:hardware",
+      "loophole:workspace",
+      "longhorn:keybindings",
+      "longhorn:storage"
+    ],
+    "apply_units": [
+      {
+        "id": "loophole:app.apply",
+        "timing": "immediate",
+        "authority": "Aura settings ConfigStore plus Pulse autosave activation"
+      },
+      {
+        "id": "loophole:appearance.apply",
+        "timing": "staged",
+        "authority": "Aura renderer-preferences ConfigStore plus cross-window event activation"
+      }
+    ],
+    "reset_confirmation_pages": [
+      "loophole:app",
+      "loophole:appearance"
+    ],
+    "product_only_pages": [
+      "loophole:hardware",
+      "loophole:workspace"
+    ],
+    "storage_projection": "real Longhorn profile, root, locator, transition, warning, and provenance diagnostics",
+    "backup_restore_admission": {
+      "status": "not_admitted",
+      "reason": "Loophole has no product-authorized archive picker, restore atomicity boundary, or destructive recovery policy",
+      "behavior": "no inert or falsely-authoritative backup and restore controls are rendered"
+    }
+  },
+  "commands": {
+    "registry": "sealed Longhorn registry generated from the Echo command surface",
+    "identity": "lowercase stable command id across palette, keymap, resolver, and execution adapter",
+    "execution": "Aura/Pulse typed renderer adapter",
+    "availability": "joined for discovery and re-read immediately before execution",
+    "generic_tauri_execute_by_string": false,
+    "contexts": [
+      "global",
+      "timeline",
+      "timeline.clip",
+      "timeline.marker",
+      "timeline.tempomarker",
+      "timeline.section",
+      "timeline.chordrange",
+      "timeline.automationlane",
+      "track",
+      "console",
+      "console.channel",
+      "browser",
+      "clipeditor",
+      "inspector",
+      "hostededitor"
+    ]
+  },
+  "legacy_keymap_migration": {
+    "source": "echo-profile-keymap-overrides",
+    "target": "commands/keymap.json",
+    "marker": "commands/legacy-echo-import-v1.json",
+    "mode": "one-shot sparse override import",
+    "winner_rule": "last legacy keyboard press for one platform/chord/context wins",
+    "representable": "single keyboard press, one command, null arguments",
+    "macro_collision": "disable the shadowed Longhorn base binding without importing the macro as a generic command",
+    "excluded": [
+      "keyboard release",
+      "keyboard repeat",
+      "mouse",
+      "wheel",
+      "gesture",
+      "playback",
+      "MIDI",
+      "macros"
+    ]
+  },
+  "retained_extended_input": {
+    "owner": "Loophole Echo compatibility adapter",
+    "active_slice": "ordered and delayed keyboard macros",
+    "execution_join": "macro steps enter the Longhorn controller and receive current availability checks",
+    "other_trigger_infrastructure": "retained in Echo; no active Aura renderer dispatch was removed or claimed by Longhorn"
+  },
+  "removed_generic_donor_code": [
+    "Aura native generic keyboard adapter",
+    "Aura renderer keyboard host provider",
+    "Aura chord capture helper",
+    "Aura conflict helper",
+    "Aura keymap wire helper",
+    "Aura generic keyboard mutation commands"
+  ],
+  "validation": [
+    "effigy aura/check",
+    "effigy aura/test:native command_host",
+    "effigy aura/test:native settings_host",
+    "effigy aura/test:native renderer_preferences",
+    "effigy aura/test:renderer workspace-keyboard-actions workspace-command-boundary"
+  ]
+}

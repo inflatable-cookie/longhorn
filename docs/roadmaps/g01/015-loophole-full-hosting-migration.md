@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 110 active
+Status: executing; Card 111 active
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 002-014;
@@ -42,9 +42,9 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 ### Batch 4: shell systems
 
-- [ ] adopt the settings registry, shared shell, storage, and recovery pages
-- [ ] adopt keyboard keymaps, command discovery, palette, and conflict projection
-- [ ] retain unsupported extended triggers behind a named Loophole adapter
+- [x] adopt the settings registry, shared shell, and storage diagnostics
+- [x] adopt keyboard keymaps, command discovery, palette, and conflict projection
+- [x] retain unsupported extended triggers behind a named Loophole adapter
 - [ ] import complete persisted linear history without losing Pulse semantics
 
 ### Batch 5: closeout
@@ -60,7 +60,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
 - [ ] storage uses one selected cross-platform profile with explicit stable name
 - [ ] window, Surface, and layout persistence are independent authorities
 - [x] panels and Surfaces transfer through checked authoritative sessions
-- [ ] settings and command surfaces share generic Longhorn mechanisms
+- [x] settings and command surfaces share generic Longhorn mechanisms
 - [ ] all persisted undo and redo state imports into the linear kernel
 - [ ] no product authority moves into Longhorn
 
@@ -91,11 +91,10 @@ Ready:
 
 Active:
 
-- `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
+- `batch-cards/111-loophole-linear-history-adoption.md`
 
 Planned:
 
-- `batch-cards/111-loophole-linear-history-adoption.md`
 - `batch-cards/112-loophole-migration-conformance-and-closeout.md`
 
 Complete:
@@ -108,6 +107,7 @@ Complete:
 - `batch-cards/107-loophole-registered-layout-authority-cutover.md`
 - `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
 - `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
+- `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
 
 ## Planning Checkpoint
 
@@ -139,15 +139,20 @@ Card 109 replaces app-authored drag payloads and Poodle DOM discovery with one
 epoch-safe transfer session, measured leases, public Poodle panel seams, and
 checked registered layout and Surface commits. Loophole retains its explicit
 empty-display window-spawn policy after a typed disabled-provision result.
-Card 110 is active.
+Card 110 replaces Aura's parallel settings, keybinding, conflict, and palette
+mechanics with sealed Longhorn registries, checked clients, and the shared
+Poodle shells. Autosave is an immediate apply unit; appearance is staged and
+activates all windows. Storage diagnostics are real. Backup and restore remain
+explicitly unadmitted until Loophole owns the required picker, atomicity, and
+recovery policy. Echo retains macros and extended triggers behind a named
+product adapter. Card 111 is active.
 
-Keyboard, keymap, palette, and conflict semantics can migrate under contract
-006. Extended triggers and macros remain Loophole adapters. Linear history can
-migrate under contract 008 only if complete persisted undo/redo ordering and
-Pulse journal integration survive; branch mode stays disabled.
+Linear history can migrate under contract 008 only if complete persisted
+undo/redo ordering and Pulse journal integration survive; branch mode stays
+disabled.
 
 ## Next Task
 
-Execute Card 110. Adopt the shared settings shell, command discovery, keyboard
-resolver, palette, and conflict projection while retaining product execution
-and extended-trigger policy.
+Execute Card 111. Adopt the structural linear-history kernel without losing
+Pulse payload, inverse, grouping, journal, recovery, or project-version
+semantics.

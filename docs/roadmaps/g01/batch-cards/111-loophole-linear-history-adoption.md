@@ -1,6 +1,6 @@
 # 111 Loophole Linear History Adoption
 
-Status: planned
+Status: active
 Owner: Tom
 Roadmap: g01.015 batch 4
 Governing refs: contracts 003, 008, 010, 012, and 013; Card 110

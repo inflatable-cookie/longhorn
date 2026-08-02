@@ -131,3 +131,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [`2026-08/02-023016-loophole-registered-layout-authority-cutover.md`](./2026-08/02-023016-loophole-registered-layout-authority-cutover.md)
 - [`2026-08/02-025057-loophole-surface-lifecycle-and-hosting-cutover.md`](./2026-08/02-025057-loophole-surface-lifecycle-and-hosting-cutover.md)
 - [`2026-08/02-033300-loophole-renderer-poodle-and-transfer-cutover.md`](./2026-08/02-033300-loophole-renderer-poodle-and-transfer-cutover.md)
+- [`2026-08/02-042635-loophole-settings-command-and-keyboard-cutover.md`](./2026-08/02-042635-loophole-settings-command-and-keyboard-cutover.md)
