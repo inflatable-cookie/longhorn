@@ -327,6 +327,24 @@ locator, and migration receipts. It does not mean dual-write or silent legacy
 fallback. Source cleanup requires a separate receipt-bound action after the
 replacement has survived restart and prior-build readback.
 
+## Closeout Posture
+
+g01.015 is complete. Exact source and isolated artifact receipts prove the
+complete private graph with one Svelte runtime and one Poodle artifact set.
+Fresh, legacy, interrupted, restart, display loss/return, hierarchy,
+transfer, settings, command, history, autosave, and journal matrices pass.
+
+Superseded generic Aura mechanisms are absent. Remaining Echo/Aura/Pulse
+edges are named product adapters: workspace compatibility projection, focused
+Surface attachment, empty-display provision, panel/presence/fullscreen policy,
+Hardware and Workspace settings content, extended inputs/macros, Pulse
+transaction and journal, eight-entry invalidation projection, and the legacy
+atomic-checkout command. None is a second generic structural authority.
+
+Legacy storage and projections remain retained. Cleanup still requires an
+exact receipt and separate operator authority. Package-manager publication did
+not occur.
+
 ## Deferred Systems
 
 The audit also found reusable-looking operation, notification, bridge,

@@ -25,5 +25,7 @@ storage policy, private artifact admission, display/window hosting, registered
 layout, registered regional Surface lifecycle, and checked renderer/Poodle
 transfer slice. Card 110 completes settings, commands, keymaps, palette, and
 the retained extended-input edge. Card 111 completes lossless linear-history
-adoption. Card 112 is active.
-Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.
+adoption. Card 112 closes exact artifacts, conformance, duplicate authority,
+retained adapters, and rollback posture. g01.015 is complete. g01.016 is ready
+for compilation. Fork-tree Cards 070-074 remain planned behind a separate
+product adoption decision.

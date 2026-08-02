@@ -133,3 +133,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [`2026-08/02-033300-loophole-renderer-poodle-and-transfer-cutover.md`](./2026-08/02-033300-loophole-renderer-poodle-and-transfer-cutover.md)
 - [`2026-08/02-042635-loophole-settings-command-and-keyboard-cutover.md`](./2026-08/02-042635-loophole-settings-command-and-keyboard-cutover.md)
 - [Loophole Linear History Adoption](2026-08/02-loophole-linear-history-adoption.md)
+- [Loophole Migration Conformance Closeout](2026-08/02-loophole-migration-conformance-closeout.md)

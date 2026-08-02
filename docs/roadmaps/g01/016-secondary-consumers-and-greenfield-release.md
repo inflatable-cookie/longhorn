@@ -1,8 +1,8 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: blocked on first two migrations and g01.018 artifacts
+Status: ready for compilation
 Owner: Tom  
-Updated: 2026-07-27
+Updated: 2026-08-02
 Governing refs: contracts 003, 012, and 017; g01.018
 
 ## Outcome

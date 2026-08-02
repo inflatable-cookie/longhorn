@@ -2,7 +2,7 @@
 
 ## Active
 
-- [112 Loophole Migration Conformance And Closeout](112-loophole-migration-conformance-and-closeout.md)
+None.
 
 ## Ready
 
@@ -128,8 +128,9 @@ None.
 - [109 Loophole Renderer, Poodle, And Transfer Cutover](109-loophole-renderer-poodle-and-transfer-cutover.md)
 - [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
 - [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
+- [112 Loophole Migration Conformance And Closeout](112-loophole-migration-conformance-and-closeout.md)
 
 ## Next Task
 
-Execute Card 112. Prove full migration conformance, remove superseded active
-generic mechanisms, record retained adapters, and close g01.015.
+Compile g01.016 into bounded secondary-consumer, greenfield, and release-
+readiness cards. Package publication remains deferred.

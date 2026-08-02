@@ -18,8 +18,8 @@
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
-| [g01.015](015-loophole-full-hosting-migration.md) | executing; Card 112 active | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
+| [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | ready for compilation | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -343,10 +343,12 @@ whole-Surface movement while retaining focused-panel attachment policy in
 Loophole. Card 109 completes the renderer, public Poodle, panel-transfer, and
 whole-Surface transfer cutover. Card 110 completes settings, commands,
 keymaps, palette, and retained extended input. Card 111 completes lossless
-linear-history adoption. Card 112 is active. Later systems
-and package publication remain outside the admitted graph.
+linear-history adoption. Card 112 closes exact source/artifact receipts,
+restart/recovery, capabilities, duplicate authority, retained adapters, and
+rollback posture. g01.015 is complete. Later systems and package publication
+remain outside the admitted graph.
 
 ## Next Task
 
-Execute Card 112. Prove full migration conformance, remove superseded active
-mechanisms, record retained adapters, and close g01.015.
+Compile g01.016 into bounded secondary-consumer, greenfield, and release-
+readiness cards. Do not publish packages during compilation.

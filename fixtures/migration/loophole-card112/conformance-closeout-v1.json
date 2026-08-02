@@ -1,0 +1,63 @@
+{
+  "schema": "longhorn.loophole-migration-conformance-closeout.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_selected_source_commit": "95dde9bbc1b9ca5a37b57420529d15971559f8c9",
+    "longhorn_selected_tree_sha256": "b2be78fa0753fee331304d7448333d3f4bb43456488eeeea347adc8b53957045",
+    "loophole_commit": "7bf096d4d17f77194c47456f5c59661fe3c4495f",
+    "poodle_commit": "208532f0d18dcd1683cdef157e370d0ba0f0d3b3",
+    "poodle_artifact_set": "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69",
+    "signal_commit": "4c5b60681071095aedbf9013720e76c1c89e91ed",
+    "soundcheck_commit": "40418635674d598f7e311bf311c3165300edd35b",
+    "soundcheck_selected_tree_sha256": "b014663ca03c21d8cd2e82da35cbd7ef8086e7808b3cfde077fba75243249a92"
+  },
+  "composition": {
+    "hierarchy": ["display", "window", "surface", "region", "panel"],
+    "regional_surface_habitat": "registered-longhorn-authority",
+    "focused_surface_habitat": "loophole-transient-attachment",
+    "storage_profile": "shared-product-root-v1",
+    "stable_storage_name": "Loophole",
+    "canonical_app_id": "com.inflatablecookie.loophole",
+    "package_manager_publication": false,
+    "fork_tree_packages": false,
+    "excluded_later_systems": true
+  },
+  "capability": {
+    "identifier": "workspace-windows",
+    "windows": ["main", "workspace-*"],
+    "remote": false,
+    "plugin_gui_in_scope": false
+  },
+  "recovery": {
+    "legacy_storage_sources_retained": true,
+    "locator_committed_last": true,
+    "interrupted_publication_resumable": true,
+    "history_corruption_visible": true,
+    "history_legacy_projection_complete": true,
+    "dual_write_authority": false,
+    "silent_fallback": false,
+    "automatic_source_cleanup": false,
+    "cleanup_requires_exact_receipt_and_operator_authority": true
+  },
+  "retained_adapters": [
+    "echo-workspace-compatibility-projection",
+    "focused-surface-attachment",
+    "empty-display-window-provision",
+    "panel-catalogue-and-presence-policy",
+    "extended-input-and-macro-adapter",
+    "hardware-and-workspace-settings-pages",
+    "pulse-product-transaction-and-journal",
+    "pulse-eight-entry-invalidation-projection",
+    "legacy-history-jump-command",
+    "signal-and-plugin-native-hosts"
+  ],
+  "deferred": [
+    "optional-backend-topology-cutover",
+    "settings-backup-and-restore-ui",
+    "extended-input-promotion",
+    "forkable-history-tree",
+    "native-content-islands",
+    "operations-and-notifications",
+    "package-manager-publication"
+  ]
+}

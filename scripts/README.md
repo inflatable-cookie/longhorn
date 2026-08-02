@@ -125,6 +125,7 @@ generic donor removal:
 ```sh
 effigy qa:northstar:g01-loophole-card110
 effigy qa:northstar:g01-loophole-card111
+effigy qa:northstar:g01-loophole-card112
 ```
 
 The default donors are `../loophole` and `../poodle`. Override them with

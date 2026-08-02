@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-08-01
+Updated: 2026-08-02
 Architecture: `system-architecture.md`, `system-inventory.md`
 
 ## Topology
@@ -42,8 +42,6 @@ authority and migrate through explicit batches. Poodle remains independent.
 ## Planning Gaps
 
 - later release-lane registry ownership, public names, and publication policy
-- exact Loophole shared-product storage matrix: Windows parent and Linux leaf
 
-The generic Echo transfer plan is frozen in `loophole-migration-map.md`.
-Generic mechanisms move only through g01.015's vertical cards; product schemas,
-policies, payloads, and adapters remain in Loophole.
+The generic Echo transfer is complete under `loophole-migration-map.md`.
+Product schemas, policies, payloads, and named adapters remain in Loophole.

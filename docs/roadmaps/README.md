@@ -36,7 +36,10 @@ storage, Longhorn display/window hosting, registered regional layout, and
 registered regional Surface lifecycle, and checked renderer/Poodle transfer.
 Card 110 completes shared settings, storage diagnostics, command discovery,
 keymaps, palette, conflict projection, and the named Echo extended-input edge.
-Card 111 completes lossless linear-history adoption. Card 112 is active.
+Card 111 completes lossless linear-history adoption. Card 112 closes exact
+artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
+and rollback conformance. g01.015 is complete. g01.016 is ready for
+compilation.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -169,5 +172,5 @@ this host.
 
 ## Next Task
 
-Execute g01.015 Card 112. Prove full migration conformance, remove superseded
-active mechanisms, record retained adapters, and close the milestone.
+Compile g01.016 into bounded secondary-consumer, greenfield, and release-
+readiness cards. Do not publish packages during compilation.

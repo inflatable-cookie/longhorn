@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 112 active
+Status: complete
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 002-014;
@@ -49,20 +49,20 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 ### Batch 5: closeout
 
-- [ ] remove superseded active donor mechanisms
-- [ ] prove restart, recovery, rollback, capabilities, artifacts, and hierarchy
-- [ ] record every retained product adapter and deferred system
+- [x] remove superseded active donor mechanisms
+- [x] prove restart, recovery, rollback, capabilities, artifacts, and hierarchy
+- [x] record every retained product adapter and deferred system
 
 ## Goals
 
 - [x] hierarchy remains `display -> window -> Surface -> region -> panel`
-- [ ] regional and focused-panel Surface habitats retain current behavior
-- [ ] storage uses one selected cross-platform profile with explicit stable name
-- [ ] window, Surface, and layout persistence are independent authorities
+- [x] regional and focused-panel Surface habitats retain current behavior
+- [x] storage uses one selected cross-platform profile with explicit stable name
+- [x] window, Surface, and layout persistence are independent authorities
 - [x] panels and Surfaces transfer through checked authoritative sessions
 - [x] settings and command surfaces share generic Longhorn mechanisms
 - [x] all persisted undo and redo state imports into the linear kernel
-- [ ] no product authority moves into Longhorn
+- [x] no product authority moves into Longhorn
 
 ## Acceptance Criteria
 
@@ -70,12 +70,12 @@ payloads, journal recovery, and project versions remain Loophole authority.
 - [x] project snapshots, versions, autosave, journal path/replay, and recovery
   remain Pulse authority
 - [x] branch mode remains disabled
-- [ ] extended mouse, wheel, gesture, playback, MIDI, and macro semantics are not
+- [x] extended mouse, wheel, gesture, playback, MIDI, and macro semantics are not
   claimed by Longhorn
-- [ ] panel catalogue, region schema, focused eligibility, presence, close,
+- [x] panel catalogue, region schema, focused eligibility, presence, close,
   empty-host, and fullscreen policy remain Loophole-owned
 - [x] private Poodle MIME or DOM knowledge does not enter Longhorn
-- [ ] each cutover has one active authority and one receipt-backed rollback route
+- [x] each cutover has one active authority and one receipt-backed rollback route
 - [x] source-linked private graphs have matching clean artifact-install proof
 - [x] package-manager publication remains deferred
 
@@ -91,7 +91,7 @@ Ready:
 
 Active:
 
-- `batch-cards/112-loophole-migration-conformance-and-closeout.md`
+- none
 
 Planned:
 
@@ -109,6 +109,7 @@ Complete:
 - `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
 - `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
 - `batch-cards/111-loophole-linear-history-adoption.md`
+- `batch-cards/112-loophole-migration-conformance-and-closeout.md`
 
 ## Planning Checkpoint
 
@@ -149,8 +150,10 @@ recovery policy. Echo retains macros and extended triggers behind a named
 product adapter. Card 111 replaces Pulse's generic stack with Longhorn's
 linear structure while retaining all 83 payloads, product apply, project
 lineage, autosave, and journal recovery. Canonical and legacy persistence,
-transaction rollback, paged metadata, and the Poodle panel pass. Card 112 is
-active.
+transaction rollback, paged metadata, and the Poodle panel pass. Card 112
+proves exact five-repository receipts, isolated artifacts, restart/recovery
+matrices, capability and package closure, one authority per migrated concern,
+and every retained product adapter. g01.015 is complete.
 
 Linear history can migrate under contract 008 only if complete persisted
 undo/redo ordering and Pulse journal integration survive; branch mode stays
@@ -158,5 +161,5 @@ disabled.
 
 ## Next Task
 
-Execute Card 112. Prove the full migration, remove superseded active generic
-mechanisms, record retained product adapters, and close g01.015.
+Compile g01.016 into bounded secondary-consumer, greenfield, and release-
+readiness cards. Do not publish packages during compilation.

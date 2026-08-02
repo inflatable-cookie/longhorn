@@ -1,6 +1,6 @@
 # 112 Loophole Migration Conformance And Closeout
 
-Status: active
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 5
 Governing refs: contracts 002-014; Cards 102-111
