@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [114 Secondary-consumer Private Artifact Admission](114-secondary-consumer-private-artifact-admission.md)
+- [115 Soundcheck Storage, Config, And Window Cutover](115-soundcheck-storage-config-and-window-cutover.md)
 
 ## Operator-held
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [115 Soundcheck Storage, Config, And Window Cutover](115-soundcheck-storage-config-and-window-cutover.md)
 - [116 Soundcheck Settings, Backup, And Recovery Cutover](116-soundcheck-settings-backup-and-recovery-cutover.md)
 - [117 Soundcheck Plugin-scan Operation Adoption](117-soundcheck-plugin-scan-operation-adoption.md)
 - [118 Soundcheck Isolated-window Coordination Cutover](118-soundcheck-isolated-window-coordination-cutover.md)
@@ -36,6 +35,7 @@ None.
 ## Complete
 
 - [113 Secondary-consumer Behavior, Authority, And Rollback Freeze](113-secondary-consumer-behavior-authority-and-rollback-freeze.md)
+- [114 Secondary-consumer Private Artifact Admission](114-secondary-consumer-private-artifact-admission.md)
 - [001 Configuration Domain Store](001-configuration-domain-store.md)
 - [002 Coordinated Atomic Configuration Mutation](002-coordinated-atomic-configuration-mutation.md)
 - [003 Debounced Mutation And Explicit Flush](003-debounced-mutation-and-explicit-flush.md)
@@ -146,5 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 114. Produce and install the exact selected private Longhorn and
-Poodle graphs in isolated Soundcheck-, Bovine-, and Jetstream-shaped proofs.
+Execute Card 115. Migrate Soundcheck storage, application/window configuration,
+and the protected primary-window host while retaining SQLite authority.

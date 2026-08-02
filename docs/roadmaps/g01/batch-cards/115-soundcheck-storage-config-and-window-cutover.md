@@ -1,6 +1,6 @@
 # 115 Soundcheck Storage, Config, And Window Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003, 004, 009-010, and 012; Cards 113-114

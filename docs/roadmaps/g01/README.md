@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 114 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 115 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -362,5 +362,5 @@ releases remain outside the chain.
 
 ## Next Task
 
-Execute Card 114. Produce and install the exact selected private Longhorn and
-Poodle graphs in isolated Soundcheck-, Bovine-, and Jetstream-shaped proofs.
+Execute Card 115. Migrate Soundcheck storage, application/window configuration,
+and the protected primary-window host while retaining SQLite authority.

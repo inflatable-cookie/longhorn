@@ -1,6 +1,6 @@
 # 114 Secondary-consumer Private Artifact Admission
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 1
 Governing refs: contracts 003, 010, 012, 013, and 017; Card 113
@@ -58,6 +58,24 @@ Bovine, and Jetstream before admitting consumer writes. Do not publish.
 - an optional package enters the wrong consumer graph
 - a consumer toolchain falls outside proven compatibility
 - Bovine overlap clearance is required before the first Soundcheck slice
+
+## Completion Evidence
+
+- admitted source: Longhorn `ec465b2a86fe6fbaef789b3677a8e7288e7df2d2`
+  with selected tree
+  `e5556c742104d8d613c0816ecf601f6fefbabc446e5aab22a3fc600ee138308c`
+- exact sets: Poodle `25083fe...`, Longhorn TypeScript `7f62a7d...`,
+  Longhorn Rust `42a1a40...`
+- fresh artifacts: 5 Poodle, 9 Longhorn TypeScript, 18 selected Longhorn
+  Rust, and 3 dev-only Rust workspace support archives
+- isolated graphs: Soundcheck 7 TypeScript/14 Rust, Bovine 4/6, Jetstream
+  6/6; every forbidden package absent
+- toolchain: Bun 1.3.14, TypeScript 6.0.3, Svelte 5.56.8, Tauri API
+  2.11.1, Rust 1.85.0, and locked/offline Tauri 2.11.5
+- fixture:
+  `../../../../fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json`
+- proof: `effigy proof:secondary-consumer-private-artifacts`
+- no consumer write, package publication, tag, or hosted release
 
 ## Next Task
 

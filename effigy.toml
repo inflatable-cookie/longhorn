@@ -142,6 +142,13 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-secondary-consumer-card113" },
   { task = "verify:secondary-consumer-card113" },
 ]
+"check:northstar:g01-secondary-consumer-card114" = "effigy docs check paths Cargo.toml Cargo.lock bun.lock effigy.toml scripts/README.md scripts/verify-secondary-consumer-private-artifacts.ts fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json packages/core packages/config packages/settings packages/operation packages/native-content packages/native-content-svelte packages/tauri packages/bridge packages/commands crates/longhorn-core crates/longhorn-config crates/longhorn-tauri-config crates/longhorn-display crates/longhorn-windowing crates/longhorn-windowing-config crates/longhorn-tauri-windowing crates/longhorn-settings crates/longhorn-settings-config crates/longhorn-tauri-settings crates/longhorn-operation crates/longhorn-tauri-operation crates/longhorn-native-content crates/longhorn-native-content-isolated-window crates/longhorn-bridge crates/longhorn-tauri-bridge crates/longhorn-command crates/longhorn-native-content-backing-surface docs/architecture/secondary-consumer-migration-map.md docs/architecture/package-topology.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/017-native-content-island-coordination.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/114-secondary-consumer-private-artifact-admission.md docs/roadmaps/g01/batch-cards/115-soundcheck-storage-config-and-window-cutover.md docs/logs/README.md docs/logs/2026-08/02-secondary-consumer-private-artifact-admission.md"
+"proof:secondary-consumer-private-artifacts" = "bun scripts/verify-secondary-consumer-private-artifacts.ts"
+"qa:northstar:g01-secondary-consumer-card114" = [
+  { task = "check:northstar:g01-secondary-consumer-card114" },
+  { task = "verify:secondary-consumer-card113" },
+  { task = "proof:secondary-consumer-private-artifacts" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"
@@ -515,6 +522,7 @@ test = [
   { task = "qa:northstar:roadmap-suite" },
   { task = "qa:northstar:g01-secondary-consumer-compilation" },
   { task = "qa:northstar:g01-secondary-consumer-card113" },
+  { task = "qa:northstar:g01-secondary-consumer-card114" },
   { task = "qa:northstar:g01-display-cards" },
   { task = "qa:northstar:g01-window-host-cards" },
   { task = "qa:northstar:g01-layout-cards" },

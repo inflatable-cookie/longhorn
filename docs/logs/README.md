@@ -136,3 +136,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Loophole Migration Conformance Closeout](2026-08/02-loophole-migration-conformance-closeout.md)
 - [Secondary-consumer And Greenfield Compilation](2026-08/02-secondary-consumer-and-greenfield-compilation.md)
 - [Secondary-consumer Behavior, Authority, And Rollback Freeze](2026-08/02-secondary-consumer-behavior-authority-freeze.md)
+- [Secondary-consumer Private Artifact Admission](2026-08/02-secondary-consumer-private-artifact-admission.md)

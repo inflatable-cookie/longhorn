@@ -144,6 +144,17 @@ The default donors are sibling checkouts. Override them with
 `SOUNDCHECK_REPO`, `SOUNDCHECK_LIBRARY_REPO`, `SIGNAL_REPO`, `BOVINE_REPO`,
 `JETSTREAM_REPO`, or `POODLE_REPO` only for equivalent exact checkouts.
 
+Card 114 freshly packs the exact selected Longhorn and Poodle artifacts,
+installs three isolated renderer graphs, checks generated bindings, and proves
+three locked/offline Rust 1.85 and Tauri 2.11.5 graphs:
+
+```sh
+effigy proof:secondary-consumer-private-artifacts
+```
+
+Set `KEEP_SECONDARY_CONSUMER_ARTIFACT_PROOF=1` only when the disposable proof
+workspace needs inspection after a failure.
+
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.

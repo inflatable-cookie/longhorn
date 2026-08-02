@@ -42,12 +42,34 @@ on `main`. Bovine remains on its recorded commit with exactly 19 unrelated
 The checked freeze covers 23 source matrices and 27 unique selected Longhorn
 package paths. Every selected package exists, none changed after compilation,
 and no consumer graph contains a forbidden system. The prior exact Poodle
-artifact-set receipt is retained for comparison; Card 114 must produce a fresh
-set before consumer writes.
+artifact-set receipt was retained for comparison.
 
 Rollback requires retained consumer sources, exact source/artifact receipts,
 and previous locks. Dual writes, silent fallback, automatic source cleanup,
 package-manager publication, tags, and hosted releases remain forbidden.
+
+## Card 114 Private Artifact Admission
+
+Card 114 freshly reproduced the exact Poodle artifact set and packed the nine
+selected Longhorn TypeScript packages. Three isolated renderer installs resolve
+one Svelte 5.56.8 runtime, Tauri API 2.11.1, and no original workspace or
+sibling source.
+
+Eighteen selected Rust crates were inventoried and archived from Longhorn
+`ec465b2a86fe6fbaef789b3677a8e7288e7df2d2`; three dev-only support crates
+enable isolated workspace checking but enter no consumer's normal graph. The
+Soundcheck, Bovine, and Jetstream graphs pass locked and offline on Rust 1.85.0
+with Tauri 2.11.5. Native-content isolated-window and backing-surface packages
+remain independently selected.
+
+The exact aggregate set ids are:
+
+- Poodle: `25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69`
+- Longhorn TypeScript: `7f62a7d21889c778803cda687248a9048e497cee80d2c2ceb7fa6957e18b3ce0`
+- Longhorn Rust: `42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8`
+
+Only Card 115's Soundcheck storage, config, and protected-window slice is
+admitted. Bovine and Jetstream remain read-only.
 
 ## Soundcheck
 

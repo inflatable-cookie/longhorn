@@ -1,0 +1,58 @@
+{
+  "schema": "longhorn.secondary-consumer-private-artifact-admission.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_selected_source_commit": "ec465b2a86fe6fbaef789b3677a8e7288e7df2d2",
+    "longhorn_selected_tree_sha256": "e5556c742104d8d613c0816ecf601f6fefbabc446e5aab22a3fc600ee138308c",
+    "poodle_commit": "208532f0d18dcd1683cdef157e370d0ba0f0d3b3"
+  },
+  "artifact_sets": {
+    "poodle": "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69",
+    "longhorn_typescript": "7f62a7d21889c778803cda687248a9048e497cee80d2c2ceb7fa6957e18b3ce0",
+    "longhorn_rust": "42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8",
+    "rust_lock": "72d92e91730bab5691cbd6113358ce524b4ff39f9db76b0900bb9c2bc5853edf"
+  },
+  "tools": {
+    "rust": "1.85.0",
+    "tauri_rust": "2.11.5",
+    "bun": "1.3.14",
+    "typescript": "6.0.3",
+    "svelte": "5.56.8",
+    "tauri_api": "2.11.1"
+  },
+  "artifacts": {
+    "poodle": 5,
+    "longhorn_typescript": 9,
+    "longhorn_rust": 18,
+    "rust_workspace_support": 3
+  },
+  "graphs": {
+    "soundcheck": {
+      "typescript": 7,
+      "rust": 14
+    },
+    "bovine": {
+      "typescript": 4,
+      "rust": 6
+    },
+    "jetstream": {
+      "typescript": 6,
+      "rust": 6
+    }
+  },
+  "audits": {
+    "generated_bindings_drift": false,
+    "original_workspace_resolution": false,
+    "sibling_source_resolution": false,
+    "one_svelte_runtime_per_renderer": true,
+    "independent_native_content_mechanisms": true,
+    "consumer_repository_writes": false,
+    "package_manager_publication": false,
+    "tags": false,
+    "hosted_releases": false
+  },
+  "write_admission": {
+    "next_card": 115,
+    "scope": "soundcheck-storage-config-protected-primary-window"
+  }
+}
