@@ -175,6 +175,19 @@ source rollback suite, and refreshed artifact admission for Jetstream:
 effigy qa:northstar:g01-bovine-card121
 ```
 
+Card 122 verifies Jetstream's checked editor-state session, listener-first
+whole-snapshot recovery, stale-session rejection, sealed command registry,
+fresh execution admission, physical keyboard policy, exact four-package
+TypeScript and Rust graphs, and retained engine/renderer authority:
+
+```sh
+effigy qa:northstar:g01-jetstream-card122
+```
+
+The receipt binds Jetstream `2a8afbb7`. Focused Rust, IPC, renderer, and
+release-build gates pass. Jetstream's aggregate validation remains blocked by
+an unchanged pre-existing denied Clippy lint in the renderer vignette test.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

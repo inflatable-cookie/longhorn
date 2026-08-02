@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 122 ready
+Status: executing; Card 123 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -57,7 +57,7 @@ lane from current evidence; it does not infer package publication.
 
 ### Batch 4: Jetstream
 
-- [ ] adopt checked bridge state and command/keymap projection
+- [x] adopt checked bridge state and command/keymap projection
 - [ ] adopt backing-surface coordination and Svelte viewport lifetime
 - [ ] prove engine, renderer, world, WGPU, and semantic-input authority remain local
 
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
+- `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 - `batch-cards/125-greenfield-composition-matrix.md`
 - `batch-cards/126-api-storage-composition-and-migration-guides.md`
@@ -121,6 +120,7 @@ Complete:
 - `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
 - `batch-cards/120-bovine-config-and-settings-cutover.md`
 - `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
+- `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 
 ## Planning Checkpoint
 
@@ -128,7 +128,9 @@ Cards 113-114 freeze exact authority and admit the three selected private
 artifact graphs without consumer writes. Cards 115-119 complete Soundcheck.
 Cards 120-121 complete Bovine's canonical storage, one preference domain,
 minimal settings shell, settings lifetime, failure/restart/rollback matrix,
-exact artifact graph, and no-optional-system closeout. Card 122 is ready.
+exact artifact graph, and no-optional-system closeout. Card 122 completes
+Jetstream's checked editor-state bridge, sealed command catalogue, fresh
+availability admission, and physical-keyboard cutover. Card 123 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -150,5 +152,5 @@ authority.
 
 ## Next Task
 
-Execute Card 122. Adopt Jetstream's checked editor-state bridge plus command
-and keyboard projection while retaining execution and engine authority.
+Execute Card 123. Adopt backing-surface coordination around Jetstream's
+engine-owned native view and checked Svelte viewport lifetime.

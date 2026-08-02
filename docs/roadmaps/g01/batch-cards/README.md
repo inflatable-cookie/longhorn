@@ -146,5 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 122. Cut Jetstream's editor-state projection, command discovery,
-and keyboard resolution over to the selected bridge and command mechanisms.
+Execute Card 123. Cut Jetstream's native-view coordination and Svelte
+viewport lifetime over to the selected backing-surface mechanism.

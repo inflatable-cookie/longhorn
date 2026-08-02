@@ -39,7 +39,7 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; Cards 113-121 are complete and Card 122 is ready.
+113-127; Cards 113-122 are complete and Card 123 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -172,5 +172,5 @@ this host.
 
 ## Next Task
 
-Execute Card 122. Adopt Jetstream's checked editor-state bridge, command
-registry, and keyboard resolution while retaining product execution.
+Execute Card 123. Adopt checked backing-surface coordination around
+Jetstream's engine-owned native view and Svelte viewport.

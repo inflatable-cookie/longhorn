@@ -1,6 +1,6 @@
 # 123 Jetstream Backing-surface Coordination Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 4
 Governing refs: contracts 003, 009-010, 012-013, and 017; Card 122
