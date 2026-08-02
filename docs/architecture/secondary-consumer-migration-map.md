@@ -381,6 +381,14 @@ Examples install produced artifacts outside workspace resolution. They are
 composition proofs and starting references, not a generated product framework
 or an umbrella package.
 
+Card 125 proves all four shapes. The exact TypeScript/Rust counts are 4/6,
+8/16, 12/24, and 5/8. Optional server also passes as a six-crate local app with
+both bridge edges removed. Each isolated renderer has one Svelte and Tauri API
+runtime; each Rust root proves native storage selection, first load, atomic
+mutation, reload, and teardown. No donor vocabulary, copied Poodle primitive,
+native-content, operation, notification, or registry publication enters the
+matrix. See [Greenfield Composition Matrix](greenfield-composition-matrix.md).
+
 ## Private Release Boundary
 
 g01.016 may produce a coordinated `0.1.0` private candidate, compatibility

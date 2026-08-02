@@ -1,0 +1,29 @@
+{
+  "name": "longhorn-greenfield-workspace",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@longhorn/commands": "0.1.0",
+    "@longhorn/config": "0.1.0",
+    "@longhorn/core": "0.1.0",
+    "@longhorn/layout": "0.1.0",
+    "@longhorn/poodle": "0.1.0",
+    "@longhorn/settings": "0.1.0",
+    "@longhorn/svelte": "0.1.0",
+    "@longhorn/tauri": "0.1.0",
+    "@poodle/svelte": "0.1.0",
+    "@poodle/svelte-tokens": "0.1.0",
+    "@tauri-apps/api": "2.10.1",
+    "svelte": "5.38.6"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "6.2.4",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/svelte": "5.4.2",
+    "happy-dom": "20.11.1",
+    "svelte-check": "4.7.4",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 125 ready
+Status: executing; Card 126 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -63,7 +63,7 @@ lane from current evidence; it does not infer package publication.
 
 ### Batch 5: greenfield and private release
 
-- [ ] build minimal, workspace, full-hosting, and optional-server examples
+- [x] build minimal, workspace, full-hosting, and optional-server examples
 - [ ] publish no packages; document APIs, storage, backup, composition, and migration
 - [ ] prove deterministic private `0.1.0` artifacts and compatibility
 - [ ] close g01.016 with registry ownership and publication visibly deferred
@@ -75,7 +75,7 @@ lane from current evidence; it does not infer package publication.
 - [x] Bovine proves the smallest config/settings graph
 - [x] Jetstream proves bridge, command, and backing-surface composition
 - [x] product, sibling, renderer, plugin, content, and engine authority stay downstream
-- [ ] examples prove optional dependency boundaries outside workspace resolution
+- [x] examples prove optional dependency boundaries outside workspace resolution
 - [ ] filesystem, backup, settings, topology, command, history, and native-content docs are exact
 - [ ] one coordinated private compatibility candidate is reproducible
 
@@ -88,7 +88,7 @@ lane from current evidence; it does not infer package publication.
 - [x] Bovine's unrelated work and authored content are untouched
 - [x] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
 - [x] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
-- [ ] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
+- [x] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
 - [ ] compatibility claims name MSRV, peers, protocol range, platform, and evidence
 - [ ] npm/Cargo publication, registry ownership, tags, and hosted releases remain deferred
 
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/125-greenfield-composition-matrix.md`
+- `batch-cards/126-api-storage-composition-and-migration-guides.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/126-api-storage-composition-and-migration-guides.md`
 - `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
 
 Complete:
@@ -121,6 +120,7 @@ Complete:
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 - `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
+- `batch-cards/125-greenfield-composition-matrix.md`
 
 ## Planning Checkpoint
 
@@ -134,7 +134,9 @@ availability admission, and physical-keyboard cutover. Card 123 completes the
 checked backing-surface, Svelte viewport, scale, input-gate, and reversible
 native-teardown cutover. Card 124 closes exact artifacts, peers, capabilities,
 duplicates, retained engine authority, and isolated previous-source rollback.
-Card 125 is ready.
+Card 125 proves four produced-artifact greenfield shapes, exact optional graph
+boundaries, storage first-load/mutation/reload, visible renderer lifecycle,
+and serverless local authority. Card 126 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -156,4 +158,5 @@ authority.
 
 ## Next Task
 
-Execute Card 125. Build the four produced-artifact greenfield compositions.
+Execute Card 126. Write the API, storage, backup, composition, migration, and
+upgrade guides from the proven graphs.

@@ -1,6 +1,6 @@
 # 126 API, Storage, Composition, And Migration Guides
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 001-017; Card 125

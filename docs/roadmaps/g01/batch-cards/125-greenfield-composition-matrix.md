@@ -1,6 +1,6 @@
 # 125 Greenfield Composition Matrix
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 002, 004-007, 009-017; Cards 119, 121, and 124
@@ -57,6 +57,20 @@ package.
 - optional packages leak upward into smaller graphs
 - a template invents product behavior or authority
 - a package-manager publication is proposed as a build prerequisite
+
+## Evidence
+
+- four renderer manifests install packed Longhorn and Poodle artifacts outside
+  both source workspaces; Svelte check, Vite build, and mounted lifecycle pass
+- four default Rust roots and optional server without supervision run locked,
+  offline, and on Rust 1.85 from 26 archived crate inventories
+- exact TypeScript/Rust graph counts are 4/6, 8/16, 12/24, and 5/8; optional
+  server local mode removes both bridge crates and retains six Rust packages
+- every root proves platform-native storage, compiled default, coordinated
+  atomic mutation, file reload, visible failure, and teardown
+- the checked receipt is
+  `../../../../fixtures/greenfield/card125/composition-matrix-v1.json`
+- package-manager publication remains false
 
 ## Next Task
 

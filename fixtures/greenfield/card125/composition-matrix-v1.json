@@ -1,0 +1,188 @@
+{
+  "schema": "longhorn.greenfield-composition-matrix.v1",
+  "sources": {
+    "longhornSelected": "c05fde26c505d83565dd05106a2ea35c549d93b7",
+    "poodleSelected": "a2b041bad8132e38ce7219cb6872861dcc5866e0"
+  },
+  "artifacts": {
+    "sets": {
+      "typescript": "2a996c0811ef5bdb0578e15c13c253bfb94c75c15cfb4772778ab5acb165d946",
+      "poodle": "c7ffcca6397e05440530968e54cace5c7a51f028371180536cdabbb518c85301",
+      "rust": "7e7c0537e804583954031d8fe9a4963f641ef9f98c6637d645df8d589a240854"
+    },
+    "inventories": {
+      "typescript": [
+        "@longhorn/bridge",
+        "@longhorn/commands",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/history",
+        "@longhorn/layout",
+        "@longhorn/poodle",
+        "@longhorn/settings",
+        "@longhorn/surface-transfer",
+        "@longhorn/surfaces",
+        "@longhorn/svelte",
+        "@longhorn/tauri",
+        "@longhorn/transfer"
+      ],
+      "poodle": [
+        "@poodle/headless",
+        "@poodle/icons-lucide",
+        "@poodle/styles",
+        "@poodle/svelte",
+        "@poodle/svelte-tokens"
+      ],
+      "rust": [
+        "longhorn-bridge",
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-history",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-surface-transfer",
+        "longhorn-surface-windowing",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-history",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-transfer",
+        "longhorn-tauri-windowing",
+        "longhorn-transfer",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ]
+    }
+  },
+  "shapes": {
+    "minimal": {
+      "hierarchy": ["window"],
+      "typescript": ["@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+      "rust": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ]
+    },
+    "workspace": {
+      "hierarchy": ["window", "layout-container", "region", "panel"],
+      "typescript": [
+        "@longhorn/commands",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/layout",
+        "@longhorn/poodle",
+        "@longhorn/settings",
+        "@longhorn/svelte",
+        "@longhorn/tauri"
+      ],
+      "rust": [
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-windowing",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ]
+    },
+    "full-hosting": {
+      "hierarchy": ["display", "window", "surface", "layout-container", "region", "panel"],
+      "typescript": [
+        "@longhorn/commands",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/history",
+        "@longhorn/layout",
+        "@longhorn/poodle",
+        "@longhorn/settings",
+        "@longhorn/surface-transfer",
+        "@longhorn/surfaces",
+        "@longhorn/svelte",
+        "@longhorn/tauri",
+        "@longhorn/transfer"
+      ],
+      "rust": [
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-history",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-surface-transfer",
+        "longhorn-surface-windowing",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-history",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-transfer",
+        "longhorn-tauri-windowing",
+        "longhorn-transfer",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ]
+    },
+    "optional-server": {
+      "hierarchy": ["window", "optional-service-bridge"],
+      "typescript": ["@longhorn/bridge", "@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+      "rust": [
+        "longhorn-bridge",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ]
+    }
+  },
+  "optionalServerLocalRust": [
+    "longhorn-config",
+    "longhorn-core",
+    "longhorn-settings",
+    "longhorn-settings-config",
+    "longhorn-tauri-config",
+    "longhorn-tauri-settings"
+  ],
+  "audits": {
+    "outsideWorkspaceResolution": true,
+    "oneSvelteRuntimePerRenderer": true,
+    "oneTauriApiRuntimePerRenderer": true,
+    "umbrellaPackage": false,
+    "donorVocabulary": false,
+    "copiedPoodlePrimitive": false,
+    "nativeContent": false,
+    "operation": false,
+    "notifications": false,
+    "packageManagerPublication": false
+  }
+}

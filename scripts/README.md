@@ -217,6 +217,19 @@ The rollback proof passes 19 previous Rust unit tests, four IPC tests, and 65
 renderer tests from disposable sibling worktrees. Current focused suites pass
 26 Rust unit, six IPC, and 67 renderer tests. No package is published.
 
+Card 125 packs the selected Longhorn and Poodle TypeScript packages, installs
+and mounts four isolated renderer shapes, archives the exact Rust inventory,
+and runs five locked/offline Rust 1.85 compositions. It checks storage startup,
+atomic mutation, visible failure, teardown, graph minimality, and removal of
+optional supervision against the frozen receipt:
+
+```sh
+effigy qa:northstar:g01-greenfield-card125
+```
+
+Set `KEEP_GREENFIELD_COMPOSITION_PROOF=1` only to retain its disposable
+artifact workspace. No registry publication is attempted.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

@@ -81,6 +81,7 @@ longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config" }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge" }
 longhorn-tauri-command = { path = "crates/longhorn-tauri-command" }
+longhorn-tauri-config = { path = "crates/longhorn-tauri-config" }
 longhorn-tauri-history = { path = "crates/longhorn-tauri-history" }
 longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications" }
 longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation" }

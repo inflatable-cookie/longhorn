@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
+- [126 API, Storage, Composition, And Migration Guides](126-api-storage-composition-and-migration-guides.md)
 
 ## Operator-held
 
@@ -19,11 +19,11 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [126 API, Storage, Composition, And Migration Guides](126-api-storage-composition-and-migration-guides.md)
 - [127 Private 0.1 Compatibility Candidate And Closeout](127-private-0-1-compatibility-candidate-and-closeout.md)
 
 ## Complete
 
+- [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
 - [113 Secondary-consumer Behavior, Authority, And Rollback Freeze](113-secondary-consumer-behavior-authority-and-rollback-freeze.md)
 - [114 Secondary-consumer Private Artifact Admission](114-secondary-consumer-private-artifact-admission.md)
 - [115 Soundcheck Storage, Config, And Window Cutover](115-soundcheck-storage-config-and-window-cutover.md)
@@ -146,4 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 125. Build the four produced-artifact greenfield compositions.
+Execute Card 126. Write the API, storage, backup, composition, migration, and
+upgrade guides from the proven graphs.

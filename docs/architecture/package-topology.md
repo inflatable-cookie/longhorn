@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-08-01
+Updated: 2026-08-02
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -152,6 +152,12 @@ payloads never cross the generic renderer protocol.
 transaction. Structural persistence and committed transition receipts are
 shared; canonical product snapshots, journal files, checkpoints, fsync,
 autosave, replay, and project versions remain consumer authority.
+
+Four produced-artifact greenfield roots prove direct package selection for
+minimal config/settings, a Surface-free workspace, full hosting with linear
+history, and an optional supervised service. The roots share no umbrella
+package and make smaller Rust and TypeScript graphs an exact checked property.
+See [Greenfield Composition Matrix](greenfield-composition-matrix.md).
 
 ## Operation And Notification Layers
 

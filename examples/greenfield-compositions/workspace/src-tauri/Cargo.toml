@@ -1,0 +1,25 @@
+[package]
+name = "longhorn-greenfield-workspace-tauri"
+version = "0.0.0"
+edition.workspace = true
+
+[dependencies]
+longhorn-command.workspace = true
+longhorn-command-config.workspace = true
+longhorn-command-settings.workspace = true
+longhorn-config.workspace = true
+longhorn-core.workspace = true
+longhorn-display.workspace = true
+longhorn-layout.workspace = true
+longhorn-layout-config.workspace = true
+longhorn-settings.workspace = true
+longhorn-settings-config.workspace = true
+longhorn-tauri-command.workspace = true
+longhorn-tauri-config.workspace = true
+longhorn-tauri-settings.workspace = true
+longhorn-tauri-windowing.workspace = true
+longhorn-windowing.workspace = true
+longhorn-windowing-config.workspace = true
+longhorn-greenfield-proof-common = { path = "../../common-rust" }
+serde_json.workspace = true
+tauri.workspace = true

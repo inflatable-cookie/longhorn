@@ -1,0 +1,15 @@
+[package]
+name = "longhorn-greenfield-minimal-tauri"
+version = "0.0.0"
+edition.workspace = true
+
+[dependencies]
+longhorn-config.workspace = true
+longhorn-core.workspace = true
+longhorn-settings.workspace = true
+longhorn-settings-config.workspace = true
+longhorn-tauri-config.workspace = true
+longhorn-tauri-settings.workspace = true
+longhorn-greenfield-proof-common = { path = "../../common-rust" }
+serde_json.workspace = true
+tauri.workspace = true

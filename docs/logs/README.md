@@ -149,3 +149,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Jetstream Bridge, Command, And Keyboard Cutover](2026-08/02-jetstream-bridge-command-and-keyboard-cutover.md)
 - [Jetstream Backing-surface Coordination Cutover](2026-08/02-jetstream-backing-surface-coordination-cutover.md)
 - [Jetstream Migration Conformance Closeout](2026-08/02-jetstream-migration-conformance-closeout.md)
+- [Greenfield Composition Matrix](2026-08/02-greenfield-composition-matrix.md)
