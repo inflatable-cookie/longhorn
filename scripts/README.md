@@ -188,6 +188,22 @@ The receipt binds Jetstream `2a8afbb7`. Focused Rust, IPC, renderer, and
 release-build gates pass. Jetstream's aggregate validation remains blocked by
 an unchanged pre-existing denied Clippy lint in the renderer vignette test.
 
+Card 123 verifies Jetstream's stable native-content island, checked backing-
+surface coordination, full-host storage versus physical clip, presentation and
+semantic-input gates, fresh renderer epochs, Svelte viewport/scale lifetime,
+reversible NSView teardown, explicit no-surface policy, and retained engine
+authority:
+
+```sh
+effigy qa:northstar:g01-jetstream-card123
+```
+
+The receipt binds Jetstream `e9a54daa`, six TypeScript packages, and six Rust
+crates. Focused Rust, IPC, renderer, deny-warnings Clippy, and release-build
+gates pass. Aggregate validation stops only on two unchanged renderer-test
+approximate constants. Windows and Linux remain explicit unsupported targets;
+live scale transition host evidence remains unmet.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

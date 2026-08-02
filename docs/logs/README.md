@@ -147,3 +147,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Bovine Config And Settings Cutover](2026-08/02-bovine-config-settings-cutover.md)
 - [Bovine Minimal Composition Conformance Closeout](2026-08/02-bovine-minimal-composition-conformance-closeout.md)
 - [Jetstream Bridge, Command, And Keyboard Cutover](2026-08/02-jetstream-bridge-command-and-keyboard-cutover.md)
+- [Jetstream Backing-surface Coordination Cutover](2026-08/02-jetstream-backing-surface-coordination-cutover.md)

@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 123 ready
+Status: executing; Card 124 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -58,7 +58,7 @@ lane from current evidence; it does not infer package publication.
 ### Batch 4: Jetstream
 
 - [x] adopt checked bridge state and command/keymap projection
-- [ ] adopt backing-surface coordination and Svelte viewport lifetime
+- [x] adopt backing-surface coordination and Svelte viewport lifetime
 - [ ] prove engine, renderer, world, WGPU, and semantic-input authority remain local
 
 ### Batch 5: greenfield and private release
@@ -73,7 +73,7 @@ lane from current evidence; it does not infer package publication.
 - [ ] each app adopts only useful packages
 - [x] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
 - [x] Bovine proves the smallest config/settings graph
-- [ ] Jetstream proves bridge, command, and backing-surface composition
+- [x] Jetstream proves bridge, command, and backing-surface composition
 - [ ] product, sibling, renderer, plugin, content, and engine authority stay downstream
 - [ ] examples prove optional dependency boundaries outside workspace resolution
 - [ ] filesystem, backup, settings, topology, command, history, and native-content docs are exact
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
+- `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 - `batch-cards/125-greenfield-composition-matrix.md`
 - `batch-cards/126-api-storage-composition-and-migration-guides.md`
 - `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
@@ -121,6 +120,7 @@ Complete:
 - `batch-cards/120-bovine-config-and-settings-cutover.md`
 - `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
+- `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 
 ## Planning Checkpoint
 
@@ -130,7 +130,9 @@ Cards 120-121 complete Bovine's canonical storage, one preference domain,
 minimal settings shell, settings lifetime, failure/restart/rollback matrix,
 exact artifact graph, and no-optional-system closeout. Card 122 completes
 Jetstream's checked editor-state bridge, sealed command catalogue, fresh
-availability admission, and physical-keyboard cutover. Card 123 is ready.
+availability admission, and physical-keyboard cutover. Card 123 completes the
+checked backing-surface, Svelte viewport, scale, input-gate, and reversible
+native-teardown cutover. Card 124 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -152,5 +154,5 @@ authority.
 
 ## Next Task
 
-Execute Card 123. Adopt backing-surface coordination around Jetstream's
-engine-owned native view and checked Svelte viewport lifetime.
+Execute Card 124. Prove Jetstream's exact composition, retained engine
+authority, duplicate removal, and rollback posture.

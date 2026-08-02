@@ -1,0 +1,120 @@
+{
+  "schema": "longhorn.jetstream-backing-surface-coordination-cutover.v1",
+  "outcome": "pass-with-unrelated-workspace-clippy-failures",
+  "sources": {
+    "longhorn_selected_source_commit": "3032545b3284d3af7f976a88827bb8c8f5c94513",
+    "jetstream_prior_commit": "2a8afbb749965cdfe295b8b6be77de4ba9e00256",
+    "jetstream_cutover_commit": "e9a54daacdec1f5c6573687a5543e9ffb2dae2b0",
+    "jetstream_cargo_lock_sha256": "c3967e6b2eb293dee08576be3317597d4ea611ee5cb68a869516842505c3a859",
+    "jetstream_package_lock_sha256": "da34f3c413c55375c5114da4b42210f2f4f43655b603debbbe1224ffa3251189"
+  },
+  "composition": {
+    "canonical_application_id": "com.inflatablecookie.jetstream.editor",
+    "typescript_packages": [
+      "@longhorn/bridge",
+      "@longhorn/commands",
+      "@longhorn/core",
+      "@longhorn/native-content",
+      "@longhorn/native-content-svelte",
+      "@longhorn/tauri"
+    ],
+    "rust_packages": [
+      "longhorn-bridge",
+      "longhorn-command",
+      "longhorn-core",
+      "longhorn-native-content",
+      "longhorn-native-content-backing-surface",
+      "longhorn-tauri-bridge"
+    ],
+    "forbidden_systems": [
+      "config",
+      "settings",
+      "display",
+      "windowing",
+      "layout",
+      "surfaces",
+      "transfer",
+      "history",
+      "operation",
+      "notifications"
+    ],
+    "package_manager_publication": false
+  },
+  "coordination": {
+    "island_id": "island:jetstream.editor.viewport",
+    "host_window_id": "window:editor",
+    "content_kind": "jetstream:wgpu-editor",
+    "initial_attach_generation": 1,
+    "mechanism": "backing_surface",
+    "detach_policy": "reversible",
+    "full_host_storage": true,
+    "separate_physical_clip": true,
+    "rounding": "nearest",
+    "input_routing": "renderer_forwarded",
+    "semantic_payload_product_free": true
+  },
+  "lifecycle": {
+    "initial_visibility_reason": "page_not_loaded",
+    "listener_before_attach": true,
+    "fresh_client_epoch_on_remount": true,
+    "stale_client_epoch_rejected": true,
+    "presentation_checked": true,
+    "input_focus_checked": true,
+    "input_clip_checked": true,
+    "scale_factor_checked": true,
+    "frame_evidence_generation_scoped": true,
+    "host_destroy_invalidates": true,
+    "render_thread_joined_before_native_detach": true,
+    "wgpu_dropped_before_native_detach": true,
+    "attach_failure_removes_native_view": true,
+    "no_surface_policy": "protocol_absent",
+    "raw_set_viewport_endpoint": false,
+    "process_lifetime_native_leak": false
+  },
+  "platforms": {
+    "macos": "production-native-attach-and-release-build",
+    "windows": "explicit-unsupported",
+    "linux": "explicit-unsupported",
+    "live_scale_transition": "compiled-and-automated-boundary-only-host-evidence-unmet"
+  },
+  "authority": {
+    "longhorn": [
+      "island-identity",
+      "client-epoch",
+      "attach-generation",
+      "desired-observed-coordination",
+      "viewport-conversion",
+      "clip-planning",
+      "presentation-gate",
+      "input-admission",
+      "apply-receipts",
+      "svelte-session-lifecycle"
+    ],
+    "jetstream": [
+      "nsview-storage",
+      "wgpu-surface",
+      "renderer",
+      "frame-loop",
+      "world",
+      "camera",
+      "picking",
+      "gizmo",
+      "semantic-input",
+      "native-detach-port"
+    ]
+  },
+  "validation": {
+    "rust_unit_tests": 26,
+    "rust_ipc_tests": 6,
+    "renderer_tests": 67,
+    "focused_clippy_deny_warnings": true,
+    "release_tauri_build": true,
+    "aggregate_validate": "failed-unrelated-pre-existing-clippy-approx-constants",
+    "aggregate_failure_paths": [
+      "crates/jetstream-renderer/tests/brdf_burley.rs",
+      "crates/jetstream-renderer/tests/postfx_vignette_ca.rs"
+    ],
+    "aggregate_failure_paths_changed_by_card": false,
+    "jetstream_worktree_clean": true
+  }
+}

@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 123 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 124 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -355,13 +355,14 @@ windowing, settings/recovery, scan operations, and isolated plugin windows.
 Cards 120-121 complete Bovine's minimal config/settings graph, native restart,
 rollback, settings lifetime, artifact, and no-optional-system proof while
 preserving unrelated work. Card 122 completes Jetstream's checked bridge,
-sealed commands, fresh admission, and physical keyboard. Cards 123-124 finish
-backing-surface coordination and close retained engine/WGPU authority. Cards 125-127 add four
+sealed commands, fresh admission, and physical keyboard. Card 123 completes
+backing-surface coordination; Card 124 closes retained engine/WGPU authority.
+Cards 125-127 add four
 greenfield compositions, adoption guides, and one deterministic private
 `0.1.0` compatibility candidate. Registry publication, tags, and hosted
 releases remain outside the chain.
 
 ## Next Task
 
-Execute Card 123. Adopt checked backing-surface coordination around
-Jetstream's engine-owned native view and Svelte viewport.
+Execute Card 124. Close Jetstream's exact composition, retained authority,
+duplicate removal, and rollback posture.
