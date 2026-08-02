@@ -172,8 +172,10 @@ protected-window, and project-layout authority. Card 099 completes checked
 renderer/Poodle composition. Card 100 completes the native Browser cutover.
 Card 101 closes exact artifacts, restart, rollback, capability,
 duplicate-authority, retained-policy, and no-Surface conformance. g01.014 is
-complete. g01.015 is ready for a fresh read-only Loophole audit and bounded
-card compilation.
+complete. g01.015 Cards 102-108 complete the Loophole freeze, storage and
+artifact admission, display/window host, registered layout, and registered
+regional Surface lifecycle. Card 109 is active for renderer and transfer
+composition.
 Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

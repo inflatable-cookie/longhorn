@@ -18,6 +18,9 @@ mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/surfaces/src/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/surfaces/protocol-v1.json";
+#[cfg(test)]
+const LOOPHOLE_REGISTERED_AUTHORITY: &str =
+    include_str!("../../../fixtures/surfaces/loophole-registered-authority-v1.json");
 
 struct RenderedProtocol {
     contents: String,
@@ -88,4 +91,24 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         contents,
         rejection_codes,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn loophole_registered_surface_fixture_records_the_habitat_boundary() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(LOOPHOLE_REGISTERED_AUTHORITY).unwrap();
+
+        assert_eq!(fixture["domain"], "loophole.regional-surfaces");
+        assert_eq!(fixture["regionalSurface"]["registered"], true);
+        assert_eq!(fixture["focusedPanelSurface"]["registered"], false);
+        assert_eq!(fixture["lifecycle"].as_array().unwrap().len(), 7);
+        assert_eq!(
+            fixture["composition"]["fullscreen"],
+            "transient-native-only"
+        );
+    }
 }

@@ -31,7 +31,9 @@ regional and focused Surfaces, public Poodle transfer, settings, keyboard and
 palette, full linear-history import, and closeout. Card 103 selects and proves
 `shared-product-root-v1` with roaming AppData on Windows and exact `Loophole`
 casing everywhere. Loophole's pre-existing SQLite link conflict is Card 104's
-first admission gate.
+first admission gate. Cards 104-108 now complete artifact admission, canonical
+storage, Longhorn display/window hosting, registered regional layout, and
+registered regional Surface lifecycle. Card 109 is active.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -164,5 +166,5 @@ this host.
 
 ## Next Task
 
-Execute g01.015 Card 104. Restore clean Loophole baseline health and admit the
-exact private dependency graph before migration writes.
+Execute g01.015 Card 109. Cut over checked renderer lifetime and public Poodle
+panel and Surface transfer seams.

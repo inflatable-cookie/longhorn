@@ -79,8 +79,8 @@ rollback, and closeout.
 
 Loophole Card 102 freezes the current full hierarchy, generic Echo transfer,
 stable product storage identity, public Poodle drag seam, and 83-variant Pulse
-history boundary. g01.015 is compiled through Card 112 but paused on Card 103's
-Windows storage parent and Linux leaf decisions. Loophole donor health also has
-a pre-existing SQLite link conflict; no migration writes are admitted.
+history boundary. g01.015 is compiled through Card 112. Cards 103-108 complete
+the storage, artifact-admission, display/window, layout, and regional Surface
+authority slices. Card 109 owns renderer and transfer composition.
 Package-manager publication remains deferred. Cards 070-074 remain planned
 behind the linear-history adoption checkpoint.

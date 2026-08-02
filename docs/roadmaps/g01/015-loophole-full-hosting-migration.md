@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 108 active
+Status: executing; Card 109 active
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 002-014;
@@ -31,13 +31,13 @@ payloads, journal recovery, and project versions remain Loophole authority.
 ### Batch 2: durable foundation
 
 - [x] adopt stable `Loophole` storage identity and receipted legacy transition
-- [ ] register separate app, profile, machine, window, Surface, and layout domains
+- [x] register separate app, profile, machine, window, Surface, and layout domains
 - [x] replace display/window planning and native host mechanics
 
 ### Batch 3: full optional hierarchy
 
 - [x] replace generic eight-region layout mutation and persistence
-- [ ] replace Surface lifecycle, binding, movement, provision, and restoration
+- [x] replace Surface lifecycle, binding, movement, provision, and restoration
 - [ ] adopt checked renderer lifetime and public Poodle transfer seams
 
 ### Batch 4: shell systems
@@ -91,11 +91,10 @@ Ready:
 
 Active:
 
-- `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
+- `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
 
 Planned:
 
-- `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
 - `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
 - `batch-cards/111-loophole-linear-history-adoption.md`
 - `batch-cards/112-loophole-migration-conformance-and-closeout.md`
@@ -108,6 +107,7 @@ Complete:
 - `batch-cards/105-loophole-storage-and-domain-transition.md`
 - `batch-cards/106-loophole-display-and-window-host-cutover.md`
 - `batch-cards/107-loophole-registered-layout-authority-cutover.md`
+- `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
 
 ## Planning Checkpoint
 
@@ -131,7 +131,11 @@ storage slice is implemented and proven. Card 106 replaces Echo/Aura display
 correlation and native window mechanics with one Longhorn host and a distinct
 registered placement domain. Card 107 moves the literal eight-region schema,
 regional panel structure, checked mutation, and independent persistence to a
-registered Longhorn authority. Card 108 is active.
+registered Longhorn authority. Card 108 registers regional Surface topology,
+host preferences, lifecycle, restoration, and whole-Surface movement under a
+separate Longhorn authority. Focused-panel Surfaces remain an explicit
+Loophole attachment because they have no regional layout-container binding.
+Card 109 is active.
 
 Keyboard, keymap, palette, and conflict semantics can migrate under contract
 006. Extended triggers and macros remain Loophole adapters. Linear history can
@@ -140,5 +144,5 @@ Pulse journal integration survive; branch mode stays disabled.
 
 ## Next Task
 
-Execute Card 108. Cut over Surface lifecycle, hosting, and whole-Surface
-movement while retaining both Loophole habitats.
+Execute Card 109. Cut over checked renderer lifetime, public Poodle seams, and
+listener-first panel and whole-Surface transfer sessions.

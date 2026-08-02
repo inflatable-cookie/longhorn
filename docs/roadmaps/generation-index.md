@@ -20,8 +20,7 @@ None.
 private artifacts, canonical storage, protected-window and registered-layout
 authority, checked renderer/Poodle composition, native Browser coordination,
 restart, rollback, capability closure, duplicate removal, and no Surface edge.
-g01.015 is compiled through Cards 102-112. Card 103 completes the exact
-`shared-product-root-v1` matrix with roaming AppData on Windows and stable
-`Loophole` casing everywhere. Card 104 is ready for baseline repair and exact
-private artifact admission. Fork-tree Cards 070-074 remain planned behind the
-linear adoption checkpoint.
+g01.015 is compiled through Cards 102-112. Cards 103-108 complete the exact
+storage policy, private artifact admission, display/window hosting, registered
+layout, and registered regional Surface lifecycle. Card 109 is active.
+Fork-tree Cards 070-074 remain planned behind the linear adoption checkpoint.

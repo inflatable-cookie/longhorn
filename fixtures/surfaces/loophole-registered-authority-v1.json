@@ -1,0 +1,36 @@
+{
+  "fixtureVersion": 1,
+  "consumer": "loophole",
+  "domain": "loophole.regional-surfaces",
+  "regionalSurface": {
+    "registered": true,
+    "layoutBinding": "container:sha256(surface-id)",
+    "hostPolicy": "primary-then-declared-fallback-windows"
+  },
+  "focusedPanelSurface": {
+    "registered": false,
+    "reason": "product habitat has no regional layout-container binding",
+    "attachmentAuthority": "loophole"
+  },
+  "lifecycle": [
+    "create",
+    "duplicate",
+    "close",
+    "activate",
+    "reorder",
+    "move",
+    "restore"
+  ],
+  "composition": {
+    "focusedPromotion": "serialized layout-surface-product transaction",
+    "failedProvision": "restore source and remove prepared window",
+    "fullscreen": "transient-native-only"
+  },
+  "excludedProductPolicy": [
+    "presence",
+    "focusedEligibility",
+    "panelFallbackPlacement",
+    "lastWindowClose",
+    "fullscreen"
+  ]
+}
