@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 127 ready
+Status: complete
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -65,8 +65,8 @@ lane from current evidence; it does not infer package publication.
 
 - [x] build minimal, workspace, full-hosting, and optional-server examples
 - [x] publish no packages; document APIs, storage, backup, composition, and migration
-- [ ] prove deterministic private `0.1.0` artifacts and compatibility
-- [ ] close g01.016 with registry ownership and publication visibly deferred
+- [x] prove deterministic private `0.1.0` artifacts and compatibility
+- [x] close g01.016 with registry ownership and publication visibly deferred
 
 ## Goals
 
@@ -77,7 +77,7 @@ lane from current evidence; it does not infer package publication.
 - [x] product, sibling, renderer, plugin, content, and engine authority stay downstream
 - [x] examples prove optional dependency boundaries outside workspace resolution
 - [x] filesystem, backup, settings, topology, command, history, and native-content docs are exact
-- [ ] one coordinated private compatibility candidate is reproducible
+- [x] one coordinated private compatibility candidate is reproducible
 
 ## Acceptance Criteria
 
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
+- none
 
 Active:
 
@@ -122,6 +122,7 @@ Complete:
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 - `batch-cards/125-greenfield-composition-matrix.md`
 - `batch-cards/126-api-storage-composition-and-migration-guides.md`
+- `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
 
 ## Planning Checkpoint
 
@@ -139,7 +140,9 @@ Card 125 proves four produced-artifact greenfield shapes, exact optional graph
 boundaries, storage first-load/mutation/reload, visible renderer lifecycle,
 and serverless local authority. Card 126 adds checked public API, package
 selection, storage/backup, composition, migration, rollback, and compatibility
-guides. Card 127 is ready.
+guides. Card 127 proves the coordinated private candidate, all seven declared
+graphs, exact peers/protocols/platform claims, and both read-only release
+gates. g01.016 is complete.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -161,5 +164,5 @@ authority.
 
 ## Next Task
 
-Execute Card 127. Produce one deterministic private `0.1.0` candidate, run
-read-only release gates, and close g01.016 without publishing.
+Continue with g01.017 Card 070. Package publication remains deferred and still
+requires separate explicit operator action.

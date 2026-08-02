@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [127 Private 0.1 Compatibility Candidate And Closeout](127-private-0-1-compatibility-candidate-and-closeout.md)
+- [070 Fork-tree Identity, Topology, And Branches](070-fork-tree-identity-topology-and-branches.md)
 
 ## Operator-held
 
@@ -14,7 +14,6 @@ None.
 
 ## Planned
 
-- [070 Fork-tree Identity, Topology, And Branches](070-fork-tree-identity-topology-and-branches.md)
 - [071 Fork-tree Navigation, Retention, And Checkpoints](071-fork-tree-navigation-retention-and-checkpoints.md)
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
@@ -22,6 +21,7 @@ None.
 
 ## Complete
 
+- [127 Private 0.1 Compatibility Candidate And Closeout](127-private-0-1-compatibility-candidate-and-closeout.md)
 - [126 API, Storage, Composition, And Migration Guides](126-api-storage-composition-and-migration-guides.md)
 - [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
 - [113 Secondary-consumer Behavior, Authority, And Rollback Freeze](113-secondary-consumer-behavior-authority-and-rollback-freeze.md)
@@ -146,5 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 127. Produce one deterministic private `0.1.0` candidate, run
-read-only release gates, and close g01.016 without publishing.
+Execute Card 070. Implement the optional pure fork-tree identity, topology,
+and branch authority without changing linear artifacts.

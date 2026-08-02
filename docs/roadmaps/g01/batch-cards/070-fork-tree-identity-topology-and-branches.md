@@ -1,6 +1,6 @@
 # 070 Fork-tree Identity, Topology, And Branches
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.017 batch 1
 Governing refs: contracts 001, 008, and 012; Cards 068-069

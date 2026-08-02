@@ -223,8 +223,8 @@ capability, duplicate-authority, and no-Surface conformance. g01.014 is
 complete.
 Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 compile
 Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption guides,
-and a deterministic private compatibility candidate. Cards 113-126 complete
+and a deterministic private compatibility candidate. Cards 113-127 complete
 the consumer migrations, produced-artifact greenfield matrix, and checked guide
-and API-reference suite. Card 127 is ready for the private compatibility
-candidate.
+and API-reference suite. g01.016 is complete. Card 070 is ready for the
+optional fork-tree production lane.
 Package-manager publication remains deferred.

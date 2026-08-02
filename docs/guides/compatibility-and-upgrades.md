@@ -34,10 +34,11 @@ Svelte adapters commonly declare `>=5.38.6 <6`; consult the
 range. The greenfield matrix proves one runtime at 5.38.6. Later consumer
 proofs resolve 5.56.8 where recorded.
 
-The current Poodle receipt is the exact Card 125 set in
-[`composition-matrix-v1.json`](../../fixtures/greenfield/card125/composition-matrix-v1.json).
-It proves those produced files and one runtime, not compatibility with every
-future Poodle `0.1.0` source state.
+The current coordinated receipt is the Card 127
+[private `0.1.0` candidate](../reference/private-0-1-candidate.md). It binds
+the exact five-package Poodle set, all Longhorn packages, seven consumer
+graphs, and two reproducible production runs. It does not claim compatibility
+with every future Poodle `0.1.0` source state.
 
 ## Protocol Compatibility
 
@@ -102,5 +103,5 @@ consumer breaks and migrate call sites in the bounded lane.
 
 First public publication must verify registry ownership, normalized package
 artifacts, public names, final ranges, checksums, licensing, release notes, and
-hosted surfaces. Card 126 does none of those actions. Card 127 may produce a
-deterministic private candidate and run read-only gates only.
+hosted surfaces. Card 127 produces a deterministic private candidate and runs
+read-only gates only; it performs none of those publication actions.

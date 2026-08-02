@@ -19,8 +19,8 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 127 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
-| [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.017](017-optional-forkable-history-tree.md) | executing; Card 070 ready | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
 ## Dependency Shape
@@ -224,8 +224,8 @@ optional failure-isolated operation observer. Card 080 adds checked clients,
 isolated Svelte state, retained panel/transient toast projections, and fresh
 action admission. Card 081 adds four isolated artifact graphs, equal native
 and renderer traces, multi-window/remount proof, and composition guidance.
-`g01.012` is complete. Cards 070-074 remain planned
-behind the linear-history adoption checkpoint.
+`g01.012` is complete. Card 127 satisfies the linear-history adoption and
+compatibility checkpoint. Card 070 is ready; Cards 071-074 remain planned.
 
 Research memo 017 and contract 017 characterize native content islands as one
 pure desired/observed coordination protocol over separate child-webview,
@@ -361,11 +361,12 @@ capabilities, duplicates, retained engine/WGPU authority, and rollback. Card
 125 proves four isolated produced-artifact compositions, exact optional-edge
 removal, storage startup/mutation/reload, visible renderer lifecycle, and one
 runtime per graph. Card 126 adds checked API, storage/backup, composition,
-migration, rollback, and compatibility guides. Card 127 adds one deterministic
-private `0.1.0` compatibility candidate. Registry publication, tags, and hosted
-releases remain outside the chain.
+migration, rollback, and compatibility guides. Card 127 proves one
+deterministic private `0.1.0` compatibility candidate and closes g01.016.
+Registry publication, tags, and hosted releases remain outside the chain.
+The completed checkpoint satisfies g01.017 admission; Card 070 is ready.
 
 ## Next Task
 
-Execute Card 127. Produce one deterministic private `0.1.0` candidate, run
-read-only release gates, and close g01.016 without publishing.
+Execute Card 070. Implement the optional pure fork-tree identity, topology,
+and branch authority without changing linear artifacts.

@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: planned
+Status: executing; Card 070 ready
 Owner: Tom
 Updated: 2026-07-31
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -74,11 +74,12 @@ g01.015 or delay the first linear release.
 
 ## Planning Checkpoint
 
-Cards 070-074 are compiled but not ready. Revalidate the package names,
-Rust/TypeScript compatibility baseline, and first linear consumer evidence
-after g01.016 before starting Card 070.
+Card 127 revalidates the working package names, coordinated private `0.1.0`,
+Rust 1.85, TypeScript/Svelte/Tauri peers, exact-v1 protocols, and Loophole's
+lossless linear consumer. Public registry names remain unresolved but do not
+gate the private optional implementation. Card 070 is ready.
 
 ## Next Task
 
-Wait for g01.016. The current generation returns to g01.012 research after
-Card 069 closes g01.011.
+Execute Card 070. Implement the optional pure fork-tree identity, topology,
+and branch authority without changing linear artifacts.

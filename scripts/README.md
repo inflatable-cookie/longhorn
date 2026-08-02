@@ -244,6 +244,21 @@ effigy qa:northstar:g01-guides-card126
 Generation writes only `docs/reference/api-surface.md`. The check selector
 fails on drift.
 
+Card 127 produces and checks the coordinated private compatibility candidate:
+
+```sh
+effigy generate:private-candidate-card127
+effigy qa:northstar:g01-private-candidate-card127
+effigy release gates
+```
+
+`generate:private-candidate-card127` is the only receipt-writing command. The
+proof packs every TypeScript/Poodle artifact twice, inventories and archives
+every Rust package twice, installs seven isolated renderer and Rust graphs,
+and records exact sources, peers, protocols, platforms, and checksums.
+`release gates` is read-only. It runs the private candidate and workspace QA;
+it does not prepare, publish, tag, or create a hosted release.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

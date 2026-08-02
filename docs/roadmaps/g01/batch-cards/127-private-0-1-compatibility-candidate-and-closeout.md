@@ -1,6 +1,6 @@
 # 127 Private 0.1 Compatibility Candidate And Closeout
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 001, 003, 010, and 012-013; Cards 113-126
@@ -60,8 +60,23 @@ tag, or hosted-release mutation.
 - a release gate can pass only by weakening package or protocol checks
 - any action would publish, tag, or create a hosted release
 
+## Evidence
+
+- `fixtures/release/card127/private-0-1-candidate-v1.json` records the exact
+  source, tool, package, checksum, peer, protocol, platform, and seven-graph
+  compatibility receipt.
+- `docs/reference/private-0-1-candidate.md` is the human compatibility matrix.
+- 17 Longhorn TypeScript packages, five Poodle packages, and 36 Rust packages
+  reproduce across two independent production passes.
+- Minimal, Nucleus, Loophole, Soundcheck, Bovine, Jetstream, and optional-
+  server roots install outside sibling resolution and pass locked Rust 1.85.
+- All 12 generated protocol families are current.
+- Both configured read-only Effigy release gates pass. No publication, tag,
+  hosted release, or consumer release occurs.
+- `docs/logs/2026-08/02-private-0-1-compatibility-candidate-and-closeout.md`
+  records the closeout.
+
 ## Next Task
 
-If the private candidate passes, close g01.016. The next executable generation
-task is selected from the remaining g01 runway; package publication still
-requires a separate explicit operator action.
+Execute Card 070. Implement the optional pure fork-tree identity, topology,
+and branch authority without changing linear artifacts.

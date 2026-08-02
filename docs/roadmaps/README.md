@@ -39,7 +39,7 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; Cards 113-126 are complete and Card 127 is ready.
+113-127; all cards and g01.016 are complete. Card 070 is ready in g01.017.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -172,5 +172,5 @@ this host.
 
 ## Next Task
 
-Execute Card 127. Produce one deterministic private `0.1.0` candidate, run
-read-only release gates, and close g01.016 without publishing.
+Execute Card 070. Implement the optional pure fork-tree identity, topology,
+and branch authority without changing linear artifacts.

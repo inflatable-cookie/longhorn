@@ -181,8 +181,8 @@ settings, commands, keymaps, palette, and retained extended input. Cards
 111-112 complete lossless linear history and full migration conformance;
 g01.015 is complete. g01.016 is compiled as Cards 113-127 across exact common
 admission, Soundcheck, Bovine, Jetstream, greenfield examples, guides, and a
-private compatibility candidate. Cards 113-126 are complete; Card 127 is
-ready.
+private compatibility candidate. Cards 113-127 and g01.016 are complete. Card
+070 is ready in the optional fork-tree production lane.
 Package-manager publication is deferred.
 
 The live next-task pointer lives in the roadmap front doors.

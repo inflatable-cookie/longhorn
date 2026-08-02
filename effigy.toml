@@ -248,6 +248,31 @@ health = [{ task = "qa" }]
   { task = "check:svelte-runes" },
   { task = "check:poodle-svelte" },
 ]
+"generate:private-candidate-card127" = "bun scripts/verify-private-candidate-card127.ts --write"
+"proof:private-candidate-card127" = "bun scripts/verify-private-candidate-card127.ts"
+"proof:private-candidate-docs-card127" = "bun scripts/verify-private-candidate-docs-card127.ts"
+"check:bindings-card127" = [
+  { task = "check:bridge-bindings" },
+  { task = "check:command-bindings" },
+  { task = "check:config-bindings" },
+  { task = "check:history-bindings" },
+  { task = "check:layout-bindings" },
+  { task = "check:native-content-bindings" },
+  { task = "check:notifications-bindings" },
+  { task = "check:operation-bindings" },
+  { task = "check:settings-bindings" },
+  { task = "check:surface-bindings" },
+  { task = "check:surface-transfer-bindings" },
+  { task = "check:transfer-bindings" },
+]
+"check:northstar:g01-private-candidate-card127" = "effigy docs check paths Cargo.toml Cargo.lock bun.lock CHANGELOG.md README.md docs/README.md effigy.toml scripts/README.md scripts/verify-private-candidate-card127.ts scripts/verify-private-candidate-docs-card127.ts scripts/private-candidate-card127 fixtures/release/card127/private-0-1-candidate-v1.json docs/reference/api-surface.md docs/reference/private-0-1-candidate.md docs/guides/compatibility-and-upgrades.md docs/guides/migration-and-rollback.md docs/architecture/greenfield-composition-matrix.md docs/architecture/nucleus-migration-map.md docs/architecture/loophole-migration-map.md docs/architecture/secondary-consumer-migration-map.md docs/contracts/001-working-rules.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md docs/logs/README.md docs/logs/2026-08/02-private-0-1-compatibility-candidate-and-closeout.md"
+"qa:northstar:g01-private-candidate-card127" = [
+  { task = "check:northstar:g01-private-candidate-card127" },
+  { task = "check:api-reference-card126" },
+  { task = "proof:private-candidate-card127" },
+  { task = "proof:private-candidate-docs-card127" },
+  { task = "check:bindings-card127" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"
@@ -627,6 +652,7 @@ test = [
   { task = "check:northstar:g01-jetstream-card124" },
   { task = "check:northstar:g01-greenfield-card125" },
   { task = "check:northstar:g01-guides-card126" },
+  { task = "check:northstar:g01-private-candidate-card127" },
   { task = "qa:northstar:g01-display-cards" },
   { task = "qa:northstar:g01-window-host-cards" },
   { task = "qa:northstar:g01-layout-cards" },
@@ -703,6 +729,7 @@ test = [
   { task = "qa:northstar:roadmap-headings" },
   { task = "qa:northstar:agent-defaults" },
 ]
+
 qa = [
   { task = "fmt:rust" },
   { task = "lint:rust" },
@@ -796,3 +823,14 @@ qa = [
   { task = "qa:docs" },
   { task = "qa:northstar" },
 ]
+
+[release]
+version-file = "Cargo.toml"
+version-path = "workspace.package.version"
+changelog = "CHANGELOG.md"
+pre-1-0 = true
+tag-format = "v{version}"
+
+[release.gates]
+private-candidate = "effigy qa:northstar:g01-private-candidate-card127"
+workspace = "effigy qa"

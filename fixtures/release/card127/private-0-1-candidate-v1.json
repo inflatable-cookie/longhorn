@@ -1,0 +1,1222 @@
+{
+  "schema": "longhorn.private-compatibility-candidate.v1",
+  "outcome": "pass",
+  "version": "0.1.0",
+  "sources": {
+    "longhorn": {
+      "branch": "main",
+      "commit": "7a8cc7b407422c50edb194ae78f3b52daa59cdda",
+      "selectedPathsClean": true,
+      "selectedPaths": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "bun.lock",
+        "crates/longhorn-bindings",
+        "crates/longhorn-bridge",
+        "crates/longhorn-command",
+        "crates/longhorn-command-config",
+        "crates/longhorn-command-settings",
+        "crates/longhorn-config",
+        "crates/longhorn-config-age",
+        "crates/longhorn-core",
+        "crates/longhorn-display",
+        "crates/longhorn-history",
+        "crates/longhorn-layout",
+        "crates/longhorn-layout-config",
+        "crates/longhorn-native-content",
+        "crates/longhorn-native-content-backing-surface",
+        "crates/longhorn-native-content-isolated-window",
+        "crates/longhorn-notifications",
+        "crates/longhorn-operation",
+        "crates/longhorn-settings",
+        "crates/longhorn-settings-config",
+        "crates/longhorn-surface-transfer",
+        "crates/longhorn-surface-windowing",
+        "crates/longhorn-surfaces",
+        "crates/longhorn-surfaces-config",
+        "crates/longhorn-tauri-bridge",
+        "crates/longhorn-tauri-command",
+        "crates/longhorn-tauri-config",
+        "crates/longhorn-tauri-history",
+        "crates/longhorn-tauri-native-content-child-view",
+        "crates/longhorn-tauri-notifications",
+        "crates/longhorn-tauri-operation",
+        "crates/longhorn-tauri-settings",
+        "crates/longhorn-tauri-transfer",
+        "crates/longhorn-tauri-windowing",
+        "crates/longhorn-transfer",
+        "crates/longhorn-windowing",
+        "crates/longhorn-windowing-config",
+        "packages/bridge",
+        "packages/commands",
+        "packages/config",
+        "packages/core",
+        "packages/history",
+        "packages/layout",
+        "packages/native-content",
+        "packages/native-content-svelte",
+        "packages/notifications",
+        "packages/operation",
+        "packages/poodle",
+        "packages/settings",
+        "packages/surface-transfer",
+        "packages/surfaces",
+        "packages/svelte",
+        "packages/tauri",
+        "packages/transfer"
+      ]
+    },
+    "poodle": {
+      "branch": "main",
+      "commit": "a2b041bad8132e38ce7219cb6872861dcc5866e0",
+      "selectedPathsClean": true,
+      "selectedPaths": [
+        "packages/core",
+        "packages/styles",
+        "packages/svelte/components",
+        "packages/svelte/icons-lucide",
+        "packages/svelte/tokens"
+      ]
+    },
+    "consumers": {
+      "nucleus": {
+        "repository": "nucleus",
+        "branch": "main",
+        "commit": "c0aeeed84ea76e7c8dbcdcfd7943d0f9a5cb10d9",
+        "selectedManifests": [
+          "apps/desktop/package.json",
+          "apps/desktop/src-tauri/Cargo.toml"
+        ]
+      },
+      "loophole": {
+        "repository": "loophole",
+        "branch": "main",
+        "commit": "7bf096d4d17f77194c47456f5c59661fe3c4495f",
+        "selectedManifests": [
+          "aura/package.json",
+          "aura/src-tauri/Cargo.toml",
+          "echo/crates/echo-storage-profile/Cargo.toml",
+          "pulse/Cargo.toml",
+          "pulse/crates/pulse-history/Cargo.toml"
+        ]
+      },
+      "soundcheck": {
+        "repository": "soundcheck",
+        "branch": "main",
+        "commit": "e8970aa212e9464f53264f58f6628cd98254fc30",
+        "selectedManifests": [
+          "package.json",
+          "Cargo.toml",
+          "src-tauri/Cargo.toml"
+        ]
+      },
+      "bovine": {
+        "repository": "acowtancy/bovine-accelerator-desktop",
+        "branch": "main",
+        "commit": "8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28",
+        "selectedManifests": [
+          "package.json",
+          "src-tauri/Cargo.toml"
+        ]
+      },
+      "jetstream": {
+        "repository": "jetstream",
+        "branch": "main",
+        "commit": "e9a54daacdec1f5c6573687a5543e9ffb2dae2b0",
+        "selectedManifests": [
+          "editor-ui/package.json",
+          "crates/jetstream-editor-tauri/Cargo.toml"
+        ]
+      }
+    }
+  },
+  "tools": {
+    "rust": "1.85.0",
+    "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+    "tauriRust": "2.11.5",
+    "bun": "1.3.14",
+    "repositoryTypescript": "5.9.3",
+    "isolatedConsumerTypescript": "6.0.3",
+    "svelte": "5.56.8",
+    "tauriApi": "2.11.1"
+  },
+  "artifacts": {
+    "longhornTypescript": {
+      "setSha256": "71549fdef28c21912ce0a85cb50b52fa9de142e46e6503ec48acd53992c5a084",
+      "packages": [
+        {
+          "name": "@longhorn/bridge",
+          "version": "0.1.0",
+          "filename": "longhorn-bridge-0.1.0.tgz",
+          "sha256": "b492c930fe1c2e03d65fce49ec5d928f6b6370e535970451d4b178fa756ba9a8"
+        },
+        {
+          "name": "@longhorn/commands",
+          "version": "0.1.0",
+          "filename": "longhorn-commands-0.1.0.tgz",
+          "sha256": "b2da7b76af5958cc78722dc79e86272485061b51c65bbf25c2519bfa3bd2eec2"
+        },
+        {
+          "name": "@longhorn/config",
+          "version": "0.1.0",
+          "filename": "longhorn-config-0.1.0.tgz",
+          "sha256": "3be4f0ca3153dd8bcaa408d7393178ee2bfebfa026722c4e5ac29b13e8b79367"
+        },
+        {
+          "name": "@longhorn/core",
+          "version": "0.1.0",
+          "filename": "longhorn-core-0.1.0.tgz",
+          "sha256": "b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0"
+        },
+        {
+          "name": "@longhorn/history",
+          "version": "0.1.0",
+          "filename": "longhorn-history-0.1.0.tgz",
+          "sha256": "5ad45167851b6caedd78d15d1c5589504218cae4b0bc3727b8def55261c07df3"
+        },
+        {
+          "name": "@longhorn/layout",
+          "version": "0.1.0",
+          "filename": "longhorn-layout-0.1.0.tgz",
+          "sha256": "f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5"
+        },
+        {
+          "name": "@longhorn/native-content",
+          "version": "0.1.0",
+          "filename": "longhorn-native-content-0.1.0.tgz",
+          "sha256": "aaaa3b842b4605c71f5e88bc56919ccf1b6e6475ccb928f52d19e171b24c8c22"
+        },
+        {
+          "name": "@longhorn/native-content-svelte",
+          "version": "0.1.0",
+          "filename": "longhorn-native-content-svelte-0.1.0.tgz",
+          "sha256": "4ad53d146484b23be41862839f396821a54f6fbfe87f4a450d2d6154839c4913"
+        },
+        {
+          "name": "@longhorn/notifications",
+          "version": "0.1.0",
+          "filename": "longhorn-notifications-0.1.0.tgz",
+          "sha256": "b4d59137ab7b1c7196aa73ee36d79481003ff73580bc9a181d4a690bbfd5e95d"
+        },
+        {
+          "name": "@longhorn/operation",
+          "version": "0.1.0",
+          "filename": "longhorn-operation-0.1.0.tgz",
+          "sha256": "775f8747ab8a671311f5ecea1b22d49196bf39dfa708b9f62291888bf4d79657"
+        },
+        {
+          "name": "@longhorn/poodle",
+          "version": "0.1.0",
+          "filename": "longhorn-poodle-0.1.0.tgz",
+          "sha256": "e68d818335a7abf9dcd8c66dedc0bd40a5a5969dbf91b660085e195746963d75"
+        },
+        {
+          "name": "@longhorn/settings",
+          "version": "0.1.0",
+          "filename": "longhorn-settings-0.1.0.tgz",
+          "sha256": "a6253d02fda56f5689d5591e8af729bca041646e822358b9ce47390a3bc7f479"
+        },
+        {
+          "name": "@longhorn/surface-transfer",
+          "version": "0.1.0",
+          "filename": "longhorn-surface-transfer-0.1.0.tgz",
+          "sha256": "2c3803d47892142a213c7388601721bbb3f281efa1276c9dbc369d58ba8b3d5b"
+        },
+        {
+          "name": "@longhorn/surfaces",
+          "version": "0.1.0",
+          "filename": "longhorn-surfaces-0.1.0.tgz",
+          "sha256": "449cc0b1751860912cc3468ca41f1be3e4987b513e306988cad05a27fd27d088"
+        },
+        {
+          "name": "@longhorn/svelte",
+          "version": "0.1.0",
+          "filename": "longhorn-svelte-0.1.0.tgz",
+          "sha256": "024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3"
+        },
+        {
+          "name": "@longhorn/tauri",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-0.1.0.tgz",
+          "sha256": "4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5"
+        },
+        {
+          "name": "@longhorn/transfer",
+          "version": "0.1.0",
+          "filename": "longhorn-transfer-0.1.0.tgz",
+          "sha256": "37b50416c2b81531435a320e38138342d923f0b2a90b122cb13f4e18c3f0d7cf"
+        }
+      ]
+    },
+    "poodle": {
+      "setSha256": "a7e6351fd9eb92f3f43629afaf0e05a64839467ba68e8bba8852254787dbe2e8",
+      "packages": [
+        {
+          "name": "@poodle/headless",
+          "version": "0.1.0",
+          "filename": "poodle-headless-0.1.0.tgz",
+          "sha256": "1e1e79d83230f01387b0a213c51a448b5f2fa4ec4d3db0ec00bf50c9c343aa31"
+        },
+        {
+          "name": "@poodle/styles",
+          "version": "0.1.0",
+          "filename": "poodle-styles-0.1.0.tgz",
+          "sha256": "6c2eebebd784f8ea9fa0081dc6167b64b3ee44d360f772306dc53813c969c0df"
+        },
+        {
+          "name": "@poodle/svelte-tokens",
+          "version": "0.1.0",
+          "filename": "poodle-svelte-tokens-0.1.0.tgz",
+          "sha256": "0a0422a1e3f7a03a19e0489079c6030f0e5f7f4188c3433756cbecd74771fd57"
+        },
+        {
+          "name": "@poodle/icons-lucide",
+          "version": "0.1.0",
+          "filename": "poodle-icons-lucide-0.1.0.tgz",
+          "sha256": "88df4087c5cb2403b8da308cc59ad392d94be0fc16d81a72fa556e1f24cb8e70"
+        },
+        {
+          "name": "@poodle/svelte",
+          "version": "0.1.0",
+          "filename": "poodle-svelte-0.1.0.tgz",
+          "sha256": "9dc95956d5f5133eff6d457dd2e8efd64dab61a76e159b4ba3f05eeacf5e9ddb"
+        }
+      ]
+    },
+    "longhornRust": {
+      "setSha256": "1d8d7a8f248bc3f7bce5f5d0bf4e9e584ddb65a36b2546abae0e985bd05c97d2",
+      "packages": [
+        {
+          "name": "longhorn-bindings",
+          "version": "0.1.0",
+          "filename": "longhorn-bindings-0.1.0.private.tar.gz",
+          "sha256": "4f3b269eca4d64d1cb9f377ad280d609babd8164b8bebd600c6ba56eda346299",
+          "inventoryFiles": 37,
+          "inventorySha256": "1e37b1b49f5ad6c6fa04e81336e32d248302311e20e7d8f38d727e79f2a22e5c",
+          "sourcePath": "crates/longhorn-bindings"
+        },
+        {
+          "name": "longhorn-bridge",
+          "version": "0.1.0",
+          "filename": "longhorn-bridge-0.1.0.private.tar.gz",
+          "sha256": "a070780d7d37806566a00cb1941630c6fb64be0f77fefe2f30b5fa95fd9027ec",
+          "inventoryFiles": 43,
+          "inventorySha256": "c80cb0bd85a95072d9b57adbda6b7873bda4304a5126d43026df03aace128168",
+          "sourcePath": "crates/longhorn-bridge"
+        },
+        {
+          "name": "longhorn-command",
+          "version": "0.1.0",
+          "filename": "longhorn-command-0.1.0.private.tar.gz",
+          "sha256": "9a3af386d766822ef6e5f25ace78d3a298b28010bbd446461b7409d61dbe837c",
+          "inventoryFiles": 30,
+          "inventorySha256": "dac8b7aa99560f188a591f5740193b9c9b46928816311a94da0921441cc01f03",
+          "sourcePath": "crates/longhorn-command"
+        },
+        {
+          "name": "longhorn-command-config",
+          "version": "0.1.0",
+          "filename": "longhorn-command-config-0.1.0.private.tar.gz",
+          "sha256": "2e229019f89c5d47657d3f68e0a9d7241a882fea08cc21c96e357e4bf3921148",
+          "inventoryFiles": 16,
+          "inventorySha256": "b12d68e9a5efd1f468d572ceefc8dd8e4814d3f82601e57fdf98fff476da79a7",
+          "sourcePath": "crates/longhorn-command-config"
+        },
+        {
+          "name": "longhorn-command-settings",
+          "version": "0.1.0",
+          "filename": "longhorn-command-settings-0.1.0.private.tar.gz",
+          "sha256": "0a0050de93b78cf3e25e0ab60bddb23da5041aa0a3858e4f036445749fec954f",
+          "inventoryFiles": 7,
+          "inventorySha256": "32c8162ef7f9b3ed6881e907ba2e570faa9f88291b881fa2a6d7da8d24d18987",
+          "sourcePath": "crates/longhorn-command-settings"
+        },
+        {
+          "name": "longhorn-config",
+          "version": "0.1.0",
+          "filename": "longhorn-config-0.1.0.private.tar.gz",
+          "sha256": "92f8efad8919a518fe2d114a88048ff5f030f4bea792732a8540fa3209a59f7e",
+          "inventoryFiles": 144,
+          "inventorySha256": "01ecb62ace85ca283b45bef9da9cf06ee53dae66b281fb3cee7e8fbf4d7c0be3",
+          "sourcePath": "crates/longhorn-config"
+        },
+        {
+          "name": "longhorn-config-age",
+          "version": "0.1.0",
+          "filename": "longhorn-config-age-0.1.0.private.tar.gz",
+          "sha256": "dbce1a858d17c7dddc901679e276fb8a98d195671dd4e01f9da7d7790a346f15",
+          "inventoryFiles": 20,
+          "inventorySha256": "48e0daf300a949f27ee31a8c6252ee2ae0467ba397bbdf38cabcfca0e0516d5f",
+          "sourcePath": "crates/longhorn-config-age"
+        },
+        {
+          "name": "longhorn-core",
+          "version": "0.1.0",
+          "filename": "longhorn-core-0.1.0.private.tar.gz",
+          "sha256": "6a958a9244915463d992ccfceef68cfccf571004dd82fe8c19e8caf717c4280b",
+          "inventoryFiles": 16,
+          "inventorySha256": "caa1828f92a645c3fe70ae618a3672df2a92ba143eaaabc5aefb21421cef5135",
+          "sourcePath": "crates/longhorn-core"
+        },
+        {
+          "name": "longhorn-display",
+          "version": "0.1.0",
+          "filename": "longhorn-display-0.1.0.private.tar.gz",
+          "sha256": "d294899840cd9f1f14ac65de08a6a45fe39a97a2387451c304fbc0da2dfd41a7",
+          "inventoryFiles": 15,
+          "inventorySha256": "6c21e0d1f4d5fc2efc4d17ab67d198bff212edfda2baa174a862265e86c19dcc",
+          "sourcePath": "crates/longhorn-display"
+        },
+        {
+          "name": "longhorn-history",
+          "version": "0.1.0",
+          "filename": "longhorn-history-0.1.0.private.tar.gz",
+          "sha256": "77c69fc314a3e646e0a5e460490bb3dba7718bb605870e68acaab53143c7d30f",
+          "inventoryFiles": 33,
+          "inventorySha256": "4dbd7589767f40303d28b61e01116a834c26256178fc77bf2626a8c341e49436",
+          "sourcePath": "crates/longhorn-history"
+        },
+        {
+          "name": "longhorn-layout",
+          "version": "0.1.0",
+          "filename": "longhorn-layout-0.1.0.private.tar.gz",
+          "sha256": "354b63a30cae10b20a9f4e6482f9f6bc85c0f86a04554d4e1ef66e782f88446e",
+          "inventoryFiles": 36,
+          "inventorySha256": "460b8e79d8d9a8a5b9f22b36755b21ca7263a8760086fa405fd75728c3d4822a",
+          "sourcePath": "crates/longhorn-layout"
+        },
+        {
+          "name": "longhorn-layout-config",
+          "version": "0.1.0",
+          "filename": "longhorn-layout-config-0.1.0.private.tar.gz",
+          "sha256": "c4e9b51b8993eeda28c4adaa8fef3ecb1019d5207a62d2e69db677cef41a3494",
+          "inventoryFiles": 16,
+          "inventorySha256": "c37227acb480bc34a63b35aa8620edde3340ea19012d06be38e8a030915d2628",
+          "sourcePath": "crates/longhorn-layout-config"
+        },
+        {
+          "name": "longhorn-native-content",
+          "version": "0.1.0",
+          "filename": "longhorn-native-content-0.1.0.private.tar.gz",
+          "sha256": "87d5f4caed2b293761b01dffaefcd0bccb21e6e0721722cc0565fd1d0fb52420",
+          "inventoryFiles": 21,
+          "inventorySha256": "eb7c3a3861fd3bc9cc1d592645bff52163f6480f2ee05e451d775dc352bc375c",
+          "sourcePath": "crates/longhorn-native-content"
+        },
+        {
+          "name": "longhorn-native-content-backing-surface",
+          "version": "0.1.0",
+          "filename": "longhorn-native-content-backing-surface-0.1.0.private.tar.gz",
+          "sha256": "278e31580b1fa188e2bb8c7bd3c6fd563a8d9a8a5e247a41063a30357643df80",
+          "inventoryFiles": 12,
+          "inventorySha256": "8d431c57d176b1df6885cb02191c279943b7fef4681f9a9b5cc14b02c03c3df9",
+          "sourcePath": "crates/longhorn-native-content-backing-surface"
+        },
+        {
+          "name": "longhorn-native-content-isolated-window",
+          "version": "0.1.0",
+          "filename": "longhorn-native-content-isolated-window-0.1.0.private.tar.gz",
+          "sha256": "e71b78f63f09509de5d15d85c5bfb6deeee0e303d4ffc0a6430ea16fb028fce6",
+          "inventoryFiles": 12,
+          "inventorySha256": "baed514d80ad743912dcdbc3fa8a34b2e82c8339676d6ce607d5c794da90f1dc",
+          "sourcePath": "crates/longhorn-native-content-isolated-window"
+        },
+        {
+          "name": "longhorn-notifications",
+          "version": "0.1.0",
+          "filename": "longhorn-notifications-0.1.0.private.tar.gz",
+          "sha256": "ba8e17c8a276d9ca2a1ef765fa8a884f6f6ecdb8c213bd6af730f05ef9b3f02f",
+          "inventoryFiles": 16,
+          "inventorySha256": "f0f4517009008fa28803a97a1d25d792ad66196c351ac08fcfb0cda71eded037",
+          "sourcePath": "crates/longhorn-notifications"
+        },
+        {
+          "name": "longhorn-operation",
+          "version": "0.1.0",
+          "filename": "longhorn-operation-0.1.0.private.tar.gz",
+          "sha256": "00edcbd84e644b70589b955fefc2aaa2a2aae4393ee4b1c80a51cc707df93037",
+          "inventoryFiles": 27,
+          "inventorySha256": "44461dbe9b91538763e4a46600742c6bc2336afc6288f51a228c46c335594479",
+          "sourcePath": "crates/longhorn-operation"
+        },
+        {
+          "name": "longhorn-settings",
+          "version": "0.1.0",
+          "filename": "longhorn-settings-0.1.0.private.tar.gz",
+          "sha256": "3c1c90fdaedefde0775ca4e5dc32e10beb0322e3c20bba5034ac6870b22ef69e",
+          "inventoryFiles": 31,
+          "inventorySha256": "6c797d2403bc9ba3ec1e382c10b68e9efcba215a70a6a0ba547cfb1993fac43d",
+          "sourcePath": "crates/longhorn-settings"
+        },
+        {
+          "name": "longhorn-settings-config",
+          "version": "0.1.0",
+          "filename": "longhorn-settings-config-0.1.0.private.tar.gz",
+          "sha256": "c46787933f50257b0a9b14a8c7d959bdbcf4fc032ad919334a023bff5b6fa9f2",
+          "inventoryFiles": 27,
+          "inventorySha256": "55d83ec42725c7141eb0692564c1af1f02e3f6abbee679ebb1860de21f44bea4",
+          "sourcePath": "crates/longhorn-settings-config"
+        },
+        {
+          "name": "longhorn-surface-transfer",
+          "version": "0.1.0",
+          "filename": "longhorn-surface-transfer-0.1.0.private.tar.gz",
+          "sha256": "cb10ef25f1563091e10f318171e9fcb33d4ea47ea977c70084aeb49f2a838340",
+          "inventoryFiles": 30,
+          "inventorySha256": "a2947dfa6180b2d236710a1ac0d8c0055ab70787c149f39d4d44600041ab0ec9",
+          "sourcePath": "crates/longhorn-surface-transfer"
+        },
+        {
+          "name": "longhorn-surface-windowing",
+          "version": "0.1.0",
+          "filename": "longhorn-surface-windowing-0.1.0.private.tar.gz",
+          "sha256": "c36ba76f8c8817bc73435efaba22a582acf68ce522a9c46daef19ab3ec57aef4",
+          "inventoryFiles": 12,
+          "inventorySha256": "a63936e360f684340926bbf925487cba18664b87c6271bf18b1b363914a09db2",
+          "sourcePath": "crates/longhorn-surface-windowing"
+        },
+        {
+          "name": "longhorn-surfaces",
+          "version": "0.1.0",
+          "filename": "longhorn-surfaces-0.1.0.private.tar.gz",
+          "sha256": "c536d320475c50a27308bd4843829db7c6dc0bf7c6f8f18c5077d96c00f7b46a",
+          "inventoryFiles": 33,
+          "inventorySha256": "a4e532d7c01d9a6c5c437a47cb7cb148160db59bcc292356b0c7b44fc4641732",
+          "sourcePath": "crates/longhorn-surfaces"
+        },
+        {
+          "name": "longhorn-surfaces-config",
+          "version": "0.1.0",
+          "filename": "longhorn-surfaces-config-0.1.0.private.tar.gz",
+          "sha256": "f29f4d6f698c2fe32fbb88e73de17cc0716911b5bb5d7df43ce9e4f7fc6c468d",
+          "inventoryFiles": 14,
+          "inventorySha256": "62ffec9ceaf66fc3b6b0c86ca5c431f88127abd3fe91b117a4173b0489ce4118",
+          "sourcePath": "crates/longhorn-surfaces-config"
+        },
+        {
+          "name": "longhorn-tauri-bridge",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-bridge-0.1.0.private.tar.gz",
+          "sha256": "b7503b760774217e7b27e3e3df3d50cd52e1b313b56dbc54582e342ffd9e1f7c",
+          "inventoryFiles": 21,
+          "inventorySha256": "b004984cc24a217f6597813773b9b22e338801a63ec1a8fd67ee827e3e76e2ca",
+          "sourcePath": "crates/longhorn-tauri-bridge"
+        },
+        {
+          "name": "longhorn-tauri-command",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-command-0.1.0.private.tar.gz",
+          "sha256": "8df4286e1f4a7edbfcf87e8acb33568313618b36c78a6c8b7b2fa6b62f10e665",
+          "inventoryFiles": 17,
+          "inventorySha256": "ca66a6813e14661934b24148b9dd76d57e5be84678fe4e8c77df1b02bbafaece",
+          "sourcePath": "crates/longhorn-tauri-command"
+        },
+        {
+          "name": "longhorn-tauri-config",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-config-0.1.0.private.tar.gz",
+          "sha256": "4dc5618ff6d8d53a3e88c64425da7ee392ee0d4a3c09c049e5c9b9ecc07d82f5",
+          "inventoryFiles": 21,
+          "inventorySha256": "ff2381b5e3fdeb3142567ab85bb26af790bfcb9177ab721fe8b6b6a366524063",
+          "sourcePath": "crates/longhorn-tauri-config"
+        },
+        {
+          "name": "longhorn-tauri-history",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-history-0.1.0.private.tar.gz",
+          "sha256": "547d0ea7addd7db83f7a636cab5d6f6c58273dedbaba6bc7cfb35f4ff2b8da0c",
+          "inventoryFiles": 17,
+          "inventorySha256": "491c5b8d17c8d0ee22e2f1c07359a1eed4c081950bac04c5aa957984ac957435",
+          "sourcePath": "crates/longhorn-tauri-history"
+        },
+        {
+          "name": "longhorn-tauri-native-content-child-view",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-native-content-child-view-0.1.0.private.tar.gz",
+          "sha256": "826f31a825cf53fb4ef95638e3c9fc4d2f3c0b09dea6c90623c24a6ee13bb721",
+          "inventoryFiles": 14,
+          "inventorySha256": "40ea7d9488e167232af4f4152c6db9ad441693ed18c1bc208213e95af7f1706b",
+          "sourcePath": "crates/longhorn-tauri-native-content-child-view"
+        },
+        {
+          "name": "longhorn-tauri-notifications",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-notifications-0.1.0.private.tar.gz",
+          "sha256": "265fc1af04e97e2f6590e1dd0b9f356b8c1053882250d5a6d16fda9a17e90c42",
+          "inventoryFiles": 16,
+          "inventorySha256": "bbaf0bda1c193eaab33a9612da35eee7e647bb8a557a211676e72aa9833987fc",
+          "sourcePath": "crates/longhorn-tauri-notifications"
+        },
+        {
+          "name": "longhorn-tauri-operation",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-operation-0.1.0.private.tar.gz",
+          "sha256": "a52da9ac5d908364e4ed0a95601b479e2e23ad7cb173677a86c13329f44701ee",
+          "inventoryFiles": 19,
+          "inventorySha256": "358a440bce67e3957fe7d54c502696e8f16e1f6f93c42c2b13c7d272cbb91b15",
+          "sourcePath": "crates/longhorn-tauri-operation"
+        },
+        {
+          "name": "longhorn-tauri-settings",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-settings-0.1.0.private.tar.gz",
+          "sha256": "5457b2e550442170cadcae676c510660222ed1ea754880fe8122bb635eb40788",
+          "inventoryFiles": 17,
+          "inventorySha256": "41b4bacc98b824b5f47fb7bcc0a179c3c747596b9893f806cb99ca4bdf040f5c",
+          "sourcePath": "crates/longhorn-tauri-settings"
+        },
+        {
+          "name": "longhorn-tauri-transfer",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-transfer-0.1.0.private.tar.gz",
+          "sha256": "e314aa62f104dcfa1fcfecc58c908723fc028e53cad8b2cb93d4ac815041d566",
+          "inventoryFiles": 23,
+          "inventorySha256": "112cbb9242b3e8e4452b9f059e0358390d9c628e56eb560252fb8cb0d0cce5cf",
+          "sourcePath": "crates/longhorn-tauri-transfer"
+        },
+        {
+          "name": "longhorn-tauri-windowing",
+          "version": "0.1.0",
+          "filename": "longhorn-tauri-windowing-0.1.0.private.tar.gz",
+          "sha256": "58f749f4f33df0aa3ad4155547ab0c844de33ec47dac118852b5aa8f3734573f",
+          "inventoryFiles": 62,
+          "inventorySha256": "6df01b877712d1cd03c5397b1b604ed5dccd6d760f7375f7d2e166fe3ddb9ee7",
+          "sourcePath": "crates/longhorn-tauri-windowing"
+        },
+        {
+          "name": "longhorn-transfer",
+          "version": "0.1.0",
+          "filename": "longhorn-transfer-0.1.0.private.tar.gz",
+          "sha256": "e3487d486682e2450e87b9ba6d01bcea0381f1e318ef25cd7b756852949a2dc2",
+          "inventoryFiles": 49,
+          "inventorySha256": "016ba29ad274f8557cf2e8fb478fed63139aaeb9a01ae9c1ebb359fec334aca5",
+          "sourcePath": "crates/longhorn-transfer"
+        },
+        {
+          "name": "longhorn-windowing",
+          "version": "0.1.0",
+          "filename": "longhorn-windowing-0.1.0.private.tar.gz",
+          "sha256": "e8dff3ed2f41caa34432f8588c602ebb03e13c9e7ae3ea2d5fe32da0cf3ca32a",
+          "inventoryFiles": 43,
+          "inventorySha256": "32f356ec7a3d6a4362eee40e84d2cc898db6a6baa3e6b62488d1f4ee2ac80127",
+          "sourcePath": "crates/longhorn-windowing"
+        },
+        {
+          "name": "longhorn-windowing-config",
+          "version": "0.1.0",
+          "filename": "longhorn-windowing-config-0.1.0.private.tar.gz",
+          "sha256": "e4190ffe6d7ba647c21436a4b2aec9c62c98140729f406eb8d2bd3b212e3873f",
+          "inventoryFiles": 6,
+          "inventorySha256": "1cee0c25ef0311755dbc26931905bcd82273cef15d07a92842c7fae5fbca2a3d",
+          "sourcePath": "crates/longhorn-windowing-config"
+        }
+      ]
+    },
+    "rustLockSha256": "7eeb6031fb5c156e123ac994b3fb6694351eb3dc93741c2ad8a3acd4f697170b",
+    "reproducibleRuns": 2
+  },
+  "compatibility": {
+    "peerMatrix": [
+      {
+        "package": "@longhorn/bridge",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/commands",
+        "peers": {
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/config",
+        "peers": {
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/core",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/history",
+        "peers": {
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/layout",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/native-content",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/native-content-svelte",
+        "peers": {
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/notifications",
+        "peers": {
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/operation",
+        "peers": {
+          "@longhorn/bridge": "0.1.0",
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@longhorn/bridge",
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/poodle",
+        "peers": {
+          "@longhorn/transfer": "0.1.0",
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@longhorn/transfer"
+        ]
+      },
+      {
+        "package": "@longhorn/settings",
+        "peers": {
+          "@poodle/svelte": "0.1.0",
+          "svelte": ">=5.38.6 <6"
+        },
+        "optionalPeers": [
+          "@poodle/svelte",
+          "svelte"
+        ]
+      },
+      {
+        "package": "@longhorn/surface-transfer",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/surfaces",
+        "peers": {},
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/svelte",
+        "peers": {
+          "@longhorn/layout": "0.1.0",
+          "@longhorn/surface-transfer": "0.1.0",
+          "@longhorn/surfaces": "0.1.0",
+          "@longhorn/transfer": "0.1.0",
+          "svelte": ">=5.38.6 <=5.56.8"
+        },
+        "optionalPeers": [
+          "@longhorn/layout",
+          "@longhorn/surface-transfer",
+          "@longhorn/surfaces",
+          "@longhorn/transfer"
+        ]
+      },
+      {
+        "package": "@longhorn/tauri",
+        "peers": {
+          "@tauri-apps/api": "^2.10.1"
+        },
+        "optionalPeers": []
+      },
+      {
+        "package": "@longhorn/transfer",
+        "peers": {},
+        "optionalPeers": []
+      }
+    ],
+    "protocols": [
+      {
+        "path": "fixtures/bridge/protocol-v1.json",
+        "sha256": "9b4c770f46f083e41552f6a5c6e0b7aae30eae7060853aef11fd3b9d44bc213d",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/commands/protocol-v1.json",
+        "sha256": "46e13f38f4eea87465d4a60055ca3bdb73b112e5696c5d7a4084f5439f85a5b9",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/config/protocol-v1.json",
+        "sha256": "4e3387557f0b901a64c8ae51f7effc97fc0c08e1651423a6bc3c6e7c72f8d3e1",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/history/protocol-v1.json",
+        "sha256": "a9d27a61a26586085d00bea3c7518564c649aa482b6887fd07fa0df39ae05fec",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/layout/protocol-v1.json",
+        "sha256": "0b56697ab0f38f8c5f9fabee5be83cfbec9d0f76575049fd30067dcc1e3b1aae",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/native-content/protocol-v1.json",
+        "sha256": "948fcd5481fd0df00dafc40575beb1aae76bff0a0ef6cf240639a005958f2b0c",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/notifications/protocol-v1.json",
+        "sha256": "30ac0c49ed22c64132f0721ead227636e13d69058be69f67193e584e2d96684b",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/operation/protocol-v1.json",
+        "sha256": "aa1f0db3680d29e2b724997b3ca6d3ede08a79fdb2a31082844afcafc95221cf",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/settings/protocol-v1.json",
+        "sha256": "b35b6e2622491056cb5c6cad9d51680a7bc219898f6e6da324d00e8490e52eea",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/surface-transfer/protocol-v1.json",
+        "sha256": "00b84f2deb9fda02170492ac7c3f1bb3fcc8ff712e37cfa98d6b02698d044d0b",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/surfaces/protocol-v1.json",
+        "sha256": "5530acb9ad8317181951cfd26aa8a99708cc24242d02bd695fd737a0ce2d7f76",
+        "supported": "exact-v1"
+      },
+      {
+        "path": "fixtures/transfer/protocol-v1.json",
+        "sha256": "62b78e6a1856414e60576b1471a7eafd240777c2128004f4a82ed61e9b3d2c93",
+        "supported": "exact-v1"
+      }
+    ],
+    "protocolNegotiation": "exact-v1",
+    "platform": {
+      "pureMechanisms": "platform-neutral-at-injected-boundary",
+      "tauriWindowing": {
+        "macos": "packaged",
+        "windows": "unproved",
+        "linux": "unproved"
+      },
+      "childView": {
+        "macos": "packaged",
+        "windows": "unproved",
+        "linux": "unproved"
+      },
+      "isolatedWindow": {
+        "macos": "packaged",
+        "windows": "unsupported",
+        "linux": "unsupported"
+      },
+      "backingSurface": {
+        "macos": "packaged-live-scale-unmet",
+        "windows": "unsupported",
+        "linux": "unsupported"
+      }
+    }
+  },
+  "graphs": [
+    {
+      "name": "minimal",
+      "sourceCommit": null,
+      "sourceManifests": [
+        "examples/greenfield-compositions/minimal"
+      ],
+      "typescriptPackages": [
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
+      "rustDirectPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "nucleus",
+      "sourceCommit": "c0aeeed84ea76e7c8dbcdcfd7943d0f9a5cb10d9",
+      "sourceManifests": [
+        "apps/desktop/package.json",
+        "apps/desktop/src-tauri/Cargo.toml"
+      ],
+      "typescriptPackages": [
+        "@longhorn/commands",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/layout",
+        "@longhorn/native-content",
+        "@longhorn/native-content-svelte",
+        "@longhorn/notifications",
+        "@longhorn/operation",
+        "@longhorn/poodle",
+        "@longhorn/settings",
+        "@longhorn/svelte"
+      ],
+      "rustDirectPackages": [
+        "longhorn-bridge",
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-native-content",
+        "longhorn-notifications",
+        "longhorn-operation",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-native-content-child-view",
+        "longhorn-tauri-notifications",
+        "longhorn-tauri-operation",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-windowing",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-bridge",
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-native-content",
+        "longhorn-notifications",
+        "longhorn-operation",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-native-content-child-view",
+        "longhorn-tauri-notifications",
+        "longhorn-tauri-operation",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-windowing",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "loophole",
+      "sourceCommit": "7bf096d4d17f77194c47456f5c59661fe3c4495f",
+      "sourceManifests": [
+        "aura/package.json",
+        "aura/src-tauri/Cargo.toml",
+        "echo/crates/echo-storage-profile/Cargo.toml",
+        "pulse/Cargo.toml",
+        "pulse/crates/pulse-history/Cargo.toml"
+      ],
+      "typescriptPackages": [
+        "@longhorn/commands",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/history",
+        "@longhorn/layout",
+        "@longhorn/poodle",
+        "@longhorn/settings",
+        "@longhorn/surface-transfer",
+        "@longhorn/surfaces",
+        "@longhorn/svelte",
+        "@longhorn/tauri",
+        "@longhorn/transfer"
+      ],
+      "rustDirectPackages": [
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-history",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-surface-transfer",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-history",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-transfer",
+        "longhorn-tauri-windowing",
+        "longhorn-transfer",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-command",
+        "longhorn-command-config",
+        "longhorn-command-settings",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-history",
+        "longhorn-layout",
+        "longhorn-layout-config",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-surface-transfer",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
+        "longhorn-tauri-command",
+        "longhorn-tauri-config",
+        "longhorn-tauri-history",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-transfer",
+        "longhorn-tauri-windowing",
+        "longhorn-transfer",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "soundcheck",
+      "sourceCommit": "e8970aa212e9464f53264f58f6628cd98254fc30",
+      "sourceManifests": [
+        "package.json",
+        "Cargo.toml",
+        "src-tauri/Cargo.toml"
+      ],
+      "typescriptPackages": [
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/native-content",
+        "@longhorn/operation",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
+      "rustDirectPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-native-content",
+        "longhorn-native-content-isolated-window",
+        "longhorn-operation",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-operation",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-windowing",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-display",
+        "longhorn-native-content",
+        "longhorn-native-content-isolated-window",
+        "longhorn-operation",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-operation",
+        "longhorn-tauri-settings",
+        "longhorn-tauri-windowing",
+        "longhorn-windowing",
+        "longhorn-windowing-config"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "bovine",
+      "sourceCommit": "8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28",
+      "sourceManifests": [
+        "package.json",
+        "src-tauri/Cargo.toml"
+      ],
+      "typescriptPackages": [
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
+      "rustDirectPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "jetstream",
+      "sourceCommit": "e9a54daacdec1f5c6573687a5543e9ffb2dae2b0",
+      "sourceManifests": [
+        "editor-ui/package.json",
+        "crates/jetstream-editor-tauri/Cargo.toml"
+      ],
+      "typescriptPackages": [
+        "@longhorn/bridge",
+        "@longhorn/commands",
+        "@longhorn/core",
+        "@longhorn/native-content",
+        "@longhorn/native-content-svelte",
+        "@longhorn/tauri"
+      ],
+      "rustDirectPackages": [
+        "longhorn-bridge",
+        "longhorn-command",
+        "longhorn-core",
+        "longhorn-native-content",
+        "longhorn-native-content-backing-surface",
+        "longhorn-tauri-bridge"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-bridge",
+        "longhorn-command",
+        "longhorn-core",
+        "longhorn-native-content",
+        "longhorn-native-content-backing-surface",
+        "longhorn-tauri-bridge"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    },
+    {
+      "name": "optional-server",
+      "sourceCommit": null,
+      "sourceManifests": [
+        "examples/greenfield-compositions/optional-server"
+      ],
+      "typescriptPackages": [
+        "@longhorn/bridge",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
+      "rustDirectPackages": [
+        "longhorn-bridge",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "rustResolvedPackages": [
+        "longhorn-bridge",
+        "longhorn-config",
+        "longhorn-core",
+        "longhorn-settings",
+        "longhorn-settings-config",
+        "longhorn-tauri-bridge",
+        "longhorn-tauri-config",
+        "longhorn-tauri-settings"
+      ],
+      "oneSvelteRuntime": true,
+      "oneTauriApiRuntime": true,
+      "siblingResolution": false,
+      "lockedRust185": true
+    }
+  ],
+  "releaseGates": {
+    "readOnlyOnly": true,
+    "packageNamesAndRegistryOwnership": "unresolved",
+    "normalizedCargoPackages": "deferred-until-public-release-lane"
+  },
+  "audits": {
+    "coordinatedVersion": true,
+    "generatedBindingDrift": false,
+    "reproduciblePackageBytes": true,
+    "exactSourceMapping": true,
+    "isolatedConsumerInstalls": true,
+    "siblingWorkspaceResolution": false,
+    "optionalEdgesExact": true,
+    "consumerRepositoryWrites": false,
+    "packageManagerPublication": false,
+    "gitTags": false,
+    "hostedReleases": false
+  }
+}
