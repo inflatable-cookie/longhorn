@@ -204,6 +204,19 @@ gates pass. Aggregate validation stops only on two unchanged renderer-test
 approximate constants. Windows and Linux remain explicit unsupported targets;
 live scale transition host evidence remains unmet.
 
+Card 124 closes Jetstream on the exact six-package TypeScript and Rust graphs,
+retained Card 114 artifact ids, checked peers and capabilities, one authority
+per adopted system, unchanged engine/editor paths, and an isolated previous-
+source rollback suite:
+
+```sh
+effigy qa:northstar:g01-jetstream-card124
+```
+
+The rollback proof passes 19 previous Rust unit tests, four IPC tests, and 65
+renderer tests from disposable sibling worktrees. Current focused suites pass
+26 Rust unit, six IPC, and 67 renderer tests. No package is published.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

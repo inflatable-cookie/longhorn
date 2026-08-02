@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 124 ready
+Status: executing; Card 125 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -59,7 +59,7 @@ lane from current evidence; it does not infer package publication.
 
 - [x] adopt checked bridge state and command/keymap projection
 - [x] adopt backing-surface coordination and Svelte viewport lifetime
-- [ ] prove engine, renderer, world, WGPU, and semantic-input authority remain local
+- [x] prove engine, renderer, world, WGPU, and semantic-input authority remain local
 
 ### Batch 5: greenfield and private release
 
@@ -70,24 +70,24 @@ lane from current evidence; it does not infer package publication.
 
 ## Goals
 
-- [ ] each app adopts only useful packages
+- [x] each app adopts only useful packages
 - [x] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
 - [x] Bovine proves the smallest config/settings graph
 - [x] Jetstream proves bridge, command, and backing-surface composition
-- [ ] product, sibling, renderer, plugin, content, and engine authority stay downstream
+- [x] product, sibling, renderer, plugin, content, and engine authority stay downstream
 - [ ] examples prove optional dependency boundaries outside workspace resolution
 - [ ] filesystem, backup, settings, topology, command, history, and native-content docs are exact
 - [ ] one coordinated private compatibility candidate is reproducible
 
 ## Acceptance Criteria
 
-- [ ] exact clean Longhorn/Poodle sources and consumer receipts are recorded per cutover
-- [ ] every source-linked graph has matching produced-artifact proof
-- [ ] each migrated concern has one active structural authority
-- [ ] rollback uses retained sources and exact receipts, not dual writes or silent fallback
+- [x] exact clean selected Longhorn/Poodle sources and consumer receipts are recorded per cutover
+- [x] every source-linked consumer graph has matching produced-artifact proof
+- [x] each migrated concern has one active structural authority
+- [x] rollback uses retained sources and exact receipts, not dual writes or silent fallback
 - [x] Bovine's unrelated work and authored content are untouched
 - [x] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
-- [ ] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
+- [x] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
 - [ ] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
 - [ ] compatibility claims name MSRV, peers, protocol range, platform, and evidence
 - [ ] npm/Cargo publication, registry ownership, tags, and hosted releases remain deferred
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
+- `batch-cards/125-greenfield-composition-matrix.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/125-greenfield-composition-matrix.md`
 - `batch-cards/126-api-storage-composition-and-migration-guides.md`
 - `batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md`
 
@@ -121,6 +120,7 @@ Complete:
 - `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 - `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
+- `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
 
 ## Planning Checkpoint
 
@@ -132,7 +132,9 @@ exact artifact graph, and no-optional-system closeout. Card 122 completes
 Jetstream's checked editor-state bridge, sealed command catalogue, fresh
 availability admission, and physical-keyboard cutover. Card 123 completes the
 checked backing-surface, Svelte viewport, scale, input-gate, and reversible
-native-teardown cutover. Card 124 is ready.
+native-teardown cutover. Card 124 closes exact artifacts, peers, capabilities,
+duplicates, retained engine authority, and isolated previous-source rollback.
+Card 125 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -154,5 +156,4 @@ authority.
 
 ## Next Task
 
-Execute Card 124. Prove Jetstream's exact composition, retained engine
-authority, duplicate removal, and rollback posture.
+Execute Card 125. Build the four produced-artifact greenfield compositions.

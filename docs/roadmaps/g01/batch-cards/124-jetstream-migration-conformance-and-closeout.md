@@ -1,6 +1,6 @@
 # 124 Jetstream Migration Conformance And Closeout
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 4
 Governing refs: contracts 003, 006-007, 009-010, 012-013, and 017;

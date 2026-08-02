@@ -1,0 +1,141 @@
+{
+  "schema": "longhorn.jetstream-migration-conformance-closeout.v1",
+  "outcome": "pass-with-unrelated-workspace-clippy-failures",
+  "sources": {
+    "longhorn_artifact_source_commit": "ec465b2a86fe6fbaef789b3677a8e7288e7df2d2",
+    "longhorn_evidence_parent_commit": "ef4514ea995e227ca84fa5d7300ba7e000821ec1",
+    "poodle_artifact_source_commit": "208532f0d18dcd1683cdef157e370d0ba0f0d3b3",
+    "jetstream_previous_authority_commit": "4df74e756c222a3b207391c44775e5b3148c46dd",
+    "jetstream_bridge_cutover_commit": "2a8afbb749965cdfe295b8b6be77de4ba9e00256",
+    "jetstream_closeout_commit": "e9a54daacdec1f5c6573687a5543e9ffb2dae2b0",
+    "signal_rollback_source_commit": "4c5b60681071095aedbf9013720e76c1c89e91ed",
+    "jetstream_cargo_lock_sha256": "c3967e6b2eb293dee08576be3317597d4ea611ee5cb68a869516842505c3a859",
+    "jetstream_package_lock_sha256": "da34f3c413c55375c5114da4b42210f2f4f43655b603debbbe1224ffa3251189"
+  },
+  "composition": {
+    "canonical_application_id": "com.inflatablecookie.jetstream.editor",
+    "hierarchy": ["window", "native-content-island", "backing-surface"],
+    "typescript_packages": [
+      "@longhorn/bridge",
+      "@longhorn/commands",
+      "@longhorn/core",
+      "@longhorn/native-content",
+      "@longhorn/native-content-svelte",
+      "@longhorn/tauri"
+    ],
+    "rust_packages": [
+      "longhorn-bridge",
+      "longhorn-command",
+      "longhorn-core",
+      "longhorn-native-content",
+      "longhorn-native-content-backing-surface",
+      "longhorn-tauri-bridge"
+    ],
+    "forbidden_systems": [
+      "config",
+      "settings",
+      "display",
+      "windowing",
+      "layout",
+      "surfaces",
+      "transfer",
+      "history",
+      "operation",
+      "notifications",
+      "native-content-isolated-window",
+      "native-content-child-view"
+    ],
+    "package_manager_publication": false
+  },
+  "artifacts": {
+    "admission_fixture": "fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json",
+    "poodle_set": "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69",
+    "longhorn_typescript_set": "7f62a7d21889c778803cda687248a9048e497cee80d2c2ceb7fa6957e18b3ce0",
+    "longhorn_rust_set": "42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8",
+    "rust_lock": "72d92e91730bab5691cbd6113358ce524b4ff39f9db76b0900bb9c2bc5853edf",
+    "poodle_packages": 5,
+    "typescript_packages": 9,
+    "rust_packages": 18,
+    "jetstream_selected_sources_unchanged": true,
+    "one_svelte_runtime": true,
+    "original_workspace_resolution": false,
+    "sibling_source_resolution": false
+  },
+  "peers": {
+    "svelte": ">=5.38.6 <6",
+    "tauri_api": "^2.10.1",
+    "poodle_svelte": "0.1.0",
+    "poodle_svelte_optional": true,
+    "resolved_svelte": "5.56.8",
+    "resolved_tauri_api": "2.11.1",
+    "rust_msrv": "1.85.0",
+    "resolved_tauri_rust": "2.11.5"
+  },
+  "capabilities": {
+    "bridge": ["editor_state.read", "editor_state.subscribe"],
+    "command_required": 0,
+    "native_content_mechanism": "backing_surface",
+    "remote_backend": false,
+    "config_operations": false,
+    "settings_pages": false
+  },
+  "duplicates": {
+    "raw_state_event": false,
+    "raw_viewport_endpoint": false,
+    "generic_bridge_execution_bus": false,
+    "renderer_shortcut_table": false,
+    "process_lifetime_native_leak": false,
+    "active_structural_authorities": 3
+  },
+  "rollback": {
+    "topology": "disposable-isolated-sibling-worktrees",
+    "previous_rust_unit_tests": 19,
+    "previous_rust_ipc_tests": 4,
+    "previous_renderer_tests": 65,
+    "poodle_workspace_installed_from_frozen_source": true,
+    "dual_write": false,
+    "silent_fallback": false,
+    "temporary_worktrees_removed": true,
+    "live_repositories_mutated": false
+  },
+  "authority": {
+    "longhorn": [
+      "bridge-session-and-ordering",
+      "command-discovery-and-admission",
+      "physical-key-resolution",
+      "native-content-identity-and-generation",
+      "backing-surface-planning-and-gates",
+      "svelte-session-lifecycle"
+    ],
+    "jetstream": [
+      "command-meaning-and-execution",
+      "editor-state-payload",
+      "renderer-and-wgpu",
+      "native-view-storage-and-detach",
+      "frame-loop-and-scene",
+      "world-camera-picking-and-gizmo",
+      "semantic-input",
+      "outer-window-and-webview-policy"
+    ]
+  },
+  "platforms": {
+    "macos": "production-native-attach-and-release-build",
+    "windows": "explicit-unsupported",
+    "linux": "explicit-unsupported",
+    "live_scale_transition": "compiled-and-automated-boundary-only-host-evidence-unmet"
+  },
+  "validation": {
+    "rust_unit_tests": 26,
+    "rust_ipc_tests": 6,
+    "renderer_tests": 67,
+    "focused_clippy_deny_warnings": true,
+    "release_tauri_build": true,
+    "aggregate_validate": "failed-unrelated-pre-existing-clippy-approx-constants",
+    "aggregate_failure_paths": [
+      "crates/jetstream-renderer/tests/brdf_burley.rs",
+      "crates/jetstream-renderer/tests/postfx_vignette_ca.rs"
+    ],
+    "aggregate_failure_paths_changed": false,
+    "jetstream_worktree_clean": true
+  }
+}

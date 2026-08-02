@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [124 Jetstream Migration Conformance And Closeout](124-jetstream-migration-conformance-and-closeout.md)
+- [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
 
 ## Operator-held
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
 - [126 API, Storage, Composition, And Migration Guides](126-api-storage-composition-and-migration-guides.md)
 - [127 Private 0.1 Compatibility Candidate And Closeout](127-private-0-1-compatibility-candidate-and-closeout.md)
 
@@ -36,6 +35,7 @@ None.
 - [121 Bovine Minimal Composition Conformance And Closeout](121-bovine-minimal-composition-conformance-and-closeout.md)
 - [122 Jetstream Bridge, Command, And Keyboard Cutover](122-jetstream-bridge-command-and-keyboard-cutover.md)
 - [123 Jetstream Backing-surface Coordination Cutover](123-jetstream-backing-surface-coordination-cutover.md)
+- [124 Jetstream Migration Conformance And Closeout](124-jetstream-migration-conformance-and-closeout.md)
 - [001 Configuration Domain Store](001-configuration-domain-store.md)
 - [002 Coordinated Atomic Configuration Mutation](002-coordinated-atomic-configuration-mutation.md)
 - [003 Debounced Mutation And Explicit Flush](003-debounced-mutation-and-explicit-flush.md)
@@ -146,5 +146,4 @@ None.
 
 ## Next Task
 
-Execute Card 124. Prove Jetstream's selected composition, retained authority,
-rollback posture, and duplicate removal.
+Execute Card 125. Build the four produced-artifact greenfield compositions.

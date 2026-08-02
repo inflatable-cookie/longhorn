@@ -39,7 +39,7 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; Cards 113-123 are complete and Card 124 is ready.
+113-127; Cards 113-124 are complete and Card 125 is ready.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -172,5 +172,4 @@ this host.
 
 ## Next Task
 
-Execute Card 124. Close Jetstream's exact composition, retained authority,
-duplicate removal, and rollback posture.
+Execute Card 125. Build the four produced-artifact greenfield compositions.

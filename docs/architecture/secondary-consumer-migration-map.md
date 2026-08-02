@@ -318,6 +318,56 @@ The consumer executor maps admitted command identity to Jetstream's existing
 typed product route. Native-content coordination never owns WGPU objects or
 semantic input.
 
+### Card 122 checked bridge and command cutover
+
+Jetstream commit `2a8afbb749965cdfe295b8b6be77de4ba9e00256`
+replaces the raw whole-state event with a listener-first checked bridge
+session. Longhorn owns negotiation, epochs, ordering, gap recovery, discovery,
+fresh availability admission, and physical-key resolution. The bridge exposes
+only `editor_state.read` and `editor_state.subscribe`; it has no write or
+execution authority. Sixteen product commands and eight default bindings stay
+defined by Jetstream and execute through typed product routes.
+
+The cutover initially selects four TypeScript packages and four Rust crates.
+It adds no generic execute-by-string bridge endpoint, remote backend, config,
+settings, layout, Surface, history, operation, or notification edge.
+
+### Card 123 checked backing-surface cutover
+
+Jetstream commit `e9a54daacdec1f5c6573687a5543e9ffb2dae2b0`
+adds the stable `island:jetstream.editor.viewport` identity under
+`window:editor`. Longhorn owns desired/observed coordination, client epoch,
+attach generation, full-host storage versus physical clip planning,
+presentation and input gates, apply receipts, and Svelte viewport lifetime.
+
+Jetstream retains the NSView, WGPU surface, renderer, render thread, scene,
+world, camera, picking, gizmos, and semantic input. Teardown joins the render
+thread, drops WGPU, removes the native view, and releases it. The no-surface
+diagnostic remains protocol-visible as absent. Windows and Linux are explicit
+unsupported outcomes; live scale-transition host evidence remains unmet.
+
+### Card 124 checked closeout
+
+Jetstream closes on exactly six TypeScript packages and six Rust crates. The
+hierarchy is `window -> native-content-island -> backing-surface`; display,
+shared windowing, layout, Surfaces, transfer, config, settings, history,
+operations, notifications, isolated-window, and child-view remain absent.
+
+The immutable Card 114 artifact ids remain the production boundary. All
+Jetstream-selected Longhorn and Poodle paths are unchanged and clean relative
+to the frozen artifact sources, even though broader Poodle work has advanced.
+The renderer graph has one Svelte runtime. Peer evidence is Svelte
+`>=5.38.6 <6`, Tauri API `^2.10.1`, optional Poodle Svelte `0.1.0`, resolved
+Svelte 5.56.8 and Tauri API 2.11.1. The Rust artifact graph proves Rust 1.85.0
+and Tauri 2.11.5.
+
+No raw state event, raw viewport endpoint, generic bridge execution bus,
+renderer shortcut table, or process-lifetime native leak remains. Engine,
+renderer, world, gizmo, and platform source paths are unchanged from the
+pre-migration commit. That prior source passes 19 Rust unit, four IPC, and 65
+renderer tests in disposable sibling worktrees. Rollback needs no dual write,
+fallback, or second authority. Package-manager publication remains deferred.
+
 ## Greenfield Matrix
 
 | Shape | Required systems | Forbidden accidental edges |

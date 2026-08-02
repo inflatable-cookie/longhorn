@@ -1,6 +1,6 @@
 # 125 Greenfield Composition Matrix
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 002, 004-007, 009-017; Cards 119, 121, and 124
