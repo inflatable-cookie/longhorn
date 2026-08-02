@@ -2,7 +2,7 @@
 
 ## Active
 
-- [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
+- [108 Loophole Surface Lifecycle And Hosting Cutover](108-loophole-surface-lifecycle-and-hosting-cutover.md)
 
 ## Ready
 
@@ -19,7 +19,6 @@ None.
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
-- [108 Loophole Surface Lifecycle And Hosting Cutover](108-loophole-surface-lifecycle-and-hosting-cutover.md)
 - [109 Loophole Renderer, Poodle, And Transfer Cutover](109-loophole-renderer-poodle-and-transfer-cutover.md)
 - [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
 - [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
@@ -128,8 +127,9 @@ None.
 - [104 Loophole Baseline And Private Artifact Admission](104-loophole-baseline-and-private-artifact-admission.md)
 - [105 Loophole Storage And Domain Transition](105-loophole-storage-and-domain-transition.md)
 - [106 Loophole Display And Window Host Cutover](106-loophole-display-and-window-host-cutover.md)
+- [107 Loophole Registered Layout Authority Cutover](107-loophole-registered-layout-authority-cutover.md)
 
 ## Next Task
 
-Execute Card 107. Replace generic eight-region layout mutation and persistence
-while preserving Loophole panel policy.
+Execute Card 108. Replace generic Surface lifecycle, hosting, and movement
+while preserving both Loophole habitats.

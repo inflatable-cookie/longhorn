@@ -13,6 +13,10 @@ mod shape;
 
 use shape::*;
 
+#[cfg(test)]
+const LOOPHOLE_REGISTERED_AUTHORITY: &str =
+    include_str!("../../../../fixtures/layout/loophole-registered-authority-v1.json");
+
 #[derive(Serialize)]
 struct ConformanceFixture {
     protocol_version: u32,
@@ -305,5 +309,33 @@ mod tests {
                 LayoutMutationRejectionCode::MoveTargetUnchanged
             );
         }
+    }
+
+    #[test]
+    fn loophole_registered_authority_fixture_is_literal_donor_evidence() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(LOOPHOLE_REGISTERED_AUTHORITY).unwrap();
+        let region_ids = fixture["regions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|region| region["wireId"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            region_ids,
+            [
+                "topStrip",
+                "bottomStrip",
+                "leftStrip",
+                "rightStrip",
+                "left",
+                "right",
+                "centerTop",
+                "centerBottom",
+            ]
+        );
+        assert_eq!(fixture["sizingSlots"].as_array().unwrap().len(), 3);
+        assert_eq!(fixture["panels"].as_array().unwrap().len(), 10);
+        assert!(fixture["externalBinding"]["focusedSurfaceContainer"].is_null());
     }
 }

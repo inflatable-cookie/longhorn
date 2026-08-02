@@ -1,6 +1,6 @@
 # 108 Loophole Surface Lifecycle And Hosting Cutover
 
-Status: planned
+Status: active
 Owner: Tom
 Roadmap: g01.015 batch 3
 Governing refs: contracts 002-004, 009-012, and 014; Card 107

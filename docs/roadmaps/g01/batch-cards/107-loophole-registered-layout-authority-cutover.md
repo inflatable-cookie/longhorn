@@ -1,6 +1,6 @@
 # 107 Loophole Registered Layout Authority Cutover
 
-Status: active
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 3
 Governing refs: contracts 002-004, 010, 012, and 014; Card 106

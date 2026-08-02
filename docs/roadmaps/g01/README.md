@@ -18,7 +18,7 @@
 | [g01.012](012-async-operations-and-notifications.md) | complete | separate operation and notification authorities |
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
-| [g01.015](015-loophole-full-hosting-migration.md) | executing; Card 107 active | advanced full-stack consumer |
+| [g01.015](015-loophole-full-hosting-migration.md) | executing; Card 108 active | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | blocked | Soundcheck, Bovine, Jetstream, first release |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
@@ -336,9 +336,10 @@ casing on every platform. Card 104 removes the stale direct Pulse SQLite
 dependency, restores the clean donor baseline, and admits the exact private
 Surface-enabled graph for Cards 105-111. Card 105's storage slice is complete.
 Card 106 replaces display/window mechanics with a registered placement domain
-and one protected/dynamic Longhorn host. Card 107 is active. Later systems and
-package publication remain outside the admitted graph.
+and one protected/dynamic Longhorn host. Card 107 moves the literal regional
+layout into registered Longhorn authority. Card 108 is active. Later systems
+and package publication remain outside the admitted graph.
 
 ## Next Task
 
-Execute Card 107. Cut over Loophole's registered eight-region layout authority.
+Execute Card 108. Cut over Loophole Surface lifecycle and hosting.
