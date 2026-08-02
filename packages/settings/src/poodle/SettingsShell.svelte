@@ -67,6 +67,13 @@
     session.activationRequirements.filter(({ state }) => state === "pending"),
   );
   const unitStatus = $derived(session.primaryUnitStatus);
+  const hasStagedUnit = $derived(
+    page?.writableApplyUnitIds.some((unitId) =>
+      session.registry?.applyUnits.some(
+        (unit) => unit.id === unitId && unit.timing === "staged",
+      ),
+    ) ?? false,
+  );
 
   $effect(() => {
     session.focusRevision;
@@ -265,24 +272,26 @@
             {@render renderer(context)}
           </div>
 
-          <FormActions>
-            <Button
-              variant="secondary"
-              disabled={!session.dirty || session.busy}
-              onClick={() => session.cancelCurrent()}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              loading={session.busy}
-              disabled={!session.canApplyCurrent}
-              onClick={() =>
-                void session.applyCurrent().catch(() => undefined)}
-            >
-              Apply
-            </Button>
-          </FormActions>
+          {#if hasStagedUnit}
+            <FormActions>
+              <Button
+                variant="secondary"
+                disabled={!session.dirty || session.busy}
+                onClick={() => session.cancelCurrent()}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                loading={session.busy}
+                disabled={!session.canApplyCurrent}
+                onClick={() =>
+                  void session.applyCurrent().catch(() => undefined)}
+              >
+                Apply
+              </Button>
+            </FormActions>
+          {/if}
         </section>
       {/if}
     </main>

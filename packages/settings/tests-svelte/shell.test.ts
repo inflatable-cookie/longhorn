@@ -149,6 +149,8 @@ describe("SettingsShell", () => {
 
     expect(await mounted.findByText("Save failed")).toBeTruthy();
     expect(mounted.queryByText("Saved")).toBeNull();
+    expect(mounted.queryByRole("button", { name: "Apply" })).toBeNull();
+    expect(mounted.queryByRole("button", { name: "Cancel" })).toBeNull();
     await mounted.unmount();
     await session.stop();
   });
