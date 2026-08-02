@@ -1,0 +1,192 @@
+# Storage, Configuration, Backup, And Recovery
+
+Status: checked private adoption guidance
+Updated: 2026-08-02
+Governing contracts: [004](../contracts/004-configuration-storage-backup-and-recovery.md)
+and [005](../contracts/005-settings-and-system-registration.md)
+
+## Identity First
+
+Register three different names deliberately:
+
+| Name | Example | Storage effect |
+| --- | --- | --- |
+| canonical application id | `com.example.product` | default storage leaf and fixed locator identity |
+| display name | `Product` | none |
+| optional stable storage name | `Product` | replaces the leaf in every selected profile root |
+
+The canonical id is immutable and normally matches the Tauri/bundle id. The
+stable storage name is an explicit app-level compatibility choice, not a user
+preference. It is never derived from display name. Invalid explicit names fail
+closed. Adding, changing, or removing one requires a storage transition.
+
+Default to the canonical id. Choose a stable name only when human filesystem
+discoverability and long-lived product-family placement justify the permanent
+compatibility promise.
+
+## Default Profile: `platform-native-v1`
+
+`<leaf>` is the canonical id unless the app registers a stable storage name.
+The host supplies platform directory facts; pure resolution does not inspect
+the environment or filesystem.
+
+| Purpose | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| config | `~/Library/Application Support/<leaf>/config` | `%LOCALAPPDATA%\<leaf>\config` | `$XDG_CONFIG_HOME/<leaf>` |
+| data | `~/Library/Application Support/<leaf>/data` | `%LOCALAPPDATA%\<leaf>\data` | `$XDG_DATA_HOME/<leaf>` |
+| state | `~/Library/Application Support/<leaf>/state` | `%LOCALAPPDATA%\<leaf>\state` | `$XDG_STATE_HOME/<leaf>` |
+| cache | `~/Library/Caches/<leaf>` | `%LOCALAPPDATA%\<leaf>\cache` | `$XDG_CACHE_HOME/<leaf>` |
+| logs | `~/Library/Logs/<leaf>` | `%LOCALAPPDATA%\<leaf>\logs` | `$XDG_STATE_HOME/<leaf>/logs` |
+| runtime | system temporary directory plus `<leaf>` | system temporary directory plus `<leaf>` | `$XDG_RUNTIME_DIR/<leaf>` |
+| backups | `~/Library/Application Support/<leaf>/backups` | `%LOCALAPPDATA%\<leaf>\backups` | `$XDG_DATA_HOME/<leaf>/backups` |
+
+Packaged Windows may supply package-isolated local/cache facts. That is not a
+roaming or synchronization claim. Linux paths use injected XDG facts; the app
+must diagnose unavailable required facts rather than inventing a home-dotfile
+fallback. Longhorn never silently writes to the current directory or
+`~/.product`.
+
+## Other Profiles
+
+| Profile | Shape | Use | Cost |
+| --- | --- | --- | --- |
+| `unified-app-root-v1` | typed children under one native durable app root | one app-owned tree matters more than native lifecycle separation | cache/runtime/backup classification warnings |
+| `shared-product-root-v1` | typed children under one injected shared product-data root | cooperating product processes need one filesystem root | no multi-writer or sync semantics; Windows uses roaming `%APPDATA%` |
+| `portable-v1` | typed children under one explicit absolute root | intentional portable/test deployment | root must be supplied; never guesses executable/current directory |
+
+`shared-product-root-v1` uses `Application Support`, `%APPDATA%`, or
+`$XDG_DATA_HOME` as parent. It preserves leaf case. Per-purpose overrides are
+deployment/test policy and appear in the layout receipt; they are not a
+substitute for choosing a coherent profile.
+
+Profile ids are versioned path contracts. An existing id never changes its
+resolution when Longhorn is upgraded.
+
+## Domains And Databases
+
+Register one stable domain id, schema version, codec, default, storage class,
+and confined relative path per authority/mutation cadence. Keep preferences,
+window state, layout, caches, and credentials separate. Cross-domain atomicity
+requires an explicit transaction authority.
+
+Storage classes choose meaning before mechanism:
+
+- user intent → config
+- display/window/device correlation → machine state
+- workspace-personal state → state keyed by workspace
+- intentionally shared project state → explicit project/server authority
+- recreatable indexes → cache
+- credentials → secure-store adapter
+- ephemeral logs/runtime → their lifecycle roots
+
+A database does not define its class. Durable app-owned databases normally
+live below `data/databases`; machine restart state uses state; rebuildable
+indexes use cache. Live SQLite uses native backup/restore APIs. Never copy a
+live main/WAL pair as ordinary files.
+
+## Read, Mutation, And Flush
+
+Missing domain files return compiled defaults with a diagnostic. Corrupt or
+future files remain intact and enter typed recovery. Older schemas migrate
+through ordered idempotent steps after a verified pre-migration backup.
+
+Ordinary writes use one stable store-wide coordination authority:
+
+1. take the process mutex and finite-deadline OS advisory lock
+2. reread current authority
+3. apply a typed patch, validate, and encode
+4. create and sync a unique sibling temporary file
+5. atomically replace the target and sync the directory where supported
+6. report achieved durability
+
+Failed pre-publication writes leave the last valid file intact. Advisory locks
+coordinate participating local writers only; they do not exclude direct
+external writers or provide multi-machine transactions.
+
+Debounce is opt-in for bounded typed intent. It is not a desired-document
+cache. Close/shutdown force-flushes every lane and handles each receipt. A
+pre-publication failure retains intent for explicit retry or discard. A known
+replacement with durability failure clears intent to prevent duplicate apply.
+
+## Profile Selection And Migration
+
+A fixed minimal locator lives at the canonical-id `platform-native-v1` path.
+It selects the profile and last committed layout without depending on the root
+it selects. Corrupt, future, or unknown locators enter recovery; they never
+silently fall back.
+
+Profile or stable-name change is a transaction:
+
+1. preview source and target layouts
+2. inventory ordinary and custom stores
+3. reject overlap, ambiguity, and destination conflicts
+4. acquire both authorities in stable order
+5. stage and verify files and native database snapshots
+6. journal beside the fixed locator
+7. commit the locator last
+8. retain old storage until exact receipt-bound cleanup is authorized
+
+Cache is excluded by default, runtime is never migrated, logs are optional
+evidence, and secrets remain in secure storage. Legacy discovery is read-only.
+It does not merge, delete, or adopt dot directories or old Tauri roots.
+
+## Backup
+
+Backup is registry capture, not a directory copy. Every domain is included,
+excluded with reason, or custom-adapted. Secrets, cache, runtime, and logs are
+excluded by default. Capture includes published state only; force-flush first
+when pending intent matters.
+
+Ordinary domains captured under the Longhorn lock share one consistency group.
+External snapshots such as SQLite normally form another unless the consumer
+supplies a higher transaction authority.
+
+The portable inner bundle is deterministic ZIP:
+
+- media type `application/vnd.longhorn.config-backup+zip`
+- extension `.longhorn-backup`
+- strict manifest first at `longhorn/manifest.json`
+- ordinary payloads under `longhorn/domains/`
+- adapter payloads under `longhorn/adapters/`
+- bounded entries, bytes, ratios, regular files, and confined paths
+
+Optional encryption wraps the entire ZIP in binary age v1 with extension
+`.longhorn-backup.age`. Keys and passphrases never enter ordinary config.
+Unavailable identities mean locked, not corrupt. Plain SHA-256 proves byte
+integrity, not authenticity.
+
+Operational backups use the selected backup root and safe retention. User
+exports use an explicit user-selected parent and canonical re-encoding.
+Retention never auto-deletes the new, pinned, locked, corrupt, unreadable,
+foreign, unknown-version, or unparseable archive.
+
+## Restore And Recovery
+
+Inspection does not mutate. It validates bounds, app identity, payload hashes,
+schemas, migrations, adapters, conflicts, and current evidence. The confirmed
+plan binds the archive digest, choices, and current target state. Execution
+rechecks freshness.
+
+Restore promises failure-atomic terminal state across independent files, not
+instantaneous cross-file visibility:
+
+- success: every selected domain matches staged target evidence
+- rolled back: every selected domain matches captured source evidence
+- recovery required: rollback is unverified; normal writes remain blocked
+
+Execution stages and validates the complete set, captures rollback evidence,
+publishes a safety backup and durable journal, replaces through the ordinary
+atomic publisher, verifies, and either commits or restores. Crash recovery
+finishes verified rollback before later mutation.
+
+Custom adapters join the failure-atomic set only when they can stage, publish,
+verify, roll back, and participate in the journal. Otherwise they are excluded
+or run as a separately confirmed and receipted operation.
+
+## Settings Presentation
+
+Settings projects registered storage and domain authority. It sends validated
+patches or explicit operations; it never edits files. Show profile, identity,
+resolved roots, provenance, warnings, backup consistency groups, restore
+choices, and exact terminal receipts. Preserve `recoveryRequired` as a blocking
+state rather than presenting a generic failure or silent reset.

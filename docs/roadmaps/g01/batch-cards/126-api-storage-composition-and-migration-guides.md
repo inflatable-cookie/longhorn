@@ -1,6 +1,6 @@
 # 126 API, Storage, Composition, And Migration Guides
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 001-017; Card 125
@@ -57,6 +57,19 @@ or existing consumer can adopt Longhorn without reconstructing donor history.
 - a snippet needs an internal Poodle or Longhorn path
 - a support claim lacks artifact or consumer evidence
 - docs describe publication as complete
+
+## Evidence
+
+- `docs/guides/README.md` is the adoption front door for package selection,
+  storage/backup, composition, migration, and compatibility guidance.
+- `docs/reference/api-surface.md` is generated from 36 Rust packages and 17
+  TypeScript packages by `scripts/generate-api-reference-card126.ts`.
+- `scripts/verify-guides-card126.ts` checks local links, public-only snippets,
+  exact storage/backup/history/migration/native-content claims, inventory
+  counts, and no-publication posture.
+- Rust docs pass with warnings denied. TypeScript and Svelte package checks pass.
+- `docs/logs/2026-08/02-api-storage-composition-and-migration-guides.md`
+  records the closeout receipt.
 
 ## Next Task
 

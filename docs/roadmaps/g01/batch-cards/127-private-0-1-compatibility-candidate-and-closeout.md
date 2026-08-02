@@ -1,6 +1,6 @@
 # 127 Private 0.1 Compatibility Candidate And Closeout
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 5
 Governing refs: contracts 001, 003, 010, and 012-013; Cards 113-126

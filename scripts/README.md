@@ -230,6 +230,20 @@ effigy qa:northstar:g01-greenfield-card125
 Set `KEEP_GREENFIELD_COMPOSITION_PROOF=1` only to retain its disposable
 artifact workspace. No registry publication is attempted.
 
+Card 126 generates the exact private Rust crate/feature and TypeScript export,
+dependency, and peer reference from live manifests. Its guide proof checks
+local links, public-only snippets, storage/platform claims, migration safety,
+native support limits, and deferred publication. Focused QA also builds Rust
+documentation with warnings denied and checks every TypeScript/Svelte surface:
+
+```sh
+effigy generate:api-reference-card126
+effigy qa:northstar:g01-guides-card126
+```
+
+Generation writes only `docs/reference/api-surface.md`. The check selector
+fails on drift.
+
 Aggregate Northstar QA runs each completed migration's static closeout gate.
 Exact cross-repository HEAD and artifact proofs remain directly addressable by
 their card selectors. Advancing or concurrently editing a consumer does not

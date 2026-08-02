@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 126 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | executing; Card 127 ready | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | planned | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 
@@ -360,11 +360,12 @@ backing-surface coordination. Card 124 closes exact artifacts, peers,
 capabilities, duplicates, retained engine/WGPU authority, and rollback. Card
 125 proves four isolated produced-artifact compositions, exact optional-edge
 removal, storage startup/mutation/reload, visible renderer lifecycle, and one
-runtime per graph. Cards 126-127 add adoption guides and one deterministic private
-`0.1.0` compatibility candidate. Registry publication, tags, and hosted
+runtime per graph. Card 126 adds checked API, storage/backup, composition,
+migration, rollback, and compatibility guides. Card 127 adds one deterministic
+private `0.1.0` compatibility candidate. Registry publication, tags, and hosted
 releases remain outside the chain.
 
 ## Next Task
 
-Execute Card 126. Turn the proven compositions into the API, storage, backup,
-composition, migration, and upgrade guide set.
+Execute Card 127. Produce one deterministic private `0.1.0` candidate, run
+read-only release gates, and close g01.016 without publishing.

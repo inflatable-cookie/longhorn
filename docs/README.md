@@ -5,6 +5,8 @@
 - [Vision](vision/README.md)
 - [Architecture](architecture/README.md)
 - [Contracts](contracts/README.md)
+- [Adoption Guides](guides/README.md)
+- [API Reference](reference/README.md)
 - [Research](research/README.md)
 - [Specs](specs/README.md)
 - [Roadmaps](roadmaps/README.md)
@@ -179,7 +181,7 @@ settings, commands, keymaps, palette, and retained extended input. Cards
 111-112 complete lossless linear history and full migration conformance;
 g01.015 is complete. g01.016 is compiled as Cards 113-127 across exact common
 admission, Soundcheck, Bovine, Jetstream, greenfield examples, guides, and a
-private compatibility candidate. Cards 113-119 are complete; Card 120 is
+private compatibility candidate. Cards 113-126 are complete; Card 127 is
 ready.
 Package-manager publication is deferred.
 

@@ -13,6 +13,8 @@ desktop application state, host integration, and orchestration.
 - [Vision](docs/vision/001-shared-tauri-systems.md)
 - [Initial Tauri audit](docs/research/translation-memos/001-tauri-application-extraction-audit.md)
 - [Shared system suite](docs/specs/001-shared-desktop-system-suite.md)
+- [Adoption guides](docs/guides/README.md)
+- [Generated API surface](docs/reference/api-surface.md)
 - [g01 roadmap suite](docs/roadmaps/g01/README.md)
 - [Agent rules](AGENTS.md)
 
@@ -219,12 +221,10 @@ Card 099 completes checked renderer/Poodle composition. Card 100 completes the
 native Browser cutover. Card 101 closes exact artifacts, restart, rollback,
 capability, duplicate-authority, and no-Surface conformance. g01.014 is
 complete.
-Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 now
-compile Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption
-guides, and a deterministic private compatibility candidate. Card 113 now
-freezes exact read-only behavior, authority, overlap, and rollback evidence.
-Card 114 admits exact private artifacts. Cards 115-119 complete Soundcheck
-storage/config/window, settings/backup/recovery, scan-operation, and
-isolated-window adoption and migration closeout. Card 120 is ready for the
-bounded Bovine config/settings cutover.
+Cards 102-112 complete Loophole's full-hosting migration. Cards 113-127 compile
+Soundcheck, Bovine, Jetstream, four greenfield compositions, adoption guides,
+and a deterministic private compatibility candidate. Cards 113-126 complete
+the consumer migrations, produced-artifact greenfield matrix, and checked guide
+and API-reference suite. Card 127 is ready for the private compatibility
+candidate.
 Package-manager publication remains deferred.

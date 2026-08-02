@@ -36,3 +36,8 @@ workspace after a failed or exploratory run. No package is published.
 
 The exact package graphs, extension points, and storage/startup boundaries are
 recorded in `docs/architecture/greenfield-composition-matrix.md`.
+
+Adoption starts at the checked
+[package-selection guide](../../docs/guides/package-selection.md). Storage
+identity, profiles, migration, backup, restore, and cleanup are in the
+[storage guide](../../docs/guides/storage-configuration-backup.md).

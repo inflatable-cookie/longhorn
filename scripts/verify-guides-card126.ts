@@ -1,0 +1,126 @@
+import { access, readFile } from "node:fs/promises";
+import { dirname, join, relative, resolve } from "node:path";
+
+const repoRoot = resolve(import.meta.dir, "..");
+const guidePaths = [
+  "docs/guides/README.md",
+  "docs/guides/package-selection.md",
+  "docs/guides/storage-configuration-backup.md",
+  "docs/guides/system-composition.md",
+  "docs/guides/migration-and-rollback.md",
+  "docs/guides/compatibility-and-upgrades.md",
+];
+const checkedPaths = [
+  ...guidePaths,
+  "docs/reference/README.md",
+  "docs/reference/api-surface.md",
+  "docs/README.md",
+  "README.md",
+  "examples/greenfield-compositions/README.md",
+];
+
+await run(["bun", "scripts/generate-api-reference-card126.ts"]);
+const documents = new Map<string, string>();
+for (const path of checkedPaths) documents.set(path, await readFile(join(repoRoot, path), "utf8"));
+await verifyLocalLinks(documents);
+verifySnippetBoundaries(documents);
+
+const guides = guidePaths.map((path) => documents.get(path)!).join("\n");
+requireAll(guides, [
+  "canonical application id",
+  "display name",
+  "stable storage name",
+  "platform-native-v1",
+  "unified-app-root-v1",
+  "shared-product-root-v1",
+  "portable-v1",
+  "Application Support/<leaf>/config",
+  "%LOCALAPPDATA%\\<leaf>\\config",
+  "$XDG_CONFIG_HOME/<leaf>",
+  ".longhorn-backup",
+  ".longhorn-backup.age",
+  "recovery required",
+  "linear structure",
+  "product snapshot",
+  "project versions",
+  "Fork-tree",
+  "silent fallback",
+  "dual-write",
+  "receipt-bound cleanup",
+  "Windows/Linux unproved",
+  "Windows/Linux unsupported",
+  "no npm/crates.io install",
+]);
+
+const api = documents.get("docs/reference/api-surface.md")!;
+const rustCount = [...api.matchAll(/^\| `longhorn-[^`]+` \|/gm)].length;
+const typescriptCount = [...api.matchAll(/^\| `@longhorn\/[^`]+` \|/gm)].length;
+if (rustCount !== 36 || typescriptCount !== 17) {
+  throw new Error(`API inventory count drift: Rust ${rustCount}, TypeScript ${typescriptCount}`);
+}
+if (!api.includes("not available from npm or crates.io") || !api.includes("private: true") || !api.includes("publish = false")) {
+  throw new Error("API reference publication posture missing");
+}
+
+console.log(JSON.stringify({
+  schema: "longhorn.card126-guide-proof.v1",
+  outcome: "pass",
+  guides: guidePaths.length,
+  checkedDocuments: checkedPaths.length,
+  localLinks: "pass",
+  snippets: "public-only",
+  rustPackages: rustCount,
+  typescriptPackages: typescriptCount,
+  packageManagerPublication: false,
+}, null, 2));
+
+async function verifyLocalLinks(documents: Map<string, string>): Promise<void> {
+  for (const [path, content] of documents) {
+    for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+      const target = match[1]!;
+      if (/^(?:https?:|mailto:|#)/.test(target)) continue;
+      const filesystemTarget = target.split("#", 1)[0]!;
+      try {
+        await access(resolve(repoRoot, dirname(path), filesystemTarget));
+      } catch {
+        throw new Error(`${path} has missing local link ${target}`);
+      }
+    }
+  }
+}
+
+function verifySnippetBoundaries(documents: Map<string, string>): void {
+  const forbidden = [
+    /(?:^|\s)(?:npm|pnpm|yarn|bun)\s+(?:add|install)(?:\s|$)/,
+    /cargo\s+add/,
+    /@poodle\/[^\s`"']*(?:internal|private)/,
+    /@longhorn\/[^\s`"']+\/src\//,
+    /(?:\.\.\/)+packages\//,
+    /workspace:\*/,
+  ];
+  for (const [path, content] of documents) {
+    const blocks = [...content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((match) => match[1]!);
+    for (const block of blocks) {
+      for (const pattern of forbidden) {
+        if (pattern.test(block)) throw new Error(`${path} contains non-public snippet ${pattern}`);
+      }
+    }
+  }
+}
+
+function requireAll(content: string, required: string[]): void {
+  for (const value of required) {
+    if (!content.includes(value)) throw new Error(`guide corpus missing required claim: ${value}`);
+  }
+}
+
+async function run(command: string[]): Promise<string> {
+  const process = Bun.spawn(command, { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(process.stdout).text(),
+    new Response(process.stderr).text(),
+    process.exited,
+  ]);
+  if (exitCode !== 0) throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
+  return stdout;
+}

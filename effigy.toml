@@ -227,6 +227,27 @@ health = [{ task = "qa" }]
   { task = "check:northstar:g01-greenfield-card125" },
   { task = "proof:greenfield-card125" },
 ]
+"generate:api-reference-card126" = "bun scripts/generate-api-reference-card126.ts --write"
+"check:api-reference-card126" = "bun scripts/generate-api-reference-card126.ts"
+"proof:guides-card126" = "bun scripts/verify-guides-card126.ts"
+"docs:rust-card126" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
+"check:northstar:g01-guides-card126" = "effigy docs check paths README.md docs/README.md effigy.toml scripts/README.md scripts/generate-api-reference-card126.ts scripts/verify-guides-card126.ts crates/longhorn-tauri-native-content-child-view/Cargo.toml examples/greenfield-compositions/README.md docs/guides docs/reference docs/architecture/app-shell-composition.md docs/architecture/bridge-topology-composition.md docs/architecture/command-system-composition.md docs/architecture/greenfield-composition-matrix.md docs/architecture/history-composition.md docs/architecture/native-content-island-composition.md docs/architecture/nucleus-migration-map.md docs/architecture/loophole-migration-map.md docs/architecture/operation-notification-composition.md docs/architecture/secondary-consumer-migration-map.md docs/architecture/settings-composition.md docs/architecture/package-topology.md docs/contracts/contract-index.md docs/contracts/001-working-rules.md docs/contracts/002-composable-workspace-hosting.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/005-settings-and-system-registration.md docs/contracts/006-command-action-and-input.md docs/contracts/007-optional-backend-topology.md docs/contracts/008-history-kernel-boundary.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/011-cross-window-transfer.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/014-layout-container-region-and-panel-core.md docs/contracts/015-async-operation-lifecycle.md docs/contracts/016-notification-ledger-and-projection.md docs/contracts/017-native-content-island-coordination.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/126-api-storage-composition-and-migration-guides.md docs/roadmaps/g01/batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md docs/logs/README.md docs/logs/2026-08/02-api-storage-composition-and-migration-guides.md"
+"qa:northstar:g01-guides-card126" = [
+  { task = "check:northstar:g01-guides-card126" },
+  { task = "check:api-reference-card126" },
+  { task = "proof:guides-card126" },
+  { task = "docs:rust-card126" },
+  { task = "check:client-ts" },
+  { task = "check:config-svelte" },
+  { task = "check:settings-svelte" },
+  { task = "check:commands-svelte" },
+  { task = "check:history-svelte" },
+  { task = "check:operation-svelte" },
+  { task = "check:notifications-svelte" },
+  { task = "check:native-content-svelte" },
+  { task = "check:svelte-runes" },
+  { task = "check:poodle-svelte" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"
@@ -605,6 +626,7 @@ test = [
   { task = "check:northstar:g01-jetstream-card123" },
   { task = "check:northstar:g01-jetstream-card124" },
   { task = "check:northstar:g01-greenfield-card125" },
+  { task = "check:northstar:g01-guides-card126" },
   { task = "qa:northstar:g01-display-cards" },
   { task = "qa:northstar:g01-window-host-cards" },
   { task = "qa:northstar:g01-layout-cards" },
