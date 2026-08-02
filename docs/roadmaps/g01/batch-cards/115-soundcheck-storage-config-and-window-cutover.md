@@ -1,6 +1,6 @@
 # 115 Soundcheck Storage, Config, And Window Cutover
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.016 batch 2
 Governing refs: contracts 003, 004, 009-010, and 012; Cards 113-114
@@ -57,6 +57,41 @@ external SQLite authority.
 - database placement changes without a native snapshot/restore plan
 - a product setting must become a Longhorn type
 - window rollback requires the old save worker to remain active
+
+## Result
+
+Soundcheck now selects `shared-product-root-v1` through its canonical locator
+and stable `Soundcheck` leaf. Its established `library.db` stays at the product
+root through an explicit Data override. Application settings and window
+placement are separate Longhorn domains under `config/` and `state/`.
+
+Legacy `settings.json` import verifies a retained backup, splits the two
+domains, writes exact digests, refuses target conflicts, and leaves cleanup
+unauthorized. SQLite participates through an online backup/restore adapter;
+soundcheck-library retains schema and recovery authority.
+
+The predeclared `main` window is now protected `window:primary` state. Restore
+starts hidden, fits to current displays with a `320x240` minimum, reveals after
+restore plus renderer readiness, captures lifecycle events with 300 ms
+debounce, and uses a two-second close bound. The old window save worker is
+gone.
+
+Real retained product data also proved a generic gap: same-layout profile
+adoption was walking unrelated files. Longhorn now skips that unbounded source
+inventory when source and target layout digests match.
+
+## Evidence
+
+- Soundcheck cutover: `c2351a9f7f8de3a5a16ca633f4172ddb10f4665e`
+- Longhorn same-layout fix: `ab9cb31a70611a0714b02296016a22f0ae58a615`
+- `fixtures/migration/soundcheck-card115/storage-config-window-cutover-v1.json`
+- `scripts/verify-soundcheck-card115.ts`
+- `effigy qa:northstar:g01-soundcheck-card115`
+
+Isolated proof-root, legacy split, conflict, and locator-last adoption cases
+pass. Generic transition recovery covers interruption and rollback. The full
+Soundcheck native GUI fresh/restart and rollback pass remains Card 119; no live
+user data was used as a test fixture.
 
 ## Next Task
 

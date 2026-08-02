@@ -146,5 +146,6 @@ None.
 
 ## Next Task
 
-Execute Card 115. Migrate Soundcheck storage, application/window configuration,
-and the protected primary-window host while retaining SQLite authority.
+Execute Card 116. Compose Soundcheck product pages with shared settings,
+storage, backup, restore, conflict, and recovery modules while retaining
+soundcheck-library authority.

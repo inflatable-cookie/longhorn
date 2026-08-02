@@ -1,0 +1,110 @@
+{
+  "schema": "longhorn.soundcheck-storage-config-window-cutover.v1",
+  "outcome": "pass",
+  "sources": {
+    "longhorn_prior_commit": "821eea31f00f779cedcb8dcdb6cfc882dd651115",
+    "longhorn_cutover_commit": "ab9cb31a70611a0714b02296016a22f0ae58a615",
+    "soundcheck_prior_commit": "f4544e621b8ba3f4558c6b068db1cb36d6ef161f",
+    "soundcheck_cutover_commit": "c2351a9f7f8de3a5a16ca633f4172ddb10f4665e",
+    "soundcheck_lock_sha256": "ca50d24dba1355320820f90b7d2a5d798e5b058b7ab17ceeab2b93a0b984a178"
+  },
+  "identity": {
+    "canonical_application_id": "com.inflatablecookie.soundcheck",
+    "stable_storage_name": "Soundcheck",
+    "profile": "shared-product-root-v1",
+    "locator_identity": "canonical-application-id",
+    "effective_leaf": "Soundcheck"
+  },
+  "layout": {
+    "macos_product_root": "~/Library/Application Support/Soundcheck",
+    "windows_product_root": "%APPDATA%\\Soundcheck",
+    "linux_product_root": "$XDG_DATA_HOME/Soundcheck",
+    "database_relative_path": "library.db",
+    "database_data_root_override": "established-product-root",
+    "config_relative_path": "config",
+    "state_relative_path": "state",
+    "cache_relative_path": "cache",
+    "log_relative_path": "logs",
+    "runtime_relative_path": "runtime",
+    "backup_relative_path": "backups",
+    "established_database_moved": false,
+    "same_layout_unknown_source_inventory": false
+  },
+  "domains": {
+    "application_settings": {
+      "id": "soundcheck.app-settings",
+      "storage_class": "user-config",
+      "relative_path": "app-settings.json"
+    },
+    "window_placement": {
+      "id": "soundcheck.window-placement",
+      "storage_class": "machine-state",
+      "relative_path": "window-placement.json"
+    },
+    "library_database": {
+      "id": "soundcheck.library-database",
+      "authority": "soundcheck-library",
+      "adapter": "soundcheck-library-sqlite-online-v1",
+      "capture": "sqlite-online-backup-api",
+      "restore": "failure-atomic"
+    }
+  },
+  "migration": {
+    "legacy_source": "settings.json",
+    "verified_backup_before_publish": true,
+    "exact_digest_receipt": true,
+    "locator_last": true,
+    "source_retained": true,
+    "cleanup_authorized": false,
+    "dual_write": false,
+    "silent_fallback": false,
+    "conflict_policy": "refuse"
+  },
+  "window": {
+    "logical_id": "window:primary",
+    "tauri_label": "main",
+    "protected_primary": true,
+    "dynamic_factory": false,
+    "hidden_startup": true,
+    "minimum_size": [320, 240],
+    "debounce_ms": 300,
+    "close_flush_timeout_ms": 2000,
+    "reveal_signals": ["authoritative-restore", "renderer-page-ready"]
+  },
+  "overrides": {
+    "acceptance_root": "SOUNDCHECK_ACCEPTANCE_ROOT",
+    "assistant_proof_root": "SOUNDCHECK_ASSISTANT_PROOF_ROOT",
+    "database": "SOUNDCHECK_LIBRARY_DB_PATH",
+    "config": "SOUNDCHECK_CONFIG_DIR",
+    "test_confined": true,
+    "all_paths_must_remain_inside_proof_root": true
+  },
+  "packages": {
+    "required_rust": [
+      "longhorn-core",
+      "longhorn-config",
+      "longhorn-tauri-config",
+      "longhorn-display",
+      "longhorn-windowing",
+      "longhorn-windowing-config",
+      "longhorn-tauri-windowing"
+    ],
+    "surface_packages": false,
+    "settings_packages": false,
+    "operation_packages": false,
+    "native_content_packages": false,
+    "package_manager_publication": false
+  },
+  "validation": {
+    "storage_profile_tests": 3,
+    "storage_migration_tests": 3,
+    "application_settings_tests": 3,
+    "window_domain_tests": 1,
+    "renderer_tests": 28,
+    "rust_tests_before_unrelated_failure": 223,
+    "unrelated_failure": "soundcheck-sync daw_discovery::tests::detects_each_installed_major_version_for_supported_daws",
+    "unrelated_failure_expected": "RecoveryCapable",
+    "unrelated_failure_actual": "WriteCapable",
+    "native_gui_proof": "deferred-to-card119"
+  }
+}

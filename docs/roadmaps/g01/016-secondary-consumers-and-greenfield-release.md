@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 115 ready
+Status: executing; Card 116 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -43,7 +43,7 @@ lane from current evidence; it does not infer package publication.
 
 ### Batch 2: Soundcheck
 
-- [ ] migrate stable-name storage, app config, and protected primary window
+- [x] migrate stable-name storage, app config, and protected primary window
 - [ ] compose product settings with shared storage/backup/recovery modules
 - [ ] adopt structural operation authority for plugin scan
 - [ ] adopt isolated-window coordination for disposable plugin inspection
@@ -71,7 +71,7 @@ lane from current evidence; it does not infer package publication.
 ## Goals
 
 - [ ] each app adopts only useful packages
-- [ ] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
+- [x] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
 - [ ] Bovine proves the smallest config/settings graph
 - [ ] Jetstream proves bridge, command, and backing-surface composition
 - [ ] product, sibling, renderer, plugin, content, and engine authority stay downstream
@@ -96,7 +96,7 @@ lane from current evidence; it does not infer package publication.
 
 Ready:
 
-- `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
+- `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
 
 Active:
 
@@ -104,7 +104,6 @@ Active:
 
 Planned:
 
-- `batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md`
 - `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
 - `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 - `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
@@ -121,12 +120,13 @@ Complete:
 
 - `batch-cards/113-secondary-consumer-behavior-authority-and-rollback-freeze.md`
 - `batch-cards/114-secondary-consumer-private-artifact-admission.md`
+- `batch-cards/115-soundcheck-storage-config-and-window-cutover.md`
 
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
-artifact graphs without consumer writes. Card 115 is the only admitted
-consumer write slice.
+artifact graphs without consumer writes. Card 115 completes the first admitted
+consumer write slice. Card 116 is the only active-ready Soundcheck slice.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -148,5 +148,6 @@ authority.
 
 ## Next Task
 
-Execute Card 115. Migrate Soundcheck storage, application/window configuration,
-and the protected primary-window host while retaining SQLite authority.
+Execute Card 116. Compose Soundcheck product pages with the shared settings,
+storage, backup, restore, conflict, and recovery shell while retaining library
+backup authority.

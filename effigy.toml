@@ -149,6 +149,14 @@ health = [{ task = "qa" }]
   { task = "verify:secondary-consumer-card113" },
   { task = "proof:secondary-consumer-private-artifacts" },
 ]
+"check:northstar:g01-soundcheck-card115" = "effigy docs check paths README.md docs/README.md effigy.toml scripts/README.md scripts/verify-soundcheck-card115.ts fixtures/migration/soundcheck-card115/storage-config-window-cutover-v1.json crates/longhorn-config/src/storage_layout/transition/inventory.rs crates/longhorn-config/tests/storage_layout/transition.rs docs/architecture/secondary-consumer-migration-map.md docs/contracts/contract-index.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/115-soundcheck-storage-config-and-window-cutover.md docs/roadmaps/g01/batch-cards/116-soundcheck-settings-backup-and-recovery-cutover.md docs/logs/README.md docs/logs/2026-08/02-soundcheck-storage-config-window-cutover.md"
+"proof:soundcheck-card115" = "bun scripts/verify-soundcheck-card115.ts"
+"test:soundcheck-card115-config" = "cargo test -p longhorn-config --all-features"
+"qa:northstar:g01-soundcheck-card115" = [
+  { task = "check:northstar:g01-soundcheck-card115" },
+  { task = "proof:soundcheck-card115" },
+  { task = "test:soundcheck-card115-config" },
+]
 "check:northstar:g01-loophole-card103-storage" = "effigy docs check paths effigy.toml crates/longhorn-config/src crates/longhorn-config/tests/storage_layout crates/longhorn-tauri-config/README.md crates/longhorn-tauri-config/src/directory.rs crates/longhorn-bindings/src/config/fixture/snapshot.rs packages/config/src/compatibility packages/config/src/generated/base.ts packages/config/src/poodle/StorageSettingsPage.svelte fixtures/config/protocol-v1.json docs/architecture/loophole-migration-map.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/103-loophole-storage-policy-and-profile-selection.md docs/roadmaps/g01/batch-cards/104-loophole-baseline-and-private-artifact-admission.md docs/logs/README.md docs/logs/2026-08/01-loophole-storage-policy-and-profile-selection.md"
 "test:loophole-card103-storage" = "cargo test -p longhorn-config -p longhorn-tauri-config --all-features"
 "check:loophole-card103-rust-packages" = "sh -c 'cargo package -p longhorn-config --list --allow-dirty >/dev/null && exec cargo package -p longhorn-tauri-config --list --allow-dirty >/dev/null'"
@@ -523,6 +531,7 @@ test = [
   { task = "qa:northstar:g01-secondary-consumer-compilation" },
   { task = "qa:northstar:g01-secondary-consumer-card113" },
   { task = "qa:northstar:g01-secondary-consumer-card114" },
+  { task = "qa:northstar:g01-soundcheck-card115" },
   { task = "qa:northstar:g01-display-cards" },
   { task = "qa:northstar:g01-window-host-cards" },
   { task = "qa:northstar:g01-layout-cards" },

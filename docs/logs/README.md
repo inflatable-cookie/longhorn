@@ -137,3 +137,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Secondary-consumer And Greenfield Compilation](2026-08/02-secondary-consumer-and-greenfield-compilation.md)
 - [Secondary-consumer Behavior, Authority, And Rollback Freeze](2026-08/02-secondary-consumer-behavior-authority-freeze.md)
 - [Secondary-consumer Private Artifact Admission](2026-08/02-secondary-consumer-private-artifact-admission.md)
+- [Soundcheck Storage, Config, And Window Cutover](2026-08/02-soundcheck-storage-config-window-cutover.md)

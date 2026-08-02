@@ -153,7 +153,19 @@ effigy proof:secondary-consumer-private-artifacts
 ```
 
 Set `KEEP_SECONDARY_CONSUMER_ARTIFACT_PROOF=1` only when the disposable proof
-workspace needs inspection after a failure.
+workspace must be inspected after the run.
+
+Soundcheck Card 115 verifies the exact storage/config/window cutover commits,
+the retained SQLite authority, isolated override boundary, hidden protected
+window host, and the same-layout inventory bound:
+
+```sh
+effigy qa:northstar:g01-soundcheck-card115
+```
+
+The default donor is `../soundcheck`. Override it with `SOUNDCHECK_REPO` only
+for a checkout containing the recorded cutover commit. Full native GUI
+fresh/restart proof remains Card 119 work.
 
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete

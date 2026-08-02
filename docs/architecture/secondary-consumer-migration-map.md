@@ -68,8 +68,38 @@ The exact aggregate set ids are:
 - Longhorn TypeScript: `7f62a7d21889c778803cda687248a9048e497cee80d2c2ceb7fa6957e18b3ce0`
 - Longhorn Rust: `42a1a400a7a6066614273a44d86c1686991c92c5454594efe1000aa1730d65c8`
 
-Only Card 115's Soundcheck storage, config, and protected-window slice is
-admitted. Bovine and Jetstream remain read-only.
+Card 115's Soundcheck storage, config, and protected-window slice is complete.
+Card 116's settings/recovery slice is ready. Bovine and Jetstream remain
+read-only.
+
+## Card 115 Soundcheck Cutover
+
+Soundcheck selects `shared-product-root-v1` with canonical locator identity
+`com.inflatablecookie.soundcheck` and stable leaf `Soundcheck`. The default
+product roots remain `Application Support/Soundcheck`, `%APPDATA%\Soundcheck`,
+and `$XDG_DATA_HOME/Soundcheck`. `library.db` stays directly below that root;
+an explicit Data override records the retained soundcheck-library placement.
+Other typed roots use `config/`, `state/`, `cache/`, `logs/`, `runtime/`, and
+`backups/` children.
+
+`soundcheck.app-settings` is UserConfig and
+`soundcheck.window-placement` is MachineState. Legacy `settings.json` import
+backs up exact bytes before publishing both domains, records their digests,
+refuses conflicts, publishes the locator last, retains the source, and grants
+no cleanup authority. Acceptance and assistant overrides are rejected unless
+an explicit proof root contains every injected path.
+
+The external `soundcheck.library-database` participant uses SQLite online
+backup and failure-atomic restore. Longhorn coordinates evidence only;
+soundcheck-library still owns schema, meaning, migration, validation, and
+backup policy. Same-layout adoption now skips unrelated retained source data,
+preventing a large product tree from becoming transition input.
+
+The Tauri `main` label maps to protected `window:primary`. Soundcheck uses a
+hidden restore, known-display reconciliation, `320x240` minimum, guarded
+restore/page-ready reveal, 300 ms capture debounce, and two-second close flush.
+The previous settings-file window worker is removed. Full native GUI and
+rollback conformance remains the Card 119 closeout gate.
 
 ## Soundcheck
 
