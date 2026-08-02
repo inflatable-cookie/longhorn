@@ -1,6 +1,6 @@
 # g01.015 Loophole Full-hosting Migration
 
-Status: executing; Card 109 active
+Status: executing; Card 110 active
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 002-014;
@@ -38,7 +38,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 - [x] replace generic eight-region layout mutation and persistence
 - [x] replace Surface lifecycle, binding, movement, provision, and restoration
-- [ ] adopt checked renderer lifetime and public Poodle transfer seams
+- [x] adopt checked renderer lifetime and public Poodle transfer seams
 
 ### Batch 4: shell systems
 
@@ -55,11 +55,11 @@ payloads, journal recovery, and project versions remain Loophole authority.
 
 ## Goals
 
-- [ ] hierarchy remains `display -> window -> Surface -> region -> panel`
+- [x] hierarchy remains `display -> window -> Surface -> region -> panel`
 - [ ] regional and focused-panel Surface habitats retain current behavior
 - [ ] storage uses one selected cross-platform profile with explicit stable name
 - [ ] window, Surface, and layout persistence are independent authorities
-- [ ] panels and Surfaces transfer through checked authoritative sessions
+- [x] panels and Surfaces transfer through checked authoritative sessions
 - [ ] settings and command surfaces share generic Longhorn mechanisms
 - [ ] all persisted undo and redo state imports into the linear kernel
 - [ ] no product authority moves into Longhorn
@@ -74,7 +74,7 @@ payloads, journal recovery, and project versions remain Loophole authority.
   claimed by Longhorn
 - [ ] panel catalogue, region schema, focused eligibility, presence, close,
   empty-host, and fullscreen policy remain Loophole-owned
-- [ ] private Poodle MIME or DOM knowledge does not enter Longhorn
+- [x] private Poodle MIME or DOM knowledge does not enter Longhorn
 - [ ] each cutover has one active authority and one receipt-backed rollback route
 - [x] source-linked private graphs have matching clean artifact-install proof
 - [x] package-manager publication remains deferred
@@ -91,11 +91,10 @@ Ready:
 
 Active:
 
-- `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
+- `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
 
 Planned:
 
-- `batch-cards/110-loophole-settings-command-and-keyboard-cutover.md`
 - `batch-cards/111-loophole-linear-history-adoption.md`
 - `batch-cards/112-loophole-migration-conformance-and-closeout.md`
 
@@ -108,6 +107,7 @@ Complete:
 - `batch-cards/106-loophole-display-and-window-host-cutover.md`
 - `batch-cards/107-loophole-registered-layout-authority-cutover.md`
 - `batch-cards/108-loophole-surface-lifecycle-and-hosting-cutover.md`
+- `batch-cards/109-loophole-renderer-poodle-and-transfer-cutover.md`
 
 ## Planning Checkpoint
 
@@ -135,7 +135,11 @@ registered Longhorn authority. Card 108 registers regional Surface topology,
 host preferences, lifecycle, restoration, and whole-Surface movement under a
 separate Longhorn authority. Focused-panel Surfaces remain an explicit
 Loophole attachment because they have no regional layout-container binding.
-Card 109 is active.
+Card 109 replaces app-authored drag payloads and Poodle DOM discovery with one
+epoch-safe transfer session, measured leases, public Poodle panel seams, and
+checked registered layout and Surface commits. Loophole retains its explicit
+empty-display window-spawn policy after a typed disabled-provision result.
+Card 110 is active.
 
 Keyboard, keymap, palette, and conflict semantics can migrate under contract
 006. Extended triggers and macros remain Loophole adapters. Linear history can
@@ -144,5 +148,6 @@ Pulse journal integration survive; branch mode stays disabled.
 
 ## Next Task
 
-Execute Card 109. Cut over checked renderer lifetime, public Poodle seams, and
-listener-first panel and whole-Surface transfer sessions.
+Execute Card 110. Adopt the shared settings shell, command discovery, keyboard
+resolver, palette, and conflict projection while retaining product execution
+and extended-trigger policy.

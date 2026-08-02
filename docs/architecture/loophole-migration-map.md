@@ -61,11 +61,11 @@ not a second layout tree and is not persisted.
 | display facts | Longhorn inventory and correlation fed by the Loophole machine helper | complete | machine labels, canonical platform evidence, and Loophole diagnostics |
 | window plan/apply | Longhorn placement, protected/dynamic Tauri host, lifecycle, reveal, and shutdown | complete | logical roles, main retag, close, fullscreen, and empty-host policy |
 | workspace document | Echo profile/layout types; Aura `shell.rs` | distinct registered window, Surface, and layout domains | workspace preset scope and project restore input |
-| layout mutation | Echo `WorkspaceCommand`; Aura sequential host calls | expected-revision Longhorn commands | eight-region schema and panel policy |
-| Surface lifecycle | Aura shell service over Echo documents | optional Surface core and host binding | focused habitat, eligibility, presence, fallback policy |
-| panel drag | Poodle local MIME plus Aura command shaping | public Poodle source with Longhorn armed sessions and leases | allowed targets and product presentation |
-| Surface drag | Aura screen-point host resolution | whole-Surface transfer adapter | empty-display provision and source-window policy |
-| renderer state | Aura stores and Svelte components | checked clients and per-window lifetime | bodies, labels, icons, chrome, workflow state |
+| layout mutation | registered Longhorn layout domain with Aura compatibility projection | complete | eight-region schema and panel policy |
+| Surface lifecycle | registered Longhorn Surface domain with focused attachment | complete | focused habitat, eligibility, presence, fallback policy |
+| panel drag | public Poodle source/target and Longhorn armed sessions and leases | complete | allowed targets and product presentation |
+| Surface drag | checked whole-Surface adapter; typed fallback to Aura empty-display spawn | complete | empty-display provision and source-window policy |
+| renderer state | listener-first clients, epochs, leases, and Aura projection | transfer slice complete | bodies, labels, icons, chrome, workflow state |
 | settings | Aura five-tab modal plus host stores | registry, checked sessions, shared shell and storage pages | app, hardware, keybinding, and workspace page content |
 | commands | Echo registry/runtime/input/action crates plus Aura WASM | registry, keyboard keymap, palette and settings projections | command catalogue, availability, execution, extended input |
 | history | `pulse-history`, `history_apply.rs`, project snapshot and session journal | structural linear kernel and metadata UI | every payload and durability/recovery decision |

@@ -1,6 +1,6 @@
 # 110 Loophole Settings, Command, And Keyboard Cutover
 
-Status: planned
+Status: active
 Owner: Tom
 Roadmap: g01.015 batch 4
 Governing refs: contracts 004-007, 010, 012, and 013; Card 109

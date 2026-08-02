@@ -33,7 +33,8 @@ palette, full linear-history import, and closeout. Card 103 selects and proves
 casing everywhere. Loophole's pre-existing SQLite link conflict is Card 104's
 first admission gate. Cards 104-108 now complete artifact admission, canonical
 storage, Longhorn display/window hosting, registered regional layout, and
-registered regional Surface lifecycle. Card 109 is active.
+registered regional Surface lifecycle, and checked renderer/Poodle transfer.
+Card 110 is active.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -166,5 +167,5 @@ this host.
 
 ## Next Task
 
-Execute g01.015 Card 109. Cut over checked renderer lifetime and public Poodle
-panel and Surface transfer seams.
+Execute g01.015 Card 110. Adopt shared settings, command discovery, keyboard,
+palette, and conflict projection without moving Loophole execution policy.

@@ -1,6 +1,6 @@
 # 109 Loophole Renderer, Poodle, And Transfer Cutover
 
-Status: planned
+Status: complete
 Owner: Tom
 Roadmap: g01.015 batch 3
 Governing refs: contracts 010-014; Cards 107-108
@@ -60,6 +60,43 @@ per-window clients and Poodle's public external drag seam.
 - same-window and cross-window transfer receipts
 - expiry, ambiguity, disappearance, stale-result, and 2x geometry failures
 - public-Poodle and raw-transport audits
+
+## Result
+
+- Aura now installs panel and whole-Surface adapters over one shared Tauri
+  transfer handler, renderer client epoch, and measured lease registry.
+- All eight regions use Poodle's public `externalDragSource` and
+  `externalDropTarget` contracts. The former app MIME, tab-id parsing,
+  Poodle-class lookup, capture drag orchestration, and drag-out heuristic are
+  removed.
+- The renderer arms sessions on pointer preparation, publishes panel-region
+  and Surface-window zones, rejects stale layout and Surface revisions, and
+  destroys leases and sessions on remount or unmount.
+- Same-window reorder stays Poodle-controlled. Cross-region and cross-window
+  panel moves publish through the registered layout authority. Whole-Surface
+  managed-window moves publish through the registered Surface authority.
+- Empty-display creation remains Loophole policy. It runs only after the
+  checked Surface terminal result explicitly reports disabled generic
+  provisioning, then uses the retained Loophole spawn path.
+- Compatibility projection preserves Aura panel priority and disables an
+  emptied source window without moving catalogue, focused-Surface, or native
+  window policy into Longhorn.
+
+## Validation
+
+- Loophole Svelte diagnostics: 0 errors, 0 warnings.
+- Loophole renderer: 1,021 passed across 101 files; focused transfer and policy
+  set: 13 passed.
+- Loophole production renderer build passed; only existing Vite chunk-size and
+  mixed static/dynamic import warnings remain.
+- Loophole native compatibility sync: 2 passed; Rust library check passed.
+- Longhorn transfer protocol: 11 passed; Surface transfer protocol: 6 passed;
+  Svelte transfer lifecycle/actions: 20 passed; Tauri transfer handler and
+  capability set: 7 passed.
+- Shared Tauri transfer evidence covers epoch replacement, teardown,
+  ambiguity, expiry, disappearance, stale geometry, and scaled projection.
+- Aura's source boundary test rejects private Poodle MIME, DOM, class, and
+  internal-id discovery.
 
 ## Next Task
 
