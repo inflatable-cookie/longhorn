@@ -47,6 +47,7 @@ type AdmissionFixture = {
     longhorn_selected_source_commit: string;
     longhorn_selected_tree_sha256: string;
     poodle_commit: string;
+    soundcheck_commit?: string;
   };
   artifact_sets: {
     poodle: string;
@@ -115,7 +116,8 @@ const admission = JSON.parse(
   await readFile(
     resolve(
       repoRoot,
-      "fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json",
+      process.env.SECONDARY_CONSUMER_ADMISSION_FIXTURE ??
+        "fixtures/migration/soundcheck-card119/private-artifact-admission-v1.json",
     ),
     "utf8",
   ),
@@ -239,8 +241,8 @@ try {
         },
         writeAdmission: {
           admitted: true,
-          nextCard: 115,
-          scope: "Soundcheck storage, config, and protected primary window",
+          nextCard: admission.write_admission.next_card,
+          scope: admission.write_admission.scope,
         },
       },
       null,
@@ -285,7 +287,8 @@ async function verifySources() {
   );
 
   const expected = {
-    soundcheck: fixture.sources.soundcheck_commit,
+    soundcheck:
+      admission.sources.soundcheck_commit ?? fixture.sources.soundcheck_commit,
     soundcheck_library: fixture.sources.soundcheck_library_commit,
     signal: fixture.sources.signal_commit,
     bovine: fixture.sources.bovine_commit,
@@ -895,10 +898,17 @@ function verifyAdmissionEvidence(
   );
   assertEqual(admission.audits.tags, false, "tags");
   assertEqual(admission.audits.hosted_releases, false, "hosted releases");
-  assertEqual(admission.write_admission.next_card, 115, "next admitted card");
+  const refreshedSoundcheckAdmission = admission.sources.soundcheck_commit !== undefined;
+  assertEqual(
+    admission.write_admission.next_card,
+    refreshedSoundcheckAdmission ? 120 : 115,
+    "next admitted card",
+  );
   assertEqual(
     admission.write_admission.scope,
-    "soundcheck-storage-config-protected-primary-window",
+    refreshedSoundcheckAdmission
+      ? "bovine-config-and-settings-cutover"
+      : "soundcheck-storage-config-protected-primary-window",
     "write admission scope",
   );
 }

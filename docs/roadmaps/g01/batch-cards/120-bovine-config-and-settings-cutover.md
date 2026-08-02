@@ -1,6 +1,6 @@
 # 120 Bovine Config And Settings Cutover
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.016 batch 3
 Governing refs: contracts 003-005, 010, 012-013; Cards 113-114 and 119

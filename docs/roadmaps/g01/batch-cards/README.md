@@ -146,5 +146,5 @@ None.
 
 ## Next Task
 
-Execute Card 119. Prove and close Soundcheck's selected composition, native
-behavior, rollback posture, and retained downstream authority.
+Execute Card 120. Preserve Bovine's unrelated docs work and migrate only its
+minimal config/settings composition after rechecking exact path overlap.

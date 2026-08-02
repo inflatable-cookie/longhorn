@@ -49,4 +49,6 @@ Product schemas, policies, payloads, and named adapters remain in Loophole.
 Secondary-consumer selection and retained authority are compiled under
 `secondary-consumer-migration-map.md`; Card 113 now freezes exact receipts,
 behavior seams, selected packages, rollback inputs, and the protected Bovine
-docs-only overlap before any new consumer write.
+docs-only overlap before any new consumer write. Card 119 closes Soundcheck's
+selected graph and retains every SQLite, scan, plugin, DAW, Composer,
+Keepsake, Signal, Swallowtail, and visual-product authority downstream.

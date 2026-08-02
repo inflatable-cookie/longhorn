@@ -152,6 +152,15 @@ three locked/offline Rust 1.85 and Tauri 2.11.5 graphs:
 effigy proof:secondary-consumer-private-artifacts
 ```
 
+The default receipt is the latest Card 119 refresh. Set
+`SECONDARY_CONSUMER_ADMISSION_FIXTURE` to Card 114's fixture only when running
+against its exact historical consumer checkouts.
+
+Aggregate Northstar QA runs each completed migration's static closeout gate.
+Exact cross-repository HEAD and artifact proofs remain directly addressable by
+their card selectors. Advancing or concurrently editing a consumer does not
+make an immutable receipt a repository-wide live HEAD invariant.
+
 Set `KEEP_SECONDARY_CONSUMER_ARTIFACT_PROOF=1` only when the disposable proof
 workspace must be inspected after the run.
 
@@ -164,8 +173,9 @@ effigy qa:northstar:g01-soundcheck-card115
 ```
 
 The default donor is `../soundcheck`. Override it with `SOUNDCHECK_REPO` only
-for a checkout containing the recorded cutover commit. Full native GUI
-fresh/restart proof remains Card 119 work.
+for a checkout containing the recorded cutover commit. Card 119 closes the
+fresh/restart matrix; the visible native GUI path is recorded as environment
+unmet where computer control timed out.
 
 Soundcheck Card 116 verifies the sealed modal settings registry, exact admitted
 config capabilities, one-domain Agent Review apply unit, native SQLite backup
@@ -178,8 +188,8 @@ effigy qa:northstar:g01-soundcheck-card116
 
 The default sibling checkouts are `../soundcheck` and
 `../soundcheck-library`. Override them only with `SOUNDCHECK_REPO` or
-`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Native
-restore/restart conformance remains Card 119 work.
+`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Card 119
+closes native restore/restart conformance.
 
 Soundcheck Card 117 verifies the database-reconciled payload-free operation
 authority, revision-bound and identity-checked cancellation, retry lineage,
@@ -192,8 +202,8 @@ effigy qa:northstar:g01-soundcheck-card117
 
 The default sibling checkouts are `../soundcheck` and
 `../soundcheck-library`. Override them only with `SOUNDCHECK_REPO` or
-`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Native
-scan/restart and cancellation-race conformance remains Card 119 work.
+`SOUNDCHECK_LIBRARY_REPO` checkouts containing the recorded commits. Card 119
+closes scan/restart and cancellation-race conformance.
 
 Soundcheck Card 118 verifies the exact isolated-window cutover and lock
 receipts, generation-bound helper channel, listener-before-launch adapter,
@@ -207,8 +217,22 @@ effigy qa:northstar:g01-soundcheck-card118
 
 The default sibling checkouts are `../soundcheck` and `../signal`. Override
 them only with `SOUNDCHECK_REPO` or `SIGNAL_REPO` checkouts containing the
-recorded commits. Live plugin, crash, close, and scale conformance remains
-Card 119 work.
+recorded commits. Card 119 closes the automated helper matrix; visible live
+plugin interaction remains explicitly environment unmet where computer control
+timed out.
+
+Soundcheck Card 119 refreshes the full private artifact graph, replays Cards
+115-118, verifies the isolated product profile, audits exact dependencies and
+capabilities, checks the storage/window/settings/scan/helper matrices, and
+verifies the recorded previous-build readback:
+
+```sh
+effigy proof:soundcheck-card119
+```
+
+The visible plugin-GUI click path is recorded as environment-unmet when macOS
+computer control cannot enumerate applications. The proof does not widen
+Windows, Linux, scale, package-publication, or live-data claims.
 
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete

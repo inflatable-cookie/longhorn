@@ -141,3 +141,4 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Soundcheck Settings, Backup, And Recovery Cutover](2026-08/02-soundcheck-settings-backup-recovery-cutover.md)
 - [Soundcheck Plugin-scan Operation Cutover](2026-08/02-soundcheck-plugin-scan-operation-cutover.md)
 - [Soundcheck Isolated-window Coordination Cutover](2026-08/02-soundcheck-isolated-window-coordination-cutover.md)
+- [Soundcheck Migration Conformance Closeout](2026-08/02-soundcheck-migration-conformance-closeout.md)

@@ -1,6 +1,6 @@
 # g01.016 Secondary Consumers And Greenfield Release
 
-Status: executing; Card 119 ready
+Status: executing; Card 120 ready
 Owner: Tom
 Updated: 2026-08-02
 Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
@@ -47,7 +47,7 @@ lane from current evidence; it does not infer package publication.
 - [x] compose product settings with shared storage/backup/recovery modules
 - [x] adopt structural operation authority for plugin scan
 - [x] adopt isolated-window coordination for disposable plugin inspection
-- [ ] prove exact artifacts, behavior, rollback, and retained sibling authority
+- [x] prove exact artifacts, behavior, rollback, and retained sibling authority
 
 ### Batch 3: Bovine
 
@@ -86,7 +86,7 @@ lane from current evidence; it does not infer package publication.
 - [ ] each migrated concern has one active structural authority
 - [ ] rollback uses retained sources and exact receipts, not dual writes or silent fallback
 - [ ] Bovine's unrelated work and authored content are untouched
-- [ ] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
+- [x] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
 - [ ] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
 - [ ] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
 - [ ] compatibility claims name MSRV, peers, protocol range, platform, and evidence
@@ -125,9 +125,9 @@ Complete:
 ## Planning Checkpoint
 
 Cards 113-114 freeze exact authority and admit the three selected private
-artifact graphs without consumer writes. Cards 115-118 complete Soundcheck's
-storage/window, settings/recovery, plugin-scan operation, and isolated-window
-slices. Card 119 is the only ready Soundcheck slice.
+artifact graphs without consumer writes. Cards 115-119 complete Soundcheck's
+storage/window, settings/recovery, plugin-scan operation, isolated-window, and
+closeout slices. Card 120 is ready.
 Consumer writes remain sequential so each app closes before the next opens.
 
 Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
@@ -149,5 +149,5 @@ authority.
 
 ## Next Task
 
-Execute Card 119. Prove and close Soundcheck's selected composition, native
-behavior, rollback posture, and retained downstream authority.
+Execute Card 120. Preserve Bovine's unrelated docs work and migrate only its
+minimal config/settings composition after rechecking exact path overlap.

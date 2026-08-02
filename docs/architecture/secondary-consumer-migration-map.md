@@ -72,8 +72,8 @@ Cards 115-116 complete Soundcheck storage, protected-window, settings, backup,
 and restore structure. Card 117 moved plugin-scan lifecycle structure onto
 Longhorn while retaining soundcheck-library job truth. Card 118 wraps the
 disposable inspection helper in isolated-window coordination while retaining
-Soundcheck and Signal policy. Card 119 is ready. Bovine and Jetstream remain
-read-only.
+Soundcheck and Signal policy. Card 119 closes the exact composition, artifact,
+restart, and rollback gates. Bovine and Jetstream remain read-only.
 
 ## Card 115 Soundcheck Cutover
 
@@ -101,8 +101,9 @@ preventing a large product tree from becoming transition input.
 The Tauri `main` label maps to protected `window:primary`. Soundcheck uses a
 hidden restore, known-display reconciliation, `320x240` minimum, guarded
 restore/page-ready reveal, 300 ms capture debounce, and two-second close flush.
-The previous settings-file window worker is removed. Full native GUI and
-rollback conformance remains the Card 119 closeout gate.
+The previous settings-file window worker is removed. Card 119 proves native
+bundle startup, first-attempt hidden restore, and previous-build readback. The
+visible GUI click path is explicitly environment-unmet on this host.
 
 ## Card 116 Soundcheck Settings And Recovery Cutover
 
@@ -150,7 +151,37 @@ authorization, native titlebar, screenshots, startup warnings, cancellation,
 parent keepalive, Browse usage, and disposable-exit policy remain Soundcheck.
 ABI, editor, state, audio/MIDI, and size constraints remain Signal. macOS is
 proved; Windows and Linux remain unsupported. Scale is limited to Signal's
-current native 1:1 editor coordinate contract pending Card 119 traces.
+current native 1:1 editor coordinate contract. Card 119 does not widen that
+claim: the visible plugin-GUI matrix remains environment-unmet.
+
+## Card 119 Soundcheck Closeout
+
+Soundcheck closes at `e8970aa212e9464f53264f58f6628cd98254fc30` on a
+`display -> window` composition: 14 Rust packages and six renderer packages.
+Layout, Surfaces, transfer, commands, history, bridge, notifications,
+backing-surface, child-view, remote capabilities, and plugin-helper Tauri
+windows remain absent.
+
+The refreshed private receipt packs nine TypeScript and 18 Rust artifacts,
+installs all three frozen consumer shapes outside workspace resolution, keeps
+one Svelte runtime, and publishes nothing. Soundcheck's isolated product
+profile verifies 6 portable, 1 hosted, and 3 native products with 7/4/1 host
+plans. The complete product gate passes 318 Rust and 30 renderer tests.
+
+The pre-migration build at `f4544e621b8ba3f4558c6b068db1cb36d6ef161f`
+reached a stable run loop against the retained isolated profile. Database
+semantic digest `64bee46a2f239fce6f6113bb063c866c1bb32426b641a9df2ef6cb42d26e4a15`
+and settings digest
+`ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356`
+were unchanged afterward. No dual write, fallback, cleanup, or live-library
+mutation occurred; the temporary worktree was removed.
+
+The macOS acceptance bundle started through the proof-root bypass and hidden
+window restore converged on attempt one. Computer control timed out before it
+could enumerate apps, so live plugin start/resize/focus/close clicks are
+classified environment-unmet. Product-boundary tests cover helper start
+contract, resize, focus, close, crash, stale generation, request gaps, and
+bounded history. Windows and Linux remain explicitly unsupported.
 
 ## Soundcheck
 
