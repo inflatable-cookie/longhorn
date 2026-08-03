@@ -266,6 +266,17 @@ fn unknown_serialized_fields_fail_closed() {
     assert!(serde_json::from_value::<LayoutDocument>(value).is_err());
 }
 
+#[test]
+fn serialized_document_rejects_out_of_range_sizing_ratio() {
+    let mut value = serde_json::to_value(document()).unwrap();
+    value.as_object_mut().unwrap()["containers"][0]["sizing_slots"][0]
+        .as_object_mut()
+        .unwrap()
+        .insert("ratio".into(), 1_000_001.into());
+
+    assert!(serde_json::from_value::<LayoutDocument>(value).is_err());
+}
+
 fn single_container_document(
     regions: impl IntoIterator<Item = RegionState>,
     panel_instances: impl IntoIterator<Item = PanelInstance>,

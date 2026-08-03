@@ -50,6 +50,19 @@ fn ratio_is_a_bounded_integer_wire_value() {
         serde_json::from_str::<LayoutRatio>("740000").unwrap(),
         ratio(740_000)
     );
+    assert!(serde_json::from_str::<LayoutRatio>("1000000").is_ok());
+    assert!(serde_json::from_str::<LayoutRatio>("1000001").is_err());
+}
+
+#[test]
+fn serialized_sizing_slot_rejects_out_of_range_ratio() {
+    let mut schema = serde_json::to_value(workspace_schema()).unwrap();
+    schema.as_object_mut().unwrap()["sizing_slots"][0]
+        .as_object_mut()
+        .unwrap()
+        .insert("maximum".into(), 3_000_000.into());
+
+    assert!(serde_json::from_value::<LayoutSchemaDefinition>(schema).is_err());
 }
 
 #[test]

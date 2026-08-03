@@ -328,3 +328,18 @@ fn request_and_command_envelopes_reject_unknown_fields() {
         .insert("future".into(), true.into());
     assert!(serde_json::from_value::<LayoutMutationCommand>(command_value).is_err());
 }
+
+#[test]
+fn serialized_sizing_command_rejects_out_of_range_ratio() {
+    let mut command_value = serde_json::to_value(LayoutMutationCommand::SetSizingSlot {
+        container_id: container_id("container:primary"),
+        sizing_slot_id: slot_id("left-width"),
+        ratio: ratio(400_000),
+    })
+    .unwrap();
+    command_value
+        .as_object_mut()
+        .unwrap()
+        .insert("ratio".into(), 1_000_001.into());
+    assert!(serde_json::from_value::<LayoutMutationCommand>(command_value).is_err());
+}

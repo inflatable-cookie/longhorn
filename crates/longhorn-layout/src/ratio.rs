@@ -1,16 +1,26 @@
 use std::{error::Error, fmt};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 /// Maximum ratio value representing exactly one.
 pub const RATIO_ONE_MILLIONTHS: u32 = 1_000_000;
 
 /// Cross-language-stable layout ratio encoded as integer millionths.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
 pub struct LayoutRatio(u32);
+
+impl<'de> Deserialize<'de> for LayoutRatio {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        Self::from_millionths(value).map_err(de::Error::custom)
+    }
+}
 
 impl LayoutRatio {
     /// Zero ratio.
