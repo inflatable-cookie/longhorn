@@ -74,6 +74,8 @@ proved that contract.
 - Card 069 promotes those semantics. Card 070 implements the optional
   production Rust graph foundation without publishing the prototype or making
   a compatibility claim.
+- Card 071 implements bounded atomic LCA navigation, current/named/pinned
+  protection, deterministic leaf pruning, and opaque checkpoint replay cost.
 - Alternate projections must be bounded and lazy or paged. Production
   persistence must avoid expanded JSON numeric byte arrays.
 - Undo branches remain distinct from project versions, collaboration, and

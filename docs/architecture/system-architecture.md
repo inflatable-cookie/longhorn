@@ -259,7 +259,9 @@ stable first-class branch refs, lowest-common-ancestor checkout, protected
 pruning, opaque checkpoints, independent migration, and credible document and
 Loophole-shaped costs. Card 069 promotes those semantics. Card 070 implements
 the production tree identity, topology, branch refs, and divergent-record
-foundation.
+foundation. Card 071 adds bounded mixed LCA navigation through one atomic
+consumer transaction, current/named/pinned protection, deterministic leaf
+pruning, and opaque checkpoint replay accounting.
 
 The tree layer composes downward over `longhorn-history`; it does not replace
 the linear authority or enter minimal dependency graphs. Immutable nodes own
@@ -269,8 +271,8 @@ projection remains linear. Production persistence must use a dense payload
 representation rather than the prototype's expanded JSON byte arrays.
 
 `longhorn-history-tree` now exists as an optional private-workspace production
-package. Navigation, persistence, clients, and artifact compatibility remain
-unproved. Loophole keeps branch mode disabled. Undo branches remain distinct
+package. Persistence, clients, and artifact compatibility remain unproved.
+Loophole keeps branch mode disabled. Undo branches remain distinct
 from project versions, collaboration, merge, and event sourcing.
 
 ### Async operations and notifications

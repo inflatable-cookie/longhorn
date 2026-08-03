@@ -6,8 +6,8 @@ use longhorn_history::{
 };
 
 use crate::{
-    ForkBranch, ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistoryError,
-    ForkHistoryNode, ForkHistoryStateError,
+    ForkBranch, ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkCheckpoint, ForkCheckpointId,
+    ForkHistoryError, ForkHistoryNode, ForkHistoryStateError, MAXIMUM_FORK_CHECKPOINTS,
 };
 
 /// Defensive hard ceiling for retained fork-history nodes.
@@ -58,6 +58,7 @@ pub struct ForkHistoryState<P> {
     current_branch_id: ForkBranchId,
     current_node_id: Option<HistoryEntryId>,
     preferred_children: Vec<ForkPreferredChild>,
+    checkpoints: Vec<ForkCheckpoint>,
     next_sequence: HistoryEntrySequence,
 }
 
@@ -79,6 +80,7 @@ impl<P> ForkHistoryState<P> {
             current_branch_id,
             current_node_id,
             preferred_children: Vec::new(),
+            checkpoints: Vec::new(),
             next_sequence,
         }
     }
@@ -101,6 +103,13 @@ impl<P> ForkHistoryState<P> {
     #[must_use]
     pub fn with_preferred_children(mut self, preferred_children: Vec<ForkPreferredChild>) -> Self {
         self.preferred_children = preferred_children;
+        self
+    }
+
+    /// Supplies opaque checkpoint references for validation.
+    #[must_use]
+    pub fn with_checkpoints(mut self, checkpoints: Vec<ForkCheckpoint>) -> Self {
+        self.checkpoints = checkpoints;
         self
     }
 
@@ -144,6 +153,12 @@ impl<P> ForkHistoryState<P> {
     #[must_use]
     pub fn preferred_children(&self) -> &[ForkPreferredChild] {
         &self.preferred_children
+    }
+
+    /// Returns supplied checkpoint references.
+    #[must_use]
+    pub fn checkpoints(&self) -> &[ForkCheckpoint] {
+        &self.checkpoints
     }
 
     /// Returns the next insertion sequence.
@@ -294,16 +309,17 @@ impl ForkBranchUpdateReceipt {
 /// Immutable-node fork graph with stable branch references.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForkHistory<P> {
-    history_id: HistoryId,
-    revision: HistoryRevision,
-    nodes: BTreeMap<HistoryEntryId, ForkHistoryNode<P>>,
-    children: BTreeMap<Option<HistoryEntryId>, Vec<HistoryEntryId>>,
-    branches: BTreeMap<ForkBranchId, ForkBranch>,
-    current_branch_id: ForkBranchId,
-    current_node_id: Option<HistoryEntryId>,
-    preferred_children: BTreeMap<Option<HistoryEntryId>, HistoryEntryId>,
-    next_sequence: HistoryEntrySequence,
-    retained_encoded_weight: u64,
+    pub(crate) history_id: HistoryId,
+    pub(crate) revision: HistoryRevision,
+    pub(crate) nodes: BTreeMap<HistoryEntryId, ForkHistoryNode<P>>,
+    pub(crate) children: BTreeMap<Option<HistoryEntryId>, Vec<HistoryEntryId>>,
+    pub(crate) branches: BTreeMap<ForkBranchId, ForkBranch>,
+    pub(crate) current_branch_id: ForkBranchId,
+    pub(crate) current_node_id: Option<HistoryEntryId>,
+    pub(crate) preferred_children: BTreeMap<Option<HistoryEntryId>, HistoryEntryId>,
+    pub(crate) checkpoints: BTreeMap<ForkCheckpointId, ForkCheckpoint>,
+    pub(crate) next_sequence: HistoryEntrySequence,
+    pub(crate) retained_encoded_weight: u64,
 }
 
 impl<P> ForkHistory<P> {
@@ -324,6 +340,7 @@ impl<P> ForkHistory<P> {
             current_branch_id: main_branch_id,
             current_node_id: None,
             preferred_children: BTreeMap::new(),
+            checkpoints: BTreeMap::new(),
             next_sequence: HistoryEntrySequence::FIRST,
             retained_encoded_weight: 0,
         }
@@ -393,6 +410,25 @@ impl<P> ForkHistory<P> {
             }
         }
 
+        let mut checkpoints = BTreeMap::new();
+        for checkpoint in state.checkpoints {
+            if checkpoint
+                .after_entry_id()
+                .is_some_and(|entry_id| !nodes.contains_key(entry_id))
+            {
+                return Err(ForkHistoryStateError::InvalidCheckpoint(
+                    checkpoint.checkpoint_id().clone(),
+                ));
+            }
+            let checkpoint_id = checkpoint.checkpoint_id().clone();
+            if checkpoints
+                .insert(checkpoint_id.clone(), checkpoint)
+                .is_some()
+            {
+                return Err(ForkHistoryStateError::DuplicateCheckpoint(checkpoint_id));
+            }
+        }
+
         if !branches.contains_key(&state.current_branch_id) {
             return Err(ForkHistoryStateError::UnknownCurrentBranch(
                 state.current_branch_id,
@@ -421,6 +457,7 @@ impl<P> ForkHistory<P> {
             current_branch_id: state.current_branch_id,
             current_node_id: state.current_node_id,
             preferred_children,
+            checkpoints,
             next_sequence: state.next_sequence,
             retained_encoded_weight,
         })
@@ -441,6 +478,7 @@ impl<P> ForkHistory<P> {
                 .into_iter()
                 .map(|(parent, child)| ForkPreferredChild::new(parent, child))
                 .collect(),
+            checkpoints: self.checkpoints.into_values().collect(),
             next_sequence: self.next_sequence,
         }
     }
@@ -689,6 +727,12 @@ fn validate_counts<P>(state: &ForkHistoryState<P>) -> Result<(), ForkHistoryStat
         return Err(ForkHistoryStateError::TooManyBranches {
             maximum: MAXIMUM_FORK_BRANCHES,
             actual: state.branches.len(),
+        });
+    }
+    if state.checkpoints.len() > MAXIMUM_FORK_CHECKPOINTS {
+        return Err(ForkHistoryStateError::TooManyCheckpoints {
+            maximum: MAXIMUM_FORK_CHECKPOINTS,
+            actual: state.checkpoints.len(),
         });
     }
     Ok(())

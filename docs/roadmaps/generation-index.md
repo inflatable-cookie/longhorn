@@ -36,4 +36,6 @@ divergent record without changing the linear graph.
 g01.019 is complete through Cards 128-131. Longhorn now supplies grouped
 custom-adapter staging, journalling, exact rollback, and catalogue-bound boot
 recovery. Nucleus may resume its consumer card but remains incomplete until it
-supplies app-wide quiescence and restart. Card 071 is the next Longhorn task.
+supplies app-wide quiescence and restart. Cards 070-071 implement the fork-tree
+graph through atomic navigation, protected retention, and opaque checkpoints.
+Card 072 is the next Longhorn task.

@@ -44,7 +44,7 @@ Nucleus g05.046 exposed the grouped custom-adapter restore gap. Cards 128-131
 close g01.019 with a generic grouped transaction, durable journal, exact
 rollback, boot recovery, mixed-adapter/SQLite proof, and a consumer handoff.
 Nucleus remains incomplete until its own quiescence and restart work lands.
-Card 071 is ready in g01.017.
+Cards 070-071 are complete and Card 072 is ready in g01.017.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -178,5 +178,5 @@ this host.
 
 ## Next Task
 
-Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
-checkpoint accounting over the production graph.
+Execute Card 072. Add strict dense persistence, independent structural and
+payload migration, and corruption proof.

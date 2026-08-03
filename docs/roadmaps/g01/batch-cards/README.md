@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [071 Fork-tree Navigation, Retention, And Checkpoints](071-fork-tree-navigation-retention-and-checkpoints.md)
+- [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 
 ## Operator-held
 
@@ -14,7 +14,6 @@ None.
 
 ## Planned
 
-- [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
 
@@ -109,6 +108,7 @@ None.
 - [068 Private Forkable History Tree Prototype](068-private-forkable-history-tree-prototype.md)
 - [069 Forkable History Promotion Decision And Closeout](069-forkable-history-promotion-decision-and-closeout.md)
 - [070 Fork-tree Identity, Topology, And Branches](070-fork-tree-identity-topology-and-branches.md)
+- [071 Fork-tree Navigation, Retention, And Checkpoints](071-fork-tree-navigation-retention-and-checkpoints.md)
 - [075 Operation Donor Fixtures, Identity, And Lifecycle Authority](075-operation-donor-fixtures-identity-and-lifecycle-authority.md)
 - [076 Operation Progress, Cancellation, Retention, And Teardown](076-operation-progress-cancellation-retention-and-teardown.md)
 - [077 Generated Operation Protocol And Tauri/Bridge Composition](077-generated-operation-protocol-and-tauri-bridge-composition.md)
@@ -150,5 +150,5 @@ None.
 
 ## Next Task
 
-Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
-checkpoint accounting over the production graph.
+Execute Card 072. Add strict dense persistence, independent structural and
+payload migration, and corruption proof.

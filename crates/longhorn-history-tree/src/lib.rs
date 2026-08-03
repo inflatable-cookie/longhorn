@@ -5,18 +5,32 @@
 //! models, persistence, clocks, or project-version identity.
 
 mod branch;
+mod checkpoint;
 mod error;
 mod identity;
+mod navigation;
 mod node;
+mod retention;
 mod state;
 
 pub use branch::{
     ForkBranch, ForkBranchMetadata, ForkBranchMetadataError, ForkBranchSeed,
     MAXIMUM_FORK_BRANCH_ANNOTATION_BYTES, MAXIMUM_FORK_BRANCH_NAME_BYTES,
 };
+pub use checkpoint::{
+    ForkCheckpoint, ForkCheckpointError, ForkCheckpointReceipt, ForkReplayCost,
+    MAXIMUM_FORK_CHECKPOINT_REFERENCE_BYTES, MAXIMUM_FORK_CHECKPOINTS,
+};
 pub use error::{ForkHistoryError, ForkHistoryStateError};
-pub use identity::{ForkBranchId, ForkIdentityError, MAXIMUM_FORK_ID_BYTES};
+pub use identity::{ForkBranchId, ForkCheckpointId, ForkIdentityError, MAXIMUM_FORK_ID_BYTES};
+pub use navigation::{
+    ForkNavigationError, ForkNavigationPlan, ForkNavigationReceipt, ForkNavigationTarget,
+    ForkNavigationTransaction,
+};
 pub use node::ForkHistoryNode;
+pub use retention::{
+    ForkPrunedNode, ForkPruningOutcome, ForkPruningReceipt, ForkRetentionError, ForkRetentionLimits,
+};
 pub use state::{
     ForkBranchUpdateReceipt, ForkHistory, ForkHistoryState, ForkPreferredChild, ForkRecord,
     ForkRecordReceipt, MAXIMUM_FORK_BRANCHES, MAXIMUM_FORK_NODES,

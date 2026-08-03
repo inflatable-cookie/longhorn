@@ -8,6 +8,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Grouped Custom-adapter Restore](2026-08/02-grouped-custom-adapter-restore.md)
 - [Nucleus Grouped Restore Consumer Handoff](2026-08/02-nucleus-grouped-restore-consumer-handoff.md)
 - [Fork-tree Identity, Topology, And Branches](2026-08/03-fork-tree-identity-topology-and-branches.md)
+- [Fork-tree Navigation, Retention, And Checkpoints](2026-08/03-fork-tree-navigation-retention-and-checkpoints.md)
 
 ## 2026-07
 

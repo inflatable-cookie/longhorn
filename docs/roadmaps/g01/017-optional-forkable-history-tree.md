@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Card 070 complete; Card 071 ready
+Status: executing; Cards 070-071 complete; Card 072 ready
 Owner: Tom
 Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -24,7 +24,7 @@ g01.015 or delay the first linear release.
 
 - [x] Card 070: immutable nodes, stable branch refs, divergence, and checked
   graph invariants
-- [ ] Card 071: preferred redo, atomic LCA navigation, protected retention,
+- [x] Card 071: preferred redo, atomic LCA navigation, protected retention,
   and opaque checkpoints
 
 ### Batch 2: Dense persistence
@@ -47,18 +47,18 @@ g01.015 or delay the first linear release.
 - [x] Keep `longhorn-history` independent of tree state.
 - [x] Preserve one payload copy per immutable node.
 - [x] Make stable branch refs the only branch identity authority.
-- [ ] Reuse the proven consumer policy and atomic transaction seams.
+- [x] Reuse the proven consumer policy and atomic transaction seams.
 - [ ] Keep the ordinary projection linear and alternate data opt-in.
 - [ ] Bound every branch, path, persistence, navigation, and retention surface.
 - [ ] Keep project versions, collaboration, merge, and event sourcing out.
 
 ## Acceptance Criteria
 
-- [ ] Linear-only artifacts and dependency graphs remain unchanged.
-- [ ] Divergence, preferred redo, and LCA checkout match Card 068 semantics.
-- [ ] Failed and stale navigation preserves exact graph authority.
-- [ ] Protected pruning terminates under count and encoded-weight limits.
-- [ ] Checkpoint content and durability remain consumer-owned.
+- [x] Linear-only artifacts and dependency graphs remain unchanged.
+- [x] Divergence, preferred redo, and LCA checkout match Card 068 semantics.
+- [x] Failed and stale navigation preserves exact graph authority.
+- [x] Protected pruning terminates under count and encoded-weight limits.
+- [x] Checkpoint content and durability remain consumer-owned.
 - [ ] Dense persistence materially removes numeric-array expansion.
 - [ ] Alternate projections are lazy or paged and never duplicate unbounded
   lineage by default.
@@ -77,12 +77,12 @@ g01.015 or delay the first linear release.
 Card 127 revalidates the working package names, coordinated private `0.1.0`,
 Rust 1.85, TypeScript/Svelte/Tauri peers, exact-v1 protocols, and Loophole's
 lossless linear consumer. Public registry names remain unresolved but do not
-gate the private optional implementation. Card 070 now supplies the
-downward-only pure graph foundation with checked document and Loophole-shaped
-fixtures. Cards 071-074 retain all navigation, persistence, client, and
-artifact claims.
+gate the private optional implementation. Cards 070-071 now supply the
+downward-only graph, atomic navigation, protected retention, and opaque
+checkpoint foundation with document and Loophole-shaped fixtures. Cards
+072-074 retain persistence, client, and artifact claims.
 
 ## Next Task
 
-Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
-checkpoint accounting over the production graph.
+Execute Card 072. Add strict dense persistence, independent structural and
+payload migration, and corruption proof.

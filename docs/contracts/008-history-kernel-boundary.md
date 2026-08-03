@@ -281,6 +281,13 @@ The production persistence format must avoid the prototype's JSON numeric-byte
 array expansion. The implementation lane must prove a dense payload encoding,
 strict topology validation, and deterministic encode/load behavior.
 
+Cards 070-071 implement the pure graph through atomic navigation, protected
+retention, and opaque checkpoint accounting. Navigation routes are revision
+and history bound, finite, and applied through one consumer transaction.
+Verified rollback and rollback failure both preserve graph authority. Pruning
+removes only deterministic unprotected leaves or rejects without mutation.
+Checkpoint data and durability remain outside Longhorn.
+
 The package boundary is optional and downward-only. `longhorn-history-tree`
 depends on `longhorn-history`; the linear crate does not depend on tree state.
 Renderer and Poodle edges remain metadata-only and optional.

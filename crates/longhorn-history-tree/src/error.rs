@@ -2,7 +2,7 @@ use std::{error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryRevision};
 
-use crate::ForkBranchId;
+use crate::{ForkBranchId, ForkCheckpointId};
 
 /// Rejected fork-history transition.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,6 +108,13 @@ pub enum ForkHistoryStateError {
         /// Supplied branch count.
         actual: usize,
     },
+    /// State exceeded the checkpoint hard limit.
+    TooManyCheckpoints {
+        /// Hard checkpoint limit.
+        maximum: usize,
+        /// Supplied checkpoint count.
+        actual: usize,
+    },
     /// Node identity appeared more than once.
     DuplicateNode(HistoryEntryId),
     /// Branch identity appeared more than once.
@@ -128,6 +135,10 @@ pub enum ForkHistoryStateError {
     DuplicatePreferredParent,
     /// Preferred child was not a direct child of its declared parent.
     InvalidPreferredChild(HistoryEntryId),
+    /// Checkpoint identity appeared more than once.
+    DuplicateCheckpoint(ForkCheckpointId),
+    /// A checkpoint referenced an absent node.
+    InvalidCheckpoint(ForkCheckpointId),
     /// Current branch did not exist.
     UnknownCurrentBranch(ForkBranchId),
     /// Current node did not exist or was outside the current branch lineage.

@@ -3,30 +3,43 @@ use std::{error::Error, fmt};
 /// Hard byte ceiling for one fork-tree identity.
 pub const MAXIMUM_FORK_ID_BYTES: usize = 128;
 
-/// Injected stable identity for one branch reference.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ForkBranchId(String);
+macro_rules! fork_id {
+    ($name:ident, $description:literal) => {
+        #[doc = $description]
+        #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        pub struct $name(String);
 
-impl ForkBranchId {
-    /// Validates and constructs a branch identity.
-    pub fn new(value: impl Into<String>) -> Result<Self, ForkIdentityError> {
-        let value = value.into();
-        validate(&value)?;
-        Ok(Self(value))
-    }
+        impl $name {
+            /// Validates and constructs an identity.
+            pub fn new(value: impl Into<String>) -> Result<Self, ForkIdentityError> {
+                let value = value.into();
+                validate(&value)?;
+                Ok(Self(value))
+            }
 
-    /// Returns the stable textual identity.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
+            /// Returns the stable textual identity.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+    };
 }
 
-impl fmt::Display for ForkBranchId {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
+fork_id!(
+    ForkBranchId,
+    "Injected stable identity for one branch reference."
+);
+fork_id!(
+    ForkCheckpointId,
+    "Opaque identity for one consumer-owned checkpoint reference."
+);
 
 fn validate(value: &str) -> Result<(), ForkIdentityError> {
     if value.is_empty() {

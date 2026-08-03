@@ -1,6 +1,6 @@
 # 072 Dense Fork-tree Persistence And Migration
 
-Status: planned
+Status: ready
 Owner: Tom
 Roadmap: g01.017 batch 2
 Governing refs: contracts 004, 008, and 012; Cards 065, 068, and 071

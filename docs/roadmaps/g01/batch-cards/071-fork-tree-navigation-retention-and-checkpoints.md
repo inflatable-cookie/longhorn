@@ -1,6 +1,6 @@
 # 071 Fork-tree Navigation, Retention, And Checkpoints
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.017 batch 1
 Governing refs: contracts 001 and 008; Cards 063-064 and 068-070
