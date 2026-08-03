@@ -584,7 +584,12 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         self.emit(ChildViewAdapterEvent::ListenerInstalled { generation });
         let callback_adapter = self.clone();
         let callback = Arc::new(move |event| {
-            let _ = callback_adapter.admit_runtime_event(event);
+            if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.child-view.runtime-event",
+                    format_args!("{error:?}"),
+                );
+            }
         });
         self.emit(ChildViewAdapterEvent::AttachStarted { generation });
         let handle = match self.runtime.attach(RuntimeAttachRequest {
@@ -610,7 +615,12 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             }
         };
         if !retained {
-            let _ = self.runtime.close(&handle);
+            if let Err(error) = self.runtime.close(&handle) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.child-view.close",
+                    format_args!("{error:?}"),
+                );
+            }
             return Err(ChildViewError::NotAttached);
         }
         self.emit(ChildViewAdapterEvent::Attached { generation });

@@ -9,6 +9,7 @@ description = "Narrow injected Tauri host for Longhorn notification ledgers"
 publish = false
 
 [dependencies]
+longhorn-core.workspace = true
 longhorn-notifications.workspace = true
 serde.workspace = true
 tauri.workspace = true

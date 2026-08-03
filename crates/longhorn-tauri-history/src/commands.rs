@@ -75,7 +75,9 @@ pub fn longhorn_history_navigate<R: Runtime>(
         // This event is an invalidation hint, not the durable outcome. Once the
         // authority commits navigation, publication failure must not disguise
         // the committed result as a retryable command failure.
-        let _ = window.emit(HISTORY_CHANGED_EVENT, event);
+        if let Err(error) = window.emit(HISTORY_CHANGED_EVENT, event) {
+            longhorn_core::report_best_effort_failure("history.changed-emit", error);
+        }
     }
     Ok(result)
 }

@@ -520,7 +520,12 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         self.emit(IsolatedWindowAdapterEvent::ListenerInstalled { generation });
         let callback_adapter = self.clone();
         let callback = Arc::new(move |event| {
-            let _ = callback_adapter.admit_runtime_event(event);
+            if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.isolated-window.runtime-event",
+                    format_args!("{error:?}"),
+                );
+            }
         });
         self.emit(IsolatedWindowAdapterEvent::AttachStarted { generation });
         let handle = match self.runtime.attach(RuntimeAttachRequest {
@@ -548,7 +553,12 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             }
         };
         if !retained {
-            let _ = self.runtime.teardown(&handle, self.spec.teardown_timeout());
+            if let Err(error) = self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.isolated-window.teardown",
+                    format_args!("{error:?}"),
+                );
+            }
             return Err(IsolatedWindowError::NotAttached);
         }
         self.emit(IsolatedWindowAdapterEvent::Attached { generation });

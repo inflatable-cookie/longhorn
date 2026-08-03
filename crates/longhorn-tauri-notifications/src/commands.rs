@@ -59,7 +59,9 @@ pub fn longhorn_notifications_mutate<R: Runtime>(
 ) -> Result<NotificationMutationResult, NotificationHostError> {
     let result = state.service.mutate(window.label(), command)?;
     if let Some(event) = notification_mutation_changed_event(&result) {
-        let _ = window.app_handle().emit(NOTIFICATION_CHANGED_EVENT, event);
+        if let Err(error) = window.app_handle().emit(NOTIFICATION_CHANGED_EVENT, event) {
+            longhorn_core::report_best_effort_failure("notifications.changed-emit", error);
+        }
     }
     Ok(result)
 }

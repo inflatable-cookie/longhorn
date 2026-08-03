@@ -2,6 +2,7 @@
 
 mod client_geometry;
 mod command_id;
+mod diagnostics;
 mod domain_id;
 mod geometry;
 mod opaque_id;
@@ -16,6 +17,9 @@ pub use command_id::{
     CommandAvailabilityReasonId, CommandBindingId, CommandCapabilityId, CommandCategoryId,
     CommandContextId, CommandEnumValueId, CommandEvidenceCode, CommandFieldId, CommandId,
     CommandKeymapPresetId, CommandRequestId, CommandRouteId,
+};
+pub use diagnostics::{
+    BestEffortDiagnostics, install_best_effort_diagnostics, report_best_effort_failure,
 };
 pub use domain_id::{DomainId, DomainIdError};
 pub use geometry::{

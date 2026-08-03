@@ -9,6 +9,7 @@ description = "Narrow injected Tauri host for Longhorn history metadata and navi
 publish = false
 
 [dependencies]
+longhorn-core.workspace = true
 longhorn-history.workspace = true
 serde.workspace = true
 tauri.workspace = true

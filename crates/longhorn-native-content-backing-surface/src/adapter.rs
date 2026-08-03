@@ -554,7 +554,12 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
         self.emit(BackingSurfaceAdapterEvent::ListenerInstalled { generation });
         let callback_adapter = self.clone();
         let callback = Arc::new(move |event| {
-            let _ = callback_adapter.admit_runtime_event(event);
+            if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.backing-surface.runtime-event",
+                    format_args!("{error:?}"),
+                );
+            }
         });
         self.emit(BackingSurfaceAdapterEvent::AttachStarted { generation });
         let (handle, snapshot) = match self.runtime.attach(RuntimeAttachRequest {
@@ -569,12 +574,22 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             }
         };
         if let Err(error) = validate_snapshot(&snapshot) {
-            let _ = self.runtime.detach(&handle);
+            if let Err(error) = self.runtime.detach(&handle) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.backing-surface.detach",
+                    format_args!("{error:?}"),
+                );
+            }
             self.clear_reservation(generation)?;
             return Err(error);
         }
         if !snapshot.native_storage_attached {
-            let _ = self.runtime.detach(&handle);
+            if let Err(error) = self.runtime.detach(&handle) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.backing-surface.detach",
+                    format_args!("{error:?}"),
+                );
+            }
             self.clear_reservation(generation)?;
             return Err(BackingSurfaceError::Runtime {
                 operation: "attach",
@@ -598,7 +613,12 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             }
         };
         if !retained {
-            let _ = self.runtime.detach(&handle);
+            if let Err(error) = self.runtime.detach(&handle) {
+                longhorn_core::report_best_effort_failure(
+                    "native-content.backing-surface.detach",
+                    format_args!("{error:?}"),
+                );
+            }
             return Err(BackingSurfaceError::GenerationInvalidated(generation));
         }
         self.emit(BackingSurfaceAdapterEvent::Attached { generation });
