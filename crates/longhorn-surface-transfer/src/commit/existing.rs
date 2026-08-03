@@ -44,12 +44,20 @@ where
             "source and target advertised different Surface revisions",
         ));
     }
-    let source_binding = bindings.get(source.host_binding_id)?;
+    // The terminal attempt already consumed the session; every failure from
+    // here on must say so or the renderer will replay a dead session.
+    let source_binding = bindings
+        .get(source.host_binding_id)
+        .map_err(SurfaceTransferError::consumed)?;
     require_binding(source_binding, source.window_id, source.document_id)?;
-    let target_binding = bindings.get(target.host_binding_id)?;
+    let target_binding = bindings
+        .get(target.host_binding_id)
+        .map_err(SurfaceTransferError::consumed)?;
     require_binding(target_binding, target.window_id, target.document_id)?;
 
-    let document = load_surface(store, domain)?.clone();
+    let document = load_surface(store, domain)
+        .map_err(SurfaceTransferError::consumed)?
+        .clone();
     let layout_container_id = require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id)?;
     let insertion = insertion_index(
@@ -79,11 +87,14 @@ where
         .authoritative_document()
         .surface(&source.surface_id)
         .expect("successful move retains the Surface");
-    assert_eq!(
-        committed.layout_container_id(),
-        &layout_container_id,
-        "Surface move must retain its external layout-container binding"
-    );
+    // The document is durably committed at this point; a binding drift is
+    // reconciliation evidence, never a release-profile abort.
+    if committed.layout_container_id() != &layout_container_id {
+        return Err(super::evidence::consumed(
+            crate::SurfaceTransferErrorCode::HostReconciliationRequired,
+            "Surface moved but its retained external layout-container binding changed",
+        ));
+    }
     Ok(SurfaceTransferCommitReceipt::new(
         SurfaceTerminalAttempt::Existing(attempt),
         source_binding.id().clone(),

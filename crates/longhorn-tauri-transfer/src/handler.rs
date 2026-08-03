@@ -78,35 +78,58 @@ where
         caller_handle: &HostWindowHandle,
     ) -> Result<TransferClientSnapshot, TransferHandlerError> {
         let runtime = self.runtime.snapshot(caller_handle)?;
-        let mut state = self.lock_active()?;
         let window_id = runtime.caller().window_id().clone();
-        let epoch =
-            state
-                .epoch_high_water
-                .get(&window_id)
-                .map_or(Ok(ClientEpoch::new(1)), |current| {
+        let client_id = {
+            let mut state = self.lock_active()?;
+            let epoch = state.epoch_high_water.get(&window_id).map_or(
+                Ok(ClientEpoch::new(1)),
+                |current| {
                     current
                         .get()
                         .checked_add(1)
                         .map(ClientEpoch::new)
                         .ok_or(TransferHandlerError::IdentityExhausted)
+                },
+            )?;
+            let client_id = issue_client_id(&mut state)?;
+            state
+                .coordinator
+                .bind_client_epoch(&self.clock, window_id.clone(), client_id.clone(), epoch)
+                .map_err(|error| {
+                    TransferHandlerError::ClientBinding(error.code(), error.detail().to_owned())
                 })?;
-        let client_id = issue_client_id(&mut state)?;
-        state
-            .coordinator
-            .bind_client_epoch(&self.clock, window_id.clone(), client_id.clone(), epoch)
-            .map_err(|error| {
-                TransferHandlerError::ClientBinding(error.code(), error.detail().to_owned())
-            })?;
-        state.clients.insert(
-            window_id.clone(),
-            CurrentClient {
-                client_id: client_id.clone(),
-                epoch,
-            },
-        );
-        state.epoch_high_water.insert(window_id, epoch);
-        Ok(TransferClientSnapshot::new(client_id, epoch, None))
+            state.clients.insert(
+                window_id.clone(),
+                CurrentClient {
+                    client_id: client_id.clone(),
+                    epoch,
+                },
+            );
+            state.epoch_high_water.insert(window_id.clone(), epoch);
+            CurrentClient { client_id, epoch }
+        };
+        // Close the probe/bind race with destroy_window: a destroy ordered
+        // before this recheck either already removed the binding or is undone
+        // here; one ordered after it removes the binding itself. Without this,
+        // a window destroyed between the unlocked probe and the bind would
+        // leak a client slot until teardown.
+        if let Err(error) = self.runtime.snapshot(caller_handle) {
+            let mut state = self.lock_active()?;
+            if state
+                .clients
+                .get(&window_id)
+                .is_some_and(|current| current.client_id == client_id.client_id)
+            {
+                state.clients.remove(&window_id);
+                state.coordinator.destroy_window(&window_id);
+            }
+            return Err(error.into());
+        }
+        Ok(TransferClientSnapshot::new(
+            client_id.client_id,
+            client_id.epoch,
+            None,
+        ))
     }
 
     /// Projects and atomically publishes one complete caller-window lease.

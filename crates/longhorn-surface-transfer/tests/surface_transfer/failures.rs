@@ -239,3 +239,63 @@ fn host_commit_failure_returns_authoritative_reconciliation_evidence() {
     );
     assert_eq!(load_surface(&fixture.store, &domain).revision().get(), 8);
 }
+
+#[test]
+fn consumed_binding_failure_reports_consumption_and_replay_is_terminal() {
+    let mut fixture = Fixture::new();
+    let domain = domain();
+    fixture.store.register(&domain).unwrap();
+    let baseline = load_surface(&fixture.store, &domain);
+
+    let mut runtime = RuntimeFixture::new();
+    let session = runtime.admit(&fixture.store, &domain).unwrap();
+    let stale_bindings = longhorn_surface_transfer::SurfaceHostBindings::new([]).unwrap();
+    let live = runtime.live_target();
+    let mut provisioner = MockProvisioner::new(MockMode::Success);
+
+    let error = commit_surface_transfer(
+        &fixture.store,
+        &domain,
+        &layout_document(),
+        &mut runtime.coordinator,
+        &runtime.clock,
+        &stale_bindings,
+        &policy(),
+        &mut provisioner,
+        SurfaceTransferCommitRequest::new(
+            session,
+            TargetSelector::ExplicitZone(DropZoneId::new("zone:surface-target").unwrap()),
+            [live.clone()],
+            options(),
+        ),
+    )
+    .unwrap_err();
+    assert_eq!(error.code(), SurfaceTransferErrorCode::UnknownHostBinding);
+    assert!(
+        error.session_consumed(),
+        "post-consumption binding failure must report the consumed session"
+    );
+    assert_eq!(load_surface(&fixture.store, &domain), baseline);
+
+    let replay = commit_surface_transfer(
+        &fixture.store,
+        &domain,
+        &layout_document(),
+        &mut runtime.coordinator,
+        &runtime.clock,
+        &runtime.bindings,
+        &policy(),
+        &mut provisioner,
+        SurfaceTransferCommitRequest::new(
+            session,
+            TargetSelector::ExplicitZone(DropZoneId::new("zone:surface-target").unwrap()),
+            [live],
+            options(),
+        ),
+    )
+    .unwrap_err();
+    assert_eq!(
+        replay.transfer_code(),
+        Some(TransferErrorCode::SessionReplayed)
+    );
+}

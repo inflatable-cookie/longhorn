@@ -40,13 +40,17 @@ where
 {
     let source = empty_source(&attempt)?;
     require_domain(domain, source.document_id)?;
-    let source_binding = bindings.get(source.host_binding_id)?;
+    // The empty-display attempt already consumed the session; every failure
+    // from here on must say so or the renderer will replay a dead session.
+    let source_binding = bindings
+        .get(source.host_binding_id)
+        .map_err(SurfaceTransferError::consumed)?;
     require_binding(source_binding, source.window_id, source.document_id)?;
     let target = policy
         .empty_target(attempt.screen_point())
         .map_err(map_empty_target)?;
 
-    let document = load_surface(store, domain)?;
+    let document = load_surface(store, domain).map_err(SurfaceTransferError::consumed)?;
     let layout_container_id = require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id())?;
     let insertion = insertion_index(
@@ -127,11 +131,24 @@ where
         .authoritative_document()
         .surface(&source.surface_id)
         .expect("successful move retains the Surface");
-    assert_eq!(
-        committed.layout_container_id(),
-        &layout_container_id,
-        "Surface move must retain its external layout-container binding"
-    );
+    // The document is durably committed and a native window is provisioned;
+    // a binding drift is reconciliation evidence, never a release-profile
+    // abort mid-reconciliation.
+    if committed.layout_container_id() != &layout_container_id {
+        let failure = SurfaceWindowProvisionFailure::new(
+            SurfaceWindowProvisionStage::Commit,
+            "Surface moved but its retained external layout-container binding changed",
+        );
+        return Err(consumed(
+            SurfaceTransferErrorCode::HostReconciliationRequired,
+            failure.detail(),
+        )
+        .with_provisioning(SurfaceProvisionFailureEvidence::ReconciliationRequired {
+            provision,
+            publication: Box::new(publication),
+            failure,
+        }));
+    }
     let commit = provisioner.commit(&mut authority).map_err(|failure| {
         consumed(
             SurfaceTransferErrorCode::HostReconciliationRequired,

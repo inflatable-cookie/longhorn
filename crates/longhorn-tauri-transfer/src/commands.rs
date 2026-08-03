@@ -156,13 +156,19 @@ where
 /// Type-erased transfer commands installed once in Tauri managed state.
 pub struct TauriTransferState {
     service: Arc<dyn TransferCommandService>,
+    // Serializes snapshot acquisition with client-changed emission so two
+    // concurrent snapshots cannot deliver their events out of epoch order.
+    snapshot_emit: std::sync::Mutex<()>,
 }
 
 impl TauriTransferState {
     /// Wraps one real or mock-runtime command assembly.
     #[must_use]
     pub fn new(service: Arc<dyn TransferCommandService>) -> Self {
-        Self { service }
+        Self {
+            service,
+            snapshot_emit: std::sync::Mutex::new(()),
+        }
     }
 }
 
@@ -172,13 +178,20 @@ pub fn longhorn_transfer_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
 ) -> Result<TransferClientSnapshot, String> {
+    let _ordered = state
+        .snapshot_emit
+        .lock()
+        .map_err(|_| "transfer snapshot ordering lock is poisoned".to_string())?;
     let snapshot = state
         .service
         .snapshot(&caller_handle(&window)?)
         .map_err(|error| error.to_string())?;
-    window
-        .emit(TRANSFER_CLIENT_CHANGED_EVENT, &snapshot)
-        .map_err(|error| error.to_string())?;
+    // The invoke result is the authoritative delivery; the event is advisory
+    // to other listeners. The epoch has already advanced, so an emit failure
+    // must not hide the new authority behind an error.
+    if let Err(error) = window.emit(TRANSFER_CLIENT_CHANGED_EVENT, &snapshot) {
+        longhorn_core::report_best_effort_failure("transfer.client-changed-emit", error);
+    }
     Ok(snapshot)
 }
 

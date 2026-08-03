@@ -237,3 +237,48 @@ fn managed_window(handle_value: &str, window_id: &str) -> ManagedTransferWindow 
 fn handle(value: &str) -> HostWindowHandle {
     HostWindowHandle::new(value).unwrap()
 }
+
+#[test]
+fn snapshot_destroy_race_never_leaks_client_capacity() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
+
+    let caller = handle("main");
+    let snapshot =
+        ManagedTransferSnapshot::new(&caller, [managed_window("main", "window:main")]).unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let racing = Arc::new(AtomicBool::new(true));
+    let runtime = {
+        let calls = Arc::clone(&calls);
+        let racing = Arc::clone(&racing);
+        let snapshot = snapshot.clone();
+        move |caller: &HostWindowHandle| {
+            // While racing, every second probe simulates a window destroyed
+            // between the initial probe and the post-bind liveness recheck.
+            let call = calls.fetch_add(1, Ordering::SeqCst);
+            if racing.load(Ordering::SeqCst) && call % 2 == 1 {
+                Err(TransferRuntimeError::UnmanagedCaller(caller.clone()))
+            } else {
+                Ok(snapshot.clone())
+            }
+        }
+    };
+    let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
+
+    // Far more raced cycles than the client-window capacity: each must fail
+    // with the runtime error, never with a capacity exhaustion from leaked
+    // bindings.
+    for _ in 0..32 {
+        let error = handler.snapshot(&caller).unwrap_err();
+        assert!(
+            matches!(error, TransferHandlerError::Runtime(_)),
+            "raced snapshot leaked capacity: {error:?}"
+        );
+    }
+
+    racing.store(false, Ordering::SeqCst);
+    let authority = handler.snapshot(&caller).unwrap();
+    assert!(authority.client_epoch().get() > 32);
+}
