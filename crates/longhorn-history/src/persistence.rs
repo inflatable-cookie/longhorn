@@ -157,7 +157,9 @@ impl HistoryPayloadMigrationStep {
         &self.bytes
     }
 
-    fn into_parts(self) -> (HistoryPayloadCodecVersion, Vec<u8>) {
+    /// Consumes the step into its produced version and migrated bytes.
+    #[must_use]
+    pub fn into_parts(self) -> (HistoryPayloadCodecVersion, Vec<u8>) {
         (self.version, self.bytes)
     }
 }
@@ -170,6 +172,15 @@ pub struct HistoryPayloadMigrationTarget<'target> {
 }
 
 impl<'target> HistoryPayloadMigrationTarget<'target> {
+    /// Constructs a migration target for a compatible optional history layer.
+    #[must_use]
+    pub const fn new(
+        family: &'target HistoryPayloadCodecFamily,
+        version: HistoryPayloadCodecVersion,
+    ) -> Self {
+        Self { family, version }
+    }
+
     /// Returns the registered codec family.
     #[must_use]
     pub const fn family(self) -> &'target HistoryPayloadCodecFamily {

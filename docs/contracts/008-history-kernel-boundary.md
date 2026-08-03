@@ -288,6 +288,23 @@ Verified rollback and rollback failure both preserve graph authority. Pruning
 removes only deterministic unprotected leaves or rejects without mutation.
 Checkpoint data and durability remain outside Longhorn.
 
+Card 072 implements graph persistence under the separate stable
+`longhorn.history-tree` family. Structural version and consumer payload-codec
+version are independent. Older sources advance only through registered exact
+next-version steps; foreign and future families or versions reject visibly.
+Payload bytes are RFC 4648 base64 JSON strings, never numeric byte arrays.
+Identity-ordered nodes, branches, preferred children, and checkpoints produce
+deterministic current-version bytes.
+
+Every persistence instance requires a nonzero caller-selected envelope bound
+under a 1 GiB hard ceiling. Load parses, migrates, decodes, reconstructs, and
+validates the complete graph before returning authority. History identity,
+payload family and weight, topology, refs, sequence, revision, current
+position, metadata, checkpoints, and unknown fields all fail closed. Failed
+load returns no graph. Checkpoints persist only their opaque consumer refs.
+The API accepts and returns bytes; it owns no path, file, write, fsync,
+snapshot, journal, autosave, or recovery policy.
+
 The package boundary is optional and downward-only. `longhorn-history-tree`
 depends on `longhorn-history`; the linear crate does not depend on tree state.
 Renderer and Poodle edges remain metadata-only and optional.

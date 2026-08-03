@@ -59,6 +59,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
 age = { version = "=0.12.1", default-features = false }
+base64 = "0.22.1"
 cap-std = "4.0.2"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }

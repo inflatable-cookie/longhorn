@@ -1,0 +1,81 @@
+{
+  "formatFamily": "longhorn.history-tree",
+  "structuralVersion": 1,
+  "payloadCodec": {
+    "family": "fixture.fork-mutation",
+    "version": 1
+  },
+  "historyId": "history:fork-fixture",
+  "revision": 4,
+  "currentBranchId": "branch:alternate",
+  "currentNodeId": "entry:c",
+  "nextSequence": 4,
+  "nodes": [
+    {
+      "entryId": "entry:a",
+      "parentEntryId": null,
+      "label": "entry:a",
+      "kindId": "fixture:mutation",
+      "groupId": "fixture:group",
+      "sequence": 1,
+      "committedRevision": 1,
+      "encodedWeight": 13,
+      "payload": "AQAAAAAAAABhbHBoYQ=="
+    },
+    {
+      "entryId": "entry:b",
+      "parentEntryId": "entry:a",
+      "label": "entry:b",
+      "kindId": "fixture:mutation",
+      "groupId": "fixture:group",
+      "sequence": 2,
+      "committedRevision": 2,
+      "encodedWeight": 13,
+      "payload": "AgAAAAAAAABicmF2bw=="
+    },
+    {
+      "entryId": "entry:c",
+      "parentEntryId": "entry:a",
+      "label": "entry:c",
+      "kindId": "fixture:mutation",
+      "groupId": "fixture:group",
+      "sequence": 3,
+      "committedRevision": 3,
+      "encodedWeight": 15,
+      "payload": "/v////////9jaGFybGll"
+    }
+  ],
+  "branches": [
+    {
+      "branchId": "branch:alternate",
+      "headEntryId": "entry:c",
+      "name": "Alternate",
+      "annotation": "Alternate fixture branch",
+      "pinned": false
+    },
+    {
+      "branchId": "branch:main",
+      "headEntryId": "entry:b",
+      "name": "Main",
+      "annotation": "Main fixture branch",
+      "pinned": true
+    }
+  ],
+  "preferredChildren": [
+    {
+      "parentEntryId": null,
+      "childEntryId": "entry:a"
+    },
+    {
+      "parentEntryId": "entry:a",
+      "childEntryId": "entry:c"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpointId": "checkpoint:a",
+      "afterEntryId": "entry:a",
+      "consumerReference": "consumer://fixture/checkpoint-a"
+    }
+  ]
+}

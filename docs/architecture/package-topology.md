@@ -41,7 +41,7 @@ discovery and validation entry points.
 | `longhorn-command-config` | registered active-preset and sparse-override domain plus coordinated mutation | core, config, command |
 | `longhorn-command-settings` | optional keybinding page registration over command/keymap capabilities | core, settings |
 | `longhorn-history` | optional typed linear history, checked navigation, persistence envelopes, metadata protocol, projections, and transition receipts | core |
-| `longhorn-history-tree` | optional immutable-node fork topology, stable branch refs, atomic LCA navigation, protected pruning, and opaque checkpoint accounting | core, history |
+| `longhorn-history-tree` | optional immutable-node fork topology, stable branch refs, atomic LCA navigation, protected pruning, opaque checkpoints, and dense strict persistence | core, history |
 | `longhorn-operation` | optional finite operation authority with bounded progress, cancellation, retention, retry lineage, and teardown | core |
 | `longhorn-notifications` | optional finite retained notification ledger with explicit read/removal transitions and operation observation | core; optional operation feature |
 | `longhorn-native-content` | pure desired/observed native-content state, generation, planning, proposals, and receipts | core |
@@ -154,12 +154,14 @@ transaction. Structural persistence and committed transition receipts are
 shared; canonical product snapshots, journal files, checkpoints, fsync,
 autosave, replay, and project versions remain consumer authority.
 
-`longhorn-history-tree` is a separate downward-only package. Cards 070-071 own
+`longhorn-history-tree` is a separate downward-only package. Cards 070-072 own
 bounded branch identity and metadata, immutable single-parent nodes, canonical
 child indexes, checked complete-state admission, divergent record, atomic LCA
 navigation, current/named/pinned lineage protection, deterministic leaf
-pruning, and opaque checkpoint replay accounting. Persistence, renderer
-clients, and release compatibility are not yet implemented.
+pruning, opaque checkpoint replay accounting, and a deterministic dense graph
+envelope with independent structural/payload migration. The persistence API is
+bytes-only and owns no storage or durability. Renderer clients and release
+compatibility are not yet implemented.
 
 Four produced-artifact greenfield roots prove direct package selection for
 minimal config/settings, a Surface-free workspace, full hosting with linear

@@ -2507,8 +2507,11 @@ dependencies = [
 name = "longhorn-history-tree"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "longhorn-core",
  "longhorn-history",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

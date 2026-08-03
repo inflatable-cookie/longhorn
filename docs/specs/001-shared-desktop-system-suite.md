@@ -76,8 +76,10 @@ proved that contract.
   a compatibility claim.
 - Card 071 implements bounded atomic LCA navigation, current/named/pinned
   protection, deterministic leaf pruning, and opaque checkpoint replay cost.
+- Card 072 implements the strict dense graph envelope, independent exact-step
+  structural/payload migration, and complete validation before load returns.
 - Alternate projections must be bounded and lazy or paged. Production
-  persistence must avoid expanded JSON numeric byte arrays.
+  persistence uses base64 payload strings rather than numeric byte arrays.
 - Undo branches remain distinct from project versions, collaboration, and
   event sourcing.
 

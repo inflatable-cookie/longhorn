@@ -191,14 +191,16 @@ partially committed new runtime back in place.
 | retained | typed product mutations, inverse/coalesce policy, 750 ms grouping capability, 100-entry default, undo/redo/checkout, product snapshot, journal suffix, recovery, cross-session undo, product labels |
 | improved | plan/apply/commit admission, verified failure invariance, exact rollback-failure evidence, strict envelopes, authoritative future pages, listener-first refresh, per-instance teardown |
 | rejected | renderer-owned redo, move-before-apply, silent empty fallback, generic payload transport, Tauri capability as product authority, durable-event claim |
-| deferred | donor cutover, tree persistence/clients/artifacts, project versions, collaboration, registry publication |
+| deferred | donor cutover, tree clients/artifacts, project versions, collaboration, registry publication |
 
 Card 068 proves fork topology privately. Card 069 promotes its semantics while
 retaining the prototype as research. Card 070 implements the optional pure
 Rust identity, topology, branch, and divergent-record foundation. Linear mode
 remains the only compatibility-proved artifact until Card 074. Card 071 adds
 atomic mixed-route navigation, protected pruning, and opaque checkpoint replay
-accounting without changing Loophole or the linear packages.
+accounting without changing Loophole or the linear packages. Card 072 adds
+dense bytes-only persistence with independent migrations and strict complete
+graph admission. Storage and durability remain consumer-owned.
 
 ## Proof
 

@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Cards 070-071 complete; Card 072 ready
+Status: executing; Cards 070-072 complete; Card 073 ready
 Owner: Tom
 Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -29,7 +29,7 @@ g01.015 or delay the first linear release.
 
 ### Batch 2: Dense persistence
 
-- [ ] Card 072: strict graph envelope, dense payload representation,
+- [x] Card 072: strict graph envelope, dense payload representation,
   independent migration, and corruption proof
 
 ### Batch 3: Optional clients
@@ -59,7 +59,7 @@ g01.015 or delay the first linear release.
 - [x] Failed and stale navigation preserves exact graph authority.
 - [x] Protected pruning terminates under count and encoded-weight limits.
 - [x] Checkpoint content and durability remain consumer-owned.
-- [ ] Dense persistence materially removes numeric-array expansion.
+- [x] Dense persistence materially removes numeric-array expansion.
 - [ ] Alternate projections are lazy or paged and never duplicate unbounded
   lineage by default.
 - [ ] Two isolated consumer shapes pass from produced artifacts.
@@ -77,12 +77,12 @@ g01.015 or delay the first linear release.
 Card 127 revalidates the working package names, coordinated private `0.1.0`,
 Rust 1.85, TypeScript/Svelte/Tauri peers, exact-v1 protocols, and Loophole's
 lossless linear consumer. Public registry names remain unresolved but do not
-gate the private optional implementation. Cards 070-071 now supply the
+gate the private optional implementation. Cards 070-072 now supply the
 downward-only graph, atomic navigation, protected retention, and opaque
-checkpoint foundation with document and Loophole-shaped fixtures. Cards
-072-074 retain persistence, client, and artifact claims.
+checkpoint foundation plus dense strict persistence with document and
+Loophole-shaped fixtures. Cards 073-074 retain client and artifact claims.
 
 ## Next Task
 
-Execute Card 072. Add strict dense persistence, independent structural and
-payload migration, and corruption proof.
+Execute Card 073. Add bounded metadata protocols and opt-in branch/path
+clients while keeping the default projection linear.

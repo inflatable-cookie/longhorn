@@ -20,7 +20,7 @@
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
-| [g01.017](017-optional-forkable-history-tree.md) | executing; Cards 070-071 complete; Card 072 ready | optional production fork-tree layer after linear adoption |
+| [g01.017](017-optional-forkable-history-tree.md) | executing; Cards 070-072 complete; Card 073 ready | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 | [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
 
@@ -235,8 +235,8 @@ isolated Svelte state, retained panel/transient toast projections, and fresh
 action admission. Card 081 adds four isolated artifact graphs, equal native
 and renderer traces, multi-window/remount proof, and composition guidance.
 `g01.012` is complete. Card 127 satisfies the linear-history adoption and
-compatibility checkpoint. Cards 070-071 are complete; Card 072 is ready and
-Cards 073-074 remain planned.
+compatibility checkpoint. Cards 070-072 are complete; Card 073 is ready and
+Card 074 remains planned.
 
 Research memo 017 and contract 017 characterize native content islands as one
 pure desired/observed coordination protocol over separate child-webview,
@@ -384,5 +384,5 @@ still owns quiescence, adapter composition, and restart scheduling.
 
 ## Next Task
 
-Execute Card 072. Add strict dense persistence, independent structural and
-payload migration, and corruption proof.
+Execute Card 073. Add bounded metadata protocols and opt-in branch/path
+clients while keeping the default projection linear.

@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
+- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 
 ## Operator-held
 
@@ -14,11 +14,11 @@ None.
 
 ## Planned
 
-- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
 
 ## Complete
 
+- [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [131 Grouped Adapter Public Evidence And Nucleus Handoff](131-grouped-adapter-public-evidence-and-nucleus-handoff.md)
 - [130 Grouped Adapter Recovery And Conformance](130-grouped-adapter-recovery-and-conformance.md)
 - [129 Grouped Adapter Restore Execution And Journal](129-grouped-adapter-restore-execution-and-journal.md)
@@ -150,5 +150,5 @@ None.
 
 ## Next Task
 
-Execute Card 072. Add strict dense persistence, independent structural and
-payload migration, and corruption proof.
+Execute Card 073. Add bounded metadata protocols and opt-in branch/path
+clients while keeping the default projection linear.

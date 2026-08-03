@@ -2,7 +2,7 @@
 //!
 //! Product mutations must apply successfully before [`ForkHistory::record_applied`]
 //! is called. This crate owns graph topology and branch references, not product
-//! models, persistence, clocks, or project-version identity.
+//! models, storage durability, clocks, or project-version identity.
 
 mod branch;
 mod checkpoint;
@@ -10,6 +10,7 @@ mod error;
 mod identity;
 mod navigation;
 mod node;
+mod persistence;
 mod retention;
 mod state;
 
@@ -28,6 +29,13 @@ pub use navigation::{
     ForkNavigationTransaction,
 };
 pub use node::ForkHistoryNode;
+pub use persistence::{
+    CURRENT_FORK_HISTORY_STRUCTURAL_VERSION, FORK_HISTORY_FORMAT_FAMILY, ForkEncodeError,
+    ForkLoadError, ForkLoadOutcome, ForkLoadReceipt, ForkLoadResult, ForkPersistence,
+    ForkPersistenceLimits, ForkPersistenceLimitsError, ForkStructuralMigration,
+    ForkStructuralMigrationStep, ForkStructuralMigrationTarget,
+    MAXIMUM_FORK_HISTORY_ENVELOPE_BYTES, NoForkStructuralMigration,
+};
 pub use retention::{
     ForkPrunedNode, ForkPruningOutcome, ForkPruningReceipt, ForkRetentionError, ForkRetentionLimits,
 };

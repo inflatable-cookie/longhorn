@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
 /// Hard byte ceiling for one fork-tree identity.
 pub const MAXIMUM_FORK_ID_BYTES: usize = 128;
 
@@ -27,6 +29,25 @@ macro_rules! fork_id {
         impl fmt::Display for $name {
             fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str(self.as_str())
+            }
+        }
+
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_str(self.as_str())
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let value = String::deserialize(deserializer)?;
+                Self::new(value).map_err(de::Error::custom)
             }
         }
     };
