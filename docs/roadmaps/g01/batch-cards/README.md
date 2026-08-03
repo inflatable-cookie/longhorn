@@ -151,5 +151,5 @@ None.
 
 ## Next Task
 
-Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
-close g01.017.
+No fork-tree consumer lane auto-starts. Select one explicitly from artifact
+evidence; Nucleus grouped restore may continue from completed g01.019.

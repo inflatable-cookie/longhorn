@@ -1,12 +1,10 @@
 //! Linear-default and explicit bounded alternate projection evidence.
 
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId};
-use longhorn_history::{
-    HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
-};
+use longhorn_history::{HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel};
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryState,
-    ForkProjectionError, ForkProjectionPageRequest, ForkRecord,
+    ForkProjectionError, ForkProjectionPageRequest, ForkRecord, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -173,7 +171,7 @@ fn branch_and_path_pages_are_explicit_stable_and_hard_bounded() {
         Err(ForkProjectionError::ZeroPageSize)
     ));
     assert!(matches!(
-        ForkProjectionPageRequest::new(0, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE + 1),
+        ForkProjectionPageRequest::new(0, MAXIMUM_FORK_PROJECTION_PAGE_SIZE + 1),
         Err(ForkProjectionError::PageTooLarge { .. })
     ));
     assert!(matches!(

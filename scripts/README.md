@@ -39,6 +39,16 @@ consumers:
 effigy proof:settings-composition
 ```
 
+Fork-tree closeout re-runs the linear-only control, then installs document and
+Loophole-shaped tree consumers from produced private artifacts:
+
+```sh
+effigy qa:history-tree-artifacts
+```
+
+Set `KEEP_HISTORY_TREE_PROOF=1` only to retain its disposable artifact
+workspace. No registry publication is attempted.
+
 Nucleus private admission packs the exact Surface-free Longhorn graph, installs
 it with Poodle g12.018 in a clean renderer, and checks the locked Rust 1.85 /
 Tauri 2.11.5 graph:

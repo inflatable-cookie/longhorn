@@ -1,11 +1,12 @@
 use std::{error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
-use longhorn_history::{
-    HistoryEntryPosition, HistoryEntrySequence, HistoryLabel, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
-};
+use longhorn_history::{HistoryEntryPosition, HistoryEntrySequence, HistoryLabel};
 
 use crate::{ForkBranchId, ForkHistory};
+
+/// Hard ceiling for one fork-tree metadata page.
+pub const MAXIMUM_FORK_PROJECTION_PAGE_SIZE: usize = 256;
 
 /// One hard-bounded newest-first projection page request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -15,14 +16,14 @@ pub struct ForkProjectionPageRequest {
 }
 
 impl ForkProjectionPageRequest {
-    /// Validates one page request against the shared history ceiling.
+    /// Validates one page request against the fork-tree metadata ceiling.
     pub const fn new(offset: usize, limit: usize) -> Result<Self, ForkProjectionError> {
         if limit == 0 {
             return Err(ForkProjectionError::ZeroPageSize);
         }
-        if limit > MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE {
+        if limit > MAXIMUM_FORK_PROJECTION_PAGE_SIZE {
             return Err(ForkProjectionError::PageTooLarge {
-                maximum: MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
+                maximum: MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
                 actual: limit,
             });
         }

@@ -257,12 +257,12 @@ edge in the Nucleus graph.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
 [Native-content Island Composition](native-content-island-composition.md).
 
-## Planned Optional History-tree Layer
+## Optional History-tree Layer
 
 Card 069 promotes a downward-only tree layer. `longhorn-history-tree`,
 `longhorn-tauri-history-tree`, and `@longhorn/history-tree` are now implemented
-private-workspace packages. Card 074 retains produced-artifact and
-compatibility proof; none is publishable yet.
+private-workspace packages. Card 074 proves their produced private artifacts;
+none is published or implicitly enabled in a consumer.
 
 The Rust tree crate will depend on `longhorn-core` and `longhorn-history` for
 identity, typed payload policy, navigation steps, and rollback evidence. The
@@ -272,7 +272,9 @@ Product payloads, model apply, snapshot content, checkpoint content, storage,
 and recovery remain consumer authority.
 
 This boundary keeps minimal linear consumers unchanged. The retained private
-prototype is evidence, not a workspace member or package source.
+prototype is evidence, not a workspace member or package source. The artifact
+proof resolves document and Loophole-shaped consumers only from disposable
+archives and rejects prototype or sibling-source resolution.
 
 The history artifact proof installs minimal and Loophole-shaped TypeScript
 consumers from packed archives and runs separate offline Rust graphs from

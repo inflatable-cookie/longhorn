@@ -22,11 +22,19 @@ Svelte, and Poodle only where the app needs them.
 | Tauri metadata host | add `longhorn-tauri-history` | add `/tauri` | caller authorization |
 | Per-window reactive state | same Rust graph | add `/svelte` | instance lifetime |
 | Linear history panel | same Rust graph | add `/poodle` | placement and product copy |
+| Fork topology | add `longhorn-history-tree` | add `@longhorn/history-tree` | branch meaning and payload policy |
+| Fork metadata host | add `longhorn-tauri-history-tree` | add tree `/tauri` | caller authorization and atomic product apply |
+| Fork panel | same tree graph | add tree `/svelte` and `/poodle` | explicit placement and alternate-path loading |
 
 The pure Rust crate depends only on `longhorn-core`, Serde, and JSON. The
 framework-neutral TypeScript root depends only on `@longhorn/core`. Svelte and
 Poodle are optional peers. Config, bridge, Tauri, journal, Svelte, and Poodle
 do not enter the minimal graph.
+
+The tree layer is downward-only: `longhorn-history-tree` depends on linear
+history types, while `longhorn-history` never resolves tree code. A default
+tree renderer load remains a bounded linear path. Branch metadata and
+alternate paths load only after explicit requests.
 
 ## Authority Split
 
@@ -148,6 +156,8 @@ filters beyond the shared metadata fields, and surrounding shell.
 | --- | --- | --- | --- |
 | Minimal non-editor | core, history | core, history root | direct checked client |
 | Loophole-shaped | core, history, Tauri history | core, history root plus `/tauri`, `/svelte`, `/poodle` | typed Pulse-like policy, transaction, codec, snapshot, journal, caller authority, Poodle panel |
+| Document tree | core, history, history-tree | core, history-tree root | direct bounded metadata client; no Tauri, Svelte, or Poodle |
+| Loophole-shaped tree | core, history, history-tree, Tauri history-tree | core, history-tree plus `/tauri`, `/svelte`, `/poodle` | 2,112 retained nodes, 65 branch refs, one 1,025-step atomic checkout, public-Poodle panel |
 
 Both shapes consume produced artifacts. Rust emits the renderer fixtures. The
 isolated TypeScript installs reproduce the same public trace. This is
@@ -191,18 +201,46 @@ partially committed new runtime back in place.
 | retained | typed product mutations, inverse/coalesce policy, 750 ms grouping capability, 100-entry default, undo/redo/checkout, product snapshot, journal suffix, recovery, cross-session undo, product labels |
 | improved | plan/apply/commit admission, verified failure invariance, exact rollback-failure evidence, strict envelopes, authoritative future pages, listener-first refresh, per-instance teardown |
 | rejected | renderer-owned redo, move-before-apply, silent empty fallback, generic payload transport, Tauri capability as product authority, durable-event claim |
-| deferred | donor cutover, tree artifacts, project versions, collaboration, registry publication |
+| deferred | donor tree adoption, project versions, collaboration, registry publication |
 
 Card 068 proves fork topology privately. Card 069 promotes its semantics while
 retaining the prototype as research. Card 070 implements the optional pure
-Rust identity, topology, branch, and divergent-record foundation. Linear mode
-remains the only compatibility-proved artifact until Card 074. Card 071 adds
+Rust identity, topology, branch, and divergent-record foundation. Card 071 adds
 atomic mixed-route navigation, protected pruning, and opaque checkpoint replay
 accounting without changing Loophole or the linear packages. Card 072 adds
 dense bytes-only persistence with independent migrations and strict complete
 graph admission. Card 073 adds bounded metadata clients: startup loads only
 the preferred linear path; branches and alternate paths are explicit pages.
-Storage, durability, and product payloads remain consumer-owned.
+Card 074 proves private document and Loophole-shaped artifacts while retaining
+the unchanged linear-only control. Storage, durability, product payloads, and
+consumer adoption remain outside the shared layer.
+
+## Fork-tree Artifact Measurements
+
+The proof repeats the Card 068 document and Loophole shapes from produced
+private artifacts.
+
+| Metric | Document | Loophole-shaped |
+| --- | ---: | ---: |
+| target depth | 128 | 2,048 |
+| alternate branch refs | 4 | 64 |
+| retained nodes / branch refs | 132 / 5 | 2,112 / 65 |
+| retained payload bytes | 4,224 | 540,672 |
+| LCA checkout steps | 65 | 1,025 |
+| dense envelope | 46,110 B | 1,369,420 B |
+| Card 068 numeric-array envelope | 99,295 B | 7,534,856 B |
+| requested path / branch records | 17 / 5 | 17 / 17 |
+
+Durations remain local observations, not thresholds. Exact counts, graph
+shape, payload weight, envelope bounds, and returned record counts are gates.
+The Loophole-shaped dense envelope remains 5.50 times smaller than the
+prototype baseline. No eager derived-path collection is produced.
+
+Artifact proof is not adoption. A consumer must open a separate lane that
+freezes its payload, persistence, checkpoint, recovery, authorization, and
+rollback policy. Loophole stays linear until such a lane explicitly admits
+branch mode. Nucleus and simpler apps may continue to use no history or only
+linear history.
 
 ## Proof
 
@@ -210,7 +248,10 @@ Run:
 
 ```sh
 effigy proof:history-system-artifacts
+effigy proof:history-tree-artifacts
 ```
 
-Sources live in `examples/history-system-proof/`. Checkpoint evidence is in
-`../logs/2026-07/30-linear-history-artifact-proof-and-checkpoint.md`.
+Sources live in `examples/history-system-proof/` and
+`examples/history-tree-artifact-proof/`. Evidence is in
+`../logs/2026-07/30-linear-history-artifact-proof-and-checkpoint.md` and
+`../logs/2026-08/03-fork-tree-artifact-proof-and-closeout.md`.

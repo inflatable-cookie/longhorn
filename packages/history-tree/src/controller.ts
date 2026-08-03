@@ -1,5 +1,5 @@
 import { ForkHistoryClient } from "./client.ts";
-import { FORK_HISTORY_PROTOCOL_VERSION, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkEntryRecord, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
+import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkEntryRecord, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
 import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 
 export type ForkHistoryControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
@@ -96,7 +96,7 @@ export class ForkHistoryController {
 }
 
 function same(snapshot: ForkSnapshot, page: { authorityEpoch: number; historyId: string; revision: number }): boolean { return snapshot.authorityEpoch === page.authorityEpoch && snapshot.summary.historyId === page.historyId && snapshot.summary.revision === page.revision; }
-function pageSize(value: number): number { if (!Number.isSafeInteger(value) || value < 1 || value > 256) throw new RangeError("fork-history page size must be 1..256"); return value; }
+function pageSize(value: number): number { if (!Number.isSafeInteger(value) || value < 1 || value > MAXIMUM_FORK_HISTORY_PAGE_SIZE) throw new RangeError(`fork-history page size must be 1..${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`); return value; }
 export class ForkHistoryUnavailableError extends Error {}
 export class ForkHistoryProjectionGapError extends Error {}
 export class ForkHistoryLateResultError extends Error {}

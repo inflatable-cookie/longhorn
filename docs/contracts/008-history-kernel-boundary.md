@@ -11,11 +11,11 @@ Longhorn may provide an optional generic history kernel. It owns structural
 history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
-The first compatibility-proved mode is linear. Cards 070-072 implement the
-optional production tree through strict persistence. Card 073 implements its
-bounded pure projections, exact metadata protocol, caller-aware Tauri host,
-checked clients, per-instance Svelte state, and public-Poodle composition.
-Artifact proof and any release claim remain later work.
+The first compatibility-proved mode is linear. Cards 070-073 implement the
+optional production tree through strict persistence, bounded pure projections,
+an exact metadata protocol, a caller-aware Tauri host, checked clients,
+per-instance Svelte state, and public-Poodle composition. Card 074 proves the
+private artifacts without authorizing publication or consumer adoption.
 
 ## Package Shape
 
@@ -40,8 +40,8 @@ package.
 
 The tree crate depends downward on the proven linear entry, sequence,
 navigation-step, rollback, and authority-epoch types. It does not replace
-linear authority. The tree renderer and Tauri packages are implemented but no
-compatibility-proved tree artifact exists until Card 074.
+linear authority. The tree renderer and Tauri packages now pass isolated
+private-artifact compatibility proof.
 
 ## Authority
 
@@ -331,10 +331,12 @@ Svelte sessions are per instance, listener-first, stale-safe, SSR-safe, and
 idempotently disposable. Poodle composition uses only public controlled
 primitives. Product payloads never enter generated types, ports, events, or UI.
 
-Until Card 074 artifact proof:
+Card 074 artifact proof establishes:
 
-- no released tree package or compatibility promise is claimed
-- linear mode remains the only compatibility promise
+- private `0.1.0` tree artifacts install without sibling-source resolution
+- the linear-only graph remains tree-free
+- document and Loophole-shaped native/renderer traces agree
+- no released tree package or registry publication is claimed
 - Loophole migration does not depend on branching
 - project versions, collaboration, and event sourcing stay separate
 

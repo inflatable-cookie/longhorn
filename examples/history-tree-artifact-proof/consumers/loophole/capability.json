@@ -1,0 +1,8 @@
+{
+  "permissions": [
+    "allow-longhorn-history-tree-read",
+    "allow-longhorn-history-tree-mutate",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

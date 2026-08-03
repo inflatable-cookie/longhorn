@@ -20,7 +20,7 @@
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
-| [g01.017](017-optional-forkable-history-tree.md) | executing; Cards 070-073 complete; Card 074 ready | optional production fork-tree layer after linear adoption |
+| [g01.017](017-optional-forkable-history-tree.md) | complete | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 | [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
 
@@ -235,7 +235,7 @@ isolated Svelte state, retained panel/transient toast projections, and fresh
 action admission. Card 081 adds four isolated artifact graphs, equal native
 and renderer traces, multi-window/remount proof, and composition guidance.
 `g01.012` is complete. Card 127 satisfies the linear-history adoption and
-compatibility checkpoint. Cards 070-073 are complete and Card 074 is ready.
+compatibility checkpoint. Cards 070-074 and g01.017 are complete.
 
 Research memo 017 and contract 017 characterize native content islands as one
 pure desired/observed coordination protocol over separate child-webview,
@@ -374,8 +374,8 @@ runtime per graph. Card 126 adds checked API, storage/backup, composition,
 migration, rollback, and compatibility guides. Card 127 proves one
 deterministic private `0.1.0` compatibility candidate and closes g01.016.
 Registry publication, tags, and hosted releases remain outside the chain.
-The completed checkpoint satisfies g01.017 admission. Card 070 implements the
-downward-only production graph foundation.
+The completed checkpoint satisfies g01.017 admission. Cards 070-074 complete
+the downward-only production graph, bounded clients, and artifact proof.
 Nucleus g05.046 exposed a contract-backed grouped custom-adapter restore gap.
 Cards 128-131 close g01.019 without editing Nucleus or changing the fork-tree
 plan. The generic transaction and boot-recovery blocker is resolved. Nucleus
@@ -383,5 +383,5 @@ still owns quiescence, adapter composition, and restart scheduling.
 
 ## Next Task
 
-Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
-close g01.017.
+No fork-tree consumer lane auto-starts. Select one explicitly from artifact
+evidence; Nucleus grouped restore may continue from completed g01.019.

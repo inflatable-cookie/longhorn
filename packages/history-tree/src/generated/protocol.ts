@@ -2,6 +2,7 @@
 // Rust serde types are authoritative. Product payloads are intentionally absent.
 
 export const FORK_HISTORY_PROTOCOL_VERSION = 1 as const;
+export const MAXIMUM_FORK_HISTORY_PAGE_SIZE = 256 as const;
 export const FORK_HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
 export const FORK_HISTORY_PATH_TARGETS = ["default","branch"] as const;
 export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout"] as const;

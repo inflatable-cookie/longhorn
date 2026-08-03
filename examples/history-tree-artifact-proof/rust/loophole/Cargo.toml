@@ -1,0 +1,15 @@
+[package]
+name = "longhorn-loophole-history-tree-artifact-proof"
+version = "0.0.0"
+edition.workspace = true
+
+[features]
+default = ["tauri-host"]
+tauri-host = ["dep:longhorn-tauri-history-tree"]
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-history.workspace = true
+longhorn-history-tree.workspace = true
+longhorn-tauri-history-tree = { workspace = true, optional = true }
+serde_json.workspace = true

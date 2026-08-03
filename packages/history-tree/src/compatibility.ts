@@ -6,6 +6,7 @@ import {
   FORK_HISTORY_NAVIGATION_REJECTION_CODES,
   FORK_HISTORY_PATH_TARGETS,
   FORK_HISTORY_PROTOCOL_VERSION,
+  MAXIMUM_FORK_HISTORY_PAGE_SIZE,
   type ForkBranchPageCommand,
   type ForkBranchPageSnapshot,
   type ForkChangedEvent,
@@ -119,7 +120,7 @@ export function assertForkChangedEvent(value: unknown): asserts value is ForkCha
   integer(root.committedRevision, "$.committedRevision"); oneOf(root.kind, "$.kind", FORK_HISTORY_CHANGED_KINDS);
 }
 
-function commandBase(value: unknown, extra: string[]): void { noPayload(value); const root = object(value, "$"); exact(root, "$", ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", ...extra, "offset", "limit"]); protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); integer(root.expectedRevision, "$.expectedRevision"); integer(root.offset, "$.offset"); positive(root.limit, "$.limit"); }
+function commandBase(value: unknown, extra: string[]): void { noPayload(value); const root = object(value, "$"); exact(root, "$", ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", ...extra, "offset", "limit"]); protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); integer(root.expectedRevision, "$.expectedRevision"); integer(root.offset, "$.offset"); positive(root.limit, "$.limit"); if ((root.limit as number) > MAXIMUM_FORK_HISTORY_PAGE_SIZE) fail("$.limit", `maximum is ${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`); }
 function snapshotBase(root: Record<string, unknown>): void { protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); integer(root.revision, "$.revision"); integer(root.offset, "$.offset"); }
 function entryRecord(value: unknown, path: string): void { const root = object(value, path); exact(root, path, ["entryId", "label", "kindId", "groupId", "sequence", "committedRevision", "encodedWeight", "position"]); id(root.entryId, `${path}.entryId`); string(root.label, `${path}.label`); optionalId(root.kindId, `${path}.kindId`); optionalId(root.groupId, `${path}.groupId`); positive(root.sequence, `${path}.sequence`); integer(root.committedRevision, `${path}.committedRevision`); integer(root.encodedWeight, `${path}.encodedWeight`); oneOf(root.position, `${path}.position`, FORK_HISTORY_ENTRY_POSITIONS); }
 function noPayload(value: unknown): void { const visit = (candidate: unknown, path: string): void => { if (Array.isArray(candidate)) return candidate.forEach((item, index) => visit(item, `${path}[${index}]`)); if (candidate !== null && typeof candidate === "object") for (const [key, child] of Object.entries(candidate)) { if (key.toLocaleLowerCase().includes("payload")) fail(`${path}.${key}`, "product payload field is forbidden"); visit(child, `${path}.${key}`); } }; visit(value, "$"); }

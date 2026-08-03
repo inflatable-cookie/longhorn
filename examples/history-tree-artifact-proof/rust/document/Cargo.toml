@@ -1,0 +1,13 @@
+[package]
+name = "longhorn-document-history-tree-artifact-proof"
+version = "0.0.0"
+edition.workspace = true
+
+[features]
+tauri-host = []
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-history.workspace = true
+longhorn-history-tree.workspace = true
+serde_json.workspace = true

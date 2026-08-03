@@ -146,7 +146,9 @@ linear. Card 071 adds atomic mixed-route navigation, protected pruning, and
 opaque checkpoint accounting without entering linear dependency graphs. Card
 072 adds dense strict graph persistence without taking storage authority.
 Card 073 adds payload-free bounded clients while leaving alternate paths
-unloaded by default.
+unloaded by default. Card 074 proves unchanged linear-only artifacts plus
+isolated document and Loophole-shaped tree installs, then closes g01.017
+without enabling branch mode or publishing packages.
 
 Research memo 016 and contracts 015-016 define separate operation and
 notification authorities. Cards 075-078 implement the Soundcheck-scan and

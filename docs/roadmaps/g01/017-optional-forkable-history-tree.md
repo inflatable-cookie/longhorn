@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Cards 070-073 complete; Card 074 ready
+Status: complete
 Owner: Tom
 Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -39,7 +39,7 @@ g01.015 or delay the first linear release.
 
 ### Batch 4: Artifact proof
 
-- [ ] Card 074: isolated linear-only and tree-enabled installs, measured
+- [x] Card 074: isolated linear-only and tree-enabled installs, measured
   conformance, and production closeout
 
 ## Goals
@@ -62,7 +62,7 @@ g01.015 or delay the first linear release.
 - [x] Dense persistence materially removes numeric-array expansion.
 - [x] Alternate projections are lazy or paged and never duplicate unbounded
   lineage by default.
-- [ ] Two isolated consumer shapes pass from produced artifacts.
+- [x] Two isolated consumer shapes pass from produced artifacts.
 
 ## Explicit Non-goals
 
@@ -82,9 +82,12 @@ downward-only graph, atomic navigation, protected retention, and opaque
 checkpoint foundation plus dense strict persistence with document and
 Loophole-shaped fixtures. Card 073 supplies the bounded payload-free protocol,
 checked clients, narrow Tauri host, and optional Svelte/Poodle composition.
-Card 074 retains artifact and closeout claims.
+Card 074 retains the unchanged linear control, proves isolated document and
+Loophole-shaped tree artifacts, measures the exact Card 068 shapes, and closes
+the optional production layer without enabling a donor.
 
 ## Next Task
 
-Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
-close g01.017.
+No tree consumer lane auto-starts. Select one explicitly from artifact
+evidence. Nucleus grouped restore may continue independently from completed
+g01.019.

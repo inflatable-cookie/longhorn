@@ -1,11 +1,12 @@
 # 074 Fork-tree Artifact Proof And Closeout
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g01.017 batch 4
 Governing refs: contracts 003, 008, 012, and 013; Cards 067 and 070-073
 Depends on: Card 073
 Auto-start next card: no
+Completed: 2026-08-03
 
 ## Objective
 
@@ -66,5 +67,6 @@ tree-enabled artifacts, then decide whether any consumer adoption lane opens.
 
 ## Next Task
 
-Choose a separate consumer adoption lane from evidence. Do not enable branch
-mode implicitly.
+No tree consumer lane auto-starts. Choose one separately from evidence; do not
+enable branch mode implicitly. Nucleus grouped restore may resume in its own
+repository because g01.019 already closed that Longhorn blocker.

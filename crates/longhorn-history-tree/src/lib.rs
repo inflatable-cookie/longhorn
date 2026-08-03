@@ -40,7 +40,7 @@ pub use persistence::{
 };
 pub use projection::{
     ForkBranchPage, ForkBranchProjection, ForkEntryProjection, ForkPathPage, ForkProjectionError,
-    ForkProjectionPageRequest, ForkSummary,
+    ForkProjectionPageRequest, ForkSummary, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 pub use protocol::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord,

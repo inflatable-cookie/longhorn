@@ -15,4 +15,7 @@ describe("fork-history direct and serialized conformance", () => {
     const future = port(); future.snapshot = async () => ({ ...snapshot, protocolVersion: 2 }); await expect(new ForkHistoryClient(future).snapshot()).rejects.toThrow("exact protocol");
     const payload = port(); payload.snapshot = async () => ({ ...snapshot, payload: {} }); await expect(new ForkHistoryClient(payload).snapshot()).rejects.toThrow("payload");
   });
+  it("rejects page requests above the generated hard ceiling", async () => {
+    await expect(new ForkHistoryClient(port()).path({ protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", expectedRevision: 4, target: { kind: "default" }, offset: 0, limit: 257 })).rejects.toThrow("maximum is 256");
+  });
 });
