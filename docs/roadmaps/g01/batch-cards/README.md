@@ -2,11 +2,11 @@
 
 ## Active
 
-None.
+- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 
 ## Ready
 
-- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
+None.
 
 ## Operator-held
 
@@ -150,5 +150,5 @@ None.
 
 ## Next Task
 
-Execute Card 073. Add bounded metadata protocols and opt-in branch/path
-clients while keeping the default projection linear.
+Continue Card 073. Complete optional hosts and clients over the implemented
+bounded metadata protocol.

@@ -1,0 +1,18 @@
+{
+  "protocolVersion": 1,
+  "authorityEpoch": 7,
+  "summary": {
+    "historyId": "history:fixture",
+    "revision": 12,
+    "currentBranchId": "branch:main",
+    "currentEntryId": "entry:current",
+    "undoDepth": 3,
+    "redoDepth": 1,
+    "nextUndoLabel": "Move panel",
+    "nextRedoLabel": "Resize region",
+    "retainedEntryCount": 5,
+    "retainedEncodedWeight": 640,
+    "branchCount": 2,
+    "alternatePathCount": 2
+  }
+}

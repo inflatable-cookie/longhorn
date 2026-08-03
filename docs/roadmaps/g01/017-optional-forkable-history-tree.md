@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Cards 070-072 complete; Card 073 ready
+Status: executing; Cards 070-072 complete; Card 073 active
 Owner: Tom
 Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -84,5 +84,5 @@ Loophole-shaped fixtures. Cards 073-074 retain client and artifact claims.
 
 ## Next Task
 
-Execute Card 073. Add bounded metadata protocols and opt-in branch/path
-clients while keeping the default projection linear.
+Continue Card 073. Complete optional hosts and clients over the implemented
+bounded metadata protocol.

@@ -11,16 +11,22 @@ Longhorn may provide an optional generic history kernel. It owns structural
 history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
-The first compatibility-proved mode is linear. Card 070 implements the pure
-graph foundation of the optional production tree layer. Navigation,
-persistence, clients, artifact proof, and any release claim remain later work.
+The first compatibility-proved mode is linear. Cards 070-072 implement the
+optional production tree through strict persistence. Card 073 now implements
+its bounded pure projections and exact metadata protocol; optional hosts and
+clients remain in progress. Artifact proof and any release claim remain later
+work.
 
 ## Package Shape
 
 - `longhorn-history`: pure generic entries, policy seams, linear state,
   navigation plans, persistence envelopes, projections, and receipts
 - `longhorn-history-tree`: optional immutable-node graph, stable branch refs,
-  canonical child indexes, checked structural import, and divergent record
+  navigation, retention, persistence, and bounded metadata projections
+- `longhorn-tauri-history-tree`: optional narrow handler assembly over an
+  injected graph authority
+- `@longhorn/history-tree`: checked metadata client with optional `/svelte`
+  and `/poodle` edges
 - `longhorn-tauri-history`: optional narrow handler assembly over an injected
   history authority
 - `@longhorn/history`: checked metadata client
@@ -32,9 +38,10 @@ The linear crate depends only on `longhorn-core` plus bounded serialization.
 It imports no config, bridge, Tauri, async runtime, Svelte, Poodle, or consumer
 package.
 
-The tree crate depends downward on the proven linear entry and sequence types.
-It does not replace linear authority. No tree renderer package or
-compatibility-proved tree artifact exists yet.
+The tree crate depends downward on the proven linear entry, sequence,
+navigation-step, rollback, and authority-epoch types. It does not replace
+linear authority. Tree renderer and Tauri packages remain unproved until Card
+073 closes; no compatibility-proved tree artifact exists yet.
 
 ## Authority
 

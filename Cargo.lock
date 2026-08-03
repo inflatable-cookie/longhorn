@@ -2390,6 +2390,7 @@ dependencies = [
  "longhorn-config",
  "longhorn-core",
  "longhorn-history",
+ "longhorn-history-tree",
  "longhorn-layout",
  "longhorn-native-content",
  "longhorn-notifications",
@@ -2512,6 +2513,7 @@ dependencies = [
  "longhorn-history",
  "serde",
  "serde_json",
+ "ts-rs",
 ]
 
 [[package]]

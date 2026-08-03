@@ -9,6 +9,8 @@ macro_rules! fork_id {
     ($name:ident, $description:literal) => {
         #[doc = $description]
         #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+        #[cfg_attr(feature = "bindings", ts(type = "string"))]
         pub struct $name(String);
 
         impl $name {

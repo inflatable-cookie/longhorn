@@ -7,6 +7,7 @@ mod commands;
 mod config;
 mod generation;
 mod history;
+mod history_tree;
 mod layout;
 mod native_content;
 mod notifications;
@@ -45,6 +46,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         Some("commands") => commands::run(mode),
         Some("config") => config::run(mode),
         Some("history") => history::run(mode),
+        Some("history-tree") => history_tree::run(mode),
         Some("layout") => layout::run(mode),
         Some("native-content") => native_content::run(mode),
         Some("notifications") => notifications::run(mode),
@@ -59,5 +61,5 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn usage() -> &'static str {
     "usage: longhorn-bindings \
-     <bridge|commands|config|history|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer> <write|check>"
+     <bridge|commands|config|history|history-tree|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer> <write|check>"
 }

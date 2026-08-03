@@ -11,6 +11,8 @@ mod identity;
 mod navigation;
 mod node;
 mod persistence;
+mod projection;
+mod protocol;
 mod retention;
 mod state;
 
@@ -35,6 +37,18 @@ pub use persistence::{
     ForkPersistenceLimits, ForkPersistenceLimitsError, ForkStructuralMigration,
     ForkStructuralMigrationStep, ForkStructuralMigrationTarget,
     MAXIMUM_FORK_HISTORY_ENVELOPE_BYTES, NoForkStructuralMigration,
+};
+pub use projection::{
+    ForkBranchPage, ForkBranchProjection, ForkEntryProjection, ForkPathPage, ForkProjectionError,
+    ForkProjectionPageRequest, ForkSummary,
+};
+pub use protocol::{
+    FORK_HISTORY_PROTOCOL_VERSION, ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord,
+    ForkChangedEvent, ForkChangedKind, ForkEntryRecord, ForkHistoryProtocolVersion,
+    ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
+    ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
+    ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
+    ForkProtocolProjectionError, ForkSnapshot, ForkSummaryProjection,
 };
 pub use retention::{
     ForkPrunedNode, ForkPruningOutcome, ForkPruningReceipt, ForkRetentionError, ForkRetentionLimits,

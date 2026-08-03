@@ -8,12 +8,17 @@ repository.workspace = true
 description = "Optional immutable-node fork history authority for Longhorn"
 publish = false
 
+[features]
+default = []
+bindings = ["dep:ts-rs", "longhorn-core/bindings", "longhorn-history/bindings"]
+
 [dependencies]
 base64.workspace = true
 longhorn-core.workspace = true
 longhorn-history.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [lints]
 workspace = true
