@@ -5,6 +5,8 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Canonical User-export Re-encoding](2026-08/02-canonical-user-export-reencoding.md)
 - [API, Storage, Composition, And Migration Guides](2026-08/02-api-storage-composition-and-migration-guides.md)
 - [Private 0.1 Compatibility Candidate And Closeout](2026-08/02-private-0-1-compatibility-candidate-and-closeout.md)
+- [Grouped Custom-adapter Restore](2026-08/02-grouped-custom-adapter-restore.md)
+- [Nucleus Grouped Restore Consumer Handoff](2026-08/02-nucleus-grouped-restore-consumer-handoff.md)
 
 ## 2026-07
 

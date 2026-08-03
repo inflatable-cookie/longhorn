@@ -149,5 +149,6 @@ const fn participation_name(participation: &BackupAdapterRestoreParticipation) -
         BackupAdapterRestoreParticipation::Excluded(_) => "excluded",
         BackupAdapterRestoreParticipation::Separate => "separate",
         BackupAdapterRestoreParticipation::FailureAtomic => "failure-atomic",
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic => "grouped-failure-atomic",
     }
 }

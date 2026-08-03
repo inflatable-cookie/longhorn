@@ -77,6 +77,8 @@ impl RestoreAdapterReceipt {
 /// Failure before a truthful custom restore receipt exists.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RestoreAdapterError {
+    /// Another ordinary or grouped restore journal is active.
+    RestoreUnavailable,
     /// Stable application or producer identity does not match.
     IdentityMismatch,
     /// Archive bytes differ from the inspected source.
@@ -98,6 +100,13 @@ pub enum RestoreAdapterError {
     },
     /// Caller required failure atomicity but the adapter declared less.
     FailureAtomicRequired {
+        /// Requested domain.
+        domain: DomainId,
+        /// Stable adapter id.
+        adapter: BackupAdapterId,
+    },
+    /// Adapter participates only through a complete grouped transaction.
+    GroupedRestoreRequired {
         /// Requested domain.
         domain: DomainId,
         /// Stable adapter id.
@@ -134,6 +143,8 @@ pub enum RestoreAdapterError {
 impl fmt::Display for RestoreAdapterError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::RestoreUnavailable => formatter
+                .write_str("custom restore is unavailable while restore recovery is active"),
             Self::IdentityMismatch => {
                 formatter.write_str("restore application or producer identity does not match")
             }
@@ -158,6 +169,11 @@ impl fmt::Display for RestoreAdapterError {
             Self::FailureAtomicRequired { domain, adapter } => write!(
                 formatter,
                 "custom restore adapter {} for {domain} cannot prove exact rollback",
+                adapter.as_str()
+            ),
+            Self::GroupedRestoreRequired { domain, adapter } => write!(
+                formatter,
+                "custom restore adapter {} for {domain} requires grouped execution",
                 adapter.as_str()
             ),
             Self::Excluded { domain, reason } => {

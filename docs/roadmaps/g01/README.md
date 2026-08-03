@@ -22,6 +22,7 @@
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | executing; Card 070 ready | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
+| [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
 
 ## Dependency Shape
 
@@ -37,6 +38,7 @@
 
 004-010 + 018 ─ 014 Nucleus ─ 015 Loophole ─ 016 secondary consumers/release
                                            └─ 017 optional fork tree
+002 configuration ─ 019 grouped adapter restore ─ Nucleus restore resume gate
 ```
 
 Research/prototype work in 009, 011, 012, and 013 may run beside foundation
@@ -75,6 +77,13 @@ closeout. `g01.010` is complete.
 storage, coordinated mutation, backup, restore, encrypted envelopes, custom
 adapters, versioned platform layouts, fixed bootstrap selection, journaled
 profile transition, legacy discovery, and receipt-bound cleanup.
+
+`g01.019` is complete. Cards 128-131 add opt-in grouped custom-adapter
+participation, one selection confirmation, complete private target and
+rollback staging, a durable group journal, reverse-order exact rollback,
+catalogue-bound boot recovery, public API guidance, mixed-adapter and WAL-mode
+SQLite evidence, and the Nucleus resume handoff. Nucleus still owns app-wide
+quiescence, database-open policy, and restart scheduling.
 
 `g01.003` is complete. Cards 017 and 018 provide checked Tauri observation,
 explicit managed identity, injected dynamic creation, ordered native mutation,
@@ -364,7 +373,11 @@ runtime per graph. Card 126 adds checked API, storage/backup, composition,
 migration, rollback, and compatibility guides. Card 127 proves one
 deterministic private `0.1.0` compatibility candidate and closes g01.016.
 Registry publication, tags, and hosted releases remain outside the chain.
-The completed checkpoint satisfies g01.017 admission; Card 070 is ready.
+The completed checkpoint satisfies g01.017 admission; Card 070 remains ready.
+Nucleus g05.046 exposed a contract-backed grouped custom-adapter restore gap.
+Cards 128-131 close g01.019 without editing Nucleus or changing the fork-tree
+plan. The generic transaction and boot-recovery blocker is resolved. Nucleus
+still owns quiescence, adapter composition, and restart scheduling.
 
 ## Next Task
 

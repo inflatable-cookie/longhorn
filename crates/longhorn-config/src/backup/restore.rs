@@ -1,5 +1,6 @@
 mod adapter_restore;
 mod execution;
+mod grouped;
 mod inspection;
 mod journal;
 mod live_io;
@@ -10,6 +11,13 @@ mod staging;
 mod transaction;
 mod types;
 
+pub use grouped::{
+    RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
+    RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupExecutionStage,
+    RestoreAdapterGroupPlan, RestoreAdapterGroupPlanEntry, RestoreAdapterGroupPlanError,
+    RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
+    RestoreAdapterGroupRecoveryReceipt,
+};
 pub use types::{
     MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt, RestoreAction,
     RestoreAdapterError, RestoreAdapterReceipt, RestoreAdapterRequirement, RestoreChoiceError,
@@ -25,6 +33,8 @@ pub use types::{
 
 pub(crate) use adapter_restore::execute as execute_adapter;
 pub(crate) use execution::execute;
+pub(crate) use grouped::recover as recover_grouped_adapters;
+pub(crate) use grouped::{execute as execute_grouped_adapters, plan as plan_grouped_adapters};
 pub(crate) use inspection::inspect;
 pub(crate) use migration::rewrite as rewrite_migration;
 pub(crate) use planning::plan;
@@ -34,7 +44,20 @@ pub(crate) use staging::{
 };
 
 pub(crate) fn operation_state(store: &crate::ConfigStore) -> RestoreOperationState {
-    journal::operation_state(store.coordinator.authority_root())
+    let authority = store.coordinator.authority_root();
+    match (
+        journal::operation_state(authority),
+        grouped::operation_state(authority),
+    ) {
+        (RestoreOperationState::RecoveryRequired, _)
+        | (_, RestoreOperationState::RecoveryRequired) => RestoreOperationState::RecoveryRequired,
+        (RestoreOperationState::Active, _) | (_, RestoreOperationState::Active) => {
+            RestoreOperationState::Active
+        }
+        (RestoreOperationState::Inactive, RestoreOperationState::Inactive) => {
+            RestoreOperationState::Inactive
+        }
+    }
 }
 
 pub(crate) fn safety_pin(

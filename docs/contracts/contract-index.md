@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-01
+Updated: 2026-08-02
 
 ## Contract Register
 
@@ -11,7 +11,7 @@ Updated: 2026-08-01
 | [001 Working Rules](001-working-rules.md) | delivery and refactoring | active |
 | [002 Composable Workspace Hosting](002-composable-workspace-hosting.md) | optional Surface and shared layout core | active compiled boundary |
 | [003 Extraction And Consumer Migration](003-extraction-and-consumer-migration.md) | donor admission, cutover, ownership | active |
-| [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md) | roots, domains, safe writes, migration, backup, restore | active |
+| [004 Configuration Storage, Backup, And Recovery](004-configuration-storage-backup-and-recovery.md) | roots, domains, safe writes, migration, backup, ordinary and grouped custom restore | active compiled boundary |
 | [005 Settings And System Registration](005-settings-and-system-registration.md) | registry, apply units, policy, activation, and shell composition | active compiled boundary |
 | [006 Command, Action, And Input](006-command-action-and-input.md) | sealed registry, fresh admission, keyboard, durable keymaps, projections | active compiled boundary |
 | [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters, lifecycle, retry, and domain authority | active compiled boundary |

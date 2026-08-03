@@ -335,6 +335,9 @@ fn participation(
         BackupAdapterRestoreParticipation::FailureAtomic => {
             RestoreAdapterParticipationProjection::FailureAtomic
         }
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic => {
+            RestoreAdapterParticipationProjection::GroupedFailureAtomic
+        }
     }
 }
 

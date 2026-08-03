@@ -130,14 +130,17 @@ Surface state.
 - debounced scheduling and explicit flush
 - bounded backup capture, verified archive publication, and retention
 - capability-declared custom capture and restore adapters with confined
-  payloads, truthful external consistency groups, and separately explicit
-  nontransactional receipts
+  payloads, truthful external consistency groups, separately explicit
+  nontransactional receipts, and opt-in grouped failure-atomic participation
 - optional whole-archive binary age v1 encryption through an injected
   noninteractive provider or explicit recipient/passphrase export
 - non-mutating restore inspection, exact conflict planning, current-evidence
   confirmation, and complete private current-schema staging
 - verified safety archives, bounded exact rollback, durable restore journal,
   per-file atomic publication, full-set verification, and crash rollback
+- grouped custom-adapter planning, complete private target/rollback staging,
+  durable multi-adapter journalling, exact group rollback, and catalogue-bound
+  boot recovery
 - active/recovery-required load states and coordinated multi-domain load-sets
 - destructive migration rewrite through the same safety transaction
 - corruption, future-schema, backup, restore, and receipt policy
@@ -146,6 +149,13 @@ Storage locations are injected into pure code. Product schemas register with
 the store but do not become Longhorn types. Secrets use a separate secure-store
 adapter. Database placement follows the data lifecycle; database-native
 snapshot and migration adapters own live database consistency.
+
+Grouped custom restore remains in `longhorn-config`. It does not create a
+Nucleus or SQLite package. The pure transaction owns selection, confirmation,
+payload bounds, journal phases, ordering, receipts, and recovery. Registered
+adapters own domain staging, apply, and semantic observation. The consumer
+must quiesce live authorities and schedule boot-time execution before opening
+them.
 
 Layout persistence uses a narrow `longhorn-layout-config` adapter. Consumers
 inject the exact descriptor and scope. Layout and window geometry remain

@@ -227,6 +227,90 @@ impl BackupAdapter for SqliteAdapter {
             evidence: semantic_digest(&self.database)?,
         })
     }
+
+    fn grouped_restore(&self) -> Option<&dyn BackupAdapterGroupedRestore> {
+        (self.capabilities.restore() == &BackupAdapterRestoreParticipation::GroupedFailureAtomic)
+            .then_some(self)
+    }
+}
+
+impl BackupAdapterGroupedRestore for SqliteAdapter {
+    fn stage(
+        &self,
+        request: BackupAdapterGroupedStageRequest<'_>,
+    ) -> Result<BackupAdapterRestoreStage, BackupAdapterError> {
+        let [target] = request.inspect().payloads() else {
+            return Err(adapter_failure("sqlite-group-target-count"));
+        };
+        if target.bytes().len() > request.limits().max_domain_bytes() {
+            return Err(adapter_failure("sqlite-group-target-too-large"));
+        }
+        let (_scratch, target_path) = Self::payload_database(request.inspect())?;
+        let target_evidence = semantic_digest(&target_path)?;
+        let rollback_payloads = if self.database.is_file() {
+            vec![BackupAdapterPayload::new(
+                BackupAdapterRelativePath::new("library.sqlite3").unwrap(),
+                self.snapshot_bytes()?,
+            )]
+        } else {
+            Vec::new()
+        };
+        Ok(BackupAdapterRestoreStage::new(
+            vec![BackupAdapterPayload::new(
+                BackupAdapterRelativePath::new("library.sqlite3").unwrap(),
+                target.bytes().to_vec(),
+            )],
+            rollback_payloads,
+            target_evidence,
+            request.preview().current_evidence().cloned(),
+        ))
+    }
+
+    fn apply(
+        &self,
+        request: BackupAdapterGroupedApplyRequest<'_>,
+    ) -> Result<(), BackupAdapterError> {
+        let Some(_expected) = request.expected_evidence() else {
+            match fs::remove_file(&self.database) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(_) => return Err(adapter_failure("sqlite-group-remove")),
+            }
+            for suffix in ["-wal", "-shm"] {
+                let _ = fs::remove_file(sqlite_sidecar(&self.database, suffix));
+            }
+            return Ok(());
+        };
+        let [payload] = request.payloads() else {
+            return Err(adapter_failure("sqlite-group-apply-count"));
+        };
+        let scratch = tempdir().map_err(|_| adapter_failure("sqlite-group-scratch"))?;
+        let source = scratch.path().join("library.sqlite3");
+        fs::write(&source, payload.bytes())
+            .map_err(|_| adapter_failure("sqlite-group-write-stage"))?;
+        validate_database(&source)?;
+        let mut destination = Connection::open(&self.database)
+            .map_err(|_| adapter_failure("sqlite-group-open-destination"))?;
+        destination
+            .restore(
+                DatabaseName::Main,
+                &source,
+                None::<fn(rusqlite::backup::Progress)>,
+            )
+            .map_err(|_| adapter_failure("sqlite-group-restore"))?;
+        drop(destination);
+        validate_database(&self.database)
+    }
+
+    fn verify(
+        &self,
+        _request: BackupAdapterGroupedVerifyRequest<'_>,
+    ) -> Result<Option<Sha256Digest>, BackupAdapterError> {
+        self.database
+            .is_file()
+            .then(|| semantic_digest(&self.database))
+            .transpose()
+    }
 }
 
 pub(super) struct StaticAdapter {
@@ -374,6 +458,6 @@ pub(super) fn sqlite_sidecar(path: &Path, suffix: &str) -> PathBuf {
     PathBuf::from(format!("{}{suffix}", path.display()))
 }
 
-fn adapter_failure(code: &str) -> BackupAdapterError {
+pub(super) fn adapter_failure(code: &str) -> BackupAdapterError {
     BackupAdapterError::failed(code).unwrap()
 }

@@ -5,7 +5,7 @@ import type { BackupPublicationReceiptProjection, ConfigGeneration, ConfigOperat
 export const RESTORE_ARCHIVE_SELECTION_SOURCES = ["inventory","hostPicker"] as const;
 export const RESTORE_IDENTITY_STATUSES = ["compatible","mismatch"] as const;
 export const RESTORE_DOMAIN_COMPATIBILITY_STATUSES = ["ready","migrationRequired","unknownDomain","descriptorMismatch","domainCodeUnavailable","policyExcluded","customAdapterUnavailable","customAdapterReady","customAdapterRejected","targetUnavailable","sourcePreserved","sourceRejected","targetPreparationFailed"] as const;
-export const RESTORE_ADAPTER_PARTICIPATION_KINDS = ["excluded","separate","failureAtomic"] as const;
+export const RESTORE_ADAPTER_PARTICIPATION_KINDS = ["excluded","separate","failureAtomic","groupedFailureAtomic"] as const;
 export const RESTORE_CURRENT_EVIDENCE_STATES = ["absent","present"] as const;
 export const RESTORE_INSPECT_STATUSES = ["ready","locked","rejected"] as const;
 export const RESTORE_PLAN_STATUSES = ["ready","rejected"] as const;
@@ -127,7 +127,7 @@ export type RestoreAdapterParticipationProjection = { "kind": "excluded",
 /**
  * Stable exclusion reason.
  */
-reason: string, } | { "kind": "separate" } | { "kind": "failureAtomic" };
+reason: string, } | { "kind": "separate" } | { "kind": "failureAtomic" } | { "kind": "groupedFailureAtomic" };
 
 export type RestoreDomainInspectionProjection = { 
 /**

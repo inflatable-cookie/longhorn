@@ -30,4 +30,8 @@ retained adapters, and rollback posture. g01.015 is complete. g01.016 is
 compiled as Cards 113-127 across common admission, Soundcheck, Bovine,
 Jetstream, greenfield examples, guides, and a private compatibility candidate.
 Cards 113-127 and g01.016 are complete. Package publication remains deferred.
-The Card 127 checkpoint satisfies g01.017 admission; Card 070 is ready.
+The Card 127 checkpoint satisfies g01.017 admission; Card 070 remains ready.
+g01.019 is complete through Cards 128-131. Longhorn now supplies grouped
+custom-adapter staging, journalling, exact rollback, and catalogue-bound boot
+recovery. Nucleus may resume its consumer card but remains incomplete until it
+supplies app-wide quiescence and restart. Card 070 is the next Longhorn task.

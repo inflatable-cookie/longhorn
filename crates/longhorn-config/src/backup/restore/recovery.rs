@@ -28,6 +28,13 @@ pub(crate) fn recover_guarded(
     _guard: &CoordinationGuard<'_>,
 ) -> Result<RestoreRecoveryReceipt, RestoreRecoveryError> {
     let authority = store.coordinator.authority_root();
+    if super::grouped::blocks_ordinary_recovery(authority) {
+        return Err(RestoreRecoveryError {
+            path: super::grouped::journal_path(authority),
+            domain: None,
+            detail: "grouped adapter recovery requires the exact adapter catalogue".into(),
+        });
+    }
     let Some(mut state) = journal::load(authority)
         .map_err(|error| recovery_error(journal::journal_path(authority), None, error))?
     else {

@@ -179,9 +179,22 @@ publishes a safety backup and durable journal, replaces through the ordinary
 atomic publisher, verifies, and either commits or restores. Crash recovery
 finishes verified rollback before later mutation.
 
-Custom adapters join the failure-atomic set only when they can stage, publish,
-verify, roll back, and participate in the journal. Otherwise they are excluded
-or run as a separately confirmed and receipted operation.
+Custom adapters have two explicit restore modes. `Separate` runs one domain as
+a separately confirmed and receipted operation. `GroupedFailureAtomic` joins a
+selected set through the grouped protocol:
+
+1. plan one exact sorted domain set from one inspected archive
+2. confirm one digest covering the archive, adapters, target, and current evidence
+3. quiesce all consumer-owned authorities
+4. stage every opaque target and exact rollback payload without mutation
+5. persist every payload and one journal before the first publication
+6. apply and verify all targets, or unwind all domains and verify old evidence
+7. on interruption, recover with the exact catalogue before opening authorities
+
+The grouped boot path is Rust-only and renderer-free. Longhorn owns the
+transaction, journal, rollback, and receipts. The app still owns shutdown,
+SQLite/WAL policy, domain meaning, restart scheduling, and presentation. See
+the [public API reference](../reference/grouped-adapter-restore.md).
 
 ## Settings Presentation
 

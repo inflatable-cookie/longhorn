@@ -198,6 +198,8 @@ pub enum RestoreAdapterParticipationProjection {
     Separate,
     /// Adapter promises verified exact rollback.
     FailureAtomic,
+    /// Adapter participates in a Longhorn-owned grouped transaction.
+    GroupedFailureAtomic,
 }
 
 /// One included archive domain and its target compatibility.

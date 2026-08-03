@@ -39,7 +39,12 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; all cards and g01.016 are complete. Card 070 is ready in g01.017.
+113-127; all cards and g01.016 are complete. Card 070 remains ready in g01.017.
+Nucleus g05.046 exposed the grouped custom-adapter restore gap. Cards 128-131
+close g01.019 with a generic grouped transaction, durable journal, exact
+rollback, boot recovery, mixed-adapter/SQLite proof, and a consumer handoff.
+Nucleus remains incomplete until its own quiescence and restart work lands.
+Card 070 is again ready in g01.017.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,

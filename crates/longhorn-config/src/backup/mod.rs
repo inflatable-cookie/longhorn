@@ -8,9 +8,12 @@ mod types;
 pub use adapter::{
     BackupAdapter, BackupAdapterCapabilities, BackupAdapterCapture, BackupAdapterCaptureMode,
     BackupAdapterCaptureRequest, BackupAdapterConsistencyGroup, BackupAdapterDeclarationError,
-    BackupAdapterError, BackupAdapterInspectRequest, BackupAdapterPayload, BackupAdapterPayloadRef,
-    BackupAdapterRelativePath, BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation,
-    BackupAdapterRestorePreview, BackupAdapterRestoreRequest,
+    BackupAdapterError, BackupAdapterGroupedApplyKind, BackupAdapterGroupedApplyRequest,
+    BackupAdapterGroupedRestore, BackupAdapterGroupedStageRequest,
+    BackupAdapterGroupedVerifyRequest, BackupAdapterInspectRequest, BackupAdapterPayload,
+    BackupAdapterPayloadRef, BackupAdapterRelativePath, BackupAdapterRestoreOutcome,
+    BackupAdapterRestoreParticipation, BackupAdapterRestorePreview, BackupAdapterRestoreRequest,
+    BackupAdapterRestoreStage,
 };
 pub use capture::BackupCaptureError;
 pub use catalog::{
@@ -18,10 +21,14 @@ pub use catalog::{
 };
 pub use restore::{
     MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt, RestoreAction,
-    RestoreAdapterError, RestoreAdapterReceipt, RestoreAdapterRequirement, RestoreChoiceError,
-    RestoreChoices, RestoreConflictChoice, RestoreCurrentEvidence, RestoreDomainCompatibility,
-    RestoreDomainInspection, RestoreExclusionInspection, RestoreExecutionError,
-    RestoreExecutionOptions, RestoreExecutionReceipt, RestoreExecutionStage,
+    RestoreAdapterError, RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
+    RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupExecutionStage,
+    RestoreAdapterGroupPlan, RestoreAdapterGroupPlanEntry, RestoreAdapterGroupPlanError,
+    RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
+    RestoreAdapterGroupRecoveryReceipt, RestoreAdapterReceipt, RestoreAdapterRequirement,
+    RestoreChoiceError, RestoreChoices, RestoreConflictChoice, RestoreCurrentEvidence,
+    RestoreDomainCompatibility, RestoreDomainInspection, RestoreExclusionInspection,
+    RestoreExecutionError, RestoreExecutionOptions, RestoreExecutionReceipt, RestoreExecutionStage,
     RestoreFailureTerminal, RestoreIdentityInspection, RestoreIdentityStatus, RestoreInspection,
     RestoreInspectionReceipt, RestoreOperationState, RestorePlan, RestorePlanEntry,
     RestorePlanError, RestorePlanReceipt, RestorePrepareError, RestorePrepareOptions,

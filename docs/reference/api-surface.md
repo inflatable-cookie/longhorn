@@ -14,7 +14,7 @@
 | `longhorn-command` | library | `bindings` | [source](../../crates/longhorn-command/README.md) |
 | `longhorn-command-config` | library | `bindings` | [source](../../crates/longhorn-command-config/README.md) |
 | `longhorn-command-settings` | library | none | [source](../../crates/longhorn-command-settings/README.md) |
-| `longhorn-config` | library | `bindings` | [source](../../crates/longhorn-config/src/lib.rs) |
+| `longhorn-config` | library | `bindings` | [source](../../crates/longhorn-config/README.md) |
 | `longhorn-config-age` | library | none | [source](../../crates/longhorn-config-age/src/lib.rs) |
 | `longhorn-core` | library | `bindings` | [source](../../crates/longhorn-core/src/lib.rs) |
 | `longhorn-display` | library | none | [source](../../crates/longhorn-display/src/lib.rs) |

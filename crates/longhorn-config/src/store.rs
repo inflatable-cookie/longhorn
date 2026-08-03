@@ -17,12 +17,14 @@ use crate::{
     BackupApplication, BackupArchiveInspection, BackupCaptureError, BackupCaptureOptions,
     BackupCatalog, BackupMetadata, BackupProducer, BackupScope, BackupSnapshot, ConfigDomain,
     CoordinationAuthority, DomainIssue, DomainLocation, MigrationRewriteError,
-    MigrationRewriteOptions, MigrationRewriteReceipt, RegistrationError, RestoreChoices,
-    RestoreExecutionError, RestoreExecutionOptions, RestoreExecutionReceipt, RestoreInspection,
-    RestoreOperationState, RestorePlan, RestorePlanError, RestorePrepareError,
-    RestorePrepareOptions, RestoreRecoveryError, RestoreRecoveryOptions, RestoreRecoveryReceipt,
-    RestoreStaging, Sha256Digest, StorageRoots, coordination::Coordinator,
-    registry::DomainRegistry,
+    MigrationRewriteOptions, MigrationRewriteReceipt, RegistrationError, RestoreAdapterGroupError,
+    RestoreAdapterGroupExecutionOptions, RestoreAdapterGroupExecutionReceipt,
+    RestoreAdapterGroupPlan, RestoreAdapterGroupPlanError, RestoreAdapterGroupRecoveryError,
+    RestoreAdapterGroupRecoveryReceipt, RestoreChoices, RestoreExecutionError,
+    RestoreExecutionOptions, RestoreExecutionReceipt, RestoreInspection, RestoreOperationState,
+    RestorePlan, RestorePlanError, RestorePrepareError, RestorePrepareOptions,
+    RestoreRecoveryError, RestoreRecoveryOptions, RestoreRecoveryReceipt, RestoreStaging,
+    Sha256Digest, StorageRoots, coordination::Coordinator, registry::DomainRegistry,
 };
 
 use self::load::{load_file, validated_default};
@@ -145,6 +147,48 @@ impl ConfigStore {
             confirmation,
             requirement,
         )
+    }
+
+    /// Binds one inspected archive and exact selected custom-domain set into a
+    /// single grouped confirmation.
+    pub fn plan_grouped_adapter_restore(
+        &self,
+        inspection: &RestoreInspection,
+        domains: impl IntoIterator<Item = longhorn_core::DomainId>,
+    ) -> Result<RestoreAdapterGroupPlan, RestoreAdapterGroupPlanError> {
+        crate::backup::restore::plan_grouped_adapters(inspection, domains)
+    }
+
+    /// Stages, journals, applies, and verifies one complete grouped custom
+    /// restore. The consumer must quiesce external live authorities first.
+    pub fn execute_grouped_adapter_restore(
+        &self,
+        catalog: &BackupCatalog<'_>,
+        archive: &BackupArchiveInspection,
+        inspection: &RestoreInspection,
+        plan: &RestoreAdapterGroupPlan,
+        confirmation: &Sha256Digest,
+        options: RestoreAdapterGroupExecutionOptions,
+    ) -> Result<RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupError> {
+        crate::backup::restore::execute_grouped_adapters(
+            self,
+            catalog,
+            archive,
+            inspection,
+            plan,
+            confirmation,
+            options,
+        )
+    }
+
+    /// Rolls a journalled grouped adapter restore back through the exact boot
+    /// catalogue before consumer authorities open.
+    pub fn recover_grouped_adapter_restore(
+        &self,
+        catalog: &BackupCatalog<'_>,
+        lock_timeout: std::time::Duration,
+    ) -> Result<RestoreAdapterGroupRecoveryReceipt, RestoreAdapterGroupRecoveryError> {
+        crate::backup::restore::recover_grouped_adapters(self, catalog, lock_timeout)
     }
 
     /// Binds explicit conflict choices and exact current evidence into a plan.

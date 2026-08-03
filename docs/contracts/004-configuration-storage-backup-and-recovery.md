@@ -473,10 +473,10 @@ skipped, rolled-back, and recovery-required domains.
 ## Custom Backup And Restore Adapters
 
 Adapters declare capture, inspect, stage, publish, verify, rollback,
-transaction authority, and size capabilities. An adapter joins the
+transaction authority, and size capabilities. An adapter joins a
 failure-atomic set only when it can preserve exact prior state, participate in
-the journal, and verify rollback. Otherwise it is excluded or executed as an
-explicit separate operation with a separate receipt.
+the Longhorn journal, and verify rollback. Otherwise it is excluded or
+executed as an explicit separate operation with a separate receipt.
 
 SQLite adapters use a database-native snapshot. Longhorn never treats a live
 SQLite main/WAL pair as ordinary files.
@@ -495,6 +495,41 @@ ordinary file transaction by inference. The explicit adapter restore call can
 require failure atomicity or allow a separately receipted operation. It
 reinspects current evidence immediately before execution and rejects terminal
 evidence that contradicts the confirmed target or rollback claim.
+
+Grouped custom restore is a separate explicit capability. It binds one
+verified archive, one sorted non-empty domain set, every adapter id, every
+per-domain preview, and one group confirmation digest. Every selected adapter
+must declare grouped participation and expose the grouped protocol; a
+single-domain `FailureAtomic` claim is not promoted into group atomicity.
+
+Grouped execution runs under the store coordinator after the consumer has
+quiesced its external authorities:
+
+1. recover or reject any earlier ordinary or grouped restore
+2. re-resolve every descriptor and adapter and re-inspect every target
+3. reject stale current evidence before staging
+4. stage the complete target and exact rollback payload set without live mutation
+5. validate size, path, uniqueness, target, and rollback evidence for every stage
+6. durably publish the complete private payload set and grouped journal
+7. publish each target through its adapter
+8. independently verify the complete target set
+9. mark success durably, then remove private transaction material
+
+Any failure after journal publication rolls every selected adapter back,
+including adapters not yet published, and independently verifies the complete
+old evidence set. A crash before the durable journal can leave only disposable
+private staging and cannot change live authority. A crash after the journal
+causes boot-time recovery to roll the complete group back. Unverified rollback
+retains the journal, reports `restore-recovery-required`, and blocks ordinary
+loads and mutation.
+
+Longhorn owns the group selection digest, bounds, private target and rollback
+payloads, journal phases, ordering, receipts, and restart recovery. Adapters
+own schema meaning and the native act of staging, applying, and observing one
+domain. Consumers own process quiescence, restart scheduling, and the point at
+which the grouped operation runs before live authorities open. Group recovery
+requires the exact registered adapter catalogue and never guesses an adapter
+from a path or product type.
 
 The conformance fixture uses SQLite's online backup and restore APIs against a
 WAL-mode source, verifies the snapshot, and proves the live WAL is neither

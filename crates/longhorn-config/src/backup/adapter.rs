@@ -6,6 +6,13 @@ use crate::{DomainDescriptor, Sha256Digest};
 
 use super::{BackupExclusionReason, BackupLimits, BackupPayloadPath};
 
+mod grouped;
+
+pub use grouped::{
+    BackupAdapterGroupedApplyKind, BackupAdapterGroupedApplyRequest, BackupAdapterGroupedRestore,
+    BackupAdapterGroupedStageRequest, BackupAdapterGroupedVerifyRequest, BackupAdapterRestoreStage,
+};
+
 const MAX_ADAPTER_TEXT_BYTES: usize = 256;
 const MAX_ADAPTER_RELATIVE_PATH_BYTES: usize = 384;
 
@@ -62,6 +69,9 @@ pub enum BackupAdapterRestoreParticipation {
     Separate,
     /// The adapter stages, journals, verifies, and can verify exact rollback.
     FailureAtomic,
+    /// The adapter stages bounded target and rollback payloads for one
+    /// Longhorn-owned multi-adapter transaction.
+    GroupedFailureAtomic,
 }
 
 /// Complete capability declaration for one custom adapter.
@@ -376,6 +386,15 @@ pub trait BackupAdapter {
         &self,
         request: BackupAdapterRestoreRequest<'_>,
     ) -> Result<BackupAdapterRestoreOutcome, BackupAdapterError>;
+
+    /// Returns the optional grouped transaction extension.
+    ///
+    /// Implementations declaring
+    /// [`BackupAdapterRestoreParticipation::GroupedFailureAtomic`] must return
+    /// an extension. Other participation modes return `None`.
+    fn grouped_restore(&self) -> Option<&dyn BackupAdapterGroupedRestore> {
+        None
+    }
 }
 
 /// Stable bounded adapter failure.

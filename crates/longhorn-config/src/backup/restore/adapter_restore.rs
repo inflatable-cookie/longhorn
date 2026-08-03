@@ -22,6 +22,9 @@ pub(crate) fn execute(
     confirmation: &Sha256Digest,
     requirement: RestoreAdapterRequirement,
 ) -> Result<RestoreAdapterReceipt, RestoreAdapterError> {
+    if store.restore_operation_state() != super::RestoreOperationState::Inactive {
+        return Err(RestoreAdapterError::RestoreUnavailable);
+    }
     if !inspection.identity.is_compatible() {
         return Err(RestoreAdapterError::IdentityMismatch);
     }
@@ -83,6 +86,12 @@ pub(crate) fn execute(
         }
         BackupAdapterRestoreParticipation::Separate
         | BackupAdapterRestoreParticipation::FailureAtomic => {}
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic => {
+            return Err(RestoreAdapterError::GroupedRestoreRequired {
+                domain: domain.clone(),
+                adapter: prepared.adapter.clone(),
+            });
+        }
     }
 
     let payloads = payloads_for_adapter(archive, source).ok_or_else(|| {
@@ -137,7 +146,8 @@ pub(crate) fn execute(
         ) => true,
         (
             BackupAdapterRestoreParticipation::Separate
-            | BackupAdapterRestoreParticipation::Excluded(_),
+            | BackupAdapterRestoreParticipation::Excluded(_)
+            | BackupAdapterRestoreParticipation::GroupedFailureAtomic,
             BackupAdapterRestoreOutcome::RolledBack { .. }
             | BackupAdapterRestoreOutcome::RecoveryRequired,
         ) => false,

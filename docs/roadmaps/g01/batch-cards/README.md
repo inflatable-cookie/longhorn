@@ -21,6 +21,10 @@ None.
 
 ## Complete
 
+- [131 Grouped Adapter Public Evidence And Nucleus Handoff](131-grouped-adapter-public-evidence-and-nucleus-handoff.md)
+- [130 Grouped Adapter Recovery And Conformance](130-grouped-adapter-recovery-and-conformance.md)
+- [129 Grouped Adapter Restore Execution And Journal](129-grouped-adapter-restore-execution-and-journal.md)
+- [128 Grouped Adapter Restore Contract And Protocol](128-grouped-adapter-restore-contract-and-protocol.md)
 - [127 Private 0.1 Compatibility Candidate And Closeout](127-private-0-1-compatibility-candidate-and-closeout.md)
 - [126 API, Storage, Composition, And Migration Guides](126-api-storage-composition-and-migration-guides.md)
 - [125 Greenfield Composition Matrix](125-greenfield-composition-matrix.md)
@@ -146,5 +150,5 @@ None.
 
 ## Next Task
 
-Execute Card 070. Implement the optional pure fork-tree identity, topology,
-and branch authority without changing linear artifacts.
+Execute Card 070. Implement the optional fork-tree identity, topology, and
+branch authority without changing linear-history artifacts.
