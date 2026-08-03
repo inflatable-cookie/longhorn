@@ -271,6 +271,7 @@ health = [{ task = "qa" }]
   { task = "check:surface-bindings" },
   { task = "check:surface-transfer-bindings" },
   { task = "check:transfer-bindings" },
+  { task = "check:history-tree-bindings" },
 ]
 "check:northstar:g01-private-candidate-card127" = "effigy docs check paths Cargo.toml Cargo.lock bun.lock CHANGELOG.md README.md docs/README.md effigy.toml scripts/README.md scripts/verify-private-candidate-card127.ts scripts/verify-private-candidate-docs-card127.ts scripts/private-candidate-card127 fixtures/release/card127/private-0-1-candidate-v1.json docs/reference/api-surface.md docs/reference/private-0-1-candidate.md docs/guides/compatibility-and-upgrades.md docs/guides/migration-and-rollback.md docs/architecture/greenfield-composition-matrix.md docs/architecture/nucleus-migration-map.md docs/architecture/loophole-migration-map.md docs/architecture/secondary-consumer-migration-map.md docs/contracts/001-working-rules.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/127-private-0-1-compatibility-candidate-and-closeout.md docs/logs/README.md docs/logs/2026-08/02-private-0-1-compatibility-candidate-and-closeout.md"
 "qa:northstar:g01-private-candidate-card127" = [
@@ -361,6 +362,7 @@ health = [{ task = "qa" }]
 "check:history-ts" = "bun x tsc -p packages/history/tsconfig.json"
 "check:history-svelte" = "bun x svelte-check --tsconfig packages/history/tsconfig.json"
 "check:history-tree-ts" = "bun x tsc -p packages/history-tree/tsconfig.json"
+"check:layout-ts" = "bun x tsc -p packages/layout/tsconfig.json"
 "check:history-tree-svelte" = "bun x svelte-check --tsconfig packages/history-tree/tsconfig.json"
 "check:operation-ts" = "bun x tsc -p packages/operation/tsconfig.json"
 "check:operation-svelte" = "bun x svelte-check --tsconfig packages/operation/tsconfig.json"
@@ -384,6 +386,8 @@ health = [{ task = "qa" }]
   { task = "check:settings-ts" },
   { task = "check:commands-ts" },
   { task = "check:history-ts" },
+  { task = "check:history-tree-ts" },
+  { task = "check:layout-ts" },
   { task = "check:operation-ts" },
   { task = "check:notifications-ts" },
   { task = "check:native-content-ts" },

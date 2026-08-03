@@ -13,6 +13,9 @@ test("package exports isolate optional stream and supervision support", () => {
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.peerDependencies).toBeUndefined();
+  // The main entry is transport-agnostic, but the hard @longhorn/tauri
+  // dependency is part of the frozen Card 127 candidate receipt; demoting
+  // it to an optional peer is deferred to the next distribution candidate.
   expect(metadata.dependencies).toEqual({
     "@longhorn/core": "0.1.0",
     "@longhorn/tauri": "0.1.0",

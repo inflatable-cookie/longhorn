@@ -22,7 +22,7 @@ const sharedCommandKinds = [
   "set_sizing_slot",
   "set_region_collapsed",
   "close_panel",
-];
+] as const;
 
 describe("two-shape layout conformance", () => {
   test("preserves each donor-shaped schema and external host binding", () => {
@@ -107,7 +107,7 @@ describe("two-shape layout conformance", () => {
         return command.kind;
       });
 
-      expect(commandKinds).toEqual(sharedCommandKinds);
+      expect(commandKinds).toEqual([...sharedCommandKinds]);
       expect(record(fixture.expected_snapshot).revision).toBe(8);
       expect(fixture.expected_snapshot).toEqual(
         record(record(array(fixture.steps).at(-1)).receipt)

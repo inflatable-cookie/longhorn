@@ -75,7 +75,7 @@ describe("Rust layout protocol fixture", () => {
 
     for (const ratio of ratios) {
       expect(Number.isInteger(ratio)).toBeTrue();
-      expect(layoutRatioFromMillionths(number(ratio))).toBe(ratio);
+      expect(layoutRatioFromMillionths(number(ratio))).toBe(number(ratio));
     }
     expect(layoutRatioToUnitInterval(layoutRatioFromMillionths(250_000))).toBe(
       0.25,
@@ -114,7 +114,8 @@ describe("Rust layout protocol fixture", () => {
             candidate.region_id === definition.id &&
             candidate.state !== "transiently_revealed",
         );
-      expect(projected).toEqual(rustProjection);
+      expect(rustProjection).toBeDefined();
+      expect(projected).toEqual(rustProjection as never);
     }
   });
 });
