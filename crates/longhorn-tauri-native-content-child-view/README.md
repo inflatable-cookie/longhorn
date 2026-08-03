@@ -21,9 +21,24 @@ Popup and download creation remain denied by the supplied Tauri runtime.
 Remote content receives no capabilities unless the app adds a matching remote
 capability.
 
-The crate does not own navigation products, browsing history, permissions,
+The crate does not own browser navigation products, browsing history, permissions,
 downloads, popups, page content, outer-window placement, Svelte, or Poodle.
 It imports no isolated-window, plugin, GPU, or backing-surface package.
+
+## Document Navigation
+
+Consumers may retain one attached child while its document changes. Call
+`current_url(generation)` for a fresh native observation or
+`navigate(generation, requested_url)` to submit one policy-admitted change.
+Both operations reject a stale, future, retired, or absent generation. The
+navigation policy supplied in `ChildViewSpec` runs before native work.
+
+`ChildViewNavigationOutcome::Unchanged` means the requested URL already owns
+the child and no native navigation ran. `Submitted` means Tauri accepted one
+navigation request; it does not claim that loading finished. Page-load events
+set readiness to not ready and then ready. Consumer commands, URL
+normalization, ordering, history, and product meaning remain app-owned. Do not
+look up a global webview label and navigate around the adapter.
 
 ## Observation
 

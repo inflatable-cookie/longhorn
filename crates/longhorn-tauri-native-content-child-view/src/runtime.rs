@@ -3,6 +3,7 @@ use std::sync::Arc;
 use longhorn_core::PhysicalRect;
 use longhorn_native_content::{AttachGeneration, NativeContentIslandId};
 use serde::Serialize;
+use tauri::Url;
 
 use crate::{ChildViewError, ChildViewLabel, ChildViewSpec};
 
@@ -104,6 +105,10 @@ pub trait ChildViewRuntime: Clone + Send + Sync + 'static {
     fn hide(&self, handle: &Self::Handle) -> Result<(), ChildViewError>;
     /// Requests native child focus.
     fn focus(&self, handle: &Self::Handle) -> Result<(), ChildViewError>;
+    /// Reads the fresh current child document URL.
+    fn current_url(&self, handle: &Self::Handle) -> Result<Url, ChildViewError>;
+    /// Submits one already policy-admitted document navigation.
+    fn navigate(&self, handle: &Self::Handle, url: Url) -> Result<(), ChildViewError>;
     /// Explicitly closes the current child.
     fn close(&self, handle: &Self::Handle) -> Result<(), ChildViewError>;
     /// Reads fresh physical child bounds.

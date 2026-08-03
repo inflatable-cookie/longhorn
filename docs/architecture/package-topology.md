@@ -46,7 +46,7 @@ discovery and validation entry points.
 | `longhorn-operation` | optional finite operation authority with bounded progress, cancellation, retention, retry lineage, and teardown | core |
 | `longhorn-notifications` | optional finite retained notification ledger with explicit read/removal transitions and operation observation | core; optional operation feature |
 | `longhorn-native-content` | pure desired/observed native-content state, generation, planning, proposals, and receipts | core |
-| `longhorn-tauri-native-content-child-view` | isolated Tauri child-webview construction and native operation execution | core, native-content, Tauri |
+| `longhorn-tauri-native-content-child-view` | isolated Tauri child-webview construction, native operation execution, and policy-admitted generation-checked navigation | core, native-content, Tauri |
 | `longhorn-native-content-isolated-window` | generic process-isolated content coordination, bounded helper protocol, and injected lifecycle ports | core, native-content, serde |
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |

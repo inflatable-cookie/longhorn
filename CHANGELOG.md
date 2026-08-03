@@ -14,6 +14,8 @@
 - Minimal, Surface-free workspace, full-hosting, and optional-server greenfield
   examples.
 - Checked adoption guides and generated API inventory.
+- Generation-checked, policy-admitted retained child-view navigation with
+  exact native receipts and packaged macOS evidence.
 
 ### Changed
 

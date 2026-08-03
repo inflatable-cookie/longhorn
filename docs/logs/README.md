@@ -12,6 +12,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Dense Fork-tree Persistence And Migration](2026-08/03-dense-fork-tree-persistence-and-migration.md)
 - [Fork-tree Clients And Bounded Projections](2026-08/03-fork-tree-clients-and-bounded-projections.md)
 - [Fork-tree Artifact Proof And Closeout](2026-08/03-fork-tree-artifact-proof-and-closeout.md)
+- [Child-view Navigation Authority](2026-08/03-child-view-navigation-authority.md)
 
 ## 2026-07
 
@@ -159,3 +160,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Jetstream Backing-surface Coordination Cutover](2026-08/02-jetstream-backing-surface-coordination-cutover.md)
 - [Jetstream Migration Conformance Closeout](2026-08/02-jetstream-migration-conformance-closeout.md)
 - [Greenfield Composition Matrix](2026-08/02-greenfield-composition-matrix.md)
+- [Tauri Child-view Navigation Packaged Proof](2026-08/03-tauri-child-view-navigation-packaged-proof.md)
+- [Figmatic Child-view Navigation Handoff](2026-08/03-figmatic-child-view-navigation-handoff.md)
+- [Nucleus Child-view Navigation Handoff](2026-08/03-nucleus-child-view-navigation-handoff.md)
+- [Child-view Navigation Artifact Closeout](2026-08/03-child-view-navigation-artifact-closeout.md)

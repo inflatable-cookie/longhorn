@@ -11,7 +11,8 @@ mod tauri_runtime;
 
 pub use adapter::{
     ChildViewAdapter, ChildViewHostDestroyOutcome, ChildViewHostDestroyReceipt,
-    ChildViewTeardownOutcome, ChildViewTeardownReceipt,
+    ChildViewNavigationOutcome, ChildViewNavigationReceipt, ChildViewTeardownOutcome,
+    ChildViewTeardownReceipt,
 };
 pub use error::ChildViewError;
 pub use policy::{

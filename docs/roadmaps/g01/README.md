@@ -23,6 +23,7 @@
 | [g01.017](017-optional-forkable-history-tree.md) | complete | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 | [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
+| [g01.020](020-child-view-navigation-control.md) | complete | retained policy-admitted child-webview navigation |
 
 ## Dependency Shape
 
@@ -39,6 +40,7 @@
 004-010 + 018 ─ 014 Nucleus ─ 015 Loophole ─ 016 secondary consumers/release
                                            └─ 017 optional fork tree
 002 configuration ─ 019 grouped adapter restore ─ Nucleus restore resume gate
+018 native-content ─ 020 retained child-view navigation ─ Figmatic resume gate
 ```
 
 Research/prototype work in 009, 011, 012, and 013 may run beside foundation
@@ -383,5 +385,6 @@ still owns quiescence, adapter composition, and restart scheduling.
 
 ## Next Task
 
-No fork-tree consumer lane auto-starts. Select one explicitly from artifact
-evidence; Nucleus grouped restore may continue from completed g01.019.
+No Longhorn card auto-starts. Resume Figmatic g03.006 with the g01.020
+consumer handoff. Nucleus may separately remove its global-label navigation
+bypass.

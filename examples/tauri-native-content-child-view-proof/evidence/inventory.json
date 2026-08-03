@@ -34,7 +34,7 @@
     "controller_webview_capability": "empty local permission set",
     "remote_child_capability": "none",
     "global_tauri": false,
-    "source_and_navigation_policy": "consumer injected",
+    "source_and_navigation_policy": "consumer injected; adapter navigation is generation checked and policy admitted",
     "popup_policy": "deny",
     "download_persistence_policy": "deny",
     "data_store_identifier": "consumer supplied 16-byte value on macOS"
@@ -43,14 +43,14 @@
     "platform": "macos-aarch64",
     "os_version": "26.5.2",
     "path": "target/release/bundle/macos/Longhorn Native Content Child View Proof.app",
-    "size_kib": 9164,
-    "executable_sha256": "104ecd8efe99d84530bacea72b5976293ff5c719a8a9bd732be7cd29c6f3cd10"
+    "size_kib": 9208,
+    "executable_sha256": "533ecec8cb350ff0234df1004a5c3e4570c941dfb8ca7c3c43eb7af71df15576"
   },
   "packaged_run": {
-    "report": "evidence/runs/2026-07-31-macos-arm64/final-report.json",
-    "transcript": "evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl",
+    "report": "evidence/runs/2026-08-03-macos-arm64/final-report.json",
+    "transcript": "evidence/runs/2026-08-03-macos-arm64/runtime-transcript.jsonl",
     "outcome": "pass_with_unmet_environment_claims",
-    "passed_checks": 7,
+    "passed_checks": 8,
     "observed_unknown_checks": 1,
     "unmet": ["native_scale_switch"]
   }

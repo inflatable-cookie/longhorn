@@ -1,6 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_native_content::{AttachGeneration, NativeContentIslandId, ReceiptError};
+use tauri::Url;
 
 /// Failure from child-view validation, runtime execution, or receipt admission.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -13,6 +14,8 @@ pub enum ChildViewError {
     InvalidContentSource,
     /// The initialization script is empty, oversized, or contains NUL.
     InvalidInitializationScript,
+    /// Consumer policy denied the requested child document.
+    NavigationDenied(Url),
     /// The plan belongs to another island.
     ForeignIsland {
         /// Adapter island.
@@ -76,6 +79,7 @@ impl ChildViewError {
             Self::DuplicateTransportLabel => "child:duplicate-label",
             Self::InvalidContentSource => "child:invalid-source",
             Self::InvalidInitializationScript => "child:invalid-script",
+            Self::NavigationDenied(_) => "child:navigation-denied",
             Self::ForeignIsland { .. } => "child:foreign-island",
             Self::WrongMechanism => "child:wrong-mechanism",
             Self::StaleGeneration { .. } => "child:stale-generation",
@@ -95,6 +99,8 @@ impl ChildViewError {
                 "show" => "child:show-failed",
                 "hide" => "child:hide-failed",
                 "focus" => "child:focus-failed",
+                "current-url" => "child:url-observation-failed",
+                "navigate" => "child:navigate-failed",
                 "close" => "child:close-failed",
                 "observe" => "child:observe-failed",
                 _ => "child:native-failed",
@@ -117,6 +123,9 @@ impl fmt::Display for ChildViewError {
             }
             Self::InvalidInitializationScript => {
                 formatter.write_str("invalid child initialization script")
+            }
+            Self::NavigationDenied(url) => {
+                write!(formatter, "child navigation denied for {url}")
             }
             Self::ForeignIsland { expected, supplied } => {
                 write!(

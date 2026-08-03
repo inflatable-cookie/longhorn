@@ -148,8 +148,12 @@ None.
 - [110 Loophole Settings, Command, And Keyboard Cutover](110-loophole-settings-command-and-keyboard-cutover.md)
 - [111 Loophole Linear History Adoption](111-loophole-linear-history-adoption.md)
 - [112 Loophole Migration Conformance And Closeout](112-loophole-migration-conformance-and-closeout.md)
+- [132 Child-view Navigation Contract And Adapter Authority](132-child-view-navigation-contract-and-adapter-authority.md)
+- [133 Tauri Child-view Navigation Execution And Packaged Proof](133-tauri-child-view-navigation-execution-and-packaged-proof.md)
+- [134 Child-view Navigation Artifact Closeout And Consumer Handoffs](134-child-view-navigation-artifact-closeout-and-consumer-handoffs.md)
 
 ## Next Task
 
-No fork-tree consumer lane auto-starts. Select one explicitly from artifact
-evidence; Nucleus grouped restore may continue from completed g01.019.
+No Longhorn card auto-starts. Resume Figmatic g03.006 with the g01.020
+consumer handoff. Nucleus may separately remove its global-label navigation
+bypass.

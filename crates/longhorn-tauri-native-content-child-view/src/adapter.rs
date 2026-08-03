@@ -8,6 +8,7 @@ use longhorn_native_content::{
     ObservedReadiness, StepExecution,
 };
 use serde::Serialize;
+use tauri::Url;
 
 use crate::{
     ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, ChildViewRuntimeEvent,
@@ -60,6 +61,58 @@ pub enum ChildViewTeardownOutcome {
     Closed,
     /// No child remained to close.
     AlreadyDetached,
+}
+
+/// Result of one policy-admitted document request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChildViewNavigationOutcome {
+    /// The requested URL was already current; no navigation was submitted.
+    Unchanged,
+    /// The native runtime accepted one navigation request.
+    Submitted,
+}
+
+/// Adapter-local evidence for one generation-bound document request.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ChildViewNavigationReceipt {
+    island_id: NativeContentIslandId,
+    generation: AttachGeneration,
+    previous_url: Url,
+    requested_url: Url,
+    outcome: ChildViewNavigationOutcome,
+}
+
+impl ChildViewNavigationReceipt {
+    /// Returns the retained island identity.
+    #[must_use]
+    pub const fn island_id(&self) -> &NativeContentIslandId {
+        &self.island_id
+    }
+
+    /// Returns the exact retained attach generation.
+    #[must_use]
+    pub const fn generation(&self) -> AttachGeneration {
+        self.generation
+    }
+
+    /// Returns the fresh URL observed before the request.
+    #[must_use]
+    pub const fn previous_url(&self) -> &Url {
+        &self.previous_url
+    }
+
+    /// Returns the consumer-requested URL.
+    #[must_use]
+    pub const fn requested_url(&self) -> &Url {
+        &self.requested_url
+    }
+
+    /// Returns whether native navigation was unnecessary or submitted.
+    #[must_use]
+    pub const fn outcome(&self) -> ChildViewNavigationOutcome {
+        self.outcome
+    }
 }
 
 /// Adapter-local bounded teardown evidence.
@@ -251,6 +304,38 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         Ok(())
     }
 
+    /// Reads the fresh current document for one exact retained generation.
+    pub fn current_url(&self, generation: AttachGeneration) -> Result<Url, ChildViewError> {
+        let handle = self.handle(generation)?;
+        self.runtime.current_url(&handle)
+    }
+
+    /// Applies consumer policy and submits at most one native navigation.
+    pub fn navigate(
+        &self,
+        generation: AttachGeneration,
+        requested_url: Url,
+    ) -> Result<ChildViewNavigationReceipt, ChildViewError> {
+        let handle = self.handle(generation)?;
+        if !self.spec.allows_navigation(&requested_url) {
+            return Err(ChildViewError::NavigationDenied(requested_url));
+        }
+        let previous_url = self.runtime.current_url(&handle)?;
+        let outcome = if previous_url == requested_url {
+            ChildViewNavigationOutcome::Unchanged
+        } else {
+            self.runtime.navigate(&handle, requested_url.clone())?;
+            ChildViewNavigationOutcome::Submitted
+        };
+        Ok(ChildViewNavigationReceipt {
+            island_id: self.spec.island_id().clone(),
+            generation,
+            previous_url,
+            requested_url,
+            outcome,
+        })
+    }
+
     /// Invalidates exact attachment authority after its mapped host is destroyed.
     pub fn host_destroyed(
         &self,
@@ -342,8 +427,9 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
                     event.generation,
                 ));
             }
-            if event.kind == ChildViewRuntimeEventKind::PageLoadFinished {
-                attachment.ready = true;
+            match event.kind {
+                ChildViewRuntimeEventKind::PageLoadStarted => attachment.ready = false,
+                ChildViewRuntimeEventKind::PageLoadFinished => attachment.ready = true,
             }
         }
         self.emit(ChildViewAdapterEvent::Runtime {

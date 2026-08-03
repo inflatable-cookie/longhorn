@@ -15,6 +15,10 @@ import { basename, join, resolve } from "node:path";
 
 const POODLE_ARTIFACT_SET =
   "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
+const NATIVE_CONTENT_PROTOCOL_FIXTURE =
+  "948fcd5481fd0df00dafc40575beb1aae76bff0a0ef6cf240639a005958f2b0c";
+const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
+  "d1840dfe333b33f666389f7d7a1ebeea00deea7e0ba7c27d788ff9d3e0451a0e";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
 const temporaryRoot = await mkdtemp(
@@ -48,6 +52,7 @@ try {
     ["cargo", "run", "-p", "longhorn-bindings", "--", "native-content", "check"],
     repoRoot,
   );
+  const protocolIsolation = await verifyProtocolIsolation();
   const poodle = await readPoodleEvidence();
   const typescript = await packTypescriptArtifacts();
   const rust = await packAndRunRustArtifacts();
@@ -127,6 +132,8 @@ try {
         },
         audits: {
           generatedBindingsDrift: false,
+          childNavigationAbsentFromCommonProtocol: protocolIsolation.navigationAbsent,
+          commonProtocolDigests: protocolIsolation.digests,
           producedArtifactGraphsIsolated: true,
           rustRendererThreeShapeParity: true,
           selectedSvelteGraphsCompile: true,
@@ -178,6 +185,33 @@ async function readPoodleEvidence() {
     throw new Error(`Poodle artifact membership mismatch: ${setId}`);
   }
   return { artifacts: evidence.artifacts, packDirectory };
+}
+
+async function verifyProtocolIsolation() {
+  const fixturePath = join(repoRoot, "fixtures", "native-content", "protocol-v1.json");
+  const typescriptPath = join(
+    repoRoot,
+    "packages",
+    "native-content",
+    "src",
+    "generated",
+    "protocol.ts",
+  );
+  const digests = {
+    fixture: await digest(fixturePath),
+    typescript: await digest(typescriptPath),
+  };
+  if (digests.fixture !== NATIVE_CONTENT_PROTOCOL_FIXTURE) {
+    throw new Error("native-content protocol fixture changed during child navigation work");
+  }
+  if (digests.typescript !== NATIVE_CONTENT_TYPESCRIPT_PROTOCOL) {
+    throw new Error("native-content generated TypeScript changed during child navigation work");
+  }
+  const commonProtocol = `${await readFile(fixturePath, "utf8")}\n${await readFile(typescriptPath, "utf8")}`;
+  if (/navigate|current_url|requested_url/i.test(commonProtocol)) {
+    throw new Error("child navigation entered the common renderer protocol");
+  }
+  return { navigationAbsent: true, digests };
 }
 
 async function packTypescriptArtifacts() {
@@ -553,7 +587,7 @@ async function verifyPackagedMechanisms() {
       shape: "child_view",
       directory: "tauri-native-content-child-view-proof",
       reportOutcome: "pass_with_unmet_environment_claims",
-      passing: 7,
+      passing: 8,
       macos: "packaged-proof-pass-with-native-scale-switch-unmet",
       windows: "unproved",
       linux: "unproved",

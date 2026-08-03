@@ -19,9 +19,9 @@ use longhorn_native_content::{
 };
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
-    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewPolicyHooks, ChildViewRuntime,
-    ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSpec, ChildViewTeardownOutcome,
-    RuntimeAttachRequest,
+    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewNavigationOutcome, ChildViewPolicyHooks,
+    ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSpec,
+    ChildViewTeardownOutcome, RuntimeAttachRequest,
 };
 use tauri::Url;
 
@@ -32,6 +32,8 @@ enum NativeCall {
     Show { handle: u64 },
     Hide { handle: u64 },
     Focus { handle: u64 },
+    CurrentUrl { handle: u64 },
+    Navigate { handle: u64, url: String },
     Close { handle: u64 },
 }
 
@@ -40,8 +42,11 @@ struct FakeState {
     next_handle: u64,
     calls: Vec<NativeCall>,
     bounds: BTreeMap<u64, PhysicalRect>,
+    urls: BTreeMap<u64, Url>,
     callbacks: BTreeMap<u64, Arc<dyn Fn(ChildViewRuntimeEvent) + Send + Sync>>,
     fail_bounds: bool,
+    fail_current_url: bool,
+    fail_navigate: bool,
     fail_close_once: bool,
 }
 
@@ -71,6 +76,14 @@ impl FakeRuntime {
         self.state.lock().unwrap().fail_close_once = true;
     }
 
+    fn set_fail_current_url(&self, fail: bool) {
+        self.state.lock().unwrap().fail_current_url = fail;
+    }
+
+    fn set_fail_navigate(&self, fail: bool) {
+        self.state.lock().unwrap().fail_navigate = fail;
+    }
+
     fn emit(&self, handle: u64, generation: u64, kind: ChildViewRuntimeEventKind) {
         let callback = self
             .state
@@ -88,6 +101,7 @@ impl ChildViewRuntime for FakeRuntime {
     type Handle = u64;
 
     fn attach(&self, request: RuntimeAttachRequest) -> Result<Self::Handle, ChildViewError> {
+        let source = request.spec.source().clone();
         let handle = {
             let mut state = self.state.lock().unwrap();
             state.next_handle += 1;
@@ -96,6 +110,7 @@ impl ChildViewRuntime for FakeRuntime {
                 handle,
                 generation: request.generation.get(),
             });
+            state.urls.insert(handle, source);
             state.callbacks.insert(handle, request.callback.clone());
             handle
         };
@@ -150,6 +165,32 @@ impl ChildViewRuntime for FakeRuntime {
             .unwrap()
             .calls
             .push(NativeCall::Focus { handle: *handle });
+        Ok(())
+    }
+
+    fn current_url(&self, handle: &Self::Handle) -> Result<Url, ChildViewError> {
+        let mut state = self.state.lock().unwrap();
+        state.calls.push(NativeCall::CurrentUrl { handle: *handle });
+        if state.fail_current_url {
+            return Err(native_error("current-url"));
+        }
+        state
+            .urls
+            .get(handle)
+            .cloned()
+            .ok_or_else(|| native_error("current-url"))
+    }
+
+    fn navigate(&self, handle: &Self::Handle, url: Url) -> Result<(), ChildViewError> {
+        let mut state = self.state.lock().unwrap();
+        state.calls.push(NativeCall::Navigate {
+            handle: *handle,
+            url: url.to_string(),
+        });
+        if state.fail_navigate {
+            return Err(native_error("navigate"));
+        }
+        state.urls.insert(*handle, url);
         Ok(())
     }
 
@@ -423,6 +464,140 @@ fn renderer_unmount_and_hide_show_reuse_one_native_handle() {
     );
     assert!(
         !calls
+            .iter()
+            .any(|call| matches!(call, NativeCall::Close { .. }))
+    );
+}
+
+#[test]
+fn admitted_navigation_reuses_one_generation_and_same_url_is_unchanged() {
+    let timeline = Arc::new(Mutex::new(Vec::new()));
+    let runtime = FakeRuntime::with_timeline(timeline.clone());
+    let adapter = adapter(runtime.clone(), timeline);
+    let authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    runtime.emit(1, 1, ChildViewRuntimeEventKind::PageLoadFinished);
+
+    let requested = Url::parse("http://127.0.0.1:43119/next").unwrap();
+    let submitted = adapter.navigate(generation(1), requested.clone()).unwrap();
+    assert_eq!(submitted.generation(), generation(1));
+    assert_eq!(submitted.previous_url(), spec().source());
+    assert_eq!(submitted.requested_url(), &requested);
+    assert_eq!(submitted.outcome(), ChildViewNavigationOutcome::Submitted);
+
+    runtime.emit(1, 1, ChildViewRuntimeEventKind::PageLoadStarted);
+    assert_eq!(
+        serde_json::to_value(adapter.observe(generation(1)).unwrap()).unwrap()["readiness"],
+        "not_ready"
+    );
+    runtime.emit(1, 1, ChildViewRuntimeEventKind::PageLoadFinished);
+    assert_eq!(
+        serde_json::to_value(adapter.observe(generation(1)).unwrap()).unwrap()["readiness"],
+        "ready"
+    );
+
+    let unchanged = adapter.navigate(generation(1), requested.clone()).unwrap();
+    assert_eq!(unchanged.previous_url(), &requested);
+    assert_eq!(unchanged.outcome(), ChildViewNavigationOutcome::Unchanged);
+    assert_eq!(adapter.current_url(generation(1)).unwrap(), requested);
+
+    let calls = runtime.calls();
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|call| matches!(call, NativeCall::Navigate { .. }))
+            .count(),
+        1
+    );
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|call| matches!(call, NativeCall::Attach { .. }))
+            .count(),
+        1
+    );
+    assert!(
+        !calls
+            .iter()
+            .any(|call| matches!(call, NativeCall::Close { .. }))
+    );
+}
+
+#[test]
+fn denied_stale_and_native_navigation_failures_preserve_attachment() {
+    let timeline = Arc::new(Mutex::new(Vec::new()));
+    let runtime = FakeRuntime::with_timeline(timeline.clone());
+    let adapter = adapter(runtime.clone(), timeline);
+    let authority = coordinator(2);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+
+    let calls_before = runtime.calls();
+    let denied = Url::parse("https://example.com/denied").unwrap();
+    assert_eq!(
+        adapter.navigate(generation(2), denied.clone()),
+        Err(ChildViewError::NavigationDenied(denied))
+    );
+    assert_eq!(
+        adapter.navigate(
+            generation(1),
+            Url::parse("http://127.0.0.1:43119/stale").unwrap()
+        ),
+        Err(ChildViewError::StaleGeneration {
+            current: generation(2),
+            supplied: generation(1),
+        })
+    );
+    assert_eq!(
+        adapter.navigate(
+            generation(3),
+            Url::parse("http://127.0.0.1:43119/future").unwrap()
+        ),
+        Err(ChildViewError::FutureGeneration {
+            current: generation(2),
+            supplied: generation(3),
+        })
+    );
+    assert_eq!(runtime.calls(), calls_before);
+
+    runtime.set_fail_current_url(true);
+    assert!(matches!(
+        adapter.navigate(
+            generation(2),
+            Url::parse("http://127.0.0.1:43119/observe-failure").unwrap()
+        ),
+        Err(ChildViewError::Native {
+            operation: "current-url",
+            ..
+        })
+    ));
+    runtime.set_fail_current_url(false);
+    runtime.set_fail_navigate(true);
+    assert!(matches!(
+        adapter.navigate(
+            generation(2),
+            Url::parse("http://127.0.0.1:43119/native-failure").unwrap()
+        ),
+        Err(ChildViewError::Native {
+            operation: "navigate",
+            ..
+        })
+    ));
+    assert!(adapter.is_attached(generation(2)).unwrap());
+    assert_eq!(
+        runtime
+            .calls()
+            .iter()
+            .filter(|call| matches!(call, NativeCall::Attach { .. }))
+            .count(),
+        1
+    );
+    assert!(
+        !runtime
+            .calls()
             .iter()
             .any(|call| matches!(call, NativeCall::Close { .. }))
     );

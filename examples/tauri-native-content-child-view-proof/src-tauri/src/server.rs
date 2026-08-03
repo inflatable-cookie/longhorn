@@ -62,6 +62,10 @@ impl ProofServer {
         format!("{}/proof?session={session}", self.origin)
     }
 
+    pub(crate) fn navigation_url(&self, session: &str) -> String {
+        format!("{}/navigated?session={session}", self.origin)
+    }
+
     pub(crate) fn origin(&self) -> &str {
         &self.origin
     }
@@ -104,6 +108,12 @@ fn handle_request(stream: &mut TcpStream, log: &EvidenceLog) -> Result<(), Strin
     log.record("http_request", json!({"path": path}))?;
     match path {
         "/proof" => write_response(stream, "200 OK", "text/html; charset=utf-8", proof_page()),
+        "/navigated" => write_response(
+            stream,
+            "200 OK",
+            "text/html; charset=utf-8",
+            navigated_page(),
+        ),
         "/event" => {
             log.record(
                 "content_event",
@@ -129,6 +139,15 @@ const emit=name=>{counter++;const q=new URLSearchParams({name,session,counter:St
 emit('loaded');setInterval(()=>emit('heartbeat'),100);
 const popup=document.createElement('a');popup.href='/popup';popup.target='_blank';document.body.append(popup);popup.click();
 const download=document.createElement('a');download.href='/download';download.download='denied.bin';document.body.append(download);download.click();
+</script>"#
+}
+
+fn navigated_page() -> &'static str {
+    r#"<!doctype html><meta charset="utf-8"><title>Navigated child</title>
+<h1>Navigated child content</h1><script>
+const p=new URLSearchParams(location.search);const session=p.get('session')||'missing';let counter=0;
+const emit=name=>{counter++;const q=new URLSearchParams({name,session,counter:String(counter)});fetch('/event?'+q,{cache:'no-store'});};
+emit('navigated');setInterval(()=>emit('heartbeat'),100);
 </script>"#
 }
 

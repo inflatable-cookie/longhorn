@@ -2,7 +2,7 @@
 
 Status: active promoted production boundary  
 Owner: Tom  
-Updated: 2026-07-31  
+Updated: 2026-08-03
 Evidence: `../research/translation-memos/017-native-content-island-boundary.md`
 
 ## Boundary
@@ -53,6 +53,8 @@ Longhorn may own:
 - pure update planning and ordered operation receipts
 - stale-generation rejection
 - exact detach and failure evidence
+- child-view-specific, generation-checked navigation mechanics and exact
+  native-side receipts
 
 Consumers own:
 
@@ -64,6 +66,40 @@ Consumers own:
 - overlay intersection, panel activity, and final visibility policy
 - semantic input payloads and command execution
 - platform support policy and outer-window placement
+
+## Child-view Document Navigation
+
+A retained child webview may navigate without changing island identity or
+attach generation. This is a child-view mechanism operation, not a common
+`NativeContentOperation` and not part of the renderer protocol.
+
+The child-view adapter accepts one exact attach generation and one parsed URL.
+It must:
+
+1. reject stale, future, retired, attaching, or absent generations before
+   native work;
+2. evaluate the consumer-supplied `ChildViewSpec` navigation policy before
+   reading or mutating the native webview;
+3. read the fresh native URL and return `unchanged` without navigation when
+   the requested document is already current;
+4. otherwise submit exactly one native navigation and return `submitted`;
+5. report the previous and requested URLs without claiming that the load
+   completed.
+
+Page-load start clears adapter readiness for the current generation. Page-load
+finish restores readiness. Fresh current-document observation remains
+native-side and generation-checked. URLs, browser history, selection identity,
+and navigation policy never enter the mechanism-neutral desired/observed
+protocol.
+
+Policy denial, URL observation failure, native navigation failure, and stale
+authority are typed. They do not recreate the child, advance attach
+generation, or mutate common coordinator state. Consumer Tauri commands may
+expose this native operation under their own authorization. Global label
+lookup and raw-handle escape are not canonical control paths.
+
+Back, forward, reload, browser-history persistence, redirects, downloads,
+popups, and permissions remain outside this operation.
 
 Poodle owns layout and visual primitives. `longhorn-windowing` owns desired and
 observed outer-window placement. Native-content coordination may bind to a
@@ -89,8 +125,9 @@ The shared descriptor distinguishes:
 
 - `child_view`: native child bounds follow the desired viewport
 - `isolated_window`: native content fills an independently planned window
-- `backing_surface`: native backing storage may fill the host while rendering
-  and input are clipped to the desired viewport
+- `backing_surface`: consumer-rendered native backing storage may fill the
+  host while rendering and input are clipped to the desired viewport; it is
+  not a second webview
 
 It also declares:
 
@@ -225,8 +262,9 @@ depend on it without a later public-seam proof and contract change.
 
 - one product-neutral desired/observed trace represents all three mechanisms
 - child-view proof covers reuse, hide/show, close, focus, overlay inhibition,
-  and deterministic 1x/2x viewport geometry; live scale switching was
-  unavailable and focus/visibility observation may remain `unknown`
+  policy-admitted idempotent navigation, readiness transitions, and
+  deterministic 1x/2x viewport geometry; live scale switching was unavailable
+  and focus/visibility observation may remain `unknown`
 - isolated-window proof covers content- and host-driven resize, show/hide/
   close requests, helper loss, focus loss, and bounded teardown
 - backing-surface proof covers viewport move/collapse, window resize,
@@ -263,7 +301,7 @@ depend on it without a later public-seam proof and contract change.
 | --- | --- | --- |
 | common vocabulary | Card 082 has 21 passing pure tests and lossless traces for all three mechanisms | promote pure kernel |
 | dependency isolation | pure and each packaged graph omit other mechanisms and product stacks | promote separate mechanism layers |
-| child view | packaged macOS attach, reuse, geometry, visibility commands, focus command, security, close, and teardown pass | promote macOS-first adapter; keep Windows/Linux unproved |
+| child view | packaged macOS attach, retained policy-admitted navigation, reuse, geometry, visibility commands, focus command, security, close, and teardown pass | promote macOS-first adapter; keep Windows/Linux unproved |
 | isolated window | packaged macOS 11/11 resize, lifecycle, helper-loss, timeout, and teardown matrix passes | promote macOS-only adapter |
 | backing surface | packaged macOS clip, render/input gating, resize, destruction, and reversible detach pass | promote macOS-only adapter |
 | live scale | host exposed one attached 2x display; deterministic 1x/2x conversion passes but live transition is unmet | exclude mixed-display proof from claims |
@@ -296,3 +334,11 @@ requires an explicit browser construction, navigation, data-store,
 capability, and visibility policy map. Soundcheck and Jetstream remain behind
 the sequential consumer runway and their named plugin/helper or GPU/input
 authority maps.
+
+Cards 132-134 extend the child-view artifact without changing the common
+protocol. The staged private source artifact compiles generation-checked
+current-URL observation and navigation from an isolated consumer. The common
+fixture and generated TypeScript digests remain exact. Packaged macOS evidence
+proves submitted navigation, same-URL idempotence, policy denial, readiness,
+and retained generation. Figmatic owns its preview URLs and command policy;
+Nucleus owns its browser actions and later removal of global-label lookup.

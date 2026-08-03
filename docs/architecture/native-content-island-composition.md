@@ -2,7 +2,7 @@
 
 Status: canonical promoted direction
 Owner: Tom
-Updated: 2026-08-01
+Updated: 2026-08-03
 Governing contract: [017 Native Content Island Coordination](../contracts/017-native-content-island-coordination.md)
 
 ## Decision
@@ -54,8 +54,18 @@ The child-view seam accepts a bounded optional initialization script and a
 native observer for page-load, denied-popup, denied-download, and supported
 document-title events. These hooks preserve consumer trusted-chrome and
 construction policy without adding browser payloads to the shared renderer
-protocol. Navigation admission, notices, cursor interpretation, data-store
-choice, and all persisted browser state remain consumer authority.
+protocol. The adapter also exposes generation-checked native-side URL
+observation and policy-admitted navigation. Navigation admission, notices,
+cursor interpretation, data-store choice, and all persisted browser state
+remain consumer authority.
+
+Navigation is deliberately absent from `longhorn-native-content` and
+`@longhorn/native-content`. It is specific to the retained child-view
+mechanism. A consumer-owned Tauri command may call the adapter without
+exporting a raw webview handle or granting the remote child a capability.
+Repeated navigation to the fresh current URL is unchanged; a submitted receipt
+means only that the native runtime accepted the request. Page-load callbacks
+separately drive not-ready/ready evidence.
 
 `@longhorn/native-content` is generated from Rust authority. The Svelte
 package owns mounted connection lifetime, viewport measurement, explicit
@@ -97,7 +107,7 @@ Fresh observation, not mutation success, decides convergence.
 | pure coordination | deterministic 1x/2x traces pass | portable code; target artifact pending | portable code; target artifact pending | semantics promoted |
 | child view | packaged proof passes with live scale switch unavailable; focus and visibility may be `unknown` | unproved | unproved | macOS first; no other host claim |
 | isolated window | packaged 11/11 proof passes | unsupported | unsupported | macOS only |
-| backing surface | packaged proof passes with live scale switch unavailable | unsupported | unsupported | macOS only |
+| backing surface | packaged proof passes with live scale switch unavailable; content is consumer-rendered, not another webview | unsupported | unsupported | macOS only |
 
 The child and backing proofs ran on one attached 2x display. Deterministic 1x
 and 2x conversion passes, but no live native display transition was available
@@ -107,7 +117,8 @@ fabricated success.
 
 ## Explicit Exclusions
 
-- browser navigation, downloads, permissions, data stores, and popup policy
+- browser navigation policy, history, downloads, permissions, data stores,
+  and popup policy
 - plugin discovery, ABI, unload, audio, MIDI, screenshots, and Signal payloads
 - GPU device, render loop, scene, camera, picking, and gizmo authority
 - semantic pointer, keyboard, MIDI, plugin, or render payloads

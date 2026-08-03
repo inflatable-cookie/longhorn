@@ -39,3 +39,6 @@ recovery. Nucleus may resume its consumer card but remains incomplete until it
 supplies app-wide quiescence and restart. Cards 070-074 complete g01.017 with
 the optional fork-tree authority, dense persistence, bounded clients, and
 isolated artifact proof. No consumer adoption lane auto-starts.
+Figmatic g03.006 exposed the next bounded shared follow-up. g01.020 Cards
+132-134 complete retained child-view navigation authority, native proof, and
+artifact/consumer closeout. No Longhorn card auto-starts.

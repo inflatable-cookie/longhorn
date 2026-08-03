@@ -16,8 +16,9 @@ use longhorn_native_content::{
 };
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
-    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewPolicyHooks, ChildViewRuntimeEvent,
-    ChildViewRuntimeEventKind, ChildViewSpec, ChildViewTeardownOutcome, TauriChildViewRuntime,
+    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewNavigationOutcome, ChildViewPolicyEvent,
+    ChildViewPolicyHooks, ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSpec,
+    ChildViewTeardownOutcome, TauriChildViewRuntime,
 };
 use serde_json::{Value, json};
 use tauri::{AppHandle, Position, Window, Wry};
@@ -50,6 +51,7 @@ pub(crate) fn run(
     );
     let source = tauri::Url::parse(&server.page_url(&session)).map_err(string_error)?;
     let allowed_origin = server.origin().to_string();
+    let policy_log = log.clone();
     let spec = ChildViewSpec::new(
         island_id()?,
         host_window_id()?,
@@ -58,7 +60,30 @@ pub(crate) fn run(
         source,
         Some(*b"longhorn-proof-1"),
         Arc::new(move |candidate| candidate.origin().ascii_serialization() == allowed_origin),
-        ChildViewPolicyHooks::new(None, Arc::new(|_| {})).map_err(string_error)?,
+        ChildViewPolicyHooks::new(
+            None,
+            Arc::new(move |event| {
+                let detail = match event {
+                    ChildViewPolicyEvent::PageLoadStarted { url } => {
+                        json!({"kind": "page_load_started", "url": url})
+                    }
+                    ChildViewPolicyEvent::PageLoadFinished { url } => {
+                        json!({"kind": "page_load_finished", "url": url})
+                    }
+                    ChildViewPolicyEvent::PopupDenied { url } => {
+                        json!({"kind": "popup_denied", "url": url})
+                    }
+                    ChildViewPolicyEvent::DownloadDenied { url } => {
+                        json!({"kind": "download_denied", "url": url})
+                    }
+                    ChildViewPolicyEvent::DocumentTitleChanged { title } => {
+                        json!({"kind": "document_title_changed", "title": title})
+                    }
+                };
+                let _ = policy_log.record("policy_event", detail);
+            }),
+        )
+        .map_err(string_error)?,
     )
     .map_err(string_error)?;
     let event_log = log.clone();
@@ -137,6 +162,59 @@ pub(crate) fn run(
             "same_origin_allowed": same_origin,
             "cross_origin_allowed": cross_origin,
             "remote_capabilities": [],
+        }),
+    ));
+
+    let navigated_url =
+        tauri::Url::parse(&server.navigation_url(&session)).map_err(string_error)?;
+    let started_before = runtime_event_count(&log, 1, "page_load_started")?;
+    let finished_before = runtime_event_count(&log, 1, "page_load_finished")?;
+    let navigation = adapter
+        .navigate(generation(1)?, navigated_url.clone())
+        .map_err(string_error)?;
+    let navigated = log.wait_for("content_event", WAIT, |detail| {
+        detail["name"] == "navigated" && detail["session"] == session
+    })?;
+    let load_finished = log.wait_for("policy_event", WAIT, |detail| {
+        detail["kind"] == "page_load_finished" && detail["url"] == navigated_url.as_str()
+    })?;
+    let started_after = runtime_event_count(&log, 1, "page_load_started")?;
+    let finished_after = runtime_event_count(&log, 1, "page_load_finished")?;
+    let current = adapter.current_url(generation(1)?).map_err(string_error)?;
+    let repeated = adapter
+        .navigate(generation(1)?, navigated_url.clone())
+        .map_err(string_error)?;
+    thread::sleep(Duration::from_millis(300));
+    let navigated_requests = log.count("http_request", |detail| detail["path"] == "/navigated")?;
+    let denied = adapter.navigate(
+        generation(1)?,
+        tauri::Url::parse("https://example.invalid/blocked").map_err(string_error)?,
+    );
+    checks.push(Check::new(
+        "policy_admitted_navigation_reuses_one_child",
+        pass(
+            navigation.outcome() == ChildViewNavigationOutcome::Submitted
+                && repeated.outcome() == ChildViewNavigationOutcome::Unchanged
+                && navigated
+                && load_finished
+                && started_after == started_before + 1
+                && finished_after == finished_before + 1
+                && current == navigated_url
+                && navigated_requests == 1
+                && matches!(denied, Err(ChildViewError::NavigationDenied(_)))
+                && adapter.is_attached(generation(1)?).map_err(string_error)?,
+        ),
+        json!({
+            "submitted": navigation,
+            "repeated": repeated,
+            "current_url": current,
+            "navigated_content_event": navigated,
+            "page_load_finished": load_finished,
+            "page_load_started_delta": started_after.saturating_sub(started_before),
+            "page_load_finished_delta": finished_after.saturating_sub(finished_before),
+            "navigated_requests": navigated_requests,
+            "denied": format!("{denied:?}"),
+            "generation": 1,
         }),
     ));
 
@@ -500,6 +578,12 @@ fn wait_for_runtime(log: &EvidenceLog, generation: u64, kind: &str) -> Result<bo
 fn heartbeat_count(log: &EvidenceLog, session: &str) -> Result<usize, String> {
     log.count("content_event", |detail| {
         detail["name"] == "heartbeat" && detail["session"] == session
+    })
+}
+
+fn runtime_event_count(log: &EvidenceLog, generation: u64, kind: &str) -> Result<usize, String> {
+    log.count("adapter_event", |detail| {
+        detail["kind"] == "runtime" && detail["generation"] == generation && detail["event"] == kind
     })
 }
 

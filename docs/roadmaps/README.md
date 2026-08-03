@@ -46,6 +46,10 @@ close g01.019 with a generic grouped transaction, durable journal, exact
 rollback, boot recovery, mixed-adapter/SQLite proof, and a consumer handoff.
 Nucleus remains incomplete until its own quiescence and restart work lands.
 Cards 070-074 and g01.017 are complete.
+Figmatic g03.006 exposed a retained child-view navigation gap. g01.020 Cards
+132-134 add policy-admitted native navigation, packaged proof, isolated
+artifact regression, and exact Figmatic/Nucleus consumer handoffs without
+adding URL payloads to the common protocol.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -179,5 +183,6 @@ this host.
 
 ## Next Task
 
-No fork-tree consumer lane auto-starts. Select one explicitly from artifact
-evidence; Nucleus grouped restore may continue from completed g01.019.
+No Longhorn card auto-starts. Resume Figmatic g03.006 with the g01.020
+consumer handoff. Nucleus may separately remove its global-label navigation
+bypass.

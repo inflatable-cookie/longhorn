@@ -184,6 +184,20 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
             .map_err(|error| native_error("focus", error))
     }
 
+    fn current_url(&self, handle: &Self::Handle) -> Result<tauri::Url, ChildViewError> {
+        handle
+            .webview
+            .url()
+            .map_err(|error| native_error("current-url", error))
+    }
+
+    fn navigate(&self, handle: &Self::Handle, url: tauri::Url) -> Result<(), ChildViewError> {
+        handle
+            .webview
+            .navigate(url)
+            .map_err(|error| native_error("navigate", error))
+    }
+
     fn close(&self, handle: &Self::Handle) -> Result<(), ChildViewError> {
         handle
             .webview
