@@ -18,6 +18,25 @@
   exact native receipts and packaged macOS evidence.
 - Explicit present/absent grouped-adapter restore evidence with zero-payload
   deletion, restart-safe rollback-to-absence, and per-domain receipt evidence.
+- Optional production fork-tree history layer (`longhorn-history-tree`,
+  `longhorn-tauri-history-tree`, `@longhorn/history-tree`) behind the linear
+  adoption checkpoint.
+- Process-wide best-effort diagnostics seam
+  (`longhorn_core::install_best_effort_diagnostics`) observing tolerated
+  event-emit, adapter-teardown, and journal-cleanup failures.
+
+### Fixed
+
+- Layout ratios validate on deserialization; sizing bounds above 100% are
+  unrepresentable.
+- Window lifecycle: event-thread flush deferral, shared cancelable timer
+  wakes, coherent retag state migration, typed install-label validation, and
+  closure of the recorded reveal/retained-normal/destroy races.
+- Transfer: truthful `session_consumed` aborts, post-publication
+  reconciliation evidence instead of asserts, snapshot/destroy client-slot
+  race closure, and epoch-ordered client-changed events.
+- Storage: all 22 config/settings/command Tauri commands run off the main
+  thread; bare loads self-heal terminal restore journals.
 
 ### Changed
 
@@ -28,8 +47,8 @@
 
 ### Distribution
 
-- Produced a deterministic private `0.1.0` candidate across 17 TypeScript
-  packages, 36 Rust packages, five exact Poodle artifacts, and seven consumer
+- Produced a deterministic private `0.1.0` candidate across 18 TypeScript
+  packages, 38 Rust crates, five exact Poodle artifacts, and seven consumer
   graphs.
 - Kept npm/crates.io publication, registry ownership, tags, and hosted releases
   deferred.

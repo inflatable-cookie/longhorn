@@ -7,7 +7,10 @@ characterized and promoted through the docs spine.
 
 ## Active Generation
 
-None.
+[g02](g02/README.md) — workspace integrity remediation. Research memo 018
+characterizes the post-g01 audit gap; Cards 138-147 delivered all six
+remediation milestones. The generation stays open for the next
+characterized shared gap.
 
 ## Rollover History
 
@@ -15,8 +18,8 @@ None.
 
 ## Next Task
 
-No Longhorn card auto-starts. g01 is closed and consumer repositories own all
-remaining adoption and integration. A new shared gap must be characterized,
-contracted, and compiled before execution. Deferred candidates remain in the
+The g02 remediation runway (Cards 138-147) is complete. No Longhorn card
+auto-starts; the next shared gap must be characterized from consumer
+evidence and compiled before execution. Deferred candidates remain in the
 [system inventory](../architecture/system-inventory.md#planning-gaps) and are
 not a committed runway. Package-manager publication remains deferred.

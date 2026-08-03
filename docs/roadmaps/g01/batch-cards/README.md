@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
+None.
 
 ## Operator-held
 
@@ -18,6 +18,7 @@ None.
 
 ## Complete
 
+- [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
 - [137 Grouped Adapter Absence Conformance And Nucleus Handoff](137-grouped-adapter-absence-conformance-and-nucleus-handoff.md)
 - [136 Grouped Adapter Absence Transaction And Recovery](136-grouped-adapter-absence-transaction-and-recovery.md)
 - [135 Grouped Adapter Explicit-state Contract](135-grouped-adapter-explicit-state-contract.md)
@@ -157,5 +158,5 @@ None.
 
 ## Next Task
 
-No Longhorn card auto-starts. Resume Nucleus g05.046 from the grouped absence
-consumer handoff. Figmatic g03.006 remains ready separately.
+g01 is closed. The [generation index](../../generation-index.md) owns the
+only live next-task pointer.

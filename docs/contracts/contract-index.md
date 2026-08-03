@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-02
+Updated: 2026-08-03
 
 ## Contract Register
 
@@ -82,8 +82,9 @@ stable product storage identity, public Poodle drag seam, and 83-variant Pulse
 history boundary. g01.015 is compiled through Card 112. Cards 103-108 complete
 the storage, artifact-admission, display/window, layout, and regional Surface
 authority slices. Card 109 owns renderer and transfer composition.
-Cards 113-127 compile g01.016 across exact secondary-consumer admission,
-Soundcheck, Bovine, Jetstream, greenfield composition, documentation, and a
-private compatibility candidate. Cards 113-117 are complete; Card 118 is ready.
-Package-manager publication remains deferred. Cards 070-074 remain planned
-behind the linear-history adoption checkpoint.
+g01 is complete through Card 137, including the secondary-consumer
+migrations, the private compatibility candidate, the optional fork-tree
+layer, grouped-adapter absence restore, and child-view navigation.
+Generation g02 executes remediation Cards 138-147 under existing contracts;
+research memo 018 is the governing evidence. Package-manager publication
+remains deferred.

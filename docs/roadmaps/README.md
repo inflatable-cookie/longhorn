@@ -3,6 +3,7 @@
 ## Generation State
 
 - [Generation Index](generation-index.md)
+- [g02](g02/README.md) — active, workspace integrity remediation (Cards 138-147)
 - [g01](g01/README.md) — complete
 
 ## Completed Generation

@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-01
+Updated: 2026-08-03
 Evidence: `../research/translation-memos/002-shared-desktop-systems-follow-up.md`;
 `../research/translation-memos/004-configuration-coordination-and-atomic-mutation.md`;
 `../research/translation-memos/005-debounced-mutation-and-explicit-flush.md`;
