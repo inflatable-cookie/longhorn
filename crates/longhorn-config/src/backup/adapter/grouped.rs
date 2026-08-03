@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{BackupLimits, DomainDescriptor, Sha256Digest};
 
 use super::{
@@ -5,13 +7,62 @@ use super::{
     BackupAdapterRestorePreview,
 };
 
+/// Exact semantic presence observed or expected for one adapter domain.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase",
+    tag = "state"
+)]
+pub enum BackupAdapterStateEvidence {
+    /// No live domain state exists.
+    Absent,
+    /// Live domain state exists with this semantic digest.
+    Present {
+        /// Digest over the adapter-defined semantic state.
+        sha256: Sha256Digest,
+    },
+}
+
+impl BackupAdapterStateEvidence {
+    /// Constructs present semantic evidence.
+    #[must_use]
+    pub const fn present(sha256: Sha256Digest) -> Self {
+        Self::Present { sha256 }
+    }
+
+    /// Converts an optional observed digest into explicit presence evidence.
+    #[must_use]
+    pub fn from_optional(sha256: Option<Sha256Digest>) -> Self {
+        match sha256 {
+            Some(sha256) => Self::Present { sha256 },
+            None => Self::Absent,
+        }
+    }
+
+    /// Returns the present semantic digest, or `None` for exact absence.
+    #[must_use]
+    pub const fn sha256(&self) -> Option<&Sha256Digest> {
+        match self {
+            Self::Absent => None,
+            Self::Present { sha256 } => Some(sha256),
+        }
+    }
+
+    /// Returns whether this evidence proves exact absence.
+    #[must_use]
+    pub const fn is_absent(&self) -> bool {
+        matches!(self, Self::Absent)
+    }
+}
+
 /// Complete side-effect-free stage for one grouped custom restore target.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BackupAdapterRestoreStage {
     target_payloads: Vec<BackupAdapterPayload>,
     rollback_payloads: Vec<BackupAdapterPayload>,
-    target_evidence: Sha256Digest,
-    current_evidence: Option<Sha256Digest>,
+    target_evidence: BackupAdapterStateEvidence,
+    rollback_evidence: BackupAdapterStateEvidence,
 }
 
 impl BackupAdapterRestoreStage {
@@ -23,14 +74,14 @@ impl BackupAdapterRestoreStage {
     pub fn new(
         target_payloads: Vec<BackupAdapterPayload>,
         rollback_payloads: Vec<BackupAdapterPayload>,
-        target_evidence: Sha256Digest,
-        current_evidence: Option<Sha256Digest>,
+        target_evidence: BackupAdapterStateEvidence,
+        rollback_evidence: BackupAdapterStateEvidence,
     ) -> Self {
         Self {
             target_payloads,
             rollback_payloads,
             target_evidence,
-            current_evidence,
+            rollback_evidence,
         }
     }
 
@@ -48,14 +99,14 @@ impl BackupAdapterRestoreStage {
 
     /// Returns the staged target semantic evidence.
     #[must_use]
-    pub const fn target_evidence(&self) -> &Sha256Digest {
+    pub const fn target_evidence(&self) -> &BackupAdapterStateEvidence {
         &self.target_evidence
     }
 
-    /// Returns the staged current semantic evidence; `None` means absent.
+    /// Returns the staged exact rollback semantic state.
     #[must_use]
-    pub const fn current_evidence(&self) -> Option<&Sha256Digest> {
-        self.current_evidence.as_ref()
+    pub const fn rollback_evidence(&self) -> &BackupAdapterStateEvidence {
+        &self.rollback_evidence
     }
 }
 
@@ -114,7 +165,7 @@ pub struct BackupAdapterGroupedApplyRequest<'request> {
     descriptor: &'request DomainDescriptor,
     kind: BackupAdapterGroupedApplyKind,
     payloads: &'request [BackupAdapterPayload],
-    expected_evidence: Option<&'request Sha256Digest>,
+    expected_evidence: &'request BackupAdapterStateEvidence,
 }
 
 impl<'request> BackupAdapterGroupedApplyRequest<'request> {
@@ -122,7 +173,7 @@ impl<'request> BackupAdapterGroupedApplyRequest<'request> {
         descriptor: &'request DomainDescriptor,
         kind: BackupAdapterGroupedApplyKind,
         payloads: &'request [BackupAdapterPayload],
-        expected_evidence: Option<&'request Sha256Digest>,
+        expected_evidence: &'request BackupAdapterStateEvidence,
     ) -> Self {
         Self {
             descriptor,
@@ -152,7 +203,7 @@ impl<'request> BackupAdapterGroupedApplyRequest<'request> {
 
     /// Returns the semantic evidence Longhorn will verify after apply.
     #[must_use]
-    pub const fn expected_evidence(&self) -> Option<&Sha256Digest> {
+    pub const fn expected_evidence(&self) -> &BackupAdapterStateEvidence {
         self.expected_evidence
     }
 }
@@ -161,11 +212,21 @@ impl<'request> BackupAdapterGroupedApplyRequest<'request> {
 #[derive(Clone, Copy, Debug)]
 pub struct BackupAdapterGroupedVerifyRequest<'request> {
     descriptor: &'request DomainDescriptor,
+    kind: BackupAdapterGroupedApplyKind,
+    expected_evidence: &'request BackupAdapterStateEvidence,
 }
 
 impl<'request> BackupAdapterGroupedVerifyRequest<'request> {
-    pub(crate) const fn new(descriptor: &'request DomainDescriptor) -> Self {
-        Self { descriptor }
+    pub(crate) const fn new(
+        descriptor: &'request DomainDescriptor,
+        kind: BackupAdapterGroupedApplyKind,
+        expected_evidence: &'request BackupAdapterStateEvidence,
+    ) -> Self {
+        Self {
+            descriptor,
+            kind,
+            expected_evidence,
+        }
     }
 
     /// Returns the schema-opaque registered descriptor.
@@ -173,13 +234,25 @@ impl<'request> BackupAdapterGroupedVerifyRequest<'request> {
     pub const fn descriptor(&self) -> &DomainDescriptor {
         self.descriptor
     }
+
+    /// Returns whether target or rollback state is being verified.
+    #[must_use]
+    pub const fn kind(&self) -> BackupAdapterGroupedApplyKind {
+        self.kind
+    }
+
+    /// Returns the exact semantic state Longhorn will compare.
+    #[must_use]
+    pub const fn expected_evidence(&self) -> &BackupAdapterStateEvidence {
+        self.expected_evidence
+    }
 }
 
 /// Object-safe grouped transaction extension for one custom adapter.
 ///
 /// `stage` must not mutate live authority. `apply` publishes only the supplied
-/// durable payload set. `verify` independently observes current semantic
-/// evidence; `None` means the domain is absent.
+/// durable payload set. `verify` independently observes explicit present or
+/// absent semantic evidence.
 pub trait BackupAdapterGroupedRestore {
     /// Stages exact target and rollback payloads without live mutation.
     fn stage(
@@ -197,5 +270,5 @@ pub trait BackupAdapterGroupedRestore {
     fn verify(
         &self,
         request: BackupAdapterGroupedVerifyRequest<'_>,
-    ) -> Result<Option<Sha256Digest>, BackupAdapterError>;
+    ) -> Result<BackupAdapterStateEvidence, BackupAdapterError>;
 }

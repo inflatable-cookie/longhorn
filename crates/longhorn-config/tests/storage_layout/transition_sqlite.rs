@@ -10,10 +10,11 @@ use longhorn_config::{
     BackupAdapterCaptureRequest, BackupAdapterConsistencyGroup, BackupAdapterError,
     BackupAdapterId, BackupAdapterInspectRequest, BackupAdapterPayload, BackupAdapterRelativePath,
     BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation, BackupAdapterRestorePreview,
-    BackupAdapterRestoreRequest, ConfigDomain, Sha256Digest, StorageClass, StorageTransitionAction,
-    StorageTransitionAdapter, StorageTransitionCatalog, StorageTransitionExecutionOptions,
-    StorageTransitionGuard, StorageTransitionOutcome, StorageTransitionRequest,
-    execute_storage_transition, inspect_storage_transition, plan_storage_transition,
+    BackupAdapterRestoreRequest, BackupAdapterStateEvidence, ConfigDomain, Sha256Digest,
+    StorageClass, StorageTransitionAction, StorageTransitionAdapter, StorageTransitionCatalog,
+    StorageTransitionExecutionOptions, StorageTransitionGuard, StorageTransitionOutcome,
+    StorageTransitionRequest, execute_storage_transition, inspect_storage_transition,
+    plan_storage_transition,
 };
 use rusqlite::{Connection, DatabaseName, OpenFlags, params};
 use tempfile::{TempDir, tempdir};
@@ -98,11 +99,13 @@ impl BackupAdapter for SqliteTransitionAdapter {
     ) -> Result<BackupAdapterRestorePreview, BackupAdapterError> {
         let (_scratch, staged) = Self::payload_database(&request)?;
         Ok(BackupAdapterRestorePreview::new(
-            semantic_digest(&staged)?,
-            self.database
-                .is_file()
-                .then(|| semantic_digest(&self.database))
-                .transpose()?,
+            BackupAdapterStateEvidence::present(semantic_digest(&staged)?),
+            BackupAdapterStateEvidence::from_optional(
+                self.database
+                    .is_file()
+                    .then(|| semantic_digest(&self.database))
+                    .transpose()?,
+            ),
         ))
     }
 
@@ -111,7 +114,7 @@ impl BackupAdapter for SqliteTransitionAdapter {
         request: BackupAdapterRestoreRequest<'_>,
     ) -> Result<BackupAdapterRestoreOutcome, BackupAdapterError> {
         let (_scratch, staged) = Self::payload_database(request.inspect())?;
-        if &semantic_digest(&staged)? != request.preview().target_evidence() {
+        if Some(&semantic_digest(&staged)?) != request.preview().target_evidence().sha256() {
             return Err(failure("sqlite-preview-changed"));
         }
         if let Some(parent) = self.database.parent() {

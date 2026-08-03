@@ -13,14 +13,14 @@ use longhorn_config::{
     BackupAdapterGroupedStageRequest, BackupAdapterGroupedVerifyRequest, BackupAdapterId,
     BackupAdapterInspectRequest, BackupAdapterPayload, BackupAdapterRelativePath,
     BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation, BackupAdapterRestorePreview,
-    BackupAdapterRestoreRequest, BackupAdapterRestoreStage, BackupApplication,
-    BackupArchiveFileName, BackupArchiveLimits, BackupCatalog, BackupConsistencyMode, BackupKind,
-    BackupLimits, BackupMetadata, BackupOperationalRoot, BackupProducer, BackupScope, ConfigDomain,
-    CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, MigrationStep,
-    RestoreAdapterError, RestoreAdapterRequirement, RestoreChoices, RestoreConflictChoice,
-    RestoreDomainCompatibility, RestoreExecutionOptions, RestorePrepareOptions,
-    RestoreSafetyBackupOptions, Sha256Digest, StorageClass, encode_backup_archive,
-    inspect_backup_archive,
+    BackupAdapterRestoreRequest, BackupAdapterRestoreStage, BackupAdapterStateEvidence,
+    BackupApplication, BackupArchiveFileName, BackupArchiveLimits, BackupCatalog,
+    BackupConsistencyMode, BackupKind, BackupLimits, BackupMetadata, BackupOperationalRoot,
+    BackupProducer, BackupScope, BackupSourceState, ConfigDomain, CoordinationAuthority,
+    DomainDescriptor, DomainFilePath, DomainIssue, MigrationStep, RestoreAdapterError,
+    RestoreAdapterRequirement, RestoreChoices, RestoreConflictChoice, RestoreDomainCompatibility,
+    RestoreExecutionOptions, RestorePrepareOptions, RestoreSafetyBackupOptions, Sha256Digest,
+    StorageClass, encode_backup_archive, inspect_backup_archive,
 };
 use longhorn_core::{DomainId, SchemaVersion};
 use rusqlite::{Connection, DatabaseName, OpenFlags, params};

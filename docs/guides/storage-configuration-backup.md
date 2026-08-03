@@ -184,12 +184,18 @@ a separately confirmed and receipted operation. `GroupedFailureAtomic` joins a
 selected set through the grouped protocol:
 
 1. plan one exact sorted domain set from one inspected archive
-2. confirm one digest covering the archive, adapters, target, and current evidence
+2. confirm one digest covering the archive, adapters, target, and rollback evidence
 3. quiesce all consumer-owned authorities
 4. stage every opaque target and exact rollback payload without mutation
 5. persist every payload and one journal before the first publication
 6. apply and verify all targets, or unwind all domains and verify old evidence
 7. on interruption, recover with the exact catalogue before opening authorities
+
+Custom semantic state is explicit: `Absent`, or `Present` with a SHA-256
+digest. Absent archive targets and absent rollback states each use zero
+payloads, apply as deletion, and verify absence. Present states require one or
+more opaque payloads. Never substitute an empty document, sentinel payload, or
+synthetic digest.
 
 The grouped boot path is Rust-only and renderer-free. Longhorn owns the
 transaction, journal, rollback, and receipts. The app still owns shutdown,

@@ -181,6 +181,7 @@ fn capture_custom(
         let preview = target
             .inspect(BackupAdapterInspectRequest::new(
                 descriptor,
+                crate::BackupSourceState::Present,
                 Some(source_schema_version),
                 refs,
             ))
@@ -193,8 +194,8 @@ fn capture_custom(
         else {
             return Err(StorageTransitionError::StalePlan);
         };
-        if preview.target_evidence() != expected
-            || preview.current_evidence()
+        if preview.target_evidence().sha256() != Some(expected)
+            || preview.current_evidence().sha256()
                 != entry.target_evidence.as_ref().and_then(semantic_digest)
         {
             return Err(StorageTransitionError::StalePlan);
@@ -231,6 +232,7 @@ fn restore_custom(
         .ok_or(StorageTransitionError::StalePlan)?;
     let inspect = BackupAdapterInspectRequest::new(
         descriptor,
+        crate::BackupSourceState::Present,
         captured.source_schema_version,
         payload_refs(&captured.paths, &captured.bytes),
     );
@@ -242,7 +244,7 @@ fn restore_custom(
         })?;
     match outcome {
         BackupAdapterRestoreOutcome::Verified { evidence }
-            if evidence == *captured.preview.target_evidence() =>
+            if Some(&evidence) == captured.preview.target_evidence().sha256() =>
         {
             Ok(())
         }

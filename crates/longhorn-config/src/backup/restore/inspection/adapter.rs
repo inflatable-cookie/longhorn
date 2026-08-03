@@ -3,7 +3,8 @@ use serde_json::json;
 
 use crate::{
     BackupAdapter, BackupAdapterInspectRequest, BackupAdapterRestoreParticipation,
-    BackupArchiveInspection, BackupManifestDomain, DomainDescriptor, Sha256Digest,
+    BackupAdapterStateEvidence, BackupArchiveInspection, BackupManifestDomain, BackupSourceState,
+    DomainDescriptor, Sha256Digest,
 };
 
 use super::{
@@ -64,6 +65,23 @@ pub(super) fn inspect_custom_domain(
             None,
         );
     }
+    if source.state() == BackupSourceState::Absent
+        && participation != BackupAdapterRestoreParticipation::GroupedFailureAtomic
+    {
+        return (
+            domain_report(
+                source,
+                target_schema,
+                RestoreDomainCompatibility::CustomAdapterRejected {
+                    adapter: adapter.id().clone(),
+                    detail: "absent adapter target requires grouped failure-atomic participation"
+                        .into(),
+                },
+            ),
+            None,
+            None,
+        );
+    }
     let Some(payloads) = payloads_for_adapter(archive, source) else {
         return (
             domain_report(
@@ -78,10 +96,14 @@ pub(super) fn inspect_custom_domain(
             None,
         );
     };
-    let request =
-        BackupAdapterInspectRequest::new(descriptor, source.source_schema_version(), payloads);
+    let request = BackupAdapterInspectRequest::new(
+        descriptor,
+        source.state(),
+        source.source_schema_version(),
+        payloads,
+    );
     match adapter.inspect(request) {
-        Ok(preview) => {
+        Ok(preview) if target_state_matches(source.state(), preview.target_evidence()) => {
             let confirmation_digest = adapter_confirmation_digest(
                 archive.archive_sha256(),
                 source,
@@ -109,6 +131,18 @@ pub(super) fn inspect_custom_domain(
                 }),
             )
         }
+        Ok(_) => (
+            domain_report(
+                source,
+                target_schema,
+                RestoreDomainCompatibility::CustomAdapterRejected {
+                    adapter: adapter.id().clone(),
+                    detail: "adapter target evidence contradicts archive presence".into(),
+                },
+            ),
+            None,
+            None,
+        ),
         Err(error) => (
             domain_report(
                 source,
@@ -129,19 +163,35 @@ fn adapter_confirmation_digest(
     source: &BackupManifestDomain,
     adapter: &dyn BackupAdapter,
     participation: &BackupAdapterRestoreParticipation,
-    target_evidence: &Sha256Digest,
-    current_evidence: Option<&Sha256Digest>,
+    target_evidence: &BackupAdapterStateEvidence,
+    current_evidence: &BackupAdapterStateEvidence,
 ) -> Sha256Digest {
     let canonical = serde_json::to_vec(&json!({
         "archiveSha256": archive_sha256.as_str(),
         "domain": source.domain().as_str(),
         "adapter": adapter.id().as_str(),
         "participation": participation_name(participation),
-        "targetEvidence": target_evidence.as_str(),
-        "currentEvidence": current_evidence.map(Sha256Digest::as_str),
+        "targetEvidence": super::super::grouped::evidence_confirmation(target_evidence),
+        "currentEvidence": super::super::grouped::evidence_confirmation(current_evidence),
     }))
     .expect("adapter confirmation form is serializable");
     Sha256Digest::from_bytes(&canonical)
+}
+
+const fn target_state_matches(
+    source: BackupSourceState,
+    evidence: &BackupAdapterStateEvidence,
+) -> bool {
+    matches!(
+        (source, evidence),
+        (
+            BackupSourceState::Absent,
+            BackupAdapterStateEvidence::Absent
+        ) | (
+            BackupSourceState::Present,
+            BackupAdapterStateEvidence::Present { .. }
+        )
+    )
 }
 
 const fn participation_name(participation: &BackupAdapterRestoreParticipation) -> &'static str {

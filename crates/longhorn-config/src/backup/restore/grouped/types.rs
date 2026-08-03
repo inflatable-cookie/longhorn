@@ -2,7 +2,7 @@ use std::{error::Error, fmt, path::PathBuf, time::Duration};
 
 use longhorn_core::DomainId;
 
-use crate::{BackupAdapterId, BackupLimits, Sha256Digest};
+use crate::{BackupAdapterId, BackupAdapterStateEvidence, BackupLimits, Sha256Digest};
 
 use super::super::RestoreFailureTerminal;
 
@@ -12,8 +12,8 @@ pub struct RestoreAdapterGroupPlanEntry {
     pub(crate) domain: DomainId,
     pub(crate) adapter: BackupAdapterId,
     pub(crate) adapter_confirmation: Sha256Digest,
-    pub(crate) target_evidence: Sha256Digest,
-    pub(crate) current_evidence: Option<Sha256Digest>,
+    pub(crate) target_evidence: BackupAdapterStateEvidence,
+    pub(crate) rollback_evidence: BackupAdapterStateEvidence,
 }
 
 impl RestoreAdapterGroupPlanEntry {
@@ -37,14 +37,14 @@ impl RestoreAdapterGroupPlanEntry {
 
     /// Returns the expected target semantic evidence.
     #[must_use]
-    pub const fn target_evidence(&self) -> &Sha256Digest {
+    pub const fn target_evidence(&self) -> &BackupAdapterStateEvidence {
         &self.target_evidence
     }
 
-    /// Returns exact old semantic evidence; `None` means absent.
+    /// Returns exact rollback semantic state.
     #[must_use]
-    pub const fn current_evidence(&self) -> Option<&Sha256Digest> {
-        self.current_evidence.as_ref()
+    pub const fn rollback_evidence(&self) -> &BackupAdapterStateEvidence {
+        &self.rollback_evidence
     }
 }
 
@@ -232,11 +232,49 @@ impl fmt::Display for RestoreAdapterGroupError {
 
 impl Error for RestoreAdapterGroupError {}
 
+/// Target and rollback evidence retained for one grouped receipt member.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RestoreAdapterGroupReceiptEntry {
+    pub(crate) domain: DomainId,
+    pub(crate) target_evidence: BackupAdapterStateEvidence,
+    pub(crate) rollback_evidence: BackupAdapterStateEvidence,
+}
+
+impl RestoreAdapterGroupReceiptEntry {
+    /// Returns the grouped domain.
+    #[must_use]
+    pub const fn domain(&self) -> &DomainId {
+        &self.domain
+    }
+
+    /// Returns the exact archive target state.
+    #[must_use]
+    pub const fn target_evidence(&self) -> &BackupAdapterStateEvidence {
+        &self.target_evidence
+    }
+
+    /// Returns the exact pre-transaction state.
+    #[must_use]
+    pub const fn rollback_evidence(&self) -> &BackupAdapterStateEvidence {
+        &self.rollback_evidence
+    }
+}
+
+impl From<&RestoreAdapterGroupPlanEntry> for RestoreAdapterGroupReceiptEntry {
+    fn from(entry: &RestoreAdapterGroupPlanEntry) -> Self {
+        Self {
+            domain: entry.domain.clone(),
+            target_evidence: entry.target_evidence.clone(),
+            rollback_evidence: entry.rollback_evidence.clone(),
+        }
+    }
+}
+
 /// Successful complete grouped restore receipt.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RestoreAdapterGroupExecutionReceipt {
     pub(crate) confirmation_digest: Sha256Digest,
-    pub(crate) restored: Vec<DomainId>,
+    pub(crate) entries: Vec<RestoreAdapterGroupReceiptEntry>,
 }
 
 impl RestoreAdapterGroupExecutionReceipt {
@@ -246,10 +284,10 @@ impl RestoreAdapterGroupExecutionReceipt {
         &self.confirmation_digest
     }
 
-    /// Returns every restored domain in stable order.
+    /// Returns every target and rollback evidence pair in stable domain order.
     #[must_use]
-    pub fn restored(&self) -> &[DomainId] {
-        &self.restored
+    pub fn entries(&self) -> &[RestoreAdapterGroupReceiptEntry] {
+        &self.entries
     }
 }
 
@@ -268,7 +306,7 @@ pub enum RestoreAdapterGroupRecoveryOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RestoreAdapterGroupRecoveryReceipt {
     pub(crate) outcome: RestoreAdapterGroupRecoveryOutcome,
-    pub(crate) domains: Vec<DomainId>,
+    pub(crate) entries: Vec<RestoreAdapterGroupReceiptEntry>,
 }
 
 impl RestoreAdapterGroupRecoveryReceipt {
@@ -278,10 +316,10 @@ impl RestoreAdapterGroupRecoveryReceipt {
         self.outcome
     }
 
-    /// Returns every journalled domain in stable order.
+    /// Returns every journalled target and rollback evidence pair.
     #[must_use]
-    pub fn domains(&self) -> &[DomainId] {
-        &self.domains
+    pub fn entries(&self) -> &[RestoreAdapterGroupReceiptEntry] {
+        &self.entries
     }
 }
 

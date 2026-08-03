@@ -16,6 +16,8 @@
 - Checked adoption guides and generated API inventory.
 - Generation-checked, policy-admitted retained child-view navigation with
   exact native receipts and packaged macOS evidence.
+- Explicit present/absent grouped-adapter restore evidence with zero-payload
+  deletion, restart-safe rollback-to-absence, and per-domain receipt evidence.
 
 ### Changed
 

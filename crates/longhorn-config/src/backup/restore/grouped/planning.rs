@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use longhorn_core::DomainId;
 use serde_json::json;
 
-use crate::{BackupAdapterRestoreParticipation, Sha256Digest};
+use crate::{BackupAdapterRestoreParticipation, BackupAdapterStateEvidence, Sha256Digest};
 
 use super::{
     super::RestoreInspection,
@@ -45,7 +45,7 @@ pub(crate) fn plan(
             adapter: prepared.adapter.clone(),
             adapter_confirmation: prepared.confirmation_digest.clone(),
             target_evidence: prepared.preview.target_evidence().clone(),
-            current_evidence: prepared.preview.current_evidence().cloned(),
+            rollback_evidence: prepared.preview.current_evidence().clone(),
         });
     }
 
@@ -68,8 +68,8 @@ pub(super) fn group_confirmation_digest(
                 "domain": entry.domain.as_str(),
                 "adapter": entry.adapter.as_str(),
                 "adapterConfirmation": entry.adapter_confirmation.as_str(),
-                "targetEvidence": entry.target_evidence.as_str(),
-                "currentEvidence": entry.current_evidence.as_ref().map(Sha256Digest::as_str),
+                "targetEvidence": evidence_confirmation(&entry.target_evidence),
+                "rollbackEvidence": evidence_confirmation(&entry.rollback_evidence),
             })
         })
         .collect::<Vec<_>>();
@@ -79,4 +79,13 @@ pub(super) fn group_confirmation_digest(
     }))
     .expect("grouped restore confirmation form is serializable");
     Sha256Digest::from_bytes(&canonical)
+}
+
+pub(crate) fn evidence_confirmation(evidence: &BackupAdapterStateEvidence) -> serde_json::Value {
+    match evidence {
+        BackupAdapterStateEvidence::Absent => json!({"state": "absent"}),
+        BackupAdapterStateEvidence::Present { sha256 } => {
+            json!({"state": "present", "sha256": sha256.as_str()})
+        }
+    }
 }

@@ -20,6 +20,9 @@ enum FailureMode {
     VerifyOnce = 4,
     PanicVerify = 5,
     PanicRollback = 6,
+    EmptyTargetStage = 7,
+    RollbackPayloadForAbsent = 8,
+    ContradictArchivePresence = 9,
 }
 
 struct FileAdapter {
@@ -86,6 +89,9 @@ impl BackupAdapter for FileAdapter {
         &self,
         request: BackupAdapterCaptureRequest<'_>,
     ) -> Result<BackupAdapterCapture, BackupAdapterError> {
+        if !self.path.is_file() {
+            return Ok(BackupAdapterCapture::Absent);
+        }
         let bytes = fs::read(&self.path).map_err(|_| adapter_failure("group-file-capture"))?;
         if bytes.len() > request.limits().max_domain_bytes() {
             return Err(adapter_failure("group-file-capture-limit"));
@@ -103,12 +109,32 @@ impl BackupAdapter for FileAdapter {
         &self,
         request: BackupAdapterInspectRequest<'_>,
     ) -> Result<BackupAdapterRestorePreview, BackupAdapterError> {
-        let [payload] = request.payloads() else {
-            return Err(adapter_failure("group-file-inspect-count"));
+        let target = match request.source_state() {
+            BackupSourceState::Absent if request.payloads().is_empty() => {
+                BackupAdapterStateEvidence::Absent
+            }
+            BackupSourceState::Present => {
+                let [payload] = request.payloads() else {
+                    return Err(adapter_failure("group-file-inspect-count"));
+                };
+                BackupAdapterStateEvidence::present(Sha256Digest::from_bytes(payload.bytes()))
+            }
+            _ => return Err(adapter_failure("group-file-source-state")),
         };
         Ok(BackupAdapterRestorePreview::new(
-            Sha256Digest::from_bytes(payload.bytes()),
-            self.evidence(),
+            if self.mode() == FailureMode::ContradictArchivePresence as u8 {
+                match target {
+                    BackupAdapterStateEvidence::Absent => BackupAdapterStateEvidence::present(
+                        Sha256Digest::from_bytes(b"synthetic-presence"),
+                    ),
+                    BackupAdapterStateEvidence::Present { .. } => {
+                        BackupAdapterStateEvidence::Absent
+                    }
+                }
+            } else {
+                target
+            },
+            BackupAdapterStateEvidence::from_optional(self.evidence()),
         ))
     }
 
@@ -132,10 +158,19 @@ impl BackupAdapterGroupedRestore for FileAdapter {
         if self.mode() == FailureMode::Stage as u8 {
             return Err(adapter_failure("group-file-stage-injected"));
         }
-        let [payload] = request.inspect().payloads() else {
-            return Err(adapter_failure("group-file-stage-count"));
+        let mut target = match request.preview().target_evidence() {
+            BackupAdapterStateEvidence::Absent => Vec::new(),
+            BackupAdapterStateEvidence::Present { .. } => {
+                let [payload] = request.inspect().payloads() else {
+                    return Err(adapter_failure("group-file-stage-count"));
+                };
+                vec![BackupAdapterPayload::new(
+                    BackupAdapterRelativePath::new("value.bin").unwrap(),
+                    payload.bytes().to_vec(),
+                )]
+            }
         };
-        let rollback = if self.path.is_file() {
+        let mut rollback = if self.path.is_file() {
             vec![BackupAdapterPayload::new(
                 BackupAdapterRelativePath::new("value.bin").unwrap(),
                 fs::read(&self.path).map_err(|_| adapter_failure("group-file-stage-old"))?,
@@ -143,14 +178,20 @@ impl BackupAdapterGroupedRestore for FileAdapter {
         } else {
             Vec::new()
         };
+        if self.mode() == FailureMode::EmptyTargetStage as u8 {
+            target.clear();
+        }
+        if self.mode() == FailureMode::RollbackPayloadForAbsent as u8 {
+            rollback.push(BackupAdapterPayload::new(
+                BackupAdapterRelativePath::new("contradictory.bin").unwrap(),
+                b"synthetic-rollback".to_vec(),
+            ));
+        }
         Ok(BackupAdapterRestoreStage::new(
-            vec![BackupAdapterPayload::new(
-                BackupAdapterRelativePath::new("value.bin").unwrap(),
-                payload.bytes().to_vec(),
-            )],
+            target,
             rollback,
             request.preview().target_evidence().clone(),
-            request.preview().current_evidence().cloned(),
+            request.preview().current_evidence().clone(),
         ))
     }
 
@@ -179,7 +220,7 @@ impl BackupAdapterGroupedRestore for FileAdapter {
         {
             panic!("simulated interruption during grouped rollback");
         }
-        if request.expected_evidence().is_none() {
+        if request.expected_evidence().is_absent() {
             match fs::remove_file(&self.path) {
                 Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -199,14 +240,16 @@ impl BackupAdapterGroupedRestore for FileAdapter {
     fn verify(
         &self,
         _request: BackupAdapterGroupedVerifyRequest<'_>,
-    ) -> Result<Option<Sha256Digest>, BackupAdapterError> {
+    ) -> Result<BackupAdapterStateEvidence, BackupAdapterError> {
         if self.mode() == FailureMode::PanicVerify as u8 {
             panic!("simulated interruption during grouped verification");
         }
         if self.verify_mismatch_pending.swap(false, Ordering::SeqCst) {
-            return Ok(Some(Sha256Digest::from_bytes(b"injected-mismatch")));
+            return Ok(BackupAdapterStateEvidence::present(
+                Sha256Digest::from_bytes(b"injected-mismatch"),
+            ));
         }
-        Ok(self.evidence())
+        Ok(BackupAdapterStateEvidence::from_optional(self.evidence()))
     }
 }
 
@@ -502,6 +545,163 @@ fn process_interruption_phases_block_writes_and_boot_recover_the_complete_group(
             RestoreOperationState::Inactive
         );
     }
+
+    let group = GroupFixture::new();
+    leave_interrupted_group(&group);
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let interrupted_second =
+        FileAdapter::new(group.second_path.clone(), FailureMode::PanicRollback);
+    let store = group.store();
+    let mut interrupted_catalog = BackupCatalog::new();
+    interrupted_catalog.custom(&group.first, &first).unwrap();
+    interrupted_catalog
+        .custom(&group.second, &interrupted_second)
+        .unwrap();
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _ =
+                store.recover_grouped_adapter_restore(&interrupted_catalog, Duration::from_secs(2));
+        }))
+        .is_err()
+    );
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::Active
+    );
+
+    let recovered_first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let recovered_second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let mut recovered_catalog = BackupCatalog::new();
+    recovered_catalog
+        .custom(&group.first, &recovered_first)
+        .unwrap();
+    recovered_catalog
+        .custom(&group.second, &recovered_second)
+        .unwrap();
+    let receipt = store
+        .recover_grouped_adapter_restore(&recovered_catalog, Duration::from_secs(2))
+        .unwrap();
+    assert_eq!(
+        receipt.outcome(),
+        RestoreAdapterGroupRecoveryOutcome::RolledBack
+    );
+    assert_eq!(fs::read(&group.first_path).unwrap(), b"old-first");
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+}
+
+#[test]
+fn interrupted_group_recovers_an_absent_prior_state() {
+    let group = GroupFixture::new();
+    fs::remove_file(&group.first_path).unwrap();
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::PanicVerify);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+    let inspection = inspect(&store, &catalog, &group.archive);
+    let plan = plan(&store, &inspection, &group);
+    assert_eq!(
+        plan.entries()[0].rollback_evidence(),
+        &BackupAdapterStateEvidence::Absent
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _ = store.execute_grouped_adapter_restore(
+                &catalog,
+                &group.archive,
+                &inspection,
+                &plan,
+                plan.confirmation_digest(),
+                group_options(),
+            );
+        }))
+        .is_err()
+    );
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::Active
+    );
+
+    let recovered_first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let recovered_second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let mut recovered_catalog = BackupCatalog::new();
+    recovered_catalog
+        .custom(&group.first, &recovered_first)
+        .unwrap();
+    recovered_catalog
+        .custom(&group.second, &recovered_second)
+        .unwrap();
+    let receipt = store
+        .recover_grouped_adapter_restore(&recovered_catalog, Duration::from_secs(2))
+        .unwrap();
+    let first_receipt = receipt
+        .entries()
+        .iter()
+        .find(|entry| entry.domain() == group.first.descriptor().id())
+        .unwrap();
+    assert_eq!(
+        first_receipt.rollback_evidence(),
+        &BackupAdapterStateEvidence::Absent
+    );
+    assert!(!group.first_path.exists());
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+}
+
+#[test]
+fn contradictory_archive_and_stage_presence_fail_before_mutation() {
+    let group = GroupFixture::new();
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let contradictory = FileAdapter::new(
+        group.second_path.clone(),
+        FailureMode::ContradictArchivePresence,
+    );
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &contradictory).unwrap();
+    let inspection = inspect(&store, &catalog, &group.archive);
+    assert!(matches!(
+        store.plan_grouped_adapter_restore(&inspection, [group.second.descriptor().id().clone()]),
+        Err(longhorn_config::RestoreAdapterGroupPlanError::UnknownDomain { .. })
+    ));
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+
+    for mode in [
+        FailureMode::EmptyTargetStage,
+        FailureMode::RollbackPayloadForAbsent,
+    ] {
+        let group = GroupFixture::new();
+        if matches!(mode, FailureMode::RollbackPayloadForAbsent) {
+            fs::remove_file(&group.second_path).unwrap();
+        }
+        let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+        let second = FileAdapter::new(group.second_path.clone(), mode);
+        let store = group.store();
+        let mut catalog = BackupCatalog::new();
+        catalog.custom(&group.first, &first).unwrap();
+        catalog.custom(&group.second, &second).unwrap();
+        let inspection = inspect(&store, &catalog, &group.archive);
+        let plan = plan(&store, &inspection, &group);
+        let error = store
+            .execute_grouped_adapter_restore(
+                &catalog,
+                &group.archive,
+                &inspection,
+                &plan,
+                plan.confirmation_digest(),
+                group_options(),
+            )
+            .unwrap_err();
+        assert_eq!(error.stage(), RestoreAdapterGroupExecutionStage::Stage);
+        assert_eq!(error.terminal(), RestoreFailureTerminal::NoLiveMutation);
+        assert_eq!(fs::read(&group.first_path).unwrap(), b"old-first");
+        if matches!(mode, FailureMode::RollbackPayloadForAbsent) {
+            assert!(!group.second_path.exists());
+        } else {
+            assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+        }
+    }
 }
 
 #[test]
@@ -545,6 +745,35 @@ fn changed_boot_catalog_and_corrupt_journal_fail_closed() {
         store
             .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
             .is_err()
+    );
+}
+
+#[test]
+fn contradictory_journal_presence_blocks_boot_recovery() {
+    let group = GroupFixture::new();
+    leave_interrupted_group(&group);
+    let journal_path = group
+        .fixture
+        .temp
+        .path()
+        .join("data/.longhorn/grouped-adapter-restore/journal.json");
+    let mut journal: Value = serde_json::from_slice(&fs::read(&journal_path).unwrap()).unwrap();
+    journal["entries"][0]["targetEvidence"] = json!({"state": "absent"});
+    fs::write(&journal_path, serde_json::to_vec_pretty(&journal).unwrap()).unwrap();
+
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+    let error = store
+        .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
+        .unwrap_err();
+    assert!(error.detail().contains("contradicts payload presence"));
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::RecoveryRequired
     );
 }
 
@@ -677,6 +906,259 @@ fn mixed_file_and_wal_sqlite_adapters_commit_one_group() {
         .unwrap_err();
     assert_eq!(error.terminal(), RestoreFailureTerminal::RolledBack);
     assert_eq!(fs::read(&target_file).unwrap(), b"mixed-old");
+    assert_eq!(database_value(&target_database), "sqlite-old");
+}
+
+#[test]
+fn mixed_absent_file_target_and_wal_sqlite_commit_one_group() {
+    let fixture = Fixture::new();
+    let file_domain = OpaqueDomain::new(
+        "group.z-optional-file",
+        StorageClass::UserConfig,
+        "group/optional-file.json",
+        &[],
+    );
+    let sqlite_domain = OpaqueDomain::new(
+        "group.a-required-sqlite",
+        StorageClass::MachineState,
+        "group/required-sqlite.json",
+        &[],
+    );
+    let absent_source_file = fixture.temp.path().join("source-absent.bin");
+    let source_database = fixture.temp.path().join("source-absent-mixed.sqlite3");
+    let source_connection = seed_wal_database(&source_database, "sqlite-new");
+    let source_file_adapter = FileAdapter::new(absent_source_file, FailureMode::None);
+    let source_sqlite_adapter = SqliteAdapter::new(
+        source_database,
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic,
+        None,
+    );
+    let mut source_store = fixture.store();
+    source_store.register(&file_domain).unwrap();
+    source_store.register(&sqlite_domain).unwrap();
+    let mut source_catalog = BackupCatalog::new();
+    source_catalog
+        .custom(&file_domain, &source_file_adapter)
+        .unwrap();
+    source_catalog
+        .custom(&sqlite_domain, &source_sqlite_adapter)
+        .unwrap();
+    let snapshot = source_store
+        .capture_backup(
+            &source_catalog,
+            &BackupScope::AllRegistered,
+            group_metadata(),
+            BackupCaptureOptions::new(Duration::from_secs(2), BackupLimits::default()),
+        )
+        .unwrap();
+    let absent_manifest = snapshot
+        .manifest()
+        .domains()
+        .iter()
+        .find(|domain| domain.domain() == file_domain.descriptor().id())
+        .unwrap();
+    assert_eq!(absent_manifest.state(), BackupSourceState::Absent);
+    assert!(absent_manifest.payloads().is_empty());
+    let encoded = encode_backup_archive(&snapshot, BackupArchiveLimits::default()).unwrap();
+    let archive = inspect_backup_archive(encoded.bytes(), BackupArchiveLimits::default()).unwrap();
+    drop(source_connection);
+
+    let target_file = fixture.temp.path().join("target-optional.bin");
+    let target_database = fixture.temp.path().join("target-absent-mixed.sqlite3");
+    fs::write(&target_file, b"delete-me").unwrap();
+    drop(seed_wal_database(&target_database, "sqlite-old"));
+    let target_file_adapter = FileAdapter::new(target_file.clone(), FailureMode::None);
+    let target_sqlite_adapter = SqliteAdapter::new(
+        target_database.clone(),
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic,
+        None,
+    );
+    let mut target_store = fixture.store();
+    target_store.register(&file_domain).unwrap();
+    target_store.register(&sqlite_domain).unwrap();
+    let separate_file_adapter = FileAdapter::with_participation(
+        target_file.clone(),
+        FailureMode::None,
+        "grouped-file-v1",
+        BackupAdapterRestoreParticipation::Separate,
+    );
+    let mut separate_catalog = BackupCatalog::new();
+    separate_catalog
+        .custom(&file_domain, &separate_file_adapter)
+        .unwrap();
+    separate_catalog
+        .custom(&sqlite_domain, &target_sqlite_adapter)
+        .unwrap();
+    let separate_inspection = inspect(&target_store, &separate_catalog, &archive);
+    let separate_file_report = separate_inspection
+        .domains()
+        .iter()
+        .find(|domain| domain.domain() == file_domain.descriptor().id())
+        .unwrap();
+    assert!(matches!(
+        separate_file_report.compatibility(),
+        RestoreDomainCompatibility::CustomAdapterRejected { detail, .. }
+            if detail == "absent adapter target requires grouped failure-atomic participation"
+    ));
+
+    let mut target_catalog = BackupCatalog::new();
+    target_catalog
+        .custom(&file_domain, &target_file_adapter)
+        .unwrap();
+    target_catalog
+        .custom(&sqlite_domain, &target_sqlite_adapter)
+        .unwrap();
+    let inspection = inspect(&target_store, &target_catalog, &archive);
+    let plan = target_store
+        .plan_grouped_adapter_restore(
+            &inspection,
+            [
+                file_domain.descriptor().id().clone(),
+                sqlite_domain.descriptor().id().clone(),
+            ],
+        )
+        .unwrap();
+    let file_plan = plan
+        .entries()
+        .iter()
+        .find(|entry| entry.domain() == file_domain.descriptor().id())
+        .unwrap();
+    assert_eq!(
+        file_plan.target_evidence(),
+        &BackupAdapterStateEvidence::Absent
+    );
+    assert!(matches!(
+        file_plan.rollback_evidence(),
+        BackupAdapterStateEvidence::Present { .. }
+    ));
+    let receipt = target_store
+        .execute_grouped_adapter_restore(
+            &target_catalog,
+            &archive,
+            &inspection,
+            &plan,
+            plan.confirmation_digest(),
+            group_options(),
+        )
+        .unwrap();
+    let file_receipt = receipt
+        .entries()
+        .iter()
+        .find(|entry| entry.domain() == file_domain.descriptor().id())
+        .unwrap();
+    assert_eq!(
+        file_receipt.target_evidence(),
+        &BackupAdapterStateEvidence::Absent
+    );
+    assert!(matches!(
+        file_receipt.rollback_evidence(),
+        BackupAdapterStateEvidence::Present { .. }
+    ));
+    assert!(!target_file.exists());
+    assert_eq!(database_value(&target_database), "sqlite-new");
+}
+
+#[test]
+fn mixed_file_and_wal_sqlite_failure_rolls_back_file_to_absent() {
+    let fixture = Fixture::new();
+    let file_domain = OpaqueDomain::new(
+        "group.z-created-file",
+        StorageClass::UserConfig,
+        "group/created-file.json",
+        &[],
+    );
+    let sqlite_domain = OpaqueDomain::new(
+        "group.a-rollback-sqlite",
+        StorageClass::MachineState,
+        "group/rollback-sqlite.json",
+        &[],
+    );
+    let source_file = fixture.temp.path().join("source-created.bin");
+    let source_database = fixture.temp.path().join("source-rollback.sqlite3");
+    fs::write(&source_file, b"create-me").unwrap();
+    let source_connection = seed_wal_database(&source_database, "sqlite-new");
+    let source_file_adapter = FileAdapter::new(source_file, FailureMode::None);
+    let source_sqlite_adapter = SqliteAdapter::new(
+        source_database,
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic,
+        None,
+    );
+    let mut source_store = fixture.store();
+    source_store.register(&file_domain).unwrap();
+    source_store.register(&sqlite_domain).unwrap();
+    let mut source_catalog = BackupCatalog::new();
+    source_catalog
+        .custom(&file_domain, &source_file_adapter)
+        .unwrap();
+    source_catalog
+        .custom(&sqlite_domain, &source_sqlite_adapter)
+        .unwrap();
+    let snapshot = source_store
+        .capture_backup(
+            &source_catalog,
+            &BackupScope::AllRegistered,
+            group_metadata(),
+            BackupCaptureOptions::new(Duration::from_secs(2), BackupLimits::default()),
+        )
+        .unwrap();
+    let encoded = encode_backup_archive(&snapshot, BackupArchiveLimits::default()).unwrap();
+    let archive = inspect_backup_archive(encoded.bytes(), BackupArchiveLimits::default()).unwrap();
+    drop(source_connection);
+
+    let absent_target_file = fixture.temp.path().join("target-created.bin");
+    let target_database = fixture.temp.path().join("target-rollback.sqlite3");
+    drop(seed_wal_database(&target_database, "sqlite-old"));
+    let target_file_adapter = FileAdapter::new(absent_target_file.clone(), FailureMode::VerifyOnce);
+    let target_sqlite_adapter = SqliteAdapter::new(
+        target_database.clone(),
+        BackupAdapterRestoreParticipation::GroupedFailureAtomic,
+        None,
+    );
+    let mut target_store = fixture.store();
+    target_store.register(&file_domain).unwrap();
+    target_store.register(&sqlite_domain).unwrap();
+    let mut target_catalog = BackupCatalog::new();
+    target_catalog
+        .custom(&file_domain, &target_file_adapter)
+        .unwrap();
+    target_catalog
+        .custom(&sqlite_domain, &target_sqlite_adapter)
+        .unwrap();
+    let inspection = inspect(&target_store, &target_catalog, &archive);
+    let plan = target_store
+        .plan_grouped_adapter_restore(
+            &inspection,
+            [
+                file_domain.descriptor().id().clone(),
+                sqlite_domain.descriptor().id().clone(),
+            ],
+        )
+        .unwrap();
+    let file_plan = plan
+        .entries()
+        .iter()
+        .find(|entry| entry.domain() == file_domain.descriptor().id())
+        .unwrap();
+    assert_eq!(
+        file_plan.rollback_evidence(),
+        &BackupAdapterStateEvidence::Absent
+    );
+    let error = target_store
+        .execute_grouped_adapter_restore(
+            &target_catalog,
+            &archive,
+            &inspection,
+            &plan,
+            plan.confirmation_digest(),
+            group_options(),
+        )
+        .unwrap_err();
+    assert_eq!(
+        error.stage(),
+        RestoreAdapterGroupExecutionStage::VerifyTarget
+    );
+    assert_eq!(error.terminal(), RestoreFailureTerminal::RolledBack);
+    assert!(!absent_target_file.exists());
     assert_eq!(database_value(&target_database), "sqlite-old");
 }
 

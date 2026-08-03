@@ -18,6 +18,9 @@ None.
 
 ## Complete
 
+- [137 Grouped Adapter Absence Conformance And Nucleus Handoff](137-grouped-adapter-absence-conformance-and-nucleus-handoff.md)
+- [136 Grouped Adapter Absence Transaction And Recovery](136-grouped-adapter-absence-transaction-and-recovery.md)
+- [135 Grouped Adapter Explicit-state Contract](135-grouped-adapter-explicit-state-contract.md)
 - [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [131 Grouped Adapter Public Evidence And Nucleus Handoff](131-grouped-adapter-public-evidence-and-nucleus-handoff.md)
@@ -154,6 +157,5 @@ None.
 
 ## Next Task
 
-No Longhorn card auto-starts. Resume Figmatic g03.006 with the g01.020
-consumer handoff. Nucleus may separately remove its global-label navigation
-bypass.
+No Longhorn card auto-starts. Resume Nucleus g05.046 from the grouped absence
+consumer handoff. Figmatic g03.006 remains ready separately.

@@ -496,6 +496,21 @@ require failure atomicity or allow a separately receipted operation. It
 reinspects current evidence immediately before execution and rejects terminal
 evidence that contradicts the confirmed target or rollback claim.
 
+Adapter semantic evidence is an explicit state: `Absent`, or `Present` with a
+SHA-256 digest. It is never an optional target digest. The verified manifest
+source state is supplied to inspection. An archived absent custom domain has
+zero payloads and must produce an absent target preview; a present custom
+domain has one or more payloads and must produce present target evidence.
+Contradictory archive, preview, or payload presence rejects the domain without
+mutation. Confirmation forms encode `{state: absent}` or
+`{state: present, sha256}` so absence cannot collide with a digest or an
+omitted field.
+
+Archived absence is admitted only for `GroupedFailureAtomic` adapters. The
+existing `Separate` and single-domain `FailureAtomic` protocols remain
+present-target-only because their outcome model does not receipt absent
+publication or rollback.
+
 Grouped custom restore is a separate explicit capability. It binds one
 verified archive, one sorted non-empty domain set, every adapter id, every
 per-domain preview, and one group confirmation digest. Every selected adapter
@@ -530,6 +545,21 @@ domain. Consumers own process quiescence, restart scheduling, and the point at
 which the grouped operation runs before live authorities open. Group recovery
 requires the exact registered adapter catalogue and never guesses an adapter
 from a path or product type.
+
+Both staged states obey one shape rule: absent evidence has zero payloads;
+present evidence has at least one payload. The durable journal records explicit
+target and rollback evidence independently. Apply and verify requests carry
+`Target` or `Rollback` plus the exact expected state. An archived absent target
+therefore applies zero target payloads as deletion and verifies `Absent`, while
+rollback to an absent prior state applies zero rollback payloads and verifies
+`Absent`. These cases remain distinct across restart. Sentinel payloads,
+synthetic digests, and inferred absence are forbidden.
+
+Execution and recovery receipts retain each domain's target and rollback
+evidence. Receipt projections preserve the explicit state discriminator; they
+do not reduce absence to a missing digest. An unsupported journal version or
+any journal evidence/payload contradiction remains recovery-required and
+blocks normal authority.
 
 The conformance fixture uses SQLite's online backup and restore APIs against a
 WAL-mode source, verifies the snapshot, and proves the live WAL is neither

@@ -6,8 +6,8 @@ use std::{
 use crate::{
     BackupAdapterGroupedApplyKind, BackupAdapterGroupedApplyRequest,
     BackupAdapterGroupedStageRequest, BackupAdapterGroupedVerifyRequest,
-    BackupAdapterInspectRequest, BackupAdapterRestoreParticipation, BackupArchiveInspection,
-    BackupCatalog, ConfigStore, backup::CatalogDecision,
+    BackupAdapterInspectRequest, BackupAdapterRestoreParticipation, BackupAdapterStateEvidence,
+    BackupArchiveInspection, BackupCatalog, ConfigStore, backup::CatalogDecision,
 };
 
 use super::{
@@ -143,6 +143,7 @@ pub(crate) fn execute(
         let fresh_preview = adapter
             .inspect(BackupAdapterInspectRequest::new(
                 descriptor,
+                source.state(),
                 source.source_schema_version(),
                 payloads,
             ))
@@ -155,7 +156,7 @@ pub(crate) fn execute(
                 )
             })?;
         if fresh_preview.target_evidence() != &planned.target_evidence
-            || fresh_preview.current_evidence() != planned.current_evidence.as_ref()
+            || fresh_preview.current_evidence() != &planned.rollback_evidence
             || fresh_preview != inspected.preview
         {
             return Err(failure(
@@ -178,6 +179,7 @@ pub(crate) fn execute(
             .stage(BackupAdapterGroupedStageRequest::new(
                 BackupAdapterInspectRequest::new(
                     descriptor,
+                    source.state(),
                     source.source_schema_version(),
                     payloads,
                 ),
@@ -193,7 +195,7 @@ pub(crate) fn execute(
                 )
             })?;
         if stage.target_evidence() != &planned.target_evidence
-            || stage.current_evidence() != planned.current_evidence.as_ref()
+            || stage.rollback_evidence() != &planned.rollback_evidence
         {
             return Err(failure(
                 RestoreAdapterGroupExecutionStage::Stage,
@@ -202,9 +204,17 @@ pub(crate) fn execute(
                 "grouped adapter stage evidence contradicts the confirmed preview",
             ));
         }
-        let domain_bytes = validate_payload_set(stage.target_payloads())?
-            .checked_add(validate_payload_set(stage.rollback_payloads())?)
-            .ok_or_else(|| stage_limit_failure(&planned.domain, "stage byte length overflow"))?;
+        let domain_bytes = validate_state_payload_set(
+            &planned.domain,
+            stage.target_evidence(),
+            stage.target_payloads(),
+        )?
+        .checked_add(validate_state_payload_set(
+            &planned.domain,
+            stage.rollback_evidence(),
+            stage.rollback_payloads(),
+        )?)
+        .ok_or_else(|| stage_limit_failure(&planned.domain, "stage byte length overflow"))?;
         if domain_bytes > options.limits.max_domain_bytes() {
             return Err(stage_limit_failure(
                 &planned.domain,
@@ -231,7 +241,7 @@ pub(crate) fn execute(
             adapter: planned.adapter.clone(),
             descriptor_digest: journal::descriptor_digest(descriptor),
             target_evidence: planned.target_evidence.clone(),
-            current_evidence: planned.current_evidence.clone(),
+            rollback_evidence: planned.rollback_evidence.clone(),
             target_payloads: stage.target_payloads().to_vec(),
             rollback_payloads: stage.rollback_payloads().to_vec(),
         });
@@ -302,7 +312,7 @@ pub(crate) fn execute(
             descriptor,
             BackupAdapterGroupedApplyKind::Target,
             &payloads,
-            Some(&entry.target_evidence),
+            &entry.target_evidence,
         )) {
             return Err(rollback_after_failure(
                 store,
@@ -340,7 +350,11 @@ pub(crate) fn execute(
                 ));
             }
         };
-        let observed = match adapter.verify(BackupAdapterGroupedVerifyRequest::new(descriptor)) {
+        let observed = match adapter.verify(BackupAdapterGroupedVerifyRequest::new(
+            descriptor,
+            BackupAdapterGroupedApplyKind::Target,
+            &entry.target_evidence,
+        )) {
             Ok(observed) => observed,
             Err(error) => {
                 return Err(rollback_after_failure(
@@ -353,7 +367,7 @@ pub(crate) fn execute(
                 ));
             }
         };
-        if observed.as_ref() != Some(&entry.target_evidence) {
+        if observed != entry.target_evidence {
             return Err(rollback_after_failure(
                 store,
                 catalog,
@@ -386,11 +400,7 @@ pub(crate) fn execute(
     })?;
     Ok(RestoreAdapterGroupExecutionReceipt {
         confirmation_digest: plan.confirmation_digest.clone(),
-        restored: plan
-            .entries
-            .iter()
-            .map(|entry| entry.domain.clone())
-            .collect(),
+        entries: plan.entries.iter().map(Into::into).collect(),
     })
 }
 
@@ -437,6 +447,24 @@ fn validate_payload_set(
             .ok_or_else(|| validation_failure("grouped adapter stage length overflow"))?;
     }
     Ok(total)
+}
+
+fn validate_state_payload_set(
+    domain: &longhorn_core::DomainId,
+    evidence: &BackupAdapterStateEvidence,
+    payloads: &[crate::BackupAdapterPayload],
+) -> Result<usize, RestoreAdapterGroupError> {
+    let valid = match evidence {
+        BackupAdapterStateEvidence::Absent => payloads.is_empty(),
+        BackupAdapterStateEvidence::Present { .. } => !payloads.is_empty(),
+    };
+    if !valid {
+        return Err(stage_limit_failure(
+            domain,
+            "grouped adapter evidence contradicts payload presence",
+        ));
+    }
+    validate_payload_set(payloads)
 }
 
 fn rollback_after_failure(

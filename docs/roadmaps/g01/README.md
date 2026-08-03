@@ -80,11 +80,12 @@ storage, coordinated mutation, backup, restore, encrypted envelopes, custom
 adapters, versioned platform layouts, fixed bootstrap selection, journaled
 profile transition, legacy discovery, and receipt-bound cleanup.
 
-`g01.019` is complete. Cards 128-131 add opt-in grouped custom-adapter
+`g01.019` is complete. Cards 128-131 and 135-137 add opt-in grouped custom-adapter
 participation, one selection confirmation, complete private target and
 rollback staging, a durable group journal, reverse-order exact rollback,
-catalogue-bound boot recovery, public API guidance, mixed-adapter and WAL-mode
-SQLite evidence, and the Nucleus resume handoff. Nucleus still owns app-wide
+catalogue-bound boot recovery, explicit present/absent evidence, deletion,
+public API guidance, mixed optional-file/WAL SQLite evidence, and the Nucleus
+resume handoff. Nucleus still owns app-wide
 quiescence, database-open policy, and restart scheduling.
 
 `g01.003` is complete. Cards 017 and 018 provide checked Tauri observation,
@@ -379,12 +380,14 @@ Registry publication, tags, and hosted releases remain outside the chain.
 The completed checkpoint satisfies g01.017 admission. Cards 070-074 complete
 the downward-only production graph, bounded clients, and artifact proof.
 Nucleus g05.046 exposed a contract-backed grouped custom-adapter restore gap.
-Cards 128-131 close g01.019 without editing Nucleus or changing the fork-tree
-plan. The generic transaction and boot-recovery blocker is resolved. Nucleus
-still owns quiescence, adapter composition, and restart scheduling.
+Cards 128-131 established g01.019 without editing Nucleus or changing the
+fork-tree plan. Nucleus g05.046 then exposed explicit target-absence as a
+remaining shared gap. Cards 135-137 extend the same lane through explicit
+state evidence, deletion, rollback-to-absence, restart recovery, and a revised
+consumer handoff. Nucleus still owns quiescence, adapter composition, and
+restart scheduling.
 
 ## Next Task
 
-No Longhorn card auto-starts. Resume Figmatic g03.006 with the g01.020
-consumer handoff. Nucleus may separately remove its global-label navigation
-bypass.
+No Longhorn card auto-starts. Resume Nucleus g05.046 from the grouped absence
+consumer handoff. Figmatic g03.006 remains ready separately.

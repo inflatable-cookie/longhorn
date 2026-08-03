@@ -2,8 +2,8 @@ use longhorn_core::DomainId;
 
 use crate::{
     BackupAdapterInspectRequest, BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation,
-    BackupAdapterRestoreRequest, BackupArchiveInspection, BackupCatalog, ConfigStore, Sha256Digest,
-    backup::CatalogDecision,
+    BackupAdapterRestoreRequest, BackupAdapterStateEvidence, BackupArchiveInspection,
+    BackupCatalog, ConfigStore, Sha256Digest, backup::CatalogDecision,
 };
 
 use super::{
@@ -102,6 +102,7 @@ pub(crate) fn execute(
     let current_preview = adapter
         .inspect(BackupAdapterInspectRequest::new(
             descriptor,
+            source.state(),
             source.source_schema_version(),
             payloads,
         ))
@@ -122,7 +123,12 @@ pub(crate) fn execute(
         }
     })?;
     let request = BackupAdapterRestoreRequest::new(
-        BackupAdapterInspectRequest::new(descriptor, source.source_schema_version(), payloads),
+        BackupAdapterInspectRequest::new(
+            descriptor,
+            source.state(),
+            source.source_schema_version(),
+            payloads,
+        ),
         &prepared.preview,
     );
     let outcome = adapter
@@ -134,12 +140,16 @@ pub(crate) fn execute(
         })?;
     let evidence_matches = match (&prepared.participation, &outcome) {
         (_, BackupAdapterRestoreOutcome::Verified { evidence }) => {
-            evidence == prepared.preview.target_evidence()
+            BackupAdapterStateEvidence::present(evidence.clone())
+                == *prepared.preview.target_evidence()
         }
         (
             BackupAdapterRestoreParticipation::FailureAtomic,
             BackupAdapterRestoreOutcome::RolledBack { evidence },
-        ) => prepared.preview.current_evidence() == Some(evidence),
+        ) => {
+            BackupAdapterStateEvidence::present(evidence.clone())
+                == *prepared.preview.current_evidence()
+        }
         (
             BackupAdapterRestoreParticipation::FailureAtomic,
             BackupAdapterRestoreOutcome::RecoveryRequired,

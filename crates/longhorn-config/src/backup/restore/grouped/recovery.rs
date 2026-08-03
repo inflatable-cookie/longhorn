@@ -7,8 +7,8 @@ use crate::{
 use super::{
     journal::{self, GroupedJournalEntry, GroupedJournalPhase, GroupedRestoreJournal},
     types::{
-        RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
-        RestoreAdapterGroupRecoveryReceipt,
+        RestoreAdapterGroupReceiptEntry, RestoreAdapterGroupRecoveryError,
+        RestoreAdapterGroupRecoveryOutcome, RestoreAdapterGroupRecoveryReceipt,
     },
 };
 
@@ -39,14 +39,10 @@ pub(super) fn recover_guarded(
     else {
         return Ok(RestoreAdapterGroupRecoveryReceipt {
             outcome: RestoreAdapterGroupRecoveryOutcome::NoRecoveryNeeded,
-            domains: Vec::new(),
+            entries: Vec::new(),
         });
     };
-    let domains = state
-        .entries
-        .iter()
-        .map(|entry| entry.domain.clone())
-        .collect::<Vec<_>>();
+    let entries = receipt_entries(&state);
 
     if matches!(
         state.phase,
@@ -55,7 +51,7 @@ pub(super) fn recover_guarded(
         journal::cleanup(authority).map_err(|error| recovery_error(None, error))?;
         return Ok(RestoreAdapterGroupRecoveryReceipt {
             outcome: RestoreAdapterGroupRecoveryOutcome::TerminalCleanup,
-            domains,
+            entries,
         });
     }
 
@@ -80,7 +76,7 @@ pub(super) fn recover_guarded(
     journal::cleanup(authority).map_err(|error| recovery_error(None, error))?;
     Ok(RestoreAdapterGroupRecoveryReceipt {
         outcome: RestoreAdapterGroupRecoveryOutcome::RolledBack,
-        domains,
+        entries,
     })
 }
 
@@ -99,16 +95,20 @@ pub(super) fn rollback_all(
                 descriptor,
                 BackupAdapterGroupedApplyKind::Rollback,
                 &payloads,
-                entry.current_evidence.as_ref(),
+                &entry.rollback_evidence,
             ))
             .map_err(|error| recovery_error(Some(entry.domain.clone()), error))?;
     }
     for entry in &state.entries {
         let (descriptor, adapter) = resolve_adapter(store, catalog, entry)?;
         let observed = adapter
-            .verify(BackupAdapterGroupedVerifyRequest::new(descriptor))
+            .verify(BackupAdapterGroupedVerifyRequest::new(
+                descriptor,
+                BackupAdapterGroupedApplyKind::Rollback,
+                &entry.rollback_evidence,
+            ))
             .map_err(|error| recovery_error(Some(entry.domain.clone()), error))?;
-        if observed.as_ref() != entry.current_evidence.as_ref() {
+        if observed != entry.rollback_evidence {
             return Err(recovery_error(
                 Some(entry.domain.clone()),
                 "grouped adapter rollback evidence mismatch",
@@ -116,6 +116,18 @@ pub(super) fn rollback_all(
         }
     }
     Ok(())
+}
+
+fn receipt_entries(state: &GroupedRestoreJournal) -> Vec<RestoreAdapterGroupReceiptEntry> {
+    state
+        .entries
+        .iter()
+        .map(|entry| RestoreAdapterGroupReceiptEntry {
+            domain: entry.domain.clone(),
+            target_evidence: entry.target_evidence.clone(),
+            rollback_evidence: entry.rollback_evidence.clone(),
+        })
+        .collect()
 }
 
 pub(super) fn resolve_adapter<'store, 'catalog>(

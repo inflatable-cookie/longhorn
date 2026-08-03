@@ -8,8 +8,8 @@ use longhorn_core::DomainId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    BackupAdapterId, BackupAdapterPayload, BackupAdapterRelativePath, DomainDescriptor,
-    Sha256Digest,
+    BackupAdapterId, BackupAdapterPayload, BackupAdapterRelativePath, BackupAdapterStateEvidence,
+    DomainDescriptor, Sha256Digest,
 };
 
 use super::super::RestoreOperationState;
@@ -18,7 +18,7 @@ const STATE_DIRECTORY: &str = ".longhorn/grouped-adapter-restore";
 const PAYLOAD_DIRECTORY: &str = "payloads";
 const JOURNAL_FILE: &str = "journal.json";
 const JOURNAL_TEMPORARY: &str = ".journal.json.tmp";
-const JOURNAL_VERSION: u32 = 1;
+const JOURNAL_VERSION: u32 = 2;
 const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -50,8 +50,8 @@ pub(super) struct GroupedJournalEntry {
     pub(super) domain: DomainId,
     pub(super) adapter: String,
     pub(super) descriptor_digest: Sha256Digest,
-    pub(super) target_evidence: Sha256Digest,
-    pub(super) current_evidence: Option<Sha256Digest>,
+    pub(super) target_evidence: BackupAdapterStateEvidence,
+    pub(super) rollback_evidence: BackupAdapterStateEvidence,
     pub(super) target_payloads: Vec<GroupedPayloadRecord>,
     pub(super) rollback_payloads: Vec<GroupedPayloadRecord>,
 }
@@ -69,8 +69,8 @@ pub(super) struct PreparedGroupedDomain {
     pub(super) domain: DomainId,
     pub(super) adapter: BackupAdapterId,
     pub(super) descriptor_digest: Sha256Digest,
-    pub(super) target_evidence: Sha256Digest,
-    pub(super) current_evidence: Option<Sha256Digest>,
+    pub(super) target_evidence: BackupAdapterStateEvidence,
+    pub(super) rollback_evidence: BackupAdapterStateEvidence,
     pub(super) target_payloads: Vec<BackupAdapterPayload>,
     pub(super) rollback_payloads: Vec<BackupAdapterPayload>,
 }
@@ -136,7 +136,28 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<GroupedRestoreJou
             journal.version
         )));
     }
+    for entry in &journal.entries {
+        validate_evidence_payload_shape(&entry.target_evidence, &entry.target_payloads)?;
+        validate_evidence_payload_shape(&entry.rollback_evidence, &entry.rollback_payloads)?;
+    }
     Ok(Some(journal))
+}
+
+fn validate_evidence_payload_shape(
+    evidence: &BackupAdapterStateEvidence,
+    payloads: &[GroupedPayloadRecord],
+) -> io::Result<()> {
+    let valid = match evidence {
+        BackupAdapterStateEvidence::Absent => payloads.is_empty(),
+        BackupAdapterStateEvidence::Present { .. } => !payloads.is_empty(),
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(io::Error::other(
+            "grouped restore journal evidence contradicts payload presence",
+        ))
+    }
 }
 
 pub(super) fn persist_prepared(
@@ -156,7 +177,7 @@ pub(super) fn persist_prepared(
             adapter: domain.adapter.as_str().to_owned(),
             descriptor_digest: domain.descriptor_digest.clone(),
             target_evidence: domain.target_evidence.clone(),
-            current_evidence: domain.current_evidence.clone(),
+            rollback_evidence: domain.rollback_evidence.clone(),
             target_payloads: persist_payload_set(
                 &payload_root,
                 domain_index,

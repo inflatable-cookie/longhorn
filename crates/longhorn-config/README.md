@@ -16,6 +16,12 @@ The extension has three operations:
 - `apply`: publish one already-durable target or rollback payload set
 - `verify`: observe current semantic evidence independently
 
+`BackupAdapterStateEvidence` represents both target and rollback state as
+`Absent` or `Present { sha256 }`. Inspection receives the verified archive
+`BackupSourceState`. Absent state always carries zero payloads; present state
+always carries at least one. Apply and verify requests include `Target` or
+`Rollback` plus the exact expected state.
+
 `ConfigStore::plan_grouped_adapter_restore` binds one inspected archive and
 the exact sorted domain set to one confirmation digest.
 `ConfigStore::execute_grouped_adapter_restore` re-inspects and stages every
@@ -24,6 +30,9 @@ whole set, and rolls the whole set back on failure.
 `ConfigStore::recover_grouped_adapter_restore` is the renderer-free boot path.
 It requires the exact registered descriptors and adapter catalogue used by the
 journal.
+
+Execution and recovery receipts expose stable per-domain target and rollback
+evidence through `RestoreAdapterGroupReceiptEntry`.
 
 Consumers must quiesce every external authority before execution and recovery.
 Longhorn does not close databases, stop services, schedule restart, select

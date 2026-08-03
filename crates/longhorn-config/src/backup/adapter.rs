@@ -11,6 +11,7 @@ mod grouped;
 pub use grouped::{
     BackupAdapterGroupedApplyKind, BackupAdapterGroupedApplyRequest, BackupAdapterGroupedRestore,
     BackupAdapterGroupedStageRequest, BackupAdapterGroupedVerifyRequest, BackupAdapterRestoreStage,
+    BackupAdapterStateEvidence,
 };
 
 const MAX_ADAPTER_TEXT_BYTES: usize = 256;
@@ -241,6 +242,7 @@ impl<'payload> BackupAdapterPayloadRef<'payload> {
 #[derive(Clone, Debug)]
 pub struct BackupAdapterInspectRequest<'request> {
     descriptor: &'request DomainDescriptor,
+    source_state: crate::BackupSourceState,
     source_schema_version: Option<SchemaVersion>,
     payloads: Vec<BackupAdapterPayloadRef<'request>>,
 }
@@ -248,11 +250,13 @@ pub struct BackupAdapterInspectRequest<'request> {
 impl<'request> BackupAdapterInspectRequest<'request> {
     pub(crate) fn new(
         descriptor: &'request DomainDescriptor,
+        source_state: crate::BackupSourceState,
         source_schema_version: Option<SchemaVersion>,
         payloads: Vec<BackupAdapterPayloadRef<'request>>,
     ) -> Self {
         Self {
             descriptor,
+            source_state,
             source_schema_version,
             payloads,
         }
@@ -262,6 +266,12 @@ impl<'request> BackupAdapterInspectRequest<'request> {
     #[must_use]
     pub const fn descriptor(&self) -> &DomainDescriptor {
         self.descriptor
+    }
+
+    /// Returns the verified archive source state.
+    #[must_use]
+    pub const fn source_state(&self) -> crate::BackupSourceState {
+        self.source_state
     }
 
     /// Returns the adapter-domain source schema.
@@ -280,16 +290,16 @@ impl<'request> BackupAdapterInspectRequest<'request> {
 /// Adapter-produced semantic evidence retained by restore inspection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BackupAdapterRestorePreview {
-    target_evidence: Sha256Digest,
-    current_evidence: Option<Sha256Digest>,
+    target_evidence: BackupAdapterStateEvidence,
+    current_evidence: BackupAdapterStateEvidence,
 }
 
 impl BackupAdapterRestorePreview {
     /// Records the staged semantic target and exact current semantic state.
     #[must_use]
     pub const fn new(
-        target_evidence: Sha256Digest,
-        current_evidence: Option<Sha256Digest>,
+        target_evidence: BackupAdapterStateEvidence,
+        current_evidence: BackupAdapterStateEvidence,
     ) -> Self {
         Self {
             target_evidence,
@@ -297,16 +307,16 @@ impl BackupAdapterRestorePreview {
         }
     }
 
-    /// Returns the adapter's staged semantic target digest.
+    /// Returns the adapter's staged semantic target state.
     #[must_use]
-    pub const fn target_evidence(&self) -> &Sha256Digest {
+    pub const fn target_evidence(&self) -> &BackupAdapterStateEvidence {
         &self.target_evidence
     }
 
-    /// Returns current semantic evidence bound into confirmation.
+    /// Returns exact current semantic state bound into confirmation.
     #[must_use]
-    pub const fn current_evidence(&self) -> Option<&Sha256Digest> {
-        self.current_evidence.as_ref()
+    pub const fn current_evidence(&self) -> &BackupAdapterStateEvidence {
+        &self.current_evidence
     }
 }
 

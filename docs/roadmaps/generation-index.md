@@ -33,10 +33,12 @@ Cards 113-127 and g01.016 are complete. Package publication remains deferred.
 The Card 127 checkpoint satisfies g01.017 admission. Cards 070-074 now
 implement and artifact-prove the optional production fork-tree without
 changing the linear graph.
-g01.019 is complete through Cards 128-131. Longhorn now supplies grouped
-custom-adapter staging, journalling, exact rollback, and catalogue-bound boot
-recovery. Nucleus may resume its consumer card but remains incomplete until it
-supplies app-wide quiescence and restart. Cards 070-074 complete g01.017 with
+g01.019 Cards 128-131 supply grouped custom-adapter staging, journalling,
+exact rollback, and catalogue-bound boot recovery. Nucleus g05.046 exposed a
+remaining explicit target-absence gap. Cards 135-137 extend the same lane
+through deletion, rollback-to-absence, restart-safe evidence, and consumer
+handoff; the lane is complete. Nucleus still owns app-wide quiescence and
+restart. Cards 070-074 complete g01.017 with
 the optional fork-tree authority, dense persistence, bounded clients, and
 isolated artifact proof. No consumer adoption lane auto-starts.
 Figmatic g03.006 exposed the next bounded shared follow-up. g01.020 Cards

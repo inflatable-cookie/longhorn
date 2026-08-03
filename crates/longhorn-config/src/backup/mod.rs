@@ -13,7 +13,7 @@ pub use adapter::{
     BackupAdapterGroupedVerifyRequest, BackupAdapterInspectRequest, BackupAdapterPayload,
     BackupAdapterPayloadRef, BackupAdapterRelativePath, BackupAdapterRestoreOutcome,
     BackupAdapterRestoreParticipation, BackupAdapterRestorePreview, BackupAdapterRestoreRequest,
-    BackupAdapterRestoreStage,
+    BackupAdapterRestoreStage, BackupAdapterStateEvidence,
 };
 pub use capture::BackupCaptureError;
 pub use catalog::{
@@ -24,16 +24,17 @@ pub use restore::{
     RestoreAdapterError, RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
     RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupExecutionStage,
     RestoreAdapterGroupPlan, RestoreAdapterGroupPlanEntry, RestoreAdapterGroupPlanError,
-    RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
-    RestoreAdapterGroupRecoveryReceipt, RestoreAdapterReceipt, RestoreAdapterRequirement,
-    RestoreChoiceError, RestoreChoices, RestoreConflictChoice, RestoreCurrentEvidence,
-    RestoreDomainCompatibility, RestoreDomainInspection, RestoreExclusionInspection,
-    RestoreExecutionError, RestoreExecutionOptions, RestoreExecutionReceipt, RestoreExecutionStage,
-    RestoreFailureTerminal, RestoreIdentityInspection, RestoreIdentityStatus, RestoreInspection,
-    RestoreInspectionReceipt, RestoreOperationState, RestorePlan, RestorePlanEntry,
-    RestorePlanError, RestorePlanReceipt, RestorePrepareError, RestorePrepareOptions,
-    RestoreRecoveryError, RestoreRecoveryOptions, RestoreRecoveryOutcome, RestoreRecoveryReceipt,
-    RestoreSafetyBackupOptions, RestoreStaging, RestoreStagingReceipt,
+    RestoreAdapterGroupReceiptEntry, RestoreAdapterGroupRecoveryError,
+    RestoreAdapterGroupRecoveryOutcome, RestoreAdapterGroupRecoveryReceipt, RestoreAdapterReceipt,
+    RestoreAdapterRequirement, RestoreChoiceError, RestoreChoices, RestoreConflictChoice,
+    RestoreCurrentEvidence, RestoreDomainCompatibility, RestoreDomainInspection,
+    RestoreExclusionInspection, RestoreExecutionError, RestoreExecutionOptions,
+    RestoreExecutionReceipt, RestoreExecutionStage, RestoreFailureTerminal,
+    RestoreIdentityInspection, RestoreIdentityStatus, RestoreInspection, RestoreInspectionReceipt,
+    RestoreOperationState, RestorePlan, RestorePlanEntry, RestorePlanError, RestorePlanReceipt,
+    RestorePrepareError, RestorePrepareOptions, RestoreRecoveryError, RestoreRecoveryOptions,
+    RestoreRecoveryOutcome, RestoreRecoveryReceipt, RestoreSafetyBackupOptions, RestoreStaging,
+    RestoreStagingReceipt,
 };
 pub use types::{
     BackupAdapterCaptureReceipt, BackupApplication, BackupCaptureOptions, BackupCaptureReceipt,

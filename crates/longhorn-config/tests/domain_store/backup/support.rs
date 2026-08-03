@@ -175,6 +175,9 @@ impl BackupAdapter for SqliteAdapter {
             self.captured_outside_longhorn_guard
                 .store(true, Ordering::SeqCst);
         }
+        if !self.database.is_file() {
+            return Ok(BackupAdapterCapture::Absent);
+        }
         let bytes = self.snapshot_bytes()?;
         if bytes.len() > request.limits().max_domain_bytes() {
             return Err(adapter_failure("sqlite-snapshot-too-large"));
@@ -192,15 +195,24 @@ impl BackupAdapter for SqliteAdapter {
         &self,
         request: BackupAdapterInspectRequest<'_>,
     ) -> Result<BackupAdapterRestorePreview, BackupAdapterError> {
-        let (_scratch, path) = Self::payload_database(&request)?;
         let current = self
             .database
             .is_file()
             .then(|| semantic_digest(&self.database))
             .transpose()?;
+        let target = match request.source_state() {
+            BackupSourceState::Absent if request.payloads().is_empty() => {
+                BackupAdapterStateEvidence::Absent
+            }
+            BackupSourceState::Present => {
+                let (_scratch, path) = Self::payload_database(&request)?;
+                BackupAdapterStateEvidence::present(semantic_digest(&path)?)
+            }
+            _ => return Err(adapter_failure("sqlite-source-state")),
+        };
         Ok(BackupAdapterRestorePreview::new(
-            semantic_digest(&path)?,
-            current,
+            target,
+            BackupAdapterStateEvidence::from_optional(current),
         ))
     }
 
@@ -209,7 +221,7 @@ impl BackupAdapter for SqliteAdapter {
         request: BackupAdapterRestoreRequest<'_>,
     ) -> Result<BackupAdapterRestoreOutcome, BackupAdapterError> {
         let (_scratch, source) = Self::payload_database(request.inspect())?;
-        if &semantic_digest(&source)? != request.preview().target_evidence() {
+        if Some(&semantic_digest(&source)?) != request.preview().target_evidence().sha256() {
             return Err(adapter_failure("sqlite-preview-changed"));
         }
         let mut destination = Connection::open(&self.database)
@@ -239,14 +251,27 @@ impl BackupAdapterGroupedRestore for SqliteAdapter {
         &self,
         request: BackupAdapterGroupedStageRequest<'_>,
     ) -> Result<BackupAdapterRestoreStage, BackupAdapterError> {
-        let [target] = request.inspect().payloads() else {
-            return Err(adapter_failure("sqlite-group-target-count"));
+        let target_payloads = match request.preview().target_evidence() {
+            BackupAdapterStateEvidence::Absent => Vec::new(),
+            BackupAdapterStateEvidence::Present { .. } => {
+                let [target] = request.inspect().payloads() else {
+                    return Err(adapter_failure("sqlite-group-target-count"));
+                };
+                if target.bytes().len() > request.limits().max_domain_bytes() {
+                    return Err(adapter_failure("sqlite-group-target-too-large"));
+                }
+                let (_scratch, target_path) = Self::payload_database(request.inspect())?;
+                if Some(&semantic_digest(&target_path)?)
+                    != request.preview().target_evidence().sha256()
+                {
+                    return Err(adapter_failure("sqlite-group-target-evidence"));
+                }
+                vec![BackupAdapterPayload::new(
+                    BackupAdapterRelativePath::new("library.sqlite3").unwrap(),
+                    target.bytes().to_vec(),
+                )]
+            }
         };
-        if target.bytes().len() > request.limits().max_domain_bytes() {
-            return Err(adapter_failure("sqlite-group-target-too-large"));
-        }
-        let (_scratch, target_path) = Self::payload_database(request.inspect())?;
-        let target_evidence = semantic_digest(&target_path)?;
         let rollback_payloads = if self.database.is_file() {
             vec![BackupAdapterPayload::new(
                 BackupAdapterRelativePath::new("library.sqlite3").unwrap(),
@@ -256,13 +281,10 @@ impl BackupAdapterGroupedRestore for SqliteAdapter {
             Vec::new()
         };
         Ok(BackupAdapterRestoreStage::new(
-            vec![BackupAdapterPayload::new(
-                BackupAdapterRelativePath::new("library.sqlite3").unwrap(),
-                target.bytes().to_vec(),
-            )],
+            target_payloads,
             rollback_payloads,
-            target_evidence,
-            request.preview().current_evidence().cloned(),
+            request.preview().target_evidence().clone(),
+            request.preview().current_evidence().clone(),
         ))
     }
 
@@ -270,7 +292,7 @@ impl BackupAdapterGroupedRestore for SqliteAdapter {
         &self,
         request: BackupAdapterGroupedApplyRequest<'_>,
     ) -> Result<(), BackupAdapterError> {
-        let Some(_expected) = request.expected_evidence() else {
+        if request.expected_evidence().is_absent() {
             match fs::remove_file(&self.database) {
                 Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -305,11 +327,13 @@ impl BackupAdapterGroupedRestore for SqliteAdapter {
     fn verify(
         &self,
         _request: BackupAdapterGroupedVerifyRequest<'_>,
-    ) -> Result<Option<Sha256Digest>, BackupAdapterError> {
-        self.database
-            .is_file()
-            .then(|| semantic_digest(&self.database))
-            .transpose()
+    ) -> Result<BackupAdapterStateEvidence, BackupAdapterError> {
+        Ok(BackupAdapterStateEvidence::from_optional(
+            self.database
+                .is_file()
+                .then(|| semantic_digest(&self.database))
+                .transpose()?,
+        ))
     }
 }
 
@@ -362,8 +386,8 @@ impl BackupAdapter for StaticAdapter {
             .copied()
             .collect::<Vec<_>>();
         Ok(BackupAdapterRestorePreview::new(
-            Sha256Digest::from_bytes(&bytes),
-            None,
+            BackupAdapterStateEvidence::present(Sha256Digest::from_bytes(&bytes)),
+            BackupAdapterStateEvidence::Absent,
         ))
     }
 
@@ -372,7 +396,12 @@ impl BackupAdapter for StaticAdapter {
         request: BackupAdapterRestoreRequest<'_>,
     ) -> Result<BackupAdapterRestoreOutcome, BackupAdapterError> {
         Ok(BackupAdapterRestoreOutcome::Verified {
-            evidence: request.preview().target_evidence().clone(),
+            evidence: request
+                .preview()
+                .target_evidence()
+                .sha256()
+                .expect("static adapter target is present")
+                .clone(),
         })
     }
 }

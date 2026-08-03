@@ -139,8 +139,8 @@ Surface state.
 - verified safety archives, bounded exact rollback, durable restore journal,
   per-file atomic publication, full-set verification, and crash rollback
 - grouped custom-adapter planning, complete private target/rollback staging,
-  durable multi-adapter journalling, exact group rollback, and catalogue-bound
-  boot recovery
+  explicit present/absent evidence, durable multi-adapter journalling, exact
+  deletion and group rollback, and catalogue-bound boot recovery
 - active/recovery-required load states and coordinated multi-domain load-sets
 - destructive migration rewrite through the same safety transaction
 - corruption, future-schema, backup, restore, and receipt policy

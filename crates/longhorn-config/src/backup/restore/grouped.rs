@@ -8,12 +8,12 @@ pub use types::{
     RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
     RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupExecutionStage,
     RestoreAdapterGroupPlan, RestoreAdapterGroupPlanEntry, RestoreAdapterGroupPlanError,
-    RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
-    RestoreAdapterGroupRecoveryReceipt,
+    RestoreAdapterGroupReceiptEntry, RestoreAdapterGroupRecoveryError,
+    RestoreAdapterGroupRecoveryOutcome, RestoreAdapterGroupRecoveryReceipt,
 };
 
 pub(crate) use execution::execute;
-pub(crate) use planning::plan;
+pub(crate) use planning::{evidence_confirmation, plan};
 pub(crate) use recovery::recover;
 
 pub(crate) fn operation_state(authority_root: &std::path::Path) -> super::RestoreOperationState {

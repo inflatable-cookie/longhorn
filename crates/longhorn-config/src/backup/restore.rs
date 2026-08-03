@@ -15,8 +15,8 @@ pub use grouped::{
     RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
     RestoreAdapterGroupExecutionReceipt, RestoreAdapterGroupExecutionStage,
     RestoreAdapterGroupPlan, RestoreAdapterGroupPlanEntry, RestoreAdapterGroupPlanError,
-    RestoreAdapterGroupRecoveryError, RestoreAdapterGroupRecoveryOutcome,
-    RestoreAdapterGroupRecoveryReceipt,
+    RestoreAdapterGroupReceiptEntry, RestoreAdapterGroupRecoveryError,
+    RestoreAdapterGroupRecoveryOutcome, RestoreAdapterGroupRecoveryReceipt,
 };
 pub use types::{
     MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt, RestoreAction,
