@@ -10,6 +10,7 @@ members = [
   "crates/longhorn-core",
   "crates/longhorn-display",
   "crates/longhorn-history",
+  "crates/longhorn-history-tree",
   "crates/longhorn-layout",
   "crates/longhorn-layout-config",
   "crates/longhorn-native-content",
@@ -69,6 +70,7 @@ longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
 longhorn-config-age = { path = "crates/longhorn-config-age" }
 longhorn-display = { path = "crates/longhorn-display" }
 longhorn-history = { path = "crates/longhorn-history", version = "0.1.0" }
+longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "0.1.0" }
 longhorn-layout = { path = "crates/longhorn-layout" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config" }
 longhorn-native-content = { path = "crates/longhorn-native-content", version = "0.1.0" }

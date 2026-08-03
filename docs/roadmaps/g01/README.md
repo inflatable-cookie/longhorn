@@ -20,7 +20,7 @@
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
 | [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
-| [g01.017](017-optional-forkable-history-tree.md) | executing; Card 070 ready | optional production fork-tree layer after linear adoption |
+| [g01.017](017-optional-forkable-history-tree.md) | executing; Card 070 complete; Card 071 ready | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 | [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
 
@@ -218,9 +218,10 @@ coalescing and explicit groups, retention, structural persistence, committed
 transition records, generated metadata clients, narrow Tauri assembly,
 Svelte/Poodle composition, and rich/minimal artifact proof. Card 068 is a
 non-publishable fork-tree prototype. Card 069 promotes its proven semantics
-into planned g01.017 while retaining the prototype as research. Loophole keeps
-all DAW payload meaning, atomic runtime apply, project snapshots and versions,
-autosave, journal file policy, and recovery choice.
+into g01.017 while retaining the prototype as research. Card 070 implements
+the production Rust graph foundation. Loophole keeps all DAW payload meaning,
+atomic runtime apply, project snapshots and versions, autosave, journal file
+policy, and recovery choice.
 
 Research memo 016 and compiled contracts 015-016 promote separate operation
 and notification authorities. Cards 075-076 implement bounded operation
@@ -234,7 +235,8 @@ isolated Svelte state, retained panel/transient toast projections, and fresh
 action admission. Card 081 adds four isolated artifact graphs, equal native
 and renderer traces, multi-window/remount proof, and composition guidance.
 `g01.012` is complete. Card 127 satisfies the linear-history adoption and
-compatibility checkpoint. Card 070 is ready; Cards 071-074 remain planned.
+compatibility checkpoint. Card 070 is complete; Card 071 is ready and Cards
+072-074 remain planned.
 
 Research memo 017 and contract 017 characterize native content islands as one
 pure desired/observed coordination protocol over separate child-webview,
@@ -373,7 +375,8 @@ runtime per graph. Card 126 adds checked API, storage/backup, composition,
 migration, rollback, and compatibility guides. Card 127 proves one
 deterministic private `0.1.0` compatibility candidate and closes g01.016.
 Registry publication, tags, and hosted releases remain outside the chain.
-The completed checkpoint satisfies g01.017 admission; Card 070 remains ready.
+The completed checkpoint satisfies g01.017 admission. Card 070 implements the
+downward-only production graph foundation.
 Nucleus g05.046 exposed a contract-backed grouped custom-adapter restore gap.
 Cards 128-131 close g01.019 without editing Nucleus or changing the fork-tree
 plan. The generic transaction and boot-recovery blocker is resolved. Nucleus
@@ -381,5 +384,5 @@ still owns quiescence, adapter composition, and restart scheduling.
 
 ## Next Task
 
-Execute Card 070. Implement the optional pure fork-tree identity, topology,
-and branch authority without changing linear artifacts.
+Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
+checkpoint accounting over the production graph.

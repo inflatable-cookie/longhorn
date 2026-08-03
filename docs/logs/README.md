@@ -7,6 +7,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Private 0.1 Compatibility Candidate And Closeout](2026-08/02-private-0-1-compatibility-candidate-and-closeout.md)
 - [Grouped Custom-adapter Restore](2026-08/02-grouped-custom-adapter-restore.md)
 - [Nucleus Grouped Restore Consumer Handoff](2026-08/02-nucleus-grouped-restore-consumer-handoff.md)
+- [Fork-tree Identity, Topology, And Branches](2026-08/03-fork-tree-identity-topology-and-branches.md)
 
 ## 2026-07
 

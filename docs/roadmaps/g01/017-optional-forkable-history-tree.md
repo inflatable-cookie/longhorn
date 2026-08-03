@@ -1,8 +1,8 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Card 070 ready
+Status: executing; Card 070 complete; Card 071 ready
 Owner: Tom
-Updated: 2026-07-31
+Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
 Depends on: g01.016 linear consumer and release checkpoint
 
@@ -22,7 +22,7 @@ g01.015 or delay the first linear release.
 
 ### Batch 1: Pure graph authority
 
-- [ ] Card 070: immutable nodes, stable branch refs, divergence, and checked
+- [x] Card 070: immutable nodes, stable branch refs, divergence, and checked
   graph invariants
 - [ ] Card 071: preferred redo, atomic LCA navigation, protected retention,
   and opaque checkpoints
@@ -44,9 +44,9 @@ g01.015 or delay the first linear release.
 
 ## Goals
 
-- [ ] Keep `longhorn-history` independent of tree state.
-- [ ] Preserve one payload copy per immutable node.
-- [ ] Make stable branch refs the only branch identity authority.
+- [x] Keep `longhorn-history` independent of tree state.
+- [x] Preserve one payload copy per immutable node.
+- [x] Make stable branch refs the only branch identity authority.
 - [ ] Reuse the proven consumer policy and atomic transaction seams.
 - [ ] Keep the ordinary projection linear and alternate data opt-in.
 - [ ] Bound every branch, path, persistence, navigation, and retention surface.
@@ -77,9 +77,12 @@ g01.015 or delay the first linear release.
 Card 127 revalidates the working package names, coordinated private `0.1.0`,
 Rust 1.85, TypeScript/Svelte/Tauri peers, exact-v1 protocols, and Loophole's
 lossless linear consumer. Public registry names remain unresolved but do not
-gate the private optional implementation. Card 070 is ready.
+gate the private optional implementation. Card 070 now supplies the
+downward-only pure graph foundation with checked document and Loophole-shaped
+fixtures. Cards 071-074 retain all navigation, persistence, client, and
+artifact claims.
 
 ## Next Task
 
-Execute Card 070. Implement the optional pure fork-tree identity, topology,
-and branch authority without changing linear artifacts.
+Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
+checkpoint accounting over the production graph.

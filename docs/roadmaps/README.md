@@ -39,12 +39,12 @@ keymaps, palette, conflict projection, and the named Echo extended-input edge.
 Card 111 completes lossless linear-history adoption. Card 112 closes exact
 artifacts, restart/recovery, capability, duplicate-authority, retained-adapter,
 and rollback conformance. g01.015 is complete. g01.016 is compiled as Cards
-113-127; all cards and g01.016 are complete. Card 070 remains ready in g01.017.
+113-127; all cards and g01.016 are complete. Card 070 is complete in g01.017.
 Nucleus g05.046 exposed the grouped custom-adapter restore gap. Cards 128-131
 close g01.019 with a generic grouped transaction, durable journal, exact
 rollback, boot recovery, mixed-adapter/SQLite proof, and a consumer handoff.
 Nucleus remains incomplete until its own quiescence and restart work lands.
-Card 070 is again ready in g01.017.
+Card 071 is ready in g01.017.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -152,8 +152,9 @@ policy, revision-bound plan/apply/commit navigation, explicit grouping,
 bounded retention, structural persistence, committed transition records, and
 metadata-only clients. Cards 062-067 form the public linear runway. Card 068
 proves forkable topology privately. Card 069 promotes its stable graph
-semantics, retains the prototype as research, and compiles planned g01.017.
-The current public artifacts remain linear.
+semantics, retains the prototype as research, and compiles g01.017.
+Card 070 implements the optional pure Rust graph foundation. Current
+compatibility-proved artifacts remain linear.
 
 Research memo 016 and contracts 015-016 separate operation lifecycle from the
 retained notification ledger. Cards 075-077 implement bounded operation
@@ -177,5 +178,5 @@ this host.
 
 ## Next Task
 
-Execute Card 070. Implement the optional pure fork-tree identity, topology,
-and branch authority without changing linear artifacts.
+Execute Card 071. Add atomic LCA navigation, protected retention, and opaque
+checkpoint accounting over the production graph.

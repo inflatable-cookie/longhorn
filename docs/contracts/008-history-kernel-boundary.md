@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-31
+Updated: 2026-08-03
 Evidence: `../research/translation-memos/015-history-kernel-and-fork-boundary.md`
 
 ## Boundary
@@ -11,14 +11,16 @@ Longhorn may provide an optional generic history kernel. It owns structural
 history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
-The first public mode is linear. Card 069 promotes forkable history semantics
-for a later optional production layer. Promotion is a contract and roadmap
-decision, not a claim that a public tree package exists.
+The first compatibility-proved mode is linear. Card 070 implements the pure
+graph foundation of the optional production tree layer. Navigation,
+persistence, clients, artifact proof, and any release claim remain later work.
 
 ## Package Shape
 
 - `longhorn-history`: pure generic entries, policy seams, linear state,
   navigation plans, persistence envelopes, projections, and receipts
+- `longhorn-history-tree`: optional immutable-node graph, stable branch refs,
+  canonical child indexes, checked structural import, and divergent record
 - `longhorn-tauri-history`: optional narrow handler assembly over an injected
   history authority
 - `@longhorn/history`: checked metadata client
@@ -26,13 +28,13 @@ decision, not a claim that a public tree package exists.
 - `@longhorn/history/poodle`: optional linear panel composition over public
   Poodle primitives
 
-The pure crate depends only on `longhorn-core` plus bounded serialization and
-digest utilities. It imports no config, bridge, Tauri, async runtime, Svelte,
-Poodle, or consumer package.
+The linear crate depends only on `longhorn-core` plus bounded serialization.
+It imports no config, bridge, Tauri, async runtime, Svelte, Poodle, or consumer
+package.
 
-No public branch package exists in the current artifact set. A later optional
-tree layer may depend on the proven linear policy, entry, navigation-step, and
-transaction seams without replacing linear authority.
+The tree crate depends downward on the proven linear entry and sequence types.
+It does not replace linear authority. No tree renderer package or
+compatibility-proved tree artifact exists yet.
 
 ## Authority
 
@@ -279,13 +281,13 @@ The production persistence format must avoid the prototype's JSON numeric-byte
 array expansion. The implementation lane must prove a dense payload encoding,
 strict topology validation, and deterministic encode/load behavior.
 
-The later package boundary is optional and downward-only. The planned Rust
-tree layer depends on `longhorn-history`; the linear crate does not depend on
-tree state. Renderer and Poodle edges remain metadata-only and optional.
+The package boundary is optional and downward-only. `longhorn-history-tree`
+depends on `longhorn-history`; the linear crate does not depend on tree state.
+Renderer and Poodle edges remain metadata-only and optional.
 
-Until production implementation and artifact proof:
+Until Card 074 artifact proof:
 
-- no public branch API or package is claimed
+- no released tree package or compatibility promise is claimed
 - linear mode remains the only compatibility promise
 - Loophole migration does not depend on branching
 - project versions, collaboration, and event sourcing stay separate

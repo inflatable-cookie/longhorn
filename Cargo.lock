@@ -2504,6 +2504,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-history-tree"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-history",
+]
+
+[[package]]
 name = "longhorn-layout"
 version = "0.1.0"
 dependencies = [

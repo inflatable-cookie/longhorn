@@ -2,7 +2,7 @@
 
 Status: promoted
 Owner: Tom  
-Updated: 2026-07-31
+Updated: 2026-08-03
 Vision: `../vision/001-shared-tauri-systems.md`
 
 ## Boundary
@@ -230,7 +230,8 @@ families, native accelerators, and automation remain deferred.
 - versioned structural persistence and committed transition receipts
 - authoritative metadata pages for past, current, and future entries
 - optional checked TypeScript, Tauri, Svelte, and public-Poodle edges
-- promoted fork-tree semantics for a later optional production layer
+- optional production fork-tree foundation with immutable nodes, stable branch
+  refs, checked topology, and lossless divergent record
 
 `longhorn-history` owns structural state. Consumers own payload meaning,
 product authorization, atomic model mutation, labels, canonical snapshots,
@@ -256,8 +257,9 @@ and later donor-cutover gates are in
 Forkable undo is not live donor behavior. Card 068 proves divergent retention,
 stable first-class branch refs, lowest-common-ancestor checkout, protected
 pruning, opaque checkpoints, independent migration, and credible document and
-Loophole-shaped costs. Card 069 promotes those semantics for a later optional
-tree layer.
+Loophole-shaped costs. Card 069 promotes those semantics. Card 070 implements
+the production tree identity, topology, branch refs, and divergent-record
+foundation.
 
 The tree layer composes downward over `longhorn-history`; it does not replace
 the linear authority or enter minimal dependency graphs. Immutable nodes own
@@ -266,9 +268,10 @@ Derived paths are bounded opt-in projections, not identity. The default client
 projection remains linear. Production persistence must use a dense payload
 representation rather than the prototype's expanded JSON byte arrays.
 
-No public tree package exists yet. Loophole adopts linear history first with
-branch mode disabled. Undo branches remain distinct from project versions,
-collaboration, merge, and event sourcing.
+`longhorn-history-tree` now exists as an optional private-workspace production
+package. Navigation, persistence, clients, and artifact compatibility remain
+unproved. Loophole keeps branch mode disabled. Undo branches remain distinct
+from project versions, collaboration, merge, and event sourcing.
 
 ### Async operations and notifications
 

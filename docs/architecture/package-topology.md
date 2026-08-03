@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-08-02
+Updated: 2026-08-03
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -41,6 +41,7 @@ discovery and validation entry points.
 | `longhorn-command-config` | registered active-preset and sparse-override domain plus coordinated mutation | core, config, command |
 | `longhorn-command-settings` | optional keybinding page registration over command/keymap capabilities | core, settings |
 | `longhorn-history` | optional typed linear history, checked navigation, persistence envelopes, metadata protocol, projections, and transition receipts | core |
+| `longhorn-history-tree` | optional immutable-node fork topology, stable branch refs, checked structural import, and lossless divergent record | core, history |
 | `longhorn-operation` | optional finite operation authority with bounded progress, cancellation, retention, retry lineage, and teardown | core |
 | `longhorn-notifications` | optional finite retained notification ledger with explicit read/removal transitions and operation observation | core; optional operation feature |
 | `longhorn-native-content` | pure desired/observed native-content state, generation, planning, proposals, and receipts | core |
@@ -152,6 +153,12 @@ payloads never cross the generic renderer protocol.
 transaction. Structural persistence and committed transition receipts are
 shared; canonical product snapshots, journal files, checkpoints, fsync,
 autosave, replay, and project versions remain consumer authority.
+
+`longhorn-history-tree` is a separate downward-only package. Its Card 070
+surface owns bounded branch identity and metadata, immutable single-parent
+nodes, canonical child indexes, checked complete-state admission, and
+divergent record. Navigation, retention, checkpoints, persistence, renderer
+clients, and release compatibility are not yet implemented.
 
 Four produced-artifact greenfield roots prove direct package selection for
 minimal config/settings, a Surface-free workspace, full hosting with linear

@@ -2,7 +2,7 @@
 
 Status: complete inventory; g01.019 complete
 Owner: Tom
-Updated: 2026-08-02
+Updated: 2026-08-03
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
@@ -113,8 +113,9 @@ recovery and a non-editor round trip pass without moving product state,
 storage, or durability policy into Longhorn. Card 067 adds clean minimal and
 Loophole-shaped artifact installs, matching native/renderer traces, recovery
 and failure evidence, and the canonical composition guide. Card 068 proves the
-private fork tree. Card 069 promotes its semantics into a later optional
-production lane while leaving the current public slice linear.
+private fork tree. Card 069 promotes its semantics. Card 070 implements the
+optional production Rust graph foundation while leaving the
+compatibility-proved and renderer slices linear.
 
 Research memo 016 and compiled contracts 015-016 separate the finite operation
 lifecycle from the retained notification ledger. Soundcheck plugin scan and
@@ -156,7 +157,7 @@ fresh action admission. `g01.012` is complete.
 | Command/keymap/palette | Rust + config + TS/Svelte/Poodle packages | sealed catalogue, fresh admission, keyboard resolution, durable overrides, shared projections | Loophole full system; Jetstream basic shortcuts | Cards 056-061 and g01.010 complete; rich/minimal artifact proof passes |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | five host forms, separate authority, explicit replay, checked direct/loopback/Tauri sessions, bounded lifecycle, stream/job semantics, and injected supervision implemented |
 | History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams | Loophole Pulse plus non-editor fixture | public linear slice complete through Card 067 artifact proof |
-| Forkable history tree | later optional Rust + TS/Svelte/Poodle layer | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints | Card 068 document and Loophole-shaped prototype | semantics promoted by Card 069; production packages and artifact proof remain planned |
+| Forkable history tree | optional Rust layer; TS/Svelte/Poodle later | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints | document and Loophole-shaped fixtures | Card 070 production identity/topology/branch authority implemented; navigation through artifact proof remains Cards 071-074 |
 | Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
 | Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
 | Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts | Nucleus child webview; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 complete; isolated produced graphs and three-shape traces pass; Nucleus planning admitted while consumer policy gates remain |
@@ -201,8 +202,9 @@ fresh action admission. `g01.012` is complete.
 - durable offline mutation policy, if a domain proves it
 - macros, extended input triggers, native accelerators, and synchronized
   keymaps
-- production fork-tree implementation: dense persistence, bounded lazy
-  alternate projections, generated metadata clients, and artifact proof
+- remaining fork-tree production: navigation, retention, checkpoints, dense
+  persistence, bounded lazy alternate projections, generated metadata clients,
+  and artifact proof
 - live native scale-transition evidence for child-view and backing-surface
 - Windows/Linux child-view proof and any future non-macOS native host support
 - cross-document panel transaction and copy-transfer authority

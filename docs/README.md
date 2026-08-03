@@ -139,8 +139,10 @@ artifact installs, matching native/renderer traces, exact failure and recovery
 evidence, and composition/migration guidance. The public linear slice is
 complete. Card 068 adds passing non-publishable fork-tree evidence and
 measurements without changing public artifacts. Card 069 promotes the proven
-semantics into planned g01.017, retains the prototype as research, and closes
-g01.011. The public history artifacts remain linear.
+semantics into g01.017, retains the prototype as research, and closes g01.011.
+Card 070 implements the optional pure Rust identity, topology, branch, and
+divergent-record foundation. Compatibility-proved history artifacts remain
+linear.
 
 Research memo 016 and contracts 015-016 define separate operation and
 notification authorities. Cards 075-078 implement the Soundcheck-scan and

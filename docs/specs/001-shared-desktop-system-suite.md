@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-31
+Updated: 2026-08-03
 Evidence: `../research/translation-memos/001-tauri-application-extraction-audit.md`,
 `../research/translation-memos/002-shared-desktop-systems-follow-up.md`,
 `../research/translation-memos/015-history-kernel-and-fork-boundary.md`,
@@ -71,8 +71,9 @@ proved that contract.
 - Linear mode is public first and remains the current compatibility promise.
 - Card 068 proves stable branch refs, divergent retention, atomic LCA checkout,
   pruning, checkpoints, migration, performance, and linear-default UI.
-- Card 069 promotes those semantics for a later optional production layer;
-  promotion does not publish the prototype.
+- Card 069 promotes those semantics. Card 070 implements the optional
+  production Rust graph foundation without publishing the prototype or making
+  a compatibility claim.
 - Alternate projections must be bounded and lazy or paged. Production
   persistence must avoid expanded JSON numeric byte arrays.
 - Undo branches remain distinct from project versions, collaboration, and
