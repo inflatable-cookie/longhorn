@@ -39,8 +39,8 @@
 
 004-010 + 018 ─ 014 Nucleus ─ 015 Loophole ─ 016 secondary consumers/release
                                            └─ 017 optional fork tree
-002 configuration ─ 019 grouped adapter restore ─ Nucleus restore resume gate
-018 native-content ─ 020 retained child-view navigation ─ Figmatic resume gate
+002 configuration ─ 019 grouped adapter restore
+018 native-content ─ 020 retained child-view navigation
 ```
 
 Research/prototype work in 009, 011, 012, and 013 may run beside foundation
@@ -85,7 +85,7 @@ participation, one selection confirmation, complete private target and
 rollback staging, a durable group journal, reverse-order exact rollback,
 catalogue-bound boot recovery, explicit present/absent evidence, deletion,
 public API guidance, mixed optional-file/WAL SQLite evidence, and the Nucleus
-resume handoff. Nucleus still owns app-wide
+consumer handoff. Nucleus still owns app-wide
 quiescence, database-open policy, and restart scheduling.
 
 `g01.003` is complete. Cards 017 and 018 provide checked Tauri observation,
@@ -389,5 +389,5 @@ restart scheduling.
 
 ## Next Task
 
-No Longhorn card auto-starts. Resume Nucleus g05.046 from the grouped absence
-consumer handoff. Figmatic g03.006 remains ready separately.
+g01 is complete. The [generation index](../generation-index.md) owns the only
+live next-task pointer. Consumer repositories own adoption and integration.

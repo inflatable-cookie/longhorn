@@ -15,6 +15,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Child-view Navigation Authority](2026-08/03-child-view-navigation-authority.md)
 - [Grouped Adapter Explicit State](2026-08/03-grouped-adapter-explicit-state.md)
 - [Nucleus Grouped Absence Consumer Handoff](2026-08/03-nucleus-grouped-absence-consumer-handoff.md)
+- [g01 Generation Closeout](2026-08/03-g01-generation-closeout.md)
 
 ## 2026-07
 

@@ -17,9 +17,10 @@
 `strict-ready`
 
 The strict spine is installed. Three audit passes are preserved, the complete
-shared-system suite is inventoried, and a 17-milestone g01 runway covers
-foundation systems, optional systems, consumer migrations, and greenfield
-release. Foundation contracts and package topology are promoted. The
+shared-system suite is inventoried, and the 20-milestone g01 generation is
+complete across foundation systems, optional systems, consumer migrations,
+greenfield proof, and two consumer-exposed shared follow-ups. Foundation
+contracts and package topology are promoted. The
 configuration domain store, coordinated atomic mutation, bounded debounced
 mutation, explicit flush, and bounded coordinated backup capture are
 complete. Deterministic ZIP encoding, bounded inspection, staged publication,
@@ -193,8 +194,8 @@ private compatibility candidate. Cards 113-127 and g01.016 are complete. Cards
 070-074 and g01.017 are complete. g01.020 Cards 132-134 close the Figmatic
 child-view navigation gap with retained,
 generation-checked, policy-admitted native execution. The common renderer
-protocol remains unchanged. Figmatic may resume g03.006; Nucleus has a
-separate cleanup handoff for its global-label bypass. Package-manager
-publication remains deferred.
+protocol remains unchanged. Consumer repositories own all remaining adoption
+and integration work. Package-manager publication remains deferred.
 
-The live next-task pointer lives in the roadmap front doors.
+The single live next-task pointer lives in the
+[generation index](roadmaps/generation-index.md).

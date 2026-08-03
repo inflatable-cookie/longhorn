@@ -1,6 +1,6 @@
 # System Inventory
 
-Status: complete inventory; g01.019 complete
+Status: complete inventory; g01 complete
 Owner: Tom
 Updated: 2026-08-03
 Architecture: `system-architecture.md`
@@ -162,8 +162,8 @@ fresh action admission. `g01.012` is complete.
 | Forkable history tree | optional Rust, Tauri, TS/Svelte/Poodle packages | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints, dense persistence, bounded clients | isolated document and Loophole-shaped artifact consumers | g01.017 complete; adoption remains a separate explicit consumer lane |
 | Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
 | Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
-| Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts; child-specific retained navigation | Nucleus and Figmatic child webviews; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 and g01.020 complete; Figmatic may resume adoption without changing the common protocol |
-| Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | g01.016 Cards 125-127 compiled; execution follows secondary-consumer closeout |
+| Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts; child-specific retained navigation | Nucleus and Figmatic child webviews; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 and g01.020 complete; remaining adoption is consumer-owned |
+| Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | g01.016 complete; produced-artifact examples and guidance proved |
 
 ## Consumer Repos
 
@@ -200,12 +200,17 @@ fresh action admission. `g01.012` is complete.
 
 ## Planning Gaps
 
+These are deferred candidates, not a committed runway.
+
+- server-synchronized configuration and remote conflict semantics
 - production backend transport and endpoint-security policy
 - durable offline mutation policy, if a domain proves it
 - macros, extended input triggers, native accelerators, and synchronized
   keymaps
-- remaining fork-tree production: isolated artifact and compatibility proof
+- native OS notification delivery
 - live native scale-transition evidence for child-view and backing-surface
 - Windows/Linux child-view proof and any future non-macOS native host support
 - cross-document panel transaction and copy-transfer authority
 - non-macOS strong display and packaged transfer evidence
+- secure credential-store provider selection
+- package-registry naming and publication, explicitly deferred

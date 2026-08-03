@@ -1,11 +1,11 @@
 # Roadmaps
 
-## Active Generation
+## Generation State
 
 - [Generation Index](generation-index.md)
-- [g01](g01/README.md)
+- [g01](g01/README.md) — complete
 
-## Active Milestone
+## Completed Generation
 
 `g01.005` through `g01.013` are complete. Card 081 closes the operation and
 notification lane with four isolated graphs, equal native/renderer traces,
@@ -45,7 +45,8 @@ Nucleus g05.046 exposed the grouped custom-adapter restore gap. Cards 128-131
 establish the generic transaction; Cards 135-137 close explicit target
 absence, rollback-to-absence, receipt evidence, boot recovery, and mixed
 optional-file/WAL SQLite proof.
-Nucleus remains incomplete until its own quiescence and restart work lands.
+The Longhorn grouped-restore lane is complete. Nucleus owns its remaining
+quiescence, adapter composition, restart, and integration work.
 Cards 070-074 and g01.017 are complete.
 Figmatic g03.006 exposed a retained child-view navigation gap. g01.020 Cards
 132-134 add policy-admitted native navigation, packaged proof, isolated
@@ -182,7 +183,7 @@ backing-surface package now exist. All three macOS mechanisms have packaged
 evidence; child and backing live scale transitions remain explicitly unmet on
 this host.
 
-## Next Task
+## Continuation
 
-No Longhorn card auto-starts. Resume Nucleus g05.046 from the grouped absence
-consumer handoff. Figmatic g03.006 remains ready separately.
+The [generation index](generation-index.md) owns the only live next-task
+pointer. Consumer adoption does not auto-start Longhorn work.
