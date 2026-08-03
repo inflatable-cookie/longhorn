@@ -92,3 +92,170 @@ fn crate_dependency_edge_stays_narrow_and_secret_free() {
 fn read(relative: &str) -> String {
     fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative)).unwrap()
 }
+
+mod async_offload {
+    use std::sync::{
+        Arc, Barrier,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    use longhorn_config::{
+        BackupCreateCommand, BackupCreateOutcome, BackupExportCommand, BackupExportOutcome,
+        BackupRetentionApplyCommand, BackupRetentionApplyOutcome, ConfigOperationsSnapshot,
+        ConfigProtocolVersion, ConfigSnapshotCommand, RestoreAdapterExecuteCommand,
+        RestoreAdapterExecuteOutcome, RestoreExecuteCommand, RestoreExecuteOutcome,
+        RestoreInspectCommand, RestoreInspectOutcome, RestorePlanCommand, RestorePlanOutcome,
+        RestoreRecoveryCommand, RestoreRecoveryOutcomeProjection, StorageCleanupCommand,
+        StorageCleanupOutcome, StorageRecoveryCommand, StorageRecoveryOutcome,
+        StorageTransitionExecuteCommand, StorageTransitionExecuteOutcome,
+        StorageTransitionInspectCommand, StorageTransitionInspectOutcome,
+    };
+    use longhorn_core::ConfigRequestId;
+    use longhorn_tauri_config::{ConfigOperationsCommandService, ConfigOperationsHostError};
+
+    struct ParkedService {
+        barrier: Barrier,
+        entered: AtomicBool,
+    }
+
+    impl ConfigOperationsCommandService for ParkedService {
+        fn snapshot(
+            &self,
+            _caller: &str,
+            _command: ConfigSnapshotCommand,
+        ) -> Result<ConfigOperationsSnapshot, ConfigOperationsHostError> {
+            self.entered.store(true, Ordering::SeqCst);
+            // Parks the executing thread until the test releases it.
+            self.barrier.wait();
+            Err(ConfigOperationsHostError::authority(
+                "parked test service",
+                true,
+            ))
+        }
+
+        fn inspect_storage_transition(
+            &self,
+            _caller: &str,
+            _command: StorageTransitionInspectCommand,
+        ) -> Result<StorageTransitionInspectOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn execute_storage_transition(
+            &self,
+            _caller: &str,
+            _command: StorageTransitionExecuteCommand,
+        ) -> Result<StorageTransitionExecuteOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn recover_storage(
+            &self,
+            _caller: &str,
+            _command: StorageRecoveryCommand,
+        ) -> Result<StorageRecoveryOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn cleanup_storage(
+            &self,
+            _caller: &str,
+            _command: StorageCleanupCommand,
+        ) -> Result<StorageCleanupOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn create_backup(
+            &self,
+            _caller: &str,
+            _command: BackupCreateCommand,
+        ) -> Result<BackupCreateOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn export_backup(
+            &self,
+            _caller: &str,
+            _command: BackupExportCommand,
+        ) -> Result<BackupExportOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn apply_backup_retention(
+            &self,
+            _caller: &str,
+            _command: BackupRetentionApplyCommand,
+        ) -> Result<BackupRetentionApplyOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn inspect_restore(
+            &self,
+            _caller: &str,
+            _command: RestoreInspectCommand,
+        ) -> Result<RestoreInspectOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn plan_restore(
+            &self,
+            _caller: &str,
+            _command: RestorePlanCommand,
+        ) -> Result<RestorePlanOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn execute_restore(
+            &self,
+            _caller: &str,
+            _command: RestoreExecuteCommand,
+        ) -> Result<RestoreExecuteOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn execute_adapter_restore(
+            &self,
+            _caller: &str,
+            _command: RestoreAdapterExecuteCommand,
+        ) -> Result<RestoreAdapterExecuteOutcome, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+
+        fn recover_restore(
+            &self,
+            _caller: &str,
+            _command: RestoreRecoveryCommand,
+        ) -> Result<RestoreRecoveryOutcomeProjection, ConfigOperationsHostError> {
+            panic!("unused in this test")
+        }
+    }
+
+    #[test]
+    fn contended_service_work_runs_on_blocking_threads_not_the_async_executor() {
+        let service = Arc::new(ParkedService {
+            barrier: Barrier::new(2),
+            entered: AtomicBool::new(false),
+        });
+        let inner = Arc::clone(&service);
+        // Drive the service through the same offload primitive the commands
+        // use; the async executor must stay free while the service is parked.
+        let task = tauri::async_runtime::spawn_blocking(move || {
+            inner.snapshot(
+                "main",
+                ConfigSnapshotCommand {
+                    protocol_version: ConfigProtocolVersion::CURRENT,
+                    request_id: ConfigRequestId::new("request:parked").unwrap(),
+                },
+            )
+        });
+        while !service.entered.load(Ordering::SeqCst) {
+            std::thread::yield_now();
+        }
+        // The async runtime stays responsive while the blocking call parks.
+        let free = tauri::async_runtime::block_on(async { 7 });
+        assert_eq!(free, 7);
+        service.barrier.wait();
+        let outcome = tauri::async_runtime::block_on(task).unwrap();
+        assert!(outcome.is_err());
+    }
+}

@@ -60,53 +60,77 @@ impl TauriCommandState {
 
 /// Returns the caller-authorized sealed command catalogue.
 #[tauri::command]
-pub fn longhorn_command_catalogue<R: Runtime>(
+pub async fn longhorn_command_catalogue<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriCommandState>,
 ) -> Result<CommandCatalogueSnapshot, CommandHostError> {
-    state.service.catalogue(window.label())
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.catalogue(&label))
+        .await
+        .map_err(|_| CommandHostError::state_unavailable())?
 }
 
 /// Loads the checked effective keymap.
 #[tauri::command]
-pub fn longhorn_command_keymap<R: Runtime>(
+pub async fn longhorn_command_keymap<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriCommandState>,
 ) -> Result<CommandKeymapLoadOutcome, CommandHostError> {
-    state.service.keymap(window.label())
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.keymap(&label))
+        .await
+        .map_err(|_| CommandHostError::state_unavailable())?
 }
 
 /// Previews one checked keymap patch.
 #[tauri::command]
-pub fn longhorn_command_keymap_preview<R: Runtime>(
+pub async fn longhorn_command_keymap_preview<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriCommandState>,
     request: CommandKeymapPreview,
 ) -> Result<CommandKeymapPreviewResult, CommandHostError> {
-    state.service.preview(window.label(), request)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.preview(&label, request))
+        .await
+        .map_err(|_| CommandHostError::state_unavailable())?
 }
 
 /// Commits one exact accepted keymap preview.
 #[tauri::command]
-pub fn longhorn_command_keymap_commit<R: Runtime>(
+pub async fn longhorn_command_keymap_commit<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriCommandState>,
     request: CommandKeymapCommit,
 ) -> Result<CommandKeymapMutationResult, CommandHostError> {
-    let result = state.service.commit(window.label(), request)?;
-    let _ = publish_mutation_hint(&window, &result);
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    let result = tauri::async_runtime::spawn_blocking(move || service.commit(&label, request))
+        .await
+        .map_err(|_| CommandHostError::state_unavailable())??;
+    if let Err(error) = publish_mutation_hint(&window, &result) {
+        longhorn_core::report_best_effort_failure("command.mutation-hint-emit", error);
+    }
     Ok(result)
 }
 
 /// Resets the effective keymap to the compiled default.
 #[tauri::command]
-pub fn longhorn_command_keymap_reset<R: Runtime>(
+pub async fn longhorn_command_keymap_reset<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriCommandState>,
     request: CommandKeymapReset,
 ) -> Result<CommandKeymapMutationResult, CommandHostError> {
-    let result = state.service.reset(window.label(), request)?;
-    let _ = publish_mutation_hint(&window, &result);
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    let result = tauri::async_runtime::spawn_blocking(move || service.reset(&label, request))
+        .await
+        .map_err(|_| CommandHostError::state_unavailable())??;
+    if let Err(error) = publish_mutation_hint(&window, &result) {
+        longhorn_core::report_best_effort_failure("command.mutation-hint-emit", error);
+    }
     Ok(result)
 }
 

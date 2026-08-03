@@ -130,7 +130,9 @@ pub(super) fn execute_guarded(
         Ok(state)
     })
     .map_err(|error| {
-        let _ = journal::cleanup(authority);
+        if let Err(error) = journal::cleanup(authority) {
+            longhorn_core::report_best_effort_failure("config.restore.journal-cleanup", error);
+        }
         failure(
             RestoreExecutionStage::PublishJournal,
             None,
@@ -237,7 +239,9 @@ pub(super) fn execute_guarded(
             error,
         ));
     }
-    let _ = journal::cleanup(authority);
+    if let Err(error) = journal::cleanup(authority) {
+        longhorn_core::report_best_effort_failure("config.restore.journal-cleanup", error);
+    }
     Ok(receipt(staging, safety_receipt))
 }
 

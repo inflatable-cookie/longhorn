@@ -9,6 +9,7 @@ description = "Narrow injected Tauri host for Longhorn command catalogues and ke
 publish = false
 
 [dependencies]
+longhorn-core.workspace = true
 longhorn-command-config.workspace = true
 serde.workspace = true
 tauri.workspace = true

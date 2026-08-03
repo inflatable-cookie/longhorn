@@ -124,138 +124,186 @@ impl TauriConfigOperationsState {
 
 /// Returns one exact caller-authorized operations snapshot.
 #[tauri::command]
-pub fn longhorn_config_snapshot<R: Runtime>(
+pub async fn longhorn_config_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: ConfigSnapshotCommand,
 ) -> Result<ConfigOperationsSnapshot, ConfigOperationsHostError> {
-    state.service.snapshot(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.snapshot(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Inspects one storage profile target without mutation.
 #[tauri::command]
-pub fn longhorn_config_storage_inspect<R: Runtime>(
+pub async fn longhorn_config_storage_inspect<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: StorageTransitionInspectCommand,
 ) -> Result<StorageTransitionInspectOutcome, ConfigOperationsHostError> {
-    state
-        .service
-        .inspect_storage_transition(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        service.inspect_storage_transition(&label, command)
+    })
+    .await
+    .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Executes one matching host-retained transition plan.
 #[tauri::command]
-pub fn longhorn_config_storage_execute<R: Runtime>(
+pub async fn longhorn_config_storage_execute<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: StorageTransitionExecuteCommand,
 ) -> Result<StorageTransitionExecuteOutcome, ConfigOperationsHostError> {
-    state
-        .service
-        .execute_storage_transition(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        service.execute_storage_transition(&label, command)
+    })
+    .await
+    .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Recovers one interrupted journaled storage transition.
 #[tauri::command]
-pub fn longhorn_config_storage_recover<R: Runtime>(
+pub async fn longhorn_config_storage_recover<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: StorageRecoveryCommand,
 ) -> Result<StorageRecoveryOutcome, ConfigOperationsHostError> {
-    state.service.recover_storage(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.recover_storage(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Applies source cleanup authorized by one exact committed receipt.
 #[tauri::command]
-pub fn longhorn_config_storage_cleanup<R: Runtime>(
+pub async fn longhorn_config_storage_cleanup<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: StorageCleanupCommand,
 ) -> Result<StorageCleanupOutcome, ConfigOperationsHostError> {
-    state.service.cleanup_storage(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.cleanup_storage(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Captures and operationally publishes one backup.
 #[tauri::command]
-pub fn longhorn_config_backup_create<R: Runtime>(
+pub async fn longhorn_config_backup_create<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: BackupCreateCommand,
 ) -> Result<BackupCreateOutcome, ConfigOperationsHostError> {
-    state.service.create_backup(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.create_backup(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Exports one proven archive to a host-selected target.
 #[tauri::command]
-pub fn longhorn_config_backup_export<R: Runtime>(
+pub async fn longhorn_config_backup_export<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: BackupExportCommand,
 ) -> Result<BackupExportOutcome, ConfigOperationsHostError> {
-    state.service.export_backup(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.export_backup(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Applies one confirmed host-owned retention plan.
 #[tauri::command]
-pub fn longhorn_config_backup_retention<R: Runtime>(
+pub async fn longhorn_config_backup_retention<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: BackupRetentionApplyCommand,
 ) -> Result<BackupRetentionApplyOutcome, ConfigOperationsHostError> {
-    state
-        .service
-        .apply_backup_retention(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.apply_backup_retention(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Selects, unlocks, and inspects one archive without mutation.
 #[tauri::command]
-pub fn longhorn_config_restore_inspect<R: Runtime>(
+pub async fn longhorn_config_restore_inspect<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: RestoreInspectCommand,
 ) -> Result<RestoreInspectOutcome, ConfigOperationsHostError> {
-    state.service.inspect_restore(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.inspect_restore(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Binds explicit choices and fresh evidence into one restore plan.
 #[tauri::command]
-pub fn longhorn_config_restore_plan<R: Runtime>(
+pub async fn longhorn_config_restore_plan<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: RestorePlanCommand,
 ) -> Result<RestorePlanOutcome, ConfigOperationsHostError> {
-    state.service.plan_restore(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.plan_restore(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Stages and executes one matching host-retained restore plan.
 #[tauri::command]
-pub fn longhorn_config_restore_execute<R: Runtime>(
+pub async fn longhorn_config_restore_execute<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: RestoreExecuteCommand,
 ) -> Result<RestoreExecuteOutcome, ConfigOperationsHostError> {
-    state.service.execute_restore(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.execute_restore(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Executes one explicitly confirmed custom-adapter restore.
 #[tauri::command]
-pub fn longhorn_config_restore_adapter_execute<R: Runtime>(
+pub async fn longhorn_config_restore_adapter_execute<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: RestoreAdapterExecuteCommand,
 ) -> Result<RestoreAdapterExecuteOutcome, ConfigOperationsHostError> {
-    state
-        .service
-        .execute_adapter_restore(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.execute_adapter_restore(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }
 
 /// Verifies rollback or cleans one terminal restore journal.
 #[tauri::command]
-pub fn longhorn_config_restore_recover<R: Runtime>(
+pub async fn longhorn_config_restore_recover<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriConfigOperationsState>,
     command: RestoreRecoveryCommand,
 ) -> Result<RestoreRecoveryOutcomeProjection, ConfigOperationsHostError> {
-    state.service.recover_restore(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.recover_restore(&label, command))
+        .await
+        .map_err(|_| ConfigOperationsHostError::state_unavailable())?
 }

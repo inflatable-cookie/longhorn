@@ -60,6 +60,25 @@ pub(crate) fn operation_state(store: &crate::ConfigStore) -> RestoreOperationSta
     }
 }
 
+/// Whether the only thing standing between callers and their data is an
+/// ordinary journal already in a terminal (`Succeeded`/`RolledBack`) phase —
+/// a crash-after-completion artifact that `recover_guarded` cleans without
+/// touching domain files. Grouped journals never qualify; they require the
+/// exact adapter catalogue.
+pub(crate) fn ordinary_terminal_phase_pending(store: &crate::ConfigStore) -> bool {
+    let authority = store.coordinator.authority_root();
+    if grouped::operation_state(authority) != RestoreOperationState::Inactive {
+        return false;
+    }
+    matches!(
+        journal::load(authority),
+        Ok(Some(journal)) if matches!(
+            journal.phase,
+            journal::JournalPhase::Succeeded | journal::JournalPhase::RolledBack
+        )
+    )
+}
+
 pub(crate) fn safety_pin(
     store: &crate::ConfigStore,
 ) -> Result<Option<crate::Sha256Digest>, RestoreRecoveryError> {

@@ -57,48 +57,68 @@ impl TauriSettingsState {
 
 /// Returns the caller-authorized sealed settings registry.
 #[tauri::command]
-pub fn longhorn_settings_registry<R: Runtime>(
+pub async fn longhorn_settings_registry<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSettingsState>,
 ) -> Result<SettingsRegistrySnapshot, SettingsHostError> {
-    state.service.registry(window.label())
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.registry(&label))
+        .await
+        .map_err(|_| SettingsHostError::state_unavailable())?
 }
 
 /// Loads one checked settings scope.
 #[tauri::command]
-pub fn longhorn_settings_load<R: Runtime>(
+pub async fn longhorn_settings_load<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSettingsState>,
     command: SettingsLoadCommand,
 ) -> Result<SettingsLoadOutcome, SettingsHostError> {
-    state.service.load(window.label(), command)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || service.load(&label, command))
+        .await
+        .map_err(|_| SettingsHostError::state_unavailable())?
 }
 
 /// Applies one checked failure-atomic settings intent.
 #[tauri::command]
-pub fn longhorn_settings_apply<R: Runtime>(
+pub async fn longhorn_settings_apply<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSettingsState>,
     command: SettingsApplyCommand,
 ) -> Result<SettingsMutationResult, SettingsHostError> {
-    let result = state.service.apply(window.label(), command)?;
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    let result = tauri::async_runtime::spawn_blocking(move || service.apply(&label, command))
+        .await
+        .map_err(|_| SettingsHostError::state_unavailable())??;
     // Events are non-durable hints. A failed hint must not erase a durable
     // mutation receipt returned to the invoking client.
-    let _ = publish_mutation_hint(&window, &result);
+    if let Err(error) = publish_mutation_hint(&window, &result) {
+        longhorn_core::report_best_effort_failure("settings.mutation-hint-emit", error);
+    }
     Ok(result)
 }
 
 /// Resets selected user overrides through one checked apply unit.
 #[tauri::command]
-pub fn longhorn_settings_reset<R: Runtime>(
+pub async fn longhorn_settings_reset<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSettingsState>,
     command: SettingsResetCommand,
 ) -> Result<SettingsMutationResult, SettingsHostError> {
-    let result = state.service.reset(window.label(), command)?;
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    let result = tauri::async_runtime::spawn_blocking(move || service.reset(&label, command))
+        .await
+        .map_err(|_| SettingsHostError::state_unavailable())??;
     // Events are non-durable hints. A failed hint must not erase a durable
     // mutation receipt returned to the invoking client.
-    let _ = publish_mutation_hint(&window, &result);
+    if let Err(error) = publish_mutation_hint(&window, &result) {
+        longhorn_core::report_best_effort_failure("settings.mutation-hint-emit", error);
+    }
     Ok(result)
 }
 

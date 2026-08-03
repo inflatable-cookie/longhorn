@@ -77,7 +77,13 @@ impl ConfigStore {
         self.ensure_registered(domain)?;
         match self.restore_operation_state() {
             RestoreOperationState::Active => {
-                return Ok(LoadOutcome::Unavailable(UnavailableState::RestoreActive));
+                // A journal already in a terminal phase is a
+                // crash-after-completion artifact; heal it the way
+                // coordinated load-sets do instead of wedging every bare
+                // load until someone calls recovery explicitly.
+                if !self.try_self_heal_terminal_restore() {
+                    return Ok(LoadOutcome::Unavailable(UnavailableState::RestoreActive));
+                }
             }
             RestoreOperationState::RecoveryRequired => {
                 return Ok(LoadOutcome::Unavailable(
@@ -87,6 +93,25 @@ impl ConfigStore {
             RestoreOperationState::Inactive => {}
         }
         Ok(self.load_registered(domain))
+    }
+
+    /// Non-blocking best-effort cleanup of a terminal restore journal.
+    /// Returns whether loads may proceed. Contended coordination, grouped
+    /// journals, and genuinely active restores all leave the journal alone.
+    fn try_self_heal_terminal_restore(&self) -> bool {
+        if !crate::backup::restore::ordinary_terminal_phase_pending(self) {
+            return false;
+        }
+        let Ok(guard) = self.coordinator.acquire(std::time::Duration::ZERO) else {
+            return false;
+        };
+        if crate::backup::restore::recover_guarded(self, &guard).is_err() {
+            return false;
+        }
+        matches!(
+            self.restore_operation_state(),
+            RestoreOperationState::Inactive
+        )
     }
 
     fn load_registered<D: ConfigDomain>(&self, domain: &D) -> LoadOutcome<D::Value> {

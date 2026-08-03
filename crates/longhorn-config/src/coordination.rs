@@ -186,6 +186,12 @@ impl Coordinator {
         loop {
             match self.process_lock.try_lock() {
                 Ok(guard) => return Ok(guard),
+                // Poison is recovered deliberately: this mutex guards pure
+                // cross-thread exclusion over on-disk state that carries its
+                // own journals and atomic-publish invariants, and interrupted
+                // restores recover through those journals — including
+                // in-process boot recovery after a panicked adapter, which
+                // must be able to reacquire this lock.
                 Err(TryLockError::Poisoned(error)) => return Ok(error.into_inner()),
                 Err(TryLockError::WouldBlock) => self.wait_for_retry(timeout, deadline)?,
             }
@@ -227,6 +233,10 @@ impl Coordinator {
         }
     }
 
+    // This wait can block for the caller's full timeout under contention.
+    // Callers own the thread budget: UI hosts must reach this only from
+    // blocking-pool threads (the Tauri command layers spawn_blocking), never
+    // from an event loop.
     fn wait_for_retry(
         &self,
         timeout: Duration,
@@ -275,6 +285,9 @@ pub(crate) struct CoordinationGuard<'a> {
 
 fn process_lock_for(identity: &Path) -> ProcessLock {
     let registry = PROCESS_LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
+    // Registry poison is recovered deliberately: entries are weak pointers
+    // that `retain` re-validates on every access, so a panicked earlier
+    // holder cannot leave the map in a state this lookup would trust.
     let mut locks = registry.lock().unwrap_or_else(|error| error.into_inner());
     locks.retain(|_, lock| lock.strong_count() > 0);
 

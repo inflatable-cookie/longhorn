@@ -261,7 +261,12 @@ pub(crate) fn execute(
         &prepared_domains,
     )
     .map_err(|error| {
-        let _ = journal::cleanup(authority);
+        if let Err(error) = journal::cleanup(authority) {
+            longhorn_core::report_best_effort_failure(
+                "config.restore.grouped-journal-cleanup",
+                error,
+            );
+        }
         failure(
             RestoreAdapterGroupExecutionStage::PublishJournal,
             None,

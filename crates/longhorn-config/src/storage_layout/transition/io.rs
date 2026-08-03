@@ -45,7 +45,14 @@ pub(super) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), StorageTrans
         sync_parent(parent)
     })();
     if result.is_err() {
-        let _ = fs::remove_file(&temporary);
+        if let Err(error) = fs::remove_file(&temporary) {
+            if error.kind() != std::io::ErrorKind::NotFound {
+                longhorn_core::report_best_effort_failure(
+                    "config.storage-transition.temporary-cleanup",
+                    error,
+                );
+            }
+        }
     }
     result
 }
