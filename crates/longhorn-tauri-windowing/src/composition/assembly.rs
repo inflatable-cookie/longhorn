@@ -31,10 +31,12 @@ impl<R: Runtime> ManagedWindowRegistration<R> for LifecycleWindowRegistration<R>
         window_id: &WindowId,
         window: &WebviewWindow<R>,
     ) -> Result<(), String> {
-        self.0
+        let host = self
+            .0
             .upgrade()
-            .ok_or_else(|| "window lifecycle host is unavailable".to_string())?
-            .install_window(window_id.clone(), window.clone(), None)
+            .ok_or_else(|| "window lifecycle host is unavailable".to_string())?;
+        let initial_normal = host.capture_initial_normal(window_id, window);
+        host.install_window(window_id.clone(), window.clone(), initial_normal)
             .map_err(|error| format!("{error:?}"))
     }
 

@@ -75,10 +75,34 @@ pub trait WindowLifecycleWakeHandler: Send + Sync {
     fn handle_scheduled_wake(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String>;
 }
 
-/// Scheduler backed by Tauri's blocking async-runtime pool.
-pub struct TauriAsyncWindowLifecycleScheduler {
+/// One queued wake with supersession identity.
+struct QueuedWake {
+    sequence: u64,
+    wake: ScheduledWindowLifecycleWake,
+}
+
+#[derive(Default)]
+struct SchedulerState {
+    queue: std::collections::BinaryHeap<std::cmp::Reverse<(u64, u64)>>,
+    wakes: std::collections::BTreeMap<u64, QueuedWake>,
+    latest:
+        std::collections::BTreeMap<(WindowId, longhorn_windowing::WindowLifecycleEventKind), u64>,
+    next_sequence: u64,
+    worker_running: bool,
+}
+
+struct SchedulerInner {
     clock: Arc<dyn WindowLifecycleClock>,
     handler: OnceLock<Weak<dyn WindowLifecycleWakeHandler>>,
+    state: std::sync::Mutex<SchedulerState>,
+    wakeup: std::sync::Condvar,
+}
+
+/// Scheduler backed by one shared timer thread. A newer wake for the same
+/// window and event kind supersedes an undelivered older one, so debounce
+/// storms deliver only their latest deadline and occupy no thread per wake.
+pub struct TauriAsyncWindowLifecycleScheduler {
+    inner: Arc<SchedulerInner>,
 }
 
 impl TauriAsyncWindowLifecycleScheduler {
@@ -86,34 +110,128 @@ impl TauriAsyncWindowLifecycleScheduler {
     #[must_use]
     pub fn new(clock: Arc<dyn WindowLifecycleClock>) -> Self {
         Self {
-            clock,
-            handler: OnceLock::new(),
+            inner: Arc::new(SchedulerInner {
+                clock,
+                handler: OnceLock::new(),
+                state: std::sync::Mutex::new(SchedulerState::default()),
+                wakeup: std::sync::Condvar::new(),
+            }),
+        }
+    }
+
+    fn run_worker(inner: &Arc<SchedulerInner>) {
+        const IDLE_LIVENESS_CHECK: Duration = Duration::from_secs(60);
+        let exit = |inner: &SchedulerInner| {
+            if let Ok(mut state) = inner.state.lock() {
+                state.worker_running = false;
+            }
+        };
+        loop {
+            let due_wake = {
+                let Ok(mut state) = inner.state.lock() else {
+                    return exit(inner);
+                };
+                loop {
+                    let now = inner.clock.now().get();
+                    match state.queue.peek() {
+                        Some(std::cmp::Reverse((due, _))) if *due <= now => {
+                            let std::cmp::Reverse((_, sequence)) =
+                                state.queue.pop().unwrap_or(std::cmp::Reverse((0, 0)));
+                            let Some(queued) = state.wakes.remove(&sequence) else {
+                                continue;
+                            };
+                            let key = (
+                                queued.wake.event().window_id().clone(),
+                                queued.wake.event().kind(),
+                            );
+                            if state.latest.get(&key) != Some(&queued.sequence) {
+                                continue;
+                            }
+                            state.latest.remove(&key);
+                            break Some(queued.wake);
+                        }
+                        Some(std::cmp::Reverse((due, _))) => {
+                            let wait = Duration::from_millis(due.saturating_sub(now));
+                            let Ok((next, _)) = inner.wakeup.wait_timeout(state, wait) else {
+                                return exit(inner);
+                            };
+                            state = next;
+                        }
+                        None => {
+                            let Ok((next, _)) =
+                                inner.wakeup.wait_timeout(state, IDLE_LIVENESS_CHECK)
+                            else {
+                                return exit(inner);
+                            };
+                            state = next;
+                            if state.queue.is_empty()
+                                && inner
+                                    .handler
+                                    .get()
+                                    .is_none_or(|handler| handler.upgrade().is_none())
+                            {
+                                state.worker_running = false;
+                                return;
+                            }
+                        }
+                    }
+                }
+            };
+            if let Some(wake) = due_wake {
+                let Some(handler) = inner.handler.get().and_then(Weak::upgrade) else {
+                    return exit(inner);
+                };
+                // Delivery failures are reported by the handler itself
+                // through the lifecycle reporter seam.
+                let _ = handler.handle_scheduled_wake(wake);
+            }
         }
     }
 }
 
 impl WindowLifecycleScheduler for TauriAsyncWindowLifecycleScheduler {
     fn bind(&self, handler: Weak<dyn WindowLifecycleWakeHandler>) -> Result<(), String> {
-        self.handler
+        self.inner
+            .handler
             .set(handler)
             .map_err(|_| "Tauri lifecycle scheduler is already bound".to_string())
     }
 
     fn schedule(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
-        let handler = self
-            .handler
-            .get()
-            .cloned()
-            .ok_or_else(|| "Tauri lifecycle scheduler is not bound".to_string())?;
-        let delay = wake.due_at().get().saturating_sub(self.clock.now().get());
-        tauri::async_runtime::spawn_blocking(move || {
-            if delay > 0 {
-                std::thread::sleep(Duration::from_millis(delay));
+        if self.inner.handler.get().is_none() {
+            return Err("Tauri lifecycle scheduler is not bound".to_string());
+        }
+        let spawn_worker = {
+            let mut state = self
+                .inner
+                .state
+                .lock()
+                .map_err(|_| "lifecycle scheduler state is poisoned".to_string())?;
+            let sequence = state.next_sequence;
+            state.next_sequence += 1;
+            let key = (wake.event().window_id().clone(), wake.event().kind());
+            state.latest.insert(key, sequence);
+            state
+                .queue
+                .push(std::cmp::Reverse((wake.due_at().get(), sequence)));
+            state.wakes.insert(sequence, QueuedWake { sequence, wake });
+            let spawn_worker = !state.worker_running;
+            state.worker_running = true;
+            spawn_worker
+        };
+        self.inner.wakeup.notify_one();
+        if spawn_worker {
+            let inner = Arc::clone(&self.inner);
+            if let Err(error) = std::thread::Builder::new()
+                .name("longhorn-window-lifecycle-timer".to_string())
+                .spawn(move || Self::run_worker(&inner))
+            {
+                if let Ok(mut state) = self.inner.state.lock() {
+                    state.worker_running = false;
+                }
+                return Err(format!("lifecycle timer thread failed to start: {error}"));
             }
-            if let Some(handler) = handler.upgrade() {
-                let _ = handler.handle_scheduled_wake(wake);
-            }
-        });
+        }
         Ok(())
     }
 }
@@ -331,13 +449,19 @@ mod tests {
         }
     }
 
-    struct RecordingHandler(Sender<WindowId>);
+    struct RecordingHandler(Sender<ScheduledWindowLifecycleWake>);
 
     impl WindowLifecycleWakeHandler for RecordingHandler {
         fn handle_scheduled_wake(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
-            self.0
-                .send(wake.event().window_id().clone())
-                .map_err(|error| error.to_string())
+            self.0.send(wake).map_err(|error| error.to_string())
+        }
+    }
+
+    struct AdjustableClock(std::sync::atomic::AtomicU64);
+
+    impl WindowLifecycleClock for AdjustableClock {
+        fn now(&self) -> MonotonicMillis {
+            MonotonicMillis::new(self.0.load(std::sync::atomic::Ordering::SeqCst))
         }
     }
 
@@ -372,8 +496,40 @@ mod tests {
         scheduler.schedule(wake).unwrap();
 
         assert_eq!(
-            receiver.recv_timeout(Duration::from_secs(2)).unwrap(),
-            WindowId::new("window:scheduled").unwrap()
+            receiver
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap()
+                .event()
+                .window_id(),
+            &WindowId::new("window:scheduled").unwrap()
+        );
+    }
+
+    #[test]
+    fn newer_wake_for_the_same_window_and_kind_supersedes_the_older_one() {
+        let clock = Arc::new(AdjustableClock(std::sync::atomic::AtomicU64::new(0)));
+        let scheduler = TauriAsyncWindowLifecycleScheduler::new(clock.clone());
+        let (sender, receiver) = channel();
+        let handler: Arc<dyn WindowLifecycleWakeHandler> = Arc::new(RecordingHandler(sender));
+        scheduler.bind(Arc::downgrade(&handler)).unwrap();
+
+        let wake_at = |due: u64| {
+            ScheduledWindowLifecycleWake::new(
+                MonotonicMillis::new(due),
+                WindowLifecycleEvent::Blurred {
+                    window_id: WindowId::new("window:superseded").unwrap(),
+                },
+            )
+        };
+        scheduler.schedule(wake_at(50)).unwrap();
+        scheduler.schedule(wake_at(60)).unwrap();
+        clock.0.store(100, std::sync::atomic::Ordering::SeqCst);
+
+        let delivered = receiver.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert_eq!(delivered.due_at(), MonotonicMillis::new(60));
+        assert!(
+            receiver.recv_timeout(Duration::from_millis(300)).is_err(),
+            "superseded wake was still delivered"
         );
     }
 }

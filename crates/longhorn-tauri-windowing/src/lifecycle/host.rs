@@ -30,12 +30,21 @@ pub(super) struct InstalledWindow<R: Runtime> {
     page_ready: bool,
     placement_ready: bool,
     reveal_started: bool,
+    reveal_retry: bool,
     revealed: bool,
 }
 
 pub(super) struct PendingFlush {
     target: WindowFlushTarget,
     timeout: longhorn_windowing::WindowLifecycleDuration,
+    scope: super::WindowFlushScope,
+}
+
+pub(super) enum FlushDisposition<'a> {
+    /// Execute each flush at its directive position on the current thread.
+    Inline,
+    /// Record flushes for the caller to execute or defer.
+    Collect(&'a mut Vec<PendingFlush>),
 }
 
 /// Tauri listener and I/O adapter over the pure lifecycle coordinator.
@@ -80,6 +89,11 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         initial_normal: Option<WindowPlacement>,
     ) -> Result<(), TauriWindowLifecycleError> {
         self.ensure_active()?;
+        let transport_handle = HostWindowHandle::new(window.label()).map_err(|error| {
+            TauriWindowLifecycleError::InvalidWindowLabel {
+                detail: error.to_string(),
+            }
+        })?;
         {
             let mut windows = self.lock_windows()?;
             if windows.contains_key(&window_id) {
@@ -93,14 +107,13 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                     page_ready: false,
                     placement_ready: false,
                     reveal_started: false,
+                    reveal_retry: false,
                     revealed: false,
                 },
             );
         }
 
         let host = std::sync::Arc::downgrade(self);
-        let transport_handle = HostWindowHandle::new(window.label())
-            .expect("installed Tauri labels are valid host handles");
         window.on_window_event(move |event| {
             let Some(host) = host.upgrade() else {
                 return;
@@ -159,27 +172,57 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         window_id: WindowId,
     ) -> Result<(), TauriWindowLifecycleError> {
         self.ensure_active()?;
-        let mut windows = self.lock_windows()?;
-        if windows.contains_key(&window_id) {
-            return Err(TauriWindowLifecycleError::DuplicateWindow { window_id });
-        }
-        let previous = windows
-            .iter()
-            .find(|(_, installed)| installed.window.label() == transport_handle.as_str())
-            .map(|(window_id, _)| window_id.clone())
-            .ok_or_else(|| TauriWindowLifecycleError::UnknownWindowHandle {
-                transport_handle: transport_handle.clone(),
+        let previous = {
+            let windows = self.lock_windows()?;
+            if windows.contains_key(&window_id) {
+                return Err(TauriWindowLifecycleError::DuplicateWindow { window_id });
+            }
+            windows
+                .iter()
+                .find(|(_, installed)| installed.window.label() == transport_handle.as_str())
+                .map(|(window_id, _)| window_id.clone())
+                .ok_or_else(|| TauriWindowLifecycleError::UnknownWindowHandle {
+                    transport_handle: transport_handle.clone(),
+                })?
+        };
+        // Coordinator state migrates with the identity; pending deadlines are
+        // re-scheduled under the new id, and any wake still queued under the
+        // previous id fails as unknown and counts as superseded.
+        let reschedule = self
+            .lock_coordinator()?
+            .retag(&previous, &window_id)
+            .map_err(coordination_error)?;
+        {
+            let mut windows = self.lock_windows()?;
+            let installed = windows.remove(&previous).ok_or_else(|| {
+                TauriWindowLifecycleError::UnknownWindowHandle {
+                    transport_handle: transport_handle.clone(),
+                }
             })?;
-        let installed = windows
-            .remove(&previous)
-            .expect("located lifecycle window remains present under lock");
-        windows.insert(window_id, installed);
+            windows.insert(window_id.clone(), installed);
+        }
+        let mut actions = Vec::new();
+        self.execute_directives(reschedule, &mut actions, &mut FlushDisposition::Inline)?;
+        for action in actions {
+            if let TauriWindowLifecycleAction::ScheduleFailed { detail, .. } = action {
+                self.services.reporter.report(WindowLifecycleReport::new(
+                    window_id.clone(),
+                    None,
+                    Err(TauriWindowLifecycleError::Coordination {
+                        detail: format!("retag wake re-schedule failed: {detail}"),
+                    }),
+                ));
+            }
+        }
         Ok(())
     }
 
-    /// Translates and handles one native event. Irrelevant events return `None`.
+    /// Translates and handles one native event on the Tauri event thread.
+    /// Irrelevant events return `None`. Bounded flushes never block this
+    /// thread: they are deferred to the runtime's blocking pool and their
+    /// terminal outcomes arrive as later reporter receipts.
     pub fn handle_tauri_event(
-        &self,
+        self: &std::sync::Arc<Self>,
         window_id: &WindowId,
         event: &WindowEvent,
     ) -> Result<Option<TauriWindowLifecycleReceipt>, TauriWindowLifecycleError> {
@@ -196,14 +239,40 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         let translated =
             translate_tauri_window_event(window_id, &window, event, self.services.mapper.as_ref())?;
         translated
-            .map(|event| self.handle_lifecycle_event(event))
+            .map(|event| {
+                let (mut receipt, pending) = self.handle_event_collecting(event)?;
+                if !pending.is_empty() {
+                    receipt = self.defer_flushes(receipt, pending);
+                }
+                Ok(receipt)
+            })
             .transpose()
     }
 
     /// Handles one already translated input, including host-driven deadlines.
+    /// Bounded flushes execute synchronously at their directive positions
+    /// within the caller's thread.
     pub fn handle_lifecycle_event(
         &self,
         event: WindowLifecycleEvent,
+    ) -> Result<TauriWindowLifecycleReceipt, TauriWindowLifecycleError> {
+        self.handle_event_with(event, &mut FlushDisposition::Inline)
+    }
+
+    fn handle_event_collecting(
+        &self,
+        event: WindowLifecycleEvent,
+    ) -> Result<(TauriWindowLifecycleReceipt, Vec<PendingFlush>), TauriWindowLifecycleError> {
+        let mut pending = Vec::new();
+        let receipt =
+            self.handle_event_with(event, &mut FlushDisposition::Collect(&mut pending))?;
+        Ok((receipt, pending))
+    }
+
+    fn handle_event_with(
+        &self,
+        event: WindowLifecycleEvent,
+        flushes: &mut FlushDisposition,
     ) -> Result<TauriWindowLifecycleReceipt, TauriWindowLifecycleError> {
         self.ensure_active()?;
         let window_id = event.window_id().clone();
@@ -215,11 +284,59 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                 .handle(self.services.clock.now(), event)
                 .map_err(coordination_error)?
         };
+        // A concurrent Destroyed between the installed check and the
+        // coordinator call removes both entries; the coordinator would have
+        // just recreated its state for this event, so release it instead of
+        // leaking a tracked entry for a forgotten window.
+        if event_kind != longhorn_windowing::WindowLifecycleEventKind::Destroyed
+            && !self.lock_windows()?.contains_key(&window_id)
+        {
+            self.lock_coordinator()?.release(&window_id);
+            return Err(TauriWindowLifecycleError::UnknownWindow { window_id });
+        }
         let mut actions = Vec::new();
-        self.execute_directives(directives, &mut actions, None)?;
+        self.execute_directives(directives, &mut actions, flushes)?;
         Ok(TauriWindowLifecycleReceipt::new(
             window_id, event_kind, actions,
         ))
+    }
+
+    fn defer_flushes(
+        self: &std::sync::Arc<Self>,
+        receipt: TauriWindowLifecycleReceipt,
+        pending: Vec<PendingFlush>,
+    ) -> TauriWindowLifecycleReceipt {
+        let (window_id, event_kind, mut actions) = receipt.into_parts();
+        let deferred: Vec<(WindowId, super::WindowFlushRequest)> = pending
+            .into_iter()
+            .map(|flush| {
+                let target_window_id = flush.target.window_id().clone();
+                let request =
+                    super::WindowFlushRequest::new(vec![flush.target], flush.timeout, flush.scope);
+                (target_window_id, request)
+            })
+            .collect();
+        for (_, request) in &deferred {
+            actions.push(TauriWindowLifecycleAction::FlushDeferred {
+                request: request.clone(),
+            });
+        }
+        let host = std::sync::Arc::clone(self);
+        tauri::async_runtime::spawn_blocking(move || {
+            for (target_window_id, request) in deferred {
+                let outcome = host.flush(&request);
+                host.services.reporter.report(WindowLifecycleReport::new(
+                    target_window_id.clone(),
+                    Some(event_kind),
+                    Ok(TauriWindowLifecycleReceipt::new(
+                        target_window_id,
+                        event_kind,
+                        vec![TauriWindowLifecycleAction::Flushed { request, outcome }],
+                    )),
+                ));
+            }
+        });
+        TauriWindowLifecycleReceipt::new(window_id, event_kind, actions)
     }
 
     /// Delivers one exact wake previously accepted by the injected scheduler.
@@ -228,6 +345,22 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         wake: ScheduledWindowLifecycleWake,
     ) -> Result<TauriWindowLifecycleReceipt, TauriWindowLifecycleError> {
         self.handle_lifecycle_event(wake.event().clone())
+    }
+
+    /// Best-effort initial normal placement for a freshly created window, so
+    /// a dynamic window maximized before its first settled capture still has
+    /// a persistable normal placement.
+    pub(crate) fn capture_initial_normal(
+        &self,
+        window_id: &WindowId,
+        window: &WebviewWindow<R>,
+    ) -> Option<WindowPlacement> {
+        self.services
+            .capture
+            .capture(window_id, window, None)
+            .ok()
+            .filter(|placement| !placement.is_maximized())
+            .map(|placement| placement.normal_placement())
     }
 
     /// Returns whether the host still accepts lifecycle work.
@@ -308,9 +441,27 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
 
 impl<R: Runtime> WindowLifecycleWakeHandler for TauriWindowLifecycleHost<R> {
     fn handle_scheduled_wake(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
-        TauriWindowLifecycleHost::handle_scheduled_wake(self, wake)
-            .map(|_| ())
-            .map_err(|error| format!("{error:?}"))
+        let window_id = wake.event().window_id().clone();
+        let event_kind = wake.event().kind();
+        match TauriWindowLifecycleHost::handle_scheduled_wake(self, wake) {
+            Ok(receipt) => {
+                self.services.reporter.report(WindowLifecycleReport::new(
+                    window_id,
+                    Some(event_kind),
+                    Ok(receipt),
+                ));
+                Ok(())
+            }
+            Err(error) => {
+                let detail = format!("{error:?}");
+                self.services.reporter.report(WindowLifecycleReport::new(
+                    window_id,
+                    Some(event_kind),
+                    Err(error),
+                ));
+                Err(detail)
+            }
+        }
     }
 }
 

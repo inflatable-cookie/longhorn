@@ -4,7 +4,7 @@ use longhorn_core::WindowId;
 use longhorn_windowing::{CaptureGeneration, WindowLifecycleDirective, WindowLifecycleEvent};
 use tauri::Runtime;
 
-use super::{PendingFlush, TauriWindowLifecycleHost, coordination_error};
+use super::{FlushDisposition, PendingFlush, TauriWindowLifecycleHost, coordination_error};
 use crate::lifecycle::{
     ScheduledWindowLifecycleWake, TauriWindowLifecycleAction, TauriWindowLifecycleError,
     WindowFlushOutcome, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
@@ -16,7 +16,7 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         &self,
         directives: Vec<WindowLifecycleDirective>,
         actions: &mut Vec<TauriWindowLifecycleAction>,
-        mut pending_flushes: Option<&mut Vec<PendingFlush>>,
+        flushes: &mut FlushDisposition,
     ) -> Result<(), TauriWindowLifecycleError> {
         for directive in directives {
             match directive {
@@ -60,7 +60,14 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                             if !placement.is_maximized() {
                                 let mut windows = self.lock_windows()?;
                                 if let Some(installed) = windows.get_mut(&window_id) {
-                                    installed.retained_normal = Some(placement.normal_placement());
+                                    // Only write back over the value observed
+                                    // before the unlocked capture; a newer
+                                    // retained normal installed concurrently
+                                    // by register_apply wins.
+                                    if installed.retained_normal == retained_normal {
+                                        installed.retained_normal =
+                                            Some(placement.normal_placement());
+                                    }
                                 }
                             }
                             if let Err(detail) = self.services.sink.stage(&placement) {
@@ -88,11 +95,7 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                                     )
                                     .map_err(coordination_error)?
                             };
-                            self.execute_directives(
-                                nested,
-                                actions,
-                                pending_flushes.as_deref_mut(),
-                            )?;
+                            self.execute_directives(nested, actions, flushes)?;
                         }
                         Err(detail) => {
                             actions.push(TauriWindowLifecycleAction::CaptureFailed {
@@ -123,17 +126,22 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                     timeout,
                     reason,
                 } => {
-                    let target = WindowFlushTarget::new(window_id, generation);
-                    if let Some(pending) = pending_flushes.as_deref_mut() {
-                        pending.push(PendingFlush { target, timeout });
-                    } else {
-                        let request = WindowFlushRequest::new(
-                            vec![target],
-                            timeout,
-                            WindowFlushScope::Window { reason },
-                        );
-                        let outcome = self.flush(&request);
-                        actions.push(TauriWindowLifecycleAction::Flushed { request, outcome });
+                    let pending = PendingFlush {
+                        target: WindowFlushTarget::new(window_id, generation),
+                        timeout,
+                        scope: WindowFlushScope::Window { reason },
+                    };
+                    match flushes {
+                        FlushDisposition::Inline => {
+                            let request = WindowFlushRequest::new(
+                                vec![pending.target],
+                                pending.timeout,
+                                pending.scope,
+                            );
+                            let outcome = self.flush(&request);
+                            actions.push(TauriWindowLifecycleAction::Flushed { request, outcome });
+                        }
+                        FlushDisposition::Collect(collected) => collected.push(pending),
                     }
                 }
                 WindowLifecycleDirective::UserClose { window_id } => {

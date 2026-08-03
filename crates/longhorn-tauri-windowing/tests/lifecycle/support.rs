@@ -189,6 +189,12 @@ impl WindowUserCloseHandler for TestUserClose {
 #[derive(Default)]
 pub(super) struct TestReporter(Mutex<Vec<WindowLifecycleReport>>);
 
+impl TestReporter {
+    pub(super) fn reports(&self) -> Vec<WindowLifecycleReport> {
+        self.0.lock().unwrap().clone()
+    }
+}
+
 impl WindowLifecycleReporter for TestReporter {
     fn report(&self, report: WindowLifecycleReport) {
         self.0.lock().unwrap().push(report);
@@ -212,6 +218,7 @@ pub(super) struct Harness {
     pub(super) scheduler: Arc<TestScheduler>,
     pub(super) sink: Arc<TestSink>,
     pub(super) user_close: Arc<TestUserClose>,
+    pub(super) reporter: Arc<TestReporter>,
     pub(super) window_id: WindowId,
 }
 
@@ -229,6 +236,7 @@ pub(super) fn harness(
     let clock = Arc::new(TestClock::default());
     let scheduler = Arc::new(TestScheduler::default());
     let user_close = Arc::new(TestUserClose::default());
+    let reporter = Arc::new(TestReporter::default());
     let reveal = Arc::new(TestReveal::default());
     let mapper = Arc::new(UniformWindowGeometryMapper::new(
         ScaleFactor::from_thousandths(1000).unwrap(),
@@ -242,7 +250,7 @@ pub(super) fn harness(
             capture,
             sink.clone(),
             user_close.clone(),
-            Arc::new(TestReporter::default()),
+            reporter.clone(),
             reveal,
         ),
     ));
@@ -255,6 +263,7 @@ pub(super) fn harness(
         scheduler,
         sink,
         user_close,
+        reporter,
         window_id,
     }
 }

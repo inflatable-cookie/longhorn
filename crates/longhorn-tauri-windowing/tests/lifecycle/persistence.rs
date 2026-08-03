@@ -142,3 +142,132 @@ fn shutdown_flush_is_one_sorted_aggregate_for_dynamic_windows() {
         ["window:a", "window:b"]
     );
 }
+
+#[test]
+fn destroyed_event_defers_flush_off_the_event_thread() {
+    let window_id = id("window:deferred");
+    let sink = Arc::new(TestSink::new(FlushMode::Timeout));
+    let test = harness(
+        "deferred",
+        2_000,
+        Arc::new(TestCapture::repeating(&window_id)),
+        sink,
+    );
+
+    let start = std::time::Instant::now();
+    let receipt = test
+        .host
+        .handle_tauri_event(&test.window_id, &tauri::WindowEvent::Destroyed)
+        .unwrap()
+        .unwrap();
+    assert!(
+        start.elapsed() < std::time::Duration::from_millis(1_000),
+        "event-thread handling waited on the flush timeout"
+    );
+    assert!(
+        receipt
+            .actions()
+            .iter()
+            .any(|action| matches!(action, TauriWindowLifecycleAction::FlushDeferred { .. }))
+    );
+    assert!(
+        !receipt
+            .actions()
+            .iter()
+            .any(|action| matches!(action, TauriWindowLifecycleAction::Flushed { .. }))
+    );
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        let reported = test.reporter.reports().iter().any(|report| {
+            matches!(
+                report.result(),
+                Ok(receipt) if receipt.actions().iter().any(|action| matches!(
+                    action,
+                    TauriWindowLifecycleAction::Flushed {
+                        outcome: WindowFlushOutcome::TimedOut,
+                        ..
+                    }
+                ))
+            )
+        });
+        if reported {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "deferred flush outcome was never reported"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+}
+
+#[test]
+fn scheduled_wake_outcomes_reach_the_reporter() {
+    use longhorn_tauri_windowing::WindowLifecycleWakeHandler;
+
+    let window_id = id("window:wake-report");
+    let sink = Arc::new(TestSink::new(FlushMode::Succeed));
+    let test = harness(
+        "wake-report",
+        1_000,
+        Arc::new(TestCapture::repeating(&window_id)),
+        sink,
+    );
+
+    test.host
+        .handle_lifecycle_event(WindowLifecycleEvent::Moved {
+            window_id: test.window_id.clone(),
+            outer_origin: longhorn_core::ScreenPoint::new(5, 5),
+        })
+        .unwrap();
+    let wake = test
+        .scheduler
+        .wakes()
+        .first()
+        .cloned()
+        .expect("moved event schedules a capture wake");
+
+    test.host
+        .handle_lifecycle_event(WindowLifecycleEvent::Destroyed {
+            window_id: test.window_id.clone(),
+        })
+        .unwrap();
+
+    WindowLifecycleWakeHandler::handle_scheduled_wake(&*test.host, wake).unwrap_err();
+    assert!(test.reporter.reports().iter().any(|report| matches!(
+        report.result(),
+        Err(longhorn_tauri_windowing::TauriWindowLifecycleError::UnknownWindow { .. })
+    )));
+}
+
+#[test]
+fn oversized_label_installation_fails_typed_with_no_partial_state() {
+    let window_id = id("window:invalid-label");
+    let sink = Arc::new(TestSink::new(FlushMode::Succeed));
+    let test = harness(
+        "valid",
+        1_000,
+        Arc::new(TestCapture::repeating(&window_id)),
+        sink,
+    );
+    let long_label = "l".repeat(300);
+    let window = WebviewWindowBuilder::new(&test._app, &long_label, Default::default())
+        .build()
+        .unwrap();
+
+    let error = test
+        .host
+        .install_window(window_id.clone(), window, None)
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        longhorn_tauri_windowing::TauriWindowLifecycleError::InvalidWindowLabel { .. }
+    ));
+    assert!(matches!(
+        test.host
+            .handle_lifecycle_event(WindowLifecycleEvent::Blurred { window_id })
+            .unwrap_err(),
+        longhorn_tauri_windowing::TauriWindowLifecycleError::UnknownWindow { .. }
+    ));
+}

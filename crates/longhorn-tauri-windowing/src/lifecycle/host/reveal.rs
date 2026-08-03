@@ -51,7 +51,17 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                 }
             }
         }
-        ids.iter().map(|id| self.advance_reveal(id)).collect()
+        let mut receipts = Vec::new();
+        for id in &ids {
+            match self.advance_reveal(id) {
+                Ok(receipt) => receipts.push(receipt),
+                // A window destroyed mid-advance must not abort the other
+                // converged windows' reveal progress.
+                Err(TauriWindowLifecycleError::UnknownWindow { .. }) => {}
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(receipts)
     }
 
     fn advance_reveal(
@@ -81,6 +91,9 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                 ));
             }
             if installed.reveal_started {
+                // Record the lost race so the in-flight attempt retries on
+                // failure instead of stranding a fully gated hidden window.
+                installed.reveal_retry = true;
                 return Ok(WindowRevealReceipt::new(
                     window_id.clone(),
                     WindowRevealStatus::Waiting {
@@ -93,12 +106,23 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
             installed.window.clone()
         };
         let result = self.services.reveal.reveal(&window);
-        let mut windows = self.lock_windows()?;
-        if let Some(installed) = windows.get_mut(window_id) {
-            installed.reveal_started = false;
-            if result.is_ok() {
-                installed.revealed = true;
+        let retry = {
+            let mut windows = self.lock_windows()?;
+            match windows.get_mut(window_id) {
+                Some(installed) => {
+                    installed.reveal_started = false;
+                    if result.is_ok() {
+                        installed.revealed = true;
+                    }
+                    let retry = result.is_err() && installed.reveal_retry;
+                    installed.reveal_retry = false;
+                    retry
+                }
+                None => false,
             }
+        };
+        if retry {
+            return self.advance_reveal(window_id);
         }
         Ok(WindowRevealReceipt::new(
             window_id.clone(),

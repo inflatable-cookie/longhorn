@@ -377,6 +377,12 @@ pub enum TauriWindowLifecycleAction {
         /// Terminal outcome.
         outcome: WindowFlushOutcome,
     },
+    /// One bounded flush left the event thread; its terminal outcome arrives
+    /// as a later reporter receipt.
+    FlushDeferred {
+        /// Exact request.
+        request: WindowFlushRequest,
+    },
     /// Consumer user-close callback completed.
     UserCloseReported,
     /// Consumer user-close callback failed.
@@ -426,6 +432,16 @@ impl TauriWindowLifecycleReceipt {
     pub fn actions(&self) -> &[TauriWindowLifecycleAction] {
         &self.actions
     }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        WindowId,
+        WindowLifecycleEventKind,
+        Vec<TauriWindowLifecycleAction>,
+    ) {
+        (self.window_id, self.event, self.actions)
+    }
 }
 
 /// Fatal adapter failure before a complete receipt was possible.
@@ -448,6 +464,11 @@ pub enum TauriWindowLifecycleError {
     DuplicateWindow {
         /// Repeated identity.
         window_id: WindowId,
+    },
+    /// Native label is not a valid host transport handle.
+    InvalidWindowLabel {
+        /// Validation diagnostic.
+        detail: String,
     },
     /// Shared state lock was poisoned.
     StateUnavailable {

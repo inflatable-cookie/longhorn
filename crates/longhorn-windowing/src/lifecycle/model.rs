@@ -97,7 +97,7 @@ impl CaptureGeneration {
 }
 
 /// Pure lifecycle input category.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WindowLifecycleEventKind {
     /// Native outer-origin change.

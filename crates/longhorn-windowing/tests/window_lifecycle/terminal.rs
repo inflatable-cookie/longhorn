@@ -1,3 +1,4 @@
+use longhorn_core::WindowId;
 use longhorn_windowing::{
     CaptureReason, FlushReason, IgnoreReason, WindowLifecycleDirective, WindowLifecycleEvent,
 };
@@ -192,4 +193,72 @@ fn failed_forced_capture_can_retry_on_a_later_flush() {
             ..
         }] if *retried == generation
     ));
+}
+
+#[test]
+fn retag_migrates_pending_state_and_reschedules_under_the_new_identity() {
+    let mut coordinator = coordinator();
+    let previous = id();
+    let next = WindowId::new("retagged").unwrap();
+
+    let directives = coordinator.handle(at(1_000), moved(10, 20)).unwrap();
+    let scheduled = directives.iter().find_map(|directive| match directive {
+        WindowLifecycleDirective::ScheduleCapture {
+            generation, due_at, ..
+        } => Some((*generation, *due_at)),
+        _ => None,
+    });
+    let (pending_generation, pending_due) = scheduled.expect("moved schedules a debounced capture");
+
+    let rescheduled = coordinator.retag(&previous, &next).unwrap();
+    assert!(!coordinator.is_tracking(&previous));
+    assert!(coordinator.is_tracking(&next));
+    assert!(rescheduled.iter().any(|directive| matches!(
+        directive,
+        WindowLifecycleDirective::ScheduleCapture {
+            window_id,
+            generation,
+            due_at,
+        } if window_id == &next && *generation == pending_generation && *due_at == pending_due
+    )));
+
+    // The migrated deadline still fires under the new identity.
+    let fired = coordinator
+        .handle(
+            pending_due,
+            WindowLifecycleEvent::CaptureDeadline {
+                window_id: next.clone(),
+                generation: pending_generation,
+            },
+        )
+        .unwrap();
+    assert!(fired.iter().any(|directive| matches!(
+        directive,
+        WindowLifecycleDirective::CaptureNow { window_id, .. } if window_id == &next
+    )));
+}
+
+#[test]
+fn retag_merges_a_tracked_target_and_release_removes_state() {
+    let mut coordinator = coordinator();
+    let previous = id();
+    let next = WindowId::new("occupied").unwrap();
+    coordinator.handle(at(1_000), moved(1, 1)).unwrap();
+    coordinator
+        .handle(
+            at(1_001),
+            WindowLifecycleEvent::Moved {
+                window_id: next.clone(),
+                outer_origin: longhorn_core::ScreenPoint::new(2, 2),
+            },
+        )
+        .unwrap();
+
+    coordinator.retag(&previous, &next).unwrap();
+    assert!(!coordinator.is_tracking(&previous));
+    assert!(coordinator.is_tracking(&next));
+
+    assert!(coordinator.release(&next));
+    assert!(!coordinator.is_tracking(&next));
+    assert!(!coordinator.release(&next));
 }

@@ -25,7 +25,11 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                     )
                     .map_err(coordination_error)?
             };
-            self.execute_directives(directives, &mut actions, Some(&mut pending))?;
+            self.execute_directives(
+                directives,
+                &mut actions,
+                &mut super::FlushDisposition::Collect(&mut pending),
+            )?;
         }
         if pending.is_empty() {
             return Ok(WindowShutdownReceipt::new(actions, None));

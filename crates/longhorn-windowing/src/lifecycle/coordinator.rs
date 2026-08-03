@@ -126,4 +126,67 @@ impl WindowLifecycleCoordinator {
     pub fn is_tracking(&self, window_id: &WindowId) -> bool {
         self.windows.contains_key(window_id)
     }
+
+    /// Moves one window's complete state — pending capture, debounce,
+    /// generation, and apply expectation — to a new identity. State already
+    /// registered under the new identity (an apply expectation installed
+    /// before the retag) is merged, preferring the previous capture lineage
+    /// and the newest apply evidence. Returns re-schedule directives for
+    /// pending deadlines so the host can deliver them under the new
+    /// identity; wakes still queued under the previous identity fail as
+    /// unknown and must be treated as superseded.
+    pub fn retag(
+        &mut self,
+        previous: &WindowId,
+        next: &WindowId,
+    ) -> Result<Vec<WindowLifecycleDirective>, WindowLifecycleError> {
+        if previous == next {
+            return Ok(Vec::new());
+        }
+        let Some(mut state) = self.windows.remove(previous) else {
+            return Ok(Vec::new());
+        };
+        if let Some(existing) = self.windows.remove(next) {
+            state.apply = match (state.apply.take(), existing.apply) {
+                (Some(previous_apply), Some(next_apply)) => {
+                    Some(if next_apply.generation >= previous_apply.generation {
+                        next_apply
+                    } else {
+                        previous_apply
+                    })
+                }
+                (previous_apply, next_apply) => next_apply.or(previous_apply),
+            };
+            state.last_input_at = state.last_input_at.max(existing.last_input_at);
+            state.user_until = state.user_until.max(existing.user_until);
+            state.capture_generation = state.capture_generation.max(existing.capture_generation);
+            state.pending = state.pending.or(existing.pending);
+        }
+        let mut directives = Vec::new();
+        if let Some(pending) = &state.pending {
+            if !pending.captured {
+                directives.push(WindowLifecycleDirective::ScheduleCapture {
+                    window_id: next.clone(),
+                    generation: pending.generation,
+                    due_at: pending.capture_due_at,
+                });
+            }
+            if let Some(due_at) = pending.flush_due_at {
+                directives.push(WindowLifecycleDirective::ScheduleFlush {
+                    window_id: next.clone(),
+                    generation: pending.generation,
+                    due_at,
+                });
+            }
+        }
+        self.windows.insert(next.clone(), state);
+        Ok(directives)
+    }
+
+    /// Releases one window's coordinator state without emitting directives.
+    /// Used by hosts to undo state recreated by an event that lost a race
+    /// with destruction. Returns whether state existed.
+    pub fn release(&mut self, window_id: &WindowId) -> bool {
+        self.windows.remove(window_id).is_some()
+    }
 }

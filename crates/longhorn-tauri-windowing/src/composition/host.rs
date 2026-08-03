@@ -64,34 +64,31 @@ impl<R: Runtime> TauriWindowHost<R> {
         Q: ManagedDesktopReadback<R>,
     {
         self.begin_exclusive(PHASE_APPLYING)?;
-        let mut registry = match self.take_registry() {
-            Ok(registry) => registry,
-            Err(error) => {
-                self.phase.store(PHASE_ACTIVE, Ordering::Release);
-                return Err(error);
-            }
+        // The guard restores the registry and resets the phase on every exit
+        // path, including a panic inside the injected apply — the host must
+        // never stay permanently `Busy`.
+        let mut guard = ApplyGuard {
+            host: self,
+            registry: None,
+        };
+        guard.registry = match self.take_registry() {
+            Ok(registry) => Some(registry),
+            Err(error) => return Err(error),
         };
         let apply = execute_tauri_window_apply_in_place(
             app,
             input,
-            &mut registry,
+            guard
+                .registry
+                .as_mut()
+                .expect("registry was installed into the apply guard above"),
             &mut factory,
             &mut backend,
             &mut readback,
         );
-        if let Err(error) = self.restore_registry(registry) {
-            self.phase.store(PHASE_ACTIVE, Ordering::Release);
-            return Err(error);
-        }
-        let receipt = match apply {
-            Ok(receipt) => receipt,
-            Err(error) => {
-                self.phase.store(PHASE_ACTIVE, Ordering::Release);
-                return Err(TauriWindowHostError::Apply(error));
-            }
-        };
+        let receipt = apply.map_err(TauriWindowHostError::Apply)?;
         let reveal = self.lifecycle.mark_apply_converged(&receipt);
-        self.phase.store(PHASE_ACTIVE, Ordering::Release);
+        drop(guard);
         Ok(TauriWindowHostApplyReceipt { receipt, reveal })
     }
 
@@ -188,17 +185,27 @@ impl<R: Runtime> TauriWindowHost<R> {
             .ok_or(TauriWindowHostError::Busy)
     }
 
-    fn restore_registry(
-        &self,
-        registry: ManagedWindowRegistry<R>,
-    ) -> Result<(), TauriWindowHostError> {
-        let mut slot =
-            self.registry
-                .lock()
-                .map_err(|_| TauriWindowHostError::StateUnavailable {
-                    state: "managed window registry".to_string(),
-                })?;
+    fn restore_registry(&self, registry: ManagedWindowRegistry<R>) {
+        // Poison is recovered deliberately: the slot is fully replaced, so a
+        // panicked earlier holder cannot leave the host permanently `Busy`.
+        let mut slot = self
+            .registry
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         *slot = Some(registry);
-        Ok(())
+    }
+}
+
+struct ApplyGuard<'a, R: Runtime> {
+    host: &'a TauriWindowHost<R>,
+    registry: Option<ManagedWindowRegistry<R>>,
+}
+
+impl<R: Runtime> Drop for ApplyGuard<'_, R> {
+    fn drop(&mut self) {
+        if let Some(registry) = self.registry.take() {
+            self.host.restore_registry(registry);
+        }
+        self.host.phase.store(PHASE_ACTIVE, Ordering::Release);
     }
 }
