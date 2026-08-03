@@ -2,11 +2,11 @@
 
 ## Active
 
-- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
+None.
 
 ## Ready
 
-None.
+- [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
 
 ## Operator-held
 
@@ -14,10 +14,11 @@ None.
 
 ## Planned
 
-- [074 Fork-tree Artifact Proof And Closeout](074-fork-tree-artifact-proof-and-closeout.md)
+None.
 
 ## Complete
 
+- [073 Fork-tree Clients And Bounded Projections](073-fork-tree-clients-and-bounded-projections.md)
 - [072 Dense Fork-tree Persistence And Migration](072-dense-fork-tree-persistence-and-migration.md)
 - [131 Grouped Adapter Public Evidence And Nucleus Handoff](131-grouped-adapter-public-evidence-and-nucleus-handoff.md)
 - [130 Grouped Adapter Recovery And Conformance](130-grouped-adapter-recovery-and-conformance.md)
@@ -150,5 +151,5 @@ None.
 
 ## Next Task
 
-Continue Card 073. Complete optional hosts and clients over the implemented
-bounded metadata protocol.
+Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
+close g01.017.

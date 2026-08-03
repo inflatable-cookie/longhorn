@@ -273,9 +273,13 @@ projection remains linear. Production persistence must use a dense payload
 representation rather than the prototype's expanded JSON byte arrays.
 
 `longhorn-history-tree` now exists as an optional private-workspace production
-package through persistence. Clients and artifact compatibility remain
-unproved. Loophole keeps branch mode disabled. Undo branches remain distinct
-from project versions, collaboration, merge, and event sourcing.
+package through bounded clients. The default renderer load is one linear path;
+branch metadata and alternate branch paths are explicit hard-bounded queries.
+The caller-aware Tauri host, checked direct/serialized/Tauri clients,
+per-instance Svelte state, and controlled public-Poodle panel contain no
+product payload. Artifact compatibility remains unproved. Loophole keeps
+branch mode disabled. Undo branches remain distinct from project versions,
+collaboration, merge, and event sourcing.
 
 ### Async operations and notifications
 

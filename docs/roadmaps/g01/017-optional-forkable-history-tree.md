@@ -1,6 +1,6 @@
 # g01.017 Optional Forkable History Tree
 
-Status: executing; Cards 070-072 complete; Card 073 active
+Status: executing; Cards 070-073 complete; Card 074 ready
 Owner: Tom
 Updated: 2026-08-03
 Governing refs: contracts 008, 010, 012, and 013; Cards 068-069
@@ -34,7 +34,7 @@ g01.015 or delay the first linear release.
 
 ### Batch 3: Optional clients
 
-- [ ] Card 073: bounded metadata protocol, lazy alternate projections, Tauri,
+- [x] Card 073: bounded metadata protocol, lazy alternate projections, Tauri,
   Svelte, and public-Poodle composition
 
 ### Batch 4: Artifact proof
@@ -48,9 +48,9 @@ g01.015 or delay the first linear release.
 - [x] Preserve one payload copy per immutable node.
 - [x] Make stable branch refs the only branch identity authority.
 - [x] Reuse the proven consumer policy and atomic transaction seams.
-- [ ] Keep the ordinary projection linear and alternate data opt-in.
-- [ ] Bound every branch, path, persistence, navigation, and retention surface.
-- [ ] Keep project versions, collaboration, merge, and event sourcing out.
+- [x] Keep the ordinary projection linear and alternate data opt-in.
+- [x] Bound every branch, path, persistence, navigation, and retention surface.
+- [x] Keep project versions, collaboration, merge, and event sourcing out.
 
 ## Acceptance Criteria
 
@@ -60,7 +60,7 @@ g01.015 or delay the first linear release.
 - [x] Protected pruning terminates under count and encoded-weight limits.
 - [x] Checkpoint content and durability remain consumer-owned.
 - [x] Dense persistence materially removes numeric-array expansion.
-- [ ] Alternate projections are lazy or paged and never duplicate unbounded
+- [x] Alternate projections are lazy or paged and never duplicate unbounded
   lineage by default.
 - [ ] Two isolated consumer shapes pass from produced artifacts.
 
@@ -80,9 +80,11 @@ lossless linear consumer. Public registry names remain unresolved but do not
 gate the private optional implementation. Cards 070-072 now supply the
 downward-only graph, atomic navigation, protected retention, and opaque
 checkpoint foundation plus dense strict persistence with document and
-Loophole-shaped fixtures. Cards 073-074 retain client and artifact claims.
+Loophole-shaped fixtures. Card 073 supplies the bounded payload-free protocol,
+checked clients, narrow Tauri host, and optional Svelte/Poodle composition.
+Card 074 retains artifact and closeout claims.
 
 ## Next Task
 
-Continue Card 073. Complete optional hosts and clients over the implemented
-bounded metadata protocol.
+Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
+close g01.017.

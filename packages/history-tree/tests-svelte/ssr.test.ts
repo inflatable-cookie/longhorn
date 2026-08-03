@@ -1,0 +1,1 @@
+import { expect, it } from "vitest"; it("imports optional Svelte and Poodle edges without browser globals", async () => { expect("window" in globalThis).toBe(false); expect((await import("../src/svelte.ts")).ForkHistorySession).toBeTypeOf("function"); expect((await import("../src/poodle.ts")).ForkHistoryPanel).toBeTruthy(); }, 20_000);

@@ -23,8 +23,6 @@ export type HistoryRevision = number;
 
 export type HistoryAuthorityEpoch = number;
 
-export type HistoryProtocolVersion = number;
-
 export type ForkBranchId = string;
 
 export type ForkHistoryProtocolVersion = number;

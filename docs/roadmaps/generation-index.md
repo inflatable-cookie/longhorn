@@ -37,5 +37,4 @@ g01.019 is complete through Cards 128-131. Longhorn now supplies grouped
 custom-adapter staging, journalling, exact rollback, and catalogue-bound boot
 recovery. Nucleus may resume its consumer card but remains incomplete until it
 supplies app-wide quiescence and restart. Cards 070-072 implement the fork-tree
-graph through dense persistence. Card 073 is active through its bounded pure
-projections and exact metadata protocol.
+graph through bounded optional metadata clients. Card 074 is the next task.

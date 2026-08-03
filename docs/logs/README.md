@@ -10,6 +10,7 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Fork-tree Identity, Topology, And Branches](2026-08/03-fork-tree-identity-topology-and-branches.md)
 - [Fork-tree Navigation, Retention, And Checkpoints](2026-08/03-fork-tree-navigation-retention-and-checkpoints.md)
 - [Dense Fork-tree Persistence And Migration](2026-08/03-dense-fork-tree-persistence-and-migration.md)
+- [Fork-tree Clients And Bounded Projections](2026-08/03-fork-tree-clients-and-bounded-projections.md)
 
 ## 2026-07
 

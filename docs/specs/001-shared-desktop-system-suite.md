@@ -78,6 +78,9 @@ proved that contract.
   protection, deterministic leaf pruning, and opaque checkpoint replay cost.
 - Card 072 implements the strict dense graph envelope, independent exact-step
   structural/payload migration, and complete validation before load returns.
+- Card 073 implements a linear-default summary, hard-bounded explicit branch
+  and path pages, payload-free navigation, and removable Tauri/Svelte/Poodle
+  clients.
 - Alternate projections must be bounded and lazy or paged. Production
   persistence uses base64 payload strings rather than numeric byte arrays.
 - Undo branches remain distinct from project versions, collaboration, and

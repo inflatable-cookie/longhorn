@@ -24,6 +24,7 @@ members = [
   "crates/longhorn-tauri-bridge",
   "crates/longhorn-tauri-command",
   "crates/longhorn-tauri-history",
+  "crates/longhorn-tauri-history-tree",
   "crates/longhorn-tauri-notifications",
   "crates/longhorn-tauri-operation",
   "crates/longhorn-tauri-settings",
@@ -86,6 +87,7 @@ longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge" }
 longhorn-tauri-command = { path = "crates/longhorn-tauri-command" }
 longhorn-tauri-config = { path = "crates/longhorn-tauri-config" }
 longhorn-tauri-history = { path = "crates/longhorn-tauri-history" }
+longhorn-tauri-history-tree = { path = "crates/longhorn-tauri-history-tree" }
 longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications" }
 longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings" }

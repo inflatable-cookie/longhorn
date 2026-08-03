@@ -75,6 +75,21 @@
         "svelte",
       ],
     },
+    "packages/history-tree": {
+      "name": "@longhorn/history-tree",
+      "version": "0.1.0",
+      "dependencies": {
+        "@longhorn/core": "0.1.0",
+      },
+      "peerDependencies": {
+        "@poodle/svelte": "0.1.0",
+        "svelte": ">=5.38.6 <6",
+      },
+      "optionalPeers": [
+        "@poodle/svelte",
+        "svelte",
+      ],
+    },
     "packages/layout": {
       "name": "@longhorn/layout",
       "version": "0.1.0",
@@ -299,6 +314,8 @@
     "@longhorn/core": ["@longhorn/core@workspace:packages/core"],
 
     "@longhorn/history": ["@longhorn/history@workspace:packages/history"],
+
+    "@longhorn/history-tree": ["@longhorn/history-tree@workspace:packages/history-tree"],
 
     "@longhorn/layout": ["@longhorn/layout@workspace:packages/layout"],
 

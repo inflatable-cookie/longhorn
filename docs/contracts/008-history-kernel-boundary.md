@@ -12,10 +12,10 @@ history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
 The first compatibility-proved mode is linear. Cards 070-072 implement the
-optional production tree through strict persistence. Card 073 now implements
-its bounded pure projections and exact metadata protocol; optional hosts and
-clients remain in progress. Artifact proof and any release claim remain later
-work.
+optional production tree through strict persistence. Card 073 implements its
+bounded pure projections, exact metadata protocol, caller-aware Tauri host,
+checked clients, per-instance Svelte state, and public-Poodle composition.
+Artifact proof and any release claim remain later work.
 
 ## Package Shape
 
@@ -40,8 +40,8 @@ package.
 
 The tree crate depends downward on the proven linear entry, sequence,
 navigation-step, rollback, and authority-epoch types. It does not replace
-linear authority. Tree renderer and Tauri packages remain unproved until Card
-073 closes; no compatibility-proved tree artifact exists yet.
+linear authority. The tree renderer and Tauri packages are implemented but no
+compatibility-proved tree artifact exists until Card 074.
 
 ## Authority
 
@@ -315,6 +315,21 @@ snapshot, journal, autosave, or recovery policy.
 The package boundary is optional and downward-only. `longhorn-history-tree`
 depends on `longhorn-history`; the linear crate does not depend on tree state.
 Renderer and Poodle edges remain metadata-only and optional.
+
+Card 073 freezes exact-v1 metadata-only graph clients. Startup attaches the
+listener, loads the linear-default summary, then requests one bounded default
+path page. Branch pages and alternate branch paths require explicit calls;
+summary counts do not materialize either collection. Every page is limited to
+the shared 256-record hard ceiling and carries authority epoch, history id,
+and exact graph revision. Navigation carries stable branch/entry ids and
+returns an authoritative snapshot plus a payload-free receipt or rejection.
+
+`longhorn-tauri-history-tree` dispatches only through a consumer-injected,
+caller-aware authority. `@longhorn/history-tree` has a framework-neutral root;
+serialized and Tauri ports, `/svelte`, and `/poodle` are removable edges.
+Svelte sessions are per instance, listener-first, stale-safe, SSR-safe, and
+idempotently disposable. Poodle composition uses only public controlled
+primitives. Product payloads never enter generated types, ports, events, or UI.
 
 Until Card 074 artifact proof:
 

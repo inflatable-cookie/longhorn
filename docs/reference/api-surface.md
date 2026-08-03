@@ -19,7 +19,7 @@
 | `longhorn-core` | library | `bindings` | [source](../../crates/longhorn-core/src/lib.rs) |
 | `longhorn-display` | library | none | [source](../../crates/longhorn-display/src/lib.rs) |
 | `longhorn-history` | library | `bindings` | [source](../../crates/longhorn-history/README.md) |
-| `longhorn-history-tree` | library | none | [source](../../crates/longhorn-history-tree/README.md) |
+| `longhorn-history-tree` | library | `bindings`, `default` | [source](../../crates/longhorn-history-tree/README.md) |
 | `longhorn-layout` | library | `bindings` | [source](../../crates/longhorn-layout/src/lib.rs) |
 | `longhorn-layout-config` | library | none | [source](../../crates/longhorn-layout-config/src/lib.rs) |
 | `longhorn-native-content` | library | `bindings`, `default` | [source](../../crates/longhorn-native-content/README.md) |
@@ -37,6 +37,7 @@
 | `longhorn-tauri-command` | library | none | [source](../../crates/longhorn-tauri-command/README.md) |
 | `longhorn-tauri-config` | library | none | [source](../../crates/longhorn-tauri-config/README.md) |
 | `longhorn-tauri-history` | library | none | [source](../../crates/longhorn-tauri-history/README.md) |
+| `longhorn-tauri-history-tree` | library | none | [source](../../crates/longhorn-tauri-history-tree/README.md) |
 | `longhorn-tauri-native-content-child-view` | library | none | [source](../../crates/longhorn-tauri-native-content-child-view/README.md) |
 | `longhorn-tauri-notifications` | library | none | [source](../../crates/longhorn-tauri-notifications/README.md) |
 | `longhorn-tauri-operation` | library | none | [source](../../crates/longhorn-tauri-operation/README.md) |
@@ -60,6 +61,7 @@ Entrypoints come only from each package's checked `exports` map. A subpath is op
 | `@longhorn/config` | `@longhorn/config`<br>`@longhorn/config/poodle`<br>`@longhorn/config/protocol` | `@longhorn/core 0.1.0` | `@poodle/svelte 0.1.0; optional`<br>`svelte >=5.38.6 <6; optional` | [README](../../packages/config/README.md) |
 | `@longhorn/core` | `@longhorn/core` | none | none | [README](../../packages/core/README.md) |
 | `@longhorn/history` | `@longhorn/history`<br>`@longhorn/history/poodle`<br>`@longhorn/history/protocol`<br>`@longhorn/history/svelte`<br>`@longhorn/history/tauri` | `@longhorn/core 0.1.0` | `@poodle/svelte 0.1.0; optional`<br>`svelte >=5.38.6 <6; optional` | [README](../../packages/history/README.md) |
+| `@longhorn/history-tree` | `@longhorn/history-tree`<br>`@longhorn/history-tree/poodle`<br>`@longhorn/history-tree/protocol`<br>`@longhorn/history-tree/svelte`<br>`@longhorn/history-tree/tauri` | `@longhorn/core 0.1.0` | `@poodle/svelte 0.1.0; optional`<br>`svelte >=5.38.6 <6; optional` | [README](../../packages/history-tree/README.md) |
 | `@longhorn/layout` | `@longhorn/layout`<br>`@longhorn/layout/protocol` | none | none | [README](../../packages/layout/README.md) |
 | `@longhorn/native-content` | `@longhorn/native-content`<br>`@longhorn/native-content/protocol`<br>`@longhorn/native-content/tauri` | `@longhorn/core 0.1.0` | none | [README](../../packages/native-content/README.md) |
 | `@longhorn/native-content-svelte` | `@longhorn/native-content-svelte` | `@longhorn/native-content 0.1.0` | `svelte >=5.38.6 <6` | [README](../../packages/native-content-svelte/README.md) |

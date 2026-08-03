@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-longhorn-history-tree-mutate"
+description = "Allows checked Longhorn fork-history navigation."
+commands.allow = ["longhorn_history_tree_navigate"]

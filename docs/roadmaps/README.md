@@ -44,7 +44,7 @@ Nucleus g05.046 exposed the grouped custom-adapter restore gap. Cards 128-131
 close g01.019 with a generic grouped transaction, durable journal, exact
 rollback, boot recovery, mixed-adapter/SQLite proof, and a consumer handoff.
 Nucleus remains incomplete until its own quiescence and restart work lands.
-Cards 070-072 are complete and Card 073 is active in g01.017.
+Cards 070-073 are complete and Card 074 is ready in g01.017.
 
 `g01.002` is complete through fixed bootstrap selection, journaled
 storage-profile transition, SQLite-native participation, locator-last commit,
@@ -178,5 +178,5 @@ this host.
 
 ## Next Task
 
-Continue Card 073. Complete optional hosts and clients over the implemented
-bounded metadata protocol.
+Execute Card 074. Prove isolated linear-only and tree-enabled artifacts and
+close g01.017.

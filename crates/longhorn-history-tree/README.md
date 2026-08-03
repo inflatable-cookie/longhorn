@@ -18,4 +18,7 @@ structural and consumer-payload migration, explicit byte limits, and complete
 state validation before authority returns. It accepts and returns bytes only;
 storage paths, writes, durability, snapshots, and recovery stay with consumers.
 
-Client protocols are not part of the current package surface.
+The optional `bindings` feature exposes the exact-v1, payload-free metadata
+protocol used by `@longhorn/history-tree` and `longhorn-tauri-history-tree`.
+Default projections stay linear; branch and alternate-path pages are bounded
+and explicit.

@@ -1,0 +1,8 @@
+[[permission]]
+identifier = "allow-longhorn-history-tree-read"
+description = "Allows checked Longhorn fork-history summary, path, and branch reads."
+commands.allow = [
+  "longhorn_history_tree_snapshot",
+  "longhorn_history_tree_path",
+  "longhorn_history_tree_branches",
+]

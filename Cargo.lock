@@ -2782,6 +2782,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-tauri-history-tree"
+version = "0.1.0"
+dependencies = [
+ "longhorn-history-tree",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
 name = "longhorn-tauri-native-content-child-view"
 version = "0.1.0"
 dependencies = [

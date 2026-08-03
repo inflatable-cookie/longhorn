@@ -42,6 +42,7 @@ discovery and validation entry points.
 | `longhorn-command-settings` | optional keybinding page registration over command/keymap capabilities | core, settings |
 | `longhorn-history` | optional typed linear history, checked navigation, persistence envelopes, metadata protocol, projections, and transition receipts | core |
 | `longhorn-history-tree` | optional immutable-node fork topology, stable branch refs, atomic LCA navigation, protected pruning, opaque checkpoints, and dense strict persistence | core, history |
+| `longhorn-tauri-history-tree` | optional caller-aware Tauri host for bounded tree metadata and navigation | history-tree, Tauri |
 | `longhorn-operation` | optional finite operation authority with bounded progress, cancellation, retention, retry lineage, and teardown | core |
 | `longhorn-notifications` | optional finite retained notification ledger with explicit read/removal transitions and operation observation | core; optional operation feature |
 | `longhorn-native-content` | pure desired/observed native-content state, generation, planning, proposals, and receipts | core |
@@ -80,6 +81,7 @@ protocols with Rust-produced golden fixtures.
 | `@longhorn/surface-transfer` | optional whole-Surface transfer client |
 | `@longhorn/commands` | optional checked command/keymap clients and `/svelte` plus `/poodle` projections |
 | `@longhorn/history` | checked metadata clients plus optional `/tauri`, `/svelte`, and `/poodle` edges |
+| `@longhorn/history-tree` | checked bounded tree metadata clients plus optional `/tauri`, `/svelte`, and `/poodle` edges |
 | `@longhorn/operation` | checked finite-operation clients plus optional transport, Svelte, Poodle, and bridge edges |
 | `@longhorn/notifications` | checked retained-ledger client plus optional Tauri, isolated Svelte, and public-Poodle panel/toast edges |
 | `@longhorn/native-content` | checked native-content protocol and framework-neutral direct, serialized, and optional Tauri clients |
@@ -257,9 +259,10 @@ Soundcheck and Jetstream retain their sequential and consumer-authority gates. S
 
 ## Planned Optional History-tree Layer
 
-Card 069 promotes a later downward-only tree layer. Working package names are
-`longhorn-history-tree`, `longhorn-tauri-history-tree`, and
-`@longhorn/history-tree`; none is implemented or publishable yet.
+Card 069 promotes a downward-only tree layer. `longhorn-history-tree`,
+`longhorn-tauri-history-tree`, and `@longhorn/history-tree` are now implemented
+private-workspace packages. Card 074 retains produced-artifact and
+compatibility proof; none is publishable yet.
 
 The Rust tree crate will depend on `longhorn-core` and `longhorn-history` for
 identity, typed payload policy, navigation steps, and rollback evidence. The
