@@ -172,3 +172,48 @@ Shutdown order follows ownership:
 
 Destructors perform no hidden I/O. Timeouts, publication failures, and partial
 native teardown remain visible host decisions.
+
+## Best-effort Diagnostics
+
+Longhorn deliberately tolerates some failures — changed-event emit hints,
+mutation-hint emits, native-content adapter teardown, terminal restore
+journal cleanup — because the owning operation must not fail with them. The
+`longhorn-core` diagnostics seam makes that class observable without
+changing behavior.
+
+Install one sink at composition time, before hosts are assembled:
+
+```rust
+use std::sync::Arc;
+
+use longhorn_core::{BestEffortDiagnostics, install_best_effort_diagnostics};
+
+struct AppDiagnostics;
+
+impl BestEffortDiagnostics for AppDiagnostics {
+    fn best_effort_failure(&self, area: &'static str, detail: &str) {
+        // Route into the product's own logging or telemetry.
+        eprintln!("longhorn best-effort failure at {area}: {detail}");
+    }
+}
+
+fn install() {
+    // The first installation wins; later calls return false and change
+    // nothing, so library code can never displace the app's sink.
+    let installed = install_best_effort_diagnostics(Arc::new(AppDiagnostics));
+    debug_assert!(installed);
+}
+```
+
+Rules:
+
+- With no sink installed, behavior is exactly the historical silent
+  tolerance; the seam is optional and adds no dependency.
+- `area` values are stable dotted site names (for example
+  `transfer.client-changed-emit`, `config.restore.journal-cleanup`,
+  `native-content.child-view.close`); treat them as diagnostic labels, not
+  a protocol.
+- Reported failures were already tolerated: the owning operation has
+  completed or failed on its own terms. Never turn a report into a retry
+  loop against library internals; escalate through the operation's own
+  typed receipts instead.

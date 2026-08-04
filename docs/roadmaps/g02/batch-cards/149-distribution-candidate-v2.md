@@ -1,6 +1,6 @@
 # 149 Distribution Candidate V2
 
-Status: ready
+Status: active
 Owner: Tom
 Roadmap: g02.008 batch 1
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt
@@ -46,6 +46,14 @@ and clear the two deferrals parked behind the Card 127 receipt.
 
 - a consumer `file:` install breaks on the peer shape
 - Poodle artifact set drift forces a coordinated re-freeze
+
+## Blocker
+
+Receipt generation requires clean consumer graph sources; nucleus has a
+dirty `apps/desktop/src-tauri/Cargo.toml` from its in-flight integration
+thread. Consumer repos are read-only from Longhorn. Resume:
+`effigy generate:private-candidate-card149` once the nucleus tree is clean,
+then the proof, docs, and closeout steps.
 
 ## Next Task
 

@@ -255,6 +255,9 @@ health = [{ task = "qa" }]
   { task = "check:svelte-runes" },
   { task = "check:poodle-svelte" },
 ]
+"generate:private-candidate-card149" = "bun scripts/verify-private-candidate-card149.ts --write"
+"proof:private-candidate-card149" = "bun scripts/verify-private-candidate-card149.ts"
+"proof:private-candidate-docs-card149" = "bun scripts/verify-private-candidate-docs-card149.ts"
 "generate:private-candidate-card127" = "bun scripts/verify-private-candidate-card127.ts --write"
 "proof:private-candidate-card127" = "bun scripts/verify-private-candidate-card127.ts"
 "proof:private-candidate-docs-card127" = "bun scripts/verify-private-candidate-docs-card127.ts"
