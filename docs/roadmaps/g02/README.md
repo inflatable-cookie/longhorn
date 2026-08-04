@@ -10,6 +10,8 @@
 | [g02.004](004-host-thread-and-storage-coordination.md) | complete | off-main-thread storage commands and self-healing restore loads |
 | [g02.005](005-injectable-diagnostics-seam.md) | complete | evidence for every best-effort failure swallow |
 | [g02.006](006-qa-and-docs-alignment.md) | complete | resolving QA selectors, package hygiene, truthful front doors |
+| [g02.007](007-dependency-refresh-sweep.md) | complete | current dependency graph with conformance-backed pin decisions |
+| [g02.008](008-distribution-candidate-v2.md) | ready | candidate receipt v2 over the refreshed graph |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -35,8 +37,9 @@ sites it instruments.
 Research memo 018 promotes the post-g01 workspace audit. All findings sit
 inside contracts 004, 010, 011, 012, 014, and 017; no new contract gates
 execution. Cards 138-147 compile the six-milestone remediation runway.
-All six remediation milestones and Cards 138-147 are complete. The
-generation stays open for the next characterized shared gap.
+The remediation milestones and the dependency refresh sweep (Cards
+138-148) are complete. Card 149 (distribution candidate v2) is ready and
+closes the Tier A lane.
 
 ## Candidate Runway
 

@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-None.
+- [149 Distribution Candidate V2](149-distribution-candidate-v2.md)
 
 ## Operator-held
 
@@ -18,6 +18,7 @@ None.
 
 ## Complete
 
+- [148 Dependency Refresh Sweep](148-dependency-refresh-sweep.md)
 - [147 Front-door Truth Sweep](147-front-door-truth-sweep.md)
 - [146 QA Selectors And Package Hygiene](146-qa-selectors-and-package-hygiene.md)
 - [145 Diagnostics Seam And Swallow Instrumentation](145-diagnostics-seam-and-swallow-instrumentation.md)
