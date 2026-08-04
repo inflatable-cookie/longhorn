@@ -56,7 +56,7 @@ Entrypoints come only from each package's checked `exports` map. A subpath is op
 
 | Package | Public entrypoints | Longhorn dependencies | Peer ranges | Reference |
 | --- | --- | --- | --- | --- |
-| `@longhorn/bridge` | `@longhorn/bridge`<br>`@longhorn/bridge/protocol`<br>`@longhorn/bridge/stream`<br>`@longhorn/bridge/supervision`<br>`@longhorn/bridge/tauri`<br>`@longhorn/bridge/tauri-events` | `@longhorn/core 0.1.0`<br>`@longhorn/tauri 0.1.0` | none | [README](../../packages/bridge/README.md) |
+| `@longhorn/bridge` | `@longhorn/bridge`<br>`@longhorn/bridge/protocol`<br>`@longhorn/bridge/stream`<br>`@longhorn/bridge/supervision`<br>`@longhorn/bridge/tauri`<br>`@longhorn/bridge/tauri-events` | `@longhorn/core 0.1.0` | `@longhorn/tauri 0.1.0; optional` | [README](../../packages/bridge/README.md) |
 | `@longhorn/commands` | `@longhorn/commands`<br>`@longhorn/commands/poodle`<br>`@longhorn/commands/protocol`<br>`@longhorn/commands/svelte` | none | `@poodle/svelte 0.1.0; optional`<br>`svelte >=5.38.6 <6; optional` | [README](../../packages/commands/README.md) |
 | `@longhorn/config` | `@longhorn/config`<br>`@longhorn/config/poodle`<br>`@longhorn/config/protocol` | `@longhorn/core 0.1.0` | `@poodle/svelte 0.1.0; optional`<br>`svelte >=5.38.6 <6; optional` | [README](../../packages/config/README.md) |
 | `@longhorn/core` | `@longhorn/core` | none | none | [README](../../packages/core/README.md) |

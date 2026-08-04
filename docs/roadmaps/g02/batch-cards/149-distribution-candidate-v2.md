@@ -55,6 +55,27 @@ thread. Consumer repos are read-only from Longhorn. Resume:
 `effigy generate:private-candidate-card149` once the nucleus tree is clean,
 then the proof, docs, and closeout steps.
 
+## Progress
+
+Part 1 is complete and committed: the bridge `@longhorn/tauri` dependency
+is an optional peer, asserted by the bridge package test, the
+bridge-topology and operation-notification artifact proofs, and the five
+proof consumers; the card149 candidate verifier exists with truthful
+18-package/38-crate counts; the diagnostics-seam adoption section is in
+`docs/guides/system-composition.md`.
+
+## Gate
+
+Receipt generation freezes consumer graphs and asserts clean selected
+manifests. Nucleus's `apps/desktop/src-tauri/Cargo.toml` is dirty under the
+active nucleus integration thread, so the receipt cannot freeze truthfully
+yet. Resume by running `bun scripts/verify-private-candidate-card149.ts
+--write` once nucleus settles, then wire the card149
+generate/proof/docs-check tasks into `effigy.toml`, supersede the Card 127
+receipt with a pointer, refresh the candidate reference doc and CHANGELOG,
+and run full QA.
+
 ## Next Task
 
-g02 planning checkpoint.
+Operator gate: regenerate the candidate v2 receipt when the nucleus
+integration thread settles its manifests.

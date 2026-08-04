@@ -1,6 +1,6 @@
 # g02.008 Distribution Candidate V2
 
-Status: ready
+Status: operator-held
 Owner: Tom
 Updated: 2026-08-04
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt; g02
@@ -22,17 +22,18 @@ Eighth g02 milestone, closes the Tier A lane.
 
 ### Batch 1. Candidate receipt and adoption guidance
 
-- [ ] [Card 149](batch-cards/149-distribution-candidate-v2.md)
+- [~] [Card 149] (part 1 complete; receipt generation operator-held on
+  nucleus quiescence)(batch-cards/149-distribution-candidate-v2.md)
   demotes the bridge peer, regenerates the candidate receipt and proofs,
   and documents diagnostics-seam adoption
 
 ## Goals
 
-- [ ] bridge main entry ships without a hard `@longhorn/tauri` dependency
+- [x] bridge main entry ships without a hard `@longhorn/tauri` dependency
 - [ ] candidate receipt reflects the current package/crate sets and the
   refreshed dependency graph
 - [ ] Card 127 receipt superseded, not silently rewritten
-- [ ] consumers get one diagnostics-seam adoption reference
+- [x] consumers get one diagnostics-seam adoption reference
 
 ## Acceptance Criteria
 

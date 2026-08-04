@@ -6,11 +6,12 @@ None.
 
 ## Ready
 
-- [149 Distribution Candidate V2](149-distribution-candidate-v2.md)
+None.
 
 ## Operator-held
 
-None.
+- [149 Distribution Candidate V2](149-distribution-candidate-v2.md) —
+  receipt generation waits on nucleus manifest quiescence
 
 ## Planned
 
