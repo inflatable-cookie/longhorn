@@ -41,8 +41,15 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0",
+    "@longhorn/core": "0.1.0"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
     "@longhorn/tauri": "0.1.0"
   },
-  "sideEffects": false
+  "peerDependenciesMeta": {
+    "@longhorn/tauri": {
+      "optional": true
+    }
+  }
 }

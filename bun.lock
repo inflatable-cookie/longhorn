@@ -26,8 +26,13 @@
       "version": "0.1.0",
       "dependencies": {
         "@longhorn/core": "0.1.0",
+      },
+      "peerDependencies": {
         "@longhorn/tauri": "0.1.0",
       },
+      "optionalPeers": [
+        "@longhorn/tauri",
+      ],
     },
     "packages/commands": {
       "name": "@longhorn/commands",

@@ -63,7 +63,7 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
   const dependencies: Record<string, readonly string[]> = {
     "@longhorn/core": [],
     "@longhorn/tauri": ["@longhorn/core"],
-    "@longhorn/bridge": ["@longhorn/core", "@longhorn/tauri"],
+    "@longhorn/bridge": ["@longhorn/core"],
     "@longhorn/operation": ["@longhorn/core"],
     "@longhorn/notifications": ["@longhorn/core"],
   };

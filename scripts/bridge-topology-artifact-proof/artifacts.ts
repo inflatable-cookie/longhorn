@@ -166,13 +166,21 @@ async function inspectNpmArtifact(
   const expectedDependencies: Record<string, readonly string[]> = {
     "@longhorn/core": [],
     "@longhorn/tauri": ["@longhorn/core"],
-    "@longhorn/bridge": ["@longhorn/core", "@longhorn/tauri"],
+    "@longhorn/bridge": ["@longhorn/core"],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(packedManifest.dependencies ?? {}),
     expectedDependencies[name]!,
   );
+  if (
+    name === "@longhorn/bridge" &&
+    packedManifest.peerDependencies?.["@longhorn/tauri"] !== "0.1.0"
+  ) {
+    throw new Error(
+      "@longhorn/bridge must keep @longhorn/tauri as an optional peer",
+    );
+  }
   if (
     name === "@longhorn/tauri" &&
     packedManifest.peerDependencies?.["@tauri-apps/api"] !== "^2.10.1"
