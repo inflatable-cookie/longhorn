@@ -19,7 +19,10 @@ characterized shared gap.
 ## Next Task
 
 The g02 remediation runway (Cards 138-147) is complete. No Longhorn card
-auto-starts; the next shared gap must be characterized from consumer
-evidence and compiled before execution. Deferred candidates remain in the
+auto-starts. The [g02 candidate runway](g02/README.md#candidate-runway)
+tiers the next options: Tier A (distribution candidate v2, rusqlite
+refresh, diagnostics adoption) is executable under existing contracts on
+operator selection; Tiers B and C need new evidence or product decisions
+first. Deferred candidates remain in the
 [system inventory](../architecture/system-inventory.md#planning-gaps) and are
 not a committed runway. Package-manager publication remains deferred.

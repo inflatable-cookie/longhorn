@@ -38,6 +38,40 @@ execution. Cards 138-147 compile the six-milestone remediation runway.
 All six remediation milestones and Cards 138-147 are complete. The
 generation stays open for the next characterized shared gap.
 
+## Candidate Runway
+
+Deferred candidates compiled from g02 evidence and the
+[planning-gaps register](../../architecture/system-inventory.md#planning-gaps),
+tiered by readiness. None auto-starts; the operator picks.
+
+### Tier A — executable under existing contracts
+
+| Candidate | Evidence | Shape |
+| --- | --- | --- |
+| Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/38; bridge optional-peer demotion deferred here (Card 146) | one card: new private candidate receipt superseding Card 127, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
+| rusqlite refresh | `=0.31.0` pin ~2 years behind with bundled-SQLite CVE bumps (memo 018) | one card: API-migration evaluation, pin bump, SQLite adapter conformance rerun |
+| Diagnostics adoption | Card 145 seam has no consumer guide | one small card: composition-guide section plus one consumer-shape example |
+
+### Tier B — needs new evidence or a contract extension first
+
+- live native scale-transition proof for child-view and backing-surface
+  (unmet since g01.018; needs a multi-monitor host or simulation authority)
+- Windows/Linux child-view proof and non-macOS display/transfer evidence
+  (needs platform hosts)
+- native OS notification delivery (contract 016 extension)
+- macros, extended input triggers, native accelerators, synchronized keymaps
+  (contract 006 extension; Loophole Echo edge recorded)
+- cross-document panel transaction and copy-transfer authority (contract 011
+  extension)
+
+### Tier C — operator product decision before research
+
+- server-synchronized configuration and remote conflict semantics
+- production backend transport and endpoint-security policy
+- durable offline mutation policy
+- secure credential-store provider selection
+- package-registry naming and publication (explicitly deferred)
+
 ## Consumer Guardrails
 
 Remediation stays internal to Longhorn. No `packages/*/src/` file moves
