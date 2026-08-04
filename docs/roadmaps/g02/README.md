@@ -48,8 +48,8 @@ tiered by readiness. None auto-starts; the operator picks.
 
 | Candidate | Evidence | Shape |
 | --- | --- | --- |
-| Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/38; bridge optional-peer demotion deferred here (Card 146) | one card: new private candidate receipt superseding Card 127, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
-| rusqlite refresh | `=0.31.0` pin ~2 years behind with bundled-SQLite CVE bumps (memo 018) | one card: API-migration evaluation, pin bump, SQLite adapter conformance rerun |
+| Dependency refresh sweep | 37 transitive crates behind within compatible ranges; four held-back pins under frozen evidence: rusqlite 0.31→0.40 (SQLite CVE bumps), zip 5.1→8.6 (backup-archive determinism), ts-rs 11→12 (full bindings regen), sha2 0.10→0.11 | one card, ordered before candidate v2: compatible `cargo update`, then each held-back crate with its conformance suite (SQLite adapter proofs, archive-determinism regression, bindings and fixture diff) |
+| Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/38; bridge optional-peer demotion deferred here (Card 146) | one card, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
 | Diagnostics adoption | Card 145 seam has no consumer guide | one small card: composition-guide section plus one consumer-shape example |
 
 ### Tier B — needs new evidence or a contract extension first
