@@ -95,16 +95,14 @@ fn handle_geometry(
 ) -> Result<Vec<WindowLifecycleDirective>, WindowLifecycleError> {
     expire_apply(state, at);
     let user_active = state.user_until.is_some_and(|until| at < until);
-    if !user_active {
-        if let Some((generation, operation)) = matching_apply(state, at, event) {
-            return Ok(vec![ignore(
-                window_id,
-                IgnoreReason::ProgrammaticApply {
-                    generation,
-                    operation,
-                },
-            )]);
-        }
+    if !user_active && let Some((generation, operation)) = matching_apply(state, at, event) {
+        return Ok(vec![ignore(
+            window_id,
+            IgnoreReason::ProgrammaticApply {
+                generation,
+                operation,
+            },
+        )]);
     }
 
     let user_until = at.checked_add(policy.user_precedence())?;

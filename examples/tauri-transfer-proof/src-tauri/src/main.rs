@@ -442,12 +442,12 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("could not build packaged Longhorn transfer proof");
     app.run(|app, event| {
-        if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
-            if let Some(state) = app.try_state::<ProofState>() {
-                let transfer = state.host.transfer.clone();
-                drop(transfer);
-                let _ = state.host.window_host.teardown();
-            }
+        if matches!(event, tauri::RunEvent::ExitRequested { .. })
+            && let Some(state) = app.try_state::<ProofState>()
+        {
+            let transfer = state.host.transfer.clone();
+            drop(transfer);
+            let _ = state.host.window_host.teardown();
         }
     });
 }

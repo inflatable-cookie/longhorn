@@ -38,18 +38,18 @@ impl TransferCoordinator {
             ));
         }
 
-        if let Some(current) = self.leases.get(publication.window_id()) {
-            if publication.generation() <= current.generation {
-                return Err(TransferError::new(
-                    TransferErrorCode::StaleLeaseGeneration,
-                    format!(
-                        "lease generation {} does not advance current generation {} for {}",
-                        publication.generation().get(),
-                        current.generation.get(),
-                        publication.window_id()
-                    ),
-                ));
-            }
+        if let Some(current) = self.leases.get(publication.window_id())
+            && publication.generation() <= current.generation
+        {
+            return Err(TransferError::new(
+                TransferErrorCode::StaleLeaseGeneration,
+                format!(
+                    "lease generation {} does not advance current generation {} for {}",
+                    publication.generation().get(),
+                    current.generation.get(),
+                    publication.window_id()
+                ),
+            ));
         }
 
         let receipt = LeasePublicationReceipt {

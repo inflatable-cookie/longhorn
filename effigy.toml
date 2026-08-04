@@ -46,8 +46,8 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-child-view" = "cargo fmt --all --check"
 "lint:native-content-child-view" = "cargo clippy -p longhorn-tauri-native-content-child-view --all-targets -- -D warnings"
-"test:native-content-child-view" = "cargo +1.85.0 test -p longhorn-tauri-native-content-child-view"
-"check:native-content-child-view" = "cargo +1.85.0 check -p longhorn-tauri-native-content-child-view"
+"test:native-content-child-view" = "cargo +1.90.0 test -p longhorn-tauri-native-content-child-view"
+"check:native-content-child-view" = "cargo +1.90.0 check -p longhorn-tauri-native-content-child-view"
 "check:native-content-child-view-graph" = '''sh -c '! cargo tree -p longhorn-tauri-native-content-child-view --edges normal --prefix none | rg "longhorn-native-content-isolated|longhorn-native-content-backing|wgpu|svelte|poodle|plugin"' '''
 "qa:native-content-child-view" = [
   { task = "fmt:native-content-child-view" },
@@ -56,8 +56,8 @@ health = [{ task = "qa" }]
   { task = "check:native-content-child-view" },
   { task = "check:native-content-child-view-graph" },
 ]
-"check:native-content-child-view-proof" = "cargo +1.85.0 check -p longhorn-native-content-child-view-proof"
-"build:native-content-child-view-proof" = "sh -c 'cd examples/tauri-native-content-child-view-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"check:native-content-child-view-proof" = "cargo +1.90.0 check -p longhorn-native-content-child-view-proof"
+"build:native-content-child-view-proof" = "sh -c 'cd examples/tauri-native-content-child-view-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-child-view-proof" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and ([.checks[] | select(.status == "pass")] | length == 8) and ([.checks[] | select(.status == "observed_unknown") | .id] == ["focus_and_visibility_observation_remain_unknown"]) and ([.checks[] | select(.status == "unmet") | .id] == ["native_scale_switch"])'\'' examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 8 and .native_boundary.raw_webview_export == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-child-view-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-switch-unmet" and .targets.windows.status == "unproved" and .targets.linux.status == "unproved"'\'' examples/tauri-native-content-child-view-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-child-view-proof" = [
   { task = "check:native-content-child-view-proof" },
@@ -72,8 +72,8 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-isolated-window-production" = "cargo fmt --all --check"
 "lint:native-content-isolated-window-production" = "cargo clippy -p longhorn-native-content-isolated-window --all-targets -- -D warnings"
-"test:native-content-isolated-window-production" = "cargo +1.85.0 test -p longhorn-native-content-isolated-window"
-"check:native-content-isolated-window-production" = "cargo +1.85.0 check -p longhorn-native-content-isolated-window"
+"test:native-content-isolated-window-production" = "cargo +1.90.0 test -p longhorn-native-content-isolated-window"
+"check:native-content-isolated-window-production" = "cargo +1.90.0 check -p longhorn-native-content-isolated-window"
 "check:native-content-isolated-window-production-graph" = '''sh -c '! cargo tree -p longhorn-native-content-isolated-window --edges normal --prefix none | rg "tauri|prototype|plugin|wgpu|svelte|poodle|child.view|backing.surface"' '''
 "qa:native-content-isolated-window-production" = [
   { task = "fmt:native-content-isolated-window-production" },
@@ -82,8 +82,8 @@ health = [{ task = "qa" }]
   { task = "check:native-content-isolated-window-production" },
   { task = "check:native-content-isolated-window-production-graph" },
 ]
-"check:native-content-isolated-window-proof" = "cargo +1.85.0 check -p longhorn-native-content-isolated-window-proof"
-"build:native-content-isolated-window-proof" = "sh -c 'cd examples/tauri-native-content-isolated-window-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"check:native-content-isolated-window-proof" = "cargo +1.90.0 check -p longhorn-native-content-isolated-window-proof"
+"build:native-content-isolated-window-proof" = "sh -c 'cd examples/tauri-native-content-isolated-window-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-isolated-window-proof" = '''sh -c 'jq -e '.\''outcome == "pass" and ([.checks[] | select(.status == "pass")] | length == 11) and ([.checks[] | select(.status != "pass")] | length == 0)'\'' examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass" and .packaged_run.passed_checks == 11 and .native_boundary.raw_pointer_exports == false and .outer_placement.adapter_position_operations == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-isolated-window-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' examples/tauri-native-content-isolated-window-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-isolated-window-proof" = [
   { task = "check:native-content-isolated-window-proof" },
@@ -91,8 +91,8 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-backing-surface-production" = "cargo fmt --all --check"
 "lint:native-content-backing-surface-production" = "cargo clippy -p longhorn-native-content-backing-surface --all-targets -- -D warnings"
-"test:native-content-backing-surface-production" = "cargo +1.85.0 test -p longhorn-native-content-backing-surface"
-"check:native-content-backing-surface-production" = "cargo +1.85.0 check -p longhorn-native-content-backing-surface"
+"test:native-content-backing-surface-production" = "cargo +1.90.0 test -p longhorn-native-content-backing-surface"
+"check:native-content-backing-surface-production" = "cargo +1.90.0 check -p longhorn-native-content-backing-surface"
 "check:native-content-backing-surface-production-graph" = '''sh -c '! cargo tree -p longhorn-native-content-backing-surface --edges normal --prefix none | rg "tauri|prototype|plugin|wgpu|svelte|poodle|child.view|isolated.window"' '''
 "qa:native-content-backing-surface-production" = [
   { task = "fmt:native-content-backing-surface-production" },
@@ -101,8 +101,8 @@ health = [{ task = "qa" }]
   { task = "check:native-content-backing-surface-production" },
   { task = "check:native-content-backing-surface-production-graph" },
 ]
-"check:native-content-backing-surface-production-proof" = "cargo +1.85.0 check -p longhorn-native-content-backing-surface-proof"
-"build:native-content-backing-surface-production-proof" = "sh -c 'cd examples/tauri-native-content-backing-surface-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"check:native-content-backing-surface-production-proof" = "cargo +1.90.0 check -p longhorn-native-content-backing-surface-proof"
+"build:native-content-backing-surface-production-proof" = "sh -c 'cd examples/tauri-native-content-backing-surface-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-backing-surface-production-proof" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and (.checks | length == 11) and ([.checks[] | select(.status == "pass")] | length == 10) and ([.checks[] | select(.status == "unmet") | .id] == ["available_native_scale_transition"])'\'' examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 10 and .native_boundary.adapter_raw_pointer_exports == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-backing-surface-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-transition-unmet" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' examples/tauri-native-content-backing-surface-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-backing-surface-production-proof" = [
   { task = "check:native-content-backing-surface-production-proof" },
@@ -471,7 +471,7 @@ health = [{ task = "qa" }]
 "test:tauri-config" = "cargo test -p longhorn-tauri-config"
 "test:tauri-bridge" = "cargo test -p longhorn-tauri-bridge"
 "test:tauri-history" = "cargo test -p longhorn-tauri-history"
-"test:tauri-history-tree" = "cargo +1.85.0 test -p longhorn-tauri-history-tree"
+"test:tauri-history-tree" = "cargo +1.90.0 test -p longhorn-tauri-history-tree"
 "test:tauri-operation" = "cargo test -p longhorn-tauri-operation"
 "test:tauri-notifications" = "cargo test -p longhorn-tauri-notifications"
 "test:settings-core" = "cargo test -p longhorn-core -p longhorn-settings"
@@ -479,8 +479,8 @@ health = [{ task = "qa" }]
 "test:history-core" = "cargo test -p longhorn-core -p longhorn-history"
 "fmt:history-tree" = "cargo fmt --all --check"
 "lint:history-tree" = "cargo clippy -p longhorn-history-tree --all-targets --all-features -- -D warnings"
-"test:history-tree" = "cargo +1.85.0 test -p longhorn-history-tree"
-"check:history-tree-package" = "cargo +1.85.0 package -p longhorn-history-tree --list --allow-dirty"
+"test:history-tree" = "cargo +1.90.0 test -p longhorn-history-tree"
+"check:history-tree-package" = "cargo +1.90.0 package -p longhorn-history-tree --list --allow-dirty"
 "check:history-tree-graph" = '''sh -c 'cargo tree -p longhorn-history-tree --edges normal --prefix none | rg -q "^longhorn-history-tree " && cargo tree -p longhorn-history-tree --edges normal --prefix none | rg -q "^longhorn-history " && ! cargo tree -p longhorn-history-tree --edges normal --prefix none | rg "longhorn-(tauri|config|bridge|command|display|layout|native|notifications|operation|settings|surface|transfer|windowing)" && ! cargo tree -p longhorn-history --edges normal --prefix none | rg "^longhorn-history-tree "' '''
 "qa:history-tree" = [
   { task = "fmt:history-tree" },
@@ -508,7 +508,7 @@ health = [{ task = "qa" }]
 "test:notification-core" = "cargo test -p longhorn-core -p longhorn-notifications --all-features"
 "fmt:history-tree-prototype" = "cargo fmt --manifest-path prototypes/history-tree/Cargo.toml --all --check"
 "lint:history-tree-prototype" = "cargo clippy --manifest-path prototypes/history-tree/Cargo.toml --all-targets --offline -- -D warnings"
-"test:history-tree-prototype" = "cargo +1.85.0 test --manifest-path prototypes/history-tree/Cargo.toml --offline"
+"test:history-tree-prototype" = "cargo +1.90.0 test --manifest-path prototypes/history-tree/Cargo.toml --offline"
 "qa:history-tree-prototype" = [
   { task = "fmt:history-tree-prototype" },
   { task = "lint:history-tree-prototype" },
@@ -516,7 +516,7 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-prototype" = "cargo fmt --manifest-path prototypes/native-content/Cargo.toml --all --check"
 "lint:native-content-prototype" = "cargo clippy --manifest-path prototypes/native-content/Cargo.toml --all-targets --offline -- -D warnings"
-"test:native-content-prototype" = "cargo +1.85.0 test --manifest-path prototypes/native-content/Cargo.toml --offline"
+"test:native-content-prototype" = "cargo +1.90.0 test --manifest-path prototypes/native-content/Cargo.toml --offline"
 "qa:native-content-prototype" = [
   { task = "fmt:native-content-prototype" },
   { task = "lint:native-content-prototype" },
@@ -524,9 +524,9 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-child-webview" = "cargo fmt --manifest-path prototypes/native-content-child-webview/Cargo.toml --all --check"
 "lint:native-content-child-webview" = "cargo clippy --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-child-webview" = "cargo +1.85.0 test --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
-"check:native-content-child-webview" = "cargo +1.85.0 check --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
-"build:native-content-child-webview" = "sh -c 'cd prototypes/native-content-child-webview/proof-app/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"test:native-content-child-webview" = "cargo +1.90.0 test --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
+"check:native-content-child-webview" = "cargo +1.90.0 check --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
+"build:native-content-child-webview" = "sh -c 'cd prototypes/native-content-child-webview/proof-app/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-child-webview" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and ([.checks[] | select(.status == "unmet") | .id] == ["native_scale_switch"])'\'' prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-child-webview" = [
   { task = "fmt:native-content-child-webview" },
@@ -537,9 +537,9 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-isolated-window" = "cargo fmt --manifest-path prototypes/native-content-isolated-window/Cargo.toml --all --check"
 "lint:native-content-isolated-window" = "cargo clippy --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-isolated-window" = "cargo +1.85.0 test --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
-"check:native-content-isolated-window" = "cargo +1.85.0 check --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
-"build:native-content-isolated-window" = "sh -c 'cd prototypes/native-content-isolated-window/proof-app/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"test:native-content-isolated-window" = "cargo +1.90.0 test --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
+"check:native-content-isolated-window" = "cargo +1.90.0 check --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
+"build:native-content-isolated-window" = "sh -c 'cd prototypes/native-content-isolated-window/proof-app/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-isolated-window" = '''sh -c 'jq -e '.\''outcome == "pass" and (.checks | length == 11) and all(.checks[]; .status == "pass")'\'' prototypes/native-content-isolated-window/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass" and .packaged_run.passed_checks == 11 and .native_boundary.raw_pointer_exports == false and .outer_placement.adapter_position_operations == false and all(.forbidden_edges[]; . == false)'\'' prototypes/native-content-isolated-window/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' prototypes/native-content-isolated-window/evidence/target-support.json >/dev/null && ! rg -n '\''proof_failed'\'' prototypes/native-content-isolated-window/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-isolated-window" = [
   { task = "fmt:native-content-isolated-window" },
@@ -550,9 +550,9 @@ health = [{ task = "qa" }]
 ]
 "fmt:native-content-backing-surface" = "cargo fmt --manifest-path prototypes/native-content-backing-surface/Cargo.toml --all --check"
 "lint:native-content-backing-surface" = "cargo clippy --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-backing-surface" = "cargo +1.85.0 test --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
-"check:native-content-backing-surface" = "cargo +1.85.0 check --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
-"build:native-content-backing-surface" = "sh -c 'cd prototypes/native-content-backing-surface/proof-app/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
+"test:native-content-backing-surface" = "cargo +1.90.0 test --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
+"check:native-content-backing-surface" = "cargo +1.90.0 check --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
+"build:native-content-backing-surface" = "sh -c 'cd prototypes/native-content-backing-surface/proof-app/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
 "verify:native-content-backing-surface" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and (.checks | length == 11) and ([.checks[] | select(.status == "pass")] | length == 10) and ([.checks[] | select(.status == "unmet") | .id] == ["available_native_scale_transition"])'\'' prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 10 and .native_boundary.adapter_raw_pointer_exports == false and all(.forbidden_edges[]; . == false)'\'' prototypes/native-content-backing-surface/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-transition-unmet" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' prototypes/native-content-backing-surface/evidence/target-support.json >/dev/null && ! rg -n '\''proof_failed'\'' prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
 "qa:native-content-backing-surface" = [
   { task = "fmt:native-content-backing-surface" },
@@ -561,7 +561,7 @@ health = [{ task = "qa" }]
   { task = "check:native-content-backing-surface" },
   { task = "verify:native-content-backing-surface" },
 ]
-"measure:history-tree-prototype" = "cargo +1.85.0 run --manifest-path prototypes/history-tree/Cargo.toml --bin measure --release --offline"
+"measure:history-tree-prototype" = "cargo +1.90.0 run --manifest-path prototypes/history-tree/Cargo.toml --bin measure --release --offline"
 "test:command-config" = "cargo test -p longhorn-command-config"
 "test:command-settings" = "cargo test -p longhorn-command-settings"
 "test:bridge-core" = "cargo test -p longhorn-core -p longhorn-bridge --features longhorn-bridge/supervision"
@@ -598,12 +598,12 @@ test = [
   { task = "test:svelte" },
   { task = "test:poodle" },
 ]
-"proof-windowing-check" = "cargo +1.85.0 check -p longhorn-tauri-windowing-proof"
-"proof-windowing-build" = "sh -c 'cd examples/tauri-windowing-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
-"proof-transfer-check-direct" = "cargo +1.85.0 check -p longhorn-tauri-transfer-proof --no-default-features"
-"proof-transfer-check-surface" = "cargo +1.85.0 check -p longhorn-tauri-transfer-proof --no-default-features --features surface-mode"
-"proof-transfer-build-direct" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci'"
-"proof-transfer-build-surface" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.85.0 tauri build --bundles app --ci --features surface-mode'"
+"proof-windowing-check" = "cargo +1.90.0 check -p longhorn-tauri-windowing-proof"
+"proof-windowing-build" = "sh -c 'cd examples/tauri-windowing-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
+"proof-transfer-check-direct" = "cargo +1.90.0 check -p longhorn-tauri-transfer-proof --no-default-features"
+"proof-transfer-check-surface" = "cargo +1.90.0 check -p longhorn-tauri-transfer-proof --no-default-features --features surface-mode"
+"proof-transfer-build-direct" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci'"
+"proof-transfer-build-surface" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.90.0 tauri build --bundles app --ci --features surface-mode'"
 "proof:app-shells" = "bun scripts/verify-app-shell-proof.ts"
 "proof:settings-composition" = "bun scripts/verify-settings-composition-proof.ts"
 "proof:command-system-artifacts" = "bun scripts/verify-command-system-artifacts.ts"
@@ -691,7 +691,7 @@ test = [
 "qa:northstar:g01-native-content-backing-surface" = "effigy docs check paths effigy.toml prototypes/native-content-backing-surface/Cargo.toml prototypes/native-content-backing-surface/Cargo.lock prototypes/native-content-backing-surface/README.md prototypes/native-content-backing-surface/adapter/Cargo.toml prototypes/native-content-backing-surface/adapter/src/lib.rs prototypes/native-content-backing-surface/adapter/src/adapter.rs prototypes/native-content-backing-surface/adapter/src/error.rs prototypes/native-content-backing-surface/adapter/src/runtime.rs prototypes/native-content-backing-surface/adapter/tests/adapter_contract.rs prototypes/native-content-backing-surface/proof-app/frontend/index.html prototypes/native-content-backing-surface/proof-app/src-tauri/Cargo.toml prototypes/native-content-backing-surface/proof-app/src-tauri/build.rs prototypes/native-content-backing-surface/proof-app/src-tauri/tauri.conf.json prototypes/native-content-backing-surface/proof-app/src-tauri/capabilities/controller.json prototypes/native-content-backing-surface/proof-app/src-tauri/src/main.rs prototypes/native-content-backing-surface/proof-app/src-tauri/src/evidence.rs prototypes/native-content-backing-surface/proof-app/src-tauri/src/deterministic_renderer.rs prototypes/native-content-backing-surface/proof-app/src-tauri/src/native_macos.rs prototypes/native-content-backing-surface/proof-app/src-tauri/src/proof.rs prototypes/native-content-backing-surface/proof-app/src-tauri/src/runtime.rs prototypes/native-content-backing-surface/evidence/inventory.json prototypes/native-content-backing-surface/evidence/target-support.json prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/final-report.json prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl docs/contracts/017-native-content-island-coordination.md docs/research/translation-memos/017-native-content-island-boundary.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/013-native-content-islands-prototype.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/085-backing-surface-mechanism-packaged-prototype.md docs/logs/README.md docs/logs/2026-07/31-backing-surface-mechanism-packaged-prototype.md"
 "lint:grouped-adapter-restore" = "cargo clippy -p longhorn-config --all-targets --all-features -- -D warnings"
 "test:grouped-adapter-public-api" = "cargo test -p longhorn-config --test public_grouped_restore_api"
-"check:grouped-adapter-restore-msrv" = "cargo +1.85.0 check -p longhorn-config --all-features"
+"check:grouped-adapter-restore-msrv" = "cargo +1.90.0 check -p longhorn-config --all-features"
 "check:grouped-adapter-restore-package" = "cargo package -p longhorn-config --list --allow-dirty"
 "check:northstar:g01-grouped-adapter-restore" = "effigy docs check paths Cargo.toml Cargo.lock CHANGELOG.md effigy.toml crates/longhorn-config/Cargo.toml crates/longhorn-config/README.md crates/longhorn-config/src crates/longhorn-config/tests/public_grouped_restore_api.rs crates/longhorn-config/tests/domain_store/backup/adapters.rs crates/longhorn-config/tests/domain_store/backup/adapters/grouped.rs crates/longhorn-config/tests/domain_store/backup/support.rs packages/config/src/generated/restore.ts docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/contract-index.md docs/architecture/system-architecture.md docs/architecture/system-inventory.md docs/architecture/package-topology.md docs/guides/storage-configuration-backup.md docs/reference/grouped-adapter-restore.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/019-grouped-custom-adapter-restore.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/128-grouped-adapter-restore-contract-and-protocol.md docs/roadmaps/g01/batch-cards/129-grouped-adapter-restore-execution-and-journal.md docs/roadmaps/g01/batch-cards/130-grouped-adapter-recovery-and-conformance.md docs/roadmaps/g01/batch-cards/131-grouped-adapter-public-evidence-and-nucleus-handoff.md docs/roadmaps/g01/batch-cards/135-grouped-adapter-explicit-state-contract.md docs/roadmaps/g01/batch-cards/136-grouped-adapter-absence-transaction-and-recovery.md docs/roadmaps/g01/batch-cards/137-grouped-adapter-absence-conformance-and-nucleus-handoff.md docs/logs/README.md docs/logs/2026-08/02-grouped-custom-adapter-restore.md docs/logs/2026-08/02-nucleus-grouped-restore-consumer-handoff.md docs/logs/2026-08/03-grouped-adapter-explicit-state.md docs/logs/2026-08/03-nucleus-grouped-absence-consumer-handoff.md"
 "qa:northstar:g01-grouped-adapter-restore" = [

@@ -86,10 +86,10 @@ pub fn longhorn_history_tree_navigate<R: Runtime>(
     command: ForkNavigationCommand,
 ) -> Result<ForkNavigationResult, ForkHistoryHostError> {
     let result = state.service.navigate(window.label(), command)?;
-    if let Some(event) = fork_history_changed_event(&result) {
-        if let Err(error) = window.emit(FORK_HISTORY_CHANGED_EVENT, event) {
-            longhorn_core::report_best_effort_failure("history-tree.changed-emit", error);
-        }
+    if let Some(event) = fork_history_changed_event(&result)
+        && let Err(error) = window.emit(FORK_HISTORY_CHANGED_EVENT, event)
+    {
+        longhorn_core::report_best_effort_failure("history-tree.changed-emit", error);
     }
     Ok(result)
 }

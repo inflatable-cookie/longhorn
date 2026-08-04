@@ -42,7 +42,7 @@ capture, injected persistence, readiness reveal, close, and aggregate shutdown
 are implemented through Card 020. Card 021 adds reusable runtime-generic host
 assembly, simple and dynamic mock proofs, narrow capability examples, complete
 failure evidence, and idempotent teardown. Card 022 adds a Rust
-1.85-compatible locked graph and packaged macOS arm64 evidence for guarded
+1.90-compatible locked graph and packaged macOS arm64 evidence for guarded
 reveal, move/resize capture, normal/maximized restart, protected primary,
 dynamic create/close/re-create, missing-display fallback, and bounded flush.
 `g01.004` is complete. Research memo 009 and contract 014 promote the

@@ -138,10 +138,10 @@ impl<P> ForkHistory<P> {
                 maximum: MAXIMUM_FORK_CHECKPOINTS,
             });
         }
-        if let Some(entry_id) = &after_entry_id {
-            if !self.nodes.contains_key(entry_id) {
-                return Err(ForkCheckpointError::UnknownEntry(entry_id.clone()));
-            }
+        if let Some(entry_id) = &after_entry_id
+            && !self.nodes.contains_key(entry_id)
+        {
+            return Err(ForkCheckpointError::UnknownEntry(entry_id.clone()));
         }
         let checkpoint =
             ForkCheckpoint::new(checkpoint_id.clone(), after_entry_id, consumer_reference)?;

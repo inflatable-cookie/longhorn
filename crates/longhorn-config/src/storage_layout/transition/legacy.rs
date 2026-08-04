@@ -75,10 +75,10 @@ pub fn discover_legacy_storage(
         let mut roots = BTreeMap::new();
         for kind in LEGACY_ROOTS {
             for descriptor in registry.registered_descriptors() {
-                if let DomainLocation::File(file) = candidate.roots().resolve(descriptor) {
-                    if file.root_kind() == kind {
-                        roots.entry(file.root().to_path_buf()).or_insert(kind);
-                    }
+                if let DomainLocation::File(file) = candidate.roots().resolve(descriptor)
+                    && file.root_kind() == kind
+                {
+                    roots.entry(file.root().to_path_buf()).or_insert(kind);
                 }
             }
         }

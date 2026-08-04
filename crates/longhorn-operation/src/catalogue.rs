@@ -555,14 +555,13 @@ fn validate_progress(
         }
         _ => {}
     }
-    if let (Some(previous), Some(next)) = (operation.progress().phase(), request.phase.as_ref()) {
-        if previous.phase_id() == next.phase_id()
-            && next.units().fraction() < previous.units().fraction()
-        {
-            return Err(OperationCatalogueError::PhaseProgressRegression {
-                phase_id: next.phase_id().clone(),
-            });
-        }
+    if let (Some(previous), Some(next)) = (operation.progress().phase(), request.phase.as_ref())
+        && previous.phase_id() == next.phase_id()
+        && next.units().fraction() < previous.units().fraction()
+    {
+        return Err(OperationCatalogueError::PhaseProgressRegression {
+            phase_id: next.phase_id().clone(),
+        });
     }
     Ok(())
 }

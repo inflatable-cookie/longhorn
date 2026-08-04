@@ -35,13 +35,13 @@ impl DomainRegistry {
         }
 
         let location_key = location_key(roots.resolve(descriptor));
-        if let Some(key) = location_key.as_ref() {
-            if let Some(existing) = self.locations.get(key) {
-                return Err(RegistrationError::DuplicateLocation {
-                    existing: existing.clone(),
-                    incoming: descriptor.id().clone(),
-                });
-            }
+        if let Some(key) = location_key.as_ref()
+            && let Some(existing) = self.locations.get(key)
+        {
+            return Err(RegistrationError::DuplicateLocation {
+                existing: existing.clone(),
+                incoming: descriptor.id().clone(),
+            });
         }
 
         if let Some(key) = location_key {

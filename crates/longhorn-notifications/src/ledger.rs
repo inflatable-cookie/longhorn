@@ -377,27 +377,27 @@ impl NotificationLedger {
         draft: &crate::NotificationDraft,
         excluding: Option<&NotificationId>,
     ) -> Result<(), NotificationLedgerError> {
-        if let Some(key) = draft.replacement_key() {
-            if self.records.iter().any(|record| {
+        if let Some(key) = draft.replacement_key()
+            && self.records.iter().any(|record| {
                 Some(record.notification_id()) != excluding
                     && record.draft().source_id() == draft.source_id()
                     && record.draft().replacement_key() == Some(key)
-            }) {
-                return Err(NotificationLedgerError::DuplicateReplacementKey {
-                    source_id: draft.source_id().clone(),
-                    replacement_key: key.clone(),
-                });
-            }
+            })
+        {
+            return Err(NotificationLedgerError::DuplicateReplacementKey {
+                source_id: draft.source_id().clone(),
+                replacement_key: key.clone(),
+            });
         }
-        if let Some(token) = draft.producer_token() {
-            if self.records.iter().any(|record| {
+        if let Some(token) = draft.producer_token()
+            && self.records.iter().any(|record| {
                 Some(record.notification_id()) != excluding
                     && record.draft().producer_token() == Some(token)
-            }) {
-                return Err(NotificationLedgerError::DuplicateProducerToken {
-                    producer_token: token.clone(),
-                });
-            }
+            })
+        {
+            return Err(NotificationLedgerError::DuplicateProducerToken {
+                producer_token: token.clone(),
+            });
         }
         Ok(())
     }

@@ -310,10 +310,10 @@ impl<P> ForkHistory<P> {
                 .checked_sub(node.encoded_weight())
                 .expect("candidate weight is retained");
             remaining.remove(&candidate);
-            if let Some(parent) = node.parent_entry_id() {
-                if let Some(child_count) = child_counts.get_mut(parent) {
-                    *child_count -= 1;
-                }
+            if let Some(parent) = node.parent_entry_id()
+                && let Some(child_count) = child_counts.get_mut(parent)
+            {
+                *child_count -= 1;
             }
             removals.push(candidate);
         }

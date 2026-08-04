@@ -1019,17 +1019,16 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("could not build packaged Longhorn window proof");
     app.run(|app, event| {
-        if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
-            if let Some(state) = app.try_state::<ProofState>() {
-                if state.host.is_active() {
-                    let result = state.host.teardown();
-                    let detail = result
-                        .as_ref()
-                        .map(teardown_evidence)
-                        .unwrap_or_else(|error| json!({"error": format!("{error:?}")}));
-                    let _ = state.log.record("application_exit_teardown", detail);
-                }
-            }
+        if matches!(event, tauri::RunEvent::ExitRequested { .. })
+            && let Some(state) = app.try_state::<ProofState>()
+            && state.host.is_active()
+        {
+            let result = state.host.teardown();
+            let detail = result
+                .as_ref()
+                .map(teardown_evidence)
+                .unwrap_or_else(|error| json!({"error": format!("{error:?}")}));
+            let _ = state.log.record("application_exit_teardown", detail);
         }
     });
 }

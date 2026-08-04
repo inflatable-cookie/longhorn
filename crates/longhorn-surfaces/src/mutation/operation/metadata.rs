@@ -38,15 +38,14 @@ pub(super) fn duplicate_surface(
                 .host_preferences_mut()
                 .iter_mut()
                 .find(|preference| preference.window_id() == source_preference.window_id())
+                && preference.order() >= insertion_order
             {
-                if preference.order() >= insertion_order {
-                    preference.set_order(preference.order().checked_add(1).ok_or_else(|| {
-                        operation_rejection(
-                            SurfaceMutationRejectionCode::InvalidCandidate,
-                            "shifted host order overflow",
-                        )
-                    })?);
-                }
+                preference.set_order(preference.order().checked_add(1).ok_or_else(|| {
+                    operation_rejection(
+                        SurfaceMutationRejectionCode::InvalidCandidate,
+                        "shifted host order overflow",
+                    )
+                })?);
             }
         }
         duplicate_preferences.push(SurfaceHostPreference::new(

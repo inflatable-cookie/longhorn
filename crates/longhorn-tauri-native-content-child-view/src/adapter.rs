@@ -653,10 +653,10 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         self.emit(ChildViewAdapterEvent::DetachStarted { generation });
         if let Err(error) = self.runtime.close(&handle) {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-            if let Some(attachment) = state.attachment.as_mut() {
-                if attachment.generation == generation {
-                    attachment.detaching = false;
-                }
+            if let Some(attachment) = state.attachment.as_mut()
+                && attachment.generation == generation
+            {
+                attachment.detaching = false;
             }
             return Err(error);
         }

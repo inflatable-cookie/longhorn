@@ -384,10 +384,10 @@ impl<P> LinearHistory<P> {
         if group_id.is_some() && may_coalesce && matches!(coalesce, HistoryCoalesce::KeepSeparate) {
             return Err(HistoryRecordError::GroupPolicyKeptSeparate);
         }
-        if let HistoryCoalesce::Replace(merged) = &coalesce {
-            if policy.is_noop(merged) {
-                return Err(HistoryRecordError::CoalescedPayloadIsNoOp);
-            }
+        if let HistoryCoalesce::Replace(merged) = &coalesce
+            && policy.is_noop(merged)
+        {
+            return Err(HistoryRecordError::CoalescedPayloadIsNoOp);
         }
 
         let encoded_weight = match &coalesce {
@@ -639,10 +639,9 @@ fn validate_state<P>(
     if let (Some(baseline_sequence), Some(first_retained)) = (
         state.retained_baseline.last_pruned_sequence(),
         state.applied.first().or_else(|| state.future.last()),
-    ) {
-        if baseline_sequence >= first_retained.sequence() {
-            return Err(HistoryStateError::InvalidRetainedBaseline);
-        }
+    ) && baseline_sequence >= first_retained.sequence()
+    {
+        return Err(HistoryStateError::InvalidRetainedBaseline);
     }
     if prior_sequence.is_some_and(|last| state.next_sequence <= last) {
         return Err(HistoryStateError::NextSequenceNotAfterEntries);

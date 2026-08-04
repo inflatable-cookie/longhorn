@@ -56,21 +56,21 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
             if by_handle.contains_key(&handle) {
                 return Err(ManagedWindowRegistryError::DuplicateTransportHandle(handle));
             }
-            if let Some(window_id) = managed.window_id() {
-                if !stable_ids.insert(window_id.clone()) {
-                    return Err(ManagedWindowRegistryError::DuplicateWindowId(
-                        window_id.clone(),
-                    ));
-                }
+            if let Some(window_id) = managed.window_id()
+                && !stable_ids.insert(window_id.clone())
+            {
+                return Err(ManagedWindowRegistryError::DuplicateWindowId(
+                    window_id.clone(),
+                ));
             }
             by_handle.insert(handle, managed);
         }
-        if let Some(handle) = protected_primary.as_ref() {
-            if !by_handle.contains_key(handle) {
-                return Err(ManagedWindowRegistryError::ProtectedPrimaryMissing(
-                    handle.clone(),
-                ));
-            }
+        if let Some(handle) = protected_primary.as_ref()
+            && !by_handle.contains_key(handle)
+        {
+            return Err(ManagedWindowRegistryError::ProtectedPrimaryMissing(
+                handle.clone(),
+            ));
         }
         Ok(Self {
             windows: by_handle,
@@ -261,15 +261,15 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
             handle.clone(),
             ManagedWebviewWindow::new(Some(window_id.clone()), window.clone()),
         );
-        if let Some(registration) = self.window_registration.as_ref() {
-            if let Err(detail) = registration.register_window(&window_id, &window) {
-                self.windows.remove(&handle);
-                return Err(ManagedWindowRegistryError::DynamicRegistrationFailed {
-                    window_id,
-                    transport_handle: handle,
-                    detail,
-                });
-            }
+        if let Some(registration) = self.window_registration.as_ref()
+            && let Err(detail) = registration.register_window(&window_id, &window)
+        {
+            self.windows.remove(&handle);
+            return Err(ManagedWindowRegistryError::DynamicRegistrationFailed {
+                window_id,
+                transport_handle: handle,
+                detail,
+            });
         }
         Ok(handle)
     }

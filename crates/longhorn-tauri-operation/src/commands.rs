@@ -67,10 +67,10 @@ pub fn longhorn_operation_mutate<R: Runtime>(
     command: OperationMutationCommand,
 ) -> Result<OperationMutationResult, OperationHostError> {
     let result = state.service.mutate(window.label(), command)?;
-    if let Some(event) = operation_mutation_changed_event(&result) {
-        if let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event) {
-            longhorn_core::report_best_effort_failure("operation.changed-emit", error);
-        }
+    if let Some(event) = operation_mutation_changed_event(&result)
+        && let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event)
+    {
+        longhorn_core::report_best_effort_failure("operation.changed-emit", error);
     }
     Ok(result)
 }
@@ -83,10 +83,10 @@ pub fn longhorn_operation_cancel<R: Runtime>(
     command: OperationCancellationCommand,
 ) -> Result<OperationCancellationResult, OperationHostError> {
     let result = state.service.cancel(window.label(), command)?;
-    if let Some(event) = operation_cancellation_changed_event(&result) {
-        if let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event) {
-            longhorn_core::report_best_effort_failure("operation.changed-emit", error);
-        }
+    if let Some(event) = operation_cancellation_changed_event(&result)
+        && let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event)
+    {
+        longhorn_core::report_best_effort_failure("operation.changed-emit", error);
     }
     Ok(result)
 }

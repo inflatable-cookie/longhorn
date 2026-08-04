@@ -218,12 +218,12 @@ async function verifyRustGraphs(
     await writeFile(join(consumer, "src/main.rs"), "fn main() {}\n");
   }
   await writeFile(join(workspace, "Cargo.lock"), await run(["git", "show", `${longhornCommit}:Cargo.lock`]));
-  await run(["cargo", "+1.85.0", "update", "-p", "tauri", "--precise", "2.11.5", "--offline"], workspace);
+  await run(["cargo", "+1.90.0", "update", "-p", "tauri", "--precise", "2.11.5", "--offline"], workspace);
   const graphs = new Map<string, string[]>();
   for (const definition of definitions) {
     const packageName = `longhorn-card149-${definition.name}`;
-    await run(["cargo", "+1.85.0", "check", "-p", packageName, "--locked", "--offline"], workspace);
-    const tree = await run(["cargo", "+1.85.0", "tree", "-p", packageName, "--locked", "--offline", "--edges", "normal", "--prefix", "none"], workspace);
+    await run(["cargo", "+1.90.0", "check", "-p", packageName, "--locked", "--offline"], workspace);
+    const tree = await run(["cargo", "+1.90.0", "tree", "-p", packageName, "--locked", "--offline", "--edges", "normal", "--prefix", "none"], workspace);
     const resolved = [...new Set(tree.split("\n").map((line) => line.trim().split(/\s+/)[0] ?? "").filter((name) => name.startsWith("longhorn-") && !name.startsWith("longhorn-card149-")))].sort();
     for (const required of definition.rust) assert(resolved.includes(required), `${definition.name} Rust graph lacks ${required}`);
     for (const forbidden of forbiddenRust[definition.name] ?? []) assert(!resolved.includes(forbidden), `${definition.name} Rust graph acquired ${forbidden}`);

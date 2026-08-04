@@ -94,20 +94,19 @@ pub(super) fn handle_close(
 ) -> Vec<WindowLifecycleDirective> {
     expire_apply(state, at);
 
-    if let Some(apply) = state.apply.as_mut() {
-        if let Some(index) = apply
+    if let Some(apply) = state.apply.as_mut()
+        && let Some(index) = apply
             .effects
             .iter()
             .position(|effect| *effect == ExpectedEffect::Close)
-        {
-            apply.effects.remove(index);
-            return vec![ignore(
-                window_id,
-                IgnoreReason::ProgrammaticClose {
-                    generation: apply.generation,
-                },
-            )];
-        }
+    {
+        apply.effects.remove(index);
+        return vec![ignore(
+            window_id,
+            IgnoreReason::ProgrammaticClose {
+                generation: apply.generation,
+            },
+        )];
     }
 
     let mut directives = force_flush(

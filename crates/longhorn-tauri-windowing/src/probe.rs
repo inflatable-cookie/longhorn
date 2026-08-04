@@ -188,10 +188,10 @@ fn validate_managed_windows<R: Runtime>(
         if !handles.insert(handle.clone()) {
             return Err(TauriProbeError::DuplicateTransportHandle(handle));
         }
-        if let Some(id) = managed.window_id() {
-            if !stable_ids.insert(id.clone()) {
-                return Err(TauriProbeError::DuplicateWindowId(id.clone()));
-            }
+        if let Some(id) = managed.window_id()
+            && !stable_ids.insert(id.clone())
+        {
+            return Err(TauriProbeError::DuplicateWindowId(id.clone()));
         }
         ordered_handles.push(handle);
     }

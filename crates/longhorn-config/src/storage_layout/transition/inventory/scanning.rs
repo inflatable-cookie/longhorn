@@ -64,10 +64,10 @@ pub(super) fn scan_layout(
 ) -> Result<Vec<StorageTransitionUnknownFile>, StorageTransitionError> {
     let mut roots = BTreeMap::new();
     for kind in kinds {
-        if let Some(root) = layout.root(*kind) {
-            if !skipped_roots.contains(root.path()) {
-                roots.entry(root.path().to_path_buf()).or_insert(*kind);
-            }
+        if let Some(root) = layout.root(*kind)
+            && !skipped_roots.contains(root.path())
+        {
+            roots.entry(root.path().to_path_buf()).or_insert(*kind);
         }
     }
     let mut unknown = Vec::new();

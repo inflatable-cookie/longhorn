@@ -175,4 +175,5 @@ Logs record meaningful batch evidence, not individual tasks.
 - [Diagnostics Seam And Swallow Instrumentation](2026-08/03-diagnostics-seam-and-swallow-instrumentation.md)
 - [QA Selectors, Package Hygiene, And Front Doors](2026-08/03-qa-selectors-package-hygiene-and-front-doors.md)
 - [Dependency Refresh Sweep](2026-08/04-dependency-refresh-sweep.md)
+- [Rust Toolchain Floor](2026-08/04-rust-toolchain-floor.md)
 - [Distribution Candidate V2, Part 1](2026-08/04-distribution-candidate-v2-part-1.md)

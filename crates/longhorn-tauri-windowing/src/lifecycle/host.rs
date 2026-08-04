@@ -150,10 +150,8 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                         )
                     })
                 });
-            if should_prevent {
-                if let WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                }
+            if should_prevent && let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
             }
             if let Some(receipt_result) = result.transpose() {
                 host.services.reporter.report(WindowLifecycleReport::new(

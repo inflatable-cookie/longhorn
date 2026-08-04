@@ -140,19 +140,17 @@ pub(super) fn validate_panel<'a>(
         maximum_per_document,
         maximum_per_container,
     } = panel.instance_policy
-    {
-        if maximum_per_document == 0
+        && (maximum_per_document == 0
             || maximum_per_container == 0
-            || maximum_per_container > maximum_per_document
-        {
-            return Err(definition_error(
-                DefinitionErrorCode::InvalidInstanceLimit,
-                format!(
-                    "panel definition {} has invalid bounded instance policy",
-                    panel.id
-                ),
-            ));
-        }
+            || maximum_per_container > maximum_per_document)
+    {
+        return Err(definition_error(
+            DefinitionErrorCode::InvalidInstanceLimit,
+            format!(
+                "panel definition {} has invalid bounded instance policy",
+                panel.id
+            ),
+        ));
     }
 
     for selector in &panel.default_placements {

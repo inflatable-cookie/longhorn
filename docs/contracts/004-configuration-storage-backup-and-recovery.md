@@ -412,7 +412,7 @@ ordinary configuration.
 - retention preserves archives it cannot authenticate and inspect
 
 The age v1 file format is the compatibility contract. A particular Rust age
-crate API is replaceable and must preserve the Rust 1.85 floor.
+crate API is replaceable and must preserve the Rust 1.90 floor.
 
 ## Restore
 

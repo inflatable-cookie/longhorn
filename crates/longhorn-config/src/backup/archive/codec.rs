@@ -148,13 +148,13 @@ fn validate_entry_metadata<R: Read>(
                 detail: error.to_string(),
             }
         })?;
-        if let Some(previous) = previous {
-            if previous >= path.as_str() {
-                return Err(BackupArchiveError::EntryOrder {
-                    previous: previous.into(),
-                    current: path,
-                });
-            }
+        if let Some(previous) = previous
+            && previous >= path.as_str()
+        {
+            return Err(BackupArchiveError::EntryOrder {
+                previous: previous.into(),
+                current: path,
+            });
         }
     }
     if entry.encrypted() {

@@ -127,18 +127,18 @@ pub fn validate_document(
                 ),
             ));
         }
-        if let Some(label) = surface.label() {
-            if label.len() > limits.maximum_label_bytes() {
-                return Err(validation_error(
-                    SurfaceValidationCode::LabelTooLong,
-                    format!(
-                        "Surface {} label is {} bytes; limit is {}",
-                        surface.id(),
-                        label.len(),
-                        limits.maximum_label_bytes()
-                    ),
-                ));
-            }
+        if let Some(label) = surface.label()
+            && label.len() > limits.maximum_label_bytes()
+        {
+            return Err(validation_error(
+                SurfaceValidationCode::LabelTooLong,
+                format!(
+                    "Surface {} label is {} bytes; limit is {}",
+                    surface.id(),
+                    label.len(),
+                    limits.maximum_label_bytes()
+                ),
+            ));
         }
         if surface.host_preferences().is_empty() {
             return Err(validation_error(
@@ -214,20 +214,19 @@ pub fn validate_document(
     }
 
     for window in document.windows() {
-        if let Some(active_surface_id) = window.active_surface_id() {
-            if !members_by_window
+        if let Some(active_surface_id) = window.active_surface_id()
+            && !members_by_window
                 .get(window.id())
                 .is_some_and(|members| members.contains(active_surface_id))
-            {
-                return Err(validation_error(
-                    SurfaceValidationCode::ActiveSurfaceNotHosted,
-                    format!(
-                        "active Surface {} is not a declared member of window {}",
-                        active_surface_id,
-                        window.id()
-                    ),
-                ));
-            }
+        {
+            return Err(validation_error(
+                SurfaceValidationCode::ActiveSurfaceNotHosted,
+                format!(
+                    "active Surface {} is not a declared member of window {}",
+                    active_surface_id,
+                    window.id()
+                ),
+            ));
         }
     }
 

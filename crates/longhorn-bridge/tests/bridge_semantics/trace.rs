@@ -32,8 +32,8 @@ impl FixtureAuthority {
         let Some(candidate) = candidate else {
             return false;
         };
-        if let Some(key) = command.idempotency_key() {
-            if self
+        if let Some(key) = command.idempotency_key()
+            && self
                 .deduplication
                 .record(
                     BridgeIdempotencyKey::new(key.as_str()).unwrap(),
@@ -41,9 +41,8 @@ impl FixtureAuthority {
                     candidate,
                 )
                 .is_err()
-            {
-                return false;
-            }
+        {
+            return false;
         }
         self.value = candidate;
         self.revision += 1;

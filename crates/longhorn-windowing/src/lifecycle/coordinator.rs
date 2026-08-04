@@ -36,15 +36,15 @@ impl WindowLifecycleCoordinator {
             .windows
             .entry(operation.window_id().clone())
             .or_default();
-        if let Some(latest) = state.last_input_at {
-            if at < latest {
-                return Ok(ApplyRegistrationOutcome::StaleTimestamp { latest });
-            }
+        if let Some(latest) = state.last_input_at
+            && at < latest
+        {
+            return Ok(ApplyRegistrationOutcome::StaleTimestamp { latest });
         }
-        if let Some(current) = state.apply.as_ref().map(|apply| apply.generation) {
-            if generation < current {
-                return Ok(ApplyRegistrationOutcome::StaleGeneration { current });
-            }
+        if let Some(current) = state.apply.as_ref().map(|apply| apply.generation)
+            && generation < current
+        {
+            return Ok(ApplyRegistrationOutcome::StaleGeneration { current });
         }
 
         let expires_at = at.checked_add(self.policy.programmatic_attribution())?;
@@ -102,13 +102,12 @@ impl WindowLifecycleCoordinator {
             .windows
             .get(&window_id)
             .and_then(|state| state.last_input_at)
+            && at < latest
         {
-            if at < latest {
-                return Ok(vec![ignore(
-                    window_id,
-                    IgnoreReason::StaleTimestamp { latest },
-                )]);
-            }
+            return Ok(vec![ignore(
+                window_id,
+                IgnoreReason::StaleTimestamp { latest },
+            )]);
         }
 
         let directives = {

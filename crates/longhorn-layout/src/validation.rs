@@ -129,17 +129,17 @@ pub fn validate_document(
                     ),
                 ));
             }
-            if let Some(active) = region.active_panel_instance_id() {
-                if !region.panel_instance_ids().contains(active) {
-                    return Err(validation_error(
-                        LayoutValidationCode::ActivePanelNotInRegion,
-                        format!(
-                            "active panel {} is not in region {}",
-                            active,
-                            region.region_id()
-                        ),
-                    ));
-                }
+            if let Some(active) = region.active_panel_instance_id()
+                && !region.panel_instance_ids().contains(active)
+            {
+                return Err(validation_error(
+                    LayoutValidationCode::ActivePanelNotInRegion,
+                    format!(
+                        "active panel {} is not in region {}",
+                        active,
+                        region.region_id()
+                    ),
+                ));
             }
 
             for panel_instance_id in region.panel_instance_ids() {

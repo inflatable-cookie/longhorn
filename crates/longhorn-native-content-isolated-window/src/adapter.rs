@@ -606,10 +606,10 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
             state.teardown_reports.push((generation, outcome.clone()));
             if matches!(outcome, TeardownOutcome::TimedOut { .. }) {
-                if let Some(attachment) = state.attachment.as_mut() {
-                    if attachment.generation == generation {
-                        attachment.detaching = false;
-                    }
+                if let Some(attachment) = state.attachment.as_mut()
+                    && attachment.generation == generation
+                {
+                    attachment.detaching = false;
                 }
             } else {
                 if state
@@ -681,10 +681,10 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
-        if let Some(attachment) = state.attachment.as_mut() {
-            if attachment.generation == generation {
-                attachment.detaching = false;
-            }
+        if let Some(attachment) = state.attachment.as_mut()
+            && attachment.generation == generation
+        {
+            attachment.detaching = false;
         }
         Ok(())
     }

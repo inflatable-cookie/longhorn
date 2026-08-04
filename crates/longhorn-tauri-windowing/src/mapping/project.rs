@@ -109,10 +109,10 @@ fn index_raw_windows(
         if indexed.insert(handle.clone(), window).is_some() {
             return Err(DesktopObservationError::DuplicateWindowObservation(handle));
         }
-        if let Some(id) = window.window_id() {
-            if !stable_ids.insert(id.clone()) {
-                return Err(DesktopObservationError::DuplicateStableWindowId(id.clone()));
-            }
+        if let Some(id) = window.window_id()
+            && !stable_ids.insert(id.clone())
+        {
+            return Err(DesktopObservationError::DuplicateStableWindowId(id.clone()));
         }
     }
     Ok(indexed)

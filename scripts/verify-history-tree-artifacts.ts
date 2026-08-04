@@ -138,7 +138,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const crates = ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"] as const;
   const identities = [];
   for (const name of crates) {
-    const inventory = await run(["cargo", "+1.85.0", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    const inventory = await run(["cargo", "+1.90.0", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory is incomplete`);
     const tarArchive = join(artifactRoot, `${name}-0.1.0.private.tar`);
     const archive = `${tarArchive}.gz`;
@@ -158,7 +158,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   ].join("\n");
   for (const marker of ["PulseMutation", "PulseHistoryMutation", "project_version", "prototype"]) if (source.toLowerCase().includes(marker.toLowerCase())) throw new Error(`Rust artifacts contain product/prototype marker ${marker}`);
 
-  const testOutput = await run(["cargo", "+1.85.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
+  const testOutput = await run(["cargo", "+1.90.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
   if (testCount !== 26) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
@@ -166,8 +166,8 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const graphs = {} as Record<Shape, readonly string[]>;
   for (const shape of ["document", "loophole"] as const) {
     const packageName = `longhorn-${shape}-history-tree-artifact-proof`;
-    traces[shape] = parseTrace(await run(["cargo", "+1.85.0", "run", "-p", packageName, "--offline", "--quiet"], workspace));
-    const tree = await run(["cargo", "+1.85.0", "tree", "-p", packageName, "--offline", "--prefix", "none"], workspace);
+    traces[shape] = parseTrace(await run(["cargo", "+1.90.0", "run", "-p", packageName, "--offline", "--quiet"], workspace));
+    const tree = await run(["cargo", "+1.90.0", "tree", "-p", packageName, "--offline", "--prefix", "none"], workspace);
     graphs[shape] = longhornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graphs[shape], policies[shape].rust);
     assertMetrics(shape, traces[shape]);
@@ -237,7 +237,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.90"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

@@ -660,12 +660,11 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
-            if state.invalidated_generation != Some(generation) {
-                if let Some(attachment) = state.attachment.as_mut() {
-                    if attachment.generation == generation {
-                        attachment.detaching = false;
-                    }
-                }
+            if state.invalidated_generation != Some(generation)
+                && let Some(attachment) = state.attachment.as_mut()
+                && attachment.generation == generation
+            {
+                attachment.detaching = false;
             }
             return Err(error);
         }
@@ -731,13 +730,13 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             .lock()
             .map_err(|_| BackingSurfaceError::Poisoned)?;
         let attachment = current_attachment_mut(&mut state, generation)?;
-        if let Some(current) = attachment.snapshot.as_ref() {
-            if snapshot.frame_sequence < current.frame_sequence {
-                return Err(BackingSurfaceError::StaleFrameSequence {
-                    current: current.frame_sequence,
-                    supplied: snapshot.frame_sequence,
-                });
-            }
+        if let Some(current) = attachment.snapshot.as_ref()
+            && snapshot.frame_sequence < current.frame_sequence
+        {
+            return Err(BackingSurfaceError::StaleFrameSequence {
+                current: current.frame_sequence,
+                supplied: snapshot.frame_sequence,
+            });
         }
         attachment.snapshot = Some(snapshot);
         Ok(())

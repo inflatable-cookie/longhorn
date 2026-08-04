@@ -245,7 +245,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.90"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

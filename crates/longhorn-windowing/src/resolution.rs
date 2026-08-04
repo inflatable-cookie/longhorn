@@ -88,10 +88,10 @@ fn configured_display<'a>(
     config: &WindowPlacementConfig,
     available: &'a [AvailableDisplay<'a>],
 ) -> Option<(&'a AvailableDisplay<'a>, PlacementReason)> {
-    if let Some(home) = config.home_display_id() {
-        if let Some(display) = find_available(available, home) {
-            return Some((display, PlacementReason::ConfiguredHome));
-        }
+    if let Some(home) = config.home_display_id()
+        && let Some(display) = find_available(available, home)
+    {
+        return Some((display, PlacementReason::ConfiguredHome));
     }
 
     config.fallback_display_ids().iter().find_map(|id| {

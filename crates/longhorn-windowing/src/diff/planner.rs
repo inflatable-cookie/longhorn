@@ -123,10 +123,10 @@ fn collect_live(
     let mut result = BTreeMap::new();
     let mut identities = BTreeSet::new();
     for window in windows {
-        if let Some(window_id) = window.window_id() {
-            if !identities.insert(window_id.clone()) {
-                return Err(WindowDiffError::DuplicateLiveWindowId(window_id.clone()));
-            }
+        if let Some(window_id) = window.window_id()
+            && !identities.insert(window_id.clone())
+        {
+            return Err(WindowDiffError::DuplicateLiveWindowId(window_id.clone()));
         }
         if result
             .insert(window.transport_handle().clone(), window.clone())

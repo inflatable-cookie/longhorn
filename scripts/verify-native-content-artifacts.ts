@@ -330,7 +330,7 @@ async function packAndRunRustArtifacts() {
   const identities: ArtifactIdentity[] = [];
   for (const name of crates) {
     const inventory = await run(
-      ["cargo", "+1.85.0", "package", "-p", name, "--list", "--allow-dirty"],
+      ["cargo", "+1.90.0", "package", "-p", name, "--list", "--allow-dirty"],
       repoRoot,
     );
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
@@ -390,7 +390,7 @@ async function packAndRunRustArtifacts() {
       await run(
         [
           "cargo",
-          "+1.85.0",
+          "+1.90.0",
           "run",
           "-p",
           packages[shape],
@@ -403,7 +403,7 @@ async function packAndRunRustArtifacts() {
     const tree = await run(
       [
         "cargo",
-        "+1.85.0",
+        "+1.90.0",
         "tree",
         "-p",
         packages[shape],
@@ -727,7 +727,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.90"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
