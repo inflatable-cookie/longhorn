@@ -101,15 +101,15 @@ longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version =
 longhorn-windowing = { path = "crates/longhorn-windowing", version = "0.1.0" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version = "0.1.0" }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-rusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }
+rusqlite = { version = "=0.40.1", features = ["backup", "bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-sha2 = "0.10.9"
+sha2 = "0.11.0"
 tempfile = "3.27.0"
 tauri = { version = "2.10.3", default-features = false }
 tauri-build = { version = "=2.6.3", default-features = false, features = ["config-json"] }
-ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
-zip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+ts-rs = { version = "=11.1.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+zip = { version = "=7.2.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"

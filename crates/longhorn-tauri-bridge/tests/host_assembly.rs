@@ -197,7 +197,7 @@ fn direct_and_tauri_mock_hosts_use_the_same_assembly() {
             cmd: "longhorn_bridge_hello".into(),
             callback: tauri::ipc::CallbackFn(0),
             error: tauri::ipc::CallbackFn(1),
-            url: "http://tauri.localhost".parse().unwrap(),
+            url: "tauri://localhost".parse().unwrap(),
             body: tauri::ipc::InvokeBody::Json(json!({ "request": hello() })),
             headers: Default::default(),
             invoke_key: tauri::test::INVOKE_KEY.into(),
@@ -212,7 +212,7 @@ fn direct_and_tauri_mock_hosts_use_the_same_assembly() {
             cmd: "longhorn_bridge_query".into(),
             callback: tauri::ipc::CallbackFn(2),
             error: tauri::ipc::CallbackFn(3),
-            url: "http://tauri.localhost".parse().unwrap(),
+            url: "tauri://localhost".parse().unwrap(),
             body: tauri::ipc::InvokeBody::Json(json!({
                 "route": "workspace.read",
                 "request": query_request("request:parity", "session:current", DOMAIN)

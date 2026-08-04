@@ -16,7 +16,7 @@ use longhorn_config::{
     StorageTransitionRequest, execute_storage_transition, inspect_storage_transition,
     plan_storage_transition,
 };
-use rusqlite::{Connection, DatabaseName, OpenFlags, params};
+use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 use tempfile::{TempDir, tempdir};
 
 use crate::transition_support::{TestDomain, TransitionFixture};
@@ -77,7 +77,7 @@ impl BackupAdapter for SqliteTransitionAdapter {
         let snapshot = scratch.path().join("snapshot.sqlite3");
         let source = Connection::open(&self.database).map_err(|_| failure("sqlite-open-source"))?;
         source
-            .backup(DatabaseName::Main, &snapshot, None)
+            .backup(MAIN_DB, &snapshot, None)
             .map_err(|_| failure("sqlite-backup"))?;
         validate_database(&snapshot)?;
         let bytes = fs::read(snapshot).map_err(|_| failure("sqlite-read-snapshot"))?;
@@ -123,11 +123,7 @@ impl BackupAdapter for SqliteTransitionAdapter {
         let mut target =
             Connection::open(&self.database).map_err(|_| failure("sqlite-open-target"))?;
         target
-            .restore(
-                DatabaseName::Main,
-                &staged,
-                None::<fn(rusqlite::backup::Progress)>,
-            )
+            .restore(MAIN_DB, &staged, None::<fn(rusqlite::backup::Progress)>)
             .map_err(|_| failure("sqlite-restore"))?;
         drop(target);
         Ok(BackupAdapterRestoreOutcome::Verified {

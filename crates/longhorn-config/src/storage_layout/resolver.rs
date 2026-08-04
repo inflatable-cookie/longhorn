@@ -343,7 +343,7 @@ fn layout_digest(
     for warning in warnings {
         digest_field(&mut digest, warning.id().as_bytes());
     }
-    Sha256Digest::new(format!("{:x}", digest.finalize())).expect("SHA-256 output is valid")
+    Sha256Digest::from_output(&digest.finalize())
 }
 
 fn digest_field(digest: &mut Sha256, bytes: &[u8]) {

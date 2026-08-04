@@ -23,7 +23,7 @@ use longhorn_config::{
     StorageClass, encode_backup_archive, inspect_backup_archive,
 };
 use longhorn_core::{DomainId, SchemaVersion};
-use rusqlite::{Connection, DatabaseName, OpenFlags, params};
+use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 use serde_json::{Value, json};
 use tempfile::{TempDir, tempdir};
 

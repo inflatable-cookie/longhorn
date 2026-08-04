@@ -127,7 +127,7 @@ impl SqliteAdapter {
         let source =
             Connection::open(&self.database).map_err(|_| adapter_failure("sqlite-open-source"))?;
         source
-            .backup(DatabaseName::Main, &snapshot, None)
+            .backup(MAIN_DB, &snapshot, None)
             .map_err(|_| adapter_failure("sqlite-online-backup"))?;
         validate_database(&snapshot)?;
         fs::read(snapshot).map_err(|_| adapter_failure("sqlite-read-snapshot"))
@@ -227,11 +227,7 @@ impl BackupAdapter for SqliteAdapter {
         let mut destination = Connection::open(&self.database)
             .map_err(|_| adapter_failure("sqlite-open-destination"))?;
         destination
-            .restore(
-                DatabaseName::Main,
-                &source,
-                None::<fn(rusqlite::backup::Progress)>,
-            )
+            .restore(MAIN_DB, &source, None::<fn(rusqlite::backup::Progress)>)
             .map_err(|_| adapter_failure("sqlite-restore"))?;
         drop(destination);
         validate_database(&self.database)?;
@@ -314,11 +310,7 @@ impl BackupAdapterGroupedRestore for SqliteAdapter {
         let mut destination = Connection::open(&self.database)
             .map_err(|_| adapter_failure("sqlite-group-open-destination"))?;
         destination
-            .restore(
-                DatabaseName::Main,
-                &source,
-                None::<fn(rusqlite::backup::Progress)>,
-            )
+            .restore(MAIN_DB, &source, None::<fn(rusqlite::backup::Progress)>)
             .map_err(|_| adapter_failure("sqlite-group-restore"))?;
         drop(destination);
         validate_database(&self.database)
@@ -454,7 +446,7 @@ fn validate_database(path: &Path) -> Result<(), BackupAdapterError> {
         return Err(adapter_failure("sqlite-quick-check-failed"));
     }
     connection
-        .query_row("SELECT COUNT(*) FROM items", [], |row| row.get::<_, u64>(0))
+        .query_row("SELECT COUNT(*) FROM items", [], |row| row.get::<_, i64>(0))
         .map_err(|_| adapter_failure("sqlite-schema"))?;
     Ok(())
 }
