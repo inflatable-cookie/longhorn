@@ -104,12 +104,28 @@ cargo metadata \
   --format-version 1 \
   --locked \
   > "$release_metadata"
+# Every Longhorn package except the throwaway consumer itself must carry a git
+# source at the exact commit.
+#
+# `select(.source != null)` *excluded* a path-resolved package instead of
+# failing on it -- the leak being hunted became invisible, leaving only the
+# count. Longhorn has 46 workspace crates against 14 probes, so
+# thirty-two could leak to path and the count would still clear. Measured on signal
+# by pointing one probe at a path: the old filter printed "external source
+# consumer passed"; this one fails. `cargo check` succeeded in both, which is
+# exactly what a consumer with sibling checkouts sees.
+#
+# Selecting by name and excluding only the throwaway consumer package -- which
+# is itself prefixed and legitimately sourceless, and is why the old filter
+# reached for `.source != null` -- removes the slack. The count stays as a guard
+# against the probe list silently shrinking.
 jq -e \
   --arg commit "$release_source_commit" \
   --argjson expected "${#release_probe_crates[@]}" '
   [
     .packages[] |
-    select((.name | startswith("longhorn-")) and .source != null)
+    select(.name | startswith("longhorn-")) |
+    select(.name != "longhorn-source-consumer")
   ] as $packages |
   ($packages | length) >= $expected and
   all($packages[];
