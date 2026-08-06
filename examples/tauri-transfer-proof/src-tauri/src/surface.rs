@@ -85,8 +85,8 @@ impl ScreenPolicy {
             y.saturating_add(i32::try_from(height).unwrap_or(i32::MAX))
                 .saturating_sub(24),
         );
-        let window_width = width.saturating_sub(80).min(480).max(240);
-        let window_height = height.saturating_sub(80).min(360).max(200);
+        let window_width = width.saturating_sub(80).clamp(240, 480);
+        let window_height = height.saturating_sub(80).clamp(200, 360);
         let placement = WindowPlacement::new(
             ScreenPoint::new(
                 x.saturating_add(

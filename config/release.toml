@@ -22,9 +22,17 @@ initial-tag-current-version = true
 # `lint` denies warnings. Clippy gates several lints on the declared MSRV
 # (collapsible_if only fires once let-chains are available), so the lint and
 # floor lanes are not redundant: they see different lint sets.
+#
+# Two feature passes, and both are load-bearing. Default features leave the
+# `bindings`, `supervision`, `operation` and proof-example `surface-mode` code
+# uncompiled; `--all-features` leaves cfg-gated fallbacks uncompiled. The
+# all-features pass was added on 2026-08-06 and immediately found two
+# `manual_clamp` errors in the transfer proof's `surface-mode` module that had
+# never been linted.
 [release.gates]
 fmt = "cargo fmt --all --check"
 lint = "nice -n 5 cargo clippy --workspace --all-targets --locked -- -D warnings"
+"lint:features" = "nice -n 5 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 test = "nice -n 5 cargo test --workspace --locked"
 qa = "effigy qa"
 # Enforces the declared MSRV with real Clippy and tests at the floor

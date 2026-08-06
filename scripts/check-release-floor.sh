@@ -65,8 +65,13 @@ if [[ -n "$release_lock_changes" ]]; then
     "$release_workspace_version"
 fi
 
+# Both feature passes, matching the `lint` / `lint:features` release gates:
+# default features and --all-features compile disjoint code, and the floor
+# claim has to cover everything a consumer can switch on.
 nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo clippy \
   --workspace --all-targets --locked -- -D warnings
+nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo clippy \
+  --workspace --all-targets --all-features --locked -- -D warnings
 nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo test \
   --workspace --locked
 

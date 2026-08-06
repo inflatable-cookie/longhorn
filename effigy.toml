@@ -18,6 +18,9 @@ exclude = ["history/**"]
 # --- Rust ---------------------------------------------------------------
 "fmt:rust" = "cargo fmt --all --check"
 "lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
+# Second pass: default features leave bindings/supervision/operation and the
+# proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
+"lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
 "docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
 
@@ -69,6 +72,7 @@ health = [{ task = "qa" }]
 qa = [
   { task = "fmt:rust" },
   { task = "lint:rust" },
+  { task = "lint:rust:features" },
   { task = "test:rust" },
   { task = "check:ts" },
   { task = "check:svelte" },
