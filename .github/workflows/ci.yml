@@ -92,7 +92,11 @@ jobs:
 
   external-source:
     name: External Git-source consumer
-    runs-on: ubuntu-latest
+    # macOS, like every other job: the probe crates pull the Tauri stack, which
+    # needs GTK/glib system packages on Linux that ubuntu-latest does not carry.
+    # Longhorn targets macOS and the local release gate runs there, so proving
+    # git-source consumption on Linux would be proving the wrong claim.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable

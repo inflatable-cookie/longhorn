@@ -7,6 +7,21 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Root package.json pins poodle to machine-local build artifacts — 2026-08-06
+- Friction: five `@poodle/*` entries in `devDependencies` and `overrides`
+  resolve to `file:../poodle/.artifacts/g12.016-A698XB/packs/*.tgz` — a
+  poodle build-output directory outside this repo, dated 2026-07-29. The
+  first CI run to reach `bun install --frozen-lockfile` failed on all five
+  with `ENOENT`, having never run a single check.
+- Impact: the committed manifest is unresolvable on any machine but this
+  one, so the whole TypeScript CI lane is dead and a fresh clone cannot
+  install. Blocks tagging v0.1.0.
+- Possible fix: decided 2026-08-06 to block the tag on a poodle release
+  rather than vendor the packs or drop the CI coverage — poodle gets a tag
+  and longhorn consumes it by version. Poodle currently has no tags.
+- Surface: `package.json`, `bun.lock`, `.github/workflows/ci.yml` clients
+  job, portfolio distribution strategy.
+
 ### [ ] Effigy doctor launches full QA by default — 2026-08-06
 - Friction: the standard `effigy doctor` route followed Longhorn's `health = [{ task = "qa" }]` mapping and started the full Rust/TypeScript validation suite during repository orientation.
 - Impact: a health check becomes a long-running execution path, obscures the intended diagnostic output, and can consume substantial local resources before the agent has selected a bounded task.
