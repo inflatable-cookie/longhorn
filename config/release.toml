@@ -7,12 +7,16 @@
 version-file = "Cargo.toml"
 version-path = "workspace.package.version"
 changelog = "CHANGELOG.md"
-# Cargo.lock is deliberately NOT a sync-file. Effigy syncs sync-files with
-# `cargo generate-lockfile`, which rebuilds the lockfile from scratch and
-# resolves every dependency to its newest compatible version -- and sync-files
-# run *after* the gates, so those upgrades would enter the release commit
-# untested. The lockfile is updated deliberately with `cargo update -w` before
-# the gates, and the release notes record what moved.
+# Effigy owns the lockfile sync from 0.9.1. It runs `cargo update --workspace`
+# (not `cargo generate-lockfile`, which re-resolves the whole graph), applies it
+# *before* the gates, and refuses if any line other than the bumped workspace
+# version moved. That is the same guarantee check-release-floor.sh used to hand-
+# roll, so the script's copy was deleted along with its dependency on `floor`
+# sorting alphabetically ahead of the other --locked gates.
+#
+# The sync is not optional: prepare bumps the version before gating, so without
+# it every `--locked` gate refuses to run in the window between.
+sync-files = ["Cargo.lock"]
 tag-format = "v{version}"
 initial-tag-current-version = true
 
