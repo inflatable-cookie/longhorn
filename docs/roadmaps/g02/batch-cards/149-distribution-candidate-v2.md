@@ -66,10 +66,13 @@ proof consumers; the card149 candidate verifier exists with truthful
 
 ## Gate
 
-Receipt generation freezes consumer graphs and asserts clean selected
-manifests. Nucleus's `apps/desktop/src-tauri/Cargo.toml` is dirty under the
-active nucleus integration thread, so the receipt cannot freeze truthfully
-yet. Resume by running `bun scripts/verify-private-candidate-card149.ts
+Receipt generation freezes consumer graphs and asserts clean *selected*
+manifests — not whole trees. Poodle passes with 219 dirty files because
+its five packaged directories are clean; the check is precise.
+
+Nucleus, loophole, jetstream, figmatic, and kimi-shell are now clean. The
+remaining blocker is soundcheck: an uncommitted `zip = "8.6.0"` line in
+its root `Cargo.toml`, owned by the soundcheck thread. Resume by running `bun scripts/verify-private-candidate-card149.ts
 --write` once nucleus settles, then wire the card149
 generate/proof/docs-check tasks into `effigy.toml`, supersede the Card 127
 receipt with a pointer, refresh the candidate reference doc and CHANGELOG,
