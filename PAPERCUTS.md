@@ -7,6 +7,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Effigy doctor launches full QA by default — 2026-08-06
+- Friction: the standard `effigy doctor` route followed Longhorn's `health = [{ task = "qa" }]` mapping and started the full Rust/TypeScript validation suite during repository orientation.
+- Impact: a health check becomes a long-running execution path, obscures the intended diagnostic output, and can consume substantial local resources before the agent has selected a bounded task.
+- Possible fix: give `health` a cheap diagnostic baseline and expose the full suite as an explicit QA task, or make the doctor output state clearly that it is about to run the full suite.
+- Surface: `effigy.toml` health task / Effigy doctor workflow
+
 ### [ ] MSRV-gated Clippy lints surface late — 2026-08-06
 - Friction: raising the declared floor (1.85 -> 1.90 -> 1.95) each time
   unlocked new Clippy lints on pre-existing code (`collapsible_if`,

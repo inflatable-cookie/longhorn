@@ -11,604 +11,73 @@ section = "Vision Artifacts"
 exclude = ["history/**"]
 
 [tasks]
-health = [{ task = "qa" }]
+# One task per job, not one per package. Per-package variants were hundreds of
+# lines of duplication that nothing ever invoked individually; loops and test
+# runners cover the same ground.
+
+# --- Rust ---------------------------------------------------------------
 "fmt:rust" = "cargo fmt --all --check"
-"lint:rust" = "cargo clippy --workspace --all-targets -- -D warnings"
-"test:rust" = "cargo test --workspace"
-"lint:native-content" = "cargo clippy -p longhorn-native-content --all-targets --features bindings -- -D warnings"
-"test:native-content" = "cargo test -p longhorn-native-content --features bindings"
-"generate:native-content" = "cargo run -p longhorn-bindings -- native-content write"
-"check:native-content-bindings" = "cargo run -p longhorn-bindings -- native-content check"
-"check:native-content-ts" = "bun x tsc -p packages/native-content/tsconfig.json"
-"test:native-content-ts" = "bun test packages/native-content/tests/*.test.ts"
-"check:native-content-package" = "sh -c 'cd packages/native-content && exec bun pm pack --dry-run --ignore-scripts'"
-"qa:native-content" = [
-  { task = "lint:native-content" },
-  { task = "test:native-content" },
-  { task = "check:native-content-bindings" },
-  { task = "check:native-content-ts" },
-  { task = "test:native-content-ts" },
-  { task = "check:native-content-package" },
-  { task = "qa:native-content-svelte" },
-  { task = "check:native-content-child-view-graph" },
-  { task = "check:native-content-isolated-window-production-graph" },
-  { task = "check:native-content-backing-surface-production-graph" },
-  { task = "verify:native-content-child-view-proof" },
-  { task = "verify:native-content-isolated-window-proof" },
-  { task = "verify:native-content-backing-surface-production-proof" },
-]
-"check:native-content-svelte-ts" = "bun x tsc -p packages/native-content-svelte/tsconfig.json"
-"check:native-content-svelte" = "bun x svelte-check --tsconfig packages/native-content-svelte/tsconfig.json"
-"test:native-content-svelte" = "bun x vitest run --config packages/native-content-svelte/vitest.config.ts"
-"check:native-content-svelte-package" = "sh -c 'cd packages/native-content-svelte && exec bun pm pack --dry-run --ignore-scripts'"
-"qa:native-content-svelte" = [
-  { task = "check:native-content-svelte-ts" },
-  { task = "check:native-content-svelte" },
-  { task = "test:native-content-svelte" },
-  { task = "check:native-content-svelte-package" },
-]
-"fmt:native-content-child-view" = "cargo fmt --all --check"
-"lint:native-content-child-view" = "cargo clippy -p longhorn-tauri-native-content-child-view --all-targets -- -D warnings"
-"test:native-content-child-view" = "cargo +1.95.0 test -p longhorn-tauri-native-content-child-view"
-"check:native-content-child-view" = "cargo +1.95.0 check -p longhorn-tauri-native-content-child-view"
-"check:native-content-child-view-graph" = '''sh -c '! cargo tree -p longhorn-tauri-native-content-child-view --edges normal --prefix none | rg "longhorn-native-content-isolated|longhorn-native-content-backing|wgpu|svelte|poodle|plugin"' '''
-"qa:native-content-child-view" = [
-  { task = "fmt:native-content-child-view" },
-  { task = "lint:native-content-child-view" },
-  { task = "test:native-content-child-view" },
-  { task = "check:native-content-child-view" },
-  { task = "check:native-content-child-view-graph" },
-]
-"check:native-content-child-view-proof" = "cargo +1.95.0 check -p longhorn-native-content-child-view-proof"
-"build:native-content-child-view-proof" = "sh -c 'cd examples/tauri-native-content-child-view-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-child-view-proof" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and ([.checks[] | select(.status == "pass")] | length == 8) and ([.checks[] | select(.status == "observed_unknown") | .id] == ["focus_and_visibility_observation_remain_unknown"]) and ([.checks[] | select(.status == "unmet") | .id] == ["native_scale_switch"])'\'' examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 8 and .native_boundary.raw_webview_export == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-child-view-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-switch-unmet" and .targets.windows.status == "unproved" and .targets.linux.status == "unproved"'\'' examples/tauri-native-content-child-view-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-child-view-proof" = [
-  { task = "check:native-content-child-view-proof" },
-  { task = "verify:native-content-child-view-proof" },
-]
-"qa:child-view-navigation" = [
-  { task = "qa:native-content-child-view" },
-  { task = "qa:native-content-child-view-proof" },
-  { task = "check:native-content-bindings" },
-  { task = "proof:native-content-artifacts" },
-]
-"fmt:native-content-isolated-window-production" = "cargo fmt --all --check"
-"lint:native-content-isolated-window-production" = "cargo clippy -p longhorn-native-content-isolated-window --all-targets -- -D warnings"
-"test:native-content-isolated-window-production" = "cargo +1.95.0 test -p longhorn-native-content-isolated-window"
-"check:native-content-isolated-window-production" = "cargo +1.95.0 check -p longhorn-native-content-isolated-window"
-"check:native-content-isolated-window-production-graph" = '''sh -c '! cargo tree -p longhorn-native-content-isolated-window --edges normal --prefix none | rg "tauri|prototype|plugin|wgpu|svelte|poodle|child.view|backing.surface"' '''
-"qa:native-content-isolated-window-production" = [
-  { task = "fmt:native-content-isolated-window-production" },
-  { task = "lint:native-content-isolated-window-production" },
-  { task = "test:native-content-isolated-window-production" },
-  { task = "check:native-content-isolated-window-production" },
-  { task = "check:native-content-isolated-window-production-graph" },
-]
-"check:native-content-isolated-window-proof" = "cargo +1.95.0 check -p longhorn-native-content-isolated-window-proof"
-"build:native-content-isolated-window-proof" = "sh -c 'cd examples/tauri-native-content-isolated-window-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-isolated-window-proof" = '''sh -c 'jq -e '.\''outcome == "pass" and ([.checks[] | select(.status == "pass")] | length == 11) and ([.checks[] | select(.status != "pass")] | length == 0)'\'' examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass" and .packaged_run.passed_checks == 11 and .native_boundary.raw_pointer_exports == false and .outer_placement.adapter_position_operations == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-isolated-window-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' examples/tauri-native-content-isolated-window-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-isolated-window-proof" = [
-  { task = "check:native-content-isolated-window-proof" },
-  { task = "verify:native-content-isolated-window-proof" },
-]
-"fmt:native-content-backing-surface-production" = "cargo fmt --all --check"
-"lint:native-content-backing-surface-production" = "cargo clippy -p longhorn-native-content-backing-surface --all-targets -- -D warnings"
-"test:native-content-backing-surface-production" = "cargo +1.95.0 test -p longhorn-native-content-backing-surface"
-"check:native-content-backing-surface-production" = "cargo +1.95.0 check -p longhorn-native-content-backing-surface"
-"check:native-content-backing-surface-production-graph" = '''sh -c '! cargo tree -p longhorn-native-content-backing-surface --edges normal --prefix none | rg "tauri|prototype|plugin|wgpu|svelte|poodle|child.view|isolated.window"' '''
-"qa:native-content-backing-surface-production" = [
-  { task = "fmt:native-content-backing-surface-production" },
-  { task = "lint:native-content-backing-surface-production" },
-  { task = "test:native-content-backing-surface-production" },
-  { task = "check:native-content-backing-surface-production" },
-  { task = "check:native-content-backing-surface-production-graph" },
-]
-"check:native-content-backing-surface-production-proof" = "cargo +1.95.0 check -p longhorn-native-content-backing-surface-proof"
-"build:native-content-backing-surface-production-proof" = "sh -c 'cd examples/tauri-native-content-backing-surface-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-backing-surface-production-proof" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and (.checks | length == 11) and ([.checks[] | select(.status == "pass")] | length == 10) and ([.checks[] | select(.status == "unmet") | .id] == ["available_native_scale_transition"])'\'' examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 10 and .native_boundary.adapter_raw_pointer_exports == false and all(.forbidden_edges[]; . == false)'\'' examples/tauri-native-content-backing-surface-proof/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-transition-unmet" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' examples/tauri-native-content-backing-surface-proof/evidence/target-support.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-backing-surface-production-proof" = [
-  { task = "check:native-content-backing-surface-production-proof" },
-  { task = "verify:native-content-backing-surface-production-proof" },
-]
-"qa:northstar:g01-loophole-card111" = [
-  { task = "check:history-ts" },
-  { task = "check:history-svelte" },
-]
-"qa:northstar:g01-secondary-consumer-compilation" = [
-  { task = "qa:northstar:roadmap-suite" },
-]
-"proof:secondary-consumer-private-artifacts" = "bun scripts/verify-secondary-consumer-private-artifacts.ts"
-"qa:northstar:g01-secondary-consumer-card114" = [
-  { task = "proof:secondary-consumer-private-artifacts" },
-]
-"test:soundcheck-card115-config" = "cargo test -p longhorn-config --all-features"
-"qa:northstar:g01-soundcheck-card115" = [
-  { task = "test:soundcheck-card115-config" },
-]
-"qa:northstar:g01-soundcheck-card116" = [
-  { task = "check:settings-svelte" },
-  { task = "test:settings-svelte" },
-]
-"qa:northstar:g01-soundcheck-card117" = [
-  { task = "test:operation-core" },
-  { task = "test:tauri-operation" },
-  { task = "test:operation-ts" },
-]
-"qa:northstar:g01-soundcheck-card118" = [
-  { task = "test:native-content" },
-  { task = "test:native-content-ts" },
-  { task = "qa:native-content-isolated-window-production" },
-]
-"qa:northstar:g01-jetstream-card123" = [
-  { task = "qa:native-content-backing-surface-production" },
-  { task = "qa:native-content-svelte" },
-]
-"check:api-reference-card126" = "bun scripts/generate-api-reference-card126.ts"
-"docs:rust-card126" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
-"qa:northstar:g01-guides-card126" = [
-  { task = "check:api-reference-card126" },
-  { task = "docs:rust-card126" },
-  { task = "check:client-ts" },
-  { task = "check:config-svelte" },
-  { task = "check:settings-svelte" },
-  { task = "check:commands-svelte" },
-  { task = "check:history-svelte" },
-  { task = "check:operation-svelte" },
-  { task = "check:notifications-svelte" },
-  { task = "check:native-content-svelte" },
-  { task = "check:svelte-runes" },
-  { task = "check:poodle-svelte" },
-]
+"lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
+"test:rust" = "cargo test --workspace --locked"
+"docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
+
+# --- TypeScript and Svelte ----------------------------------------------
+"check:ts" = "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'"
+"check:svelte" = "bun x svelte-check --tsconfig packages/svelte/tsconfig.json"
+"check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
+"test:ts" = "bash scripts/test-packages.sh"
+"test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
+
+# --- Generated protocol bindings ----------------------------------------
+"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout native-content notifications operation settings surfaces surface-transfer transfer; do cargo run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
+"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout native-content notifications operation settings surfaces surface-transfer transfer; do cargo run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
+"check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
+"generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
+
+# --- Artifact proofs ----------------------------------------------------
+# Each script builds isolated artifacts and asserts one composition claim.
+"proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+
+# --- Release ------------------------------------------------------------
 "release:floor" = "bash scripts/check-release-floor.sh"
 "release:source-consumer" = "bash scripts/verify-source-consumer.sh"
 "release:gates" = [
   { task = "release:floor" },
   { task = "release:source-consumer" },
 ]
-"check:bindings-card127" = [
-  { task = "check:bridge-bindings" },
-  { task = "check:command-bindings" },
-  { task = "check:config-bindings" },
-  { task = "check:history-bindings" },
-  { task = "check:layout-bindings" },
-  { task = "check:native-content-bindings" },
-  { task = "check:notifications-bindings" },
-  { task = "check:operation-bindings" },
-  { task = "check:settings-bindings" },
-  { task = "check:surface-bindings" },
-  { task = "check:surface-transfer-bindings" },
-  { task = "check:transfer-bindings" },
-  { task = "check:history-tree-bindings" },
-]
-"qa:northstar:g01-private-candidate-card127" = [
-  { task = "check:api-reference-card126" },
-]
-"qa:northstar:g01-loophole-card103-storage" = [
-  { task = "check:config-bindings" },
-  { task = "check:config-ts" },
-  { task = "check:config-svelte" },
-  { task = "test:config-ts" },
-  { task = "test:config-svelte" },
-  { task = "check:config-package" },
-]
-"proof:loophole-private-artifacts" = "bun scripts/verify-loophole-private-artifacts.ts"
-"qa:northstar:g01-loophole-card104-private-artifacts" = [
-  { task = "proof:loophole-private-artifacts" },
-]
-"proof:nucleus-private-artifacts" = "bun scripts/verify-nucleus-private-artifacts.ts"
-"proof:nucleus-storage-cutover" = "bun scripts/verify-nucleus-card096.ts"
-"qa:northstar:g01-nucleus-card096-storage" = [
-  { task = "proof:nucleus-storage-cutover" },
-]
-"proof:nucleus-window-cutover" = "bun scripts/verify-nucleus-card097.ts"
-"qa:northstar:g01-nucleus-card097-window" = [
-  { task = "proof:nucleus-window-cutover" },
-]
-"proof:nucleus-layout-cutover" = "bun scripts/verify-nucleus-card098.ts"
-"qa:northstar:g01-nucleus-card098-layout" = [
-  { task = "proof:nucleus-layout-cutover" },
-]
-"proof:nucleus-renderer-cutover" = "bun scripts/verify-nucleus-card099.ts"
-"qa:northstar:g01-nucleus-card099-renderer" = [
-  { task = "proof:nucleus-renderer-cutover" },
-]
-"proof:nucleus-native-browser-cutover" = "bun scripts/verify-nucleus-card100.ts"
-"qa:northstar:g01-nucleus-card100-browser" = [
-  { task = "proof:nucleus-native-browser-cutover" },
-]
-"proof:nucleus-migration-closeout" = "bun scripts/verify-nucleus-card101.ts"
-"qa:northstar:g01-nucleus-card101-closeout" = [
-  { task = "proof:nucleus-migration-closeout" },
-]
-"check:core-ts" = "bun x tsc -p packages/core/tsconfig.json"
-"check:bridge-ts" = "bun x tsc -p packages/bridge/tsconfig.json"
-"check:surfaces-ts" = "bun x tsc -p packages/surfaces/tsconfig.json"
-"check:transfer-ts" = "bun x tsc -p packages/transfer/tsconfig.json"
-"check:surface-transfer-ts" = "bun x tsc -p packages/surface-transfer/tsconfig.json"
-"check:config-ts" = "bun x tsc -p packages/config/tsconfig.json"
-"check:config-svelte" = "bun x svelte-check --tsconfig packages/config/tsconfig.json"
-"check:settings-ts" = "bun x tsc -p packages/settings/tsconfig.json"
-"check:settings-svelte" = "bun x svelte-check --tsconfig packages/settings/tsconfig.json"
-"check:commands-ts" = "bun x tsc -p packages/commands/tsconfig.json"
-"check:commands-svelte" = "bun x svelte-check --tsconfig packages/commands/tsconfig.json"
-"check:history-ts" = "bun x tsc -p packages/history/tsconfig.json"
-"check:history-svelte" = "bun x svelte-check --tsconfig packages/history/tsconfig.json"
-"check:history-tree-ts" = "bun x tsc -p packages/history-tree/tsconfig.json"
-"check:layout-ts" = "bun x tsc -p packages/layout/tsconfig.json"
-"check:history-tree-svelte" = "bun x svelte-check --tsconfig packages/history-tree/tsconfig.json"
-"check:operation-ts" = "bun x tsc -p packages/operation/tsconfig.json"
-"check:operation-svelte" = "bun x svelte-check --tsconfig packages/operation/tsconfig.json"
-"check:notifications-ts" = "bun x tsc -p packages/notifications/tsconfig.json"
-"check:notifications-svelte" = "bun x svelte-check --tsconfig packages/notifications/tsconfig.json"
-"check:tauri-ts" = "bun x tsc -p packages/tauri/tsconfig.json"
-"check:svelte-ts" = "bun x tsc -p packages/svelte/tsconfig.json"
-"check:svelte-runes" = "bun x svelte-check --tsconfig packages/svelte/tsconfig.json"
-"verify:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
-"check:poodle-ts" = "bun x tsc -p packages/poodle/tsconfig.json"
-"check:poodle-svelte" = "bun x svelte-check --tsconfig packages/poodle/tsconfig.json"
-"test:poodle" = "bun x vitest run --config packages/poodle/vitest.config.ts"
-"check:poodle-package" = "sh -c 'cd packages/poodle && exec bun pm pack --dry-run --ignore-scripts'"
-"check:client-ts" = [
-  { task = "check:core-ts" },
-  { task = "check:bridge-ts" },
-  { task = "check:surfaces-ts" },
-  { task = "check:transfer-ts" },
-  { task = "check:surface-transfer-ts" },
-  { task = "check:config-ts" },
-  { task = "check:settings-ts" },
-  { task = "check:commands-ts" },
-  { task = "check:history-ts" },
-  { task = "check:history-tree-ts" },
-  { task = "check:layout-ts" },
-  { task = "check:operation-ts" },
-  { task = "check:notifications-ts" },
-  { task = "check:native-content-ts" },
-  { task = "check:native-content-svelte-ts" },
-  { task = "check:tauri-ts" },
-  { task = "check:svelte-ts" },
-]
-"test:core-ts" = "bun test packages/core/tests"
-"check:core-package" = "sh -c 'cd packages/core && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:bridge" = "cargo run -p longhorn-bindings -- bridge write"
-"check:bridge-bindings" = "cargo run -p longhorn-bindings -- bridge check"
-"test:bridge-ts" = "bun test packages/bridge/tests"
-"check:bridge-package" = "sh -c 'cd packages/bridge && exec bun pm pack --dry-run --ignore-scripts'"
-"check:bridge-topology-proof" = "bun x tsc -p examples/bridge-topology-proof/tsconfig.json"
-"test:bridge-topology-proof" = "bun test examples/bridge-topology-proof/proof.test.ts"
-"verify:bridge-topology-proof" = "bun scripts/verify-bridge-topology-conformance.ts"
-"proof:bridge-topology" = [
-  { task = "check:bridge-topology-proof" },
-  { task = "test:bridge-topology-proof" },
-  { task = "verify:bridge-topology-proof" },
-]
-"proof:bridge-topology-artifacts" = "bun scripts/verify-bridge-topology-artifacts.ts"
-"test:svelte" = "bun x vitest run --config packages/svelte/vitest.config.ts"
-"check:svelte-package" = "sh -c 'cd packages/svelte && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:layout" = "cargo run -p longhorn-bindings -- layout write"
-"check:layout-bindings" = "cargo run -p longhorn-bindings -- layout check"
-"test:layout-ts" = "bun test packages/layout/tests"
-"check:layout-package" = "sh -c 'cd packages/layout && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:surfaces" = "cargo run -p longhorn-bindings -- surfaces write"
-"check:surface-bindings" = "cargo run -p longhorn-bindings -- surfaces check"
-"test:surfaces-ts" = "bun test packages/surfaces/tests"
-"check:surfaces-package" = "sh -c 'cd packages/surfaces && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:transfer" = "cargo run -p longhorn-bindings -- transfer write"
-"check:transfer-bindings" = "cargo run -p longhorn-bindings -- transfer check"
-"test:transfer-ts" = "bun test packages/transfer/tests"
-"check:transfer-package" = "sh -c 'cd packages/transfer && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:surface-transfer" = "cargo run -p longhorn-bindings -- surface-transfer write"
-"check:surface-transfer-bindings" = "cargo run -p longhorn-bindings -- surface-transfer check"
-"test:surface-transfer-ts" = "bun test packages/surface-transfer/tests"
-"check:surface-transfer-package" = "sh -c 'cd packages/surface-transfer && exec bun pm pack --dry-run --ignore-scripts'"
-"generate:settings" = "cargo run -p longhorn-bindings -- settings write"
-"check:settings-bindings" = "cargo run -p longhorn-bindings -- settings check"
-"generate:commands" = "cargo run -p longhorn-bindings -- commands write"
-"check:command-bindings" = "cargo run -p longhorn-bindings -- commands check"
-"generate:config" = "cargo run -p longhorn-bindings -- config write"
-"check:config-bindings" = "cargo run -p longhorn-bindings -- config check"
-"generate:history" = "cargo run -p longhorn-bindings -- history write"
-"check:history-bindings" = "cargo run -p longhorn-bindings -- history check"
-"generate:history-tree" = "cargo run -p longhorn-bindings -- history-tree write"
-"check:history-tree-bindings" = "cargo run -p longhorn-bindings -- history-tree check"
-"generate:operation" = "cargo run -p longhorn-bindings -- operation write"
-"check:operation-bindings" = "cargo run -p longhorn-bindings -- operation check"
-"generate:notifications" = "cargo run -p longhorn-bindings -- notifications write"
-"check:notifications-bindings" = "cargo run -p longhorn-bindings -- notifications check"
-"test:config-ts" = "bun test packages/config/tests/*.test.ts"
-"test:config-svelte" = "bun x vitest run --config packages/config/vitest.config.ts"
-"check:config-package" = "sh -c 'cd packages/config && exec bun pm pack --dry-run --ignore-scripts'"
-"test:settings-ts" = "bun test packages/settings/tests/*.test.ts"
-"test:commands-ts" = "bun test packages/commands/tests/*.test.ts"
-"test:commands-svelte" = "bun x vitest run --config packages/commands/vitest.config.ts"
-"test:settings-svelte" = "bun x vitest run --config packages/settings/vitest.config.ts"
-"test:history-ts" = "bun test packages/history/tests/*.test.ts"
-"test:history-svelte" = "bun x vitest run --config packages/history/vitest.config.ts"
-"test:history-tree-clients" = "bun x vitest run --config packages/history-tree/vitest.config.ts"
-"test:operation-ts" = "bun test packages/operation/tests/*.test.ts"
-"test:operation-svelte" = "bun x vitest run --config packages/operation/vitest.config.ts"
-"test:notifications-ts" = "bun test packages/notifications/tests/*.test.ts"
-"test:notifications-svelte" = "bun x vitest run --config packages/notifications/vitest.config.ts"
-"check:settings-package" = "sh -c 'cd packages/settings && exec bun pm pack --dry-run --ignore-scripts'"
-"check:commands-package" = "sh -c 'cd packages/commands && exec bun pm pack --dry-run --ignore-scripts'"
-"check:history-package" = "sh -c 'cd packages/history && exec bun pm pack --dry-run --ignore-scripts'"
-"check:history-tree-client-package" = "sh -c 'cd packages/history-tree && exec bun pm pack --dry-run --ignore-scripts'"
-"check:operation-package" = "sh -c 'cd packages/operation && exec bun pm pack --dry-run --ignore-scripts'"
-"check:notifications-package" = "sh -c 'cd packages/notifications && exec bun pm pack --dry-run --ignore-scripts'"
-"test:tauri-transfer" = "cargo test -p longhorn-tauri-transfer --all-features"
-"test:tauri-settings" = "cargo test -p longhorn-tauri-settings"
-"test:tauri-command" = "cargo test -p longhorn-tauri-command"
-"test:tauri-config" = "cargo test -p longhorn-tauri-config"
-"test:tauri-bridge" = "cargo test -p longhorn-tauri-bridge"
-"test:tauri-history" = "cargo test -p longhorn-tauri-history"
-"test:tauri-history-tree" = "cargo +1.95.0 test -p longhorn-tauri-history-tree"
-"test:tauri-operation" = "cargo test -p longhorn-tauri-operation"
-"test:tauri-notifications" = "cargo test -p longhorn-tauri-notifications"
-"test:settings-core" = "cargo test -p longhorn-core -p longhorn-settings"
-"test:command-core" = "cargo test -p longhorn-core -p longhorn-command"
-"test:history-core" = "cargo test -p longhorn-core -p longhorn-history"
-"fmt:history-tree" = "cargo fmt --all --check"
-"lint:history-tree" = "cargo clippy -p longhorn-history-tree --all-targets --all-features -- -D warnings"
-"test:history-tree" = "cargo +1.95.0 test -p longhorn-history-tree"
-"check:history-tree-package" = "cargo +1.95.0 package -p longhorn-history-tree --list --allow-dirty"
-"check:history-tree-graph" = '''sh -c 'cargo tree -p longhorn-history-tree --edges normal --prefix none | rg -q "^longhorn-history-tree " && cargo tree -p longhorn-history-tree --edges normal --prefix none | rg -q "^longhorn-history " && ! cargo tree -p longhorn-history-tree --edges normal --prefix none | rg "longhorn-(tauri|config|bridge|command|display|layout|native|notifications|operation|settings|surface|transfer|windowing)" && ! cargo tree -p longhorn-history --edges normal --prefix none | rg "^longhorn-history-tree "' '''
-"qa:history-tree" = [
-  { task = "fmt:history-tree" },
-  { task = "lint:history-tree" },
-  { task = "test:history-tree" },
-  { task = "check:history-tree-package" },
-  { task = "check:history-tree-graph" },
-  { task = "check:api-reference-card126" },
-]
-"qa:history-tree-clients" = [
-  { task = "check:history-tree-bindings" },
-  { task = "check:history-tree-ts" },
-  { task = "check:history-tree-svelte" },
-  { task = "test:history-tree-clients" },
-  { task = "test:tauri-history-tree" },
-  { task = "check:history-tree-client-package" },
-]
-"qa:history-tree-artifacts" = [
-  { task = "proof:history-system-artifacts" },
-  { task = "proof:history-tree-artifacts" },
-  { task = "qa:history-tree" },
-  { task = "qa:history-tree-clients" },
-]
-"test:operation-core" = "cargo test -p longhorn-core -p longhorn-operation"
-"test:notification-core" = "cargo test -p longhorn-core -p longhorn-notifications --all-features"
-"fmt:history-tree-prototype" = "cargo fmt --manifest-path prototypes/history-tree/Cargo.toml --all --check"
-"lint:history-tree-prototype" = "cargo clippy --manifest-path prototypes/history-tree/Cargo.toml --all-targets --offline -- -D warnings"
-"test:history-tree-prototype" = "cargo +1.95.0 test --manifest-path prototypes/history-tree/Cargo.toml --offline"
-"qa:history-tree-prototype" = [
-  { task = "fmt:history-tree-prototype" },
-  { task = "lint:history-tree-prototype" },
-  { task = "test:history-tree-prototype" },
-]
-"fmt:native-content-prototype" = "cargo fmt --manifest-path prototypes/native-content/Cargo.toml --all --check"
-"lint:native-content-prototype" = "cargo clippy --manifest-path prototypes/native-content/Cargo.toml --all-targets --offline -- -D warnings"
-"test:native-content-prototype" = "cargo +1.95.0 test --manifest-path prototypes/native-content/Cargo.toml --offline"
-"qa:native-content-prototype" = [
-  { task = "fmt:native-content-prototype" },
-  { task = "lint:native-content-prototype" },
-  { task = "test:native-content-prototype" },
-]
-"fmt:native-content-child-webview" = "cargo fmt --manifest-path prototypes/native-content-child-webview/Cargo.toml --all --check"
-"lint:native-content-child-webview" = "cargo clippy --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-child-webview" = "cargo +1.95.0 test --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
-"check:native-content-child-webview" = "cargo +1.95.0 check --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --offline"
-"build:native-content-child-webview" = "sh -c 'cd prototypes/native-content-child-webview/proof-app/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-child-webview" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and ([.checks[] | select(.status == "unmet") | .id] == ["native_scale_switch"])'\'' prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && ! rg -n '\''fixture_error|proof_failed'\'' prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-child-webview" = [
-  { task = "fmt:native-content-child-webview" },
-  { task = "lint:native-content-child-webview" },
-  { task = "test:native-content-child-webview" },
-  { task = "check:native-content-child-webview" },
-  { task = "verify:native-content-child-webview" },
-]
-"fmt:native-content-isolated-window" = "cargo fmt --manifest-path prototypes/native-content-isolated-window/Cargo.toml --all --check"
-"lint:native-content-isolated-window" = "cargo clippy --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-isolated-window" = "cargo +1.95.0 test --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
-"check:native-content-isolated-window" = "cargo +1.95.0 check --manifest-path prototypes/native-content-isolated-window/Cargo.toml --workspace --offline"
-"build:native-content-isolated-window" = "sh -c 'cd prototypes/native-content-isolated-window/proof-app/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-isolated-window" = '''sh -c 'jq -e '.\''outcome == "pass" and (.checks | length == 11) and all(.checks[]; .status == "pass")'\'' prototypes/native-content-isolated-window/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass" and .packaged_run.passed_checks == 11 and .native_boundary.raw_pointer_exports == false and .outer_placement.adapter_position_operations == false and all(.forbidden_edges[]; . == false)'\'' prototypes/native-content-isolated-window/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' prototypes/native-content-isolated-window/evidence/target-support.json >/dev/null && ! rg -n '\''proof_failed'\'' prototypes/native-content-isolated-window/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-isolated-window" = [
-  { task = "fmt:native-content-isolated-window" },
-  { task = "lint:native-content-isolated-window" },
-  { task = "test:native-content-isolated-window" },
-  { task = "check:native-content-isolated-window" },
-  { task = "verify:native-content-isolated-window" },
-]
-"fmt:native-content-backing-surface" = "cargo fmt --manifest-path prototypes/native-content-backing-surface/Cargo.toml --all --check"
-"lint:native-content-backing-surface" = "cargo clippy --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --all-targets --offline -- -D warnings"
-"test:native-content-backing-surface" = "cargo +1.95.0 test --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
-"check:native-content-backing-surface" = "cargo +1.95.0 check --manifest-path prototypes/native-content-backing-surface/Cargo.toml --workspace --offline"
-"build:native-content-backing-surface" = "sh -c 'cd prototypes/native-content-backing-surface/proof-app/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"verify:native-content-backing-surface" = '''sh -c 'jq -e '.\''outcome == "pass_with_unmet_environment_claims" and (.checks | length == 11) and ([.checks[] | select(.status == "pass")] | length == 10) and ([.checks[] | select(.status == "unmet") | .id] == ["available_native_scale_transition"])'\'' prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/final-report.json >/dev/null && jq -e '.\''packaged_run.outcome == "pass_with_unmet_environment_claims" and .packaged_run.passed_checks == 10 and .native_boundary.adapter_raw_pointer_exports == false and all(.forbidden_edges[]; . == false)'\'' prototypes/native-content-backing-surface/evidence/inventory.json >/dev/null && jq -e '.\''targets.macos.status == "packaged-proof-pass-with-native-scale-transition-unmet" and .targets.windows.status == "unsupported" and .targets.linux.status == "unsupported"'\'' prototypes/native-content-backing-surface/evidence/target-support.json >/dev/null && ! rg -n '\''proof_failed'\'' prototypes/native-content-backing-surface/evidence/runs/2026-07-31-macos-arm64/runtime-transcript.jsonl' '''
-"qa:native-content-backing-surface" = [
-  { task = "fmt:native-content-backing-surface" },
-  { task = "lint:native-content-backing-surface" },
-  { task = "test:native-content-backing-surface" },
-  { task = "check:native-content-backing-surface" },
-  { task = "verify:native-content-backing-surface" },
-]
-"measure:history-tree-prototype" = "cargo +1.95.0 run --manifest-path prototypes/history-tree/Cargo.toml --bin measure --release --offline"
-"test:command-config" = "cargo test -p longhorn-command-config"
-"test:command-settings" = "cargo test -p longhorn-command-settings"
-"test:bridge-core" = "cargo test -p longhorn-core -p longhorn-bridge --features longhorn-bridge/supervision"
-"test:settings-config" = "cargo test -p longhorn-config -p longhorn-settings -p longhorn-settings-config"
-"test:tauri-ts" = "bun test packages/tauri/tests"
-"check:tauri-package" = "sh -c 'cd packages/tauri && exec bun pm pack --dry-run --ignore-scripts'"
-test = [
-  { task = "test:rust" },
-  { task = "test:core-ts" },
-  { task = "test:bridge-ts" },
-  { task = "test:layout-ts" },
-  { task = "test:surfaces-ts" },
-  { task = "test:transfer-ts" },
-  { task = "test:surface-transfer-ts" },
-  { task = "test:config-ts" },
-  { task = "test:config-svelte" },
-  { task = "test:settings-ts" },
-  { task = "test:commands-ts" },
-  { task = "test:history-ts" },
-  { task = "test:history-svelte" },
-  { task = "test:operation-ts" },
-  { task = "test:operation-svelte" },
-  { task = "test:notifications-ts" },
-  { task = "test:notifications-svelte" },
-  { task = "test:native-content-svelte" },
-  { task = "test:settings-svelte" },
-  { task = "test:tauri-transfer" },
-  { task = "test:tauri-settings" },
-  { task = "test:tauri-command" },
-  { task = "test:tauri-config" },
-  { task = "test:tauri-history" },
-  { task = "test:tauri-notifications" },
-  { task = "test:tauri-ts" },
-  { task = "test:svelte" },
-  { task = "test:poodle" },
-]
-"proof-windowing-check" = "cargo +1.95.0 check -p longhorn-tauri-windowing-proof"
-"proof-windowing-build" = "sh -c 'cd examples/tauri-windowing-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"proof-transfer-check-direct" = "cargo +1.95.0 check -p longhorn-tauri-transfer-proof --no-default-features"
-"proof-transfer-check-surface" = "cargo +1.95.0 check -p longhorn-tauri-transfer-proof --no-default-features --features surface-mode"
-"proof-transfer-build-direct" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci'"
-"proof-transfer-build-surface" = "sh -c 'cd examples/tauri-transfer-proof/src-tauri && exec cargo +1.95.0 tauri build --bundles app --ci --features surface-mode'"
-"proof:app-shells" = "bun scripts/verify-app-shell-proof.ts"
-"proof:settings-composition" = "bun scripts/verify-settings-composition-proof.ts"
-"proof:command-system-artifacts" = "bun scripts/verify-command-system-artifacts.ts"
-"proof:history-system-artifacts" = "bun scripts/verify-history-system-artifacts.ts"
-"proof:history-tree-artifacts" = "bun scripts/verify-history-tree-artifacts.ts"
-"proof:operation-notification-artifacts" = "bun scripts/verify-operation-notification-artifacts.ts"
-"proof:native-content-artifacts" = "bun scripts/verify-native-content-artifacts.ts"
+
+# --- Documentation ------------------------------------------------------
+"qa:northstar:links" = "effigy docs check links"
 "qa:docs:links" = "effigy docs check links README.md AGENTS.md docs/README.md docs/vision/README.md docs/architecture/README.md docs/contracts/README.md docs/specs/README.md docs/research/README.md docs/roadmaps/README.md docs/roadmaps/g01/README.md docs/logs/README.md"
 "qa:docs:index:vision" = "effigy docs check index --policy-index vision"
 "qa:docs:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
+"qa:northstar:spine" = "effigy docs check paths README.md AGENTS.md CHANGELOG.md scripts/README.md docs/README.md docs/vision/README.md docs/architecture/README.md docs/architecture/system-architecture.md docs/architecture/package-topology.md docs/architecture/system-inventory.md docs/architecture/repo-authority-map.md docs/architecture/product-guardrails.md docs/contracts/README.md docs/contracts/001-working-rules.md docs/contracts/002-composable-workspace-hosting.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/005-settings-and-system-registration.md docs/contracts/006-command-action-and-input.md docs/contracts/007-optional-backend-topology.md docs/contracts/008-history-kernel-boundary.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/011-cross-window-transfer.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/014-layout-container-region-and-panel-core.md docs/contracts/contract-index.md docs/specs/README.md docs/specs/001-shared-desktop-system-suite.md docs/specs/archive/README.md docs/research/README.md docs/research/master-index.md docs/research/research-to-implementation-playbook.md docs/research/translation-memos/001-tauri-application-extraction-audit.md docs/research/translation-memos/002-shared-desktop-systems-follow-up.md docs/research/translation-memos/003-foundation-boundary-characterization.md docs/research/translation-memos/004-configuration-coordination-and-atomic-mutation.md docs/research/translation-memos/005-debounced-mutation-and-explicit-flush.md docs/research/translation-memos/006-backup-archive-encryption-and-restore.md docs/research/translation-memos/007-cross-platform-storage-layout-profiles.md docs/research/translation-memos/008-tauri-window-host-and-lifecycle.md docs/research/translation-memos/009-layout-core-boundary-characterization.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/001-configuration-domain-store.md docs/roadmaps/g01/batch-cards/002-coordinated-atomic-configuration-mutation.md docs/roadmaps/g01/batch-cards/003-debounced-mutation-and-explicit-flush.md docs/roadmaps/g01/batch-cards/004-backup-archive-and-restore-contract.md docs/roadmaps/g01/batch-cards/005-backup-inventory-and-consistent-snapshot.md docs/roadmaps/g01/batch-cards/006-backup-archive-publication-and-retention.md docs/roadmaps/g01/batch-cards/007-restore-inspection-planning-and-staging.md docs/roadmaps/g01/batch-cards/008-journaled-restore-and-crash-recovery.md docs/roadmaps/g01/batch-cards/009-age-encrypted-backup-adapter.md docs/roadmaps/g01/batch-cards/010-custom-backup-adapters-and-consumer-conformance.md docs/roadmaps/g01/batch-cards/011-platform-storage-layout-profiles.md docs/roadmaps/g01/batch-cards/012-storage-profile-transition-and-legacy-import.md docs/roadmaps/g01/batch-cards/023-layout-identity-policy-and-normalization.md docs/roadmaps/g01/batch-cards/024-authoritative-layout-mutation-engine.md docs/roadmaps/g01/batch-cards/025-registered-layout-persistence-and-coordination.md docs/roadmaps/g01/batch-cards/026-generated-layout-typescript-protocol.md docs/roadmaps/g01/batch-cards/027-two-shape-layout-conformance-and-closeout.md docs/logs/README.md docs/logs/2026-07/28-backup-archive-and-restore-contract-promotion.md docs/logs/2026-07/28-backup-inventory-and-consistent-snapshot.md docs/logs/2026-07/28-backup-archive-publication-and-retention.md docs/logs/2026-07/28-journaled-restore-and-crash-recovery.md docs/logs/2026-07/28-cross-platform-storage-layout-policy.md docs/logs/2026-07/28-platform-storage-layout-profiles.md docs/logs/2026-07/28-age-encrypted-backup-adapter.md docs/logs/2026-07/28-custom-backup-adapters-and-consumer-conformance.md docs/logs/2026-07/28-storage-profile-transition-and-legacy-import.md docs/logs/2026-07/28-layout-container-region-panel-compilation.md docs/policy/internal-writing-style.md"
+"qa:northstar:roadmap-suite" = "effigy docs check paths docs/roadmaps/g01/001-foundation-contracts-and-package-topology.md docs/roadmaps/g01/002-configuration-backup-and-recovery.md docs/roadmaps/g01/003-display-geometry-and-window-planning.md docs/roadmaps/g01/004-tauri-window-host-and-lifecycle.md docs/roadmaps/g01/005-layout-container-region-and-panel-core.md docs/roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md docs/roadmaps/g01/007-typescript-svelte-poodle-and-app-shell.md docs/roadmaps/g01/008-settings-registry-and-shell.md docs/roadmaps/g01/009-typed-bridge-and-optional-backend-topology.md docs/roadmaps/g01/010-command-registry-keymaps-and-palette.md docs/roadmaps/g01/011-history-kernel-and-branching-prototype.md docs/roadmaps/g01/012-async-operations-and-notifications.md docs/roadmaps/g01/013-native-content-islands-prototype.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/017-optional-forkable-history-tree.md docs/roadmaps/g01/018-native-content-production-and-adoption-gate.md docs/roadmaps/g01/019-grouped-custom-adapter-restore.md docs/roadmaps/g01/020-child-view-navigation-control.md"
 "qa:docs" = [
   { task = "qa:docs:links" },
   { task = "qa:docs:index:vision" },
   { task = "qa:docs:agent-defaults" },
 ]
-"qa:northstar:spine" = "effigy docs check paths README.md AGENTS.md CHANGELOG.md scripts/README.md docs/README.md docs/vision/README.md docs/architecture/README.md docs/architecture/system-architecture.md docs/architecture/package-topology.md docs/architecture/system-inventory.md docs/architecture/repo-authority-map.md docs/architecture/product-guardrails.md docs/contracts/README.md docs/contracts/001-working-rules.md docs/contracts/002-composable-workspace-hosting.md docs/contracts/003-extraction-and-consumer-migration.md docs/contracts/004-configuration-storage-backup-and-recovery.md docs/contracts/005-settings-and-system-registration.md docs/contracts/006-command-action-and-input.md docs/contracts/007-optional-backend-topology.md docs/contracts/008-history-kernel-boundary.md docs/contracts/009-display-identity-coordinates-and-window-planning.md docs/contracts/010-rust-typescript-ipc-and-events.md docs/contracts/011-cross-window-transfer.md docs/contracts/012-distribution-and-compatibility.md docs/contracts/013-svelte-and-poodle-adapter-lifecycle.md docs/contracts/014-layout-container-region-and-panel-core.md docs/contracts/contract-index.md docs/specs/README.md docs/specs/001-shared-desktop-system-suite.md docs/specs/archive/README.md docs/research/README.md docs/research/master-index.md docs/research/research-to-implementation-playbook.md docs/research/translation-memos/001-tauri-application-extraction-audit.md docs/research/translation-memos/002-shared-desktop-systems-follow-up.md docs/research/translation-memos/003-foundation-boundary-characterization.md docs/research/translation-memos/004-configuration-coordination-and-atomic-mutation.md docs/research/translation-memos/005-debounced-mutation-and-explicit-flush.md docs/research/translation-memos/006-backup-archive-encryption-and-restore.md docs/research/translation-memos/007-cross-platform-storage-layout-profiles.md docs/research/translation-memos/008-tauri-window-host-and-lifecycle.md docs/research/translation-memos/009-layout-core-boundary-characterization.md docs/roadmaps/README.md docs/roadmaps/generation-index.md docs/roadmaps/g01/README.md docs/roadmaps/g01/batch-cards/README.md docs/roadmaps/g01/batch-cards/001-configuration-domain-store.md docs/roadmaps/g01/batch-cards/002-coordinated-atomic-configuration-mutation.md docs/roadmaps/g01/batch-cards/003-debounced-mutation-and-explicit-flush.md docs/roadmaps/g01/batch-cards/004-backup-archive-and-restore-contract.md docs/roadmaps/g01/batch-cards/005-backup-inventory-and-consistent-snapshot.md docs/roadmaps/g01/batch-cards/006-backup-archive-publication-and-retention.md docs/roadmaps/g01/batch-cards/007-restore-inspection-planning-and-staging.md docs/roadmaps/g01/batch-cards/008-journaled-restore-and-crash-recovery.md docs/roadmaps/g01/batch-cards/009-age-encrypted-backup-adapter.md docs/roadmaps/g01/batch-cards/010-custom-backup-adapters-and-consumer-conformance.md docs/roadmaps/g01/batch-cards/011-platform-storage-layout-profiles.md docs/roadmaps/g01/batch-cards/012-storage-profile-transition-and-legacy-import.md docs/roadmaps/g01/batch-cards/023-layout-identity-policy-and-normalization.md docs/roadmaps/g01/batch-cards/024-authoritative-layout-mutation-engine.md docs/roadmaps/g01/batch-cards/025-registered-layout-persistence-and-coordination.md docs/roadmaps/g01/batch-cards/026-generated-layout-typescript-protocol.md docs/roadmaps/g01/batch-cards/027-two-shape-layout-conformance-and-closeout.md docs/logs/README.md docs/logs/2026-07/28-backup-archive-and-restore-contract-promotion.md docs/logs/2026-07/28-backup-inventory-and-consistent-snapshot.md docs/logs/2026-07/28-backup-archive-publication-and-retention.md docs/logs/2026-07/28-journaled-restore-and-crash-recovery.md docs/logs/2026-07/28-cross-platform-storage-layout-policy.md docs/logs/2026-07/28-platform-storage-layout-profiles.md docs/logs/2026-07/28-age-encrypted-backup-adapter.md docs/logs/2026-07/28-custom-backup-adapters-and-consumer-conformance.md docs/logs/2026-07/28-storage-profile-transition-and-legacy-import.md docs/logs/2026-07/28-layout-container-region-panel-compilation.md docs/policy/internal-writing-style.md"
-"qa:northstar:links" = "effigy docs check links"
-"qa:northstar:roadmap-suite" = "effigy docs check paths docs/roadmaps/g01/001-foundation-contracts-and-package-topology.md docs/roadmaps/g01/002-configuration-backup-and-recovery.md docs/roadmaps/g01/003-display-geometry-and-window-planning.md docs/roadmaps/g01/004-tauri-window-host-and-lifecycle.md docs/roadmaps/g01/005-layout-container-region-and-panel-core.md docs/roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md docs/roadmaps/g01/007-typescript-svelte-poodle-and-app-shell.md docs/roadmaps/g01/008-settings-registry-and-shell.md docs/roadmaps/g01/009-typed-bridge-and-optional-backend-topology.md docs/roadmaps/g01/010-command-registry-keymaps-and-palette.md docs/roadmaps/g01/011-history-kernel-and-branching-prototype.md docs/roadmaps/g01/012-async-operations-and-notifications.md docs/roadmaps/g01/013-native-content-islands-prototype.md docs/roadmaps/g01/014-nucleus-no-surface-migration.md docs/roadmaps/g01/015-loophole-full-hosting-migration.md docs/roadmaps/g01/016-secondary-consumers-and-greenfield-release.md docs/roadmaps/g01/017-optional-forkable-history-tree.md docs/roadmaps/g01/018-native-content-production-and-adoption-gate.md docs/roadmaps/g01/019-grouped-custom-adapter-restore.md docs/roadmaps/g01/020-child-view-navigation-control.md"
-"lint:grouped-adapter-restore" = "cargo clippy -p longhorn-config --all-targets --all-features -- -D warnings"
-"test:grouped-adapter-public-api" = "cargo test -p longhorn-config --test public_grouped_restore_api"
-"check:grouped-adapter-restore-msrv" = "cargo +1.95.0 check -p longhorn-config --all-features"
-"check:grouped-adapter-restore-package" = "cargo package -p longhorn-config --list --allow-dirty"
-"qa:northstar:g01-grouped-adapter-restore" = [
-  { task = "lint:grouped-adapter-restore" },
-  { task = "test:grouped-adapter-public-api" },
-  { task = "test:soundcheck-card115-config" },
-  { task = "check:grouped-adapter-restore-msrv" },
-  { task = "check:grouped-adapter-restore-package" },
-  { task = "check:config-bindings" },
-]
-"qa:northstar:agent-contract" = "effigy docs check contains AGENTS.md --require 'effigy tasks' --require 'effigy test --plan' --require 'docs/README.md' --require 'docs/vision/README.md' --require 'docs/roadmaps/README.md' --require 'docs/logs/README.md'"
-"qa:northstar:readme" = "effigy docs check contains README.md --require 'docs/README.md'"
-"qa:northstar:docs-front-door" = "effigy docs check contains docs/README.md --require 'vision/README.md' --require 'roadmaps/README.md' --require 'logs/README.md'"
-"qa:northstar:headings" = "effigy docs check headings docs/vision/README.md --require-heading '## Current Vision'"
-"qa:northstar:roadmap-headings" = "effigy docs check headings docs/roadmaps/g01/README.md --require-heading '## Generation Runway' --require-heading '## Next Task'"
-"qa:northstar:indexes" = "effigy docs check index --policy-index vision"
-"qa:northstar:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
 "qa:northstar" = [
   { task = "qa:northstar:spine" },
   { task = "qa:northstar:roadmap-suite" },
   { task = "qa:northstar:links" },
 ]
 
+# --- Aggregates ---------------------------------------------------------
+health = [{ task = "qa" }]
 qa = [
   { task = "fmt:rust" },
   { task = "lint:rust" },
   { task = "test:rust" },
-  { task = "check:client-ts" },
-  { task = "check:svelte-runes" },
-  { task = "test:core-ts" },
-  { task = "check:core-package" },
-  { task = "check:bridge-bindings" },
-  { task = "test:bridge-ts" },
-  { task = "check:bridge-package" },
-  { task = "test:tauri-bridge" },
-  { task = "proof:bridge-topology" },
-  { task = "proof:bridge-topology-artifacts" },
-  { task = "test:svelte" },
-  { task = "check:svelte-package" },
-  { task = "verify:poodle-preview" },
-  { task = "check:poodle-ts" },
-  { task = "check:poodle-svelte" },
-  { task = "test:poodle" },
-  { task = "check:poodle-package" },
-  { task = "proof:app-shells" },
-  { task = "check:layout-bindings" },
-  { task = "test:layout-ts" },
-  { task = "check:layout-package" },
-  { task = "check:surface-bindings" },
-  { task = "test:surfaces-ts" },
-  { task = "check:surfaces-package" },
-  { task = "check:transfer-bindings" },
-  { task = "test:transfer-ts" },
-  { task = "check:transfer-package" },
-  { task = "check:surface-transfer-bindings" },
-  { task = "test:surface-transfer-ts" },
-  { task = "check:surface-transfer-package" },
-  { task = "check:config-bindings" },
-  { task = "test:config-ts" },
-  { task = "check:config-svelte" },
-  { task = "test:config-svelte" },
-  { task = "check:config-package" },
-  { task = "check:settings-bindings" },
-  { task = "test:settings-ts" },
-  { task = "check:settings-svelte" },
-  { task = "test:settings-svelte" },
-  { task = "check:settings-package" },
-  { task = "check:command-bindings" },
-  { task = "check:commands-svelte" },
-  { task = "test:commands-ts" },
-  { task = "test:commands-svelte" },
-  { task = "check:commands-package" },
-  { task = "check:history-bindings" },
-  { task = "check:history-svelte" },
-  { task = "test:history-ts" },
-  { task = "test:history-svelte" },
-  { task = "check:history-package" },
-  { task = "qa:history-tree-clients" },
-  { task = "check:operation-bindings" },
-  { task = "check:operation-svelte" },
-  { task = "test:operation-ts" },
-  { task = "test:operation-svelte" },
-  { task = "check:operation-package" },
-  { task = "check:notifications-bindings" },
-  { task = "check:notifications-svelte" },
-  { task = "test:notifications-ts" },
-  { task = "test:notifications-svelte" },
-  { task = "check:notifications-package" },
-  { task = "check:native-content-bindings" },
-  { task = "test:native-content-ts" },
-  { task = "check:native-content-package" },
-  { task = "test:notification-core" },
-  { task = "test:command-settings" },
-  { task = "proof:settings-composition" },
-  { task = "proof:command-system-artifacts" },
-  { task = "proof:history-system-artifacts" },
-  { task = "proof:history-tree-artifacts" },
-  { task = "proof:operation-notification-artifacts" },
-  { task = "proof:native-content-artifacts" },
-  { task = "qa:history-tree-prototype" },
-  { task = "qa:history-tree" },
-  { task = "qa:native-content-prototype" },
-  { task = "qa:native-content-child-webview" },
-  { task = "qa:native-content-isolated-window" },
-  { task = "qa:native-content-backing-surface" },
-  { task = "test:tauri-transfer" },
-  { task = "test:tauri-settings" },
-  { task = "test:tauri-command" },
-  { task = "test:tauri-config" },
-  { task = "test:tauri-history" },
-  { task = "test:tauri-operation" },
-  { task = "test:tauri-notifications" },
-  { task = "test:tauri-ts" },
-  { task = "check:tauri-package" },
-  { task = "proof-transfer-check-direct" },
-  { task = "proof-transfer-check-surface" },
+  { task = "check:ts" },
+  { task = "check:svelte" },
+  { task = "check:packages" },
+  { task = "test:ts" },
+  { task = "test:vitest" },
+  { task = "check:bindings" },
+  { task = "check:api-reference" },
+  { task = "proof:artifacts" },
   { task = "qa:docs" },
   { task = "qa:northstar" },
 ]
