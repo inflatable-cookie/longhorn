@@ -1,6 +1,9 @@
 [catalog]
 alias = "longhorn"
 
+[manifest]
+include = ["config/release.toml"]
+
 [docs_policy.indexes.vision]
 file = "docs/vision/README.md"
 dir = "docs/vision"

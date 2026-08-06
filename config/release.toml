@@ -1,0 +1,36 @@
+# Release configuration for the Longhorn workspace.
+#
+# The repository root is a virtual Cargo workspace: it has no `[package]`, so
+# effigy's default version probe cannot find the version. The field is named
+# explicitly, matching Signal's shape.
+[release]
+version-file = "Cargo.toml"
+version-path = "workspace.package.version"
+changelog = "CHANGELOG.md"
+# Cargo.lock is deliberately NOT a sync-file. Effigy syncs sync-files with
+# `cargo generate-lockfile`, which rebuilds the lockfile from scratch and
+# resolves every dependency to its newest compatible version -- and sync-files
+# run *after* the gates, so those upgrades would enter the release commit
+# untested. The lockfile is updated deliberately with `cargo update -w` before
+# the gates, and the release notes record what moved.
+tag-format = "v{version}"
+initial-tag-current-version = true
+
+# Gates run before a release is prepared or executed. Heavy Rust lanes are
+# throttled so the machine stays usable; CI runs unthrottled.
+#
+# `lint` denies warnings. Clippy gates several lints on the declared MSRV
+# (collapsible_if only fires once let-chains are available), so the lint and
+# floor lanes are not redundant: they see different lint sets.
+[release.gates]
+fmt = "cargo fmt --all --check"
+lint = "nice -n 5 cargo clippy --workspace --all-targets --locked -- -D warnings"
+test = "nice -n 5 cargo test --workspace --locked"
+qa = "effigy qa"
+# Enforces the declared MSRV with real Clippy and tests at the floor
+# toolchain, not a bare check -- the 1.90 floor was false for weeks because a
+# transitive build script only failed under --all-targets.
+floor = "effigy release:floor"
+# Proves the release commit is consumable as a git dependency: a throwaway
+# consumer resolves every probed crate from a git source, not a path.
+source = "effigy release:source-consumer"
