@@ -71,10 +71,7 @@ impl<R: Runtime> TauriWindowHost<R> {
             host: self,
             registry: None,
         };
-        guard.registry = match self.take_registry() {
-            Ok(registry) => Some(registry),
-            Err(error) => return Err(error),
-        };
+        guard.registry = Some(self.take_registry()?);
         let apply = execute_tauri_window_apply_in_place(
             app,
             input,
