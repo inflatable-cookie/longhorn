@@ -50,7 +50,7 @@ Set `KEEP_HISTORY_TREE_PROOF=1` only to retain its disposable artifact
 workspace. No registry publication is attempted.
 
 Nucleus private admission packs the exact Surface-free Longhorn graph, installs
-it with Poodle g12.018 in a clean renderer, and checks the locked Rust 1.90 /
+it with Poodle g12.018 in a clean renderer, and checks the locked Rust 1.95 /
 Tauri 2.11.5 graph:
 
 ```sh
@@ -121,7 +121,7 @@ effigy verify:loophole-card102-freeze
 
 Loophole private admission restores and pins the clean donor baseline, checks
 the selected Soundcheck SQLite graph, packs the complete Cards 105-111
-Longhorn/Poodle graph, and installs isolated renderer and Rust 1.90 consumers:
+Longhorn/Poodle graph, and installs isolated renderer and Rust 1.95 consumers:
 
 ```sh
 effigy proof:loophole-private-artifacts
@@ -156,7 +156,7 @@ The default donors are sibling checkouts. Override them with
 
 Card 114 freshly packs the exact selected Longhorn and Poodle artifacts,
 installs three isolated renderer graphs, checks generated bindings, and proves
-three locked/offline Rust 1.90 and Tauri 2.11.5 graphs:
+three locked/offline Rust 1.95 and Tauri 2.11.5 graphs:
 
 ```sh
 effigy proof:secondary-consumer-private-artifacts
@@ -229,7 +229,7 @@ renderer tests from disposable sibling worktrees. Current focused suites pass
 
 Card 125 packs the selected Longhorn and Poodle TypeScript packages, installs
 and mounts four isolated renderer shapes, archives the exact Rust inventory,
-and runs five locked/offline Rust 1.90 compositions. It checks storage startup,
+and runs five locked/offline Rust 1.95 compositions. It checks storage startup,
 atomic mutation, visible failure, teardown, graph minimality, and removal of
 optional supervision against the frozen receipt:
 
@@ -350,3 +350,14 @@ Windows, Linux, scale, package-publication, or live-data claims.
 Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.
+
+## Release gates
+
+- `check-release-floor.sh` — enforces the declared MSRV
+  (`release-baselines/rust-toolchains.env`) with Clippy and the full test
+  suite at the floor toolchain, not a bare `cargo check`.
+- `verify-source-consumer.sh` — builds a throwaway consumer against the
+  release commit and asserts every probed longhorn crate resolves from a
+  git source, proving the commit is consumable as a tagged dependency.
+
+Run both with `effigy release:gates`.

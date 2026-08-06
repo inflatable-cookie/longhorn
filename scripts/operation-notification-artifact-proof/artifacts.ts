@@ -85,7 +85,7 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   await mkdir(workspace);
   const identities: ArtifactIdentity[] = [];
   for (const name of rustCrates) {
-    const inventory = await run(["cargo", "+1.90.0", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    const inventory = await run(["cargo", "+1.95.0", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} source inventory is incomplete`);
     const archive = join(artifactRoot, `${name}-0.1.0.private.tar.gz`);
     await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
@@ -117,8 +117,8 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
     "notification-only": ["longhorn-core", "longhorn-notifications", "longhorn-tauri-notifications"],
   };
   for (const shape of shapes) {
-    nativeTraces[shape] = parseTrace(await run(["cargo", "+1.90.0", "run", "-p", packages[shape], "--offline", "--quiet"], workspace));
-    const tree = await run(["cargo", "+1.90.0", "tree", "-p", packages[shape], "--offline", "--prefix", "none"], workspace);
+    nativeTraces[shape] = parseTrace(await run(["cargo", "+1.95.0", "run", "-p", packages[shape], "--offline", "--quiet"], workspace));
+    const tree = await run(["cargo", "+1.95.0", "tree", "-p", packages[shape], "--offline", "--prefix", "none"], workspace);
     graphs[shape] = longhornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graphs[shape], expected[shape]);
   }
@@ -137,7 +137,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

@@ -203,7 +203,7 @@ try {
         outcome: "pass",
         sources,
         tools: {
-          rust: "1.90.0",
+          rust: "1.95.0",
           tauriRust: "2.11.5",
           bun: (await run(["bun", "--version"], repoRoot)).trim(),
           typescript: "6.0.3",
@@ -678,7 +678,7 @@ async function packAndVerifyRustGraphs() {
   await run(
     [
       "cargo",
-      "+1.90.0",
+      "+1.95.0",
       "update",
       "-p",
       "tauri",
@@ -717,13 +717,13 @@ async function writeRustConsumer(workspace: string, consumer: ConsumerName) {
 async function verifyRustGraph(workspace: string, consumer: ConsumerName) {
   const packageName = `longhorn-${consumer}-private-artifact-proof`;
   await run(
-    ["cargo", "+1.90.0", "check", "-p", packageName, "--locked", "--offline"],
+    ["cargo", "+1.95.0", "check", "-p", packageName, "--locked", "--offline"],
     workspace,
   );
   const tree = await run(
     [
       "cargo",
-      "+1.90.0",
+      "+1.95.0",
       "tree",
       "-p",
       packageName,
@@ -756,7 +756,7 @@ async function verifyRustGraph(workspace: string, consumer: ConsumerName) {
   return {
     selected: fixture.consumers[consumer].selected_rust,
     forbiddenPackagesAbsent: forbidden,
-    rust: "1.90.0",
+    rust: "1.95.0",
     tauri: "2.11.5",
     locked: true,
     offline: true,
@@ -773,7 +773,7 @@ function rustWorkspaceManifest(selected: string[]) {
   const internal = [...selected, ...rustSupportCrates]
     .map((name) => `${name} = { path = "crates/${name}", version = "0.1.0" }`)
     .join("\n");
-  return `[workspace]\nmembers = ${JSON.stringify(members, null, 2)}\nresolver = "2"\n\n[workspace.package]\nversion = "0.1.0"\nedition = "2024"\nrust-version = "1.90"\nlicense = "MIT"\nrepository = "https://github.com/inflatable-cookie/longhorn"\n\n[workspace.dependencies]\n${internal}\ncap-std = "4.0.2"\nfs4 = { version = "1.1.0", default-features = false, features = ["sync"] }\nproptest = { version = "1.11.0", default-features = false, features = ["std"] }\nrusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }\nserde = { version = "1.0.229", features = ["derive"] }\nserde_json = "1.0.151"\nsha2 = "0.10.9"\ntauri = { version = "=2.11.5", default-features = false }\ntempfile = "3.27.0"\nts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }\nzip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }\n\n[workspace.lints.rust]\nmissing_docs = "deny"\nunsafe_code = "forbid"\n\n[workspace.lints.clippy]\nall = "deny"\n`;
+  return `[workspace]\nmembers = ${JSON.stringify(members, null, 2)}\nresolver = "2"\n\n[workspace.package]\nversion = "0.1.0"\nedition = "2024"\nrust-version = "1.95"\nlicense = "MIT"\nrepository = "https://github.com/inflatable-cookie/longhorn"\n\n[workspace.dependencies]\n${internal}\ncap-std = "4.0.2"\nfs4 = { version = "1.1.0", default-features = false, features = ["sync"] }\nproptest = { version = "1.11.0", default-features = false, features = ["std"] }\nrusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }\nserde = { version = "1.0.229", features = ["derive"] }\nserde_json = "1.0.151"\nsha2 = "0.10.9"\ntauri = { version = "=2.11.5", default-features = false }\ntempfile = "3.27.0"\nts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }\nzip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }\n\n[workspace.lints.rust]\nmissing_docs = "deny"\nunsafe_code = "forbid"\n\n[workspace.lints.clippy]\nall = "deny"\n`;
 }
 
 function selectedRustCrates() {
@@ -802,7 +802,7 @@ function verifyAdmissionEvidence(
     "admission schema",
   );
   assertEqual(admission.outcome, "pass", "admission outcome");
-  assertEqual(admission.tools.rust, "1.90.0", "Rust toolchain");
+  assertEqual(admission.tools.rust, "1.95.0", "Rust toolchain");
   assertEqual(admission.tools.tauri_rust, "2.11.5", "Rust Tauri version");
   assertEqual(admission.tools.bun, "1.3.14", "Bun version");
   assertEqual(admission.tools.typescript, "6.0.3", "TypeScript version");

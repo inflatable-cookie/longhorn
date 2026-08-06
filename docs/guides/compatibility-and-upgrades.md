@@ -21,10 +21,10 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | Layer | Current checked claim |
 | --- | --- |
 | Longhorn version | coordinated private `0.1.0` |
-| Rust | edition 2024; MSRV 1.90 with exact compatible lock |
+| Rust | edition 2024; MSRV 1.95 with exact compatible lock |
 | TypeScript/Svelte | Svelte 5; exact peer ranges are package-specific in the generated API surface |
 | Tauri renderer API | `@longhorn/tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
-| Tauri Rust | private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.90 |
+| Tauri Rust | private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.95 |
 | Poodle | exact five-package private artifact receipt; no general registry range claim |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 

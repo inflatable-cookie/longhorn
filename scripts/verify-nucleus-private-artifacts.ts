@@ -611,7 +611,7 @@ longhorn-tauri-native-content-child-view.workspace = true
   await run(
     [
       "cargo",
-      "+1.90.0",
+      "+1.95.0",
       "update",
       "-p",
       "tauri",
@@ -624,7 +624,7 @@ longhorn-tauri-native-content-child-view.workspace = true
   await run(
     [
       "cargo",
-      "+1.90.0",
+      "+1.95.0",
       "check",
       "-p",
       "longhorn-nucleus-private-artifact-proof",
@@ -636,7 +636,7 @@ longhorn-tauri-native-content-child-view.workspace = true
   const tree = await run(
     [
       "cargo",
-      "+1.90.0",
+      "+1.95.0",
       "tree",
       "-p",
       "longhorn-nucleus-private-artifact-proof",
@@ -664,7 +664,7 @@ longhorn-tauri-native-content-child-view.workspace = true
     throw new Error("Rust consumer graph did not resolve Tauri 2.11.5");
   }
   return {
-    rust: "1.90",
+    rust: "1.95",
     tauri: "2.11.5",
     cargoLockSha256,
     lockedMsrvCompatibility: true,
@@ -696,7 +696,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

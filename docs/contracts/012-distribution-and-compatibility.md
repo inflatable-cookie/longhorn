@@ -16,7 +16,7 @@ policy remain consumer-owned.
 - Cargo and npm workspaces live in one repository.
 - Publishable Rust and TypeScript packages use one coordinated Longhorn
   version.
-- Rust crates use edition 2024 with MSRV 1.90 until an explicit compatibility
+- Rust crates use edition 2024 with MSRV 1.95 until an explicit compatibility
   change.
 - TypeScript packages target Svelte 5 and Tauri 2 where those peers apply.
 - Svelte, Poodle, and Tauri are peer dependencies of adapters, never hidden
@@ -153,7 +153,7 @@ Evidence:
 
 Card 093 inventories five private Rust source artifacts after successful
 `cargo package --list`, then compiles pure, child-view, isolated-window, and
-backing-surface consumers offline on Rust 1.90. Registry-normalized Cargo
+backing-surface consumers offline on Rust 1.95. Registry-normalized Cargo
 packages remain a release-lane gate.
 
 It packs `@longhorn/core`, `@longhorn/native-content`, and
@@ -190,7 +190,7 @@ It compiles the public Poodle overlay geometry seam on Svelte 5.56.8,
 TypeScript 6.0.3, and Tauri API 2.11.1. No Surface package resolves.
 
 The Rust consumer compiles eleven selected Longhorn packages with Tauri
-2.11.5 on Rust 1.90 from an exact offline lock. An unlocked Tauri 2.11
+2.11.5 on Rust 1.95 from an exact offline lock. An unlocked Tauri 2.11
 resolution can select transitive crates requiring newer Rust, so it does not
 prove Longhorn's MSRV. The selector emits the evolved lock digest with the
 artifact and source receipts.

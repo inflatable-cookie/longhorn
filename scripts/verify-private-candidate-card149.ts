@@ -80,8 +80,8 @@ try {
     version: candidateVersion,
     sources,
     tools: {
-      rust: "1.90.0",
-      rustc: (await run(["rustc", "+1.90.0", "--version"])).trim(),
+      rust: "1.95.0",
+      rustc: (await run(["rustc", "+1.95.0", "--version"])).trim(),
       tauriRust: "2.11.5",
       bun: (await run(["bun", "--version"])).trim(),
       repositoryTypescript: (await run(["bun", "x", "tsc", "--version"])).trim().replace(/^Version /, ""),

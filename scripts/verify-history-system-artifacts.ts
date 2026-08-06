@@ -306,7 +306,7 @@ async function packAndRunRustArtifacts(): Promise<{
     const inventory = await run(
       [
         "cargo",
-        "+1.90.0",
+        "+1.95.0",
         "package",
         "-p",
         name,
@@ -376,7 +376,7 @@ async function packAndRunRustArtifacts(): Promise<{
       await run(
         [
           "cargo",
-          "+1.90.0",
+          "+1.95.0",
           "run",
           "-p",
           `longhorn-${shape}-history-artifact-proof`,
@@ -389,7 +389,7 @@ async function packAndRunRustArtifacts(): Promise<{
     const tree = await run(
       [
         "cargo",
-        "+1.90.0",
+        "+1.95.0",
         "tree",
         "-p",
         `longhorn-${shape}-history-artifact-proof`,
@@ -567,7 +567,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.90"
+rust-version = "1.95"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
