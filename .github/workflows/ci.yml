@@ -1,0 +1,95 @@
+name: CI
+
+# Manual, pull requests, and release tags only. Ordinary pushes to branches
+# deliberately do not trigger a run: local `effigy qa` covers day-to-day work,
+# and CI exists to prove a clean clone with no sibling checkouts, no [patch]
+# config, and no warm caches -- the environment consumers of a tag are in.
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust format, lint, and tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --workspace --locked
+
+  rust-floor:
+    name: Rust 1.95 floor
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.95.0
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: rust-1.95
+      - name: Clippy at the floor
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test at the floor
+        run: cargo test --workspace --locked
+
+  clients:
+    name: TypeScript, Svelte, and generated bindings
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Type check every package
+        run: |
+          for config in packages/*/tsconfig.json; do
+            echo "tsc $config"
+            bun x tsc -p "$config"
+          done
+      - name: Package test suites
+        run: |
+          bun test packages
+          bun x vitest run --config packages/svelte/vitest.config.ts
+          bun x vitest run --config packages/poodle/vitest.config.ts
+      - name: Generated bindings are current
+        run: |
+          for domain in bridge commands config history history-tree layout \
+            native-content notifications operation settings surfaces \
+            surface-transfer transfer; do
+            cargo run -q -p longhorn-bindings -- "$domain" check
+          done
+
+  external-source:
+    name: External Git-source consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Consumable as a git dependency
+        run: bash scripts/verify-source-consumer.sh
