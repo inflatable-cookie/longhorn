@@ -21,13 +21,20 @@
 //! Everything is pure. No network, no filesystem, no ambient clock — `now`
 //! is always supplied.
 
+mod activation;
 mod entitlement;
+mod key;
 mod licence;
 mod status;
 mod time;
 mod verify;
 
+pub use activation::{
+    Activation, ActivationError, ActivationRequest, ActivationSource, ActivationUrl,
+    ActivationUrlError, Credential, SignedFileSource, TokenRedemptionSource, asserted_remotely,
+};
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};
+pub use key::{LicenceKey, LicenceKeyError};
 pub use licence::{GracePolicy, LicencePayload, TrustBasis, VerifiedLicence};
 pub use status::{ClockGuard, Usability, usability};
 pub use time::{Span, Timestamp};

@@ -33,7 +33,7 @@ whether a release may be taken.
 
 ### Batch 2. Acquisition
 
-- [ ] [Card 156](batch-cards/156-activation-source-adapters.md) defines
+- [x] [Card 156](batch-cards/156-activation-source-adapters.md) defines
   `ActivationSource` and the signed-file and token-redemption reference
   adapters
 
@@ -72,7 +72,7 @@ reads.
   expressed in tests using only the two windows, with no model-specific code
 - [x] a remote-assertion licence cannot obtain offline grace reserved for
   offline-verifiable licences
-- [ ] a consumer-implemented adapter inherits evaluation with no extra
+- [x] a consumer-implemented adapter inherits evaluation with no extra
   wiring
 - [x] a large backwards clock movement is refused
 - [ ] licence state refuses a newer schema, per Card 150

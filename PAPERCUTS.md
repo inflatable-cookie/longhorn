@@ -7,6 +7,22 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
+- Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
+  independently parse and validate an HTTPS URL. The rules differ on purpose
+  (update allows loopback HTTP for a local shim; activation does not, because
+  its requests carry credentials), but the parsing is the same thirty lines
+  twice.
+- Impact: a parsing bug fixed in one is not fixed in the other. The IPv6
+  bracket case was caught in `longhorn-update` by a test; nothing guarantees
+  the licence side gets the same scrutiny.
+- Possible fix: promote a shared URL primitive when a third caller appears.
+  Not `longhorn-core` today — two callers do not justify growing core an
+  HTTP concept, and coupling two optional capability crates so one cannot be
+  composed without the other is worse than the duplication.
+- Surface: `crates/longhorn-update/src/source.rs`,
+  `crates/longhorn-licence/src/activation.rs`.
+
 ### [ ] Root package.json pins poodle to machine-local build artifacts — 2026-08-06
 - Friction: five `@poodle/*` entries in `devDependencies` and `overrides`
   resolve to `file:../poodle/.artifacts/g12.016-A698XB/packs/*.tgz` — a

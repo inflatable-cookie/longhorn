@@ -44,9 +44,13 @@ headlessly and tauri#11392 puts the relaunch path specifically in doubt.
 is complete: `longhorn-licence` carries the licence shape, trust basis,
 entitlements, both windows, lease and grace.
 
-[Card 156](g02/batch-cards/156-activation-source-adapters.md) and
-[Card 157](g02/batch-cards/157-tauri-licence-host-and-secure-storage.md) are
-ready, independent of each other, and do not auto-start.
+[Card 156](g02/batch-cards/156-activation-source-adapters.md) is complete:
+`ActivationSource`, the signed-file and token-redemption adapters, and the
+licence-key format helpers.
+
+[Card 157](g02/batch-cards/157-tauri-licence-host-and-secure-storage.md) is
+ready and does not auto-start. It is the last host-side card in either new
+milestone, alongside Card 153's outstanding wiring.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 

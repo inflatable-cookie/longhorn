@@ -1,11 +1,12 @@
 # 156 Activation Source Adapters
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g02.010 batch 2
 Governing refs: contract 019; research memo 020
 Depends on: Card 155
 Auto-start next card: no
+Completed: 2026-08-07
 
 ## Objective
 
@@ -65,6 +66,44 @@ behind it and inherit evaluation unchanged.
 
 - the interface cannot express a backend without leaking that backend's
   concerns into evaluation
+
+## Evidence
+
+- `ActivationSource` with `acquire`, `accept`, `renew`, `release`. Adapters
+  describe exchanges; the host performs them, matching contract 018's
+  `UpdateSource` posture and keeping the crate pure.
+- `Activation` distinguishes settled-locally, done, and needs-an-exchange,
+  so a signed file needs no network path at all while redemption does.
+- `renew` and `release` carry defaults — settle unchanged, and done — which
+  are the correct answers for a source holding no lease or slot. Release is
+  in the interface rather than left to each consumer because an interface
+  that cannot express it guarantees every hardware change reaches a human.
+- `accept` defaults to refusing: a source that never requests an exchange
+  should never be handed a response.
+- `SignedFileSource` settles locally with no network and is the only shipped
+  source yielding an offline-verifiable basis, so the only one eligible for
+  full offline grace.
+- `TokenRedemptionSource` composes redeem, renew, and release exchanges and
+  verifies the signed licence returned.
+- `asserted_remotely` is the named bridge for backends returning their own
+  shape. Naming it is the point: a consumer reaching for it is choosing a
+  weaker offline guarantee and the type says so.
+- `LicenceKey`: Crockford base32, grouped in fives, position-weighted check
+  symbol mod 37. Accepts lower case, missing dashes, whitespace, and the
+  I/L→1 and O→0 confusions — rejecting those would reject the customer for
+  the typeface's mistake. `is_probably_a_typo` lets a surface say "check
+  that key" rather than implying the key is worthless.
+- The weighting is load-bearing and tested: an unweighted sum accepts any
+  reordering, and transposition is one of the two mistakes people make.
+- Hosted backends are documented as consumer-implemented, with a worked
+  `HostedServiceSource` in the test suite proving a remote-assertion adapter
+  inherits the weaker grace with no extra wiring.
+- `ActivationUrl` is HTTPS-only with no loopback exception: unlike an update
+  artifact, nothing here is third-party signature-verified end to end and
+  the request carries credentials.
+- 48 crate tests; fmt clean, clippy clean on both feature passes, full
+  workspace suite green
+- log: `docs/logs/2026-08/07-activation-source-adapters.md`
 
 ## Next Task
 
