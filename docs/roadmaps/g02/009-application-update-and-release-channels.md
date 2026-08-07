@@ -16,20 +16,21 @@ outside the boundary.
 
 ## Generation Runway
 
-Ninth g02 milestone, and the first that is not remediation. Card 150 gates
-everything after it: all channels ship under one bundle identity, so a
-nightly build and a production build share the configuration, settings,
-history, and history-tree stores. Until every store records the schema that
-wrote it and refuses a newer one, shipping a second channel risks silent
-data loss on the rejoin path.
+Ninth g02 milestone, and the first that is not remediation.
+
+Card 150 was compiled as a gate on the belief that no store records the
+schema that wrote it. That was wrong — all four stores already stamp and
+refuse forward, and the write path refuses to overwrite a store it could not
+load. Card 150 is now a proof-and-classification card and gates nothing;
+memo 019 carries the correction and the evidence.
 
 ## Execution Plan
 
 ### Batch 1. Cross-channel store compatibility
 
 - [ ] [Card 150](batch-cards/150-store-schema-stamping-and-forward-refusal.md)
-  stamps a schema version into every persistent store and refuses to load a
-  newer one
+  proves the existing forward-refusal end-to-end per store and gives it one
+  shared classification
 
 ### Batch 2. Update policy and sources
 
@@ -50,19 +51,24 @@ data loss on the rejoin path.
 
 ```text
 memo 019 application update
- ├─ 150 store schema stamping        (gates 151-154)
+ ├─ 150 cross-channel store proof     (independent)
  └─ 151 update policy ─┬─ 152 source adapters
                        └─ 153 restart interlock ─ 154 client surface
 ```
 
+150 is independent and can run in any order. 154 consumes its shared
+classification to explain a channel rejoin.
+
 ## Goals
 
-- [ ] no store loads under a schema newer than the reader understands
+- [ ] no store loads under a schema newer than the reader understands, and
+  that property is proved rather than assumed
 - [ ] channel selected at runtime from settings; one bundle identity
 - [ ] rollout decided on the client, so static hosting is sufficient
 - [ ] `minimum_version` and user-initiated checks both override rollout
 - [ ] no install proceeds while Longhorn-owned work is in flight
 - [ ] signature verification stays entirely inside the Tauri plugin
+- [ ] two crates and one package added, following existing naming pairs
 
 ## Acceptance Criteria
 
@@ -72,8 +78,6 @@ memo 019 application update
 - [ ] an install ahead of its selected channel reports that state distinctly
   from "no update available"
 - [ ] a refused restart defers with a reason rather than cancelling
-- [ ] consumer coordination for the crate and package additions is agreed
-  before Card 151 opens
 
 ## Explicit Non-goals
 
@@ -86,11 +90,10 @@ memo 019 application update
 
 This milestone adds two crates (`longhorn-update`, `longhorn-tauri-update`)
 and one package (`packages/update`). The g02 remediation guardrail against
-crate and package additions does not hold here: the nucleus boundary
-verifier will reject the additions until nucleus updates. Sequencing with
-nucleus is a precondition of Card 151, not a closeout step.
+crate and package additions was scoped to remediation and does not bind new
+capability work. Consumers pick the additions up when they adopt the
+feature; nothing here blocks on them.
 
 ## Next Task
 
-Open Card 150. It is independent of the rest and of the poodle release
-currently blocking the v0.1.0 tag.
+Open Card 150.

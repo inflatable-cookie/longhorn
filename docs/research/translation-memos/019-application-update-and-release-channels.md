@@ -69,8 +69,24 @@ failure sequence is:
 
 The rejoin path is not an edge case: every nightly user eventually takes
 it, because a nightly install rolls onto production automatically once
-production reaches the same version. No store currently records the schema
-that wrote it, so the failure is undetectable rather than merely possible.
+production reaches the same version.
+
+**Corrected 2026-08-07 against the workspace.** The memo originally claimed
+no store records the schema that wrote it. That was reasoning from the
+design discussion rather than from the code, and it is false. All four
+stores already stamp and refuse forward — `longhorn-config` at
+`store/load.rs:105`, `longhorn-history` at `persistence.rs:520` plus an
+independent payload codec check, `longhorn-history-tree` at
+`persistence.rs:298`, backup archives at `backup/archive/codec.rs:231` — and
+`longhorn-settings` inherits config's check by persisting through it.
+`store/mutation.rs:114` also refuses to mutate a store that loaded as
+`Recovery`, so the destructive write-back does not occur either.
+
+What survives is narrower: no test asserts the cross-channel scenario
+end-to-end for most stores, and each store refuses in its own vocabulary,
+so a client surface cannot ask "was this written by a newer build?" without
+matching four unrelated error shapes. Card 150 is scoped to those two, and
+the milestone is not gated on it.
 
 ### Client-side rollout is what keeps hosting dumb
 
@@ -153,7 +169,8 @@ download, verification, and installation throughout.
 
 ## Consumer Exposure
 
-This milestone adds two crates and one package, which the nucleus boundary
-verifier will reject until nucleus updates. Unlike the g02 remediation
-runway, this work **cannot** stay internal to Longhorn. Sequencing with
-nucleus is a precondition of Card 151, not a closeout detail.
+This milestone adds two crates and one package. Unlike the g02 remediation
+runway, this work is additive capability rather than internal repair, so the
+remediation guardrail against crate and package additions does not bind it.
+The additions are inert until a consumer composes them; adoption is per
+application and on each consumer's own schedule.

@@ -20,15 +20,11 @@ the first non-remediation milestone.
 ## Next Task
 
 [Card 150](g02/batch-cards/150-store-schema-stamping-and-forward-refusal.md)
-is ready and does not auto-start. It stamps a schema version into every
-persistent store and gates the rest of g02.009, because all update channels
-share one bundle identity and therefore one set of stores. It is independent
-of the poodle release currently blocking the v0.1.0 tag, and stays inside
-the g02 consumer guardrail.
+is in progress. It stamps a schema version into every persistent store and
+gates the rest of g02.009, because all update channels share one bundle
+identity and therefore one set of stores. Cards 151-154 follow it.
 
-Cards 151-154 need consumer sequencing agreed first: they add two crates and
-one package, which the nucleus boundary verifier rejects until nucleus
-updates.
+The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
 Also outstanding: Card 149's receipt freeze remains operator-held on
 consumer manifest quiescence, and the

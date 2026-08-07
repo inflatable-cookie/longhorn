@@ -91,6 +91,7 @@ research memo 018 is the governing evidence. Package-manager publication
 remains deferred. Research memo 019 compiles contract 018 over in-app update:
 Longhorn owns channel, rollout, and restart-readiness policy while hosting,
 signing, and installation stay outside the boundary. Cards 150-154 (g02.009)
-execute it, and Card 150 gates the rest — a single bundle identity across
-channels makes cross-channel store compatibility a precondition, not a
-follow-up.
+execute it. A single bundle identity across channels makes cross-channel
+store compatibility load-bearing; the existing forward-refusal in all four
+stores already satisfies it, so Card 150 proves and classifies rather than
+builds.

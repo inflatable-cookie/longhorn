@@ -4,7 +4,7 @@ Status: ready
 Owner: Tom
 Roadmap: g02.009 batch 2
 Governing refs: contract 018; research memo 019
-Depends on: Card 150; consumer coordination on the new crate
+Depends on: Card 150
 Auto-start next card: no
 
 ## Objective
@@ -62,8 +62,8 @@ dependency, no network access, no installation.
 
 ## Stop Conditions
 
-- consumer coordination on the crate addition is not agreed; the nucleus
-  boundary verifier rejects new crates and this card adds one
+- rollout eligibility cannot be made deterministic without persisting
+  something derived from the machine rather than the installation
 
 ## Next Task
 

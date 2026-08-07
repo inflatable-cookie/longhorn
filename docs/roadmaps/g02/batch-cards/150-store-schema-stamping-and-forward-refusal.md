@@ -1,4 +1,4 @@
-# 150 Store Schema Stamping And Forward Refusal
+# 150 Cross-channel Store Compatibility Proof And Classification
 
 Status: ready
 Owner: Tom
@@ -9,64 +9,91 @@ Auto-start next card: no
 
 ## Objective
 
-Record the schema version that wrote every persistent store, and refuse to
-load a store written by a newer schema than the reader understands.
+Prove that every persistent store already refuses a store written by a newer
+schema without modifying it, and give that refusal one shared classification
+so the update surface can explain a channel rejoin.
 
-## Rationale
+## Correction To The Original Premise
 
-All channels ship under one bundle identity, so a nightly build and a
-production build share these stores. Every nightly install eventually
-rejoins production — automatically, once production reaches the same
-version. Without a stamp, the production reader parses a newer store
-best-effort, drops the fields it does not recognize, and writes the result
-back. The data is gone and nothing reported it.
+This card was compiled on the claim that no store records the schema that
+wrote it. That claim was wrong; it came from the design discussion and was
+not checked against the workspace. All four stores already stamp and refuse
+forward:
 
-This is why the card gates the milestone: a channel that can write an
-unstamped store is not shippable.
+- `longhorn-config` — `SchemaVersion` from `longhorn-core`, refused at
+  `store/load.rs:105` as `RecoveryKind::FutureSchema`
+- `longhorn-settings` — persists through config domains, so it inherits the
+  same check
+- `longhorn-history` — structural envelope version refused at
+  `persistence.rs:520`, plus an independent payload codec version refused
+  separately
+- `longhorn-history-tree` — structural version refused at
+  `persistence.rs:298`
+- backup archives — `UnsupportedFormatVersion` at
+  `backup/archive/codec.rs:231`
+
+The non-destructive half holds too: `store/mutation.rs:114` refuses to
+mutate a store that loaded as `Recovery`, so a future-schema store is not
+overwritten by the next write.
+
+The milestone's gating rationale therefore does not hold, and this card is
+no longer a build. What remains is genuinely smaller.
+
+## Remaining Gap
+
+**Coverage.** `longhorn-layout-config` has
+`future_schema_and_registry_mismatch_preserve_exact_source`, which is the
+shape the whole scenario needs. Nothing asserts the cross-channel case
+end-to-end for the other stores: newer store written, older reader opens it,
+refuses, and the bytes on disk are unchanged afterwards.
+
+**Classification.** Each store refuses in its own vocabulary —
+`RecoveryKind::FutureSchema`, a history structural-version error, a payload
+codec error, `UnsupportedFormatVersion`. Contract 018 requires the client
+surface to distinguish "this data was written by a newer build" from every
+other load failure, and today that means the surface would have to match on
+four unrelated error shapes.
 
 ## Scope
 
-- `longhorn-config`, `longhorn-settings`, `longhorn-history`,
-  `longhorn-history-tree` persistence paths
-- one shared store-version contract across all four; not four conventions
-- backup and restore archives, which carry stores across time as well as
-  across channels
+- cross-channel round-trip tests per store, including bytes-unchanged
+- one shared classification for future-schema refusal
+- no change to the existing refusal behaviour
 
 ## Steps
 
-1. Define the shared store-version shape in `longhorn-core` alongside the
-   existing diagnostics seam. One type, one comparison rule.
-2. Stamp on write in all four stores.
-3. Refuse on read when the recorded version exceeds the reader's, with a
-   typed error naming both versions. Never partial-parse, never write back
-   a store that failed to fully load.
-4. Decide and record the treatment of existing unstamped stores — they
-   predate the stamp and must remain loadable. A missing stamp is not a
-   newer stamp.
-5. Extend the same rule to backup archive admission.
-6. Tests: newer-schema refusal per store, equal-version load, unstamped
-   legacy load, and a round-trip that proves a refused load leaves the file
-   untouched.
+1. Write the cross-channel test per store, modelled on the layout-config
+   test: write under version N+1, open with a reader at N, assert refusal
+   and assert the file is byte-identical afterwards.
+2. Cover the backup archive path with the same shape.
+3. Cover `longhorn-history`'s payload codec version as well as its
+   structural version — they refuse independently and both reach a channel
+   rejoin.
+4. Add one shared classification in `longhorn-core` that each store's
+   refusal maps onto, so a caller can ask "was this a future-schema
+   refusal?" without knowing which store answered.
+5. Do not alter refusal behaviour. This card proves and classifies what
+   exists.
 
 ## Acceptance Criteria
 
-- all four stores stamp and check under one shared contract
-- a newer-schema store is refused with a typed error and left unmodified
-- unstamped legacy stores still load
-- backup restore honours the same rule
-- workspace QA passes; no crate or package count change
+- every store has a cross-channel refusal test asserting bytes-unchanged
+- history's payload codec path is covered independently of its structural
+  path
+- one classification answers the future-schema question across all stores
+- no behaviour change; workspace QA passes
+- no crate or package count change
 
 ## Evidence Required
 
-- the shared version contract and its comparison rule
-- per-store refusal tests and the untouched-file proof
-- the recorded decision on legacy unstamped stores
+- per-store test receipts including the bytes-unchanged assertion
+- the shared classification and its mapping from each store's error
 
 ## Stop Conditions
 
-- a store's on-disk format cannot carry a stamp without breaking existing
-  readers in consumer applications
+- a store turns out to refuse destructively after all, which would make this
+  a build card again and re-gate the milestone
 
 ## Next Task
 
-Card 151, once consumer coordination for the new crates is agreed.
+Card 151.

@@ -36,13 +36,13 @@ sites it instruments.
 ```text
 memo 019 application update
  └─ 009 application update and release channels
-     ├─ 150 store schema stamping        (gates 151-154)
+     ├─ 150 cross-channel store proof     (independent)
      └─ 151 update policy ─┬─ 152 source adapters
                            └─ 153 restart interlock ─ 154 client surface
 ```
 
 009 is independent of 001-008 and of the poodle release blocking the v0.1.0
-tag. Card 150 gates the rest of its own runway.
+tag.
 
 ## Current Checkpoint
 
@@ -101,10 +101,9 @@ verifier), and the `notifications/operation` and
 `tauri-transfer/surface-transfer` feature names stay fixed. Async command
 migration must not change the invoke wire surface.
 
-**g02.009 is exempt and deliberately so.** It adds two crates and one
-package, which the nucleus boundary verifier rejects until nucleus updates.
-Consumer sequencing is a precondition of Card 151, not a closeout step.
-Card 150 stays inside the guardrail and can run first regardless.
+**These guardrails scope to remediation.** g02.009 is new capability work
+and adds two crates and one package deliberately. Consumers pick them up
+when they adopt the feature.
 
 ## Continuation
 

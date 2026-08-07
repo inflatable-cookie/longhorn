@@ -82,9 +82,10 @@ their artifacts live.
   the mismatch. It never parses partially, and never writes back a store it
   could not fully read.
 - This applies to configuration, settings, history, and history-tree
-  equally, under one shared version contract.
-- Schema stamping precedes the first multi-channel build. A channel that can
-  write an unstamped store is not shippable.
+  equally, and to backup archives.
+- Each store keeps its own version vocabulary. One shared classification
+  answers whether a refusal was a future-schema refusal, so a client surface
+  can explain a channel rejoin without matching per-store error shapes.
 
 ## Diagnostics
 
