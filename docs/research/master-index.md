@@ -27,6 +27,8 @@ Updated: 2026-07-31
 | command registry, keyboard, keymaps, and palette | [Command, Input, And Palette Boundary](translation-memos/014-command-input-and-palette-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/006-command-action-and-input.md`; `../roadmaps/g01/010-command-registry-keymaps-and-palette.md`; cards 056-061 |
 | async operations and notifications | [Async Operation And Notification Boundary](translation-memos/016-async-operation-and-notification-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/015-async-operation-lifecycle.md`; `../contracts/016-notification-ledger-and-projection.md`; `../roadmaps/g01/012-async-operations-and-notifications.md`; cards 075-081 |
 | native content islands | [Native Content Island Boundary](translation-memos/017-native-content-island-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/017-native-content-island-coordination.md`; `../roadmaps/g01/013-native-content-islands-prototype.md` |
+| workspace integrity audit | [Workspace Integrity Audit](translation-memos/018-workspace-integrity-audit.md) | `../roadmaps/g02/README.md`; cards 138-148 |
+| application update and release channels | [Application Update And Release Channels](translation-memos/019-application-update-and-release-channels.md) | `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/009-application-update-and-release-channels.md`; cards 150-154 |
 
 ## Open Research
 
@@ -38,6 +40,12 @@ Updated: 2026-07-31
 - macros, extended input triggers, native accelerators, and synchronized
   keymaps
 - public registry name verification
+- minisign key custody and rotation: only one public key is embedded per
+  build, so rotation means shipping a version that accepts the successor,
+  waiting for adoption, then switching. Key loss strands every install
+  permanently. Operator-owned.
+- update rollback: Tauri has no mechanism. Staged rollout limits blast
+  radius but does not undo a bad release.
 - branch reference, checkpoint, pruning, migration, and performance decision
   after the private history-tree prototype
 - packaged native-content proof across display scales and supported platforms

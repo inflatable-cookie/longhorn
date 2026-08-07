@@ -12,6 +12,7 @@
 | [g02.006](006-qa-and-docs-alignment.md) | complete | resolving QA selectors, package hygiene, truthful front doors |
 | [g02.007](007-dependency-refresh-sweep.md) | complete | current dependency graph with conformance-backed pin decisions |
 | [g02.008](008-distribution-candidate-v2.md) | operator-held | candidate receipt v2 over the refreshed graph |
+| [g02.009](009-application-update-and-release-channels.md) | ready | in-app update: channels, client-side rollout, source adapters, restart safety |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -32,6 +33,17 @@ memo 018 workspace audit
 001-004 and 006 are independent. 005 lands after 002-004 settle the swallow
 sites it instruments.
 
+```text
+memo 019 application update
+ └─ 009 application update and release channels
+     ├─ 150 store schema stamping        (gates 151-154)
+     └─ 151 update policy ─┬─ 152 source adapters
+                           └─ 153 restart interlock ─ 154 client surface
+```
+
+009 is independent of 001-008 and of the poodle release blocking the v0.1.0
+tag. Card 150 gates the rest of its own runway.
+
 ## Current Checkpoint
 
 Research memo 018 promotes the post-g01 workspace audit. All findings sit
@@ -41,6 +53,11 @@ The remediation milestones and the dependency refresh sweep (Cards
 138-148) are complete. Card 149 part 1 (bridge optional peer, candidate
 verifier, diagnostics guide) is done; receipt generation is operator-held
 on nucleus manifest quiescence.
+
+Research memo 019 opens the generation past remediation: contract 018
+compiles the in-app update boundary, and Cards 150-154 (g02.009) execute it.
+Card 150 is ready and independent of the poodle release currently blocking
+the v0.1.0 tag.
 
 ## Candidate Runway
 
@@ -83,6 +100,11 @@ Remediation stays internal to Longhorn. No `packages/*/src/` file moves
 verifier), and the `notifications/operation` and
 `tauri-transfer/surface-transfer` feature names stay fixed. Async command
 migration must not change the invoke wire surface.
+
+**g02.009 is exempt and deliberately so.** It adds two crates and one
+package, which the nucleus boundary verifier rejects until nucleus updates.
+Consumer sequencing is a precondition of Card 151, not a closeout step.
+Card 150 stays inside the guardrail and can run first regardless.
 
 ## Continuation
 

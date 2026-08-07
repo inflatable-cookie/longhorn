@@ -25,6 +25,7 @@ Updated: 2026-08-03
 | [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active; lifecycle foundation implemented |
 | [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active; pure ledger implemented |
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |
+| [018 Application Update And Release Channels](018-application-update-and-release-channels.md) | update policy, source adapters, channels, client-side rollout, restart readiness, cross-channel store compatibility | active compiled boundary |
 
 ## Pending Contracts
 
@@ -87,4 +88,9 @@ migrations, the private compatibility candidate, the optional fork-tree
 layer, grouped-adapter absence restore, and child-view navigation.
 Generation g02 executes remediation Cards 138-147 under existing contracts;
 research memo 018 is the governing evidence. Package-manager publication
-remains deferred.
+remains deferred. Research memo 019 compiles contract 018 over in-app update:
+Longhorn owns channel, rollout, and restart-readiness policy while hosting,
+signing, and installation stay outside the boundary. Cards 150-154 (g02.009)
+execute it, and Card 150 gates the rest — a single bundle identity across
+channels makes cross-channel store compatibility a precondition, not a
+follow-up.

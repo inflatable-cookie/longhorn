@@ -7,10 +7,11 @@ characterized and promoted through the docs spine.
 
 ## Active Generation
 
-[g02](g02/README.md) — workspace integrity remediation. Research memo 018
-characterizes the post-g01 audit gap; Cards 138-147 delivered all six
-remediation milestones. The generation stays open for the next
-characterized shared gap.
+[g02](g02/README.md) — workspace integrity remediation, now open past it.
+Research memo 018 characterizes the post-g01 audit gap; Cards 138-147
+delivered all six remediation milestones. Research memo 019 characterizes
+the in-app update gap and compiles contract 018; g02.009 (Cards 150-154) is
+the first non-remediation milestone.
 
 ## Rollover History
 
@@ -18,11 +19,18 @@ characterized shared gap.
 
 ## Next Task
 
-The g02 remediation runway (Cards 138-147) is complete. No Longhorn card
-auto-starts. The [g02 candidate runway](g02/README.md#candidate-runway)
-tiers the next options: Tier A (dependency refresh sweep, then
-distribution candidate v2, plus diagnostics adoption) is executable under existing contracts on
-operator selection; Tiers B and C need new evidence or product decisions
-first. Deferred candidates remain in the
-[system inventory](../architecture/system-inventory.md#planning-gaps) and are
-not a committed runway. Package-manager publication remains deferred.
+[Card 150](g02/batch-cards/150-store-schema-stamping-and-forward-refusal.md)
+is ready and does not auto-start. It stamps a schema version into every
+persistent store and gates the rest of g02.009, because all update channels
+share one bundle identity and therefore one set of stores. It is independent
+of the poodle release currently blocking the v0.1.0 tag, and stays inside
+the g02 consumer guardrail.
+
+Cards 151-154 need consumer sequencing agreed first: they add two crates and
+one package, which the nucleus boundary verifier rejects until nucleus
+updates.
+
+Also outstanding: Card 149's receipt freeze remains operator-held on
+consumer manifest quiescence, and the
+[g02 candidate runway](g02/README.md#candidate-runway) still tiers the
+deferred options. Package-manager publication remains deferred.
