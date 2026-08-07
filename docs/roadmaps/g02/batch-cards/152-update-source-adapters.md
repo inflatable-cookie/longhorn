@@ -1,11 +1,12 @@
 # 152 Update Source Adapters
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g02.009 batch 2
 Governing refs: contract 018; research memo 019
 Depends on: Card 151
 Auto-start next card: no
+Completed: 2026-08-07
 
 ## Objective
 
@@ -62,6 +63,36 @@ update policy unchanged.
 
 - the trait cannot express an adapter without leaking transport concerns
   into policy
+
+## Evidence
+
+- `UpdateSource` in `longhorn-update`: `manifest_request(channel)` and
+  `artifact_request(artifact)`, both returning a `SourceRequest` of URL plus
+  headers. Adapters *describe* requests; they never fetch. Card 153's
+  finding makes that the right shape rather than a purity preference --
+  Tauri's plugin does the fetching, verifying and installing, so a URL and
+  headers is exactly what it consumes.
+- `artifact_request` has a default implementation using the artifact's own
+  URL unauthenticated, so public hosts and presigned URLs need no override.
+- `EndpointUrl` requires HTTPS, with loopback HTTP allowed for the local
+  shim. Loopback matching parses the authority rather than prefix-matching,
+  so `localhost.example.com` and `127.0.0.1.example.com` are correctly
+  refused.
+- Adapters: `StaticJsonSource`, `GitHubReleasesSource` (covering the
+  secondary-public-repository case by coordinate), `ObjectStorageSource`
+  with an optional injected presigner.
+- Presigning is injected, not implemented. Request signing belongs to
+  whichever SDK the consumer already uses; a pure policy crate is the wrong
+  place for SigV4. Without a presigner the bucket adapter behaves as a
+  static host, which is correct for a public bucket.
+- Private GitHub is documented as needing a proxy rather than shipped
+  half-working. The acceptance test carries a `ProxiedPrivateSource` to
+  prove the trait accommodates it.
+- 16 source tests, including a consumer adapter inheriting rollout policy
+  with no extra wiring, and an adapter that cannot downgrade transport
+  security.
+- fmt clean, clippy clean on both feature passes, full workspace suite green
+- log: `docs/logs/2026-08/07-update-source-adapters.md`
 
 ## Next Task
 

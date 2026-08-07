@@ -15,6 +15,7 @@ mod deferral;
 mod manifest;
 mod restart;
 mod rollout;
+mod source;
 
 pub use channel::{BuildIdentity, Channel};
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
@@ -22,3 +23,7 @@ pub use deferral::{Deferral, DeferralCause};
 pub use manifest::{Artifact, ChannelManifest, TargetTriple, TargetTripleError};
 pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
 pub use rollout::{InstallId, InstallIdError, Rollout, RolloutFraction, RolloutFractionError};
+pub use source::{
+    EndpointUrl, EndpointUrlError, GitHubReleasesSource, ObjectStorageSource, SourceError,
+    SourceRequest, StaticJsonSource, UpdateSource,
+};

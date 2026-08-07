@@ -37,7 +37,7 @@ memo 019 carries the correction and the evidence.
 - [x] [Card 151](batch-cards/151-update-policy-channels-and-rollout.md)
   builds `longhorn-update`: manifest model, channel resolution, semver
   comparison, client-side rollout, deferral state
-- [ ] [Card 152](batch-cards/152-update-source-adapters.md) defines the
+- [x] [Card 152](batch-cards/152-update-source-adapters.md) defines the
   `UpdateSource` trait and the four default adapters
 
 ### Batch 3. Install and client surface

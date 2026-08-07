@@ -28,9 +28,16 @@ update surface recognise a channel rejoin without matching per-store errors.
 complete: `longhorn-update` carries channel, manifest, rollout, and deferral
 policy as a pure crate.
 
-[Card 152](g02/batch-cards/152-update-source-adapters.md) and
-[Card 153](g02/batch-cards/153-restart-interlock-and-tauri-install.md) are
-ready, independent of each other, and do not auto-start.
+[Card 152](g02/batch-cards/152-update-source-adapters.md) is complete: the
+`UpdateSource` trait plus static-JSON, GitHub-releases, and object-storage
+adapters, with private GitHub documented as needing a consumer proxy.
+
+[Card 153](g02/batch-cards/153-restart-interlock-and-tauri-install.md) has
+its mechanism findings recorded and its quiescence contract landed. Its
+remaining half — `longhorn-tauri-update` host wiring — needs a packaged
+proof application, because install and relaunch cannot be exercised
+headlessly and tauri#11392 puts the relaunch path specifically in doubt.
+[Card 154](g02/batch-cards/154-update-client-surface.md) follows it.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
