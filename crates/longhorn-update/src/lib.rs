@@ -13,10 +13,12 @@ mod channel;
 mod decision;
 mod deferral;
 mod manifest;
+mod restart;
 mod rollout;
 
 pub use channel::{BuildIdentity, Channel};
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
 pub use deferral::{Deferral, DeferralCause};
 pub use manifest::{Artifact, ChannelManifest, TargetTriple, TargetTripleError};
+pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
 pub use rollout::{InstallId, InstallIdError, Rollout, RolloutFraction, RolloutFractionError};

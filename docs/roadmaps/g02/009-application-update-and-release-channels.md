@@ -44,6 +44,8 @@ memo 019 carries the correction and the evidence.
 
 - [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
+  — mechanism findings recorded and the quiescence contract landed; host
+  wiring needs a packaged proof application (tauri#11392)
 - [ ] [Card 154](batch-cards/154-update-client-surface.md) builds
   `packages/update`: bindings and Svelte surface
 

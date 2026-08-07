@@ -147,14 +147,20 @@ download, verification, and installation throughout.
 
 ## Open Questions And Validation Needs
 
-- **Whether Tauri will install a specifically chosen artifact**, or only
-  what its configured endpoint returns. If endpoint-only, the resolved
-  manifest is served to it over a loopback endpoint bound to `127.0.0.1`
-  with a one-shot nonce. Signature verification still gates the install
-  either way, so this is a crate-shape question and not a security one.
-  Card 153 settles it before building.
-- **How `installMode` and the macOS in-place bundle replacement interact
-  with Longhorn's teardown ordering.** Card 153.
+- ~~**Whether Tauri will install a specifically chosen artifact**~~ —
+  settled 2026-08-07. It will not: `Update` has no public constructor and
+  comes only from `Updater::check()`. But `endpoints` is settable at runtime
+  and `version_comparator` accepts our decision, with `Update::raw_json`
+  exposing fields the plugin does not model — so channel selection and
+  rollout ride inside the manifest the plugin already fetches. Loopback is
+  needed only for adapters the plugin cannot fetch directly.
+- ~~**How `installMode` and the macOS bundle replacement interact with
+  teardown ordering**~~ — settled 2026-08-07. `installMode` is Windows-only.
+  macOS `install` replaces the bundle and returns **without relaunching**,
+  so quiesce, install, tear down, and relaunch are four steps Longhorn
+  orders itself. Hazard recorded: tauri#11392, where a close handler calling
+  `api.prevent_close()` can leave the app not relaunching — and Longhorn
+  owns close handling.
 - **Minisign key custody and rotation.** Losing the private key strands
   every installed application permanently — each user reinstalls by hand.
   Only one public key is embedded per build, so rotation requires shipping
