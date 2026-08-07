@@ -33,6 +33,7 @@ members = [
   "crates/longhorn-surfaces",
   "crates/longhorn-surfaces-config",
   "crates/longhorn-transfer",
+  "crates/longhorn-update",
   "crates/longhorn-tauri-config",
   "crates/longhorn-tauri-transfer",
   "crates/longhorn-tauri-windowing",
@@ -96,12 +97,14 @@ longhorn-surface-transfer = { path = "crates/longhorn-surface-transfer", version
 longhorn-surfaces = { path = "crates/longhorn-surfaces", version = "0.1.0" }
 longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config", version = "0.1.0" }
 longhorn-transfer = { path = "crates/longhorn-transfer", version = "0.1.0" }
+longhorn-update = { path = "crates/longhorn-update", version = "0.1.0" }
 longhorn-tauri-transfer = { path = "crates/longhorn-tauri-transfer", version = "0.1.0" }
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version = "0.1.0" }
 longhorn-windowing = { path = "crates/longhorn-windowing", version = "0.1.0" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version = "0.1.0" }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 rusqlite = { version = "=0.40.1", features = ["backup", "bundled"] }
+semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"

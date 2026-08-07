@@ -1,0 +1,144 @@
+use semver::Version;
+use serde::{Deserialize, Serialize};
+
+use crate::{BuildIdentity, ChannelManifest, InstallId};
+
+/// Why an update check ran.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(export))]
+pub enum CheckKind {
+    /// A background or startup check.
+    #[default]
+    Automatic,
+    /// The user asked.
+    ///
+    /// Bypasses rollout. Someone who opens the dialog and presses the button
+    /// has opted in, and telling them "no update" while one exists is a
+    /// worse failure than widening the stage by one install.
+    UserInitiated,
+}
+
+impl CheckKind {
+    /// Returns whether this check bypasses staged rollout.
+    #[must_use]
+    pub const fn bypasses_rollout(self) -> bool {
+        matches!(self, Self::UserInitiated)
+    }
+}
+
+/// Why an update is being offered.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(export))]
+pub enum OfferReason {
+    /// The release is offered to everyone, or to this install's stage.
+    Staged,
+    /// The install is below the mandatory floor.
+    ///
+    /// Rollout does not apply; this update is not optional.
+    BelowMinimumVersion,
+    /// The user asked, so rollout was bypassed.
+    UserInitiated,
+}
+
+impl OfferReason {
+    /// Returns whether the user may reasonably decline.
+    #[must_use]
+    pub const fn is_optional(self) -> bool {
+        !matches!(self, Self::BelowMinimumVersion)
+    }
+}
+
+/// An available update.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateOffer {
+    /// The version offered.
+    pub version: Version,
+    /// Why it is offered.
+    pub reason: OfferReason,
+    /// Release notes, when published.
+    pub notes: Option<String>,
+}
+
+/// The outcome of one update check.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase", tag = "state")]
+pub enum UpdateAvailability {
+    /// An update is available now.
+    Offer(UpdateOffer),
+    /// The install is already on the channel's current version.
+    UpToDate,
+    /// The install is ahead of the channel it selected.
+    ///
+    /// Reached by switching from a faster channel to a slower one: an install
+    /// on `1.3.0-nightly.4` that selects production sits ahead of production
+    /// `1.2.9` and receives nothing until `1.3.0` ships. Correct, and
+    /// indistinguishable from a broken updater unless it is said out loud —
+    /// which is why this is its own state and not `UpToDate`.
+    AheadOfChannel {
+        /// What is installed.
+        installed: Version,
+        /// What the channel currently publishes.
+        channel: Version,
+    },
+    /// A newer version exists but this install is not in the current stage.
+    WithheldByRollout {
+        /// The version being staged.
+        version: Version,
+    },
+}
+
+/// Decides what one update check should surface.
+///
+/// Pure: every input is explicit, and the same inputs always give the same
+/// answer. Ordering matters and is deliberate — the mandatory floor is
+/// checked before rollout so that a security release is never withheld.
+#[must_use]
+pub fn evaluate(
+    build: &BuildIdentity,
+    manifest: &ChannelManifest,
+    install: &InstallId,
+    check: CheckKind,
+) -> UpdateAvailability {
+    if manifest.version == build.version {
+        return UpdateAvailability::UpToDate;
+    }
+
+    if manifest.version < build.version {
+        return UpdateAvailability::AheadOfChannel {
+            installed: build.version.clone(),
+            channel: manifest.version.clone(),
+        };
+    }
+
+    let offer = |reason| {
+        UpdateAvailability::Offer(UpdateOffer {
+            version: manifest.version.clone(),
+            reason,
+            notes: manifest.notes.clone(),
+        })
+    };
+
+    if manifest.is_below_minimum(&build.version) {
+        return offer(OfferReason::BelowMinimumVersion);
+    }
+
+    if check.bypasses_rollout() {
+        return offer(OfferReason::UserInitiated);
+    }
+
+    match &manifest.rollout {
+        // Rollout is a production-only mechanism. Beta and nightly exist to
+        // receive releases early, so staging them would defeat the channel.
+        Some(rollout) if manifest.channel.stages_rollout() && !rollout.includes(install) => {
+            UpdateAvailability::WithheldByRollout {
+                version: manifest.version.clone(),
+            }
+        }
+        _ => offer(OfferReason::Staged),
+    }
+}

@@ -2804,6 +2804,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-update"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "ts-rs",
+]
+
+[[package]]
 name = "longhorn-windowing"
 version = "0.1.0"
 dependencies = [

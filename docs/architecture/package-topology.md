@@ -50,6 +50,7 @@ discovery and validation entry points.
 | `longhorn-native-content-isolated-window` | generic process-isolated content coordination, bounded helper protocol, and injected lifecycle ports | core, native-content, serde |
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
+| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, and deferral | core, semver, sha2 |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
 | `longhorn-tauri-windowing` | checked Tauri observation, managed identity, native mutation, lifecycle, capture, reveal, and flush | core, display, windowing, Tauri |

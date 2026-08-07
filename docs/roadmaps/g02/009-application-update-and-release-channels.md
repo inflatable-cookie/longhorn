@@ -34,7 +34,7 @@ memo 019 carries the correction and the evidence.
 
 ### Batch 2. Update policy and sources
 
-- [ ] [Card 151](batch-cards/151-update-policy-channels-and-rollout.md)
+- [x] [Card 151](batch-cards/151-update-policy-channels-and-rollout.md)
   builds `longhorn-update`: manifest model, channel resolution, semver
   comparison, client-side rollout, deferral state
 - [ ] [Card 152](batch-cards/152-update-source-adapters.md) defines the
@@ -63,9 +63,9 @@ classification to explain a channel rejoin.
 
 - [x] no store loads under a schema newer than the reader understands, and
   that property is proved rather than assumed
-- [ ] channel selected at runtime from settings; one bundle identity
-- [ ] rollout decided on the client, so static hosting is sufficient
-- [ ] `minimum_version` and user-initiated checks both override rollout
+- [x] channel selected at runtime from settings; one bundle identity
+- [x] rollout decided on the client, so static hosting is sufficient
+- [x] `minimum_version` and user-initiated checks both override rollout
 - [ ] no install proceeds while Longhorn-owned work is in flight
 - [ ] signature verification stays entirely inside the Tauri plugin
 - [ ] two crates and one package added, following existing naming pairs

@@ -25,9 +25,12 @@ non-destructive, and one shared classification in `longhorn-core` lets the
 update surface recognise a channel rejoin without matching per-store errors.
 
 [Card 151](g02/batch-cards/151-update-policy-channels-and-rollout.md) is
-ready and does not auto-start. It builds `longhorn-update` — channel
-resolution, semver comparison, client-side rollout, deferral — with no Tauri
-dependency.
+complete: `longhorn-update` carries channel, manifest, rollout, and deferral
+policy as a pure crate.
+
+[Card 152](g02/batch-cards/152-update-source-adapters.md) and
+[Card 153](g02/batch-cards/153-restart-interlock-and-tauri-install.md) are
+ready, independent of each other, and do not auto-start.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
