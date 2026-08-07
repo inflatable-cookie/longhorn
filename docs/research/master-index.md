@@ -29,6 +29,7 @@ Updated: 2026-07-31
 | native content islands | [Native Content Island Boundary](translation-memos/017-native-content-island-boundary.md) | `../architecture/system-architecture.md`; `../architecture/package-topology.md`; `../contracts/017-native-content-island-coordination.md`; `../roadmaps/g01/013-native-content-islands-prototype.md` |
 | workspace integrity audit | [Workspace Integrity Audit](translation-memos/018-workspace-integrity-audit.md) | `../roadmaps/g02/README.md`; cards 138-148 |
 | application update and release channels | [Application Update And Release Channels](translation-memos/019-application-update-and-release-channels.md) | `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/009-application-update-and-release-channels.md`; cards 150-154 |
+| licensing, entitlement, and activation | [Licensing, Entitlement, And Activation](translation-memos/020-licensing-entitlement-and-activation.md) | `../contracts/019-licensing-entitlement-and-activation.md`; `../roadmaps/g02/010-licensing-entitlement-and-activation.md`; cards 155-158 |
 
 ## Open Research
 
@@ -46,6 +47,11 @@ Updated: 2026-07-31
   permanently. Operator-owned.
 - update rollback: Tauri has no mechanism. Staged rollout limits blast
   radius but does not undo a bad release.
+- signing key custody and rotation for consumer-issued offline licences:
+  the same one-embedded-key problem as the updater's minisign key. The two
+  should be solved once, together. Consumer-owned.
+- reinstall-farm detection via coarse hardware fingerprinting: deliberately
+  deferred, trading privacy against abuse not yet observed.
 - branch reference, checkpoint, pruning, migration, and performance decision
   after the private history-tree prototype
 - packaged native-content proof across display scales and supported platforms

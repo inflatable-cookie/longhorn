@@ -26,6 +26,7 @@ Updated: 2026-08-03
 | [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active; pure ledger implemented |
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |
 | [018 Application Update And Release Channels](018-application-update-and-release-channels.md) | update policy, source adapters, channels, client-side rollout, restart readiness, cross-channel store compatibility | active compiled boundary |
+| [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
 
 ## Pending Contracts
 
@@ -95,3 +96,12 @@ execute it. A single bundle identity across channels makes cross-channel
 store compatibility load-bearing; the existing forward-refusal in all four
 stores already satisfies it, so Card 150 proves and classifies rather than
 builds.
+
+Research memo 020 compiles contract 019 over licensing. Longhorn owns the
+licence shape and its evaluation; applications own the backend, the purchase
+model, and what an absent entitlement means. Two independently optional
+windows — use and update — express subscription, perpetual-with-maintenance,
+trial, and freemium without Longhorn naming any of them, and the update
+window is what contract 018's updater consults before offering a release.
+Longhorn answers "entitled?" and never enforces. Cards 155-158 (g02.010)
+execute it.

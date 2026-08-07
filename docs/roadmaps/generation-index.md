@@ -11,7 +11,8 @@ characterized and promoted through the docs spine.
 Research memo 018 characterizes the post-g01 audit gap; Cards 138-147
 delivered all six remediation milestones. Research memo 019 characterizes
 the in-app update gap and compiles contract 018; g02.009 (Cards 150-154) is
-the first non-remediation milestone.
+the first non-remediation milestone. Research memo 020 compiles contract 019
+over licensing as g02.010 (Cards 155-158).
 
 ## Rollover History
 
@@ -38,6 +39,9 @@ remaining half — `longhorn-tauri-update` host wiring — needs a packaged
 proof application, because install and relaunch cannot be exercised
 headlessly and tauri#11392 puts the relaunch path specifically in doubt.
 [Card 154](g02/batch-cards/154-update-client-surface.md) follows it.
+
+[Card 155](g02/batch-cards/155-licence-model-and-entitlement-evaluation.md)
+opens g02.010 and is ready. It is independent of everything above.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 

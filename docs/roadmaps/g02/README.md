@@ -12,7 +12,8 @@
 | [g02.006](006-qa-and-docs-alignment.md) | complete | resolving QA selectors, package hygiene, truthful front doors |
 | [g02.007](007-dependency-refresh-sweep.md) | complete | current dependency graph with conformance-backed pin decisions |
 | [g02.008](008-distribution-candidate-v2.md) | operator-held | candidate receipt v2 over the refreshed graph |
-| [g02.009](009-application-update-and-release-channels.md) | ready | in-app update: channels, client-side rollout, source adapters, restart safety |
+| [g02.009](009-application-update-and-release-channels.md) | in progress | in-app update: channels, client-side rollout, source adapters, restart safety |
+| [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -41,8 +42,16 @@ memo 019 application update
                            └─ 153 restart interlock ─ 154 client surface
 ```
 
-009 is independent of 001-008 and of the poodle release blocking the v0.1.0
-tag.
+```text
+memo 020 licensing
+ └─ 010 licensing, entitlement, and activation
+     └─ 155 licence core ─┬─ 156 activation adapters
+                          └─ 157 host and storage ─ 158 client surface
+```
+
+009 and 010 are independent of 001-008 and of the poodle release blocking
+the v0.1.0 tag. They meet at the update window: the updater asks the licence
+whether a release may be taken.
 
 ## Current Checkpoint
 
@@ -56,8 +65,13 @@ on nucleus manifest quiescence.
 
 Research memo 019 opens the generation past remediation: contract 018
 compiles the in-app update boundary, and Cards 150-154 (g02.009) execute it.
-Card 150 is ready and independent of the poodle release currently blocking
-the v0.1.0 tag.
+Cards 150-152 are complete. Card 153 has its mechanism findings recorded and
+its quiescence contract landed; its host wiring waits on a packaged proof
+application.
+
+Research memo 020 compiles contract 019 over licensing. Cards 155-158
+(g02.010) are ready. Both new milestones are independent of the poodle
+release currently blocking the v0.1.0 tag.
 
 ## Candidate Runway
 
@@ -101,9 +115,9 @@ verifier), and the `notifications/operation` and
 `tauri-transfer/surface-transfer` feature names stay fixed. Async command
 migration must not change the invoke wire surface.
 
-**These guardrails scope to remediation.** g02.009 is new capability work
-and adds two crates and one package deliberately. Consumers pick them up
-when they adopt the feature.
+**These guardrails scope to remediation.** g02.009 and g02.010 are new
+capability work and add crates and packages deliberately. The additions are
+inert until composed; consumers pick them up when they adopt the feature.
 
 ## Continuation
 
