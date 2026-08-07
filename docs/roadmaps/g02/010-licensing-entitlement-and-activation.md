@@ -27,7 +27,7 @@ whether a release may be taken.
 
 ### Batch 1. Licence core
 
-- [ ] [Card 155](batch-cards/155-licence-model-and-entitlement-evaluation.md)
+- [x] [Card 155](batch-cards/155-licence-model-and-entitlement-evaluation.md)
   builds `longhorn-licence`: verified licence, trust basis, entitlements,
   the two windows, lease and grace, clock-regression refusal
 
@@ -59,24 +59,24 @@ reads.
 
 ## Goals
 
-- [ ] every purchase model expressible without a Longhorn change
-- [ ] entitlements opaque; Longhorn enumerates no features
-- [ ] trust basis recorded, and offline grace never granted on a basis that
+- [x] every purchase model expressible without a Longhorn change
+- [x] entitlements opaque; Longhorn enumerates no features
+- [x] trust basis recorded, and offline grace never granted on a basis that
   cannot survive being offline
-- [ ] Longhorn answers "entitled?" and never enforces
-- [ ] an unreachable backend fails open within the lease
+- [x] Longhorn answers "entitled?" and never enforces
+- [x] an unreachable backend fails open within the lease
 
 ## Acceptance Criteria
 
-- [ ] subscription, perpetual-with-maintenance, trial, and freemium are all
+- [x] subscription, perpetual-with-maintenance, trial, and freemium are all
   expressed in tests using only the two windows, with no model-specific code
-- [ ] a remote-assertion licence cannot obtain offline grace reserved for
+- [x] a remote-assertion licence cannot obtain offline grace reserved for
   offline-verifiable licences
 - [ ] a consumer-implemented adapter inherits evaluation with no extra
   wiring
-- [ ] a large backwards clock movement is refused
+- [x] a large backwards clock movement is refused
 - [ ] licence state refuses a newer schema, per Card 150
-- [ ] no crate exposes an enforcement call
+- [x] no crate exposes an enforcement call
 
 ## Explicit Non-goals
 

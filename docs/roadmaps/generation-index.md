@@ -41,7 +41,12 @@ headlessly and tauri#11392 puts the relaunch path specifically in doubt.
 [Card 154](g02/batch-cards/154-update-client-surface.md) follows it.
 
 [Card 155](g02/batch-cards/155-licence-model-and-entitlement-evaluation.md)
-opens g02.010 and is ready. It is independent of everything above.
+is complete: `longhorn-licence` carries the licence shape, trust basis,
+entitlements, both windows, lease and grace.
+
+[Card 156](g02/batch-cards/156-activation-source-adapters.md) and
+[Card 157](g02/batch-cards/157-tauri-licence-host-and-secure-storage.md) are
+ready, independent of each other, and do not auto-start.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 

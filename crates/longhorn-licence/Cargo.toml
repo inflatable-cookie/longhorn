@@ -1,0 +1,25 @@
+[package]
+name = "longhorn-licence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure licence model, entitlement evaluation, and lease policy for Longhorn"
+publish = false
+
+[features]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+
+[dependencies]
+ed25519-dalek.workspace = true
+longhorn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+ed25519-dalek = { workspace = true, features = ["rand_core"] }
+
+[lints]
+workspace = true

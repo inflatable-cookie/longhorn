@@ -1,11 +1,12 @@
 # 155 Licence Model And Entitlement Evaluation
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g02.010 batch 1
 Governing refs: contract 019; research memo 020
 Depends on: none
 Auto-start next card: no
+Completed: 2026-08-07
 
 ## Objective
 
@@ -67,6 +68,33 @@ clock.
 
 - the two windows cannot express a model a consumer needs, which would mean
   the abstraction is wrong rather than incomplete
+
+## Evidence
+
+- `longhorn-licence`: `LicencePayload` with independent `use_until` and
+  `update_until`, `TrustBasis`, `VerifiedLicence`, `Entitlements`/`Limit`,
+  `GracePolicy`, `ClockGuard`, `Usability`/`usability`, `SignedLicence`/
+  `verify`. `Timestamp` and `Span` are plain integers, so no date dependency
+  and every expiry is testable without waiting.
+- `tests/models.rs` expresses subscription, perpetual-with-maintenance,
+  trial, freemium, and an unanticipated site licence with no branch on a
+  product type and no business-model enum anywhere in the crate
+- the payload is signed and verified **as bytes**, verified before parsing.
+  A test signs a payload with trailing whitespace and asserts it verifies
+  and parses, which a re-serialising implementation would fail
+- `GracePolicy::new` clamps remote-assertion grace to signature grace, so a
+  consumer cannot configure around the invariant; from identical payloads at
+  day 40 a signature licence is in grace and a remote one has lapsed
+- fail-open is structural: nothing consults reachability, so no code path
+  exists in which an outage disables a paying customer
+- `Usability::warrants_attention` is false for `InGrace` — a renewal inside
+  its tolerance is not something the user can act on
+- clock tolerance defaults to one day, absorbing NTP corrections and
+  timezone mistakes rather than punishing them
+- no public function enforces, disables, or degrades anything
+- 28 tests; fmt clean, clippy clean on both feature passes, full workspace
+  suite green
+- log: `docs/logs/2026-08/07-licence-model-and-entitlement-evaluation.md`
 
 ## Next Task
 

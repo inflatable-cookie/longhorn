@@ -12,6 +12,7 @@ members = [
   "crates/longhorn-history",
   "crates/longhorn-history-tree",
   "crates/longhorn-layout",
+  "crates/longhorn-licence",
   "crates/longhorn-layout-config",
   "crates/longhorn-native-content",
   "crates/longhorn-native-content-backing-surface",
@@ -63,6 +64,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 age = { version = "=0.12.1", default-features = false }
 base64 = "0.22.1"
 cap-std = "4.0.2"
+ed25519-dalek = { version = "2.2.0", default-features = false, features = ["std"] }
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
 longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
@@ -75,6 +77,7 @@ longhorn-display = { path = "crates/longhorn-display", version = "0.1.0" }
 longhorn-history = { path = "crates/longhorn-history", version = "0.1.0" }
 longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "0.1.0" }
 longhorn-layout = { path = "crates/longhorn-layout", version = "0.1.0" }
+longhorn-licence = { path = "crates/longhorn-licence", version = "0.1.0" }
 longhorn-layout-config = { path = "crates/longhorn-layout-config", version = "0.1.0" }
 longhorn-native-content = { path = "crates/longhorn-native-content", version = "0.1.0" }
 longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "0.1.0" }
