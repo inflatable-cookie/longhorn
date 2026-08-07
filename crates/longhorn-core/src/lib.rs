@@ -10,6 +10,7 @@ mod revision;
 mod scale;
 mod schema_version;
 mod settings_id;
+mod store_compatibility;
 mod window_metrics;
 
 pub use client_geometry::{ClientCssPx, ClientGeometryError, ClientPoint, ClientRect, ClientSize};
@@ -56,4 +57,5 @@ pub use settings_id::{
     SettingsPolicySourceId, SettingsRendererId, SettingsRequestId, SettingsScopeId,
     SettingsSectionId,
 };
+pub use store_compatibility::{CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused};
 pub use window_metrics::{LiveWindowMetrics, WindowPlacement};

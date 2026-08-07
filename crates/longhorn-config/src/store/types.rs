@@ -1,6 +1,8 @@
 use std::{error::Error, fmt, path::PathBuf, time::Duration};
 
-use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_core::{
+    CompatibilityStore, DomainId, FutureSchemaRefusal, FutureSchemaRefused, SchemaVersion,
+};
 
 use crate::{CoordinationFailure, DomainIssue, DomainLocation, RestoreRecoveryError};
 
@@ -343,3 +345,12 @@ impl fmt::Display for MutationError {
 }
 
 impl Error for MutationError {}
+
+impl FutureSchemaRefused for RecoveryState {
+    /// The recovery kind carries no version numbers -- `detail` holds them as
+    /// prose, and parsing that back would be worse than reporting neither.
+    fn future_schema_refusal(&self) -> Option<FutureSchemaRefusal> {
+        (self.kind == RecoveryKind::FutureSchema)
+            .then(|| FutureSchemaRefusal::unversioned(CompatibilityStore::Configuration))
+    }
+}

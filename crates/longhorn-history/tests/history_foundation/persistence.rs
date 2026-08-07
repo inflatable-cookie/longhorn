@@ -1,5 +1,6 @@
 use std::{convert::Infallible, error::Error, fmt};
 
+use longhorn_core::{CompatibilityStore, FutureSchemaRefused};
 use longhorn_history::{
     HistoryCoalesce, HistoryCoalesceContext, HistoryDiscardReason, HistoryEncodeError,
     HistoryLoadError, HistoryLoadOutcome, HistoryNavigationPlan, HistoryNavigationRequest,
@@ -499,4 +500,65 @@ fn encode_rejects_a_policy_measurement_that_is_not_codec_bytes() {
             ..
         })
     ));
+}
+
+#[test]
+fn future_versions_classify_for_the_update_surface() {
+    // Both version axes reach a channel rejoin independently: a newer build
+    // can advance the structural envelope, the payload codec, or both. The
+    // update surface has to recognise either without knowing which.
+    let live = persisted_history();
+    let persistence = HistoryPersistence::without_structural_migration(
+        CounterCodec::version_one(),
+        persistence_limits(),
+    );
+    let encoded = persistence.encode(&live).unwrap();
+    let policy = CounterPolicy { encoded_weight: 8 };
+
+    let mut future_structural: Value = serde_json::from_slice(&encoded).unwrap();
+    future_structural["structuralVersion"] = Value::from(2);
+    let error = persistence
+        .load(
+            live.history_id(),
+            &serde_json::to_vec(&future_structural).unwrap(),
+            &policy,
+        )
+        .expect_err("a future structural version must not load");
+    let refusal = error
+        .future_schema_refusal()
+        .expect("a future structural version must classify");
+    assert_eq!(refusal.store, CompatibilityStore::History);
+    assert_eq!(refusal.found, Some(2));
+    assert_eq!(refusal.supported, Some(1));
+
+    let mut future_payload: Value = serde_json::from_slice(&encoded).unwrap();
+    future_payload["payloadCodec"]["version"] = Value::from(2);
+    let error = persistence
+        .load(
+            live.history_id(),
+            &serde_json::to_vec(&future_payload).unwrap(),
+            &policy,
+        )
+        .expect_err("a future payload codec version must not load");
+    let refusal = error
+        .future_schema_refusal()
+        .expect("a future payload codec version must classify");
+    assert_eq!(refusal.store, CompatibilityStore::History);
+    assert_eq!(refusal.found, Some(2));
+    assert_eq!(refusal.supported, Some(1));
+
+    let mut bad_position: Value = serde_json::from_slice(&encoded).unwrap();
+    bad_position["currentPosition"] = Value::from(99);
+    let error = persistence
+        .load(
+            live.history_id(),
+            &serde_json::to_vec(&bad_position).unwrap(),
+            &policy,
+        )
+        .expect_err("an invalid position must not load");
+    assert_eq!(
+        error.future_schema_refusal(),
+        None,
+        "a structural fault is not a version problem and must not be reported as one"
+    );
 }

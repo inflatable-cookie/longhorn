@@ -2,6 +2,8 @@
 
 #[path = "settings_config/authority.rs"]
 mod authority;
+#[path = "settings_config/cross_channel.rs"]
+mod cross_channel;
 #[path = "settings_config/failure.rs"]
 mod failure;
 #[path = "settings_config/policy.rs"]

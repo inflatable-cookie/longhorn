@@ -1,6 +1,9 @@
 use std::{convert::Infallible, error::Error, fmt};
 
-use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
+use longhorn_core::{
+    CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused, HistoryEntryId, HistoryGroupId,
+    HistoryId, HistoryKindId, HistoryRevision,
+};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_json::Value;
 
@@ -1352,6 +1355,26 @@ where
     PE: Error + 'static,
     ME: Error + 'static,
 {
+}
+
+impl<CE, PE, ME> FutureSchemaRefused for HistoryLoadError<CE, PE, ME> {
+    /// Linear history versions its structural envelope and its payload codec
+    /// independently, and either can be ahead on a channel rejoin.
+    fn future_schema_refusal(&self) -> Option<FutureSchemaRefusal> {
+        match self {
+            Self::FutureStructuralVersion { actual, maximum } => Some(
+                FutureSchemaRefusal::versioned(CompatibilityStore::History, *actual, *maximum),
+            ),
+            Self::FuturePayloadCodecVersion { actual, maximum } => {
+                Some(FutureSchemaRefusal::versioned(
+                    CompatibilityStore::History,
+                    actual.get(),
+                    maximum.get(),
+                ))
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Invalid minimal structural header.

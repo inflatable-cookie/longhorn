@@ -28,7 +28,7 @@ memo 019 carries the correction and the evidence.
 
 ### Batch 1. Cross-channel store compatibility
 
-- [ ] [Card 150](batch-cards/150-store-schema-stamping-and-forward-refusal.md)
+- [x] [Card 150](batch-cards/150-store-schema-stamping-and-forward-refusal.md)
   proves the existing forward-refusal end-to-end per store and gives it one
   shared classification
 
@@ -61,7 +61,7 @@ classification to explain a channel rejoin.
 
 ## Goals
 
-- [ ] no store loads under a schema newer than the reader understands, and
+- [x] no store loads under a schema newer than the reader understands, and
   that property is proved rather than assumed
 - [ ] channel selected at runtime from settings; one bundle identity
 - [ ] rollout decided on the client, so static hosting is sufficient

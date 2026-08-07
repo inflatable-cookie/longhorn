@@ -20,9 +20,14 @@ the first non-remediation milestone.
 ## Next Task
 
 [Card 150](g02/batch-cards/150-store-schema-stamping-and-forward-refusal.md)
-is in progress. It stamps a schema version into every persistent store and
-gates the rest of g02.009, because all update channels share one bundle
-identity and therefore one set of stores. Cards 151-154 follow it.
+is complete: every store's future-schema refusal is now proved
+non-destructive, and one shared classification in `longhorn-core` lets the
+update surface recognise a channel rejoin without matching per-store errors.
+
+[Card 151](g02/batch-cards/151-update-policy-channels-and-rollout.md) is
+ready and does not auto-start. It builds `longhorn-update` — channel
+resolution, semver comparison, client-side rollout, deferral — with no Tauri
+dependency.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 

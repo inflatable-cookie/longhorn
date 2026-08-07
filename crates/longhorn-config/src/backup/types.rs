@@ -23,7 +23,7 @@ pub(crate) use identity::{UtcTimestamp, parse_utc_timestamp};
 use identity::{deserialize_metadata, deserialize_utc_timestamp};
 
 const BACKUP_FORMAT: &str = "longhorn.config-backup";
-const BACKUP_FORMAT_VERSION: u32 = 1;
+pub(crate) const BACKUP_FORMAT_VERSION: u32 = 1;
 const ORDINARY_ADAPTER: &str = "longhorn-json-v1";
 const ORDINARY_CONSISTENCY_GROUP: &str = "longhorn-config-store";
 

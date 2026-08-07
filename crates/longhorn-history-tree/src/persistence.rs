@@ -1,7 +1,10 @@
 use std::{convert::Infallible, error::Error, fmt};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
+use longhorn_core::{
+    CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused, HistoryEntryId, HistoryGroupId,
+    HistoryId, HistoryKindId, HistoryRevision,
+};
 use longhorn_history::{
     HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, HistoryPayloadCodec,
     HistoryPayloadCodecFamily, HistoryPayloadCodecVersion, HistoryPayloadMigrationTarget,
@@ -733,6 +736,26 @@ impl<CE, ME> fmt::Display for ForkLoadError<CE, ME> {
 }
 
 impl<CE: Error + fmt::Debug, ME: Error + fmt::Debug> Error for ForkLoadError<CE, ME> {}
+
+impl<CE, ME> FutureSchemaRefused for ForkLoadError<CE, ME> {
+    /// The fork tree versions its structural envelope and its payload codec
+    /// independently, and either can be ahead on a channel rejoin.
+    fn future_schema_refusal(&self) -> Option<FutureSchemaRefusal> {
+        match self {
+            Self::FutureStructuralVersion { actual, maximum } => Some(
+                FutureSchemaRefusal::versioned(CompatibilityStore::HistoryTree, *actual, *maximum),
+            ),
+            Self::FuturePayloadCodecVersion { actual, maximum } => {
+                Some(FutureSchemaRefusal::versioned(
+                    CompatibilityStore::HistoryTree,
+                    actual.get(),
+                    maximum.get(),
+                ))
+            }
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

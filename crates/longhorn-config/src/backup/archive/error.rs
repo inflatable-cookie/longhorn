@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::{CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused};
+
 /// Failure to encode or safely inspect a plaintext backup archive.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BackupArchiveError {
@@ -270,3 +272,19 @@ impl fmt::Display for BackupArchiveError {
 }
 
 impl Error for BackupArchiveError {}
+
+impl FutureSchemaRefused for BackupArchiveError {
+    /// The archive reports the version it found as text, because a
+    /// non-numeric value is itself one of the rejections. Only a value that
+    /// parses can be reported as a version.
+    fn future_schema_refusal(&self) -> Option<FutureSchemaRefusal> {
+        match self {
+            Self::UnsupportedFormatVersion { found } => Some(FutureSchemaRefusal {
+                store: CompatibilityStore::BackupArchive,
+                found: found.parse().ok(),
+                supported: Some(crate::backup::types::BACKUP_FORMAT_VERSION),
+            }),
+            _ => None,
+        }
+    }
+}

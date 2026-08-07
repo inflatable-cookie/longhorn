@@ -1,11 +1,12 @@
 # 150 Cross-channel Store Compatibility Proof And Classification
 
-Status: ready
+Status: complete
 Owner: Tom
 Roadmap: g02.009 batch 1
 Governing refs: contracts 018 and 004; research memo 019
 Depends on: none
 Auto-start next card: no
+Completed: 2026-08-07
 
 ## Objective
 
@@ -93,6 +94,25 @@ four unrelated error shapes.
 
 - a store turns out to refuse destructively after all, which would make this
   a build card again and re-gate the milestone
+
+## Evidence
+
+- `longhorn-core::store_compatibility` — `CompatibilityStore`,
+  `FutureSchemaRefusal`, `FutureSchemaRefused`; implemented on
+  `RecoveryState`, `HistoryLoadError`, `ForkLoadError`, and
+  `BackupArchiveError` without changing any existing type's shape
+- versions are `Option<u32>`: configuration reports them only as prose in
+  `RecoveryState::detail`, and parsing that back would be worse than
+  reporting neither
+- cross-channel tests in `longhorn-config`, `longhorn-settings-config`,
+  `longhorn-history`, `longhorn-history-tree`, and the archive suite,
+  including the refused-*mutation* case that closes the actual destructive
+  path
+- writing the history-tree test caught an incomplete implementation that
+  mapped only the structural variant and missed the payload codec one
+- no stop condition hit: no store refuses destructively
+- fmt clean, clippy clean on both feature passes, 149 test suites green
+- log: `docs/logs/2026-08/07-cross-channel-store-compatibility.md`
 
 ## Next Task
 

@@ -14,6 +14,7 @@ use longhorn_config::{
     apply_backup_retention, encode_backup_archive, inspect_backup_archive,
     list_operational_backups, plan_backup_retention,
 };
+use longhorn_core::{CompatibilityStore, FutureSchemaRefused};
 use serde_json::json;
 use zip::CompressionMethod;
 
@@ -418,4 +419,43 @@ fn incomplete_listing_never_produces_a_prune_plan() {
     assert!(!listing.is_complete());
     let policy = BackupRetentionPolicy::new(0, None, None, 1).unwrap();
     assert!(plan_backup_retention(&listing, policy, &BTreeSet::new(), archive.sha256()).is_err());
+}
+
+#[test]
+fn future_archive_format_classifies_for_the_update_surface() {
+    // Archives cross channels as well as time: a backup taken on a nightly
+    // build can be handed to a production build for restore.
+    let snapshot = snapshot(
+        "archive-cross-channel",
+        "2026-08-07T12:00:00Z",
+        APP_ID,
+        BackupKind::Operational,
+    );
+    let manifest = serde_json::to_value(snapshot.manifest()).unwrap();
+    let path = "longhorn/domains/example.preferences.json";
+    let payload = snapshot.payloads()[0].bytes();
+
+    let mut future = manifest.clone();
+    future["formatVersion"] = json!(2);
+    let future = archive_with(future, &[(path, payload)], CompressionMethod::Stored);
+    let error = inspect_backup_archive(&future, BackupArchiveLimits::default())
+        .expect_err("a future archive format must not be admitted");
+
+    let refusal = error
+        .future_schema_refusal()
+        .expect("a future archive format must classify");
+    assert_eq!(refusal.store, CompatibilityStore::BackupArchive);
+    assert_eq!(refusal.found, Some(2));
+    assert_eq!(refusal.supported, Some(1));
+
+    let mut unknown = manifest.clone();
+    unknown["surprise"] = json!(true);
+    let unknown = archive_with(unknown, &[(path, payload)], CompressionMethod::Stored);
+    let error = inspect_backup_archive(&unknown, BackupArchiveLimits::default())
+        .expect_err("an unknown manifest field must not be admitted");
+    assert_eq!(
+        error.future_schema_refusal(),
+        None,
+        "a malformed manifest is not a version problem and must not be reported as one"
+    );
 }

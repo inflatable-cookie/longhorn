@@ -2,7 +2,10 @@
 
 use std::{convert::Infallible, error::Error, fmt, time::Instant};
 
-use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
+use longhorn_core::{
+    CompatibilityStore, FutureSchemaRefused, HistoryEntryId, HistoryGroupId, HistoryId,
+    HistoryKindId, HistoryRevision,
+};
 use longhorn_history::{
     HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, HistoryPayloadCodec,
     HistoryPayloadCodecFamily, HistoryPayloadCodecVersion, HistoryPayloadMigrationStep,
@@ -733,4 +736,55 @@ fn dense_node(
         payload_bytes as u64,
         vec![(sequence % 251) as u8; payload_bytes],
     )
+}
+
+#[test]
+fn future_versions_classify_for_the_update_surface() {
+    // Structural envelope and payload codec advance independently, so a
+    // channel rejoin can be refused by either. Both must be recognisable to
+    // the update surface without matching fork-specific error variants.
+    let (live, encoded) = encoded_v1();
+    let persistence = persistence_v1();
+    let history = history_id("history:fork-fixture");
+
+    let future_structural = serde_json::to_vec(&mutated(&encoded, |value| {
+        value["structuralVersion"] = Value::from(2)
+    }))
+    .unwrap();
+    let error = persistence
+        .load(&history, &future_structural)
+        .expect_err("a future structural version must not load");
+    let refusal = error
+        .future_schema_refusal()
+        .expect("a future structural version must classify");
+    assert_eq!(refusal.store, CompatibilityStore::HistoryTree);
+    assert_eq!(refusal.found, Some(2));
+
+    let future_payload = serde_json::to_vec(&mutated(&encoded, |value| {
+        value["payloadCodec"]["version"] = Value::from(2)
+    }))
+    .unwrap();
+    let error = persistence
+        .load(&history, &future_payload)
+        .expect_err("a future payload codec version must not load");
+    let refusal = error
+        .future_schema_refusal()
+        .expect("a future payload codec version must classify");
+    assert_eq!(refusal.store, CompatibilityStore::HistoryTree);
+    assert_eq!(refusal.found, Some(2));
+
+    let weight_mismatch = serde_json::to_vec(&mutated(&encoded, |value| {
+        value["nodes"][0]["encodedWeight"] = Value::from(999)
+    }))
+    .unwrap();
+    let error = persistence
+        .load(&history, &weight_mismatch)
+        .expect_err("a weight mismatch must not load");
+    assert_eq!(
+        error.future_schema_refusal(),
+        None,
+        "a payload fault is not a version problem and must not be reported as one"
+    );
+
+    drop(live);
 }

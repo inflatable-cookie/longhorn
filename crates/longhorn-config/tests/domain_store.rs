@@ -4,6 +4,8 @@
 mod backup;
 #[path = "domain_store/common.rs"]
 mod common;
+#[path = "domain_store/cross_channel.rs"]
+mod cross_channel;
 #[path = "domain_store/debounce.rs"]
 mod debounce;
 #[path = "domain_store/loading.rs"]
