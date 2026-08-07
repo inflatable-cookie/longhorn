@@ -41,7 +41,11 @@ whether a release may be taken.
 
 - [ ] [Card 157](batch-cards/157-tauri-licence-host-and-secure-storage.md)
   builds `longhorn-tauri-licence`: secure credential storage, the RFC 8252
-  loopback flow, persistence
+  loopback flow, persistence — PKCE, callback validation, machine identity
+  and the credential seam are complete; browser launch, platform backend and
+  persistence need a packaged proof application
+- [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
+  builds the shared packaged proof application both host cards wait on
 - [ ] [Card 158](batch-cards/158-licence-client-surface.md) builds
   `packages/licence`: activation, seat management, expiry
 

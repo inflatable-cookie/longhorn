@@ -1,6 +1,6 @@
 # 157 Tauri Licence Host And Secure Storage
 
-Status: ready
+Status: in progress — pure half complete, host wiring outstanding
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 004, and 017; research memo 020
@@ -62,6 +62,51 @@ RFC 8252 loopback account flow, and licence persistence.
   contradicts the workspace dependency posture, in which case the storage
   seam becomes injected and the decision is recorded
 
+## Stop Condition Reached — 2026-08-07
+
+The storage stop condition applies, and the seam is injected as it
+prescribes. Binding Longhorn to one keychain crate would contradict the
+agnostic posture the operator set for this whole boundary: consuming
+applications differ in what they already depend on, and a platform backend
+pulls DBus on Linux and Security.framework on macOS into every consumer
+whether or not they license anything.
+
+Longhorn therefore owns the **rules** — credentials never enter the
+configuration store, never appear in an error, slots are named and
+non-colliding — and ships `CredentialStore` plus an in-memory
+implementation. A platform backend is composed by the consumer, or supplied
+later as an optional feature behind its own card.
+
+Contract 019 says secure storage is "owned by Longhorn so that consumers do
+not each reimplement it". The seam plus rules satisfies the intent; the
+absence of a shipped platform backend is the part still outstanding.
+
+## Progress
+
+Complete, in `longhorn-licence` and fully tested:
+
+- **PKCE** — `CodeVerifier` with RFC 7636 length and alphabet enforcement,
+  S256 challenge verified against the RFC's published test vector rather
+  than merely being self-consistent. `plain` is not offered: it sends the
+  verifier itself and protects against nothing.
+- **Loopback flow** — `AccountFlow` composes the RFC 8252 redirect, and
+  `accept_callback` consumes the flow so a replayed redirect cannot be
+  exchanged twice. State is compared in constant time and **before** the
+  outcome is read, so an unmatched callback learns nothing, not even that a
+  flow was in progress.
+- **`MachineId`** — random per installation with a minimum length, so a host
+  cannot supply a hostname or a counter. Derived from nothing about the
+  hardware or the user.
+- **`CredentialStore`**, `CredentialSlot`, `MemoryCredentialStore`.
+
+Outstanding, and needing a packaged application to verify:
+
+- `longhorn-licence-config` — the persistence domain carrying the Card 150
+  schema-refusal rules
+- `longhorn-tauri-licence` — system-browser launch, the loopback listener,
+  a platform credential backend, and scheduled lease renewal
+
 ## Next Task
 
-Card 158.
+The packaged proof application, which Cards 153 and 157 both now wait on,
+then Card 158.

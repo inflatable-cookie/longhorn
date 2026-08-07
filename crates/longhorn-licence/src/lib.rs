@@ -21,7 +21,9 @@
 //! Everything is pure. No network, no filesystem, no ambient clock — `now`
 //! is always supplied.
 
+mod account;
 mod activation;
+mod credential;
 mod entitlement;
 mod key;
 mod licence;
@@ -29,9 +31,16 @@ mod status;
 mod time;
 mod verify;
 
+pub use account::{
+    AccountFlow, AccountFlowError, Authorization, Callback, CallbackOutcome, CodeVerifier,
+};
 pub use activation::{
     Activation, ActivationError, ActivationRequest, ActivationSource, ActivationUrl,
     ActivationUrlError, Credential, SignedFileSource, TokenRedemptionSource, asserted_remotely,
+};
+pub use credential::{
+    CredentialError, CredentialSlot, CredentialStore, MachineId, MachineIdError,
+    MemoryCredentialStore,
 };
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};
 pub use key::{LicenceKey, LicenceKeyError};

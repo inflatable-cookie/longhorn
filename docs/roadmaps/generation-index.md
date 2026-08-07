@@ -48,9 +48,16 @@ entitlements, both windows, lease and grace.
 `ActivationSource`, the signed-file and token-redemption adapters, and the
 licence-key format helpers.
 
-[Card 157](g02/batch-cards/157-tauri-licence-host-and-secure-storage.md) is
-ready and does not auto-start. It is the last host-side card in either new
-milestone, alongside Card 153's outstanding wiring.
+[Card 157](g02/batch-cards/157-tauri-licence-host-and-secure-storage.md) has
+its pure half complete — PKCE, callback validation, machine identity, and
+the credential seam — and reached its documented stop condition on platform
+storage, so the seam is injected and the decision is recorded.
+
+[Card 159](g02/batch-cards/159-update-and-licence-packaged-proof.md) is
+ready and is the next thing to run. Cards 153 and 157 both stopped at claims
+that cannot be verified headlessly — macOS install and relaunch, a real
+keychain, a real browser redirect — so the proof application they both need
+is now its own card.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
