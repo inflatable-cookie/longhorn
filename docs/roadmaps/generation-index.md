@@ -34,10 +34,10 @@ policy as a pure crate.
 adapters, with private GitHub documented as needing a consumer proxy.
 
 [Card 153](g02/batch-cards/153-restart-interlock-and-tauri-install.md) has
-its mechanism findings recorded and its quiescence contract landed. Its
-remaining half — `longhorn-tauri-update` host wiring — needs a packaged
-proof application, because install and relaunch cannot be exercised
-headlessly and tauri#11392 puts the relaunch path specifically in doubt.
+its findings recorded, its quiescence contract landed, and
+`longhorn-tauri-update` carrying the concrete probes and the install gate.
+Only the concrete `tauri-plugin-updater` installer remains, behind an
+injected port, and it lands with Card 159.
 [Card 154](g02/batch-cards/154-update-client-surface.md) follows it.
 
 [Card 155](g02/batch-cards/155-licence-model-and-entitlement-evaluation.md)

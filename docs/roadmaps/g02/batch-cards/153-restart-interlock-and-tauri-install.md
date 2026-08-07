@@ -1,6 +1,6 @@
 # 153 Restart Interlock And Tauri Install
 
-Status: in progress — batch 1 complete, host wiring outstanding
+Status: in progress — interlock complete, concrete installer awaits Card 159
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contracts 018 and 017; research memo 019
@@ -128,13 +128,25 @@ Every probe runs rather than short-circuiting at the first outstanding item:
 a receipt that stopped early would report a reason that depends on probe
 order, and would understate what the user is about to interrupt.
 
-Outstanding: `longhorn-tauri-update` itself — probe implementations against
-the live host, plugin wiring, and the relaunch path. Held back deliberately
-rather than landed untested: the install and relaunch behaviour cannot be
-exercised headlessly, and tauri#11392 means the relaunch path specifically
-needs a real packaged application to verify against. Landing unverified
-wiring would put the least trustworthy part of the update path behind a
-green check.
+Batch 2 is now complete too. `longhorn-tauri-update` carries the concrete
+probes (`CountingProbe`, `transfer_session_probe`, `operation_probe`, read at
+probe time so a stale receipt cannot authorise a restart) and `UpdateGate`,
+which orders quiesce, install, relaunch and is fully tested behind an
+injected `UpdateInstaller`.
+
+The port is injected for the same reason the licence credential store is:
+the interlock is the part only Longhorn can write and it is testable behind
+the port, whereas the concrete plugin-backed installer cannot be exercised
+headlessly at all. It lands with Card 159, where macOS bundle replacement
+and the tauri#11392 relaunch path can be proved rather than assumed.
+
+Two behaviours the tests pin down that a naive implementation gets wrong:
+quiescence is rechecked at install time rather than reused from the offer,
+because the user may start a transfer in between; and a failed relaunch is
+`InstalledAwaitingRelaunch`, never a failure, because the update reached
+disk and reporting otherwise invites retrying an update already installed.
+
+Outstanding: the concrete `tauri-plugin-updater` installer, under Card 159.
 
 ## Next Task
 

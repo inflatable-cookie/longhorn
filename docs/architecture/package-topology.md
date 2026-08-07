@@ -52,6 +52,7 @@ discovery and validation entry points.
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
 | `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
 | `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, and deferral | core, semver, sha2 |
+| `longhorn-tauri-update` | restart-interlocked update host: concrete quiescence probes over Longhorn hosts, install gating, injected installer port | core, update, semver, Tauri |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
 | `longhorn-tauri-windowing` | checked Tauri observation, managed identity, native mutation, lifecycle, capture, reveal, and flush | core, display, windowing, Tauri |

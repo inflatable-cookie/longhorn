@@ -44,8 +44,8 @@ memo 019 carries the correction and the evidence.
 
 - [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
-  — mechanism findings recorded and the quiescence contract landed; host
-  wiring needs a packaged proof application (tauri#11392)
+  — findings recorded, quiescence contract landed, and `longhorn-tauri-update`
+  carries the probes and gate; the concrete installer awaits Card 159
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010

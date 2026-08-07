@@ -44,6 +44,7 @@
 | `longhorn-tauri-operation` | library | none | [source](../../crates/longhorn-tauri-operation/README.md) |
 | `longhorn-tauri-settings` | library | none | [source](../../crates/longhorn-tauri-settings/README.md) |
 | `longhorn-tauri-transfer` | library | `surface-transfer` | [source](../../crates/longhorn-tauri-transfer/src/lib.rs) |
+| `longhorn-tauri-update` | library | none | [source](../../crates/longhorn-tauri-update/src/lib.rs) |
 | `longhorn-tauri-windowing` | library | none | [source](../../crates/longhorn-tauri-windowing/src/lib.rs) |
 | `longhorn-transfer` | library | `bindings` | [source](../../crates/longhorn-transfer/src/lib.rs) |
 | `longhorn-update` | library | `bindings` | [source](../../crates/longhorn-update/src/lib.rs) |
