@@ -1,6 +1,6 @@
 # 165 Artifact Proof Selection Model
 
-Status: ready
+Status: complete — landed 2026-08-09
 Owner: Tom
 Roadmap: g02.013 batch 2
 Governing refs: contract 012 (Acceptance); Card 164
@@ -104,14 +104,48 @@ The Poodle evidence pin is fixed and does not need repeating:
   membership hash must match the recorded set id
 - `verify-poodle-preview.ts` passes again
 
+## What Landed
+
+All twelve artifact proofs pass, against one before Card 164 and two after
+the evidence pin was fixed.
+
+`scripts/consumer-absence.ts` is the decision made once and applied
+everywhere. `splitForbidden` divides a forbidden list into packages, which
+keep install-absence, and subpaths, which become import-absence against the
+staged consumer's source. It throws rather than degrade if the two are
+confused, because the failure mode this replaces was a check that passed
+vacuously — `node_modules/@inflatable-cookie/longhorn/layout` can never exist,
+so the old assertion was reporting success for a claim it no longer tested.
+
+Where a shape table duplicated what its example consumer imports, the table is
+now derived from the consumer. Four proofs had drifted from their own
+consumers before this; deriving removes the class.
+
+Three findings worth keeping:
+
+- **The native-content Poodle-edge scan was over-broad.** It read a whole
+  artifact for `@inflatable-cookie/poodle-`, which flagged every unrelated
+  projection once the tier became one package. Scoped to the native-content
+  subtree, which is what the claim always meant.
+- **The settings root boundary got stronger.** It allowed exactly one
+  dependency, on `longhorn-core`. The consolidated framework package is
+  asserted to have no dependencies and no peers at all.
+- **Several scope lookups still read `node_modules/@longhorn`,** retired two
+  renames ago and invisible because the proofs failed earlier for other
+  reasons.
+
+Card 125's greenfield receipt was regenerated rather than relaxed: both
+repositories' source commits, all three artifact set ids, the package
+inventories, and the per-shape package lists. The Rust set moved too, because
+the bindings crate and two crate READMEs are inside it.
+
 ## Acceptance Criteria
 
-- `proof:artifacts` green, or every remaining failure named with a reason that
-  is not package-shape drift
-- no proof asserts install-absence for a TypeScript domain
-- every proof asserts the three-package artifact graph
-- Rust crate selection assertions unchanged
-- contract 012's Acceptance bullets restated in resolution terms
+- [x] `proof:artifacts` green — all twelve
+- [x] no proof asserts install-absence for a TypeScript domain
+- [x] every proof asserts the three-package artifact graph
+- [x] Rust crate selection assertions unchanged
+- [x] contract 012's Acceptance bullets restated in resolution terms
 
 ## Notes
 

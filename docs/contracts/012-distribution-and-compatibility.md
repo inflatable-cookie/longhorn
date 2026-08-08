@@ -105,8 +105,12 @@ A release candidate requires:
 
 ## Acceptance
 
-- Nucleus can install window/layout support without Surfaces
-- Bovine can install configuration and shell support without layout hosting
+- Nucleus composes window/layout support without importing Surfaces, and
+  Bovine composes configuration and shell support without importing layout
+  hosting. Stated as imports rather than installs: Card 164 put every domain
+  in one package, so a consumer resolves them all and tree-shaking is what
+  keeps the unused ones out of a bundle. The Rust tier keeps the install
+  claim, where the split is still real.
 - Loophole can compose the full optional hierarchy
 - package graph has no upward optional-module edge or peer duplication
 - an artifact-install example passes outside workspace resolution

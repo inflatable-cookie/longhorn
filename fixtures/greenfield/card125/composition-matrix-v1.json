@@ -1,37 +1,24 @@
 {
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
-    "longhornSelected": "849ecfe1f4ac67420b52ce95e0fcc6a05cb3a046",
-    "poodleSelected": "dfb61f2f727db7657416c5f1831df58ad1aff0a4"
+    "longhornSelected": "b7c719c0dd5b39548ebc09d8cd99612ca297ca2d",
+    "poodleSelected": "5ef12f0c3a058dff5713142b6177d020f3b1a7e5"
   },
   "artifacts": {
     "sets": {
-      "typescript": "e385683c9b6a17ba3ca97c9ce5991f7e1b7f21a7f4a31e286661c02c3558b691",
-      "poodle": "6406ead6b67c4aa437243731b045660e3dee945bfba3b62cec514e55fcd46fd6",
-      "rust": "d373df6d5815ac7e64528c9c0a4094e4df3491c93ec1de746904937539a72c92"
+      "typescript": "cbdeecff49ca06dcb6a26be4d2332727090cb1ee6f3f3628cd0f1195488ada8f",
+      "poodle": "ec626ac7c66cfd45249690270195e7be74e34fe96940e32a938852a41ed7bba8",
+      "rust": "48769f8444e37c5a5e739c301135d748d76765ec82998e7c8eb6491ed414b831"
     },
     "inventories": {
       "typescript": [
-        "@inflatable-cookie/longhorn-bridge",
-        "@inflatable-cookie/longhorn-commands",
-        "@inflatable-cookie/longhorn-config",
-        "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-history",
-        "@inflatable-cookie/longhorn-layout",
-        "@inflatable-cookie/longhorn-poodle",
-        "@inflatable-cookie/longhorn-settings",
-        "@inflatable-cookie/longhorn-surface-transfer",
-        "@inflatable-cookie/longhorn-surfaces",
-        "@inflatable-cookie/longhorn-svelte",
-        "@inflatable-cookie/longhorn-tauri",
-        "@inflatable-cookie/longhorn-transfer"
+        "@inflatable-cookie/longhorn",
+        "@inflatable-cookie/longhorn-poodle-svelte",
+        "@inflatable-cookie/longhorn-tauri"
       ],
       "poodle": [
-        "@inflatable-cookie/poodle-headless",
-        "@inflatable-cookie/poodle-icons-lucide",
-        "@inflatable-cookie/poodle-styles",
-        "@inflatable-cookie/poodle-svelte",
-        "@inflatable-cookie/poodle-svelte-tokens"
+        "@inflatable-cookie/poodle-core",
+        "@inflatable-cookie/poodle-svelte"
       ],
       "rust": [
         "longhorn-bridge",
@@ -69,9 +56,7 @@
         "window"
       ],
       "typescript": [
-        "@inflatable-cookie/longhorn-config",
-        "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-settings",
+        "@inflatable-cookie/longhorn",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
@@ -91,13 +76,8 @@
         "panel"
       ],
       "typescript": [
-        "@inflatable-cookie/longhorn-commands",
-        "@inflatable-cookie/longhorn-config",
-        "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-layout",
-        "@inflatable-cookie/longhorn-poodle",
-        "@inflatable-cookie/longhorn-settings",
-        "@inflatable-cookie/longhorn-svelte",
+        "@inflatable-cookie/longhorn",
+        "@inflatable-cookie/longhorn-poodle-svelte",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
@@ -129,18 +109,9 @@
         "panel"
       ],
       "typescript": [
-        "@inflatable-cookie/longhorn-commands",
-        "@inflatable-cookie/longhorn-config",
-        "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-history",
-        "@inflatable-cookie/longhorn-layout",
-        "@inflatable-cookie/longhorn-poodle",
-        "@inflatable-cookie/longhorn-settings",
-        "@inflatable-cookie/longhorn-surface-transfer",
-        "@inflatable-cookie/longhorn-surfaces",
-        "@inflatable-cookie/longhorn-svelte",
-        "@inflatable-cookie/longhorn-tauri",
-        "@inflatable-cookie/longhorn-transfer"
+        "@inflatable-cookie/longhorn",
+        "@inflatable-cookie/longhorn-poodle-svelte",
+        "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
         "longhorn-command",
@@ -175,10 +146,7 @@
         "optional-service-bridge"
       ],
       "typescript": [
-        "@inflatable-cookie/longhorn-bridge",
-        "@inflatable-cookie/longhorn-config",
-        "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-settings",
+        "@inflatable-cookie/longhorn",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
