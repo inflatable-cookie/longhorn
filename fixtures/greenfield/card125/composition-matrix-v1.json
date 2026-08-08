@@ -1,14 +1,14 @@
 {
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
-    "longhornSelected": "647a18122cc47675bdf7b3879e65cbfbc2f2c74a",
+    "longhornSelected": "849ecfe1f4ac67420b52ce95e0fcc6a05cb3a046",
     "poodleSelected": "dfb61f2f727db7657416c5f1831df58ad1aff0a4"
   },
   "artifacts": {
     "sets": {
       "typescript": "e385683c9b6a17ba3ca97c9ce5991f7e1b7f21a7f4a31e286661c02c3558b691",
       "poodle": "6406ead6b67c4aa437243731b045660e3dee945bfba3b62cec514e55fcd46fd6",
-      "rust": "0b272f464d00afc4a854f8bcc6034e1af72f48ab54583d4327b8575d9f95f6a4"
+      "rust": "d373df6d5815ac7e64528c9c0a4094e4df3491c93ec1de746904937539a72c92"
     },
     "inventories": {
       "typescript": [
