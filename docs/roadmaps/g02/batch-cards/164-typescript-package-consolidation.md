@@ -193,8 +193,10 @@ live inventory.
 ## Consumer Migration
 
 Five consumers, not the four this card listed: **figmatic** also imports
-Longhorn, through vite aliases rather than manifest dependencies, which is
-why the package inventory missed it.
+Longhorn. It was missed because it aliased Longhorn by path in its vite
+config instead of declaring dependencies. It no longer does — it was
+normalised onto `file:` dependencies like the other four, so the next
+inventory finds it.
 
 | consumer | validated by | result |
 | --- | --- | --- |

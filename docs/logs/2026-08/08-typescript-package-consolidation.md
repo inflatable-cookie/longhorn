@@ -103,9 +103,10 @@ Both are blocked on the Poodle release that already blocks the v0.1.0 tag.
 
 ## Consumers
 
-Five, not the four the card listed — figmatic also imports Longhorn, through
-vite aliases rather than manifest dependencies, which is how the inventory
-missed it. All five migrated and validated: nucleus (`svelte-check`, 23
+Five, not the four the card listed — figmatic also imports Longhorn. The
+inventory missed it because it aliased Longhorn by path in its vite config
+rather than declaring dependencies, so it has been normalised onto `file:`
+dependencies like the other four. All five migrated and validated: nucleus (`svelte-check`, 23
 tests, its consumer-boundary verifier), loophole aura (renderer build),
 soundcheck (`svelte-check` + build, 56 tests), jetstream editor-ui (67 tests,
 build), figmatic studio (build).
@@ -135,7 +136,9 @@ because that split is still real.
 Two unrelated defects surfaced and were fixed in passing. Figmatic's vite
 aliases still named the retired `@longhorn/*` scope, so nothing they listed
 matched what the studio imports — its Longhorn resolution had been broken
-since that rename, silently. And soundcheck's committed lockfile recorded
+since that rename, silently, which is the argument for normalising it onto
+dependencies: a missing manifest entry fails loudly, a stale alias does not.
+And soundcheck's committed lockfile recorded
 Poodle's pre-rename peers at `0.0.0` while current Poodle source wants
 `0.1.0` of four siblings that exist on no registry, so those are now
 overridden to Poodle's source directories.
