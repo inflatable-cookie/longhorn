@@ -9,10 +9,12 @@
 //! recovery, coordinated load-sets, safety-backed migration rewrite, and
 //! failure-atomic grouped custom-adapter restore with offline boot recovery.
 
+mod atomic_file;
 mod backup;
 mod coordination;
 mod debounce;
 mod domain;
+mod journal_file;
 mod location;
 mod operations;
 mod registry;

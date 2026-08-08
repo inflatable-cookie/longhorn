@@ -30,6 +30,15 @@ pub enum DeferralCause {
         /// What could not be written, for display.
         detail: String,
     },
+    /// The download or replacement failed.
+    ///
+    /// Distinct from `WorkInFlight`: nothing Longhorn owns was running, and
+    /// saying otherwise would tell the user the wrong story about why the
+    /// update did not happen. A retry can succeed.
+    InstallFailed {
+        /// What went wrong, for display.
+        detail: String,
+    },
 }
 
 impl DeferralCause {
@@ -51,6 +60,9 @@ impl fmt::Display for DeferralCause {
             Self::WorkInFlight { detail } => write!(formatter, "work in flight: {detail}"),
             Self::InstallationNotWritable { detail } => {
                 write!(formatter, "installation is not writable: {detail}")
+            }
+            Self::InstallFailed { detail } => {
+                write!(formatter, "update install failed: {detail}")
             }
         }
     }

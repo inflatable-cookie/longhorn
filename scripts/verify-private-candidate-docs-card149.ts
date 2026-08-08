@@ -45,7 +45,7 @@ requireAll(compatibility, ["private `0.1.0` candidate", "seven consumer", "read-
 requireAll(changelog, ["deterministic private `0.1.0` candidate", "17 TypeScript", "36 Rust", "seven consumer"]);
 requireAll(effigy, [
   'version-path = "workspace.package.version"',
-  'private-candidate = "effigy qa:northstar:g01-private-candidate-card149"',
+  'private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"',
   'workspace = "effigy qa"',
 ]);
 assert(receipt.compatibility.protocols.length === 12, "protocol fixture count drift");

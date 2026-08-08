@@ -197,3 +197,33 @@ fn an_install_error_reports_that_the_update_did_not_land() {
         .update_landed()
     );
 }
+
+#[test]
+fn a_failed_install_defers_as_a_failed_install_not_as_work_in_flight() {
+    // Nothing Longhorn-owned was running when the install failed; reporting
+    // "work in flight" would tell the user the wrong story about why the
+    // update did not happen.
+    let idle = transfer_session_probe(|| 0);
+    let probes: Vec<&dyn QuiescenceProbe> = vec![&idle];
+    let gate = UpdateGate::new(
+        RecordingInstaller::failing_install(InstallError::Failed {
+            detail: "network unreachable".into(),
+        }),
+        probes,
+    );
+
+    let InstallOutcome::Deferred(deferral) = gate.install(&version()) else {
+        panic!("a failed install must defer");
+    };
+
+    assert_eq!(
+        deferral.cause,
+        DeferralCause::InstallFailed {
+            detail: "update install failed: network unreachable".to_owned()
+        }
+    );
+    assert!(
+        deferral.cause.is_retryable(),
+        "a failed install can succeed on retry"
+    );
+}

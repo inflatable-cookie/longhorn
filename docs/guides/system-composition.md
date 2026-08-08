@@ -65,6 +65,13 @@ Presence is injected evidence. Missing hosts resolve through explicit policy.
 Window provisioning, cleanup, fallback, and shutdown are planned and
 receipted.
 
+The renderer package defines `longhorn_surfaces_snapshot`,
+`longhorn_surfaces_mutate`, and the `longhorn://surfaces/changed` event; the
+app's Tauri host implements them, like the native-content command seam. The
+[host-protocol proof](../../scripts/verify-host-protocol.ts) checks every
+`longhorn_` command and `longhorn://` event name on both sides of the
+renderer boundary and fails on phantom or single-sided names.
+
 Panel transfer operates inside one registered layout document. Whole-Surface
 transfer is a separate package and host feature. Native drag payloads contain
 only protocol version and host-issued session id. They never serialize panels,
@@ -129,9 +136,11 @@ Longhorn persists the bounded linear structure. The app persists payload
 codec, canonical product snapshot, journal, fsync/autosave policy, recovery,
 and project versions. Renderer metadata never contains product payload.
 
-Fork-tree semantics are promoted planning evidence but remain outside current
-production packages. Do not imply branch clients, checkpoints, or durable tree
-availability. See [History Composition](../architecture/history-composition.md).
+Fork-tree semantics are promoted planning evidence: the `longhorn-history-tree`
+crate exists and is tested, but branch clients, checkpoints, and durable tree
+persistence are held surface — do not select them or imply their
+availability. See the [held-surface register](../reference/held-surface.md)
+and [History Composition](../architecture/history-composition.md).
 
 ## Operations And Notifications
 

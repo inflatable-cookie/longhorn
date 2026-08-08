@@ -60,7 +60,11 @@ exclude = ["history/**"]
   { task = "qa:docs:links" },
   { task = "qa:docs:index:vision" },
   { task = "qa:docs:agent-defaults" },
+  { task = "held-surface" },
+  { task = "host-protocol" },
 ]
+"held-surface" = "bun scripts/verify-held-surface.ts"
+"host-protocol" = "bun scripts/verify-host-protocol.ts"
 "qa:northstar" = [
   { task = "qa:northstar:spine" },
   { task = "qa:northstar:roadmap-suite" },
@@ -94,5 +98,5 @@ pre-1-0 = true
 tag-format = "v{version}"
 
 [release.gates]
-private-candidate = "effigy qa:northstar:g01-private-candidate-card127"
+private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
 workspace = "effigy qa"

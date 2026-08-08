@@ -1,12 +1,14 @@
 use std::{
     fs,
-    io::{self, Read, Write},
+    io::{self},
     path::{Path, PathBuf},
 };
 
 use longhorn_core::DomainId;
 use serde::{Deserialize, Serialize};
 
+use crate::atomic_file::{sync_directory, write_private_file};
+use crate::journal_file::{self, JournalVersioned};
 use crate::{
     BackupAdapterId, BackupAdapterPayload, BackupAdapterRelativePath, BackupAdapterStateEvidence,
     DomainDescriptor, Sha256Digest,
@@ -17,9 +19,7 @@ use super::super::RestoreOperationState;
 const STATE_DIRECTORY: &str = ".longhorn/grouped-adapter-restore";
 const PAYLOAD_DIRECTORY: &str = "payloads";
 const JOURNAL_FILE: &str = "journal.json";
-const JOURNAL_TEMPORARY: &str = ".journal.json.tmp";
 const JOURNAL_VERSION: u32 = 2;
-const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -42,6 +42,12 @@ pub(super) enum GroupedJournalPhase {
     RecoveryRequired,
     Succeeded,
     RolledBack,
+}
+
+impl JournalVersioned for GroupedRestoreJournal {
+    fn version(&self) -> u32 {
+        self.version
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -107,40 +113,18 @@ pub(super) fn exists(authority_root: &Path) -> bool {
 }
 
 pub(super) fn load(authority_root: &Path) -> io::Result<Option<GroupedRestoreJournal>> {
-    let path = journal_path(authority_root);
-    let mut input = match fs::File::open(&path) {
-        Ok(input) => input,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error),
-    };
-    let observed = input.metadata()?.len();
-    if observed > MAX_JOURNAL_BYTES as u64 {
-        return Err(io::Error::other(
-            "grouped restore journal exceeds byte limit",
-        ));
+    let journal: Option<GroupedRestoreJournal> = journal_file::load(
+        &journal_path(authority_root),
+        JOURNAL_VERSION,
+        "grouped restore journal",
+    )?;
+    if let Some(journal) = &journal {
+        for entry in &journal.entries {
+            validate_evidence_payload_shape(&entry.target_evidence, &entry.target_payloads)?;
+            validate_evidence_payload_shape(&entry.rollback_evidence, &entry.rollback_payloads)?;
+        }
     }
-    let mut bytes = Vec::with_capacity(usize::try_from(observed).unwrap_or(0));
-    Read::by_ref(&mut input)
-        .take(MAX_JOURNAL_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > MAX_JOURNAL_BYTES {
-        return Err(io::Error::other(
-            "grouped restore journal exceeds byte limit",
-        ));
-    }
-    let journal: GroupedRestoreJournal = serde_json::from_slice(&bytes)
-        .map_err(|error| io::Error::other(format!("invalid grouped restore journal: {error}")))?;
-    if journal.version != JOURNAL_VERSION {
-        return Err(io::Error::other(format!(
-            "unsupported grouped restore journal version {}",
-            journal.version
-        )));
-    }
-    for entry in &journal.entries {
-        validate_evidence_payload_shape(&entry.target_evidence, &entry.target_payloads)?;
-        validate_evidence_payload_shape(&entry.rollback_evidence, &entry.rollback_payloads)?;
-    }
-    Ok(Some(journal))
+    Ok(journal)
 }
 
 fn validate_evidence_payload_shape(
@@ -250,26 +234,13 @@ pub(super) fn read_payloads(
 }
 
 pub(super) fn publish(authority_root: &Path, journal: &GroupedRestoreJournal) -> io::Result<()> {
-    let directory = state_directory(authority_root);
-    fs::create_dir_all(&directory)?;
     sync_directory(authority_root)?;
-    let temporary = directory.join(JOURNAL_TEMPORARY);
-    match fs::remove_file(&temporary) {
-        Ok(()) => {}
-        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error),
-    }
-    let bytes = serde_json::to_vec_pretty(journal)
-        .map_err(|error| io::Error::other(format!("cannot encode grouped journal: {error}")))?;
-    let mut options = fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    set_private_mode(&mut options);
-    let mut output = options.open(&temporary)?;
-    output.write_all(&bytes)?;
-    output.sync_all()?;
-    drop(output);
-    fs::rename(&temporary, journal_path(authority_root))?;
-    sync_directory(&directory)
+    journal_file::publish(
+        &state_directory(authority_root),
+        JOURNAL_FILE,
+        journal,
+        "grouped restore journal",
+    )
 }
 
 pub(super) fn cleanup(authority_root: &Path) -> io::Result<()> {
@@ -296,26 +267,3 @@ fn state_directory(authority_root: &Path) -> PathBuf {
 fn payload_directory(authority_root: &Path) -> PathBuf {
     state_directory(authority_root).join(PAYLOAD_DIRECTORY)
 }
-
-fn write_private_file(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    let mut options = fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    set_private_mode(&mut options);
-    let mut output = options.open(path)?;
-    output.write_all(bytes)?;
-    output.sync_all()
-}
-
-fn sync_directory(path: &Path) -> io::Result<()> {
-    fs::File::open(path)?.sync_all()
-}
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut fs::OpenOptions) {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut fs::OpenOptions) {}

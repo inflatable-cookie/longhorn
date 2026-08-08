@@ -1,12 +1,14 @@
 use std::{
     fs,
-    io::{self, Read, Write},
+    io::{self},
     path::{Path, PathBuf},
 };
 
 use longhorn_core::DomainId;
 use serde::{Deserialize, Serialize};
 
+use crate::atomic_file::{sync_directory, write_private_file};
+use crate::journal_file::{self, JournalVersioned};
 use crate::{Sha256Digest, StorageClass};
 
 use super::{RestoreAction, RestoreCurrentEvidence, RestoreOperationState, types::StagedDomain};
@@ -14,9 +16,7 @@ use super::{RestoreAction, RestoreCurrentEvidence, RestoreOperationState, types:
 const STATE_DIRECTORY: &str = ".longhorn/restore";
 const ROLLBACK_DIRECTORY: &str = "rollback";
 const JOURNAL_FILE: &str = "journal.json";
-const JOURNAL_TEMPORARY: &str = ".journal.json.tmp";
 const JOURNAL_VERSION: u32 = 1;
-const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -28,6 +28,12 @@ pub(super) struct RestoreJournal {
     pub(super) safety_sha256: Sha256Digest,
     pub(super) phase: JournalPhase,
     pub(super) entries: Vec<JournalEntry>,
+}
+
+impl JournalVersioned for RestoreJournal {
+    fn version(&self) -> u32 {
+        self.version
+    }
 }
 
 impl RestoreJournal {
@@ -178,54 +184,20 @@ pub(super) fn operation_state(authority_root: &Path) -> RestoreOperationState {
 }
 
 pub(super) fn load(authority_root: &Path) -> io::Result<Option<RestoreJournal>> {
-    let path = journal_path(authority_root);
-    let mut input = match fs::File::open(&path) {
-        Ok(input) => input,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error),
-    };
-    let observed = input.metadata()?.len();
-    if observed > MAX_JOURNAL_BYTES as u64 {
-        return Err(io::Error::other("restore journal exceeds byte limit"));
-    }
-    let mut bytes = Vec::with_capacity(usize::try_from(observed).unwrap_or(0));
-    Read::by_ref(&mut input)
-        .take(MAX_JOURNAL_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > MAX_JOURNAL_BYTES {
-        return Err(io::Error::other("restore journal exceeds byte limit"));
-    }
-    let journal: RestoreJournal = serde_json::from_slice(&bytes)
-        .map_err(|error| io::Error::other(format!("invalid restore journal: {error}")))?;
-    if journal.version != JOURNAL_VERSION {
-        return Err(io::Error::other(format!(
-            "unsupported restore journal version {}",
-            journal.version
-        )));
-    }
-    Ok(Some(journal))
+    journal_file::load(
+        &journal_path(authority_root),
+        JOURNAL_VERSION,
+        "restore journal",
+    )
 }
 
 pub(super) fn publish(authority_root: &Path, journal: &RestoreJournal) -> io::Result<()> {
-    let directory_path = state_directory(authority_root);
-    fs::create_dir_all(&directory_path)?;
-    let temporary_path = directory_path.join(JOURNAL_TEMPORARY);
-    match fs::remove_file(&temporary_path) {
-        Ok(()) => {}
-        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error),
-    }
-    let bytes = serde_json::to_vec_pretty(journal)
-        .map_err(|error| io::Error::other(format!("cannot encode restore journal: {error}")))?;
-    let mut options = fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    set_private_mode(&mut options);
-    let mut output = options.open(&temporary_path)?;
-    output.write_all(&bytes)?;
-    output.sync_all()?;
-    drop(output);
-    fs::rename(&temporary_path, journal_path(authority_root))?;
-    sync_directory(&directory_path)
+    journal_file::publish(
+        &state_directory(authority_root),
+        JOURNAL_FILE,
+        journal,
+        "restore journal",
+    )
 }
 
 pub(super) fn persist_rollback(
@@ -310,11 +282,6 @@ pub(super) fn cleanup(authority_root: &Path) -> io::Result<()> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => {}
         Err(error) => return Err(error),
     }
-    match fs::remove_file(state.join(JOURNAL_TEMPORARY)) {
-        Ok(()) => {}
-        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error),
-    }
     sync_directory(&state)
 }
 
@@ -338,26 +305,3 @@ fn state_directory(authority_root: &Path) -> PathBuf {
 fn rollback_directory(authority_root: &Path) -> PathBuf {
     state_directory(authority_root).join(ROLLBACK_DIRECTORY)
 }
-
-fn write_private_file(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    let mut options = fs::OpenOptions::new();
-    options.write(true).create_new(true);
-    set_private_mode(&mut options);
-    let mut output = options.open(path)?;
-    output.write_all(bytes)?;
-    output.sync_all()
-}
-
-fn sync_directory(path: &Path) -> io::Result<()> {
-    fs::File::open(path)?.sync_all()
-}
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut fs::OpenOptions) {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut fs::OpenOptions) {}

@@ -2,327 +2,131 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
-/// Monotonic revision of one durable layout document.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct LayoutRevision(u64);
+/// Defines one monotonic durable-document revision type.
+///
+/// Every revision shares the same contract: a transparent `u64`, an
+/// `INITIAL` value, and a `checked_next` that fails instead of wrapping.
+macro_rules! monotonic_revision {
+    (
+        $name:ident,
+        $overflow:ident,
+        $description:literal,
+        $initial:literal,
+        $overflow_message:literal
+    ) => {
+        #[doc = $description]
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            Default,
+            Deserialize,
+            Eq,
+            Hash,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            Serialize,
+        )]
+        #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
+        #[serde(transparent)]
+        pub struct $name(u64);
 
-impl LayoutRevision {
-    /// Initial revision for a new layout document.
-    pub const INITIAL: Self = Self(0);
+        impl $name {
+            #[doc = $initial]
+            pub const INITIAL: Self = Self(0);
 
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
+            /// Constructs a revision from its serialized value.
+            #[must_use]
+            pub const fn new(value: u64) -> Self {
+                Self(value)
+            }
 
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
+            /// Returns the serialized revision value.
+            #[must_use]
+            pub const fn get(self) -> u64 {
+                self.0
+            }
 
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, LayoutRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(LayoutRevisionOverflow),
+            /// Returns the next revision or fails instead of wrapping.
+            pub const fn checked_next(self) -> Result<Self, $overflow> {
+                match self.0.checked_add(1) {
+                    Some(value) => Ok(Self(value)),
+                    None => Err($overflow),
+                }
+            }
         }
-    }
-}
 
-/// A layout revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct LayoutRevisionOverflow;
+        /// The revision could not advance without wrapping.
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub struct $overflow;
 
-impl fmt::Display for LayoutRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("layout revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for LayoutRevisionOverflow {}
-
-/// Monotonic revision of one durable Surface document.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct SurfaceRevision(u64);
-
-impl SurfaceRevision {
-    /// Initial revision for a new Surface document.
-    pub const INITIAL: Self = Self(0);
-
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, SurfaceRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(SurfaceRevisionOverflow),
+        impl fmt::Display for $overflow {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str($overflow_message)
+            }
         }
-    }
+
+        impl Error for $overflow {}
+    };
 }
 
-/// A Surface revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SurfaceRevisionOverflow;
+monotonic_revision!(
+    LayoutRevision,
+    LayoutRevisionOverflow,
+    "Monotonic revision of one durable layout document.",
+    "Initial revision for a new layout document.",
+    "layout revision cannot advance beyond u64::MAX"
+);
 
-impl fmt::Display for SurfaceRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("Surface revision cannot advance beyond u64::MAX")
-    }
-}
+monotonic_revision!(
+    SurfaceRevision,
+    SurfaceRevisionOverflow,
+    "Monotonic revision of one durable Surface document.",
+    "Initial revision for a new Surface document.",
+    "Surface revision cannot advance beyond u64::MAX"
+);
 
-impl Error for SurfaceRevisionOverflow {}
+monotonic_revision!(
+    NativeContentRevision,
+    NativeContentRevisionOverflow,
+    "Monotonic revision of desired or observed native-content state.",
+    "Initial revision for one native-content state channel.",
+    "native-content revision cannot advance beyond u64::MAX"
+);
 
-/// Monotonic revision of desired or observed native-content state.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct NativeContentRevision(u64);
+monotonic_revision!(
+    HistoryRevision,
+    HistoryRevisionOverflow,
+    "Monotonic structural revision of one history authority.",
+    "Initial revision for an empty history authority.",
+    "history revision cannot advance beyond u64::MAX"
+);
 
-impl NativeContentRevision {
-    /// Initial revision for one native-content state channel.
-    pub const INITIAL: Self = Self(0);
+monotonic_revision!(
+    OperationRevision,
+    OperationRevisionOverflow,
+    "Monotonic revision of one asynchronous operation.",
+    "Initial revision assigned when an operation is registered.",
+    "operation revision cannot advance beyond u64::MAX"
+);
 
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
+monotonic_revision!(
+    OperationCatalogueRevision,
+    OperationCatalogueRevisionOverflow,
+    "Monotonic revision of one operation catalogue.",
+    "Initial revision for an empty operation catalogue.",
+    "operation catalogue revision cannot advance beyond u64::MAX"
+);
 
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, NativeContentRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(NativeContentRevisionOverflow),
-        }
-    }
-}
-
-/// A native-content revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NativeContentRevisionOverflow;
-
-impl fmt::Display for NativeContentRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("native-content revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for NativeContentRevisionOverflow {}
-
-/// Monotonic structural revision of one history authority.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct HistoryRevision(u64);
-
-impl HistoryRevision {
-    /// Initial revision for an empty history authority.
-    pub const INITIAL: Self = Self(0);
-
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, HistoryRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(HistoryRevisionOverflow),
-        }
-    }
-}
-
-/// A history revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HistoryRevisionOverflow;
-
-impl fmt::Display for HistoryRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("history revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for HistoryRevisionOverflow {}
-
-/// Monotonic revision of one asynchronous operation.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct OperationRevision(u64);
-
-impl OperationRevision {
-    /// Initial revision assigned when an operation is registered.
-    pub const INITIAL: Self = Self(0);
-
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, OperationRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(OperationRevisionOverflow),
-        }
-    }
-}
-
-/// An operation revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct OperationRevisionOverflow;
-
-impl fmt::Display for OperationRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("operation revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for OperationRevisionOverflow {}
-
-/// Monotonic revision of one operation catalogue.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct OperationCatalogueRevision(u64);
-
-impl OperationCatalogueRevision {
-    /// Initial revision for an empty operation catalogue.
-    pub const INITIAL: Self = Self(0);
-
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, OperationCatalogueRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(OperationCatalogueRevisionOverflow),
-        }
-    }
-}
-
-/// An operation catalogue revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct OperationCatalogueRevisionOverflow;
-
-impl fmt::Display for OperationCatalogueRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("operation catalogue revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for OperationCatalogueRevisionOverflow {}
-
-/// Monotonic structural revision of one notification ledger.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
-)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(type = "number"))]
-#[serde(transparent)]
-pub struct NotificationLedgerRevision(u64);
-
-impl NotificationLedgerRevision {
-    /// Initial revision for an empty notification ledger.
-    pub const INITIAL: Self = Self(0);
-
-    /// Constructs a revision from its serialized value.
-    #[must_use]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-
-    /// Returns the serialized revision value.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
-    }
-
-    /// Returns the next revision or fails instead of wrapping.
-    pub const fn checked_next(self) -> Result<Self, NotificationLedgerRevisionOverflow> {
-        match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(NotificationLedgerRevisionOverflow),
-        }
-    }
-}
-
-/// A notification ledger revision could not advance without wrapping.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NotificationLedgerRevisionOverflow;
-
-impl fmt::Display for NotificationLedgerRevisionOverflow {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("notification ledger revision cannot advance beyond u64::MAX")
-    }
-}
-
-impl Error for NotificationLedgerRevisionOverflow {}
+monotonic_revision!(
+    NotificationLedgerRevision,
+    NotificationLedgerRevisionOverflow,
+    "Monotonic structural revision of one notification ledger.",
+    "Initial revision for an empty notification ledger.",
+    "notification ledger revision cannot advance beyond u64::MAX"
+);
 
 #[cfg(test)]
 mod tests {

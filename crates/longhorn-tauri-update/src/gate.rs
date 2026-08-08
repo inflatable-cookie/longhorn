@@ -72,7 +72,7 @@ where
             Err(error) => {
                 return InstallOutcome::Deferred(Deferral::new(
                     version.clone(),
-                    DeferralCause::WorkInFlight {
+                    DeferralCause::InstallFailed {
                         detail: error.to_string(),
                     },
                 ));

@@ -1,51 +1,27 @@
 use std::{
     fs,
-    io::{self, Read},
+    io::Read,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
 };
+
+use crate::atomic_file::UniqueTemporary;
 
 use super::super::publication_types::{BackupPublicationError, BackupPublicationStage};
 use super::super::{BackupArchiveError, BackupArchiveLimits};
-
-const TEMP_ATTEMPTS: u64 = 32;
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn create_temporary(
     parent: &Path,
     file_name: &str,
     target: &Path,
-) -> Result<(fs::File, PathBuf), BackupPublicationError> {
-    for _ in 0..TEMP_ATTEMPTS {
-        let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let partial_name = format!(
-            ".{file_name}.{}.{}.longhorn-partial",
-            std::process::id(),
-            sequence
-        );
-        let path = parent.join(partial_name);
-        let mut options = fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        set_private_mode(&mut options);
-        match options.open(&path) {
-            Ok(file) => return Ok((file, path)),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(publication_error(
-                    BackupPublicationStage::CreateTemporary,
-                    target.to_path_buf(),
-                    false,
-                    error.to_string(),
-                ));
-            }
-        }
-    }
-    Err(publication_error(
-        BackupPublicationStage::CreateTemporary,
-        target.to_path_buf(),
-        false,
-        "temporary name collision retry limit reached",
-    ))
+) -> Result<UniqueTemporary, BackupPublicationError> {
+    UniqueTemporary::create(parent, file_name).map_err(|error| {
+        publication_error(
+            BackupPublicationStage::CreateTemporary,
+            target.to_path_buf(),
+            false,
+            error.to_string(),
+        )
+    })
 }
 
 pub fn read_bounded_archive(
@@ -117,20 +93,10 @@ pub(super) fn publication_error(
 
 pub(super) fn cleanup(
     mut error: BackupPublicationError,
-    temporary: &Path,
+    temporary: UniqueTemporary,
 ) -> BackupPublicationError {
-    if let Err(cleanup_error) = fs::remove_file(temporary) {
+    if let Err(cleanup_error) = temporary.discard() {
         error.detail = format!("{}; partial cleanup failed: {cleanup_error}", error.detail);
     }
     error
 }
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut fs::OpenOptions) {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut fs::OpenOptions) {}

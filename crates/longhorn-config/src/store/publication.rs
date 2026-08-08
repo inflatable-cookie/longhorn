@@ -2,7 +2,6 @@ use std::{
     ffi::OsStr,
     io::{self, Write},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
 };
 
 use cap_std::{
@@ -11,11 +10,9 @@ use cap_std::{
 };
 
 use crate::ResolvedFile;
+use crate::atomic_file::{TEMP_ATTEMPTS, temporary_name};
 
 use super::{Durability, DurabilityRequirement, PublicationFailure, PublicationStage};
-
-const TEMP_ATTEMPTS: u64 = 32;
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 pub(crate) fn publish(
     target: &ResolvedFile,
@@ -148,12 +145,7 @@ fn create_temporary(
     let display_name = file_name.to_string_lossy();
 
     for _ in 0..TEMP_ATTEMPTS {
-        let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let name = PathBuf::from(format!(
-            ".{display_name}.{}.{}.tmp",
-            std::process::id(),
-            sequence
-        ));
+        let name = temporary_name(Path::new(""), &display_name);
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
         set_private_mode(&mut options);

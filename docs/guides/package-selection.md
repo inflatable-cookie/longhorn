@@ -89,17 +89,43 @@ artifacts described in the [distribution reference](../reference/private-0-1-can
 | whole-Surface transfer | Surface plus `longhorn-surface-transfer` | `surface-transfer` host feature and renderer subpath |
 | commands and keymaps | `longhorn-command`, `@longhorn/commands` | config, settings, Tauri, `/svelte`, `/poodle` |
 | linear history | `longhorn-history`, `@longhorn/history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
-| optional service bridge | `longhorn-bridge`, `@longhorn/bridge` | Tauri, events, stream, or supervision subpaths |
+| optional service bridge | `longhorn-bridge`, `@longhorn/bridge` | Tauri, events, or stream subpaths |
 | finite operations | `longhorn-operation`, `@longhorn/operation` | Tauri, bridge, Svelte, or Poodle edges |
 | retained notifications | `longhorn-notifications`, `@longhorn/notifications` | Tauri, Svelte, Poodle, or operation observation |
 | native-content island | `longhorn-native-content`, `@longhorn/native-content` | select exactly one host mechanism and optional Svelte lifetime |
-| optional fork-tree history | `longhorn-history-tree`, `@longhorn/history-tree` | Tauri metadata, `/svelte`, `/poodle`; stays linear by default |
-| application updates | `longhorn-update`, `longhorn-tauri-update` | Rust-only today; channel policy and update-source adapters |
-| licensing and activation | `longhorn-licence` | Rust-only today; activation sources and secure-store host |
 
-The update and licensing systems are the newest additions (g02, cards 151-159)
-and currently ship no TypeScript packages. Their adoption guidance will land
-with their consumer proof.
+## Held Surface (built, not selectable)
+
+These systems are implemented and tested but not ready for consumer
+implementation. Do not select them; the
+[held-surface register](../reference/held-surface.md) is the authoritative
+status list and names the trigger for each.
+
+| Surface | Status | Awaits |
+| --- | --- | --- |
+| application updates (`longhorn-update`, `longhorn-tauri-update`) | held-for-consumer | the update renderer runway (g02.009) |
+| licensing and activation (`longhorn-licence`) | held-for-consumer | the licensing renderer runway (g02.010) |
+| bridge supervision and contract machinery | held-for-consumer | a bridge consumer with a real service topology |
+| age encryption (`longhorn-config-age`) | held-for-consumer | a consumer that needs encrypted backups |
+| fork-tree history (`longhorn-history-tree`, `@longhorn/history-tree`) | planning-evidence | the recorded g01.017 adoption decision |
+
+## Add One System At A Time
+
+| Need | Pure/client selection | Add only when needed |
+| --- | --- | --- |
+| config, backup, restore | `longhorn-config`, `@longhorn/config` | config Tauri host, Poodle recovery pages |
+| settings registry and shell | `longhorn-settings`, `@longhorn/settings` | config apply units, Tauri host, `/svelte`, `/poodle` |
+| display/window hosting | `longhorn-display`, `longhorn-windowing` | config persistence and Tauri window adapter |
+| registered regions/panels | `longhorn-layout`, `@longhorn/layout` | config persistence, Svelte, Poodle bindings |
+| optional Surfaces | `longhorn-surfaces`, `@longhorn/surfaces` | persistence and window-host projection |
+| panel transfer | `longhorn-transfer`, `@longhorn/transfer` | Tauri transfer host and Svelte/Poodle interaction |
+| whole-Surface transfer | Surface plus `longhorn-surface-transfer` | `surface-transfer` host feature and renderer subpath |
+| commands and keymaps | `longhorn-command`, `@longhorn/commands` | config, settings, Tauri, `/svelte`, `/poodle` |
+| linear history | `longhorn-history`, `@longhorn/history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
+| optional service bridge | `longhorn-bridge`, `@longhorn/bridge` | Tauri, events, or stream subpaths |
+| finite operations | `longhorn-operation`, `@longhorn/operation` | Tauri, bridge, Svelte, or Poodle edges |
+| retained notifications | `longhorn-notifications`, `@longhorn/notifications` | Tauri, Svelte, Poodle, or operation observation |
+| native-content island | `longhorn-native-content`, `@longhorn/native-content` | select exactly one host mechanism and optional Svelte lifetime |
 
 The [generated API surface](../reference/api-surface.md) is authoritative for
 current features and export subpaths.

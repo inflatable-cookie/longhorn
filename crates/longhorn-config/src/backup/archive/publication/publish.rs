@@ -1,4 +1,4 @@
-use std::{fs, io::Write, path::Path};
+use std::{fs, path::Path};
 
 use crate::{Durability, DurabilityRequirement};
 
@@ -110,14 +110,13 @@ pub(super) fn publish(
             error.to_string(),
         )
     })?;
-    let (mut temporary, temporary_path) = create_temporary(parent_path, file_name, &target)?;
+    let mut temporary = create_temporary(parent_path, file_name, &target)?;
     let staged_bytes = if corrupt_staging {
         &archive.bytes()[..archive.bytes().len().saturating_sub(1)]
     } else {
         archive.bytes()
     };
-    if let Err(error) = temporary.write_all(staged_bytes) {
-        drop(temporary);
+    if let Err(error) = temporary.write(staged_bytes) {
         return Err(cleanup(
             publication_error(
                 BackupPublicationStage::WriteTemporary,
@@ -125,32 +124,17 @@ pub(super) fn publish(
                 false,
                 error.to_string(),
             ),
-            &temporary_path,
+            temporary,
         ));
     }
-    if let Err(error) = temporary.sync_all() {
-        drop(temporary);
-        return Err(cleanup(
-            publication_error(
-                BackupPublicationStage::SyncTemporary,
-                target,
-                false,
-                error.to_string(),
-            ),
-            &temporary_path,
-        ));
-    }
-    drop(temporary);
+    temporary.close();
 
-    let verified = match read_bounded_archive(&temporary_path, options.archive_limits)
+    let verified = match read_bounded_archive(temporary.path(), options.archive_limits)
         .and_then(|bytes| inspect_backup_archive(&bytes, options.archive_limits))
     {
         Ok(inspection) => inspection,
         Err(error) => {
-            return Err(cleanup(
-                verification_error(target, false, error),
-                &temporary_path,
-            ));
+            return Err(cleanup(verification_error(target, false, error), temporary));
         }
     };
     if verified.archive_sha256() != archive.sha256() {
@@ -161,7 +145,7 @@ pub(super) fn publish(
                 false,
                 "staged archive hash changed",
             ),
-            &temporary_path,
+            temporary,
         ));
     }
     if target.exists() && !allow_overwrite {
@@ -172,10 +156,10 @@ pub(super) fn publish(
                 false,
                 "destination appeared before rename",
             ),
-            &temporary_path,
+            temporary,
         ));
     }
-    if let Err(error) = fs::rename(&temporary_path, &target) {
+    if let Err(error) = fs::rename(temporary.path(), &target) {
         return Err(cleanup(
             publication_error(
                 BackupPublicationStage::Rename,
@@ -183,9 +167,10 @@ pub(super) fn publish(
                 false,
                 error.to_string(),
             ),
-            &temporary_path,
+            temporary,
         ));
     }
+    drop(temporary);
 
     let sync = parent.sync_all().map_err(|error| {
         publication_error(
