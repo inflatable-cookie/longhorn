@@ -1,0 +1,81 @@
+//! Host handle and installed-window state.
+
+use std::{
+    collections::BTreeMap,
+    sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+};
+
+use longhorn_core::{WindowId, WindowPlacement};
+use longhorn_windowing::{
+    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
+    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
+};
+use tauri::{Runtime, WebviewWindow, WindowEvent};
+
+use crate::lifecycle::{
+    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
+    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
+    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
+    WindowLifecycleWakeHandler, translate_tauri_window_event,
+};
+
+pub(crate) struct InstalledWindow<R: Runtime> {
+    pub(crate) window: WebviewWindow<R>,
+    pub(crate) retained_normal: Option<WindowPlacement>,
+    pub(crate) page_ready: bool,
+    pub(crate) placement_ready: bool,
+    pub(crate) reveal_started: bool,
+    pub(crate) reveal_retry: bool,
+    pub(crate) revealed: bool,
+}
+
+pub(crate) struct PendingFlush {
+    pub(crate) target: WindowFlushTarget,
+    pub(crate) timeout: longhorn_windowing::WindowLifecycleDuration,
+    pub(crate) scope: WindowFlushScope,
+}
+
+pub(crate) enum FlushDisposition<'a> {
+    /// Execute each flush at its directive position on the current thread.
+    Inline,
+    /// Record flushes for the caller to execute or defer.
+    Collect(&'a mut Vec<PendingFlush>),
+}
+
+/// Tauri listener and I/O adapter over the pure lifecycle coordinator.
+pub struct TauriWindowLifecycleHost<R: Runtime> {
+    pub(crate) active: AtomicBool,
+    pub(crate) coordinator: Mutex<WindowLifecycleCoordinator>,
+    pub(crate) windows: Mutex<BTreeMap<WindowId, InstalledWindow<R>>>,
+    pub(crate) services: TauriWindowLifecycleServices<R>,
+}
+
+impl<R: Runtime> TauriWindowLifecycleHost<R> {
+    /// Constructs an empty host with caller-owned policy and runtime seams.
+    #[must_use]
+    pub fn new(policy: WindowLifecyclePolicy, services: TauriWindowLifecycleServices<R>) -> Self {
+        Self {
+            active: AtomicBool::new(true),
+            coordinator: Mutex::new(WindowLifecycleCoordinator::new(policy)),
+            windows: Mutex::new(BTreeMap::new()),
+            services,
+        }
+    }
+
+    /// Constructs a shared host and binds schedulers that need its weak target.
+    pub fn shared(
+        policy: WindowLifecyclePolicy,
+        services: TauriWindowLifecycleServices<R>,
+    ) -> Result<std::sync::Arc<Self>, TauriWindowLifecycleError> {
+        let host = std::sync::Arc::new(Self::new(policy, services));
+        let handler: std::sync::Arc<dyn WindowLifecycleWakeHandler> = host.clone();
+        host.services
+            .scheduler
+            .bind(std::sync::Arc::downgrade(&handler))
+            .map_err(|detail| TauriWindowLifecycleError::SchedulerBinding { detail })?;
+        Ok(host)
+    }
+}

@@ -111,6 +111,7 @@
   {density}
   {externalDragSource}
   {externalDropTarget}
+  dragZoneId={regionId}
   items={[...projection.items]}
   value={projection.state.active_panel_instance_id}
   {ariaLabel}
