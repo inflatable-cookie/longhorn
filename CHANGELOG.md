@@ -49,7 +49,7 @@ with `git` + `tag` dependencies.
 - Standardized canonical-id storage defaults, stable storage-name overrides,
   profile transitions, backup, restore, and receipt-bound cleanup.
 
-- Deterministic private `0.1.0` candidate across 18 TypeScript packages, 38
+- Deterministic private `0.1.0` candidate across 18 TypeScript packages, 41
   Rust crates, five exact Poodle artifacts, and seven consumer graphs.
   Package-manager publication, registry ownership, and hosted releases
   remain deferred.

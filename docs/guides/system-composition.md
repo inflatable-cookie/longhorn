@@ -1,8 +1,16 @@
 # Compose Desktop Systems
 
 Status: checked private adoption guidance
-Updated: 2026-08-02
+Updated: 2026-08-04
 Governing contracts: [002-017](../contracts/contract-index.md)
+
+## Why This Matters
+
+Every Longhorn system draws the same line: Longhorn owns the mechanism, the
+app owns the product policy. Compose in the order below and that line stays
+clear — renderer state never becomes durable truth, and teardown never leaves
+native owners behind. Get the order wrong and you get silent fallbacks, lost
+config, or ghost windows. Terms are defined in the [glossary](glossary.md).
 
 ## Composition Order
 

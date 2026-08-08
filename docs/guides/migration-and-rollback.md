@@ -6,6 +6,15 @@ Governing contracts: [003](../contracts/003-extraction-and-consumer-migration.md
 [004](../contracts/004-configuration-storage-backup-and-recovery.md), and
 [012](../contracts/012-distribution-and-compatibility.md)
 
+## Why This Matters
+
+Migration is where apps lose data — dual systems running in parallel, silent
+fallbacks, deletion before rollback is proven. The rules below exist because
+five apps (Nucleus, Loophole, Soundcheck, Bovine, Jetstream) have already been
+migrated, and every one of these failure modes has been hit. If you follow
+only one thing from this guide: pick exactly one authority at bootstrap and
+keep the old implementation frozen until the new one is proven.
+
 ## Admission
 
 Migrate only behavior useful to two current apps or a stable mechanism with a
@@ -54,6 +63,23 @@ locator last, and keep source bytes.
 Cleanup is a later explicit action. It accepts only paths and digests in the
 committed receipt, rechecks source and target under both authorities, and is
 idempotent. “Migration passed” alone grants no deletion authority.
+
+## A Concrete Example: Stable Storage Name
+
+The storage guide describes profiles abstractly. Here is what a real
+transition looks like for an app that moves from the default leaf to a stable
+storage name:
+
+| Step | Source (before) | Target (after) |
+| --- | --- | --- |
+| config | `~/Library/Application Support/com.example.product/config` | `~/Library/Application Support/Product/config` |
+| data | `~/Library/Application Support/com.example.product/data` | `~/Library/Application Support/Product/data` |
+| backups | `~/Library/Application Support/com.example.product/backups` | `~/Library/Application Support/Product/backups` |
+
+The fixed locator stays at the canonical-id path and records “profile =
+`platform-native-v1`, leaf = `Product`” — it is committed last, after the
+files are staged and verified. Until the cleanup receipt authorizes it, both
+trees exist and the old one is never touched by the new authority.
 
 ## Rollback Posture
 

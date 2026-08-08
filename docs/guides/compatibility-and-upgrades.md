@@ -1,9 +1,17 @@
 # Compatibility And Upgrades
 
 Status: checked private adoption guidance
-Updated: 2026-08-02
+Updated: 2026-08-06
 Governing contracts: [010](../contracts/010-rust-typescript-ipc-and-events.md)
 and [012](../contracts/012-distribution-and-compatibility.md)
+
+## Why This Matters
+
+Before 1.0, Longhorn changes cleanly: no compatibility aliases, no deprecated
+stubs, no silent fallbacks. That policy protects consumers — if a package
+changes, the upgrade fails loudly and the migration is coordinated — but it
+means you must know exactly what is claimed before you build on it. This guide
+is the map of those claims, and what an upgrade involves when one arrives.
 
 ## Availability
 
@@ -33,6 +41,18 @@ Svelte adapters commonly declare `>=5.38.6 <6`; consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
 range. The greenfield matrix proves one runtime at 5.38.6. Later consumer
 proofs resolve 5.56.8 where recorded.
+
+Concretely, the generated surface says two different things about Svelte:
+
+```json
+{ "peerDependencies": { "svelte": ">=5.38.6 <6" } }        // most adapters
+{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @longhorn/svelte
+```
+
+The first is an optional peer on most adapters — an app that does not use
+Svelte simply omits it. The second is a required peer with an upper bound
+proved by the isolated installs. Copying one range onto the other is exactly
+the kind of inference this guide warns against.
 
 The current coordinated receipt is the Card 127
 [private `0.1.0` candidate](../reference/private-0-1-candidate.md). It binds

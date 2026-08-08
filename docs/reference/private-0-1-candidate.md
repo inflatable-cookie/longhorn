@@ -9,6 +9,40 @@ Machine receipt:
 This is an installable local compatibility candidate, not a registry, tag, or
 hosted release. Working package names and registry ownership remain unresolved.
 
+## How To Obtain The Artifacts
+
+The candidate is the *only* documented way to consume Longhorn today. There is
+no npm, crates.io, or hosted download.
+
+- The machine receipt is
+  [`fixtures/release/card127/private-0-1-candidate-v1.json`](../../fixtures/release/card127/private-0-1-candidate-v1.json):
+  it records every artifact set, checksum, frozen source commit, and consumer
+  graph.
+- The receipt is produced (and re-producible) by the private-candidate
+  generation command documented in `scripts/README.md`; verification runs
+  read-only through `effigy release gates`.
+- TypeScript and Svelte artifacts are private npm-compatible tarballs. Rust
+  artifacts are Cargo inventories plus commit-derived source archives (not
+  registry-normalized `.crate` files).
+- Consumer graphs install from these artifacts with the exact lock, outside
+  sibling workspace resolution — that is what the consumer matrix below
+  proves. There is no one-line install command yet; the per-graph install
+  recipe is part of the receipt.
+
+Known limitation: a fresh clone of this repo cannot currently install its
+root TypeScript dependencies, because the root `package.json` pins Poodle to
+machine-local build artifacts. The fix is scheduled for a Poodle release
+(reference `PAPERCUTS.md`); until then the candidate artifacts are produced
+from the frozen commits listed below, not from a fresh clone.
+
+## Current State Note
+
+This candidate is frozen at its 2026-08-02 source state: 17 TypeScript
+packages and 36 Rust crates. The live tree has since grown (18 TypeScript
+packages, 41 Rust crates, plus the g02 update and licensing crates). Treat
+this receipt as the *proven* point-in-time artifact set, and the
+[generated API surface](api-surface.md) as the *current* inventory.
+
 ## Frozen Sources
 
 | Source | Commit | Candidate boundary |

@@ -242,8 +242,10 @@ artifact workspace. No registry publication is attempted.
 
 Card 126 generates the exact private Rust crate/feature and TypeScript export,
 dependency, and peer reference from live manifests. Its guide proof checks
-local links, public-only snippets, storage/platform claims, migration safety,
-native support limits, and deferred publication. Focused QA also builds Rust
+local links, snippet policy (registry installs of Longhorn/Poodle packages are
+forbidden; produced-artifact and third-party installs are allowed), storage/
+platform claims, migration safety, native support limits, and deferred
+publication. Focused QA also builds Rust
 documentation with warnings denied and checks every TypeScript/Svelte surface:
 
 ```sh

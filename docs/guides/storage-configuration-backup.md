@@ -1,9 +1,19 @@
 # Storage, Configuration, Backup, And Recovery
 
 Status: checked private adoption guidance
-Updated: 2026-08-02
+Updated: 2026-08-03
 Governing contracts: [004](../contracts/004-configuration-storage-backup-and-recovery.md)
 and [005](../contracts/005-settings-and-system-registration.md)
+
+## Why This Matters
+
+Where files live and how writes happen is where desktop apps break: config
+silently lost on update, backups that cannot be restored, paths that differ
+across platforms. Longhorn makes storage a registered contract — stable paths,
+atomic writes, recoverable backups — so the app gets durable behavior without
+reinventing file handling. This guide covers the parts that touch the
+filesystem; the practical register-and-write flow is below under
+[Configuration In Code](#configuration-in-code).
 
 ## Identity First
 
@@ -107,6 +117,120 @@ Debounce is opt-in for bounded typed intent. It is not a desired-document
 cache. Close/shutdown force-flushes every lane and handles each receipt. A
 pre-publication failure retains intent for explicit retry or discard. A known
 replacement with durability failure clears intent to prevent duplicate apply.
+
+## Configuration In Code
+
+A complete register, load, and mutate round-trip. This is the exact shape
+proved by the greenfield examples (see
+`examples/greenfield-compositions/common-rust/src/lib.rs`).
+
+```rust
+use std::time::Duration;
+
+use longhorn_config::{
+    ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
+    DomainIssue, DurabilityRequirement, LoadedOrigin, MigrationStep, MutationOptions,
+    StorageClass, StorageRoots,
+};
+use longhorn_core::{DomainId, SchemaVersion};
+use serde_json::{json, Value};
+
+// A domain is a typed, validated slice of config owned by one authority.
+struct Preferences {
+    descriptor: DomainDescriptor,
+}
+
+impl Preferences {
+    fn new() -> Self {
+        Self {
+            descriptor: DomainDescriptor::new(
+                DomainId::new("com.example.product.preferences").unwrap(),
+                SchemaVersion::new(1).unwrap(),
+                StorageClass::UserConfig,
+                Some(DomainFilePath::new("preferences.json").unwrap()),
+            )
+            .unwrap(),
+        }
+    }
+}
+
+impl ConfigDomain for Preferences {
+    type Value = Value;
+
+    fn descriptor(&self) -> &DomainDescriptor {
+        &self.descriptor
+    }
+    fn default_value(&self) -> Self::Value {
+        json!({ "enabled": false })
+    }
+    fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
+        self.validate(&value)?;
+        Ok(value)
+    }
+    fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
+        Ok(value.clone())
+    }
+    fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue> {
+        if value.get("enabled").is_some_and(Value::is_boolean) {
+            Ok(())
+        } else {
+            Err(DomainIssue::new("enabled", "enabled must be boolean"))
+        }
+    }
+    fn validate_raw(&self, version: SchemaVersion, value: &Value) -> Result<(), DomainIssue> {
+        if version == self.descriptor.schema_version() {
+            self.validate(value)
+        } else {
+            Err(DomainIssue::new("version", "unsupported schema version"))
+        }
+    }
+    fn migrate_one(
+        &self,
+        _from: SchemaVersion,
+        _value: Value,
+    ) -> Result<Option<MigrationStep>, DomainIssue> {
+        Ok(None)
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Resolved roots for the app's platform and profile (see the profile
+    // tables above); this example uses explicit portable-style roots.
+    let base = std::path::PathBuf::from("data");
+    let roots = StorageRoots::new(
+        &base.join("config"),
+        &base.join("data"),
+        &base.join("state"),
+        &base.join("cache"),
+        &base.join("runtime"),
+        &base.join("logs"),
+        &base.join("backups"),
+    )?;
+    let mut store = ConfigStore::new(roots, CoordinationAuthority::new(&base.join("data"))?);
+
+    let preferences = Preferences::new();
+    store.register(&preferences)?;
+
+    // First load returns the compiled default and reports where it came from.
+    let first = store.load(&preferences)?;
+    assert_eq!(first.origin, LoadedOrigin::Default);
+
+    // A mutation is a typed patch applied atomically under the store lock.
+    let receipt = store.mutate(
+        &preferences,
+        MutationOptions::new(Duration::from_secs(1), DurabilityRequirement::Atomic),
+        |value| {
+            value["enabled"] = Value::Bool(true);
+            Ok(())
+        },
+    )?;
+
+    // The next load reads the published file.
+    let reloaded = store.load(&preferences)?;
+    assert_eq!(reloaded.origin, LoadedOrigin::File);
+    Ok(())
+}
+```
 
 ## Profile Selection And Migration
 

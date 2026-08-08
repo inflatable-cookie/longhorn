@@ -4,6 +4,7 @@ import { dirname, join, relative, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dir, "..");
 const guidePaths = [
   "docs/guides/README.md",
+  "docs/guides/getting-started.md",
   "docs/guides/package-selection.md",
   "docs/guides/storage-configuration-backup.md",
   "docs/guides/system-composition.md",
@@ -68,7 +69,8 @@ console.log(JSON.stringify({
   guides: guidePaths.length,
   checkedDocuments: checkedPaths.length,
   localLinks: "pass",
-  snippets: "public-only",
+  snippets: "public-or-artifact-paths",
+  registryInstall: "forbidden",
   rustPackages: rustCount,
   typescriptPackages: typescriptCount,
   packageManagerPublication: false,
@@ -91,7 +93,6 @@ async function verifyLocalLinks(documents: Map<string, string>): Promise<void> {
 
 function verifySnippetBoundaries(documents: Map<string, string>): void {
   const forbidden = [
-    /(?:^|\s)(?:npm|pnpm|yarn|bun)\s+(?:add|install)(?:\s|$)/,
     /cargo\s+add/,
     /@poodle\/[^\s`"']*(?:internal|private)/,
     /@longhorn\/[^\s`"']+\/src\//,
@@ -101,11 +102,36 @@ function verifySnippetBoundaries(documents: Map<string, string>): void {
   for (const [path, content] of documents) {
     const blocks = [...content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((match) => match[1]!);
     for (const block of blocks) {
+      for (const line of block.split("\n")) {
+        const target = registryInstallTarget(line);
+        if (target !== null) {
+          throw new Error(
+            `${path} contains a registry-style install of private package ${target}; ` +
+              "use artifact paths (./tarballs) or third-party registries only",
+          );
+        }
+      }
       for (const pattern of forbidden) {
         if (pattern.test(block)) throw new Error(`${path} contains non-public snippet ${pattern}`);
       }
     }
   }
+}
+
+// Guides may show installs from produced private tarballs (./artifacts/...) and
+// from public third-party registries (svelte, @tauri-apps/api). They must never
+// imply that a Longhorn or Poodle package is installable from a registry.
+function registryInstallTarget(line: string): string | null {
+  for (const match of line.matchAll(/(?:^|\s)(?:npm|pnpm|yarn|bun)\s+(?:add|install)\s+/g)) {
+    const rest = line.slice(match.index! + match[0].length).split(/[;&|]/, 1)[0]!;
+    for (const token of rest.trim().split(/\s+/)) {
+      if (token === "" || token.startsWith("-")) continue;
+      if (/^@(?:longhorn|poodle)\/[\w.-]+$/.test(token)) return token;
+      if (/^longhorn-[\w.-]+$/.test(token) && !token.endsWith(".tgz")) return token;
+      break;
+    }
+  }
+  return null;
 }
 
 function requireAll(content: string, required: string[]): void {
