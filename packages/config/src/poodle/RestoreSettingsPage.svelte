@@ -8,8 +8,8 @@
     RadioGroup,
     Select,
     Surface,
-  } from "@poodle/svelte";
-  import type { RadioGroupOption, SelectOption } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
+  import type { RadioGroupOption, SelectOption } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
   import {

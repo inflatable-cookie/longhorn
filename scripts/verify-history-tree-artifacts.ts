@@ -23,7 +23,7 @@ const policies = {
     longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history-tree"],
     imports: ["@inflatable-cookie/longhorn-history-tree"],
     permissions: [],
-    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri", "@poodle/svelte", "svelte"],
+    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/poodle-svelte", "svelte"],
     metrics: { nodes: 132, branches: 5, payload: 4_224, lca: 65, baseline: 99_295 },
   },
   loophole: {
@@ -121,7 +121,7 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), name === "@inflatable-cookie/longhorn-history-tree" ? ["@inflatable-cookie/longhorn-core"] : []);
   if (name === "@inflatable-cookie/longhorn-history-tree") {
     assertExactSet("history-tree exports", Object.keys(manifest.exports ?? {}), [".", "./package.json", "./poodle", "./protocol", "./svelte", "./tauri"]);
-    for (const peer of ["svelte", "@poodle/svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${peer} is not an optional history-tree peer`);
+    for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${peer} is not an optional history-tree peer`);
   }
   const extractRoot = join(typescriptArtifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
   await mkdir(extractRoot);

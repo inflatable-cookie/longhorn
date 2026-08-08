@@ -26,8 +26,8 @@ The clean temporary Nucleus shell installs produced archives for:
 - `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-config`, `@inflatable-cookie/longhorn-layout`
 - `@inflatable-cookie/longhorn-svelte`, `@inflatable-cookie/longhorn-poodle`, `@inflatable-cookie/longhorn-tauri`
 - `@inflatable-cookie/longhorn-native-content`, `@inflatable-cookie/longhorn-native-content-svelte`
-- `@poodle/headless`, `@poodle/styles`, `@poodle/svelte-tokens`
-- `@poodle/icons-lucide`, `@poodle/svelte`
+- `@inflatable-cookie/poodle-headless`, `@inflatable-cookie/poodle-styles`, `@inflatable-cookie/poodle-svelte-tokens`
+- `@inflatable-cookie/poodle-icons-lucide`, `@inflatable-cookie/poodle-svelte`
 
 It uses Svelte 5.56.8, TypeScript 6.0.3, and Tauri API 2.11.1. Generated
 config, layout, and native-content bindings are current. The public Poodle

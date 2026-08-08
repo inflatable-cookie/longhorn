@@ -252,31 +252,31 @@
       "setSha256": "a7e6351fd9eb92f3f43629afaf0e05a64839467ba68e8bba8852254787dbe2e8",
       "packages": [
         {
-          "name": "@poodle/headless",
+          "name": "@inflatable-cookie/poodle-headless",
           "version": "0.1.0",
           "filename": "poodle-headless-0.1.0.tgz",
           "sha256": "1e1e79d83230f01387b0a213c51a448b5f2fa4ec4d3db0ec00bf50c9c343aa31"
         },
         {
-          "name": "@poodle/styles",
+          "name": "@inflatable-cookie/poodle-styles",
           "version": "0.1.0",
           "filename": "poodle-styles-0.1.0.tgz",
           "sha256": "6c2eebebd784f8ea9fa0081dc6167b64b3ee44d360f772306dc53813c969c0df"
         },
         {
-          "name": "@poodle/svelte-tokens",
+          "name": "@inflatable-cookie/poodle-svelte-tokens",
           "version": "0.1.0",
           "filename": "poodle-svelte-tokens-0.1.0.tgz",
           "sha256": "0a0422a1e3f7a03a19e0489079c6030f0e5f7f4188c3433756cbecd74771fd57"
         },
         {
-          "name": "@poodle/icons-lucide",
+          "name": "@inflatable-cookie/poodle-icons-lucide",
           "version": "0.1.0",
           "filename": "poodle-icons-lucide-0.1.0.tgz",
           "sha256": "88df4087c5cb2403b8da308cc59ad392d94be0fc16d81a72fa556e1f24cb8e70"
         },
         {
-          "name": "@poodle/svelte",
+          "name": "@inflatable-cookie/poodle-svelte",
           "version": "0.1.0",
           "filename": "poodle-svelte-0.1.0.tgz",
           "sha256": "9dc95956d5f5133eff6d457dd2e8efd64dab61a76e159b4ba3f05eeacf5e9ddb"
@@ -625,22 +625,22 @@
       {
         "package": "@inflatable-cookie/longhorn-commands",
         "peers": {
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },
       {
         "package": "@inflatable-cookie/longhorn-config",
         "peers": {
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },
@@ -652,11 +652,11 @@
       {
         "package": "@inflatable-cookie/longhorn-history",
         "peers": {
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },
@@ -680,11 +680,11 @@
       {
         "package": "@inflatable-cookie/longhorn-notifications",
         "peers": {
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },
@@ -692,12 +692,12 @@
         "package": "@inflatable-cookie/longhorn-operation",
         "peers": {
           "@inflatable-cookie/longhorn-bridge": "0.1.0",
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
           "@inflatable-cookie/longhorn-bridge",
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },
@@ -705,7 +705,7 @@
         "package": "@inflatable-cookie/longhorn-poodle",
         "peers": {
           "@inflatable-cookie/longhorn-transfer": "0.1.0",
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
@@ -715,11 +715,11 @@
       {
         "package": "@inflatable-cookie/longhorn-settings",
         "peers": {
-          "@poodle/svelte": "0.1.0",
+          "@inflatable-cookie/poodle-svelte": "0.1.0",
           "svelte": ">=5.38.6 <6"
         },
         "optionalPeers": [
-          "@poodle/svelte",
+          "@inflatable-cookie/poodle-svelte",
           "svelte"
         ]
       },

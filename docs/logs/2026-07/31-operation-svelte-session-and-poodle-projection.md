@@ -40,7 +40,7 @@ Status: complete
 - Determinate unit, normalized, and indeterminate progress all render through
   public Poodle primitives.
 - Root and Svelte sources contain no Poodle import. The Poodle adapter imports
-  only `@poodle/svelte`.
+  only `@inflatable-cookie/poodle-svelte`.
 - SSR imports, TypeScript checks, Svelte checks, mounted tests, package tests,
   and dry-run package assembly pass.
 

@@ -94,7 +94,7 @@ async function verifyLocalLinks(documents: Map<string, string>): Promise<void> {
 function verifySnippetBoundaries(documents: Map<string, string>): void {
   const forbidden = [
     /cargo\s+add/,
-    /@poodle\/[^\s`"']*(?:internal|private)/,
+    /@inflatable-cookie\/poodle-[^\s`"']*(?:internal|private)/,
     /@longhorn\/[^\s`"']+\/src\//,
     /(?:\.\.\/)+packages\//,
     /workspace:\*/,

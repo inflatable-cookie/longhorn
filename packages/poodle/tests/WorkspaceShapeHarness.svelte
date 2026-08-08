@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DockEdge } from "@poodle/svelte";
+  import type { DockEdge } from "@inflatable-cookie/poodle-svelte";
   import type { RegionId } from "@inflatable-cookie/longhorn-layout";
 
   import {

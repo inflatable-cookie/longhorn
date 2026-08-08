@@ -276,7 +276,7 @@ function verifyComposition(): void {
   for (const name of selectedTs) {
     assert(manifest.dependencies[name].startsWith("file:../../longhorn/"), `${name} is not source-linked`);
   }
-  const poodle = Object.keys(manifest.dependencies).filter((name) => name.startsWith("@poodle/"));
+  const poodle = Object.keys(manifest.dependencies).filter((name) => name.startsWith("@inflatable-cookie/poodle-"));
   equal(poodle.length, fixture.composition.poodle_public_packages, "Poodle package graph");
 
   const cargo = bovineRead("src-tauri/Cargo.toml");

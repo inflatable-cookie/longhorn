@@ -17,7 +17,7 @@ describe("@inflatable-cookie/longhorn-poodle package boundary", () => {
     });
     expect(metadata.peerDependencies).toEqual({
       "@inflatable-cookie/longhorn-transfer": "0.1.0",
-      "@poodle/svelte": "0.1.0",
+      "@inflatable-cookie/poodle-svelte": "0.1.0",
       svelte: ">=5.38.6 <6",
     });
     expect(metadata.peerDependenciesMeta).toEqual({
@@ -63,7 +63,7 @@ describe("@inflatable-cookie/longhorn-poodle package boundary", () => {
 
   it("resolves the exact packed Poodle package, not sibling source", async () => {
     const installedRoot = await realpath(
-      resolve(repositoryRoot, "node_modules/@poodle/svelte"),
+      resolve(repositoryRoot, "node_modules/@inflatable-cookie/poodle-svelte"),
     );
     const donorSource = await realpath(
       resolve(repositoryRoot, "../poodle/packages/svelte/components"),
@@ -74,7 +74,7 @@ describe("@inflatable-cookie/longhorn-poodle package boundary", () => {
 
     expect(installedRoot).not.toBe(donorSource);
     expect(installedRoot.startsWith(`${donorSource}/`)).toBe(false);
-    expect(metadata.name).toBe("@poodle/svelte");
+    expect(metadata.name).toBe("@inflatable-cookie/poodle-svelte");
     expect(metadata.version).toBe("0.1.0");
   });
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Callout, TextInput } from "@poodle/svelte";
+  import { Button, Callout, TextInput } from "@inflatable-cookie/poodle-svelte";
 
   import type {
     CommandKeymapConflict,

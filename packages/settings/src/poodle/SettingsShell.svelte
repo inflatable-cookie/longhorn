@@ -8,9 +8,9 @@
     SidebarNav,
     Surface,
     TextInput,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import { tick } from "svelte";
-  import type { SidebarNavGroup } from "@poodle/svelte";
+  import type { SidebarNavGroup } from "@inflatable-cookie/poodle-svelte";
 
   import {
     useSettingsSession,

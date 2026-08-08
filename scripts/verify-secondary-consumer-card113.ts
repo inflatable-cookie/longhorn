@@ -457,12 +457,12 @@ function verifySourceBackedBehavior(): number {
     {
       repository: "bovine",
       path: "tsconfig.json",
-      contains: ["@poodle/headless", "@poodle/svelte/*"],
+      contains: ["@inflatable-cookie/poodle-headless", "@inflatable-cookie/poodle-svelte/*"],
     },
     {
       repository: "bovine",
       path: "vite.config.ts",
-      contains: ["@poodle/headless", "@poodle/svelte"],
+      contains: ["@inflatable-cookie/poodle-headless", "@inflatable-cookie/poodle-svelte"],
     },
     {
       repository: "bovine",

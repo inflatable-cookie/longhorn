@@ -85,7 +85,7 @@ owns session ids, target eligibility, leases, and authoritative commits.
 
 ## Package Evidence
 
-`@poodle/svelte` currently identifies itself as a private `0.1.0` preview and
+`@inflatable-cookie/poodle-svelte` currently identifies itself as a private `0.1.0` preview and
 peers Svelte `^5.38.6`. Loophole and Bovine still use source aliases; Nucleus
 uses file dependencies. These are useful API evidence, not install or release
 evidence.

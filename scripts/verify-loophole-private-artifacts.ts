@@ -591,11 +591,11 @@ export const exactPrivateGraph = [
 function vitestConfig(): string {
   const packages = [
     ...typescriptPackages.map(([name]) => name),
-    "@poodle/headless",
-    "@poodle/icons-lucide",
-    "@poodle/styles",
-    "@poodle/svelte",
-    "@poodle/svelte-tokens",
+    "@inflatable-cookie/poodle-headless",
+    "@inflatable-cookie/poodle-icons-lucide",
+    "@inflatable-cookie/poodle-styles",
+    "@inflatable-cookie/poodle-svelte",
+    "@inflatable-cookie/poodle-svelte-tokens",
   ];
   return `import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import "@poodle/svelte-tokens/styles.css";
-  import "@poodle/svelte-tokens/theme-graphite.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/styles.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/theme-graphite.css";
 
   import {
     SettingsShell,
@@ -10,7 +10,7 @@
   import {
     UiPresentationProvider,
     createThemeController,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import { tick, untrack } from "svelte";
 
   let {

@@ -7,8 +7,8 @@
     FormActions,
     Surface,
     Table,
-  } from "@poodle/svelte";
-  import type { TableColumn, TableRow } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
+  import type { TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
   import {

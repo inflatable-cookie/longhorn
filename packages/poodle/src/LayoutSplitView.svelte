@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { SplitView } from "@poodle/svelte";
+  import { SplitView } from "@inflatable-cookie/poodle-svelte";
   import type {
     ControlDensity,
     ControlSize,
     SemanticControlSizeRole,
     SplitOrientation,
     SplitToggleVisibility,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import {
     layoutRatioFromMillionths,
     layoutRatioToUnitInterval,

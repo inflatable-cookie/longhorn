@@ -26,11 +26,11 @@ type CargoPackage = {
 };
 
 export const poodlePackages = [
-  ["@poodle/headless", "packages/core"],
-  ["@poodle/styles", "packages/styles"],
-  ["@poodle/svelte-tokens", "packages/svelte/tokens"],
-  ["@poodle/icons-lucide", "packages/svelte/icons-lucide"],
-  ["@poodle/svelte", "packages/svelte/components"],
+  ["@inflatable-cookie/poodle-headless", "packages/core"],
+  ["@inflatable-cookie/poodle-styles", "packages/styles"],
+  ["@inflatable-cookie/poodle-svelte-tokens", "packages/svelte/tokens"],
+  ["@inflatable-cookie/poodle-icons-lucide", "packages/svelte/icons-lucide"],
+  ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
 ] as const;
 
 export async function longhornPackageManifests(): Promise<Map<string, { directory: string; manifest: PackageManifest }>> {

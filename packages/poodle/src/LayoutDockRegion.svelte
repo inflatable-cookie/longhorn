@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DockRegion } from "@poodle/svelte";
+  import { DockRegion } from "@inflatable-cookie/poodle-svelte";
   import type {
     DockCollapsedPosture,
     DockEdge,
@@ -12,7 +12,7 @@
     PanelTabItem,
     SemanticControlSizeRole,
     TabVariant,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import type { LayoutContainerId, RegionId } from "@inflatable-cookie/longhorn-layout";
   import type { Snippet } from "svelte";
 

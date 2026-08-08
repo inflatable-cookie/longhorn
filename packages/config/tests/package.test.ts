@@ -13,11 +13,11 @@ test("framework-neutral root has one exact dependency", () => {
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
   expect(metadata.peerDependencies).toEqual({
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     svelte: ">=5.38.6 <6",
   });
   expect(metadata.peerDependenciesMeta).toEqual({
-    "@poodle/svelte": { optional: true },
+    "@inflatable-cookie/poodle-svelte": { optional: true },
     svelte: { optional: true },
   });
 
@@ -55,9 +55,9 @@ test("Poodle subpath uses only public APIs", () => {
   ]
     .map((path) => readFileSync(new URL(path, packageRoot), "utf8"))
     .join("\n");
-  expect(poodle).toContain('from "@poodle/svelte"');
+  expect(poodle).toContain('from "@inflatable-cookie/poodle-svelte"');
   expect(poodle).not.toMatch(
-    /@poodle\/svelte\/|querySelector|poodle-(?:button|callout|surface|table)/,
+    /@inflatable-cookie\/poodle-svelte\/|querySelector|poodle-(?:button|callout|surface|table)/,
   );
   expect(poodle).not.toMatch(/@tauri|AgeIdentity|AgePassphrase/);
 });

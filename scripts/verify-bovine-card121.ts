@@ -256,7 +256,7 @@ function verifyCompositionAndAuthority(): Record<string, unknown> {
     .filter((name) => name.startsWith("@inflatable-cookie/longhorn-"))
     .sort();
   equal(selectedTs, [...fixture.composition.typescript_packages].sort(), "TypeScript graph");
-  const poodle = Object.keys(manifest.dependencies).filter((name) => name.startsWith("@poodle/"));
+  const poodle = Object.keys(manifest.dependencies).filter((name) => name.startsWith("@inflatable-cookie/poodle-"));
   equal(poodle.length, fixture.composition.poodle_public_packages, "Poodle graph");
 
   const cargo = bovineRead("src-tauri/Cargo.toml");
@@ -274,7 +274,7 @@ function verifyCompositionAndAuthority(): Record<string, unknown> {
   assert(!tree.includes("longhorn-layout "), "SplitView became a layout document");
 
   const allRendererSources = command(bovineRoot, [
-    "git", "grep", "-n", "@poodle/", fixture.sources.bovine_closeout_commit, "--", "src",
+    "git", "grep", "-n", "@inflatable-cookie/poodle-", fixture.sources.bovine_closeout_commit, "--", "src",
   ]);
   excludes(allRendererSources, "/src/", "private Poodle source import");
   const currentWorkspace = [

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Callout, InlineListSection, Spinner, Stack } from "@poodle/svelte";
+  import { Button, Callout, InlineListSection, Spinner, Stack } from "@inflatable-cookie/poodle-svelte";
   import type { ForkBranchRecord, ForkEntryRecord } from "../generated/protocol.ts";
   import type { ForkHistorySession } from "../svelte/session.svelte.ts";
   let { session, title = "History branches" }: { session: ForkHistorySession; title?: string } = $props();

@@ -49,11 +49,11 @@ const longhornTypescriptPackages = [
   ["@inflatable-cookie/longhorn-transfer", "packages/transfer"],
 ] as const;
 const poodlePackages = [
-  ["@poodle/headless", "packages/core"],
-  ["@poodle/styles", "packages/styles"],
-  ["@poodle/svelte-tokens", "packages/svelte/tokens"],
-  ["@poodle/icons-lucide", "packages/svelte/icons-lucide"],
-  ["@poodle/svelte", "packages/svelte/components"],
+  ["@inflatable-cookie/poodle-headless", "packages/core"],
+  ["@inflatable-cookie/poodle-styles", "packages/styles"],
+  ["@inflatable-cookie/poodle-svelte-tokens", "packages/svelte/tokens"],
+  ["@inflatable-cookie/poodle-icons-lucide", "packages/svelte/icons-lucide"],
+  ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
 ] as const;
 const allRustCrates = [
   "longhorn-bridge",
@@ -314,7 +314,7 @@ async function verifyExampleSources(): Promise<void> {
     .filter((path) => path.endsWith(".svelte"));
   equalSet(svelteFiles, ["common/App.svelte"], "greenfield Svelte implementation inventory");
   const shell = await readFile(join(exampleRoot, "common/App.svelte"), "utf8");
-  if (!shell.includes('from "@poodle/svelte"') || !shell.includes('import "@poodle/svelte-tokens/styles.css"')) {
+  if (!shell.includes('from "@inflatable-cookie/poodle-svelte"') || !shell.includes('import "@inflatable-cookie/poodle-svelte-tokens/styles.css"')) {
     throw new Error("greenfield shell does not compose public Poodle roots");
   }
 }
@@ -380,7 +380,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     const installedLonghorn = (await readdir(join(stage, "node_modules/@longhorn"))).map((name) => `@inflatable-cookie/longhorn-${name}`).sort();
     equalSet(installedLonghorn, policy.typescript, `${shape} TypeScript graph`);
     for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
-    const installedPoodle = (await readdir(join(stage, "node_modules/@poodle"))).map((name) => `@poodle/${name}`).sort();
+    const installedPoodle = (await readdir(join(stage, "node_modules/@poodle"))).map((name) => `@inflatable-cookie/poodle-${name}`).sort();
     equalSet(installedPoodle, poodlePackages.map(([name]) => name), `${shape} Poodle graph`);
     await assertOnePackage(stage, "svelte", "5.38.6");
     await assertOnePackage(stage, "@tauri-apps/api", "2.10.1");

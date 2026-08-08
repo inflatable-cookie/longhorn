@@ -58,7 +58,7 @@ const policies = {
       "@inflatable-cookie/longhorn-config",
       "@inflatable-cookie/longhorn-tauri",
       "svelte",
-      "@poodle/svelte",
+      "@inflatable-cookie/poodle-svelte",
     ],
     mountedTests: 0,
   },
@@ -256,7 +256,7 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
       Object.keys(manifest.exports ?? {}),
       [".", "./package.json", "./poodle", "./protocol", "./svelte", "./tauri"],
     );
-    for (const peer of ["svelte", "@poodle/svelte"]) {
+    for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
       if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
         throw new Error(`${peer} is not an optional history peer`);
       }

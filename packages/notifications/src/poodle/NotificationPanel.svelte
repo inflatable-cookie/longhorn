@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Callout, InlineListSection, Stack, StatusIndicator } from "@poodle/svelte";
+  import { Button, Callout, InlineListSection, Stack, StatusIndicator } from "@inflatable-cookie/poodle-svelte";
   import type { Snippet } from "svelte";
 
   import type { NotificationRecordProjection } from "../generated/protocol.ts";

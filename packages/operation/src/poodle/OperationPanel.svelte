@@ -8,7 +8,7 @@
     Spinner,
     Stack,
     StatusIndicator,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import type { Snippet } from "svelte";
 
   import type { OperationEntryProjection } from "../generated/protocol.ts";

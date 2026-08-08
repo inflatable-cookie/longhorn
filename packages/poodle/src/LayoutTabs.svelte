@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Tabs } from "@poodle/svelte";
+  import { Tabs } from "@inflatable-cookie/poodle-svelte";
   import type {
     Orientation,
     TabActivationMode,
     TabVariant,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import type { LayoutContainerId, RegionId } from "@inflatable-cookie/longhorn-layout";
   import type { Snippet } from "svelte";
 

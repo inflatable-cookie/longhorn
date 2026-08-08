@@ -1,13 +1,13 @@
 <script lang="ts">
-  import "@poodle/svelte-tokens/styles.css";
-  import "@poodle/svelte-tokens/theme-graphite.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/styles.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/theme-graphite.css";
 
   import {
     Callout,
     PageLoading,
     UiPresentationProvider,
     createThemeController,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import { onDestroy } from "svelte";
 
   type Status =

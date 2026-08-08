@@ -443,8 +443,8 @@ import * as nativeContentSvelte from "@inflatable-cookie/longhorn-native-content
 import * as longhornPoodle from "@inflatable-cookie/longhorn-poodle";
 import * as longhornSvelte from "@inflatable-cookie/longhorn-svelte";
 import * as tauri from "@inflatable-cookie/longhorn-tauri";
-import { Menu, Popover } from "@poodle/svelte";
-import type { OverlaySurfaceGeometryChange } from "@poodle/headless";
+import { Menu, Popover } from "@inflatable-cookie/poodle-svelte";
+import type { OverlaySurfaceGeometryChange } from "@inflatable-cookie/poodle-headless";
 import type { ComponentProps } from "svelte";
 
 const onSurfaceGeometryChange = (change: OverlaySurfaceGeometryChange) => change.type;
@@ -473,11 +473,11 @@ export const exactPrivateGraph = [
 function vitestConfig(): string {
   const packages = [
     ...typescriptPackages.map(([name]) => name),
-    "@poodle/headless",
-    "@poodle/icons-lucide",
-    "@poodle/styles",
-    "@poodle/svelte",
-    "@poodle/svelte-tokens",
+    "@inflatable-cookie/poodle-headless",
+    "@inflatable-cookie/poodle-icons-lucide",
+    "@inflatable-cookie/poodle-styles",
+    "@inflatable-cookie/poodle-svelte",
+    "@inflatable-cookie/poodle-svelte-tokens",
   ];
   return `import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig } from "vitest/config";

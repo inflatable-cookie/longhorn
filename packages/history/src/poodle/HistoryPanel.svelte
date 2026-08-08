@@ -7,7 +7,7 @@
     Spinner,
     Stack,
     TextInput,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
 
   import type { HistoryEntryRecord } from "../generated/protocol.ts";
   import type { HistorySession } from "../svelte/session.svelte.ts";

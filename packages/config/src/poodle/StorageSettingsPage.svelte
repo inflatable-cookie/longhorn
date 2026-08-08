@@ -8,12 +8,12 @@
     Select,
     Surface,
     Table,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import type {
     SelectOption,
     TableColumn,
     TableRow,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
   import {

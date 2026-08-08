@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ToastStack, type ToastItem } from "@poodle/svelte";
+  import { ToastStack, type ToastItem } from "@inflatable-cookie/poodle-svelte";
 
   import type { NotificationSession } from "../svelte/session.svelte.ts";
 

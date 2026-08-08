@@ -12,12 +12,12 @@ describe("operation package boundary", () => {
     expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
     expect(metadata.peerDependencies).toEqual({
       "@inflatable-cookie/longhorn-bridge": "0.1.0",
-      "@poodle/svelte": "0.1.0",
+      "@inflatable-cookie/poodle-svelte": "0.1.0",
       svelte: ">=5.38.6 <6",
     });
     expect(metadata.peerDependenciesMeta).toEqual({
       "@inflatable-cookie/longhorn-bridge": { optional: true },
-      "@poodle/svelte": { optional: true },
+      "@inflatable-cookie/poodle-svelte": { optional: true },
       svelte: { optional: true },
     });
 
@@ -67,7 +67,7 @@ describe("operation package boundary", () => {
       .map((path) => readFileSync(new URL(path, packageRoot), "utf8"))
       .join("\n");
     for (const source of [root, controller, svelte]) {
-      expect(source).not.toContain("@poodle/");
+      expect(source).not.toContain("@inflatable-cookie/poodle-");
       expect(source).not.toContain("./poodle");
     }
   });
@@ -77,9 +77,9 @@ describe("operation package boundary", () => {
       new URL("src/poodle/OperationPanel.svelte", packageRoot),
       "utf8",
     );
-    expect(panel).toContain('from "@poodle/svelte"');
-    expect(panel).not.toContain("@poodle/svelte/");
-    expect(panel).not.toContain("@poodle/styles");
+    expect(panel).toContain('from "@inflatable-cookie/poodle-svelte"');
+    expect(panel).not.toContain("@inflatable-cookie/poodle-svelte/");
+    expect(panel).not.toContain("@inflatable-cookie/poodle-styles");
     expect(panel).not.toContain("/components/src/");
     for (const name of [
       "Progress",

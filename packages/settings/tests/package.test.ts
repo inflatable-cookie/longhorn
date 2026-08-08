@@ -17,11 +17,11 @@ test("package metadata keeps optional UI dependencies behind subpaths", () => {
     "@inflatable-cookie/longhorn-core": "0.1.0",
   });
   expect(metadata.peerDependencies).toEqual({
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     svelte: ">=5.38.6 <6",
   });
   expect(metadata.peerDependenciesMeta).toEqual({
-    "@poodle/svelte": { optional: true },
+    "@inflatable-cookie/poodle-svelte": { optional: true },
     svelte: { optional: true },
   });
 
@@ -58,20 +58,20 @@ test("root stays UI-free and the Poodle subpath uses public APIs only", async ()
     new URL("src/poodle/SettingsShell.svelte", packageRoot),
     "utf8",
   );
-  expect(poodleSource).toContain('from "@poodle/svelte"');
+  expect(poodleSource).toContain('from "@inflatable-cookie/poodle-svelte"');
   expect(poodleSource).not.toMatch(
-    /@poodle\/svelte\/|querySelector|poodle-(?:dialog|sidebar-nav|button)/,
+    /@inflatable-cookie\/poodle-svelte\/|querySelector|poodle-(?:dialog|sidebar-nav|button)/,
   );
   expect(poodleSource).not.toMatch(
     /@longhorn\/(?:layout|surfaces|transfer|commands|history)/,
   );
 
   const installed = await realpath(
-    new URL("../../node_modules/@poodle/svelte", packageRoot),
+    new URL("../../node_modules/@inflatable-cookie/poodle-svelte", packageRoot),
   );
   const poodleMetadata = JSON.parse(
     readFileSync(new URL("package.json", `file://${installed}/`), "utf8"),
   );
-  expect(poodleMetadata.name).toBe("@poodle/svelte");
+  expect(poodleMetadata.name).toBe("@inflatable-cookie/poodle-svelte");
   expect(poodleMetadata.version).toBe("0.1.0");
 });

@@ -36,7 +36,7 @@ const policies = {
       "@inflatable-cookie/longhorn-bridge",
       "@inflatable-cookie/longhorn-tauri",
       "svelte",
-      "@poodle/svelte",
+      "@inflatable-cookie/poodle-svelte",
     ],
     mountedTests: 0,
   },

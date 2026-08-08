@@ -83,7 +83,7 @@ function verifyNucleusCommit(): void {
     "@inflatable-cookie/longhorn-layout",
     "@inflatable-cookie/longhorn-poodle",
     "@inflatable-cookie/longhorn-svelte",
-    "@poodle/styles",
+    "@inflatable-cookie/poodle-styles",
   ]) {
     assertContains(packageJson, `\"${dependency}\": \"file:`, "private renderer graph");
   }

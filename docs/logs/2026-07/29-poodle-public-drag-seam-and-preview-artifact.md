@@ -8,7 +8,7 @@ State: complete
 
 - promoted and completed Poodle `g12.016`
 - added public typed external drag source and drop target seams to
-  `@poodle/svelte`
+  `@inflatable-cookie/poodle-svelte`
 - began asynchronous host preparation before native `dragstart`
 - made unready, superseded, cancelled, ended, eligible, and rejected paths
   explicit
@@ -44,11 +44,11 @@ Svelte peer range: `>=5.38.6 <6`
 
 | Package | Tarball | SHA-256 |
 | --- | --- | --- |
-| `@poodle/headless@0.1.0` | `poodle-headless-0.1.0.tgz` | `f6132a3fbb44f795bdc7775586e08438321124163678bf3b99ad68958923cfe2` |
-| `@poodle/styles@0.1.0` | `poodle-styles-0.1.0.tgz` | `9523011c14e00bbd57fe6bce95cf481d35ca5441d990449eddff7733de5bc0f9` |
-| `@poodle/svelte-tokens@0.1.0` | `poodle-svelte-tokens-0.1.0.tgz` | `59630dfacfcd802b221dfb6368a38b8f7f4217129a5f8482e1d2983648b8c175` |
-| `@poodle/icons-lucide@0.1.0` | `poodle-icons-lucide-0.1.0.tgz` | `88df4087c5cb2403b8da308cc59ad392d94be0fc16d81a72fa556e1f24cb8e70` |
-| `@poodle/svelte@0.1.0` | `poodle-svelte-0.1.0.tgz` | `d0ab2f25ba31050d8b2dbf903ea90f5714b7f1337635fc5bdafd40d239a0b75a` |
+| `@inflatable-cookie/poodle-headless@0.1.0` | `poodle-headless-0.1.0.tgz` | `f6132a3fbb44f795bdc7775586e08438321124163678bf3b99ad68958923cfe2` |
+| `@inflatable-cookie/poodle-styles@0.1.0` | `poodle-styles-0.1.0.tgz` | `9523011c14e00bbd57fe6bce95cf481d35ca5441d990449eddff7733de5bc0f9` |
+| `@inflatable-cookie/poodle-svelte-tokens@0.1.0` | `poodle-svelte-tokens-0.1.0.tgz` | `59630dfacfcd802b221dfb6368a38b8f7f4217129a5f8482e1d2983648b8c175` |
+| `@inflatable-cookie/poodle-icons-lucide@0.1.0` | `poodle-icons-lucide-0.1.0.tgz` | `88df4087c5cb2403b8da308cc59ad392d94be0fc16d81a72fa556e1f24cb8e70` |
+| `@inflatable-cookie/poodle-svelte@0.1.0` | `poodle-svelte-0.1.0.tgz` | `d0ab2f25ba31050d8b2dbf903ea90f5714b7f1337635fc5bdafd40d239a0b75a` |
 
 ## Validation
 

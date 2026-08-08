@@ -4,8 +4,8 @@
   "type": "module",
   "dependencies": {
     "@inflatable-cookie/longhorn-history-tree": "0.1.0",
-    "@poodle/svelte": "0.1.0",
-    "@poodle/svelte-tokens": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte-tokens": "0.1.0",
     "svelte": "5.38.6"
   },
   "devDependencies": {

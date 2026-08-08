@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CommandPalette } from "@poodle/svelte";
+  import { CommandPalette } from "@inflatable-cookie/poodle-svelte";
 
   import type { CommandSession } from "../svelte/session.svelte.ts";
   import {

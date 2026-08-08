@@ -102,8 +102,8 @@ Card 039 is bound to artifact set
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`
 from `~/Dev/projects/poodle/.artifacts/g12.016-A698XB/evidence.json`.
 
-The five packages are `@poodle/headless`, `@poodle/styles`,
-`@poodle/svelte-tokens`, `@poodle/icons-lucide`, and `@poodle/svelte`, all at
+The five packages are `@inflatable-cookie/poodle-headless`, `@inflatable-cookie/poodle-styles`,
+`@inflatable-cookie/poodle-svelte-tokens`, `@inflatable-cookie/poodle-icons-lucide`, and `@inflatable-cookie/poodle-svelte`, all at
 `0.1.0`. The supported Svelte peer range is `>=5.38.6 <6`. Adapter evidence
 must verify the set id and individual SHA-256 values recorded in Card 038
 before mounting.

@@ -152,10 +152,10 @@ function verifyNucleusConfiguration(): void {
     "Nucleus already resolves a Longhorn renderer dependency",
   );
   for (const name of [
-    "@poodle/headless",
-    "@poodle/icons-lucide",
-    "@poodle/svelte",
-    "@poodle/svelte-tokens",
+    "@inflatable-cookie/poodle-headless",
+    "@inflatable-cookie/poodle-icons-lucide",
+    "@inflatable-cookie/poodle-svelte",
+    "@inflatable-cookie/poodle-svelte-tokens",
   ]) {
     assert(
       desktopManifest.dependencies[name]?.startsWith("file:../../../poodle/"),

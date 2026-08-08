@@ -13,7 +13,7 @@ import type { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer"
 import type {
   DockExternalDragSource,
   DockExternalDropTarget,
-} from "@poodle/svelte";
+} from "@inflatable-cookie/poodle-svelte";
 
 export type PanelDropSelector =
   | {

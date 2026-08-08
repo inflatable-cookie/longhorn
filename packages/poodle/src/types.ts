@@ -11,7 +11,7 @@ import type {
   SizingSlotDefinition,
 } from "@inflatable-cookie/longhorn-layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-svelte/layout";
-import type { IconProp, PanelTabItem } from "@poodle/svelte";
+import type { IconProp, PanelTabItem } from "@inflatable-cookie/poodle-svelte";
 
 export interface LayoutMutationState {
   readonly projected: LayoutDocument | undefined;

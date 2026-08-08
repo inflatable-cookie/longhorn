@@ -96,10 +96,10 @@ A GPUI host therefore needs a projection tier, not a parallel of
 ### The dependency direction runs Longhorn to Poodle
 
 `@inflatable-cookie/longhorn-poodle` is a Longhorn package depending on
-`longhorn-layout` and `longhorn-svelte`, peering on `@poodle/svelte`. The
+`longhorn-layout` and `longhorn-svelte`, peering on `@inflatable-cookie/poodle-svelte`. The
 poodle repository contains no reference to longhorn. Poodle is a generic UI
 kit; Longhorn ships the projection that drives it. The GPUI stack repeats
-the shape with `poodle-gpui` in place of `@poodle/svelte`.
+the shape with `poodle-gpui` in place of `@inflatable-cookie/poodle-svelte`.
 
 Poodle has already proved a contract can carry two implementations — its
 GPUI suite matches its Svelte suite against shared contracts. That is the

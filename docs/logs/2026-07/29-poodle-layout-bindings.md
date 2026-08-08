@@ -89,7 +89,7 @@ Evidence:
 `verify:poodle-preview` checks the Svelte range `>=5.38.6 <6`, recomputes all
 five tarball SHA-256 digests, and recomputes the set membership id. The root
 workspace installs those exact tarballs. `@inflatable-cookie/longhorn-poodle` declares exact
-`0.1.0` Longhorn dependencies and exact `@poodle/svelte@0.1.0` peer
+`0.1.0` Longhorn dependencies and exact `@inflatable-cookie/poodle-svelte@0.1.0` peer
 compatibility; it makes no broader Poodle compatibility claim.
 
 The dry-run package contains ten files and unpacks to 27.87 KB. The installed

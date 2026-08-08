@@ -54,7 +54,7 @@ The minimal shape selects exactly four TypeScript and six Rust packages:
     "@inflatable-cookie/longhorn-core": "0.1.0",
     "@inflatable-cookie/longhorn-settings": "0.1.0",
     "@inflatable-cookie/longhorn-tauri": "0.1.0",
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     "svelte": "5.38.6"
   }
 }

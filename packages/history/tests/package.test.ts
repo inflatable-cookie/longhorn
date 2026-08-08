@@ -37,7 +37,7 @@ test("package exposes optional Tauri, Svelte, and Poodle subpaths", () => {
 
 test("root source has no optional adapter import", () => {
   const root = readFileSync(new URL("src/index.ts", packageRoot), "utf8");
-  for (const forbidden of ["./tauri", "./svelte", "./poodle", "@poodle", "svelte"]) {
+  for (const forbidden of ["./tauri", "./svelte", "./poodle", "@inflatable-cookie/poodle-", "svelte"]) {
     expect(root).not.toContain(forbidden);
   }
 });

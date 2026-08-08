@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ToastHost, type ToastHostPlacement, type ToastHostStore, type ToastHostStoreItem } from "@poodle/svelte";
+  import { ToastHost, type ToastHostPlacement, type ToastHostStore, type ToastHostStoreItem } from "@inflatable-cookie/poodle-svelte";
   import { readable } from "svelte/store";
 
   import type { NotificationSession } from "../svelte/session.svelte.ts";

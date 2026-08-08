@@ -1,11 +1,11 @@
 <script lang="ts">
-  import "@poodle/svelte-tokens/styles.css";
-  import "@poodle/svelte-tokens/theme-clay.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/styles.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/theme-clay.css";
 
   import {
     UiPresentationProvider,
     createThemeController,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import {
     SettingsShell,
     type SettingsPageRenderContext,

@@ -307,7 +307,7 @@ async function inspectTypescriptArtifact(name: string, path: string) {
     "wgpu",
     "devicePixelRatio",
     "querySelector",
-    "@poodle/",
+    "@inflatable-cookie/poodle-",
   ]) {
     if (source.includes(marker)) {
       throw new Error(`${name} artifact contains forbidden authority marker ${marker}`);
@@ -347,7 +347,7 @@ async function packAndRunRustArtifacts() {
       crates.map((name) => readSourceTree(join(workspace, "crates", name, "src"))),
     )
   ).join("\n");
-  for (const marker of ["@poodle/", "SignalPlugin", "wgpu::", "PluginPayload"]) {
+  for (const marker of ["@inflatable-cookie/poodle-", "SignalPlugin", "wgpu::", "PluginPayload"]) {
     if (sharedSource.includes(marker)) {
       throw new Error(`Rust artifacts contain forbidden product marker ${marker}`);
     }
@@ -553,7 +553,7 @@ async function verifyConsumer(
     ? [
         "@inflatable-cookie/longhorn-native-content",
         "@inflatable-cookie/longhorn-native-content-svelte",
-        "@poodle/svelte",
+        "@inflatable-cookie/poodle-svelte",
       ]
     : ["@inflatable-cookie/longhorn-native-content"];
   assertExactSet(`${shape} imports`, await packageImports(stage), expectedImports);

@@ -28,7 +28,7 @@ accepts fresh authority and preserves the local draft.
 ## Shell
 
 `@inflatable-cookie/longhorn-settings/poodle` exposes one controller-driven shell with modal,
-independent-window, and routed-panel hosts. It uses public `@poodle/svelte`
+independent-window, and routed-panel hosts. It uses public `@inflatable-cookie/poodle-svelte`
 components for dialog, navigation, search, page headers, status, actions, and
 surface presentation.
 

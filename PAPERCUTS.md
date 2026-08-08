@@ -38,7 +38,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   `crates/longhorn-licence/src/activation.rs`.
 
 ### [ ] Root package.json pins poodle to machine-local build artifacts — 2026-08-06
-- Friction: five `@poodle/*` entries in `devDependencies` and `overrides`
+- Friction: five `@inflatable-cookie/poodle-*` entries in `devDependencies` and `overrides`
   resolve to `file:../poodle/.artifacts/g12.016-A698XB/packs/*.tgz` — a
   poodle build-output directory outside this repo, dated 2026-07-29. The
   first CI run to reach `bun install --frozen-lockfile` failed on all five

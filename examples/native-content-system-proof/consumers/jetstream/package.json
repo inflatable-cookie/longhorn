@@ -6,7 +6,7 @@
     "@inflatable-cookie/longhorn-core": "0.1.0",
     "@inflatable-cookie/longhorn-native-content": "0.1.0",
     "@inflatable-cookie/longhorn-native-content-svelte": "0.1.0",
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     "svelte": "5.38.6"
   },
   "devDependencies": {

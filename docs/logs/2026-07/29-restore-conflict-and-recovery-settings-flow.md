@@ -82,7 +82,7 @@ renderer cannot dismiss either state into writable settings.
 - active and recovery-required states replace ordinary restore controls
 - assertive callouts announce publication and recovery
 - progress copy states that closing the view does not cancel host work
-- all components come from public `@poodle/svelte` exports
+- all components come from public `@inflatable-cookie/poodle-svelte` exports
 
 ## Structure
 

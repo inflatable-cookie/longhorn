@@ -7,7 +7,7 @@
   import type {
     DockExternalDragSource,
     DockExternalDropTarget,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
 
   interface Props {
     binding: PoodleLayoutBinding;

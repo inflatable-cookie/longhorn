@@ -45,12 +45,12 @@
   },
   "peerDependencies": {
     "@inflatable-cookie/longhorn-bridge": "0.1.0",
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     "svelte": ">=5.38.6 <6"
   },
   "peerDependenciesMeta": {
     "@inflatable-cookie/longhorn-bridge": { "optional": true },
-    "@poodle/svelte": { "optional": true },
+    "@inflatable-cookie/poodle-svelte": { "optional": true },
     "svelte": { "optional": true }
   },
   "sideEffects": false

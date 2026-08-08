@@ -69,7 +69,7 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
   };
   assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), dependencies[name]!);
   if (name === "@inflatable-cookie/longhorn-operation" || name === "@inflatable-cookie/longhorn-notifications") {
-    for (const peer of ["svelte", "@poodle/svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${name} ${peer} peer is not optional`);
+    for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${name} ${peer} peer is not optional`);
   }
   const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
   await mkdir(extractRoot);

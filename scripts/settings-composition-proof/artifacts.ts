@@ -179,7 +179,7 @@ function assertSettingsRootBoundary(manifest: {
       `settings root has upward optional dependencies: ${dependencies.join(", ")}`,
     );
   }
-  for (const peer of ["svelte", "@poodle/svelte"]) {
+  for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
     if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
       throw new Error(`${peer} is not an optional settings peer`);
     }

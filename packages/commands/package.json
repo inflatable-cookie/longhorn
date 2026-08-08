@@ -33,11 +33,11 @@
     "src"
   ],
   "peerDependencies": {
-    "@poodle/svelte": "0.1.0",
+    "@inflatable-cookie/poodle-svelte": "0.1.0",
     "svelte": ">=5.38.6 <6"
   },
   "peerDependenciesMeta": {
-    "@poodle/svelte": {
+    "@inflatable-cookie/poodle-svelte": {
       "optional": true
     },
     "svelte": {

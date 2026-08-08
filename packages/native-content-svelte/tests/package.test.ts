@@ -27,7 +27,7 @@ describe("@inflatable-cookie/longhorn-native-content-svelte package boundary", (
       ].map((path) => readFile(resolve(packageRoot, path), "utf8")),
     );
     const joined = source.join("\n");
-    expect(joined).not.toContain("@poodle/");
+    expect(joined).not.toContain("@inflatable-cookie/poodle-");
     expect(joined).not.toMatch(/querySelector|closest\(|matches\(|devicePixelRatio/);
     expect(joined).not.toMatch(/keydown|pointer|mouse|semantic/);
     expect(joined).not.toMatch(/setTimeout|setInterval|requestAnimationFrame/);
@@ -38,10 +38,10 @@ describe("@inflatable-cookie/longhorn-native-content-svelte package boundary", (
       resolve(packageRoot, "tests/PoodleLayoutSeamHarness.svelte"),
       "utf8",
     );
-    expect(fixture).toContain('from "@poodle/svelte"');
+    expect(fixture).toContain('from "@inflatable-cookie/poodle-svelte"');
     expect(fixture).toContain("<Surface");
     expect(fixture).toContain("use:nativeContentViewport={session}");
-    expect(fixture).not.toContain("@poodle/svelte/");
+    expect(fixture).not.toContain("@inflatable-cookie/poodle-svelte/");
     expect(fixture).not.toMatch(/querySelector|closest\(|poodle-/);
   });
 });

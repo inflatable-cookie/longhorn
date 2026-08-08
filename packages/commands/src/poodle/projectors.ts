@@ -1,7 +1,7 @@
 import type {
   CommandActionItem,
   DiscoveryState,
-} from "@poodle/svelte";
+} from "@inflatable-cookie/poodle-svelte";
 
 import type {
   CommandControllerStatus,

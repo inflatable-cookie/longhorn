@@ -1,6 +1,6 @@
 <script lang="ts">
-  import "@poodle/svelte-tokens/styles.css";
-  import "@poodle/svelte-tokens/theme-midnight.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/styles.css";
+  import "@inflatable-cookie/poodle-svelte-tokens/theme-midnight.css";
 
   import {
     Callout,
@@ -8,7 +8,7 @@
     UiPresentationProvider,
     createThemeController,
     type DockEdge,
-  } from "@poodle/svelte";
+  } from "@inflatable-cookie/poodle-svelte";
   import type { LayoutDocument } from "@inflatable-cookie/longhorn-layout";
   import {
     LayoutDockRegion,

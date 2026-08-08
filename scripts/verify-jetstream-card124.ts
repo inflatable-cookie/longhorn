@@ -148,8 +148,8 @@ function verifyCompositionAndPeers(): void {
   const nativeSvelte = packageManifest("native-content-svelte");
   const tauriPackage = packageManifest("tauri");
   equal(commands.peerDependencies?.svelte, fixture.peers.svelte, "commands Svelte peer");
-  equal(commands.peerDependencies?.["@poodle/svelte"], fixture.peers.poodle_svelte, "commands Poodle peer");
-  assert(commands.peerDependenciesMeta?.["@poodle/svelte"]?.optional === fixture.peers.poodle_svelte_optional, "commands Poodle optionality drift");
+  equal(commands.peerDependencies?.["@inflatable-cookie/poodle-svelte"], fixture.peers.poodle_svelte, "commands Poodle peer");
+  assert(commands.peerDependenciesMeta?.["@inflatable-cookie/poodle-svelte"]?.optional === fixture.peers.poodle_svelte_optional, "commands Poodle optionality drift");
   equal(nativeSvelte.peerDependencies?.svelte, fixture.peers.svelte, "native-content Svelte peer");
   equal(tauriPackage.peerDependencies?.["@tauri-apps/api"], fixture.peers.tauri_api, "Tauri API peer");
 }
@@ -191,7 +191,7 @@ function verifyRetainedAuthorityAndRollback(): void {
   assert(fixture.rollback.previous_rust_ipc_tests === 4, "previous IPC proof drift");
   assert(fixture.rollback.previous_renderer_tests === 65, "previous renderer proof drift");
   const previousPackage = git(jetstreamRoot, ["show", `${fixture.sources.jetstream_previous_authority_commit}:editor-ui/package.json`]);
-  contains(previousPackage, "@poodle/svelte", "previous renderer source");
+  contains(previousPackage, "@inflatable-cookie/poodle-svelte", "previous renderer source");
   const previousHost = git(jetstreamRoot, ["show", `${fixture.sources.jetstream_previous_authority_commit}:crates/jetstream-editor-tauri/src/lib.rs`]);
   contains(previousHost, "generate_handler!", "previous native source");
   for (const failurePath of fixture.validation.aggregate_failure_paths as string[]) {

@@ -14,7 +14,7 @@
   },
   "files": ["src"],
   "dependencies": { "@inflatable-cookie/longhorn-core": "0.1.0" },
-  "peerDependencies": { "@poodle/svelte": "0.1.0", "svelte": ">=5.38.6 <6" },
-  "peerDependenciesMeta": { "@poodle/svelte": { "optional": true }, "svelte": { "optional": true } },
+  "peerDependencies": { "@inflatable-cookie/poodle-svelte": "0.1.0", "svelte": ">=5.38.6 <6" },
+  "peerDependenciesMeta": { "@inflatable-cookie/poodle-svelte": { "optional": true }, "svelte": { "optional": true } },
   "sideEffects": false
 }
