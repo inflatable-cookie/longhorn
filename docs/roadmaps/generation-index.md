@@ -85,9 +85,13 @@ mechanism.
 [Card 164](g02/batch-cards/164-typescript-package-consolidation.md) is
 complete and closes g02.013: eighteen TypeScript packages are three, grouped
 by peer requirement. 61 entry points became 62 and nothing that resolved
-stopped resolving. Consumer migration — nucleus, loophole, soundcheck,
-jetstream — is the one scoped item left, and it is the next TypeScript-side
-step.
+stopped resolving.
+
+All five consumers are migrated and green — nucleus, loophole, soundcheck,
+jetstream, and figmatic, which had been missing from the inventory because it
+aliased Longhorn by path and is now normalised onto `file:` dependencies like
+the rest. Card 149's receipt still needs regenerating against the new counts
+once it is unblocked.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
