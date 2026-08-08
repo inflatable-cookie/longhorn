@@ -35,6 +35,7 @@ members = [
   "crates/longhorn-surfaces-config",
   "crates/longhorn-transfer",
   "crates/longhorn-update",
+  "crates/longhorn-update-native",
   "crates/longhorn-tauri-config",
   "crates/longhorn-tauri-transfer",
   "crates/longhorn-tauri-update",
@@ -67,6 +68,7 @@ age = { version = "=0.12.1", default-features = false }
 base64 = "0.22.1"
 cap-std = "4.0.2"
 ed25519-dalek = { version = "2.2.0", default-features = false, features = ["std"] }
+flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
 longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
@@ -103,17 +105,21 @@ longhorn-surfaces = { path = "crates/longhorn-surfaces", version = "0.1.0" }
 longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config", version = "0.1.0" }
 longhorn-transfer = { path = "crates/longhorn-transfer", version = "0.1.0" }
 longhorn-update = { path = "crates/longhorn-update", version = "0.1.0" }
+longhorn-update-native = { path = "crates/longhorn-update-native", version = "0.1.0" }
 longhorn-tauri-transfer = { path = "crates/longhorn-tauri-transfer", version = "0.1.0" }
 longhorn-tauri-update = { path = "crates/longhorn-tauri-update", version = "0.1.0" }
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version = "0.1.0" }
 longhorn-windowing = { path = "crates/longhorn-windowing", version = "0.1.0" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version = "0.1.0" }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+minisign = "0.9.1"
+minisign-verify = "0.2.5"
 rusqlite = { version = "=0.40.1", features = ["backup", "bundled"] }
 semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
+tar = "0.4.44"
 tempfile = "3.27.0"
 tauri = { version = "2.10.3", default-features = false }
 tauri-build = { version = "=2.6.3", default-features = false, features = ["config-json"] }

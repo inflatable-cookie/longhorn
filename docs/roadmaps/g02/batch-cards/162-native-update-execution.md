@@ -1,6 +1,6 @@
 # 162 Native Update Execution
 
-Status: in progress — contract and suite landed; implementations outstanding
+Status: in progress — native path landed; plugin-path baseline outstanding
 Owner: Tom
 Roadmap: g02.012 batch 2
 Governing refs: contracts 018 and 020; research memo 021
@@ -90,6 +90,58 @@ signature, two verifiers that agree by construction.
 
 This is a constraint on the native implementation, not a choice it gets to
 make.
+
+## Step 3 Landed — 2026-08-08
+
+`longhorn-update-native` verifies with minisign, unpacks, and replaces
+atomically. It passes the shared conformance suite.
+
+Tauri's macOS install path was read as a **specification** for platform
+behaviour — both projects are MIT, so reading is fine and copying would need
+attribution; reimplementing from understanding is the honest use. What it
+told us: a gzip tar whose single top-level entry is the application, extract
+to temp, move the current install aside, move the new one in.
+
+### Three deliberate divergences
+
+1. **No shell interpolation.** Tauri escalates by building
+   `rm -rf '{src}' && mv -f '{new}' '{src}'` and running it through
+   AppleScript with administrator privileges. A path containing a quote
+   breaks out of that string. Escalation here is an injected port, so
+   Longhorn never constructs a privileged shell command.
+2. **Classified failures.** Tauri returns generic IO errors. The contract
+   needs `NotWritable` distinguishable from a transient fault, because one
+   needs a manual download and the other can retry.
+3. **Bounded extraction.** Entries are checked before they are written. A
+   signature proves origin, not good intent, so an archive stays untrusted
+   input after it verifies.
+
+### One deliberate non-divergence
+
+Tauri does not strip `com.apple.quarantine`, and it is right not to. The
+attribute is applied by applications that opt into it, not by an ordinary
+file write, so extracted files never carry it. Adding handling would be
+cargo-culting a problem we do not have.
+
+### Evidence
+
+Eight tests, keys and archives generated in-test so nothing can drift from
+the format it claims to accept. Beyond the conformance suite:
+
+- a tampered artifact leaves the installed application **untouched** —
+  refusing is necessary, but refusing without having already disturbed the
+  install is what makes it safe
+- a **signed** archive escaping the destination is refused, with the header
+  name written directly because `tar::Builder` will not create such a path.
+  Only a hostile producer emits one, which is the point.
+- escalation is never attempted on a writable target
+- the default escalation declines rather than prompting for a password the
+  application never asked to need
+- a failed install leaves no staging directory behind
+- relaunch is left to the host, preserving macOS's separation
+
+Two bugs the tests caught: `tar`'s `unpack` does not create parent
+directories, and a nested file can precede its directory in the archive.
 
 ## Outstanding
 
