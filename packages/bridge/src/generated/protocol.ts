@@ -2,6 +2,16 @@
 // Rust serde types are the wire authority.
 
 export const BRIDGE_PROTOCOL_VERSION = 1 as const;
+// Wire-visible bounds. The Rust constants are the authority; a
+// hand-copied literal in a validator is drift waiting to happen.
+export const BRIDGE_MAXIMUM_REQUESTED_DOMAINS = 256 as const;
+export const BRIDGE_MAXIMUM_CAPABILITY_DOMAINS = 256 as const;
+export const BRIDGE_MAXIMUM_AUTHORITY_DOMAINS = 256 as const;
+export const BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN = 128 as const;
+export const BRIDGE_MAXIMUM_TRANSPORT_FEATURES = 128 as const;
+export const BRIDGE_MAXIMUM_DIAGNOSTICS = 63 as const;
+export const BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES = 4096 as const;
+export const BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES = 4096 as const;
 export const BRIDGE_HOST_FORMS = ["direct","tauriLocal","localService","remote","localFirst"] as const;
 export const BRIDGE_CONNECTION_STATES = ["idle","connecting","negotiating","ready","degraded","reconnecting","offline","incompatible","unauthorized","failed","closed"] as const;
 export const BRIDGE_CONNECTION_REASONS = ["connectRequested","transportReady","negotiationAccepted","capabilityChanged","transportLost","retryScheduled","versionMismatch","authorizationRejected","hostFailure","shutdown"] as const;

@@ -1,4 +1,10 @@
 import {
+  BRIDGE_MAXIMUM_AUTHORITY_DOMAINS,
+  BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN,
+  BRIDGE_MAXIMUM_CAPABILITY_DOMAINS,
+  BRIDGE_MAXIMUM_DIAGNOSTICS,
+  BRIDGE_MAXIMUM_REQUESTED_DOMAINS,
+  BRIDGE_MAXIMUM_TRANSPORT_FEATURES,
   BRIDGE_AUTHENTICATION_POSTURES,
   BRIDGE_CONNECTION_REASONS,
   BRIDGE_CONNECTION_STATES,
@@ -43,7 +49,7 @@ export function parseBridgeHelloRequest(value: unknown): BridgeHelloRequest {
     "requestedDomains",
   ]);
   assertBridgeProtocolVersion(source.protocolVersion);
-  const requestedDomains = array(source.requestedDomains, 256).map(domainId);
+  const requestedDomains = array(source.requestedDomains, BRIDGE_MAXIMUM_REQUESTED_DOMAINS).map(domainId);
   unique(requestedDomains, String);
   return {
     protocolVersion: BRIDGE_PROTOCOL_VERSION,
@@ -68,18 +74,18 @@ export function parseBridgeNegotiationReceipt(
     "diagnostics",
   ]);
   assertBridgeProtocolVersion(source.protocolVersion);
-  const capabilities = array(source.domainCapabilities, 256).map(
+  const capabilities = array(source.domainCapabilities, BRIDGE_MAXIMUM_CAPABILITY_DOMAINS).map(
     parseDomainCapability,
   );
-  const authorities = array(source.domainAuthorities, 256).map(
+  const authorities = array(source.domainAuthorities, BRIDGE_MAXIMUM_AUTHORITY_DOMAINS).map(
     parseDomainAuthority,
   );
   const connection = parseConnectionStatus(source.connection);
   if (connection.state !== "ready") {
     incompatible("invalid_connection_status", connection);
   }
-  const features = array(source.transportFeatures, 128).map(opaqueId);
-  const diagnostics = array(source.diagnostics, 64).map(parseDiagnostic);
+  const features = array(source.transportFeatures, BRIDGE_MAXIMUM_TRANSPORT_FEATURES).map(opaqueId);
+  const diagnostics = array(source.diagnostics, BRIDGE_MAXIMUM_DIAGNOSTICS).map(parseDiagnostic);
   unique(features, String);
   unique(capabilities, (item) => item.domainId);
   unique(authorities, (item) => item.domainId);
@@ -179,7 +185,7 @@ function validConnectionReason(
 
 function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {
   const source = record(value, ["domainId", "capabilities"]);
-  const capabilities = array(source.capabilities, 128).map(opaqueId);
+  const capabilities = array(source.capabilities, BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN).map(opaqueId);
   if (capabilities.length === 0) {
     incompatible("invalid_array", value);
   }

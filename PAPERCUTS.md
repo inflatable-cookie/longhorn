@@ -7,6 +7,20 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] SSR vitest suites flake under machine load — 2026-08-08
+- Friction: `packages/commands/tests-svelte/ssr.test.ts` and
+  `packages/config/tests-svelte/ssr.test.ts` carry 20s and 15s timeouts. Both
+  spend nearly all of it in transform/collect, so they fail when the machine
+  is busy — e.g. `effigy test:vitest` run alongside a workspace clippy.
+- Impact: `effigy test:vitest` fails intermittently with no real defect. It
+  cost two misdiagnoses in one session: once read as caused by the
+  `@inflatable-cookie` rename (it was a stale `node_modules`), once as a
+  regression from the bindings change (it was load).
+- Possible fix: raise the two timeouts, or mark the SSR suites as a serial
+  lane so they do not compete with a parallel Rust build.
+- Surface: `packages/commands/tests-svelte/ssr.test.ts`,
+  `packages/config/tests-svelte/ssr.test.ts`.
+
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
