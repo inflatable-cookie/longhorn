@@ -5,7 +5,7 @@
     TabActivationMode,
     TabVariant,
   } from "@poodle/svelte";
-  import type { LayoutContainerId, RegionId } from "@longhorn/layout";
+  import type { LayoutContainerId, RegionId } from "@inflatable-cookie/longhorn-layout";
   import type { Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";

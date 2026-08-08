@@ -30,8 +30,8 @@ TypeScript client, and a separate Svelte lifecycle package:
 - `longhorn-tauri-native-content-child-view`
 - `longhorn-native-content-isolated-window`
 - `longhorn-native-content-backing-surface`
-- `@longhorn/native-content`
-- `@longhorn/native-content-svelte`
+- `@inflatable-cookie/longhorn-native-content`
+- `@inflatable-cookie/longhorn-native-content-svelte`
 
 These working names are fixed for g01.018 but are not released registry or
 compatibility promises. There is no Poodle-specific native-content package.

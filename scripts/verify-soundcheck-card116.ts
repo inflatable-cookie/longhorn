@@ -270,7 +270,7 @@ function verifySoundcheckRegistryAndHost(): void {
 function verifyRendererCutover(): void {
   const dialog = soundcheckRead("src/components/SettingsDialog.svelte");
   for (const token of [
-    'import { SettingsShell } from "@longhorn/settings/poodle"',
+    'import { SettingsShell } from "@inflatable-cookie/longhorn-settings/poodle"',
     "new SettingsSession({",
     "new SettingsClient(transport)",
     "new ConfigOperationsClient(transport)",

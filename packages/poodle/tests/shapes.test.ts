@@ -1,7 +1,7 @@
 import { render } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutDispatchResult } from "@longhorn/svelte/layout";
+import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-svelte/layout";
 
 import WorkspaceShapeHarness from "./WorkspaceShapeHarness.svelte";
 import {

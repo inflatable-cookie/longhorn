@@ -1,7 +1,7 @@
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import {
   assertCompatibleNativeContentChangedEvent,

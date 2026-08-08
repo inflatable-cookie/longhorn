@@ -7,7 +7,7 @@ export default defineConfig({
       {
         plugins: [svelte()],
         resolve: { conditions: ["browser"] },
-        ssr: { noExternal: ["@longhorn/notifications", "@poodle/headless", "@poodle/icons-lucide", "@poodle/styles", "@poodle/svelte", "@poodle/svelte-tokens"] },
+        ssr: { noExternal: ["@inflatable-cookie/longhorn-notifications", "@poodle/headless", "@poodle/icons-lucide", "@poodle/styles", "@poodle/svelte", "@poodle/svelte-tokens"] },
         test: { name: "client", environment: "happy-dom", include: ["packages/notifications/tests-svelte/**/*.test.ts"], exclude: ["packages/notifications/tests-svelte/ssr.test.ts"], setupFiles: ["packages/notifications/tests-svelte/setup.ts"] },
       },
       {

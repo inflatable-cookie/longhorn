@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 
 import {
   TRANSFER_CANCEL_COMMAND,
@@ -9,7 +9,7 @@ import {
   TRANSFER_SNAPSHOT_COMMAND,
   TRANSFER_START_PANEL_COMMAND,
   TransferClient,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 const fixturePath = new URL(
   "../../../fixtures/transfer/protocol-v1.json",

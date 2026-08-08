@@ -27,7 +27,7 @@ Card 082 is ready. Cards 083-086 remain planned.
 
 ## Package Gate
 
-The provisional `longhorn-native-content` and `@longhorn/native-content`
+The provisional `longhorn-native-content` and `@inflatable-cookie/longhorn-native-content`
 names remain documentation only. Cards 082-085 cannot join the root workspace,
 publish artifacts, create compatibility promises, or trigger donor migration.
 

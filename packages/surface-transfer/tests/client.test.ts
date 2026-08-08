@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 
 import {
   TRANSFER_COMMIT_SURFACE_COMMAND,
   TRANSFER_START_SURFACE_COMMAND,
   SurfaceTransferClient,
-} from "@longhorn/surface-transfer";
+} from "@inflatable-cookie/longhorn-surface-transfer";
 
 const fixturePath = new URL(
   "../../../fixtures/surface-transfer/protocol-v1.json",

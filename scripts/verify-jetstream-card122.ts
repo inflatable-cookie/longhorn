@@ -179,7 +179,7 @@ function verifyComposition(): void {
     dependencies: Record<string, string>;
   };
   const selectedTs = Object.keys(manifest.dependencies)
-    .filter((name) => name.startsWith("@longhorn/"))
+    .filter((name) => name.startsWith("@inflatable-cookie/longhorn-"))
     .sort();
   equal(selectedTs, [...fixture.composition.typescript_packages].sort(), "TypeScript graph");
 
@@ -193,7 +193,7 @@ function verifyComposition(): void {
     "tree", "-p", "jetstream-editor-tauri", "--edges", "normal", "--prefix", "none",
   ], jetstreamRoot);
   for (const system of fixture.composition.forbidden_systems) {
-    assert(!manifest.dependencies[`@longhorn/${system}`], `renderer resolves ${system}`);
+    assert(!manifest.dependencies[`@inflatable-cookie/longhorn-${system}`], `renderer resolves ${system}`);
     assert(!tree.includes(`longhorn-${system} `), `Rust graph resolves ${system}`);
   }
 }

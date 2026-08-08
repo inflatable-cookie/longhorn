@@ -1,12 +1,12 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { EventTransport } from "@longhorn/core";
-import { SurfaceTransferClient } from "@longhorn/surface-transfer";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
+import { SurfaceTransferClient } from "@inflatable-cookie/longhorn-surface-transfer";
 import {
   SURFACE_SNAPSHOT_COMMAND,
   SurfaceClient,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 import {
   TRANSFER_CANCEL_COMMAND,
   TRANSFER_COMMIT_PANEL_COMMAND,
@@ -14,11 +14,11 @@ import {
   TRANSFER_START_PANEL_COMMAND,
   TransferClient,
   type TransferCancelRequest,
-} from "@longhorn/transfer";
-import { LayoutState } from "@longhorn/svelte/layout";
-import { SurfaceState } from "@longhorn/svelte/surfaces";
-import { SurfaceTransferState } from "@longhorn/svelte/surface-transfer";
-import { TransferState } from "@longhorn/svelte/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
+import { LayoutState } from "@inflatable-cookie/longhorn-svelte/layout";
+import { SurfaceState } from "@inflatable-cookie/longhorn-svelte/surfaces";
+import { SurfaceTransferState } from "@inflatable-cookie/longhorn-svelte/surface-transfer";
+import { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer";
 
 import LoopholeShell from "./LoopholeShell.svelte";
 import {

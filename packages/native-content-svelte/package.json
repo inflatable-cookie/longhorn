@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/native-content-svelte",
+  "name": "@inflatable-cookie/longhorn-native-content-svelte",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/native-content": "0.1.0"
+    "@inflatable-cookie/longhorn-native-content": "0.1.0"
   },
   "peerDependencies": {
     "svelte": ">=5.38.6 <6"

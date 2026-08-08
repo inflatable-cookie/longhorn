@@ -13,10 +13,10 @@ import {
   TRANSFER_ERROR_CODES,
   assertCompatibleTransferTargetBinding,
   assertTransferProtocolVersion,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 import {
   assertCompatibleSurfaceMutationRejectionCode,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 
 export type SurfaceTransferProtocolIncompatibilityCode =
   | "unknown_target"

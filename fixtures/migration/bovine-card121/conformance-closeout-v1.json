@@ -12,7 +12,7 @@
   "composition": {
     "canonical_application_id": "com.acowtancy.bovine-accelerator",
     "hierarchy": [],
-    "typescript_packages": ["@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+    "typescript_packages": ["@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings", "@inflatable-cookie/longhorn-tauri"],
     "rust_packages": ["longhorn-config", "longhorn-core", "longhorn-settings", "longhorn-settings-config", "longhorn-tauri-config", "longhorn-tauri-settings"],
     "forbidden_systems": ["layout", "surfaces", "transfer", "bridge", "commands", "history", "operation", "notifications", "native-content"],
     "settings_pages": ["bovine:workspace", "longhorn:storage"],

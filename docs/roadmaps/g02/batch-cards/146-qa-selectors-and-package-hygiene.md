@@ -28,7 +28,7 @@ package and manifest conventions.
 2. Add `check:history-tree-bindings` to the bindings aggregate and a
    `check:layout-ts` task to `check:client-ts`.
 3. Align `packages/svelte`'s svelte peer range to the workspace `<6`
-   convention; demote `packages/bridge`'s `@longhorn/tauri` to the
+   convention; demote `packages/bridge`'s `@inflatable-cookie/longhorn-tauri` to the
    operation-style optional-peer subpath pattern; adopt `workspace:*` for
    internal deps.
 4. Pick one internal path-dep convention in `Cargo.toml` (version on all or

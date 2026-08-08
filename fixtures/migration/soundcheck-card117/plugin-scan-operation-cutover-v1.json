@@ -49,7 +49,7 @@
   },
   "composition": {
     "rust": ["longhorn-operation", "longhorn-tauri-operation"],
-    "typescript": ["@longhorn/operation"],
+    "typescript": ["@inflatable-cookie/longhorn-operation"],
     "bridge_dependency": false,
     "notification_dependency": false,
     "durable_scheduler_dependency": false,

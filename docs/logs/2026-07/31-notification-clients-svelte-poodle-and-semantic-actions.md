@@ -27,7 +27,7 @@ Status: complete
   or authority epoch reloads a bounded authoritative page.
 - Action references remain bounded data. Consumers resolve and authorize them
   afresh on every invocation; no generic execute-by-string host command exists.
-- The framework-neutral root depends only on `@longhorn/core`. Tauri, Svelte,
+- The framework-neutral root depends only on `@inflatable-cookie/longhorn-core`. Tauri, Svelte,
   Poodle, operation, and command edges remain removable.
 
 ## Evidence

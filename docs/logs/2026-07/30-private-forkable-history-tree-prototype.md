@@ -113,7 +113,7 @@ The public artifact proof remains byte-identical to Card 067:
 | Artifact | SHA-256 |
 | --- | --- |
 | `longhorn-history` Rust inventory | `acbe9977915042a59ab746bb999ef457c004badc5b1e9da323e1d645a3497292` |
-| `@longhorn/history` tarball | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
+| `@inflatable-cookie/longhorn-history` tarball | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
 | Poodle artifact set | `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74` |
 
 No branch API, prototype dependency, Loophole payload, project-version

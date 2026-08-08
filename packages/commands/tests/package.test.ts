@@ -7,7 +7,7 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package exports root, protocol, and optional adapter surfaces", () => {
-  expect(metadata.name).toBe("@longhorn/commands");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-commands");
   expect(metadata.private).toBeTrue();
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();

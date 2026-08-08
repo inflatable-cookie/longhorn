@@ -1,7 +1,7 @@
 import type {
   ConnectionFailureReporter,
   EventTransport,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import type {
   SettingsApplyCommand,

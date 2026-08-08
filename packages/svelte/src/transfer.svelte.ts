@@ -10,7 +10,7 @@ import {
   type TransferLeaseRequest,
   type TransferLeaseResponse,
   type TransferSessionResponse,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import {
   ReactiveClientState,

@@ -87,6 +87,15 @@ their artifacts live.
   answers whether a refusal was a future-schema refusal, so a client surface
   can explain a channel rejoin without matching per-store error shapes.
 
+## Reporting
+
+- An install that reached disk but did not relaunch is **not** a failed
+  update. The correct message asks the user to reopen the application;
+  reporting failure is false and invites retrying an update they already
+  have. This is not hypothetical — macOS relaunch is known to fail
+  (tauri#11392).
+- A refused install is deferred, never cancelled, and carries its reason.
+
 ## Diagnostics
 
 - Channel and build identity are stamped into the diagnostics seam so a

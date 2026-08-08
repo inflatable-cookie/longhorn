@@ -17,9 +17,9 @@ or a service while preserving Nucleus and Loophole host topologies.
 
 ### Longhorn
 
-- `@longhorn/core` already owns a domain-free invoke/event transport and a
+- `@inflatable-cookie/longhorn-core` already owns a domain-free invoke/event transport and a
   listener-first checked snapshot connection.
-- `@longhorn/tauri` is a thin raw Tauri transport. Domain clients own command
+- `@inflatable-cookie/longhorn-tauri` is a thin raw Tauri transport. Domain clients own command
   names, validation, snapshots, and event meaning.
 - Existing layout, Surface, transfer, configuration, and settings protocols
   already use Rust-owned generation, request ids, checked revisions, epochs,
@@ -102,7 +102,7 @@ or a service while preserving Nucleus and Loophole host topologies.
 
 The shared seam has three layers:
 
-1. `@longhorn/core` and `@longhorn/tauri` keep domain-free transport and
+1. `@inflatable-cookie/longhorn-core` and `@inflatable-cookie/longhorn-tauri` keep domain-free transport and
    listener lifetime.
 2. The bridge protocol owns session negotiation, topology, connection state,
    authority descriptors, correlation, error shape, retry classification, and
@@ -190,10 +190,10 @@ authority merely because it can serialize it.
   conformance fixtures
 - `longhorn-tauri-bridge`: narrow host assembly adapting registered domain
   handlers to Tauri
-- `@longhorn/bridge`: checked generated bridge protocol, session client,
+- `@inflatable-cookie/longhorn-bridge`: checked generated bridge protocol, session client,
   authority projection, and direct/serialized conformance helpers
-- `@longhorn/core`: unchanged structural transport and listener lifetime
-- `@longhorn/tauri`: unchanged domain-free raw invoke/listen transport
+- `@inflatable-cookie/longhorn-core`: unchanged structural transport and listener lifetime
+- `@inflatable-cookie/longhorn-tauri`: unchanged domain-free raw invoke/listen transport
 
 Domain packages keep their generated payloads and clients. Service
 supervision remains an optional adapter edge; a no-service consumer resolves

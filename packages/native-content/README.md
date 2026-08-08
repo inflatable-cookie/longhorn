@@ -1,4 +1,4 @@
-# @longhorn/native-content
+# @inflatable-cookie/longhorn-native-content
 
 Framework-neutral checked client for one Rust-owned native-content island
 authority.
@@ -17,7 +17,7 @@ monotonic.
 
 Use `createDirectNativeContentPort` for injected in-process tests,
 `SerializedNativeContentPort` for deterministic JSON-loopback proof, or the
-`@longhorn/native-content/tauri` subpath with an injected Longhorn transport.
+`@inflatable-cookie/longhorn-native-content/tauri` subpath with an injected Longhorn transport.
 The root import has no Tauri dependency.
 
 Capability examples under `examples/` authorize only access to these four

@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@longhorn/bridge": "0.1.0",
-    "@longhorn/tauri": "0.1.0",
+    "@inflatable-cookie/longhorn-bridge": "0.1.0",
+    "@inflatable-cookie/longhorn-tauri": "0.1.0",
     "@tauri-apps/api": "2.10.1"
   },
   "devDependencies": {

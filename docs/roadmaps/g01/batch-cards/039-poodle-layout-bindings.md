@@ -14,7 +14,7 @@ DockRegion, and SplitView APIs while keeping panel presentation consumer-owned.
 
 ## Scope
 
-- private `@longhorn/poodle` package
+- private `@inflatable-cookie/longhorn-poodle` package
 - exact Card 038 Poodle preview artifact set
 - Surface-free root layout bindings
 - tab selection, close, reorder, and body snippets
@@ -90,7 +90,7 @@ Longhorn document.
 
 ## Result
 
-Private `@longhorn/poodle` now binds authoritative layout projection and
+Private `@inflatable-cookie/longhorn-poodle` now binds authoritative layout projection and
 revisioned mutation to public Poodle Tabs, DockRegion, and SplitView APIs. It
 is Surface-free, keeps product presentation in consumer resolvers and
 snippets, serializes requests against reconciled authority, and mounts both

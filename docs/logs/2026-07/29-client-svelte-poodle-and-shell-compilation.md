@@ -37,10 +37,10 @@ candidate once native drag and reporting are injected.
 
 ## Contract Decisions
 
-- `@longhorn/core` owns structural transport and checked subscription lifetime
+- `@inflatable-cookie/longhorn-core` owns structural transport and checked subscription lifetime
 - domain packages retain validation and freshness comparison
-- `@longhorn/tauri` has no mandatory domain dependency
-- `@longhorn/svelte` root remains Surface-free
+- `@inflatable-cookie/longhorn-tauri` has no mandatory domain dependency
+- `@inflatable-cookie/longhorn-svelte` root remains Surface-free
 - optional domains use subpaths and optional peers
 - private Poodle adapter proof uses one exact packable preview artifact
 - Poodle needs a public pre-drag, lifecycle, eligibility, and external-drop

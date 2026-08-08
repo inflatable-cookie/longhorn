@@ -15,7 +15,7 @@ settings shell.
 
 ## Scope
 
-- remaining `@longhorn/config` restore protocol/client slice
+- remaining `@inflatable-cookie/longhorn-config` restore protocol/client slice
 - archive selection, unlock, inspection, domain compatibility, exclusions, and
   consistency groups
 - explicit conflict choices and action plan

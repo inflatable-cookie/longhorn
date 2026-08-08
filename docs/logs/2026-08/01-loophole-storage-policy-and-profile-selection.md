@@ -54,7 +54,7 @@ deferred.
 | `longhorn-tauri-config` Cargo inventory | `cargo package --list --allow-dirty` | `86cdac7c42c2af2be9bebc4ebe613be403d6fb99577fe15f2ff06092c31d9c14` |
 | `longhorn-config-0.1.0.private.tar.gz` | private source archive | `90aab39b11afc62ff342f700299fff880fed84d785fbbd9d2d2aa7927338728a` |
 | `longhorn-tauri-config-0.1.0.private.tar.gz` | private source archive | `9f64ee6432020e5ad2530e61b2683c0bf4d8175483b12971128e23e677e19a8e` |
-| `@longhorn/config` 0.1.0 | packed npm artifact | `3be4f0ca3153dd8bcaa408d7393178ee2bfebfa026722c4e5ac29b13e8b79367` |
+| `@inflatable-cookie/longhorn-config` 0.1.0 | packed npm artifact | `3be4f0ca3153dd8bcaa408d7393178ee2bfebfa026722c4e5ac29b13e8b79367` |
 
 The Rust archives are private source snapshots after successful Cargo package
 inventory checks. Registry-normalized Cargo archives remain a release gate,

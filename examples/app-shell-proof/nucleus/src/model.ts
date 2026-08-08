@@ -2,11 +2,11 @@ import type {
   LayoutDocument,
   LayoutSchemaDefinition,
   PanelDefinition,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 import type {
   PanelPresentationResolver,
   PoodleLayoutDefinitions,
-} from "@longhorn/poodle";
+} from "@inflatable-cookie/longhorn-poodle";
 
 const regionIds = ["navigation", "context", "main", "inspector", "console"];
 

@@ -19,8 +19,8 @@ mechanisms before any consumer migration.
 - `longhorn-tauri-native-content-child-view`
 - `longhorn-native-content-isolated-window`
 - `longhorn-native-content-backing-surface`
-- `@longhorn/native-content`
-- `@longhorn/native-content-svelte`
+- `@inflatable-cookie/longhorn-native-content`
+- `@inflatable-cookie/longhorn-native-content-svelte`
 
 The names are working pre-1.0 names. No Poodle-specific package is planned.
 

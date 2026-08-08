@@ -11,8 +11,8 @@ export default defineConfig({
         },
         ssr: {
           noExternal: [
-            "@longhorn/native-content",
-            "@longhorn/native-content-svelte",
+            "@inflatable-cookie/longhorn-native-content",
+            "@inflatable-cookie/longhorn-native-content-svelte",
             "@poodle/headless",
             "@poodle/icons-lucide",
             "@poodle/styles",

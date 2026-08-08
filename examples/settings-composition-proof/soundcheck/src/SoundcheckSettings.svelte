@@ -9,17 +9,17 @@
     BACKUP_SETTINGS_RENDERER_ID,
     RESTORE_SETTINGS_RENDERER_ID,
     STORAGE_SETTINGS_RENDERER_ID,
-  } from "@longhorn/config/poodle";
+  } from "@inflatable-cookie/longhorn-config/poodle";
   import type {
     ConfigOperationsClient,
     ConfigOperationsSnapshot,
-  } from "@longhorn/config";
+  } from "@inflatable-cookie/longhorn-config";
   import {
     SettingsShell,
     type SettingsPageRenderContext,
     type SettingsRendererResolver,
     type SettingsSession,
-  } from "@longhorn/settings/poodle";
+  } from "@inflatable-cookie/longhorn-settings/poodle";
   import {
     UiPresentationProvider,
     createThemeController,

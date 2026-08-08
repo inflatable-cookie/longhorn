@@ -11,12 +11,12 @@
   "composition": {
     "canonical_application_id": "com.inflatablecookie.jetstream.editor",
     "typescript_packages": [
-      "@longhorn/bridge",
-      "@longhorn/commands",
-      "@longhorn/core",
-      "@longhorn/native-content",
-      "@longhorn/native-content-svelte",
-      "@longhorn/tauri"
+      "@inflatable-cookie/longhorn-bridge",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-core",
+      "@inflatable-cookie/longhorn-native-content",
+      "@inflatable-cookie/longhorn-native-content-svelte",
+      "@inflatable-cookie/longhorn-tauri"
     ],
     "rust_packages": [
       "longhorn-bridge",

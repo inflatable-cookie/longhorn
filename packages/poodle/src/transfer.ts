@@ -8,8 +8,8 @@ import {
   type PanelTransferResponse,
   type TransferCommitSelector,
   type TransferSessionResponse,
-} from "@longhorn/transfer";
-import type { TransferState } from "@longhorn/svelte/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
+import type { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer";
 import type {
   DockExternalDragSource,
   DockExternalDropTarget,

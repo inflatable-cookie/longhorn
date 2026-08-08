@@ -109,7 +109,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     ["bridge", "core", "tauri"],
   );
   const artifactResolution = [];
-  for (const name of ["@longhorn/bridge", "@longhorn/core", "@longhorn/tauri"]) {
+  for (const name of ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-tauri"]) {
     artifactResolution.push(await assertArtifactInstall(stage, name));
   }
   const tauriApi = await installedPackage(stage, "@tauri-apps/api");
@@ -128,14 +128,14 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
   );
   const imports = await longhornImports(stage);
   assertExactSet(`${shape} imports`, imports, declaration.imports);
-  const hasEvents = imports.includes("@longhorn/bridge/tauri-events");
+  const hasEvents = imports.includes("@inflatable-cookie/longhorn-bridge/tauri-events");
   const hasEventPermissions = capability.permissions.includes(
     "core:event:allow-listen",
   ) && capability.permissions.includes("core:event:allow-unlisten");
   if (hasEvents !== hasEventPermissions) {
     throw new Error(`${shape} event imports and permissions diverged`);
   }
-  const hasSupervision = imports.includes("@longhorn/bridge/supervision");
+  const hasSupervision = imports.includes("@inflatable-cookie/longhorn-bridge/supervision");
   if (hasSupervision !== (declaration.serviceOwnership !== null)) {
     throw new Error(`${shape} supervision import and ownership diverged`);
   }

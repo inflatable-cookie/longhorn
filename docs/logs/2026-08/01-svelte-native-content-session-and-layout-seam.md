@@ -6,7 +6,7 @@ Roadmap: g01.018
 
 ## Result
 
-Added `@longhorn/native-content-svelte` as a separate package over the checked
+Added `@inflatable-cookie/longhorn-native-content-svelte` as a separate package over the checked
 framework-neutral client. Each `NativeContentSession` creates one connection
 per mount. It measures one exact consumer-supplied element and combines that
 measurement with explicit scale, final visibility policy, focus intent, and

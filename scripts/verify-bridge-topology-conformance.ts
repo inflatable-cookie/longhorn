@@ -42,14 +42,14 @@ for (const shape of shapes) {
     }
   }
   const imports = importGraph[shape]!;
-  const hasEvents = imports.includes("@longhorn/bridge/tauri-events");
+  const hasEvents = imports.includes("@inflatable-cookie/longhorn-bridge/tauri-events");
   const hasEventAdmission = fixture.tauriPermissions.some((permission) =>
     permission.startsWith("core:event:")
   );
   if (hasEvents !== hasEventAdmission) {
     throw new Error(`${shape} event imports and permissions diverge`);
   }
-  const hasService = imports.includes("@longhorn/bridge/supervision");
+  const hasService = imports.includes("@inflatable-cookie/longhorn-bridge/supervision");
   if (hasService !== (fixture.serviceOwnership !== null)) {
     throw new Error(`${shape} service import and ownership diverge`);
   }
@@ -168,7 +168,7 @@ async function packageImports(entry: string): Promise<readonly string[]> {
     const pattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
     for (const match of source.matchAll(pattern)) {
       const specifier = match[1]!;
-      if (specifier.startsWith("@longhorn/")) {
+      if (specifier.startsWith("@inflatable-cookie/longhorn-")) {
         packages.add(specifier);
       } else if (specifier.startsWith(".")) {
         await visit(resolve(path, "..", specifier));

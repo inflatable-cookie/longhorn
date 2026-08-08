@@ -2,7 +2,7 @@ import {
   isEventTransport,
   type EventTransport,
   type InvokeTransport,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import type { NativeContentPort } from "./ports.ts";
 

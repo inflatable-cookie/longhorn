@@ -79,10 +79,10 @@ function verifyNucleusCommit(): void {
 
   const packageJson = nucleusRead("apps/desktop/package.json");
   for (const dependency of [
-    "@longhorn/core",
-    "@longhorn/layout",
-    "@longhorn/poodle",
-    "@longhorn/svelte",
+    "@inflatable-cookie/longhorn-core",
+    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-poodle",
+    "@inflatable-cookie/longhorn-svelte",
     "@poodle/styles",
   ]) {
     assertContains(packageJson, `\"${dependency}\": \"file:`, "private renderer graph");
@@ -103,7 +103,7 @@ function verifyNucleusCommit(): void {
   for (const token of [
     "ReactiveClientState",
     "LayoutState",
-    "@longhorn/poodle/binding",
+    "@inflatable-cookie/longhorn-poodle/binding",
     "#generation",
     "#pendingCreates",
     "StaleWorkspaceLayoutEpochError",

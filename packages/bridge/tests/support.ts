@@ -4,7 +4,7 @@ import {
   bridgeCodec,
   record,
   type BridgeCodec,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 export const fixture = record(
   JSON.parse(

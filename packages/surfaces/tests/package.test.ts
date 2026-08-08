@@ -7,13 +7,13 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package metadata exposes only checked framework-neutral source", () => {
-  expect(metadata.name).toBe("@longhorn/surfaces");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-surfaces");
   expect(metadata.private).toBeTrue();
   expect(metadata.type).toBe("module");
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.dependencies).toEqual({
-    "@longhorn/core": "0.1.0",
+    "@inflatable-cookie/longhorn-core": "0.1.0",
   });
   expect(metadata.peerDependencies).toBeUndefined();
 

@@ -19,7 +19,7 @@ import {
   type BridgeOperationDescriptor,
   type BridgeQueryEnvelope,
   type BridgeQueryReply,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import {
   commandPayloadCodec,

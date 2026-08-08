@@ -1,4 +1,4 @@
-# `@longhorn/core`
+# `@inflatable-cookie/longhorn-core`
 
 Framework-neutral TypeScript transport and checked snapshot-connection
 primitives.

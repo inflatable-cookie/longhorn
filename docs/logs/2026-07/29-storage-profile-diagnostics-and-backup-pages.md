@@ -68,8 +68,8 @@ admission. The pages use no ordinary settings scope or apply unit. Mutation
 buttons depend on the finer config-operation capabilities in the loaded
 snapshot.
 
-`@longhorn/config/poodle` uses public `@poodle/svelte` components. The
-framework-neutral root imports no UI or Tauri runtime. `@longhorn/settings`
+`@inflatable-cookie/longhorn-config/poodle` uses public `@poodle/svelte` components. The
+framework-neutral root imports no UI or Tauri runtime. `@inflatable-cookie/longhorn-settings`
 gains no config dependency.
 
 ## Evidence

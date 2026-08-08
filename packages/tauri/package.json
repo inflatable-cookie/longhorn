@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/tauri",
+  "name": "@inflatable-cookie/longhorn-tauri",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -21,7 +21,7 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0"
   },
   "peerDependencies": {
     "@tauri-apps/api": "^2.10.1"

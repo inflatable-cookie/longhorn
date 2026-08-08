@@ -12,7 +12,7 @@
   import {
     type ReactiveClientState,
     useClientState,
-  } from "@longhorn/svelte";
+  } from "@inflatable-cookie/longhorn-svelte";
   import { untrack } from "svelte";
 
   export interface BovineAuthority {

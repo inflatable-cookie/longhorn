@@ -4,7 +4,7 @@ import {
   type TransferClientSnapshot,
   type TransferLeaseRequest,
   type TransferLeaseResponse,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import type { TransferState } from "./transfer.svelte.ts";
 

@@ -4,7 +4,7 @@ import {
   InvalidTransferPayloadError,
   parseTransferPayload,
   serializeTransferPayload,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 describe("native transfer payload", () => {
   test("contains only protocol version and host-issued session identity", () => {

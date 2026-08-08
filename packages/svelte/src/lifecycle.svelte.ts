@@ -3,7 +3,7 @@ import { onMount } from "svelte";
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 export type ClientStatus =
   | { readonly kind: "idle" }

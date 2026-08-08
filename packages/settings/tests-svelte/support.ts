@@ -1,6 +1,6 @@
 import fixtureJson from "../../../fixtures/settings/protocol-v1.json";
 
-import type { EventTransport, Unlisten } from "@longhorn/core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
 import {
   SETTINGS_APPLY_COMMAND,
   SETTINGS_LOAD_COMMAND,

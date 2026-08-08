@@ -14,7 +14,7 @@ The verifier:
 
 - packages and unpacks the Rust settings/config crates
 - builds a Rust consumer from those unpacked artifacts
-- packs `@longhorn/core`, `@longhorn/settings`, and `@longhorn/config`
+- packs `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-settings`, and `@inflatable-cookie/longhorn-config`
 - installs every consumer in an isolated temporary root
 - pins the exact Card 038 Poodle artifact set
 - runs `svelte-check` and mounted Vitest proof

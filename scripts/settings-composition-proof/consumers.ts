@@ -20,13 +20,13 @@ import type {
 
 const shapes: Record<string, ShapePolicy> = {
   bovine: {
-    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
     forbidden: [
-      "@longhorn/config",
-      "@longhorn/layout",
-      "@longhorn/surfaces",
-      "@longhorn/commands",
-      "@longhorn/backend",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-backend",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -38,12 +38,12 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Preferences"],
   },
   soundcheck: {
-    longhorn: ["@longhorn/core", "@longhorn/config", "@longhorn/settings"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-settings"],
     forbidden: [
-      "@longhorn/layout",
-      "@longhorn/surfaces",
-      "@longhorn/commands",
-      "@longhorn/backend",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-backend",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -59,13 +59,13 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Audio", "Storage", "Backups", "Restore & Recovery"],
   },
   loophole: {
-    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
     forbidden: [
-      "@longhorn/config",
-      "@longhorn/layout",
-      "@longhorn/surfaces",
-      "@longhorn/commands",
-      "@longhorn/backend",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-backend",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -79,13 +79,13 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Application", "Appearance", "Hardware", "Keybindings"],
   },
   nucleus: {
-    longhorn: ["@longhorn/core", "@longhorn/settings"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
     forbidden: [
-      "@longhorn/config",
-      "@longhorn/surfaces",
-      "@longhorn/surface-transfer",
-      "@longhorn/commands",
-      "@longhorn/backend",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-surface-transfer",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-backend",
     ],
     permissions: [
       "allow-longhorn-settings-read",

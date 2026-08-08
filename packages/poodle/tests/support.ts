@@ -7,8 +7,8 @@ import type {
   LayoutSchemaDefinition,
   PanelDefinition,
   PanelInstance,
-} from "@longhorn/layout";
-import { LayoutState, type LayoutDispatchResult } from "@longhorn/svelte/layout";
+} from "@inflatable-cookie/longhorn-layout";
+import { LayoutState, type LayoutDispatchResult } from "@inflatable-cookie/longhorn-svelte/layout";
 
 import {
   createPoodleLayoutBinding,

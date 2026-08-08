@@ -32,12 +32,12 @@
       "longhorn-native-content-isolated-window"
     ],
     "typescript_packages": [
-      "@longhorn/core",
-      "@longhorn/config",
-      "@longhorn/settings",
-      "@longhorn/operation",
-      "@longhorn/native-content",
-      "@longhorn/tauri"
+      "@inflatable-cookie/longhorn-core",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-settings",
+      "@inflatable-cookie/longhorn-operation",
+      "@inflatable-cookie/longhorn-native-content",
+      "@inflatable-cookie/longhorn-tauri"
     ],
     "forbidden_systems": ["layout", "surfaces", "transfer", "commands", "history", "bridge", "notifications", "backing-surface", "child-view"],
     "package_manager_publication": false

@@ -11,7 +11,7 @@ State: complete implementation batch
 - added framework-neutral snapshot, session, lease, commit, cancel, and
   Surface-transfer clients
 - rejected incompatible protocol versions and unknown variants explicitly
-- added `@longhorn/tauri` as the sole raw invoke/listen adapter
+- added `@inflatable-cookie/longhorn-tauri` as the sole raw invoke/listen adapter
 - added `longhorn-tauri-transfer` with real and mock command assembly
 - bound renderer operations to the caller's current managed-window identity
 - projected client geometry through checked scale and window readback
@@ -26,10 +26,10 @@ State: complete implementation batch
 
 | Package | Authority |
 | --- | --- |
-| `@longhorn/surfaces` | generated Surface snapshots, requests, receipts, and compatibility |
-| `@longhorn/transfer` | generated transfer protocol and framework-neutral connected client |
-| `@longhorn/surface-transfer` | optional whole-Surface transfer client |
-| `@longhorn/tauri` | raw Tauri invoke/listen transport only |
+| `@inflatable-cookie/longhorn-surfaces` | generated Surface snapshots, requests, receipts, and compatibility |
+| `@inflatable-cookie/longhorn-transfer` | generated transfer protocol and framework-neutral connected client |
+| `@inflatable-cookie/longhorn-surface-transfer` | optional whole-Surface transfer client |
+| `@inflatable-cookie/longhorn-tauri` | raw Tauri invoke/listen transport only |
 | `longhorn-tauri-transfer` | caller binding, geometry projection, command/event assembly |
 
 No Svelte, Poodle, donor, or product package enters this slice. The base Rust

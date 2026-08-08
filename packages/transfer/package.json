@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/transfer",
+  "name": "@inflatable-cookie/longhorn-transfer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -21,8 +21,8 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0",
-    "@longhorn/layout": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0",
+    "@inflatable-cookie/longhorn-layout": "0.1.0"
   },
   "sideEffects": false
 }

@@ -27,7 +27,7 @@ const heldCrates = [
   "longhorn-bridge",
   "longhorn-history-tree",
 ];
-const heldPackages = ["@longhorn/history-tree"];
+const heldPackages = ["@inflatable-cookie/longhorn-history-tree"];
 
 for (const crate of heldCrates) {
   if (!api.includes(`\`${crate}\``)) throw new Error(`held crate missing from api-surface: ${crate}`);

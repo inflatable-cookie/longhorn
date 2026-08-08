@@ -3,17 +3,17 @@ import { expect, test } from "bun:test";
 import type {
   EventTransport,
   Unlisten,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 import {
   connectBridgeStream,
-} from "@longhorn/bridge/stream";
+} from "@inflatable-cookie/longhorn-bridge/stream";
 import {
   BRIDGE_DOMAIN_EVENT,
   BRIDGE_PROGRESS_EVENT,
   BRIDGE_TERMINAL_EVENT,
   listenTauriBridgeJob,
   TauriBridgeStreamSource,
-} from "@longhorn/bridge/tauri-events";
+} from "@inflatable-cookie/longhorn-bridge/tauri-events";
 
 import {
   fixture,

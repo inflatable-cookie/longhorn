@@ -46,13 +46,13 @@
       "storage_profile": "shared-product-root-v1",
       "stable_storage_name": "Soundcheck",
       "selected_typescript": [
-        "@longhorn/core",
-        "@longhorn/config",
-        "@longhorn/settings",
-        "@longhorn/operation",
-        "@longhorn/native-content",
-        "@longhorn/native-content-svelte",
-        "@longhorn/tauri"
+        "@inflatable-cookie/longhorn-core",
+        "@inflatable-cookie/longhorn-config",
+        "@inflatable-cookie/longhorn-settings",
+        "@inflatable-cookie/longhorn-operation",
+        "@inflatable-cookie/longhorn-native-content",
+        "@inflatable-cookie/longhorn-native-content-svelte",
+        "@inflatable-cookie/longhorn-tauri"
       ],
       "selected_rust": [
         "longhorn-core",
@@ -87,10 +87,10 @@
       "storage_profile": "native-platform-v1",
       "stable_storage_name": null,
       "selected_typescript": [
-        "@longhorn/core",
-        "@longhorn/config",
-        "@longhorn/settings",
-        "@longhorn/tauri"
+        "@inflatable-cookie/longhorn-core",
+        "@inflatable-cookie/longhorn-config",
+        "@inflatable-cookie/longhorn-settings",
+        "@inflatable-cookie/longhorn-tauri"
       ],
       "selected_rust": [
         "longhorn-core",
@@ -118,12 +118,12 @@
       "storage_profile": null,
       "stable_storage_name": null,
       "selected_typescript": [
-        "@longhorn/core",
-        "@longhorn/bridge",
-        "@longhorn/commands",
-        "@longhorn/native-content",
-        "@longhorn/native-content-svelte",
-        "@longhorn/tauri"
+        "@inflatable-cookie/longhorn-core",
+        "@inflatable-cookie/longhorn-bridge",
+        "@inflatable-cookie/longhorn-commands",
+        "@inflatable-cookie/longhorn-native-content",
+        "@inflatable-cookie/longhorn-native-content-svelte",
+        "@inflatable-cookie/longhorn-tauri"
       ],
       "selected_rust": [
         "longhorn-core",

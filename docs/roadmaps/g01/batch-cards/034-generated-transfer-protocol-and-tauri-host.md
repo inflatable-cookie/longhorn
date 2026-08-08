@@ -15,8 +15,8 @@ TypeScript packages and one testable Tauri handler assembly.
 ## Scope
 
 - `longhorn-bindings` Surface and transfer generation
-- checked `@longhorn/surfaces`, `@longhorn/transfer`, and
-  `@longhorn/surface-transfer` packages
+- checked `@inflatable-cookie/longhorn-surfaces`, `@inflatable-cookie/longhorn-transfer`, and
+  `@inflatable-cookie/longhorn-surface-transfer` packages
 - protocol compatibility guards
 - framework-neutral session, lease, commit, cancel, and snapshot clients
 - `longhorn-tauri-transfer`
@@ -96,9 +96,9 @@ multi-window app, then close g01.006.
 
 `longhorn-bindings` now generates checked Surface, transfer, and optional
 Surface-transfer protocols and Rust-authored golden fixtures.
-`@longhorn/surfaces`, `@longhorn/transfer`, and
-`@longhorn/surface-transfer` provide compatibility guards and
-framework-neutral clients. `@longhorn/tauri` is the sole raw invoke/listen
+`@inflatable-cookie/longhorn-surfaces`, `@inflatable-cookie/longhorn-transfer`, and
+`@inflatable-cookie/longhorn-surface-transfer` provide compatibility guards and
+framework-neutral clients. `@inflatable-cookie/longhorn-tauri` is the sole raw invoke/listen
 adapter.
 
 `longhorn-tauri-transfer` binds commands to current managed-window readback,

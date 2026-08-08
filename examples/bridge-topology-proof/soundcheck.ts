@@ -1,10 +1,10 @@
-import { BridgeJobTracker } from "@longhorn/bridge";
-import { BridgeServiceRuntime } from "@longhorn/bridge/supervision";
+import { BridgeJobTracker } from "@inflatable-cookie/longhorn-bridge";
+import { BridgeServiceRuntime } from "@inflatable-cookie/longhorn-bridge/supervision";
 import {
   BRIDGE_PROGRESS_EVENT,
   BRIDGE_TERMINAL_EVENT,
   listenTauriBridgeJob,
-} from "@longhorn/bridge/tauri-events";
+} from "@inflatable-cookie/longhorn-bridge/tauri-events";
 
 import {
   cancellationParity,

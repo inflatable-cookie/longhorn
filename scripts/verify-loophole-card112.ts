@@ -181,18 +181,18 @@ function verifyComposition(): Record<string, unknown> {
     dependencies: Record<string, string>;
   };
   const rendererPackages = [
-    "@longhorn/core",
-    "@longhorn/config",
-    "@longhorn/layout",
-    "@longhorn/surfaces",
-    "@longhorn/transfer",
-    "@longhorn/surface-transfer",
-    "@longhorn/settings",
-    "@longhorn/commands",
-    "@longhorn/history",
-    "@longhorn/tauri",
-    "@longhorn/svelte",
-    "@longhorn/poodle",
+    "@inflatable-cookie/longhorn-core",
+    "@inflatable-cookie/longhorn-config",
+    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-surfaces",
+    "@inflatable-cookie/longhorn-transfer",
+    "@inflatable-cookie/longhorn-surface-transfer",
+    "@inflatable-cookie/longhorn-settings",
+    "@inflatable-cookie/longhorn-commands",
+    "@inflatable-cookie/longhorn-history",
+    "@inflatable-cookie/longhorn-tauri",
+    "@inflatable-cookie/longhorn-svelte",
+    "@inflatable-cookie/longhorn-poodle",
   ];
   for (const name of rendererPackages) {
     assert(

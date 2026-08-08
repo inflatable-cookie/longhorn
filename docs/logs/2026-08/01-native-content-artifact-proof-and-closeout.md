@@ -25,8 +25,8 @@ workspace on Rust 1.85. The proof emits the digest of each recreated archive;
 those run-local hashes are evidence, not stable artifact identities.
 Registry-normalized Cargo packaging remains a release gate.
 
-TypeScript packages are packed at `0.1.0`: `@longhorn/core`,
-`@longhorn/native-content`, and `@longhorn/native-content-svelte`. Consumer
+TypeScript packages are packed at `0.1.0`: `@inflatable-cookie/longhorn-core`,
+`@inflatable-cookie/longhorn-native-content`, and `@inflatable-cookie/longhorn-native-content-svelte`. Consumer
 locks contain no workspace, link, or sibling source resolution. Mounted
 consumers use exact Poodle artifact set
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.

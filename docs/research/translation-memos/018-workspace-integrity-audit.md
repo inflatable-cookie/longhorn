@@ -105,7 +105,7 @@ best-effort; systemically there is no diagnostic seam.
 - ~~`packages/svelte` svelte peer range diverges from the workspace
   convention~~ — retracted during g02.006: the `<=5.56.8` cap is deliberate
   proven-upper-bound policy, pinned by the package test and
-  `docs/guides/compatibility-and-upgrades.md`; `packages/bridge` hard-deps `@longhorn/tauri` where
+  `docs/guides/compatibility-and-upgrades.md`; `packages/bridge` hard-deps `@inflatable-cookie/longhorn-tauri` where
   `packages/operation` models the optional-peer subpath pattern (valid
   observation, but the dependency shape is bound into the frozen Card 127
   candidate receipt — demotion deferred to the next distribution

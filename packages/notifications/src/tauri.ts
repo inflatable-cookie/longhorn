@@ -1,4 +1,4 @@
-import { isEventTransport, type EventTransport, type InvokeTransport } from "@longhorn/core";
+import { isEventTransport, type EventTransport, type InvokeTransport } from "@inflatable-cookie/longhorn-core";
 
 import type { NotificationPort } from "./ports.ts";
 

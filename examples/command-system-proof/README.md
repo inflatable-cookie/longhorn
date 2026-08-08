@@ -2,7 +2,7 @@
 
 Card 061 installs two consumer shapes into clean temporary roots.
 
-- `jetstream` imports only `@longhorn/commands` and uses one global keyboard
+- `jetstream` imports only `@inflatable-cookie/longhorn-commands` and uses one global keyboard
   context.
 - `loophole` adds Svelte, public Poodle bindings, and the settings protocol
   package over one shared catalogue and keymap.

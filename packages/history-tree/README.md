@@ -1,4 +1,4 @@
-# `@longhorn/history-tree`
+# `@inflatable-cookie/longhorn-history-tree`
 
 Checked payload-free clients for optional fork-history metadata. The root is
 framework-neutral. `/tauri`, `/svelte`, and `/poodle` are removable edges.

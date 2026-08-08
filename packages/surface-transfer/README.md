@@ -1,4 +1,4 @@
-# @longhorn/surface-transfer
+# @inflatable-cookie/longhorn-surface-transfer
 
 Optional framework-neutral whole-Surface transfer client.
 
@@ -10,7 +10,7 @@ effigy generate:surface-transfer
 effigy check:surface-transfer-bindings
 ```
 
-This package composes `@longhorn/surfaces` and `@longhorn/transfer`. The base
+This package composes `@inflatable-cookie/longhorn-surfaces` and `@inflatable-cookie/longhorn-transfer`. The base
 transfer package remains usable without Surface state.
 
 The client accepts the same injected transport seam as the base transfer

@@ -92,8 +92,8 @@ function verifyNucleusCommit(): void {
 
   const packageJson = nucleusRead("apps/desktop/package.json");
   for (const dependency of [
-    "@longhorn/native-content",
-    "@longhorn/native-content-svelte",
+    "@inflatable-cookie/longhorn-native-content",
+    "@inflatable-cookie/longhorn-native-content-svelte",
   ]) {
     assertContains(packageJson, `\"${dependency}\": \"file:`, "private native-content graph");
   }

@@ -15,11 +15,11 @@ copy into the renderer.
 
 ## Scope
 
-- `@longhorn/operation/svelte`
+- `@inflatable-cookie/longhorn-operation/svelte`
 - per-instance connection, snapshot, active/recent, and pending-command state
 - exact mount, remount, and teardown behavior
 - request-keyed cancellation and dismissal state
-- `@longhorn/operation/poodle`
+- `@inflatable-cookie/longhorn-operation/poodle`
 - public `Progress`, `StatusIndicator`, list, button, and dialog composition
 - Soundcheck scan and Loophole queue presentation fixtures
 - no-Svelte and no-Poodle import proofs

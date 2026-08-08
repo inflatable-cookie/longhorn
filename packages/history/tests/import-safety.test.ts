@@ -5,7 +5,7 @@ test("root imports without browser, Tauri, Svelte, Poodle, or product globals", 
   expect("document" in globalThis).toBeFalse();
   expect("__TAURI_INTERNALS__" in globalThis).toBeFalse();
 
-  const history = await import("@longhorn/history");
+  const history = await import("@inflatable-cookie/longhorn-history");
   expect(history.HISTORY_PROTOCOL_VERSION).toBe(1);
   expect("HistorySession" in history).toBeFalse();
   expect("HistoryPanel" in history).toBeFalse();

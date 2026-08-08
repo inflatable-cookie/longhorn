@@ -1,6 +1,6 @@
 # 153 Restart Interlock And Tauri Install
 
-Status: in progress — interlock complete, concrete installer awaits Card 159
+Status: complete — authorization-only; installation is the application's
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contracts 018 and 017; research memo 019
@@ -131,22 +131,11 @@ order, and would understate what the user is about to interrupt.
 Batch 2 is now complete too. `longhorn-tauri-update` carries the concrete
 probes (`CountingProbe`, `transfer_session_probe`, `operation_probe`, read at
 probe time so a stale receipt cannot authorise a restart) and `UpdateGate`,
-which orders quiesce, install, relaunch and is fully tested behind an
-injected `UpdateInstaller`.
+whose `authorize` answers the one question Longhorn is entitled to answer.
 
-The port is injected for the same reason the licence credential store is:
-the interlock is the part only Longhorn can write and it is testable behind
-the port, whereas the concrete plugin-backed installer cannot be exercised
-headlessly at all. It lands with Card 159, where macOS bundle replacement
-and the tauri#11392 relaunch path can be proved rather than assumed.
-
-Two behaviours the tests pin down that a naive implementation gets wrong:
-quiescence is rechecked at install time rather than reused from the offer,
-because the user may start a transfer in between; and a failed relaunch is
-`InstalledAwaitingRelaunch`, never a failure, because the update reached
-disk and reporting otherwise invites retrying an update already installed.
-
-Outstanding: the concrete `tauri-plugin-updater` installer, under Card 159.
+One behaviour the tests still pin down that a naive implementation gets
+wrong: quiescence is rechecked on every `authorize` call rather than reused
+from the offer, because the user may start a transfer in between.
 
 Correction 2026-08-08: Longhorn does not implement an installer — Tauri's
 updater plugin performs check, download, verification, and bundle
@@ -160,6 +149,11 @@ is gone from this crate; it is pure again. The mechanism findings below
 (install is endpoint-only; macOS separates install from relaunch) remain the
 guide for the application-side wiring, and the plugin's lack of a typed
 non-writable error is a recorded limitation of the app-facing surface.
+
+One behaviour was lost with the port and is now a contract clause rather
+than a type: an install that reached disk but did not relaunch is **not** a
+failed update. Recorded in contract 018, "Reporting", so it survives the
+type's removal.
 
 ## Next Task
 

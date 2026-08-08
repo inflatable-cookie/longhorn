@@ -47,18 +47,18 @@ const expectedPoodleArtifactSet =
   "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69";
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/config", "config"],
-  ["@longhorn/layout", "layout"],
-  ["@longhorn/surfaces", "surfaces"],
-  ["@longhorn/transfer", "transfer"],
-  ["@longhorn/surface-transfer", "surface-transfer"],
-  ["@longhorn/settings", "settings"],
-  ["@longhorn/commands", "commands"],
-  ["@longhorn/history", "history"],
-  ["@longhorn/tauri", "tauri"],
-  ["@longhorn/svelte", "svelte"],
-  ["@longhorn/poodle", "poodle"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-config", "config"],
+  ["@inflatable-cookie/longhorn-layout", "layout"],
+  ["@inflatable-cookie/longhorn-surfaces", "surfaces"],
+  ["@inflatable-cookie/longhorn-transfer", "transfer"],
+  ["@inflatable-cookie/longhorn-surface-transfer", "surface-transfer"],
+  ["@inflatable-cookie/longhorn-settings", "settings"],
+  ["@inflatable-cookie/longhorn-commands", "commands"],
+  ["@inflatable-cookie/longhorn-history", "history"],
+  ["@inflatable-cookie/longhorn-tauri", "tauri"],
+  ["@inflatable-cookie/longhorn-svelte", "svelte"],
+  ["@inflatable-cookie/longhorn-poodle", "poodle"],
 ] as const;
 
 const rustCrates = [
@@ -89,12 +89,12 @@ const rustCrates = [
 ] as const;
 
 const forbiddenTypescriptPackages = [
-  "@longhorn/history-tree",
-  "@longhorn/native-content",
-  "@longhorn/native-content-svelte",
-  "@longhorn/bridge",
-  "@longhorn/operation",
-  "@longhorn/notifications",
+  "@inflatable-cookie/longhorn-history-tree",
+  "@inflatable-cookie/longhorn-native-content",
+  "@inflatable-cookie/longhorn-native-content-svelte",
+  "@inflatable-cookie/longhorn-bridge",
+  "@inflatable-cookie/longhorn-operation",
+  "@inflatable-cookie/longhorn-notifications",
 ] as const;
 const forbiddenRustPackages = [
   "longhorn-history-tree",
@@ -528,33 +528,33 @@ async function verifyRendererConsumer(
 }
 
 function artifactContract(): string {
-  return `import * as config from "@longhorn/config";
-import * as configPoodle from "@longhorn/config/poodle";
-import * as core from "@longhorn/core";
-import * as layout from "@longhorn/layout";
-import * as surfaces from "@longhorn/surfaces";
-import * as transfer from "@longhorn/transfer";
-import * as surfaceTransfer from "@longhorn/surface-transfer";
-import * as settings from "@longhorn/settings";
-import * as settingsSvelte from "@longhorn/settings/svelte";
-import * as settingsPoodle from "@longhorn/settings/poodle";
-import * as commands from "@longhorn/commands";
-import * as commandsSvelte from "@longhorn/commands/svelte";
-import * as commandsPoodle from "@longhorn/commands/poodle";
-import * as history from "@longhorn/history";
-import * as historyTauri from "@longhorn/history/tauri";
-import * as historySvelte from "@longhorn/history/svelte";
-import * as historyPoodle from "@longhorn/history/poodle";
-import * as tauri from "@longhorn/tauri";
-import * as tauriEvents from "@longhorn/tauri/events";
-import * as longhornSvelte from "@longhorn/svelte";
-import * as svelteLayout from "@longhorn/svelte/layout";
-import * as svelteSurfaces from "@longhorn/svelte/surfaces";
-import * as svelteTransfer from "@longhorn/svelte/transfer";
-import * as svelteSurfaceTransfer from "@longhorn/svelte/surface-transfer";
-import * as longhornPoodle from "@longhorn/poodle";
-import * as poodleBinding from "@longhorn/poodle/binding";
-import * as poodleTransfer from "@longhorn/poodle/transfer";
+  return `import * as config from "@inflatable-cookie/longhorn-config";
+import * as configPoodle from "@inflatable-cookie/longhorn-config/poodle";
+import * as core from "@inflatable-cookie/longhorn-core";
+import * as layout from "@inflatable-cookie/longhorn-layout";
+import * as surfaces from "@inflatable-cookie/longhorn-surfaces";
+import * as transfer from "@inflatable-cookie/longhorn-transfer";
+import * as surfaceTransfer from "@inflatable-cookie/longhorn-surface-transfer";
+import * as settings from "@inflatable-cookie/longhorn-settings";
+import * as settingsSvelte from "@inflatable-cookie/longhorn-settings/svelte";
+import * as settingsPoodle from "@inflatable-cookie/longhorn-settings/poodle";
+import * as commands from "@inflatable-cookie/longhorn-commands";
+import * as commandsSvelte from "@inflatable-cookie/longhorn-commands/svelte";
+import * as commandsPoodle from "@inflatable-cookie/longhorn-commands/poodle";
+import * as history from "@inflatable-cookie/longhorn-history";
+import * as historyTauri from "@inflatable-cookie/longhorn-history/tauri";
+import * as historySvelte from "@inflatable-cookie/longhorn-history/svelte";
+import * as historyPoodle from "@inflatable-cookie/longhorn-history/poodle";
+import * as tauri from "@inflatable-cookie/longhorn-tauri";
+import * as tauriEvents from "@inflatable-cookie/longhorn-tauri/events";
+import * as longhornSvelte from "@inflatable-cookie/longhorn-svelte";
+import * as svelteLayout from "@inflatable-cookie/longhorn-svelte/layout";
+import * as svelteSurfaces from "@inflatable-cookie/longhorn-svelte/surfaces";
+import * as svelteTransfer from "@inflatable-cookie/longhorn-svelte/transfer";
+import * as svelteSurfaceTransfer from "@inflatable-cookie/longhorn-svelte/surface-transfer";
+import * as longhornPoodle from "@inflatable-cookie/longhorn-poodle";
+import * as poodleBinding from "@inflatable-cookie/longhorn-poodle/binding";
+import * as poodleTransfer from "@inflatable-cookie/longhorn-poodle/transfer";
 
 export const exactPrivateGraph = [
   config,

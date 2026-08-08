@@ -76,7 +76,7 @@ JSON round-trip. It does not duplicate the Rust mutation engine.
 | `longhorn-layout` | `longhorn-core`, serde |
 | `longhorn-layout-config` | config, core, layout, serde, serde_json |
 | `longhorn-bindings` | core/layout binding features, serde, serde_json, `ts-rs` |
-| `@longhorn/layout` | none |
+| `@inflatable-cookie/longhorn-layout` | none |
 
 `longhorn-layout` and `longhorn-layout-config` contain no Surface, Tauri,
 Svelte, Poodle, or product dependency. `ts-rs` remains feature-gated and

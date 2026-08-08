@@ -25,13 +25,13 @@ private artifacts without authorizing publication or consumer adoption.
   navigation, retention, persistence, and bounded metadata projections
 - `longhorn-tauri-history-tree`: optional narrow handler assembly over an
   injected graph authority
-- `@longhorn/history-tree`: checked metadata client with optional `/svelte`
+- `@inflatable-cookie/longhorn-history-tree`: checked metadata client with optional `/svelte`
   and `/poodle` edges
 - `longhorn-tauri-history`: optional narrow handler assembly over an injected
   history authority
-- `@longhorn/history`: checked metadata client
-- `@longhorn/history/svelte`: optional per-instance reactive state
-- `@longhorn/history/poodle`: optional linear panel composition over public
+- `@inflatable-cookie/longhorn-history`: checked metadata client
+- `@inflatable-cookie/longhorn-history/svelte`: optional per-instance reactive state
+- `@inflatable-cookie/longhorn-history/poodle`: optional linear panel composition over public
   Poodle primitives
 
 The linear crate depends only on `longhorn-core` plus bounded serialization.
@@ -325,7 +325,7 @@ and exact graph revision. Navigation carries stable branch/entry ids and
 returns an authoritative snapshot plus a payload-free receipt or rejection.
 
 `longhorn-tauri-history-tree` dispatches only through a consumer-injected,
-caller-aware authority. `@longhorn/history-tree` has a framework-neutral root;
+caller-aware authority. `@inflatable-cookie/longhorn-history-tree` has a framework-neutral root;
 serialized and Tauri ports, `/svelte`, and `/poodle` are removable edges.
 Svelte sessions are per instance, listener-first, stale-safe, SSR-safe, and
 idempotently disposable. Poodle composition uses only public controlled

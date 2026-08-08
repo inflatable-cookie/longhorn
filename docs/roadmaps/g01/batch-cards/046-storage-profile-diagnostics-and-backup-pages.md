@@ -14,7 +14,7 @@ shared settings modules without reducing contract-004 authority or receipts.
 
 ## Scope
 
-- checked `@longhorn/config` storage-layout and backup protocol/client slice
+- checked `@inflatable-cookie/longhorn-config` storage-layout and backup protocol/client slice
 - injected Tauri config-operation host edge
 - storage identity, effective leaf, profile, roots, provenance, warnings, and
   locator state projection
@@ -108,7 +108,7 @@ retention mechanisms. The wire excludes filesystem capabilities, executable
 plans, archive payloads, retention policy, and encryption identities.
 Non-UTF-8 paths fail projection instead of becoming lossy evidence.
 
-`@longhorn/config` adds checked generation, fixtures, compatibility guards, and
+`@inflatable-cookie/longhorn-config` adds checked generation, fixtures, compatibility guards, and
 a framework-neutral client. Its optional `/poodle` subpath supplies storage
 and backup pages. Storage shows exact identity, leaf, profile, roots,
 provenance, warnings, locator/recovery state, inspected transitions, committed

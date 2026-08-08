@@ -7,16 +7,16 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package metadata preserves the optional dependency boundary", () => {
-  expect(metadata.name).toBe("@longhorn/surface-transfer");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-surface-transfer");
   expect(metadata.private).toBeTrue();
   expect(metadata.type).toBe("module");
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.peerDependencies).toBeUndefined();
   expect(metadata.dependencies).toEqual({
-    "@longhorn/core": "0.1.0",
-    "@longhorn/surfaces": "0.1.0",
-    "@longhorn/transfer": "0.1.0",
+    "@inflatable-cookie/longhorn-core": "0.1.0",
+    "@inflatable-cookie/longhorn-surfaces": "0.1.0",
+    "@inflatable-cookie/longhorn-transfer": "0.1.0",
   });
 
   const exports = metadata.exports as Record<

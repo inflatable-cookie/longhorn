@@ -26,27 +26,27 @@ import type {
 
 const policies = {
   jetstream: {
-    longhorn: ["@longhorn/commands"],
-    imports: ["@longhorn/commands"],
+    longhorn: ["@inflatable-cookie/longhorn-commands"],
+    imports: ["@inflatable-cookie/longhorn-commands"],
     permissions: ["allow-longhorn-command-read"],
     forbidden: [
-      "@longhorn/core",
-      "@longhorn/settings",
-      "@longhorn/config",
-      "@longhorn/bridge",
-      "@longhorn/tauri",
+      "@inflatable-cookie/longhorn-core",
+      "@inflatable-cookie/longhorn-settings",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-bridge",
+      "@inflatable-cookie/longhorn-tauri",
       "svelte",
       "@poodle/svelte",
     ],
     mountedTests: 0,
   },
   loophole: {
-    longhorn: ["@longhorn/commands", "@longhorn/core", "@longhorn/settings"],
+    longhorn: ["@inflatable-cookie/longhorn-commands", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
     imports: [
-      "@longhorn/commands",
-      "@longhorn/commands/poodle",
-      "@longhorn/commands/svelte",
-      "@longhorn/settings",
+      "@inflatable-cookie/longhorn-commands",
+      "@inflatable-cookie/longhorn-commands/poodle",
+      "@inflatable-cookie/longhorn-commands/svelte",
+      "@inflatable-cookie/longhorn-settings",
     ],
     permissions: [
       "allow-longhorn-command-read",
@@ -55,9 +55,9 @@ const policies = {
       "core:event:allow-unlisten",
     ],
     forbidden: [
-      "@longhorn/config",
-      "@longhorn/bridge",
-      "@longhorn/tauri",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-bridge",
+      "@inflatable-cookie/longhorn-tauri",
     ],
     mountedTests: 1,
   },
@@ -145,7 +145,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
   const installedLonghorn = await installedScope(stage, "@longhorn");
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    installedLonghorn.map((name) => `@longhorn/${name}`),
+    installedLonghorn.map((name) => `@inflatable-cookie/longhorn-${name}`),
     policy.longhorn,
   );
   const artifactResolution = [];

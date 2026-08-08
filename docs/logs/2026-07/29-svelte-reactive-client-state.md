@@ -6,7 +6,7 @@ State: complete
 
 ## Outcome
 
-- added private `@longhorn/svelte`
+- added private `@inflatable-cookie/longhorn-svelte`
 - kept the root free of layout, Surface, transfer, and Poodle imports
 - added per-window Svelte 5 rune state over checked clients
 - added explicit optional domain subpaths and optional peers
@@ -64,11 +64,11 @@ The package-local mounted fixtures prove:
 
 | Entry | Runtime capability |
 | --- | --- |
-| `@longhorn/svelte` | lifecycle, status, mounted cleanup, generic optimism |
-| `@longhorn/svelte/layout` | checked consumer-fed layout projection and dispatch |
-| `@longhorn/svelte/surfaces` | Surface snapshot and mutation state |
-| `@longhorn/svelte/transfer` | panel preparation, leases, completion, cancellation |
-| `@longhorn/svelte/surface-transfer` | optional whole-Surface preparation and completion |
+| `@inflatable-cookie/longhorn-svelte` | lifecycle, status, mounted cleanup, generic optimism |
+| `@inflatable-cookie/longhorn-svelte/layout` | checked consumer-fed layout projection and dispatch |
+| `@inflatable-cookie/longhorn-svelte/surfaces` | Surface snapshot and mutation state |
+| `@inflatable-cookie/longhorn-svelte/transfer` | panel preparation, leases, completion, cancellation |
+| `@inflatable-cookie/longhorn-svelte/surface-transfer` | optional whole-Surface preparation and completion |
 
 Core is the sole mandatory Longhorn dependency. Layout, Surface, transfer, and
 Surface-transfer packages are optional peers. Svelte is a peer. Poodle is not

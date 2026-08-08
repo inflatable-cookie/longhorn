@@ -1,4 +1,4 @@
-import type { EventTransport } from "@longhorn/core";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
 
 import type {
   BackupCreateCommand,

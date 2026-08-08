@@ -8,8 +8,8 @@ const metadata = JSON.parse(
 
 describe("native-content package boundary", () => {
   test("root is framework-neutral and optional Tauri assembly is isolated", async () => {
-    expect(metadata.name).toBe("@longhorn/native-content");
-    expect(metadata.dependencies).toEqual({ "@longhorn/core": "0.1.0" });
+    expect(metadata.name).toBe("@inflatable-cookie/longhorn-native-content");
+    expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
     expect("peerDependencies" in metadata).toBeFalse();
     const exports = metadata.exports as Record<
       string,

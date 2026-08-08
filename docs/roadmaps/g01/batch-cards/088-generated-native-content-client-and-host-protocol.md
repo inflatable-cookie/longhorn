@@ -16,7 +16,7 @@ a framework-neutral client over injected direct or Tauri transport.
 
 - Rust request, snapshot, observation, proposal, and receipt protocol
 - checked TypeScript generation and golden fixtures
-- `@longhorn/native-content` framework-neutral package
+- `@inflatable-cookie/longhorn-native-content` framework-neutral package
 - listener-first snapshot reconciliation and session epochs
 - bounded operation correlation and stale-result rejection
 - injected direct transport and narrow Tauri transport assembly
@@ -66,7 +66,7 @@ kernel and client seam.
   observation, proposal, apply-receipt, and host-destroy protocol shapes.
 - Generated checked TypeScript and a Rust-authored golden fixture through the
   `native-content` bindings domain.
-- Added framework-neutral `@longhorn/native-content` with direct, serialized,
+- Added framework-neutral `@inflatable-cookie/longhorn-native-content` with direct, serialized,
   and optional narrow Tauri transports.
 - Kept renderer client epochs distinct from attach generations. Listener-first
   reconciliation, bounded request correlation, remount, stale-result, and late

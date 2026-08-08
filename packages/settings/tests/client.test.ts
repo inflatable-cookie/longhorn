@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { EventTransport, Unlisten } from "@longhorn/core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
 import {
   SETTINGS_APPLY_COMMAND,
   SETTINGS_LOAD_COMMAND,

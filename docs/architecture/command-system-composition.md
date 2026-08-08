@@ -18,14 +18,14 @@ registration only where the app needs them.
 
 | Need | Rust | TypeScript | Capability |
 | --- | --- | --- | --- |
-| Registry, search, keyboard | `longhorn-command` | `@longhorn/commands` | none |
+| Registry, search, keyboard | `longhorn-command` | `@inflatable-cookie/longhorn-commands` | none |
 | Durable sparse overrides | add `longhorn-command-config` | same root client | config domain authority |
 | Catalogue/keymap Tauri host | add `longhorn-tauri-command` | injected ports | command read; mutate when writable |
 | Per-window reactive state | same Rust graph | add `/svelte` | listen/unlisten when host emits hints |
 | Palette and keybinding UI | same Rust graph | add `/poodle` | no grant from visibility |
-| Settings navigation | add `longhorn-command-settings` | add `@longhorn/settings` | catalogue plus writable-keymap composition |
+| Settings navigation | add `longhorn-command-settings` | add `@inflatable-cookie/longhorn-settings` | catalogue plus writable-keymap composition |
 
-The `@longhorn/commands` root has no Longhorn dependency and keeps Svelte and
+The `@inflatable-cookie/longhorn-commands` root has no Longhorn dependency and keeps Svelte and
 Poodle as optional peers. Importing the root does not install config,
 settings, Tauri, bridge, Svelte, or Poodle.
 
@@ -102,7 +102,7 @@ Create one `CommandSession` per mounted window or panel. Stop it on unmount so
 keyboard and host listeners are removed. Do not place session state in a
 module singleton.
 
-`@longhorn/commands/poodle` uses public controlled Poodle APIs. Longhorn owns
+`@inflatable-cookie/longhorn-commands/poodle` uses public controlled Poodle APIs. Longhorn owns
 projection and interaction binding; Poodle owns visual primitives. The
 consumer still owns the application shell, labels, category presentation,
 icon resolution, and renderer placement.
@@ -150,8 +150,8 @@ failed migration leaves the existing system selected.
 
 ## Artifact Evidence
 
-`proof:command-system-artifacts` packs `@longhorn/core`,
-`@longhorn/settings`, and `@longhorn/commands`, verifies the exact Poodle
+`proof:command-system-artifacts` packs `@inflatable-cookie/longhorn-core`,
+`@inflatable-cookie/longhorn-settings`, and `@inflatable-cookie/longhorn-commands`, verifies the exact Poodle
 artifact set, and installs clean Jetstream and Loophole consumers. It rejects
 workspace aliases, sibling source resolution, optional-edge drift, duplicate
 Svelte runtimes, capability drift, donor payloads, and generic execution

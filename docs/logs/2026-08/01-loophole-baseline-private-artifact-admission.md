@@ -49,18 +49,18 @@ Cards 105-111 renderer graph outside both workspaces.
 
 | Longhorn package | SHA-256 |
 | --- | --- |
-| `@longhorn/core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/config` | `3be4f0ca3153dd8bcaa408d7393178ee2bfebfa026722c4e5ac29b13e8b79367` |
-| `@longhorn/layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
-| `@longhorn/surfaces` | `449cc0b1751860912cc3468ca41f1be3e4987b513e306988cad05a27fd27d088` |
-| `@longhorn/transfer` | `37b50416c2b81531435a320e38138342d923f0b2a90b122cb13f4e18c3f0d7cf` |
-| `@longhorn/surface-transfer` | `2c3803d47892142a213c7388601721bbb3f281efa1276c9dbc369d58ba8b3d5b` |
-| `@longhorn/settings` | `d2b7b78122097705a95dafc48ab37fef52d3d5211268351e5263e059bf24997b` |
-| `@longhorn/commands` | `87abb5c662ac332e6faeb6f3970ed61017869f4d1277058d66b88e3d2d095207` |
-| `@longhorn/history` | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
-| `@longhorn/tauri` | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
-| `@longhorn/svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
-| `@longhorn/poodle` | `e68d818335a7abf9dcd8c66dedc0bd40a5a5969dbf91b660085e195746963d75` |
+| `@inflatable-cookie/longhorn-core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-config` | `3be4f0ca3153dd8bcaa408d7393178ee2bfebfa026722c4e5ac29b13e8b79367` |
+| `@inflatable-cookie/longhorn-layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
+| `@inflatable-cookie/longhorn-surfaces` | `449cc0b1751860912cc3468ca41f1be3e4987b513e306988cad05a27fd27d088` |
+| `@inflatable-cookie/longhorn-transfer` | `37b50416c2b81531435a320e38138342d923f0b2a90b122cb13f4e18c3f0d7cf` |
+| `@inflatable-cookie/longhorn-surface-transfer` | `2c3803d47892142a213c7388601721bbb3f281efa1276c9dbc369d58ba8b3d5b` |
+| `@inflatable-cookie/longhorn-settings` | `d2b7b78122097705a95dafc48ab37fef52d3d5211268351e5263e059bf24997b` |
+| `@inflatable-cookie/longhorn-commands` | `87abb5c662ac332e6faeb6f3970ed61017869f4d1277058d66b88e3d2d095207` |
+| `@inflatable-cookie/longhorn-history` | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
+| `@inflatable-cookie/longhorn-tauri` | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
+| `@inflatable-cookie/longhorn-svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
+| `@inflatable-cookie/longhorn-poodle` | `e68d818335a7abf9dcd8c66dedc0bd40a5a5969dbf91b660085e195746963d75` |
 
 The clean install uses one Svelte 5.56.8 runtime, one public Poodle artifact
 set, TypeScript 6.0.3, and Tauri API 2.11.1. Both mounted eight-region

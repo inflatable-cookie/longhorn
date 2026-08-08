@@ -10,7 +10,7 @@ import {
 import { HistoryClient } from "../src/client.ts";
 import { createDirectHistoryPort } from "../src/direct.ts";
 import { SerializedHistoryPort } from "../src/serialized.ts";
-import type { EventTransport } from "@longhorn/core";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
 import { clone, fixture } from "./support.ts";
 
 describe("direct and serialized-loopback conformance", () => {

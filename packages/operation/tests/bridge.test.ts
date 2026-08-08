@@ -3,7 +3,7 @@ import {
   BridgeDomainClient,
   BridgeSession,
   type BridgeOperationDescriptor,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import {
   BridgeOperationJobCorrelation,

@@ -4,7 +4,7 @@ import {
   BridgeServiceRuntime,
   BridgeSupervisionError,
   type BridgeServiceSupervisorPort,
-} from "@longhorn/bridge/supervision";
+} from "@inflatable-cookie/longhorn-bridge/supervision";
 
 class Port implements BridgeServiceSupervisorPort {
   readonly requests: unknown[] = [];

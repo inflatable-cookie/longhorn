@@ -1,7 +1,7 @@
 import { fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 import {
   TRANSFER_COMMIT_SURFACE_COMMAND,
   TRANSFER_START_SURFACE_COMMAND,
@@ -9,7 +9,7 @@ import {
   type SurfaceTransferCommand,
   type SurfaceSessionResponse,
   type SurfaceSessionStartRequest,
-} from "@longhorn/surface-transfer";
+} from "@inflatable-cookie/longhorn-surface-transfer";
 
 import fixture from "../../../fixtures/surface-transfer/protocol-v1.json";
 import {

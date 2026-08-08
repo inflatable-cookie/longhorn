@@ -128,7 +128,7 @@ and errors. Product payloads do not cross into a generic renderer protocol.
 The client knows authoritative position, past/future membership, truncation,
 and current history revision.
 
-`@longhorn/history` remains framework-neutral. Optional `/svelte` state is
+`@inflatable-cookie/longhorn-history` remains framework-neutral. Optional `/svelte` state is
 per-instance. Optional `/poodle` composition uses public controlled primitives
 for a linear history panel. Poodle remains visual authority.
 

@@ -1,5 +1,5 @@
-import type { InvokeTransport } from "@longhorn/core";
-import { TauriTransport } from "@longhorn/tauri";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
+import { TauriTransport } from "@inflatable-cookie/longhorn-tauri";
 
 import type {
   BridgeHelloRequest,

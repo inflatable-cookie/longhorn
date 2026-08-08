@@ -1,8 +1,8 @@
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 import {
   assertCompatibleTransferCommitSelector,
   assertTransferProtocolVersion,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import type {
   SurfaceSessionResponse,

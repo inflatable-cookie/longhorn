@@ -31,12 +31,12 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | Longhorn version | coordinated private `0.1.0` |
 | Rust | edition 2024; MSRV 1.95 with exact compatible lock |
 | TypeScript/Svelte | Svelte 5; exact peer ranges are package-specific in the generated API surface |
-| Tauri renderer API | `@longhorn/tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
+| Tauri renderer API | `@inflatable-cookie/longhorn-tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
 | Tauri Rust | private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.95 |
 | Poodle | exact five-package private artifact receipt; no general registry range claim |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 
-`@longhorn/svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
+`@inflatable-cookie/longhorn-svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
 Svelte adapters commonly declare `>=5.38.6 <6`; consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
 range. The greenfield matrix proves one runtime at 5.38.6. Later consumer
@@ -46,7 +46,7 @@ Concretely, the generated surface says two different things about Svelte:
 
 ```json
 { "peerDependencies": { "svelte": ">=5.38.6 <6" } }        // most adapters
-{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @longhorn/svelte
+{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @inflatable-cookie/longhorn-svelte
 ```
 
 The first is an optional peer on most adapters — an app that does not use

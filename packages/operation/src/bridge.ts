@@ -12,7 +12,7 @@ import {
   type BridgeRequestContext,
   type BridgeRequestId,
   type DomainId,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import {
   assertCompatibleOperationCancellationCommand,

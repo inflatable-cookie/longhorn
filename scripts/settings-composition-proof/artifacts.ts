@@ -30,9 +30,9 @@ const rustCrates = [
 ] as const;
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/config", "config"],
-  ["@longhorn/settings", "settings"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-config", "config"],
+  ["@inflatable-cookie/longhorn-settings", "settings"],
 ] as const;
 
 export async function readPoodleEvidence(): Promise<PoodleEvidence> {
@@ -155,7 +155,7 @@ async function inspectNpmArtifact(
   ) {
     throw new Error(`${name} artifact contains workspace dependency aliases`);
   }
-  if (name === "@longhorn/settings") {
+  if (name === "@inflatable-cookie/longhorn-settings") {
     assertSettingsRootBoundary(
       JSON.parse(packedManifest) as {
         dependencies?: Record<string, string>;
@@ -173,7 +173,7 @@ function assertSettingsRootBoundary(manifest: {
   const dependencies = Object.keys(manifest.dependencies ?? {});
   if (
     dependencies.length !== 1 ||
-    dependencies[0] !== "@longhorn/core"
+    dependencies[0] !== "@inflatable-cookie/longhorn-core"
   ) {
     throw new Error(
       `settings root has upward optional dependencies: ${dependencies.join(", ")}`,

@@ -13,7 +13,7 @@ import {
   type CommandSnapshotPort,
   type CommandUnlisten,
   type KeyboardEventLike,
-} from "@longhorn/commands";
+} from "@inflatable-cookie/longhorn-commands";
 
 export type CommandShape = "jetstream" | "loophole";
 

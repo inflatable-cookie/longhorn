@@ -34,12 +34,12 @@ the consumer's terminal callback.
 
 ## Public Composition
 
-- `@longhorn/transfer`: strict payload parse and serialization
-- `@longhorn/svelte`: injected `windowDrag`
-- `@longhorn/svelte/transfer`: `DropZoneLeaseRegistry`
-- `@longhorn/svelte/surface-transfer`: armed Surface source and target actions
-- `@longhorn/poodle`: public drag props and compatible visibility projection
-- `@longhorn/poodle/transfer`: optional panel source and target factories
+- `@inflatable-cookie/longhorn-transfer`: strict payload parse and serialization
+- `@inflatable-cookie/longhorn-svelte`: injected `windowDrag`
+- `@inflatable-cookie/longhorn-svelte/transfer`: `DropZoneLeaseRegistry`
+- `@inflatable-cookie/longhorn-svelte/surface-transfer`: armed Surface source and target actions
+- `@inflatable-cookie/longhorn-poodle`: public drag props and compatible visibility projection
+- `@inflatable-cookie/longhorn-poodle/transfer`: optional panel source and target factories
 
 The Poodle root has no Longhorn transfer import. The optional transfer subpath
 uses only public `DockExternalDragSource` and `DockExternalDropTarget` types.

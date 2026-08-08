@@ -1,10 +1,10 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import { SETTINGS_PROTOCOL_VERSION } from "@longhorn/settings";
+import { SETTINGS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn-settings";
 import {
   CommandSession,
-} from "@longhorn/commands/svelte";
+} from "@inflatable-cookie/longhorn-commands/svelte";
 
 import {
   KeyboardTarget,

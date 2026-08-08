@@ -3,7 +3,7 @@ import {
   type ConnectionFailure,
   type ConnectionFailureReporter,
   type EventTransport,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import type { TransferClientSnapshot } from "./generated/protocol.ts";
 import { assertCompatibleTransferClientSnapshot } from "./compatibility.ts";

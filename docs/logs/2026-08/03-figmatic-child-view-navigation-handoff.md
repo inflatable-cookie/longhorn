@@ -30,6 +30,6 @@ Resume g03.006 without a shell-page workaround:
 6. test mixed-display scale movement locally because upstream live switching
    remains unproved.
 
-Do not add preview URLs to `@longhorn/native-content` or navigate by global
+Do not add preview URLs to `@inflatable-cookie/longhorn-native-content` or navigate by global
 Tauri label. This handoff resolves the upstream blocker; it does not claim the
 Figmatic migration is complete.

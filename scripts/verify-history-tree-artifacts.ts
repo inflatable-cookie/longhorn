@@ -20,18 +20,18 @@ interface PackageManifest { readonly name: string; dependencies: Record<string, 
 const policies = {
   document: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree"],
-    longhorn: ["@longhorn/core", "@longhorn/history-tree"],
-    imports: ["@longhorn/history-tree"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history-tree"],
+    imports: ["@inflatable-cookie/longhorn-history-tree"],
     permissions: [],
-    forbidden: ["@longhorn/history", "@longhorn/tauri", "@poodle/svelte", "svelte"],
+    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri", "@poodle/svelte", "svelte"],
     metrics: { nodes: 132, branches: 5, payload: 4_224, lca: 65, baseline: 99_295 },
   },
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"],
-    longhorn: ["@longhorn/core", "@longhorn/history-tree"],
-    imports: ["@longhorn/history-tree", "@longhorn/history-tree/poodle", "@longhorn/history-tree/svelte", "@longhorn/history-tree/tauri"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history-tree"],
+    imports: ["@inflatable-cookie/longhorn-history-tree", "@inflatable-cookie/longhorn-history-tree/poodle", "@inflatable-cookie/longhorn-history-tree/svelte", "@inflatable-cookie/longhorn-history-tree/tauri"],
     permissions: ["allow-longhorn-history-tree-read", "allow-longhorn-history-tree-mutate", "core:event:allow-listen", "core:event:allow-unlisten"],
-    forbidden: ["@longhorn/history", "@longhorn/tauri"],
+    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri"],
     metrics: { nodes: 2_112, branches: 65, payload: 540_672, lca: 1_025, baseline: 7_534_856 },
   },
 } as const;
@@ -100,7 +100,7 @@ async function readPoodleEvidence(): Promise<PoodleEvidence> {
 }
 
 async function packTypescriptArtifacts(): Promise<{ identities: readonly ArtifactIdentity[]; paths: ReadonlyMap<string, string> }> {
-  const packages = [["@longhorn/core", "core"], ["@longhorn/history-tree", "history-tree"]] as const;
+  const packages = [["@inflatable-cookie/longhorn-core", "core"], ["@inflatable-cookie/longhorn-history-tree", "history-tree"]] as const;
   const identities = [];
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
@@ -118,8 +118,8 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   if (listing.includes("node_modules/") || listing.includes("/tests/") || listing.includes("workspace:")) throw new Error(`${name} artifact contains workspace material`);
   const manifest = JSON.parse(await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot)) as Json;
   if (manifest.name !== name || manifest.version !== "0.1.0") throw new Error(`${name} packed identity mismatch`);
-  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), name === "@longhorn/history-tree" ? ["@longhorn/core"] : []);
-  if (name === "@longhorn/history-tree") {
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), name === "@inflatable-cookie/longhorn-history-tree" ? ["@inflatable-cookie/longhorn-core"] : []);
+  if (name === "@inflatable-cookie/longhorn-history-tree") {
     assertExactSet("history-tree exports", Object.keys(manifest.exports ?? {}), [".", "./package.json", "./poodle", "./protocol", "./svelte", "./tauri"]);
     for (const peer of ["svelte", "@poodle/svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${peer} is not an optional history-tree peer`);
   }
@@ -194,7 +194,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   const trace = parseTrace(await run(["bun", `consumers/${shape}/proof.ts`], stage));
   if (!equalJson(trace.publicTrace, nativeTrace.publicTrace)) throw new Error(`${shape} native and renderer traces diverged`);
 
-  assertExactSet(`${shape} installed Longhorn packages`, (await installedScope(stage, "@longhorn")).map((name) => `@longhorn/${name}`), policy.longhorn);
+  assertExactSet(`${shape} installed Longhorn packages`, (await installedScope(stage, "@longhorn")).map((name) => `@inflatable-cookie/longhorn-${name}`), policy.longhorn);
   const artifactResolution = [];
   for (const name of policy.longhorn) artifactResolution.push(await assertArtifactInstall(stage, name));
   for (const name of policy.forbidden) await assertPackageAbsent(stage, name);

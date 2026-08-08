@@ -11,7 +11,7 @@ changing registry, configuration, or product authority.
 
 ## Session
 
-`@longhorn/settings/svelte` provides per-instance:
+`@inflatable-cookie/longhorn-settings/svelte` provides per-instance:
 
 - listener-first registry and lazy scope lifetime
 - deterministic route, search, and structural deep-link state
@@ -27,7 +27,7 @@ accepts fresh authority and preserves the local draft.
 
 ## Shell
 
-`@longhorn/settings/poodle` exposes one controller-driven shell with modal,
+`@inflatable-cookie/longhorn-settings/poodle` exposes one controller-driven shell with modal,
 independent-window, and routed-panel hosts. It uses public `@poodle/svelte`
 components for dialog, navigation, search, page headers, status, actions, and
 surface presentation.

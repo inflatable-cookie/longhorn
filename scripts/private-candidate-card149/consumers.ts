@@ -83,7 +83,7 @@ export async function graphDefinitions(): Promise<GraphDefinition[]> {
         devDependencies?: Record<string, string>;
       };
       for (const name of Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })) {
-        if (name.startsWith("@longhorn/")) typescript.add(name);
+        if (name.startsWith("@inflatable-cookie/longhorn-")) typescript.add(name);
       }
     }
     const rust = new Set<string>();
@@ -183,7 +183,7 @@ async function verifyTypescriptGraph(
   await run(["bun", "install", "--ignore-scripts"], stage);
   await run(["bun", "x", "tsc", "-p", "tsconfig.json"], stage);
   await run(["bun", "x", "svelte-check", "--tsconfig", "tsconfig.json"], stage);
-  const installed = (await readdir(join(stage, "node_modules/@longhorn"))).map((name) => `@longhorn/${name}`).sort();
+  const installed = (await readdir(join(stage, "node_modules/@longhorn"))).map((name) => `@inflatable-cookie/longhorn-${name}`).sort();
   equalSet(installed, expected, `${definition.name} TypeScript graph`);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   assert(!/workspace:|link:/.test(lock), `${definition.name} renderer lock contains a source alias`);
@@ -243,10 +243,10 @@ function dependencyClosure(selected: string[], manifests: Map<string, { manifest
     assert(manifest, `unknown TypeScript package ${name}`);
     result.add(name);
     for (const dependency of Object.keys(manifest.dependencies ?? {})) {
-      if (dependency.startsWith("@longhorn/")) pending.push(dependency);
+      if (dependency.startsWith("@inflatable-cookie/longhorn-")) pending.push(dependency);
     }
     for (const peer of Object.keys(manifest.peerDependencies ?? {})) {
-      if (peer.startsWith("@longhorn/") && manifest.peerDependenciesMeta?.[peer]?.optional !== true) pending.push(peer);
+      if (peer.startsWith("@inflatable-cookie/longhorn-") && manifest.peerDependenciesMeta?.[peer]?.optional !== true) pending.push(peer);
     }
   }
   return [...result].sort();

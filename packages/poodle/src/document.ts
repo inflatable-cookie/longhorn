@@ -8,7 +8,7 @@ import type {
   RegionDefinition,
   RegionId,
   RegionState,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 
 import { MissingLayoutMemberError } from "./types.ts";
 

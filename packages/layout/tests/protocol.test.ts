@@ -13,7 +13,7 @@ import {
   layoutRatioFromMillionths,
   layoutRatioToUnitInterval,
   projectOrdinaryRegionVisibility,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 
 const fixturePath = new URL(
   "../../../fixtures/layout/protocol-v1.json",

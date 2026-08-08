@@ -12,11 +12,11 @@ import {
   assertCompatibleSurfaceTransferAbort,
   assertCompatibleSurfaceTransferResponse,
   assertCompatibleSurfaceTransferTarget,
-} from "@longhorn/surface-transfer";
+} from "@inflatable-cookie/longhorn-surface-transfer";
 import {
   TransferProtocolIncompatibilityError,
   assertTransferProtocolVersion,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 const fixturePath = new URL(
   "../../../fixtures/surface-transfer/protocol-v1.json",

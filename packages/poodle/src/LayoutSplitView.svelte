@@ -12,7 +12,7 @@
     type LayoutContainerId,
     type RegionId,
     type SizingSlotId,
-  } from "@longhorn/layout";
+  } from "@inflatable-cookie/longhorn-layout";
   import type { Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";

@@ -17,10 +17,10 @@ authority.
 
 - Rust-generated checked TypeScript types and fixtures
 - operation snapshots, entries, commands, receipts, and errors
-- framework-neutral `@longhorn/operation` client
+- framework-neutral `@inflatable-cookie/longhorn-operation` client
 - direct and serialized conformance transports
 - `longhorn-tauri-operation` handler/event assembly
-- `@longhorn/operation/tauri` composition
+- `@inflatable-cookie/longhorn-operation/tauri` composition
 - bridge-domain mapping for correlation, progress, cancellation, and terminal
 - listener-first snapshot/event reconciliation
 - narrow Tauri capability examples

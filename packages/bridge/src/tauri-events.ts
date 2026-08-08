@@ -1,5 +1,5 @@
-import type { EventTransport, Unlisten } from "@longhorn/core";
-import { TauriEventTransport } from "@longhorn/tauri/events";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
+import { TauriEventTransport } from "@inflatable-cookie/longhorn-tauri/events";
 
 import type { BridgeCodec } from "./compatibility/base.ts";
 import {

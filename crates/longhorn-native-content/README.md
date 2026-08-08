@@ -62,7 +62,7 @@ replacement advances the latter. Mutations carry request identity, client
 epoch, island identity, and expected authority cursor. Stale sessions and
 revisions fail without mutation.
 
-The generated client lives in `@longhorn/native-content`. Its optional Tauri
+The generated client lives in `@inflatable-cookie/longhorn-native-content`. Its optional Tauri
 assembly maps the same checked shapes over narrow injected commands and one
 changed event.
 

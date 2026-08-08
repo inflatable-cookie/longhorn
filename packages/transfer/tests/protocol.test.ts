@@ -20,7 +20,7 @@ import {
   assertCompatibleTransferSessionResponse,
   assertCompatibleTransferTargetBinding,
   assertTransferProtocolVersion,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 const fixturePath = new URL(
   "../../../fixtures/transfer/protocol-v1.json",

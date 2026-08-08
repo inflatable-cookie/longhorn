@@ -147,7 +147,7 @@ function verifyNucleusConfiguration(): void {
   ) as { dependencies: Record<string, string> };
   assert(
     Object.keys(desktopManifest.dependencies).every(
-      (name) => !name.startsWith("@longhorn/"),
+      (name) => !name.startsWith("@inflatable-cookie/longhorn-"),
     ),
     "Nucleus already resolves a Longhorn renderer dependency",
   );

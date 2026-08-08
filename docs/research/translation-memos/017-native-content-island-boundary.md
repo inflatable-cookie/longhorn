@@ -213,7 +213,7 @@ If the prototypes pass:
 - `longhorn-native-content`: pure identities, desired/observed state, planning,
   revisions, and receipts
 - narrow Tauri mechanism adapters selected independently
-- `@longhorn/native-content`: checked coordination client
+- `@inflatable-cookie/longhorn-native-content`: checked coordination client
 - optional per-instance Svelte lifecycle and Poodle layout binding only after
   public-seam proof
 

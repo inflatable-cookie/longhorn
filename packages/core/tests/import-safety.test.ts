@@ -5,7 +5,7 @@ test("imports without browser or host globals", async () => {
   expect("document" in globalThis).toBeFalse();
   expect("__TAURI_INTERNALS__" in globalThis).toBeFalse();
 
-  const core = await import("@longhorn/core");
+  const core = await import("@inflatable-cookie/longhorn-core");
   expect(core.CheckedSnapshotConnection).toBeFunction();
   expect(core.isEventTransport).toBeFunction();
 });

@@ -33,7 +33,7 @@ Product payloads never enter the generated protocol.
 
 ## Client Lifecycle
 
-`@longhorn/history` provides injected direct and serialized ports plus one
+`@inflatable-cookie/longhorn-history` provides injected direct and serialized ports plus one
 checked controller. The root imports no Tauri, Svelte, Poodle, browser, or
 product dependency.
 
@@ -66,10 +66,10 @@ event lifetime explicit.
 
 ## Svelte And Poodle
 
-`@longhorn/history/svelte` wraps one controller per rune-backed session.
+`@inflatable-cookie/longhorn-history/svelte` wraps one controller per rune-backed session.
 Mounted multi-instance and SSR fixtures prove state and teardown isolation.
 
-`@longhorn/history/poodle` composes its panel only from public controlled
+`@inflatable-cookie/longhorn-history/poodle` composes its panel only from public controlled
 Poodle primitives. It covers undo, redo, checkout, filter, pagination,
 loading, error, and rejection presentation without owning durable state or
 copying a visual primitive.

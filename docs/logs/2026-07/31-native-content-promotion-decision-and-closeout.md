@@ -36,8 +36,8 @@ boundary.
 - `longhorn-tauri-native-content-child-view`
 - `longhorn-native-content-isolated-window`
 - `longhorn-native-content-backing-surface`
-- `@longhorn/native-content`
-- `@longhorn/native-content-svelte`
+- `@inflatable-cookie/longhorn-native-content`
+- `@inflatable-cookie/longhorn-native-content-svelte`
 
 The names are fixed for g01.018 planning and remain pre-release registry names.
 Production implementation does not occur in Card 086.

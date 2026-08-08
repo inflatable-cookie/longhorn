@@ -1,13 +1,13 @@
 import {
   HISTORY_CHANGED_EVENT,
   createTauriHistoryPort,
-} from "@longhorn/history/tauri";
+} from "@inflatable-cookie/longhorn-history/tauri";
 import {
   HistoryController,
   type HistoryChangedEvent,
   type HistoryNavigationCommand,
   type HistoryPageCommand,
-} from "@longhorn/history";
+} from "@inflatable-cookie/longhorn-history";
 
 import {
   equalJson,

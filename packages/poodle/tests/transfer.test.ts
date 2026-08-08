@@ -16,8 +16,8 @@ import {
   parseTransferPayload,
   type PanelTransferCommand,
   type TransferCancelRequest,
-} from "@longhorn/transfer";
-import { TransferState } from "@longhorn/svelte/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
+import { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer";
 
 import fixture from "../../../fixtures/transfer/protocol-v1.json";
 import {

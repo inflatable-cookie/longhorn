@@ -1,4 +1,4 @@
-import { isEventTransport, type EventTransport, type InvokeTransport } from "@longhorn/core";
+import { isEventTransport, type EventTransport, type InvokeTransport } from "@inflatable-cookie/longhorn-core";
 import type { ForkHistoryPort } from "./ports.ts";
 export const FORK_HISTORY_SNAPSHOT_COMMAND = "longhorn_history_tree_snapshot";
 export const FORK_HISTORY_PATH_COMMAND = "longhorn_history_tree_path";

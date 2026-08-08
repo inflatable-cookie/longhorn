@@ -78,10 +78,10 @@
       "longhorn-tauri-settings"
     ],
     "typescript": [
-      "@longhorn/core",
-      "@longhorn/config",
-      "@longhorn/settings",
-      "@longhorn/tauri"
+      "@inflatable-cookie/longhorn-core",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-settings",
+      "@inflatable-cookie/longhorn-tauri"
     ],
     "package_manager_publication": false
   },

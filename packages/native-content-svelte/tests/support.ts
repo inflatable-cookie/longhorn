@@ -10,7 +10,7 @@ import {
   type NativeContentContentSizeDecisionResult,
   type NativeContentDesiredUpdateResult,
   type NativeContentSnapshot,
-} from "@longhorn/native-content";
+} from "@inflatable-cookie/longhorn-native-content";
 
 import type {
   NativeContentResizeObserver,

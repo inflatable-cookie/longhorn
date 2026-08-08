@@ -1,4 +1,4 @@
-import type { Unlisten } from "@longhorn/core";
+import type { Unlisten } from "@inflatable-cookie/longhorn-core";
 
 import {
   deserialize,

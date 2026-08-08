@@ -1,7 +1,7 @@
 import { render } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { EventTransport } from "@longhorn/core";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
 import {
   TRANSFER_CANCEL_COMMAND,
   TRANSFER_CLIENT_CHANGED_EVENT,
@@ -18,7 +18,7 @@ import {
   type TransferLeaseRequest,
   type TransferLeaseResponse,
   type TransferSessionResponse,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import fixture from "../../../fixtures/transfer/protocol-v1.json";
 import {

@@ -8,7 +8,7 @@ import {
   connectBridgeStream,
   DirectBridgeStreamSource,
   SerializedLoopbackBridgeStreamSource,
-} from "@longhorn/bridge/stream";
+} from "@inflatable-cookie/longhorn-bridge/stream";
 
 import { fixture } from "./support.ts";
 

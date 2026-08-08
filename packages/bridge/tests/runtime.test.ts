@@ -6,7 +6,7 @@ import {
   BridgeRuntimeError,
   type BridgeRuntimeBackoff,
   type BridgeRuntimeClock,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import { fixture } from "./support.ts";
 

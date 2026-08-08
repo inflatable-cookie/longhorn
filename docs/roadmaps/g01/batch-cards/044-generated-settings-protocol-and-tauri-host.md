@@ -17,9 +17,9 @@ and expose the pure authority through a narrow injected Tauri host.
 - settings slice in `longhorn-bindings`
 - golden registry, snapshot, command, receipt, conflict, policy, recovery, and
   activation fixtures
-- private `@longhorn/settings` framework-neutral root
+- private `@inflatable-cookie/longhorn-settings` framework-neutral root
 - registry projection, deterministic search, and structural deep-link helpers
-- listener-first checked client over `@longhorn/core`
+- listener-first checked client over `@inflatable-cookie/longhorn-core`
 - `longhorn-tauri-settings` handler assembly
 - explicit command/event names and narrow capability examples
 - direct and serialized conformance
@@ -99,7 +99,7 @@ public-Poodle shell without changing authority.
 fixture covering registry, authority, mutation, conflict, policy, recovery,
 activation, durability, events, and future incompatibility.
 
-The private framework-neutral `@longhorn/settings` package adds strict
+The private framework-neutral `@inflatable-cookie/longhorn-settings` package adds strict
 compatibility guards, deterministic registry projection, search and structural
 deep links, checked commands, and listener-first registry and scope
 connections. Stale authority cannot replace newer state, late unlisten runs

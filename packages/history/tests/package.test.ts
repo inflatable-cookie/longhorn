@@ -7,11 +7,11 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package exposes optional Tauri, Svelte, and Poodle subpaths", () => {
-  expect(metadata.name).toBe("@longhorn/history");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-history");
   expect(metadata.private).toBeTrue();
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
-  expect(metadata.dependencies).toEqual({ "@longhorn/core": "0.1.0" });
+  expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
   const exports = metadata.exports as Record<
     string,
     string | Record<string, string>

@@ -23,9 +23,9 @@ Outcome: `pass`
 
 The clean temporary Nucleus shell installs produced archives for:
 
-- `@longhorn/core`, `@longhorn/config`, `@longhorn/layout`
-- `@longhorn/svelte`, `@longhorn/poodle`, `@longhorn/tauri`
-- `@longhorn/native-content`, `@longhorn/native-content-svelte`
+- `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-config`, `@inflatable-cookie/longhorn-layout`
+- `@inflatable-cookie/longhorn-svelte`, `@inflatable-cookie/longhorn-poodle`, `@inflatable-cookie/longhorn-tauri`
+- `@inflatable-cookie/longhorn-native-content`, `@inflatable-cookie/longhorn-native-content-svelte`
 - `@poodle/headless`, `@poodle/styles`, `@poodle/svelte-tokens`
 - `@poodle/icons-lucide`, `@poodle/svelte`
 
@@ -33,18 +33,18 @@ It uses Svelte 5.56.8, TypeScript 6.0.3, and Tauri API 2.11.1. Generated
 config, layout, and native-content bindings are current. The public Poodle
 `onSurfaceGeometryChange` contract compiles for Popover and Menu. Both mounted
 Nucleus app-shell tests pass. No sibling alias, duplicate runtime,
-`@longhorn/surfaces`, or `@longhorn/surface-transfer` resolves.
+`@inflatable-cookie/longhorn-surfaces`, or `@inflatable-cookie/longhorn-surface-transfer` resolves.
 
 | Longhorn package | SHA-256 |
 | --- | --- |
-| `@longhorn/core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/config` | `b8285aa4d332a1a6348242703fedc3ae190e5a087c0a9f6ed1bda03c769a5407` |
-| `@longhorn/layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
-| `@longhorn/svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
-| `@longhorn/poodle` | `75cb6ed35ec623fc60db6af14daf9c0e923d45ad51bc68b2a2d2f5c3548ebb63` |
-| `@longhorn/native-content` | `aaaa3b842b4605c71f5e88bc56919ccf1b6e6475ccb928f52d19e171b24c8c22` |
-| `@longhorn/native-content-svelte` | `4ad53d146484b23be41862839f396821a54f6fbfe87f4a450d2d6154839c4913` |
-| `@longhorn/tauri` | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
+| `@inflatable-cookie/longhorn-core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-config` | `b8285aa4d332a1a6348242703fedc3ae190e5a087c0a9f6ed1bda03c769a5407` |
+| `@inflatable-cookie/longhorn-layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
+| `@inflatable-cookie/longhorn-svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
+| `@inflatable-cookie/longhorn-poodle` | `75cb6ed35ec623fc60db6af14daf9c0e923d45ad51bc68b2a2d2f5c3548ebb63` |
+| `@inflatable-cookie/longhorn-native-content` | `aaaa3b842b4605c71f5e88bc56919ccf1b6e6475ccb928f52d19e171b24c8c22` |
+| `@inflatable-cookie/longhorn-native-content-svelte` | `4ad53d146484b23be41862839f396821a54f6fbfe87f4a450d2d6154839c4913` |
+| `@inflatable-cookie/longhorn-tauri` | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
 
 ## Rust Proof
 

@@ -27,8 +27,8 @@ keeps panel and Surface commit adapters explicit.
   adapter.
 - `longhorn-tauri-transfer` binds current managed-window readback and handler
   assembly without owning product policy.
-- `@longhorn/transfer`, `@longhorn/surfaces`, and
-  `@longhorn/surface-transfer` contain checked protocol types and
+- `@inflatable-cookie/longhorn-transfer`, `@inflatable-cookie/longhorn-surfaces`, and
+  `@inflatable-cookie/longhorn-surface-transfer` contain checked protocol types and
   framework-neutral clients.
 
 Nucleus may depend on `longhorn-transfer` without linking
@@ -249,8 +249,8 @@ hidden, placed, ready receipt and retained authority. Publication failure
 invokes cleanup; unresolved cleanup or post-publication host commit failure
 returns typed reconciliation evidence.
 
-Card 034 adds Rust-generated `@longhorn/surfaces`, `@longhorn/transfer`, and
-`@longhorn/surface-transfer` protocols and clients. `@longhorn/tauri` is the
+Card 034 adds Rust-generated `@inflatable-cookie/longhorn-surfaces`, `@inflatable-cookie/longhorn-transfer`, and
+`@inflatable-cookie/longhorn-surface-transfer` protocols and clients. `@inflatable-cookie/longhorn-tauri` is the
 sole raw invoke/listen transport. `longhorn-tauri-transfer` binds commands to
 the caller's current managed-window identity, projects checked client
 geometry, and exposes optional Surface commands over the same coordinator.

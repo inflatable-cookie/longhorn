@@ -50,13 +50,13 @@ interface PackageManifest {
 const policies = {
   minimal: {
     rust: ["longhorn-core", "longhorn-history"],
-    longhorn: ["@longhorn/core", "@longhorn/history"],
-    imports: ["@longhorn/history"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history"],
+    imports: ["@inflatable-cookie/longhorn-history"],
     permissions: [],
     forbidden: [
-      "@longhorn/bridge",
-      "@longhorn/config",
-      "@longhorn/tauri",
+      "@inflatable-cookie/longhorn-bridge",
+      "@inflatable-cookie/longhorn-config",
+      "@inflatable-cookie/longhorn-tauri",
       "svelte",
       "@poodle/svelte",
     ],
@@ -64,12 +64,12 @@ const policies = {
   },
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-tauri-history"],
-    longhorn: ["@longhorn/core", "@longhorn/history"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history"],
     imports: [
-      "@longhorn/history",
-      "@longhorn/history/poodle",
-      "@longhorn/history/svelte",
-      "@longhorn/history/tauri",
+      "@inflatable-cookie/longhorn-history",
+      "@inflatable-cookie/longhorn-history/poodle",
+      "@inflatable-cookie/longhorn-history/svelte",
+      "@inflatable-cookie/longhorn-history/tauri",
     ],
     permissions: [
       "allow-longhorn-history-read",
@@ -77,7 +77,7 @@ const policies = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: ["@longhorn/bridge", "@longhorn/config", "@longhorn/tauri"],
+    forbidden: ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-tauri"],
     mountedTests: 1,
   },
 } as const;
@@ -187,8 +187,8 @@ async function packTypescriptArtifacts(): Promise<{
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const packages = [
-    ["@longhorn/core", "core"],
-    ["@longhorn/history", "history"],
+    ["@inflatable-cookie/longhorn-core", "core"],
+    ["@inflatable-cookie/longhorn-history", "history"],
   ] as const;
   const identities = [];
   const paths = new Map<string, string>();
@@ -248,9 +248,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   assertExactSet(
     `${name} dependencies`,
     Object.keys(manifest.dependencies ?? {}),
-    name === "@longhorn/history" ? ["@longhorn/core"] : [],
+    name === "@inflatable-cookie/longhorn-history" ? ["@inflatable-cookie/longhorn-core"] : [],
   );
-  if (name === "@longhorn/history") {
+  if (name === "@inflatable-cookie/longhorn-history") {
     assertExactSet(
       "history package exports",
       Object.keys(manifest.exports ?? {}),
@@ -487,7 +487,7 @@ async function verifyTypescriptConsumer(
   assertExactSet(
     `${shape} installed Longhorn packages`,
     (await installedScope(stage, "@longhorn")).map(
-      (name) => `@longhorn/${name}`,
+      (name) => `@inflatable-cookie/longhorn-${name}`,
     ),
     policy.longhorn,
   );

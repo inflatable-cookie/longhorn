@@ -12,7 +12,7 @@ Nucleus worked around the same gap through global Tauri label lookup.
 
 Contract 017 now assigns navigation execution to the child-view mechanism
 while URL targets and admission policy remain consumer-owned. Navigation does
-not enter `NativeContentOperation`, `@longhorn/native-content`, or the common
+not enter `NativeContentOperation`, `@inflatable-cookie/longhorn-native-content`, or the common
 desired/observed state.
 
 ## Public Semantics

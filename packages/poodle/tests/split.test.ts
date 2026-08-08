@@ -1,8 +1,8 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutMutationRequest } from "@longhorn/layout";
-import type { LayoutDispatchResult } from "@longhorn/svelte/layout";
+import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn-layout";
+import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-svelte/layout";
 
 import LayoutSplitHarness from "./LayoutSplitHarness.svelte";
 import {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { EventTransport, Unlisten } from "@longhorn/core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
 
 import {
   SURFACE_CHANGED_EVENT,
@@ -7,7 +7,7 @@ import {
   SurfaceClient,
   type SurfaceChangedEvent,
   type SurfaceSnapshot,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 
 describe("Surface snapshot subscription", () => {
   test("attaches before snapshot and closes a mutation race", async () => {

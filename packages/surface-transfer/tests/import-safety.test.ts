@@ -5,7 +5,7 @@ test("imports without browser or host globals", async () => {
   expect("document" in globalThis).toBeFalse();
   expect("__TAURI_INTERNALS__" in globalThis).toBeFalse();
 
-  const surfaceTransfer = await import("@longhorn/surface-transfer");
+  const surfaceTransfer = await import("@inflatable-cookie/longhorn-surface-transfer");
   expect(surfaceTransfer.SURFACE_TRANSFER_TARGET_KINDS).toEqual([
     "existing",
     "provisioned",

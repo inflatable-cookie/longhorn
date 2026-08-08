@@ -3,7 +3,7 @@ import {
   type SurfaceMutationRequest,
   type SurfaceMutationResponse,
   type SurfaceSnapshot,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 
 import {
   OptimisticProjectionState,

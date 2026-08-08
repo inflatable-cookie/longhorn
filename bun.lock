@@ -22,20 +22,20 @@
       },
     },
     "packages/bridge": {
-      "name": "@longhorn/bridge",
+      "name": "@inflatable-cookie/longhorn-bridge",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
-        "@longhorn/tauri": "0.1.0",
+        "@inflatable-cookie/longhorn-tauri": "0.1.0",
       },
       "optionalPeers": [
-        "@longhorn/tauri",
+        "@inflatable-cookie/longhorn-tauri",
       ],
     },
     "packages/commands": {
-      "name": "@longhorn/commands",
+      "name": "@inflatable-cookie/longhorn-commands",
       "version": "0.1.0",
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -47,10 +47,10 @@
       ],
     },
     "packages/config": {
-      "name": "@longhorn/config",
+      "name": "@inflatable-cookie/longhorn-config",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -62,14 +62,14 @@
       ],
     },
     "packages/core": {
-      "name": "@longhorn/core",
+      "name": "@inflatable-cookie/longhorn-core",
       "version": "0.1.0",
     },
     "packages/history": {
-      "name": "@longhorn/history",
+      "name": "@inflatable-cookie/longhorn-history",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -81,10 +81,10 @@
       ],
     },
     "packages/history-tree": {
-      "name": "@longhorn/history-tree",
+      "name": "@inflatable-cookie/longhorn-history-tree",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -96,31 +96,31 @@
       ],
     },
     "packages/layout": {
-      "name": "@longhorn/layout",
+      "name": "@inflatable-cookie/longhorn-layout",
       "version": "0.1.0",
     },
     "packages/native-content": {
-      "name": "@longhorn/native-content",
+      "name": "@inflatable-cookie/longhorn-native-content",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
     },
     "packages/native-content-svelte": {
-      "name": "@longhorn/native-content-svelte",
+      "name": "@inflatable-cookie/longhorn-native-content-svelte",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/native-content": "0.1.0",
+        "@inflatable-cookie/longhorn-native-content": "0.1.0",
       },
       "peerDependencies": {
         "svelte": ">=5.38.6 <6",
       },
     },
     "packages/notifications": {
-      "name": "@longhorn/notifications",
+      "name": "@inflatable-cookie/longhorn-notifications",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -132,43 +132,43 @@
       ],
     },
     "packages/operation": {
-      "name": "@longhorn/operation",
+      "name": "@inflatable-cookie/longhorn-operation",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
-        "@longhorn/bridge": "0.1.0",
+        "@inflatable-cookie/longhorn-bridge": "0.1.0",
         "@poodle/svelte": "0.1.0",
         "svelte": ">=5.38.6 <6",
       },
       "optionalPeers": [
-        "@longhorn/bridge",
+        "@inflatable-cookie/longhorn-bridge",
         "@poodle/svelte",
         "svelte",
       ],
     },
     "packages/poodle": {
-      "name": "@longhorn/poodle",
+      "name": "@inflatable-cookie/longhorn-poodle",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/layout": "0.1.0",
-        "@longhorn/svelte": "0.1.0",
+        "@inflatable-cookie/longhorn-layout": "0.1.0",
+        "@inflatable-cookie/longhorn-svelte": "0.1.0",
       },
       "peerDependencies": {
-        "@longhorn/transfer": "0.1.0",
+        "@inflatable-cookie/longhorn-transfer": "0.1.0",
         "@poodle/svelte": "0.1.0",
         "svelte": ">=5.38.6 <6",
       },
       "optionalPeers": [
-        "@longhorn/transfer",
+        "@inflatable-cookie/longhorn-transfer",
       ],
     },
     "packages/settings": {
-      "name": "@longhorn/settings",
+      "name": "@inflatable-cookie/longhorn-settings",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@poodle/svelte": "0.1.0",
@@ -180,57 +180,57 @@
       ],
     },
     "packages/surface-transfer": {
-      "name": "@longhorn/surface-transfer",
+      "name": "@inflatable-cookie/longhorn-surface-transfer",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
-        "@longhorn/surfaces": "0.1.0",
-        "@longhorn/transfer": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
+        "@inflatable-cookie/longhorn-surfaces": "0.1.0",
+        "@inflatable-cookie/longhorn-transfer": "0.1.0",
       },
     },
     "packages/surfaces": {
-      "name": "@longhorn/surfaces",
+      "name": "@inflatable-cookie/longhorn-surfaces",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
     },
     "packages/svelte": {
-      "name": "@longhorn/svelte",
+      "name": "@inflatable-cookie/longhorn-svelte",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
-        "@longhorn/layout": "0.1.0",
-        "@longhorn/surface-transfer": "0.1.0",
-        "@longhorn/surfaces": "0.1.0",
-        "@longhorn/transfer": "0.1.0",
+        "@inflatable-cookie/longhorn-layout": "0.1.0",
+        "@inflatable-cookie/longhorn-surface-transfer": "0.1.0",
+        "@inflatable-cookie/longhorn-surfaces": "0.1.0",
+        "@inflatable-cookie/longhorn-transfer": "0.1.0",
         "svelte": ">=5.38.6 <=5.56.8",
       },
       "optionalPeers": [
-        "@longhorn/layout",
-        "@longhorn/surface-transfer",
-        "@longhorn/surfaces",
-        "@longhorn/transfer",
+        "@inflatable-cookie/longhorn-layout",
+        "@inflatable-cookie/longhorn-surface-transfer",
+        "@inflatable-cookie/longhorn-surfaces",
+        "@inflatable-cookie/longhorn-transfer",
       ],
     },
     "packages/tauri": {
-      "name": "@longhorn/tauri",
+      "name": "@inflatable-cookie/longhorn-tauri",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
       },
       "peerDependencies": {
         "@tauri-apps/api": "^2.10.1",
       },
     },
     "packages/transfer": {
-      "name": "@longhorn/transfer",
+      "name": "@inflatable-cookie/longhorn-transfer",
       "version": "0.1.0",
       "dependencies": {
-        "@longhorn/core": "0.1.0",
-        "@longhorn/layout": "0.1.0",
+        "@inflatable-cookie/longhorn-core": "0.1.0",
+        "@inflatable-cookie/longhorn-layout": "0.1.0",
       },
     },
   },
@@ -300,6 +300,42 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.1", "", { "os": "win32", "cpu": "x64" }, "sha512-bm4Mowrv+GXMlpWX++EcXw/iLyd1o3+bJkC2DkWXYVvgZCqD/bSj9ctZeAMC3cIxgjRVR2Dufaiu4YPxr5gW1A=="],
 
+    "@inflatable-cookie/longhorn-bridge": ["@inflatable-cookie/longhorn-bridge@workspace:packages/bridge"],
+
+    "@inflatable-cookie/longhorn-commands": ["@inflatable-cookie/longhorn-commands@workspace:packages/commands"],
+
+    "@inflatable-cookie/longhorn-config": ["@inflatable-cookie/longhorn-config@workspace:packages/config"],
+
+    "@inflatable-cookie/longhorn-core": ["@inflatable-cookie/longhorn-core@workspace:packages/core"],
+
+    "@inflatable-cookie/longhorn-history": ["@inflatable-cookie/longhorn-history@workspace:packages/history"],
+
+    "@inflatable-cookie/longhorn-history-tree": ["@inflatable-cookie/longhorn-history-tree@workspace:packages/history-tree"],
+
+    "@inflatable-cookie/longhorn-layout": ["@inflatable-cookie/longhorn-layout@workspace:packages/layout"],
+
+    "@inflatable-cookie/longhorn-native-content": ["@inflatable-cookie/longhorn-native-content@workspace:packages/native-content"],
+
+    "@inflatable-cookie/longhorn-native-content-svelte": ["@inflatable-cookie/longhorn-native-content-svelte@workspace:packages/native-content-svelte"],
+
+    "@inflatable-cookie/longhorn-notifications": ["@inflatable-cookie/longhorn-notifications@workspace:packages/notifications"],
+
+    "@inflatable-cookie/longhorn-operation": ["@inflatable-cookie/longhorn-operation@workspace:packages/operation"],
+
+    "@inflatable-cookie/longhorn-poodle": ["@inflatable-cookie/longhorn-poodle@workspace:packages/poodle"],
+
+    "@inflatable-cookie/longhorn-settings": ["@inflatable-cookie/longhorn-settings@workspace:packages/settings"],
+
+    "@inflatable-cookie/longhorn-surface-transfer": ["@inflatable-cookie/longhorn-surface-transfer@workspace:packages/surface-transfer"],
+
+    "@inflatable-cookie/longhorn-surfaces": ["@inflatable-cookie/longhorn-surfaces@workspace:packages/surfaces"],
+
+    "@inflatable-cookie/longhorn-svelte": ["@inflatable-cookie/longhorn-svelte@workspace:packages/svelte"],
+
+    "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-tauri@workspace:packages/tauri"],
+
+    "@inflatable-cookie/longhorn-transfer": ["@inflatable-cookie/longhorn-transfer@workspace:packages/transfer"],
+
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
     "@jridgewell/remapping": ["@jridgewell/remapping@2.3.5", "", { "dependencies": { "@jridgewell/gen-mapping": "^0.3.5", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-LI9u/+laYG4Ds1TDKSJW2YPrIlcVYOwi2fUC6xB43lueCjgxV4lffOCZCtYFiH6TNOX+tQKXx97T4IKHbhyHEQ=="],
@@ -309,42 +345,6 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
-
-    "@longhorn/bridge": ["@longhorn/bridge@workspace:packages/bridge"],
-
-    "@longhorn/commands": ["@longhorn/commands@workspace:packages/commands"],
-
-    "@longhorn/config": ["@longhorn/config@workspace:packages/config"],
-
-    "@longhorn/core": ["@longhorn/core@workspace:packages/core"],
-
-    "@longhorn/history": ["@longhorn/history@workspace:packages/history"],
-
-    "@longhorn/history-tree": ["@longhorn/history-tree@workspace:packages/history-tree"],
-
-    "@longhorn/layout": ["@longhorn/layout@workspace:packages/layout"],
-
-    "@longhorn/native-content": ["@longhorn/native-content@workspace:packages/native-content"],
-
-    "@longhorn/native-content-svelte": ["@longhorn/native-content-svelte@workspace:packages/native-content-svelte"],
-
-    "@longhorn/notifications": ["@longhorn/notifications@workspace:packages/notifications"],
-
-    "@longhorn/operation": ["@longhorn/operation@workspace:packages/operation"],
-
-    "@longhorn/poodle": ["@longhorn/poodle@workspace:packages/poodle"],
-
-    "@longhorn/settings": ["@longhorn/settings@workspace:packages/settings"],
-
-    "@longhorn/surface-transfer": ["@longhorn/surface-transfer@workspace:packages/surface-transfer"],
-
-    "@longhorn/surfaces": ["@longhorn/surfaces@workspace:packages/surfaces"],
-
-    "@longhorn/svelte": ["@longhorn/svelte@workspace:packages/svelte"],
-
-    "@longhorn/tauri": ["@longhorn/tauri@workspace:packages/tauri"],
-
-    "@longhorn/transfer": ["@longhorn/transfer@workspace:packages/transfer"],
 
     "@poodle/headless": ["@poodle/headless@../poodle/.artifacts/g12.016-A698XB/packs/poodle-headless-0.1.0.tgz", {}, "sha512-ZKnJY6li7Lqt9DjC4DpNrwZ/ZiyCo/kwwEgnydNtpBG4sPMiScdpDfjpFsPvCzm8mYMGvO3qb3deCOHbjAL9YA=="],
 

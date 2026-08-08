@@ -8,13 +8,13 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package metadata keeps optional UI dependencies behind subpaths", () => {
-  expect(metadata.name).toBe("@longhorn/settings");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-settings");
   expect(metadata.private).toBeTrue();
   expect(metadata.type).toBe("module");
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.dependencies).toEqual({
-    "@longhorn/core": "0.1.0",
+    "@inflatable-cookie/longhorn-core": "0.1.0",
   });
   expect(metadata.peerDependencies).toEqual({
     "@poodle/svelte": "0.1.0",

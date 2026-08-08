@@ -1,5 +1,5 @@
-import { ForkHistoryController } from "@longhorn/history-tree";
-import { FORK_HISTORY_CHANGED_EVENT, createTauriForkHistoryPort } from "@longhorn/history-tree/tauri";
+import { ForkHistoryController } from "@inflatable-cookie/longhorn-history-tree";
+import { FORK_HISTORY_CHANGED_EVENT, createTauriForkHistoryPort } from "@inflatable-cookie/longhorn-history-tree/tauri";
 import fixtureJson from "./fixture.json";
 
 const fixture = structuredClone(fixtureJson) as any;

@@ -1,7 +1,7 @@
 import type {
   DesiredVisibility,
   VisibilityReasonId,
-} from "@longhorn/native-content";
+} from "@inflatable-cookie/longhorn-native-content";
 
 export interface NativeContentVisibilityInhibitor {
   readonly reason: VisibilityReasonId;

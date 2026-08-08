@@ -1,4 +1,4 @@
-import type { ConnectionFailure } from "@longhorn/core";
+import type { ConnectionFailure } from "@inflatable-cookie/longhorn-core";
 
 import type { SettingsClient } from "../client.ts";
 import type {

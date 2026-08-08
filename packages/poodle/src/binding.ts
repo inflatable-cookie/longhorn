@@ -12,8 +12,8 @@ import type {
   RegionId,
   RegionState,
   SizingSlotId,
-} from "@longhorn/layout";
-import { projectOrdinaryRegionVisibility } from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
+import { projectOrdinaryRegionVisibility } from "@inflatable-cookie/longhorn-layout";
 
 import {
   findContainer,

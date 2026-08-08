@@ -38,9 +38,9 @@ policy remain consumer-owned.
 - A shared adapter package may expose optional capability subpaths only when
   those capabilities are optional peers and the root entry does not re-export
   them.
-- `@longhorn/tauri` is a structural invoke/listen transport. Tauri is its peer;
+- `@inflatable-cookie/longhorn-tauri` is a structural invoke/listen transport. Tauri is its peer;
   no domain package is its mandatory dependency.
-- `longhorn-bridge` and `@longhorn/bridge` own only generic session,
+- `longhorn-bridge` and `@inflatable-cookie/longhorn-bridge` own only generic session,
   topology, authority, correlation, retry, and ordering contracts. Domain
   payloads stay in their owning packages.
 - Service-supervision and production network transports are optional adapter
@@ -136,8 +136,8 @@ publication remains deferred.
 Evidence:
 `../logs/2026-08/01-nucleus-migration-conformance-closeout.md`.
 
-Card 055 packs `@longhorn/core`, `@longhorn/tauri`, and
-`@longhorn/bridge`, then installs Bovine, Jetstream, Soundcheck, Nucleus, and
+Card 055 packs `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-tauri`, and
+`@inflatable-cookie/longhorn-bridge`, then installs Bovine, Jetstream, Soundcheck, Nucleus, and
 Loophole-shaped consumers in isolated roots. Every consumer resolves version
 `0.1.0`, one Tauri API `2.10.1` peer, exact declared bridge subpaths, and no
 workspace or sibling source alias. Separate offline Rust consumers prove a
@@ -156,8 +156,8 @@ Card 093 inventories five private Rust source artifacts after successful
 backing-surface consumers offline on Rust 1.95. Registry-normalized Cargo
 packages remain a release-lane gate.
 
-It packs `@longhorn/core`, `@longhorn/native-content`, and
-`@longhorn/native-content-svelte` and installs isolated Nucleus, Soundcheck,
+It packs `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-native-content`, and
+`@inflatable-cookie/longhorn-native-content-svelte` and installs isolated Nucleus, Soundcheck,
 and Jetstream shapes. Each lock resolves version `0.1.0`, no workspace or
 sibling source alias, only its selected mechanism, and one Svelte/Poodle
 runtime where the Svelte adapter is selected. The exact Card 039 Poodle

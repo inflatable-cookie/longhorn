@@ -88,7 +88,7 @@ and semantic regions into public Poodle split and dock components. Panel
 bodies, labels, and product resource attachments remain consumer-owned.
 
 `longhorn-layout`, `longhorn-layout-config`, `longhorn-bindings`, and
-`@longhorn/layout` implement this foundation. Checked Loophole eight-region
+`@inflatable-cookie/longhorn-layout` implement this foundation. Checked Loophole eight-region
 and Nucleus five-region fixtures use one public resolver and mutation engine.
 Their Surface/window bindings remain outside the layout document.
 
@@ -191,12 +191,12 @@ capability admission, immutable generations, canonical digests, checked
 projection, and load/apply/reset protocol types. `longhorn-settings-config`
 now adds fresh checked one-domain mutation, managed editability enforcement,
 exact conflict and durability evidence, scoped reset, and post-publication
-activation. `longhorn-tauri-settings` and `@longhorn/settings` provide the
+activation. `longhorn-tauri-settings` and `@inflatable-cookie/longhorn-settings` provide the
 narrow injected host, checked client, and optional per-instance Svelte and
 public-Poodle subpaths. `longhorn-config` projects exact storage and backup
 evidence into a renderer-safe protocol. `longhorn-tauri-config` injects
 authorization, plan custody, pickers, retention policy, pending flush, and
-encryption authority. `@longhorn/config/poodle` supplies the optional shared
+encryption authority. `@inflatable-cookie/longhorn-config/poodle` supplies the optional shared
 pages, while `longhorn-settings-config` admits them by capability. Product
 pages and schemas remain downstream in consumers.
 
@@ -372,7 +372,7 @@ progress, cancellation, and terminal job metadata. Domain routes and payload
 types remain external generic parameters.
 
 `longhorn-bindings` generates that protocol and a Rust-owned semantic fixture.
-`@longhorn/bridge` validates exact compatibility before exposing a session,
+`@inflatable-cookie/longhorn-bridge` validates exact compatibility before exposing a session,
 projects capability and authority through injected domain codecs, and runs one
 host router through direct or deterministic JSON-loopback adapters. Its
 optional stream subpath preserves listener-before-snapshot ordering and exact
@@ -381,9 +381,9 @@ service, Svelte, Poodle, or consumer runtime.
 
 `longhorn-tauri-bridge` now registers typed domain handlers behind stable
 generic Tauri commands. It checks caller session, domain metadata, capability,
-authority posture, and authority epoch before dispatch. `@longhorn/tauri`
+authority posture, and authority epoch before dispatch. `@inflatable-cookie/longhorn-tauri`
 keeps its root invoke-only; optional events live at `/events`.
-`@longhorn/bridge/tauri` composes the checked client over that root, while
+`@inflatable-cookie/longhorn-bridge/tauri` composes the checked client over that root, while
 `/tauri-events` adds checked listener-first resync and correlated job events.
 Tauri capabilities admit command reachability but never grant domain
 authority.
@@ -399,7 +399,7 @@ continues through the durable-idempotency and advertised-deduplication gate;
 uncertain writes outside that gate are indeterminate.
 
 Optional Rust supervision is feature-gated. The TypeScript implementation is
-available only at `@longhorn/bridge/supervision`. Both accept consumer-injected
+available only at `@inflatable-cookie/longhorn-bridge/supervision`. Both accept consumer-injected
 spawn/attach/readiness/restart/reconnect/shutdown observations, expose stable
 receipts, and permit restart or shutdown only for owned local services.
 Credential input is an opaque secure-store reference; arbitrary adapter

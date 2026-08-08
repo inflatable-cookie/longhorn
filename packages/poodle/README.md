@@ -1,4 +1,4 @@
-# @longhorn/poodle
+# @inflatable-cookie/longhorn-poodle
 
 Private Svelte bindings from authoritative Longhorn layout state to public
 Poodle `Tabs`, `DockRegion`, and `SplitView` components.
@@ -15,7 +15,7 @@ Poodle `Tabs`, `DockRegion`, and `SplitView` components.
 Create one binding per layout state:
 
 ```ts
-import { createPoodleLayoutBinding } from "@longhorn/poodle";
+import { createPoodleLayoutBinding } from "@inflatable-cookie/longhorn-poodle";
 
 const binding = createPoodleLayoutBinding({
   state: layoutState,
@@ -25,7 +25,7 @@ const binding = createPoodleLayoutBinding({
 });
 ```
 
-State-only consumers may import `@longhorn/poodle/binding` without loading the
+State-only consumers may import `@inflatable-cookie/longhorn-poodle/binding` without loading the
 Svelte component or stylesheet graph.
 
 Pass the binding plus a container and region or sizing-slot id to the matching
@@ -40,14 +40,14 @@ collapse action. Controlled collapse remains authoritative for region ids.
 
 ## Cross-window transfer
 
-The optional `@longhorn/poodle/transfer` entry point binds `TransferState` to
+The optional `@inflatable-cookie/longhorn-poodle/transfer` entry point binds `TransferState` to
 Poodle's public `externalDragSource` and `externalDropTarget` props:
 
 ```ts
 import {
   createPanelTransferDragSource,
   createPanelTransferDropTarget,
-} from "@longhorn/poodle/transfer";
+} from "@inflatable-cookie/longhorn-poodle/transfer";
 ```
 
 The source prepares on Poodle's pointer phase and writes the Longhorn payload

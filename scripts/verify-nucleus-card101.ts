@@ -217,12 +217,12 @@ function verifyCurrentComposition(): Record<string, unknown> {
     nucleusRead(commit, "apps/desktop/package.json"),
   ) as PackageManifest;
   const requiredRendererPackages = [
-    "@longhorn/core",
-    "@longhorn/layout",
-    "@longhorn/native-content",
-    "@longhorn/native-content-svelte",
-    "@longhorn/poodle",
-    "@longhorn/svelte",
+    "@inflatable-cookie/longhorn-core",
+    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-native-content",
+    "@inflatable-cookie/longhorn-native-content-svelte",
+    "@inflatable-cookie/longhorn-poodle",
+    "@inflatable-cookie/longhorn-svelte",
   ];
   for (const name of requiredRendererPackages) {
     assert(
@@ -230,12 +230,12 @@ function verifyCurrentComposition(): Record<string, unknown> {
       `${name} does not resolve from the admitted private source`,
     );
   }
-  for (const forbidden of ["@longhorn/surfaces", "@longhorn/surface-transfer"]) {
+  for (const forbidden of ["@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-surface-transfer"]) {
     assert(!manifest.dependencies[forbidden], `manifest depends on ${forbidden}`);
   }
 
   const lock = nucleusRead(commit, "apps/desktop/bun.lock");
-  for (const forbidden of ["@longhorn/surfaces", "@longhorn/surface-transfer"]) {
+  for (const forbidden of ["@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-surface-transfer"]) {
     const resolvedEntry = new RegExp(`^\\s{4}${JSON.stringify(forbidden)}\\s*:`, "m");
     assert(!resolvedEntry.test(lock), `renderer lock resolves ${forbidden}`);
   }

@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import { LayoutState } from "@longhorn/svelte/layout";
+import { LayoutState } from "@inflatable-cookie/longhorn-svelte/layout";
 
 import NucleusShell from "./NucleusShell.svelte";
 import { document as layoutDocument } from "./model.ts";

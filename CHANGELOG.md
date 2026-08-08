@@ -23,7 +23,7 @@ with `git` + `tag` dependencies.
 - Explicit present/absent grouped-adapter restore evidence with zero-payload
   deletion, restart-safe rollback-to-absence, and per-domain receipt evidence.
 - Optional production fork-tree history layer (`longhorn-history-tree`,
-  `longhorn-tauri-history-tree`, `@longhorn/history-tree`) behind the linear
+  `longhorn-tauri-history-tree`, `@inflatable-cookie/longhorn-history-tree`) behind the linear
   adoption checkpoint.
 - Process-wide best-effort diagnostics seam
   (`longhorn_core::install_best_effort_diagnostics`) observing tolerated

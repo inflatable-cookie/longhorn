@@ -9,21 +9,21 @@
     createThemeController,
     type DockEdge,
   } from "@poodle/svelte";
-  import type { LayoutDocument } from "@longhorn/layout";
+  import type { LayoutDocument } from "@inflatable-cookie/longhorn-layout";
   import {
     LayoutDockRegion,
     createPoodleLayoutBinding,
     type PanelRenderContext,
-  } from "@longhorn/poodle";
+  } from "@inflatable-cookie/longhorn-poodle";
   import {
     createPanelTransferDragSource,
     createPanelTransferDropTarget,
-  } from "@longhorn/poodle/transfer";
-  import { SURFACE_TRANSFER_TARGET_KINDS } from "@longhorn/surface-transfer";
-  import type { SurfaceState } from "@longhorn/svelte/surfaces";
-  import type { SurfaceTransferState } from "@longhorn/svelte/surface-transfer";
-  import type { LayoutState } from "@longhorn/svelte/layout";
-  import type { TransferState } from "@longhorn/svelte/transfer";
+  } from "@inflatable-cookie/longhorn-poodle/transfer";
+  import { SURFACE_TRANSFER_TARGET_KINDS } from "@inflatable-cookie/longhorn-surface-transfer";
+  import type { SurfaceState } from "@inflatable-cookie/longhorn-svelte/surfaces";
+  import type { SurfaceTransferState } from "@inflatable-cookie/longhorn-svelte/surface-transfer";
+  import type { LayoutState } from "@inflatable-cookie/longhorn-svelte/layout";
+  import type { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer";
   import { onMount, tick } from "svelte";
 
   import { definitions, resolvePanel, schema } from "./model.ts";

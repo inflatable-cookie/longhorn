@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/bridge",
+  "name": "@inflatable-cookie/longhorn-bridge",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -41,14 +41,14 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0"
   },
   "sideEffects": false,
   "peerDependencies": {
-    "@longhorn/tauri": "0.1.0"
+    "@inflatable-cookie/longhorn-tauri": "0.1.0"
   },
   "peerDependenciesMeta": {
-    "@longhorn/tauri": {
+    "@inflatable-cookie/longhorn-tauri": {
       "optional": true
     }
   }

@@ -17,8 +17,8 @@ The proof produced and installed:
 - six private Rust inventory archives: `longhorn-core`, `longhorn-config`,
   `longhorn-settings`, `longhorn-settings-config`,
   `longhorn-tauri-settings`, and `longhorn-tauri-config`
-- three npm archives: `@longhorn/core`, `@longhorn/config`, and
-  `@longhorn/settings`
+- three npm archives: `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-config`, and
+  `@inflatable-cookie/longhorn-settings`
 - Poodle artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`
 
@@ -67,7 +67,7 @@ Unmount released the session listeners.
 
 Dependency:
 
-- root `@longhorn/settings` has no upward optional dependency
+- root `@inflatable-cookie/longhorn-settings` has no upward optional dependency
 - Bovine resolves only core and settings
 - Soundcheck opts into config
 - Loophole specialist pages do not pull command or backend packages

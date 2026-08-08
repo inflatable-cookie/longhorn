@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DockEdge } from "@poodle/svelte";
-  import type { RegionId } from "@longhorn/layout";
+  import type { RegionId } from "@inflatable-cookie/longhorn-layout";
 
   import {
     LayoutDockRegion,

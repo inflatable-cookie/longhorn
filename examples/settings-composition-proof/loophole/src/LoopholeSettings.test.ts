@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { expect, test, vi } from "vitest";
 
-import { SETTINGS_APPLY_COMMAND } from "@longhorn/settings";
+import { SETTINGS_APPLY_COMMAND } from "@inflatable-cookie/longhorn-settings";
 
 import LoopholeSettings from "./LoopholeSettings.svelte";
 import { SettingsProofTransport } from "./settings-proof.ts";

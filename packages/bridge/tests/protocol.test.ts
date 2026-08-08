@@ -18,7 +18,7 @@ import {
   parseBridgeQueryReply,
   parseBridgeSnapshotEnvelope,
   record,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import {
   commandPayloadCodec,

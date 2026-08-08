@@ -28,9 +28,9 @@ const poodleEvidencePath = resolve(
 );
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/settings", "settings"],
-  ["@longhorn/commands", "commands"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-settings", "settings"],
+  ["@inflatable-cookie/longhorn-commands", "commands"],
 ] as const;
 
 const rustCrates = [
@@ -143,16 +143,16 @@ async function inspectNpmArtifact(
     throw new Error(`${name} packed identity mismatch`);
   }
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@longhorn/core": [],
-    "@longhorn/settings": ["@longhorn/core"],
-    "@longhorn/commands": [],
+    "@inflatable-cookie/longhorn-core": [],
+    "@inflatable-cookie/longhorn-settings": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-commands": [],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(manifest.dependencies ?? {}),
     expectedDependencies[name]!,
   );
-  if (name === "@longhorn/commands") {
+  if (name === "@inflatable-cookie/longhorn-commands") {
     assertExactSet(
       "command package exports",
       Object.keys(manifest.exports ?? {}),

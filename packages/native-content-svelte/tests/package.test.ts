@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 
 const packageRoot = resolve(process.cwd(), "packages/native-content-svelte");
 
-describe("@longhorn/native-content-svelte package boundary", () => {
+describe("@inflatable-cookie/longhorn-native-content-svelte package boundary", () => {
   it("has one narrow runtime dependency and no Poodle edge", async () => {
     const metadata = JSON.parse(
       await readFile(resolve(packageRoot, "package.json"), "utf8"),
     );
     expect(metadata.dependencies).toEqual({
-      "@longhorn/native-content": "0.1.0",
+      "@inflatable-cookie/longhorn-native-content": "0.1.0",
     });
     expect(metadata.peerDependencies).toEqual({
       svelte: ">=5.38.6 <6",

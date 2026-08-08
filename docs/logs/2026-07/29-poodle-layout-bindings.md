@@ -6,7 +6,7 @@ State: complete
 
 ## Outcome
 
-- added private, Surface-free `@longhorn/poodle`
+- added private, Surface-free `@inflatable-cookie/longhorn-poodle`
 - bound authoritative layout state to public Poodle `Tabs`, `DockRegion`, and
   `SplitView`
 - kept labels, icons, bodies, and static panel rendering consumer-owned
@@ -88,7 +88,7 @@ Evidence:
 
 `verify:poodle-preview` checks the Svelte range `>=5.38.6 <6`, recomputes all
 five tarball SHA-256 digests, and recomputes the set membership id. The root
-workspace installs those exact tarballs. `@longhorn/poodle` declares exact
+workspace installs those exact tarballs. `@inflatable-cookie/longhorn-poodle` declares exact
 `0.1.0` Longhorn dependencies and exact `@poodle/svelte@0.1.0` peer
 compatibility; it makes no broader Poodle compatibility claim.
 

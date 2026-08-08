@@ -9,7 +9,7 @@ Status: complete
 - Added strict payload-free operation snapshots, commands, receipts,
   rejections, cancellation dispatch evidence, and changed events in Rust.
 - Added Rust-generated checked TypeScript and golden protocol fixtures.
-- Added `@longhorn/operation` with strict compatibility checks, listener-first
+- Added `@inflatable-cookie/longhorn-operation` with strict compatibility checks, listener-first
   reconciliation, and direct plus JSON-serialized adapters.
 - Added optional Tauri and bridge subpaths. The root imports neither.
 - Added `longhorn-tauri-operation` over separate injected authority and

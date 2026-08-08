@@ -1,7 +1,7 @@
 import { render } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { EventTransport } from "@longhorn/core";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
 import {
   SURFACE_CHANGED_EVENT,
   SURFACE_MUTATE_COMMAND,
@@ -11,7 +11,7 @@ import {
   type SurfaceMutationRequest,
   type SurfaceMutationResponse,
   type SurfaceSnapshot,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 
 import fixture from "../../../fixtures/surfaces/protocol-v1.json";
 import { SurfaceState } from "../src/surfaces.svelte.ts";

@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/history-tree",
+  "name": "@inflatable-cookie/longhorn-history-tree",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "./package.json": "./package.json"
   },
   "files": ["src"],
-  "dependencies": { "@longhorn/core": "0.1.0" },
+  "dependencies": { "@inflatable-cookie/longhorn-core": "0.1.0" },
   "peerDependencies": { "@poodle/svelte": "0.1.0", "svelte": ">=5.38.6 <6" },
   "peerDependenciesMeta": {
     "@poodle/svelte": { "optional": true },

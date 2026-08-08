@@ -62,7 +62,7 @@
   },
   "composition": {
     "rust": ["longhorn-native-content", "longhorn-native-content-isolated-window"],
-    "typescript": ["@longhorn/native-content"],
+    "typescript": ["@inflatable-cookie/longhorn-native-content"],
     "surface_dependency": false,
     "transfer_dependency": false,
     "bridge_dependency": false,

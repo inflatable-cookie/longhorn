@@ -6,7 +6,7 @@ State: complete
 
 ## Outcome
 
-- added usable private `@longhorn/core`
+- added usable private `@inflatable-cookie/longhorn-core`
 - added structural invoke/event transport and asynchronous unlisten contracts
 - added one checked snapshot connection
 - migrated Surface and transfer connection lifetime
@@ -38,11 +38,11 @@ freshness. No layout service was added.
 
 | Package | Runtime dependency boundary |
 | --- | --- |
-| `@longhorn/core` | none |
-| `@longhorn/surfaces` | core |
-| `@longhorn/transfer` | core and layout |
-| `@longhorn/surface-transfer` | core, Surfaces, and transfer |
-| `@longhorn/tauri` | core; `@tauri-apps/api` is a peer |
+| `@inflatable-cookie/longhorn-core` | none |
+| `@inflatable-cookie/longhorn-surfaces` | core |
+| `@inflatable-cookie/longhorn-transfer` | core and layout |
+| `@inflatable-cookie/longhorn-surface-transfer` | core, Surfaces, and transfer |
+| `@inflatable-cookie/longhorn-tauri` | core; `@tauri-apps/api` is a peer |
 
 Core imports no host, browser, Svelte, or Poodle package. Tauri imports no
 Longhorn domain. Surface-free packages retain no Surface edge.

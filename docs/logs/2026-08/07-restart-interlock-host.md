@@ -19,6 +19,10 @@ behind an injected port and lands with Card 159.
 - `UpdateGate` — quiesce, install, relaunch, in that order.
 - `UpdateInstaller` and `InstallError` as the injected port.
 
+**Superseded 2026-08-08 by `a0482b72`:** the port was removed and the gate
+is authorization-only. Longhorn does not install. This log records the
+state at the time of writing; the card carries the current shape.
+
 ## Decisions
 
 **Probes read their count at probe time, not at construction.** The whole

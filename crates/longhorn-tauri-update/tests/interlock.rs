@@ -34,7 +34,10 @@ fn an_open_transfer_session_refuses_the_install_entirely() {
     let gate = UpdateGate::new(probes);
 
     let InstallAuthorization::Deferred(deferral) = gate.authorize(&version()) else {
-        panic!("an open session must defer, found {}", gate.quiescence().detail());
+        panic!(
+            "an open session must defer, found {}",
+            gate.quiescence().detail()
+        );
     };
     assert_eq!(
         deferral.cause,

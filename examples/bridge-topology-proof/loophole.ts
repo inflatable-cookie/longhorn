@@ -1,4 +1,4 @@
-import { BridgeServiceRuntime } from "@longhorn/bridge/supervision";
+import { BridgeServiceRuntime } from "@inflatable-cookie/longhorn-bridge/supervision";
 
 import {
   authorityProjection,

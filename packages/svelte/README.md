@@ -1,4 +1,4 @@
-# `@longhorn/svelte`
+# `@inflatable-cookie/longhorn-svelte`
 
 Private Svelte 5 reactive adapters for Longhorn clients.
 
@@ -9,10 +9,10 @@ ignores controls, links, opt-outs, modifiers, and non-primary gestures.
 
 Optional capability entry points:
 
-- `@longhorn/svelte/layout`
-- `@longhorn/svelte/surfaces`
-- `@longhorn/svelte/transfer`
-- `@longhorn/svelte/surface-transfer`
+- `@inflatable-cookie/longhorn-svelte/layout`
+- `@inflatable-cookie/longhorn-svelte/surfaces`
+- `@inflatable-cookie/longhorn-svelte/transfer`
+- `@inflatable-cookie/longhorn-svelte/surface-transfer`
 
 Layout state consumes checked documents and an injected dispatcher. It does
 not create a layout host endpoint. Renderer state is transient: stop and

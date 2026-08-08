@@ -6,22 +6,22 @@ import { describe, expect, it } from "vitest";
 const packageRoot = resolve(process.cwd(), "packages/poodle");
 const repositoryRoot = resolve(packageRoot, "../..");
 
-describe("@longhorn/poodle package boundary", () => {
+describe("@inflatable-cookie/longhorn-poodle package boundary", () => {
   it("pins exact public peers and keeps the root Surface-free", async () => {
     const metadata = JSON.parse(
       await readFile(resolve(packageRoot, "package.json"), "utf8"),
     );
     expect(metadata.dependencies).toEqual({
-      "@longhorn/layout": "0.1.0",
-      "@longhorn/svelte": "0.1.0",
+      "@inflatable-cookie/longhorn-layout": "0.1.0",
+      "@inflatable-cookie/longhorn-svelte": "0.1.0",
     });
     expect(metadata.peerDependencies).toEqual({
-      "@longhorn/transfer": "0.1.0",
+      "@inflatable-cookie/longhorn-transfer": "0.1.0",
       "@poodle/svelte": "0.1.0",
       svelte: ">=5.38.6 <6",
     });
     expect(metadata.peerDependenciesMeta).toEqual({
-      "@longhorn/transfer": { optional: true },
+      "@inflatable-cookie/longhorn-transfer": { optional: true },
     });
     expect(metadata.exports["./binding"]).toEqual({
       types: "./src/binding.ts",
@@ -55,7 +55,7 @@ describe("@longhorn/poodle package boundary", () => {
       resolve(packageRoot, "src/transfer.ts"),
       "utf8",
     );
-    expect(transferSource).toContain('from "@longhorn/transfer"');
+    expect(transferSource).toContain('from "@inflatable-cookie/longhorn-transfer"');
     expect(transferSource).not.toMatch(
       /poodle-(?:tabs|dock-region|split-view)|application\/x-poodle|querySelector/,
     );

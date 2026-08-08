@@ -91,7 +91,7 @@ for (const token of [
   assert(host.includes(token), `Aura history host lost ${JSON.stringify(token)}`);
 }
 const panel = source("aura/src/renderer/workspace/HistoryPanel.svelte");
-assert(panel.includes("@longhorn/history/poodle"), "shared Poodle history panel is not active");
+assert(panel.includes("@inflatable-cookie/longhorn-history/poodle"), "shared Poodle history panel is not active");
 assert(panel.includes("historySession.refresh()"), "external Pulse mutations do not refresh metadata");
 assert(!existsSync(resolve(loopholeRoot, "aura/src/renderer/workspace/history-entries.ts")), "eight-entry renderer heuristic remains");
 

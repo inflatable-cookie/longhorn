@@ -7,11 +7,11 @@ import type { ArtifactIdentity, PoodleEvidence, Shape } from "./types.ts";
 export const POODLE_ARTIFACT_SET = "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/tauri", "tauri"],
-  ["@longhorn/bridge", "bridge"],
-  ["@longhorn/operation", "operation"],
-  ["@longhorn/notifications", "notifications"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-tauri", "tauri"],
+  ["@inflatable-cookie/longhorn-bridge", "bridge"],
+  ["@inflatable-cookie/longhorn-operation", "operation"],
+  ["@inflatable-cookie/longhorn-notifications", "notifications"],
 ] as const;
 
 const rustCrates = [
@@ -61,14 +61,14 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
   };
   if (manifest.name !== name || manifest.version !== "0.1.0") throw new Error(`${name} packed identity mismatch`);
   const dependencies: Record<string, readonly string[]> = {
-    "@longhorn/core": [],
-    "@longhorn/tauri": ["@longhorn/core"],
-    "@longhorn/bridge": ["@longhorn/core"],
-    "@longhorn/operation": ["@longhorn/core"],
-    "@longhorn/notifications": ["@longhorn/core"],
+    "@inflatable-cookie/longhorn-core": [],
+    "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-bridge": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-operation": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-notifications": ["@inflatable-cookie/longhorn-core"],
   };
   assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), dependencies[name]!);
-  if (name === "@longhorn/operation" || name === "@longhorn/notifications") {
+  if (name === "@inflatable-cookie/longhorn-operation" || name === "@inflatable-cookie/longhorn-notifications") {
     for (const peer of ["svelte", "@poodle/svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${name} ${peer} peer is not optional`);
   }
   const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);

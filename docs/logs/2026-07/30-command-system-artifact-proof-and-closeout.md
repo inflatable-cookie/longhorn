@@ -18,9 +18,9 @@ TypeScript:
 
 | Package | Version | SHA-256 |
 | --- | --- | --- |
-| `@longhorn/core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/settings` | 0.1.0 | `d2b7b78122097705a95dafc48ab37fef52d3d5211268351e5263e059bf24997b` |
-| `@longhorn/commands` | 0.1.0 | `87abb5c662ac332e6faeb6f3970ed61017869f4d1277058d66b88e3d2d095207` |
+| `@inflatable-cookie/longhorn-core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-settings` | 0.1.0 | `d2b7b78122097705a95dafc48ab37fef52d3d5211268351e5263e059bf24997b` |
+| `@inflatable-cookie/longhorn-commands` | 0.1.0 | `87abb5c662ac332e6faeb6f3970ed61017869f4d1277058d66b88e3d2d095207` |
 
 Exact Poodle artifact set:
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.

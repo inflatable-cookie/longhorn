@@ -11,7 +11,7 @@ import type {
   TransferLeaseRequest,
   TransferLeaseResponse,
   TransferSessionResponse,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import type { TimerScheduler } from "./scheduler.ts";
 

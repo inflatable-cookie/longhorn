@@ -1,7 +1,7 @@
 import {
   BridgeConnectionRuntime,
   type BridgeRuntimeClock,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 
 import { receipt } from "./common.ts";
 

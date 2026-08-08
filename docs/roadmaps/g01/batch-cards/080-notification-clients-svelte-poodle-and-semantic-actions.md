@@ -16,11 +16,11 @@ projections with fresh semantic-action admission.
 ## Scope
 
 - Rust-generated notification protocol and fixtures
-- framework-neutral `@longhorn/notifications` client
+- framework-neutral `@inflatable-cookie/longhorn-notifications` client
 - `longhorn-tauri-notifications` and optional `/tauri` composition
 - listener-first snapshot/event reconciliation
-- `@longhorn/notifications/svelte` per-instance state
-- `@longhorn/notifications/poodle` panel and toast mapping
+- `@inflatable-cookie/longhorn-notifications/svelte` per-instance state
+- `@inflatable-cookie/longhorn-notifications/poodle` panel and toast mapping
 - public `ToastHost` and `ToastStack` timer-policy composition
 - explicit mark-seen and dismiss commands
 - injected semantic-action resolver with fresh command admission

@@ -14,7 +14,7 @@ from Rust authority without starting the Svelte/Poodle adapter lane.
 ## Scope
 
 - usable `longhorn-bindings` generation slice for the layout domain
-- checked generated files in `@longhorn/layout`
+- checked generated files in `@inflatable-cookie/longhorn-layout`
 - snapshots, definitions, mutations, receipts, and typed errors
 - compatibility/version surface
 - framework-neutral fixed-point and visibility helpers where Rust behavior can
@@ -80,7 +80,7 @@ subscription singleton, Svelte store, Poodle adapter, raw `invoke`, or
 
 - generation requires handwritten duplicate contracts
 - layout types must import a host or UI package
-- a raw Tauri call enters `@longhorn/layout`
+- a raw Tauri call enters `@inflatable-cookie/longhorn-layout`
 - adapter lifecycle from g01.007 enters scope
 - package publication names need external registry authority
 
@@ -91,7 +91,7 @@ feature-gated Rust authority. Generated compatibility lists come from the
 derived enum declarations, so TypeScript does not maintain a second variant
 list.
 
-`@longhorn/layout` exports protocol types, explicit compatibility guards,
+`@inflatable-cookie/longhorn-layout` exports protocol types, explicit compatibility guards,
 bounded integer-millionth helpers, and exact ordinary visibility projection.
 It is private pending registry verification and imports no host or UI package.
 

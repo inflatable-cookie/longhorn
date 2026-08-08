@@ -74,7 +74,7 @@ The planned working names are:
 
 - `longhorn-history-tree`
 - `longhorn-tauri-history-tree`
-- `@longhorn/history-tree`
+- `@inflatable-cookie/longhorn-history-tree`
 
 No package exists yet. The dependency direction is downward only: the tree
 layer may depend on `longhorn-history`; the linear crate and minimal clients
@@ -135,7 +135,7 @@ Card 068 proved that the public artifacts remained byte-identical to Card 067:
 | Artifact | SHA-256 |
 | --- | --- |
 | `longhorn-history` Rust inventory | `acbe9977915042a59ab746bb999ef457c004badc5b1e9da323e1d645a3497292` |
-| `@longhorn/history` tarball | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
+| `@inflatable-cookie/longhorn-history` tarball | `a73813a2c43bdcb45934c85bbe15c447db5af92e8abb1a3cc010dfb0aae73333` |
 | Poodle artifact set | `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74` |
 
 Card 069 re-runs the prototype selector and linear artifact proof. No branch

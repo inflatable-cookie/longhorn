@@ -31,7 +31,7 @@ mock.module("@tauri-apps/api/event", () => ({
 }));
 
 test("adapts raw Tauri invoke without importing event support", async () => {
-  const { TauriTransport } = await import("@longhorn/tauri");
+  const { TauriTransport } = await import("@inflatable-cookie/longhorn-tauri");
   const transport = new TauriTransport();
 
   expect(await transport.invoke("command", { request: 1 })).toEqual({
@@ -42,7 +42,7 @@ test("adapts raw Tauri invoke without importing event support", async () => {
 });
 
 test("adapts optional raw Tauri event payloads once", async () => {
-  const { TauriEventTransport } = await import("@longhorn/tauri/events");
+  const { TauriEventTransport } = await import("@inflatable-cookie/longhorn-tauri/events");
   const transport = new TauriEventTransport();
   const payloads: unknown[] = [];
   const unlisten = await transport.listen("event", (payload) => {

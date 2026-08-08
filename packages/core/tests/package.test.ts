@@ -7,7 +7,7 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package contains only pure framework-neutral source", () => {
-  expect(metadata.name).toBe("@longhorn/core");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-core");
   expect(metadata.private).toBeTrue();
   expect(metadata.type).toBe("module");
   expect(metadata.sideEffects).toBeFalse();

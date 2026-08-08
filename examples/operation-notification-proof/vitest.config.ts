@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [svelte()],
   resolve: { conditions: ["browser"] },
-  ssr: { noExternal: ["@longhorn/operation", "@longhorn/notifications", "@poodle/headless", "@poodle/icons-lucide", "@poodle/styles", "@poodle/svelte", "@poodle/svelte-tokens"] },
+  ssr: { noExternal: ["@inflatable-cookie/longhorn-operation", "@inflatable-cookie/longhorn-notifications", "@poodle/headless", "@poodle/icons-lucide", "@poodle/styles", "@poodle/svelte", "@poodle/svelte-tokens"] },
   test: {
     environment: "happy-dom",
     include: ["consumers/loophole/*.test.ts"],

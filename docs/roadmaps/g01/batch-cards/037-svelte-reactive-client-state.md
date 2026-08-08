@@ -14,7 +14,7 @@ singleton, durable renderer authority, or mandatory Surface dependency.
 
 ## Scope
 
-- private `@longhorn/svelte` package
+- private `@inflatable-cookie/longhorn-svelte` package
 - Surface-free root lifecycle and status primitives
 - optional domain subpaths
 - Surface snapshot and mutation state
@@ -94,7 +94,7 @@ cross-window drag bindings.
 
 Completed 2026-07-29.
 
-- added private `@longhorn/svelte` with a Surface-free root
+- added private `@inflatable-cookie/longhorn-svelte` with a Surface-free root
 - added per-instance rune-backed lifecycle and explicit status
 - added consumer-fed layout projection and dispatch state
 - added request-id keyed optimistic reconciliation

@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/svelte",
+  "name": "@inflatable-cookie/longhorn-svelte",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -41,26 +41,26 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0"
   },
   "peerDependencies": {
-    "@longhorn/layout": "0.1.0",
-    "@longhorn/surface-transfer": "0.1.0",
-    "@longhorn/surfaces": "0.1.0",
-    "@longhorn/transfer": "0.1.0",
+    "@inflatable-cookie/longhorn-layout": "0.1.0",
+    "@inflatable-cookie/longhorn-surface-transfer": "0.1.0",
+    "@inflatable-cookie/longhorn-surfaces": "0.1.0",
+    "@inflatable-cookie/longhorn-transfer": "0.1.0",
     "svelte": ">=5.38.6 <=5.56.8"
   },
   "peerDependenciesMeta": {
-    "@longhorn/layout": {
+    "@inflatable-cookie/longhorn-layout": {
       "optional": true
     },
-    "@longhorn/surface-transfer": {
+    "@inflatable-cookie/longhorn-surface-transfer": {
       "optional": true
     },
-    "@longhorn/surfaces": {
+    "@inflatable-cookie/longhorn-surfaces": {
       "optional": true
     },
-    "@longhorn/transfer": {
+    "@inflatable-cookie/longhorn-transfer": {
       "optional": true
     }
   },

@@ -12,7 +12,7 @@ import {
   assertCompatibleSurfaceMutationResponse,
   assertCompatibleSurfaceSnapshot,
   assertSurfaceProtocolVersion,
-} from "@longhorn/surfaces";
+} from "@inflatable-cookie/longhorn-surfaces";
 
 const fixturePath = new URL(
   "../../../fixtures/surfaces/protocol-v1.json",

@@ -229,12 +229,12 @@ Consumers own:
 
 - `longhorn-operation`: pure lifecycle authority
 - `longhorn-tauri-operation`: injected handler and event assembly
-- `@longhorn/operation`: generated checked client with optional `/tauri`,
+- `@inflatable-cookie/longhorn-operation`: generated checked client with optional `/tauri`,
   `/svelte`, and `/poodle` edges
 - `longhorn-notifications`: pure retained ledger and optional operation
   projector seam
 - `longhorn-tauri-notifications`: injected handler and event assembly
-- `@longhorn/notifications`: generated checked client with optional `/tauri`,
+- `@inflatable-cookie/longhorn-notifications`: generated checked client with optional `/tauri`,
   `/svelte`, and `/poodle` edges
 
 The two pure crates remain independent. The notification crate may expose an

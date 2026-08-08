@@ -10,7 +10,7 @@ import {
   type NativeContentProtocolRejection,
   type NativeContentSnapshot,
   type ScaleFactor,
-} from "@longhorn/native-content";
+} from "@inflatable-cookie/longhorn-native-content";
 
 export type NativeContentSessionClient = Pick<NativeContentClient, "connect">;
 

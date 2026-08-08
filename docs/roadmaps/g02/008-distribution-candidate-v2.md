@@ -10,7 +10,7 @@ Depends on: g02.007
 ## Outcome
 
 Freeze a second private compatibility candidate over the refreshed graph,
-superseding the Card 127 receipt: bridge `@longhorn/tauri` demoted to an
+superseding the Card 127 receipt: bridge `@inflatable-cookie/longhorn-tauri` demoted to an
 optional peer, truthful 18-package/38-crate counts, and re-frozen
 commit-pinned proofs. Includes the diagnostics-seam adoption guidance.
 
@@ -29,7 +29,7 @@ Eighth g02 milestone, closes the Tier A lane.
 
 ## Goals
 
-- [x] bridge main entry ships without a hard `@longhorn/tauri` dependency
+- [x] bridge main entry ships without a hard `@inflatable-cookie/longhorn-tauri` dependency
 - [ ] candidate receipt reflects the current package/crate sets and the
   refreshed dependency graph
 - [ ] Card 127 receipt superseded, not silently rewritten

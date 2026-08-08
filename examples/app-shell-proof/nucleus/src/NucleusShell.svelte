@@ -9,14 +9,14 @@
     createThemeController,
     type DockEdge,
   } from "@poodle/svelte";
-  import type { LayoutDocument } from "@longhorn/layout";
+  import type { LayoutDocument } from "@inflatable-cookie/longhorn-layout";
   import {
     LayoutDockRegion,
     createPoodleLayoutBinding,
     type PanelRenderContext,
-  } from "@longhorn/poodle";
+  } from "@inflatable-cookie/longhorn-poodle";
   import { onMount, tick } from "svelte";
-  import type { LayoutState } from "@longhorn/svelte/layout";
+  import type { LayoutState } from "@inflatable-cookie/longhorn-svelte/layout";
 
   import { definitions, resolvePanel, schema } from "./model.ts";
 

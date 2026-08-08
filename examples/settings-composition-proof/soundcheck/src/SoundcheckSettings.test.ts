@@ -6,8 +6,8 @@ import {
   CONFIG_RESTORE_INSPECT_COMMAND,
   CONFIG_RESTORE_PLAN_COMMAND,
   type ConfigOperationsSnapshot,
-} from "@longhorn/config";
-import { SETTINGS_APPLY_COMMAND } from "@longhorn/settings";
+} from "@inflatable-cookie/longhorn-config";
+import { SETTINGS_APPLY_COMMAND } from "@inflatable-cookie/longhorn-settings";
 
 import SoundcheckSettings from "./SoundcheckSettings.svelte";
 import configFixture from "./fixtures/config-protocol-v1.json";

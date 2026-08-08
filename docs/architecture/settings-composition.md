@@ -47,7 +47,7 @@ authority. The consumer maps renderer IDs to Svelte content. That keeps
 hardware probes, keybinding editors, audio models, and other product behavior
 in the app that owns it.
 
-Shared configuration pages live in `@longhorn/config/poodle`. Register only
+Shared configuration pages live in `@inflatable-cookie/longhorn-config/poodle`. Register only
 the modules the app exposes:
 
 - Storage projects the active profile, canonical identity, resolved paths, and

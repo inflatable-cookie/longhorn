@@ -19,6 +19,6 @@ state validation before authority returns. It accepts and returns bytes only;
 storage paths, writes, durability, snapshots, and recovery stay with consumers.
 
 The optional `bindings` feature exposes the exact-v1, payload-free metadata
-protocol used by `@longhorn/history-tree` and `longhorn-tauri-history-tree`.
+protocol used by `@inflatable-cookie/longhorn-history-tree` and `longhorn-tauri-history-tree`.
 Default projections stay linear; branch and alternate-path pages are bounded
 and explicit.

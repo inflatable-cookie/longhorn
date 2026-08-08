@@ -34,14 +34,14 @@ const expectedNucleusCommit =
   "df5af3da03f8392f948ff65d0a3cf16c36cb6c12";
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/config", "config"],
-  ["@longhorn/layout", "layout"],
-  ["@longhorn/svelte", "svelte"],
-  ["@longhorn/poodle", "poodle"],
-  ["@longhorn/native-content", "native-content"],
-  ["@longhorn/native-content-svelte", "native-content-svelte"],
-  ["@longhorn/tauri", "tauri"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-config", "config"],
+  ["@inflatable-cookie/longhorn-layout", "layout"],
+  ["@inflatable-cookie/longhorn-svelte", "svelte"],
+  ["@inflatable-cookie/longhorn-poodle", "poodle"],
+  ["@inflatable-cookie/longhorn-native-content", "native-content"],
+  ["@inflatable-cookie/longhorn-native-content-svelte", "native-content-svelte"],
+  ["@inflatable-cookie/longhorn-tauri", "tauri"],
 ] as const;
 
 const rustCrates = [
@@ -301,8 +301,8 @@ async function inspectTypescriptArtifact(
     throw new Error(`${name} artifact contains a source alias`);
   }
   for (const forbidden of [
-    "@longhorn/surfaces",
-    "@longhorn/surface-transfer",
+    "@inflatable-cookie/longhorn-surfaces",
+    "@inflatable-cookie/longhorn-surface-transfer",
   ]) {
     if (manifest.dependencies?.[forbidden]) {
       throw new Error(
@@ -393,8 +393,8 @@ async function verifyRendererConsumer(
     installed.push(await assertArtifactInstall(stage, name));
   }
   for (const forbidden of [
-    "@longhorn/surfaces",
-    "@longhorn/surface-transfer",
+    "@inflatable-cookie/longhorn-surfaces",
+    "@inflatable-cookie/longhorn-surface-transfer",
   ]) {
     if (await packageExists(stage, forbidden)) {
       throw new Error(`renderer graph resolved forbidden package ${forbidden}`);
@@ -428,21 +428,21 @@ async function verifyRendererConsumer(
     poodleGeometryContractCompiled: true,
     mountedTests: testCount(testOutput),
     forbiddenPackagesAbsent: [
-      "@longhorn/surfaces",
-      "@longhorn/surface-transfer",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-surface-transfer",
     ],
   };
 }
 
 function artifactContract(): string {
-  return `import * as config from "@longhorn/config";
-import * as core from "@longhorn/core";
-import * as layout from "@longhorn/layout";
-import * as nativeContent from "@longhorn/native-content";
-import * as nativeContentSvelte from "@longhorn/native-content-svelte";
-import * as longhornPoodle from "@longhorn/poodle";
-import * as longhornSvelte from "@longhorn/svelte";
-import * as tauri from "@longhorn/tauri";
+  return `import * as config from "@inflatable-cookie/longhorn-config";
+import * as core from "@inflatable-cookie/longhorn-core";
+import * as layout from "@inflatable-cookie/longhorn-layout";
+import * as nativeContent from "@inflatable-cookie/longhorn-native-content";
+import * as nativeContentSvelte from "@inflatable-cookie/longhorn-native-content-svelte";
+import * as longhornPoodle from "@inflatable-cookie/longhorn-poodle";
+import * as longhornSvelte from "@inflatable-cookie/longhorn-svelte";
+import * as tauri from "@inflatable-cookie/longhorn-tauri";
 import { Menu, Popover } from "@poodle/svelte";
 import type { OverlaySurfaceGeometryChange } from "@poodle/headless";
 import type { ComponentProps } from "svelte";

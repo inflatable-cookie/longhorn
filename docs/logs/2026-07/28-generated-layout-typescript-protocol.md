@@ -8,7 +8,7 @@ State: complete implementation batch
 - completed Card 026
 - added feature-gated `ts-rs` derivation to Rust layout wire types
 - added the Rust 1.85-compatible `longhorn-bindings` generator
-- generated checked protocol types into `@longhorn/layout`
+- generated checked protocol types into `@inflatable-cookie/longhorn-layout`
 - derived compatibility discriminants from generated Rust enum declarations
   instead of maintaining a second DTO or variant list
 - added explicit protocol-version, command, outcome, and rejection guards
@@ -35,7 +35,7 @@ change.
 
 ## Package Boundary
 
-`@longhorn/layout` exports generated protocol types, pure compatibility
+`@inflatable-cookie/longhorn-layout` exports generated protocol types, pure compatibility
 guards, ratio helpers, and ordinary visibility projection. It has no runtime
 dependency, browser global, Tauri call, Svelte store, Poodle binding,
 subscription singleton, donor type, or product type.

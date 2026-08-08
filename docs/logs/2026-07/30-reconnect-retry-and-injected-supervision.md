@@ -32,7 +32,7 @@ indeterminate. Request correlation alone grants nothing.
 ## Optional Supervision
 
 Rust supervision is feature-gated. TypeScript supervision is isolated at
-`@longhorn/bridge/supervision`; the package root does not import it.
+`@inflatable-cookie/longhorn-bridge/supervision`; the package root does not import it.
 
 The injected port supports spawn, attach, readiness, restart, reconnect, and
 shutdown observations. Only owned local services admit spawn, restart, or

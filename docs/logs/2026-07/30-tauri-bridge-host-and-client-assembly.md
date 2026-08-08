@@ -27,7 +27,7 @@ assembly accepts an injected real Tauri or mock sink and publishes only:
 - `longhorn://bridge/terminal`
 
 The TypeScript raw Tauri root is now invoke-only. Event support moved to
-`@longhorn/tauri/events`. `@longhorn/bridge/tauri` composes checked sessions
+`@inflatable-cookie/longhorn-tauri/events`. `@inflatable-cookie/longhorn-bridge/tauri` composes checked sessions
 and generic operations over invoke. `/tauri-events` adds listener-first
 snapshot resync plus codec-checked, request/job-correlated progress and
 terminal listeners.

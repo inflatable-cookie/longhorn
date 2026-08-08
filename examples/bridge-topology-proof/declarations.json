@@ -4,7 +4,7 @@
     "bovine": {
       "hostForms": ["tauriLocal"],
       "transportFeatures": ["request_reply"],
-      "imports": ["@longhorn/bridge", "@longhorn/bridge/tauri"],
+      "imports": ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-bridge/tauri"],
       "tauriPermissions": ["allow-longhorn-bridge-query"],
       "serviceOwnership": null,
       "maximumQueryRetries": 0,
@@ -28,10 +28,10 @@
       "hostForms": ["direct", "tauriLocal"],
       "transportFeatures": ["request_reply", "ordered_streams"],
       "imports": [
-        "@longhorn/bridge",
-        "@longhorn/bridge/stream",
-        "@longhorn/bridge/tauri",
-        "@longhorn/bridge/tauri-events"
+        "@inflatable-cookie/longhorn-bridge",
+        "@inflatable-cookie/longhorn-bridge/stream",
+        "@inflatable-cookie/longhorn-bridge/tauri",
+        "@inflatable-cookie/longhorn-bridge/tauri-events"
       ],
       "tauriPermissions": [
         "allow-longhorn-bridge-query",
@@ -64,10 +64,10 @@
         "job_execution"
       ],
       "imports": [
-        "@longhorn/bridge",
-        "@longhorn/bridge/supervision",
-        "@longhorn/bridge/tauri",
-        "@longhorn/bridge/tauri-events"
+        "@inflatable-cookie/longhorn-bridge",
+        "@inflatable-cookie/longhorn-bridge/supervision",
+        "@inflatable-cookie/longhorn-bridge/tauri",
+        "@inflatable-cookie/longhorn-bridge/tauri-events"
       ],
       "tauriPermissions": [
         "allow-longhorn-bridge-query",
@@ -136,9 +136,9 @@
       "hostForms": ["direct", "localService"],
       "transportFeatures": ["request_reply", "job_execution"],
       "imports": [
-        "@longhorn/bridge",
-        "@longhorn/bridge/supervision",
-        "@longhorn/bridge/tauri"
+        "@inflatable-cookie/longhorn-bridge",
+        "@inflatable-cookie/longhorn-bridge/supervision",
+        "@inflatable-cookie/longhorn-bridge/tauri"
       ],
       "tauriPermissions": [
         "allow-longhorn-bridge-query",
@@ -179,9 +179,9 @@
       "hostForms": ["localFirst", "remote"],
       "transportFeatures": ["request_reply", "ordered_streams"],
       "imports": [
-        "@longhorn/bridge",
-        "@longhorn/bridge/supervision",
-        "@longhorn/bridge/tauri"
+        "@inflatable-cookie/longhorn-bridge",
+        "@inflatable-cookie/longhorn-bridge/supervision",
+        "@inflatable-cookie/longhorn-bridge/tauri"
       ],
       "tauriPermissions": [
         "allow-longhorn-bridge-query",

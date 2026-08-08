@@ -133,14 +133,14 @@ function verifyCompositionAndPeers(): void {
   const tauri = JSON.parse(jetstreamRead("crates/jetstream-editor-tauri/tauri.conf.json")) as { identifier: string };
   equal(tauri.identifier, fixture.composition.canonical_application_id, "Tauri app id");
   const renderer = JSON.parse(jetstreamRead("editor-ui/package.json")) as { dependencies: Record<string, string> };
-  const selectedTs = Object.keys(renderer.dependencies).filter((name) => name.startsWith("@longhorn/")).sort();
+  const selectedTs = Object.keys(renderer.dependencies).filter((name) => name.startsWith("@inflatable-cookie/longhorn-")).sort();
   equal(selectedTs, [...fixture.composition.typescript_packages].sort(), "TypeScript graph");
   const cargo = jetstreamRead("crates/jetstream-editor-tauri/Cargo.toml");
   const selectedRust = [...cargo.matchAll(/^(longhorn-[\w-]+)\s*=\s*\{/gm)].map((match) => match[1]).sort();
   equal(selectedRust, [...fixture.composition.rust_packages].sort(), "Rust graph");
   const tree = command("cargo", ["tree", "-p", "jetstream-editor-tauri", "--edges", "normal", "--prefix", "none"], jetstreamRoot);
   for (const system of fixture.composition.forbidden_systems) {
-    assert(!renderer.dependencies[`@longhorn/${system}`], `renderer resolves forbidden ${system}`);
+    assert(!renderer.dependencies[`@inflatable-cookie/longhorn-${system}`], `renderer resolves forbidden ${system}`);
     assert(!tree.includes(`longhorn-${system} `), `Rust graph resolves forbidden ${system}`);
   }
 

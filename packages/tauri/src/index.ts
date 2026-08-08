@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 
 export class TauriTransport implements InvokeTransport {
   invoke(

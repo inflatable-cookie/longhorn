@@ -12,7 +12,7 @@ adoption guide is published. Receipt generation is gated.
 
 ## Shape
 
-- `@longhorn/bridge` depends only on `@longhorn/core`; `@longhorn/tauri` is
+- `@inflatable-cookie/longhorn-bridge` depends only on `@inflatable-cookie/longhorn-core`; `@inflatable-cookie/longhorn-tauri` is
   an optional peer reached through the `./tauri` and `./tauri-events`
   subpaths, following the `packages/operation` pattern. Asserted by the
   bridge package test, the bridge-topology artifact proof, the

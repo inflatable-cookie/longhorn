@@ -18,11 +18,11 @@ TypeScript:
 
 | Package | Version | SHA-256 |
 | --- | --- | --- |
-| `@longhorn/core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/tauri` | 0.1.0 | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
-| `@longhorn/bridge` | 0.1.0 | `b492c930fe1c2e03d65fce49ec5d928f6b6370e535970451d4b178fa756ba9a8` |
-| `@longhorn/operation` | 0.1.0 | `775f8747ab8a671311f5ecea1b22d49196bf39dfa708b9f62291888bf4d79657` |
-| `@longhorn/notifications` | 0.1.0 | `b4d59137ab7b1c7196aa73ee36d79481003ff73580bc9a181d4a690bbfd5e95d` |
+| `@inflatable-cookie/longhorn-core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-tauri` | 0.1.0 | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
+| `@inflatable-cookie/longhorn-bridge` | 0.1.0 | `b492c930fe1c2e03d65fce49ec5d928f6b6370e535970451d4b178fa756ba9a8` |
+| `@inflatable-cookie/longhorn-operation` | 0.1.0 | `775f8747ab8a671311f5ecea1b22d49196bf39dfa708b9f62291888bf4d79657` |
+| `@inflatable-cookie/longhorn-notifications` | 0.1.0 | `b4d59137ab7b1c7196aa73ee36d79481003ff73580bc9a181d4a690bbfd5e95d` |
 
 Exact Poodle artifact set:
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.

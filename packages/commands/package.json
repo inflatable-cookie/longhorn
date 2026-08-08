@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/commands",
+  "name": "@inflatable-cookie/longhorn-commands",
   "version": "0.1.0",
   "private": true,
   "type": "module",

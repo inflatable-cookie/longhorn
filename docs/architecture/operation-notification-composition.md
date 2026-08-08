@@ -18,12 +18,12 @@ both, or neither.
 
 | Need | Rust | TypeScript | Optional edge |
 | --- | --- | --- | --- |
-| Finite long-work truth | `longhorn-operation` | `@longhorn/operation` | direct or serialized root |
+| Finite long-work truth | `longhorn-operation` | `@inflatable-cookie/longhorn-operation` | direct or serialized root |
 | Tauri-local operations | add `longhorn-tauri-operation` | add `/tauri` | injected authority and executor |
 | Service-backed operations | add `longhorn-bridge` | add `/bridge` | one typed bridge domain |
 | Per-window operation state | unchanged | add `/svelte` | one session per mount |
 | Operation panel/progress | unchanged | add `/poodle` | public Poodle primitives |
-| Retained user outcomes | `longhorn-notifications` | `@longhorn/notifications` | independent ledger |
+| Retained user outcomes | `longhorn-notifications` | `@inflatable-cookie/longhorn-notifications` | independent ledger |
 | Tauri-local notifications | add `longhorn-tauri-notifications` | add `/tauri` | injected ledger |
 | Per-window notification state | unchanged | add `/svelte` | local selection and toasts |
 | Notification panel/toasts | unchanged | add `/poodle` | public Poodle primitives |

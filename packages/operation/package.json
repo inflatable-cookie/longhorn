@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/operation",
+  "name": "@inflatable-cookie/longhorn-operation",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -41,15 +41,15 @@
   },
   "files": ["src"],
   "dependencies": {
-    "@longhorn/core": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0"
   },
   "peerDependencies": {
-    "@longhorn/bridge": "0.1.0",
+    "@inflatable-cookie/longhorn-bridge": "0.1.0",
     "@poodle/svelte": "0.1.0",
     "svelte": ">=5.38.6 <6"
   },
   "peerDependenciesMeta": {
-    "@longhorn/bridge": { "optional": true },
+    "@inflatable-cookie/longhorn-bridge": { "optional": true },
     "@poodle/svelte": { "optional": true },
     "svelte": { "optional": true }
   },

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import type { InvokeTransport } from "@longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn-core";
 import {
   bridgeCodec,
   parseBridgeQueryEnvelope,
@@ -8,12 +8,12 @@ import {
   type BridgeOperationDescriptor,
   type BridgeQueryEnvelope,
   type BridgeQueryReply,
-} from "@longhorn/bridge";
+} from "@inflatable-cookie/longhorn-bridge";
 import {
   BRIDGE_HELLO_COMMAND,
   BRIDGE_QUERY_COMMAND,
   connectTauriBridge,
-} from "@longhorn/bridge/tauri";
+} from "@inflatable-cookie/longhorn-bridge/tauri";
 
 import {
   failureDetailCodec,

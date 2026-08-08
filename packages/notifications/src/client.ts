@@ -1,4 +1,4 @@
-import { CheckedSnapshotConnection, type ConnectionFailure, type ConnectionFailureReporter } from "@longhorn/core";
+import { CheckedSnapshotConnection, type ConnectionFailure, type ConnectionFailureReporter } from "@inflatable-cookie/longhorn-core";
 
 import {
   assertCompatibleNotificationChangedEvent,

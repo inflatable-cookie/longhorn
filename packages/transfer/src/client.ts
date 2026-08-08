@@ -2,7 +2,7 @@ import {
   isEventTransport,
   type ConnectionFailureReporter,
   type InvokeTransport,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import {
   type PanelSessionStartRequest,

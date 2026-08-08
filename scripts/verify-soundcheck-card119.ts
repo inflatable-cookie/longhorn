@@ -230,15 +230,15 @@ function verifyComposition(): Record<string, unknown> {
     );
   }
   for (const forbidden of [
-    "@longhorn/layout",
-    "@longhorn/surfaces",
-    "@longhorn/transfer",
-    "@longhorn/surface-transfer",
-    "@longhorn/commands",
-    "@longhorn/history",
-    "@longhorn/bridge",
-    "@longhorn/notifications",
-    "@longhorn/native-content-svelte",
+    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-surfaces",
+    "@inflatable-cookie/longhorn-transfer",
+    "@inflatable-cookie/longhorn-surface-transfer",
+    "@inflatable-cookie/longhorn-commands",
+    "@inflatable-cookie/longhorn-history",
+    "@inflatable-cookie/longhorn-bridge",
+    "@inflatable-cookie/longhorn-notifications",
+    "@inflatable-cookie/longhorn-native-content-svelte",
   ]) {
     assert(!manifest.dependencies[forbidden], `renderer graph resolves ${forbidden}`);
   }

@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 
-import type { EventTransport, Unlisten } from "@longhorn/core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
 
 import { TauriTransport } from "./index.ts";
 

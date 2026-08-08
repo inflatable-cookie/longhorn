@@ -1,4 +1,4 @@
-# @longhorn/notifications
+# @inflatable-cookie/longhorn-notifications
 
 Checked framework-neutral client for the finite retained notification ledger.
 The root exports strict generated types, compatibility guards, listener-first

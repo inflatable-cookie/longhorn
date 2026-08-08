@@ -4,7 +4,7 @@ import {
   CheckedSnapshotConnection,
   type ConnectionFailure,
   type Unlisten,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 interface Snapshot {
   epoch: number;

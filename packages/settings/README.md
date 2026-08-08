@@ -1,4 +1,4 @@
-# @longhorn/settings
+# @inflatable-cookie/longhorn-settings
 
 Framework-neutral checked protocol and client for the Longhorn settings
 authority. Rust serde types are authoritative.
@@ -16,9 +16,9 @@ package. Consumer codecs retain ownership of opaque values and page renderers.
 
 Optional entry points:
 
-- `@longhorn/settings/svelte` provides per-instance registry, scope, route,
+- `@inflatable-cookie/longhorn-settings/svelte` provides per-instance registry, scope, route,
   draft, mutation, conflict, recovery, activation, guard, and teardown state.
-- `@longhorn/settings/poodle` provides one public-Poodle shell over that
+- `@inflatable-cookie/longhorn-settings/poodle` provides one public-Poodle shell over that
   controller for modal, independent-window, and routed-panel hosts.
 
 Consumer renderer resolvers return Svelte snippets keyed by the sealed

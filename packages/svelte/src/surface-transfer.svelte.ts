@@ -4,8 +4,8 @@ import {
   type SurfaceSessionStartRequest,
   type SurfaceTransferCommand,
   type SurfaceTransferResponse,
-} from "@longhorn/surface-transfer";
-import type { DragSessionId } from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-surface-transfer";
+import type { DragSessionId } from "@inflatable-cookie/longhorn-transfer";
 
 import {
   UnsupportedCapabilityError,

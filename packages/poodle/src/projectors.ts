@@ -4,7 +4,7 @@ import type {
   PanelInstanceId,
   RegionId,
   SizingSlotId,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 
 import { findPanelLocation, removePanel, updateRegion } from "./document.ts";
 

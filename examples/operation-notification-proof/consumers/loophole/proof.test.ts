@@ -3,20 +3,20 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   NotificationSession,
-} from "@longhorn/notifications/svelte";
+} from "@inflatable-cookie/longhorn-notifications/svelte";
 import type {
   NotificationActionInvocation,
   NotificationChangedEvent,
   NotificationMutationCommand,
   NotificationSnapshot,
   NotificationSnapshotQuery,
-} from "@longhorn/notifications";
-import { OperationSession } from "@longhorn/operation/svelte";
+} from "@inflatable-cookie/longhorn-notifications";
+import { OperationSession } from "@inflatable-cookie/longhorn-operation/svelte";
 import type {
   OperationCancellationCommand,
   OperationMutationCommand,
   OperationSnapshotQuery,
-} from "@longhorn/operation";
+} from "@inflatable-cookie/longhorn-operation";
 
 import ActivityHarness from "./ActivityHarness.svelte";
 import fixtureValue from "./fixture.json";

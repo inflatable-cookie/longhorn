@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/history",
+  "name": "@inflatable-cookie/longhorn-history",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -38,7 +38,7 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0"
   },
   "peerDependencies": {
     "@poodle/svelte": "0.1.0",

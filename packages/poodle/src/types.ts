@@ -9,8 +9,8 @@ import type {
   RegionDefinition,
   RegionState,
   SizingSlotDefinition,
-} from "@longhorn/layout";
-import type { LayoutDispatchResult } from "@longhorn/svelte/layout";
+} from "@inflatable-cookie/longhorn-layout";
+import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-svelte/layout";
 import type { IconProp, PanelTabItem } from "@poodle/svelte";
 
 export interface LayoutMutationState {

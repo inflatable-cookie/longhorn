@@ -16,18 +16,18 @@ Svelte, and Poodle only where the app needs them.
 
 | Need | Rust | TypeScript | Consumer authority |
 | --- | --- | --- | --- |
-| Record and navigate | `longhorn-history` | `@longhorn/history` | payload policy and product apply |
+| Record and navigate | `longhorn-history` | `@inflatable-cookie/longhorn-history` | payload policy and product apply |
 | Structural reload | same crate | same root | codec, storage, migration choice |
 | Durable product recovery | same crate | none | product snapshot and journal |
 | Tauri metadata host | add `longhorn-tauri-history` | add `/tauri` | caller authorization |
 | Per-window reactive state | same Rust graph | add `/svelte` | instance lifetime |
 | Linear history panel | same Rust graph | add `/poodle` | placement and product copy |
-| Fork topology | add `longhorn-history-tree` | add `@longhorn/history-tree` | branch meaning and payload policy |
+| Fork topology | add `longhorn-history-tree` | add `@inflatable-cookie/longhorn-history-tree` | branch meaning and payload policy |
 | Fork metadata host | add `longhorn-tauri-history-tree` | add tree `/tauri` | caller authorization and atomic product apply |
 | Fork panel | same tree graph | add tree `/svelte` and `/poodle` | explicit placement and alternate-path loading |
 
 The pure Rust crate depends only on `longhorn-core`, Serde, and JSON. The
-framework-neutral TypeScript root depends only on `@longhorn/core`. Svelte and
+framework-neutral TypeScript root depends only on `@inflatable-cookie/longhorn-core`. Svelte and
 Poodle are optional peers. Config, bridge, Tauri, journal, Svelte, and Poodle
 do not enter the minimal graph.
 
@@ -146,7 +146,7 @@ history changes, or authority-epoch changes. Ignore old hints. Events are
 non-durable and may be missed.
 
 Create one `HistorySession` per mounted window or panel. Stop or dispose it on
-unmount. `@longhorn/history/poodle` uses public controlled Poodle primitives.
+unmount. `@inflatable-cookie/longhorn-history/poodle` uses public controlled Poodle primitives.
 Poodle owns visuals. The consumer owns panel placement, product labels, icons,
 filters beyond the shared metadata fields, and surrounding shell.
 

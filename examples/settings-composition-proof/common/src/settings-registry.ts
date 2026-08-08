@@ -3,7 +3,7 @@ import type {
   SettingsPageDefinition,
   SettingsRegistrySnapshot,
   SettingsScopeSnapshot,
-} from "@longhorn/settings";
+} from "@inflatable-cookie/longhorn-settings";
 
 import settingsFixture from "./fixtures/settings-protocol-v1.json";
 

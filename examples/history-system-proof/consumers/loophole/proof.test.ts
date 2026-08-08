@@ -1,7 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import { HistorySession } from "@longhorn/history/svelte";
+import { HistorySession } from "@inflatable-cookie/longhorn-history/svelte";
 
 import { createControllerHarness, rendererFixture } from "../../common.ts";
 import fixtureJson from "./fixture.json";

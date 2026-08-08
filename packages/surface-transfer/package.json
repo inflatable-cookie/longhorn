@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/surface-transfer",
+  "name": "@inflatable-cookie/longhorn-surface-transfer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -21,9 +21,9 @@
     "src"
   ],
   "dependencies": {
-    "@longhorn/core": "0.1.0",
-    "@longhorn/surfaces": "0.1.0",
-    "@longhorn/transfer": "0.1.0"
+    "@inflatable-cookie/longhorn-core": "0.1.0",
+    "@inflatable-cookie/longhorn-surfaces": "0.1.0",
+    "@inflatable-cookie/longhorn-transfer": "0.1.0"
   },
   "sideEffects": false
 }

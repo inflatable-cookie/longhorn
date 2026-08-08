@@ -7,22 +7,22 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("package exports isolate optional stream and supervision support", () => {
-  expect(metadata.name).toBe("@longhorn/bridge");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-bridge");
   expect(metadata.private).toBeTrue();
   expect(metadata.type).toBe("module");
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
   expect(metadata.dependencies).toEqual({
-    "@longhorn/core": "0.1.0",
+    "@inflatable-cookie/longhorn-core": "0.1.0",
   });
   // The main entry is transport-agnostic; only the ./tauri and
-  // ./tauri-events subpaths need @longhorn/tauri. Frozen in the Card 149
+  // ./tauri-events subpaths need @inflatable-cookie/longhorn-tauri. Frozen in the Card 149
   // candidate receipt.
   expect(metadata.peerDependencies).toEqual({
-    "@longhorn/tauri": "0.1.0",
+    "@inflatable-cookie/longhorn-tauri": "0.1.0",
   });
   expect(metadata.peerDependenciesMeta).toEqual({
-    "@longhorn/tauri": { optional: true },
+    "@inflatable-cookie/longhorn-tauri": { optional: true },
   });
 
   const exports = metadata.exports as Record<
@@ -53,7 +53,7 @@ test("package exports isolate optional stream and supervision support", () => {
     "utf8",
   );
   expect(root).not.toContain("./stream");
-  expect(root).not.toContain("@longhorn/core");
+  expect(root).not.toContain("@inflatable-cookie/longhorn-core");
   expect(root).not.toContain("@tauri-apps");
   expect(root).not.toContain("svelte");
   expect(root).not.toContain("poodle");

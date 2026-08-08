@@ -20,7 +20,7 @@ scope revision hints. Rust generation covers:
 - every enum, tagged result, and failure discriminant
 - golden direct and future-incompatibility fixtures
 
-`@longhorn/settings` validates exact protocol versions, safe revisions,
+`@inflatable-cookie/longhorn-settings` validates exact protocol versions, safe revisions,
 bounded ids, registry limits, opaque codec envelopes, authority tokens, and
 all discriminants.
 
@@ -36,7 +36,7 @@ The private framework-neutral package provides:
 - stale generation/revision rejection
 - same-revision digest/token consistency checks
 - bounded refresh coalescing and exactly-once late unlisten through
-  `@longhorn/core`
+  `@inflatable-cookie/longhorn-core`
 
 The root imports no browser global or optional Longhorn system.
 

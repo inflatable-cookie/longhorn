@@ -7,11 +7,11 @@ const metadata = JSON.parse(
 ) as Record<string, unknown>;
 
 test("framework-neutral root has one exact dependency", () => {
-  expect(metadata.name).toBe("@longhorn/config");
+  expect(metadata.name).toBe("@inflatable-cookie/longhorn-config");
   expect(metadata.private).toBeTrue();
   expect(metadata.sideEffects).toBeFalse();
   expect(metadata.scripts).toBeUndefined();
-  expect(metadata.dependencies).toEqual({ "@longhorn/core": "0.1.0" });
+  expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
   expect(metadata.peerDependencies).toEqual({
     "@poodle/svelte": "0.1.0",
     svelte: ">=5.38.6 <6",

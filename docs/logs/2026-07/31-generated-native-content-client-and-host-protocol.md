@@ -12,7 +12,7 @@ content-size negotiation, apply receipts, host destruction, and stable typed
 rejections. The bindings generator now emits TypeScript plus one golden
 protocol fixture.
 
-Added framework-neutral `@longhorn/native-content`. Its root composes injected
+Added framework-neutral `@inflatable-cookie/longhorn-native-content`. Its root composes injected
 direct or serialized transports. `/tauri` maps four narrow commands and one
 changed event without importing mechanism or product authority.
 

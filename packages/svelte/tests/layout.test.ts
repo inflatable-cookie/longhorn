@@ -5,7 +5,7 @@ import type {
   LayoutMutationRejection,
   LayoutMutationRequest,
   LayoutMutationReceipt,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 
 import {
   LayoutState,

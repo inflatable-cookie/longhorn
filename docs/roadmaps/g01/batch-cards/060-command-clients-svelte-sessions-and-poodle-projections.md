@@ -16,7 +16,7 @@ over injected execution and checked host state.
 
 ## Scope
 
-- `@longhorn/commands` framework-neutral client and controller
+- `@inflatable-cookie/longhorn-commands` framework-neutral client and controller
 - injected catalogue, keymap, availability, and executor ports
 - stale-safe search and availability joins
 - keyboard event normalization, gating, capture, and consumption helpers
@@ -105,7 +105,7 @@ proofs, publish composition guidance, and close g01.010.
 
 ## Result
 
-`@longhorn/commands` now has injected catalogue, keymap, availability, and
+`@inflatable-cookie/longhorn-commands` now has injected catalogue, keymap, availability, and
 executor ports. One framework-neutral controller joins matching registry
 generations and digests, rejects stale loads, search results, and mutation
 results, and keeps recovery, unavailable, failed, dirty, conflict, and saved

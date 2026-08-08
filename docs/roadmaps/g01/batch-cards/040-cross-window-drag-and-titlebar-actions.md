@@ -105,7 +105,7 @@ drop-zone lease replacement, projection-only compatible-region reveal, and an
 injected titlebar drag action.
 
 Panel transfer uses Poodle's public extension types through the optional
-`@longhorn/poodle/transfer` subpath. The Poodle root remains Surface- and
+`@inflatable-cookie/longhorn-poodle/transfer` subpath. The Poodle root remains Surface- and
 transfer-free. Geometry stays caller-local until the checked Tauri host
 projects it. Terminal callbacks clear consumer reveal state; end, race,
 unmount, action destroy, state stop, epoch replacement, and host expiry retain

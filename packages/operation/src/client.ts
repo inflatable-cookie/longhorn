@@ -2,7 +2,7 @@ import {
   CheckedSnapshotConnection,
   type ConnectionFailure,
   type ConnectionFailureReporter,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import {
   assertCompatibleOperationCancellationCommand,

@@ -3,11 +3,11 @@ import {
   SerializedLoopbackBridgeStreamSource,
   connectBridgeStream,
   type BridgeStreamSource,
-} from "@longhorn/bridge/stream";
+} from "@inflatable-cookie/longhorn-bridge/stream";
 import {
   BRIDGE_DOMAIN_EVENT,
   TauriBridgeStreamSource,
-} from "@longhorn/bridge/tauri-events";
+} from "@inflatable-cookie/longhorn-bridge/tauri-events";
 
 import {
   declaration,

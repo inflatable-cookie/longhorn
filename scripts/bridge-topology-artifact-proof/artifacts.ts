@@ -10,9 +10,9 @@ import { assertExactSet, digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 
 const typescriptPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/tauri", "tauri"],
-  ["@longhorn/bridge", "bridge"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-tauri", "tauri"],
+  ["@inflatable-cookie/longhorn-bridge", "bridge"],
 ] as const;
 
 const rustCrates = [
@@ -164,9 +164,9 @@ async function inspectNpmArtifact(
     throw new Error(`${name} packed identity mismatch`);
   }
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@longhorn/core": [],
-    "@longhorn/tauri": ["@longhorn/core"],
-    "@longhorn/bridge": ["@longhorn/core"],
+    "@inflatable-cookie/longhorn-core": [],
+    "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-bridge": ["@inflatable-cookie/longhorn-core"],
   };
   assertExactSet(
     `${name} dependencies`,
@@ -174,22 +174,22 @@ async function inspectNpmArtifact(
     expectedDependencies[name]!,
   );
   if (
-    name === "@longhorn/bridge" &&
-    packedManifest.peerDependencies?.["@longhorn/tauri"] !== "0.1.0"
+    name === "@inflatable-cookie/longhorn-bridge" &&
+    packedManifest.peerDependencies?.["@inflatable-cookie/longhorn-tauri"] !== "0.1.0"
   ) {
     throw new Error(
-      "@longhorn/bridge must keep @longhorn/tauri as an optional peer",
+      "@inflatable-cookie/longhorn-bridge must keep @inflatable-cookie/longhorn-tauri as an optional peer",
     );
   }
   if (
-    name === "@longhorn/tauri" &&
+    name === "@inflatable-cookie/longhorn-tauri" &&
     packedManifest.peerDependencies?.["@tauri-apps/api"] !== "^2.10.1"
   ) {
-    throw new Error("@longhorn/tauri has an unexpected Tauri API peer");
+    throw new Error("@inflatable-cookie/longhorn-tauri has an unexpected Tauri API peer");
   }
-  if (name === "@longhorn/bridge") {
+  if (name === "@inflatable-cookie/longhorn-bridge") {
     assertExactSet(
-      "@longhorn/bridge exports",
+      "@inflatable-cookie/longhorn-bridge exports",
       Object.keys(packedManifest.exports ?? {}),
       [
         ".",
@@ -212,7 +212,7 @@ async function inspectNpmArtifact(
   const source = await readSourceTree(join(extractRoot, "package", "src"));
   assertProductNeutral(`${name} TypeScript artifact`, source);
   if (
-    name === "@longhorn/bridge" &&
+    name === "@inflatable-cookie/longhorn-bridge" &&
     !source.includes("BRIDGE_PROTOCOL_VERSION = 1")
   ) {
     throw new Error("packed bridge protocol version is missing");

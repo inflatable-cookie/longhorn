@@ -17,7 +17,7 @@ boundaries, and close g01.009.
 ## Scope
 
 - produced `longhorn-bridge`, `longhorn-tauri-bridge`,
-  `@longhorn/bridge`, `@longhorn/core`, and `@longhorn/tauri` artifacts
+  `@inflatable-cookie/longhorn-bridge`, `@inflatable-cookie/longhorn-core`, and `@inflatable-cookie/longhorn-tauri` artifacts
 - isolated Bovine, Jetstream, Soundcheck, Nucleus, and Loophole-shaped installs
 - query-only, snapshot, job, embedded, local-service, and remote-attach forms
 - exact dependency and optional-feature inventories
@@ -107,7 +107,7 @@ promoting its first card.
 
 Completed 2026-07-30.
 
-- Packed `@longhorn/core`, `@longhorn/tauri`, and `@longhorn/bridge`.
+- Packed `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-tauri`, and `@inflatable-cookie/longhorn-bridge`.
 - Installed five isolated consumer shapes without workspace or sibling-source
   resolution.
 - Proved exact subpath imports, Tauri capabilities, service ownership, and

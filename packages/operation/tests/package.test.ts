@@ -8,15 +8,15 @@ const metadata = JSON.parse(
 
 describe("operation package boundary", () => {
   test("keeps every optional adapter behind a declared subpath", async () => {
-    expect(metadata.name).toBe("@longhorn/operation");
-    expect(metadata.dependencies).toEqual({ "@longhorn/core": "0.1.0" });
+    expect(metadata.name).toBe("@inflatable-cookie/longhorn-operation");
+    expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
     expect(metadata.peerDependencies).toEqual({
-      "@longhorn/bridge": "0.1.0",
+      "@inflatable-cookie/longhorn-bridge": "0.1.0",
       "@poodle/svelte": "0.1.0",
       svelte: ">=5.38.6 <6",
     });
     expect(metadata.peerDependenciesMeta).toEqual({
-      "@longhorn/bridge": { optional: true },
+      "@inflatable-cookie/longhorn-bridge": { optional: true },
       "@poodle/svelte": { optional: true },
       svelte: { optional: true },
     });

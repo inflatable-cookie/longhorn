@@ -1,4 +1,4 @@
-# @longhorn/commands
+# @inflatable-cookie/longhorn-commands
 
 Checked clients and projections for the Rust-authoritative command catalogue,
 availability, keyboard, and configuration-backed keymap protocol.
@@ -17,6 +17,6 @@ Execution always calls the consumer-supplied executor.
 
 Optional subpaths:
 
-- `@longhorn/commands/svelte`: one per-instance session and mounted lifecycle
-- `@longhorn/commands/poodle`: controlled public Poodle palette and keybinding
+- `@inflatable-cookie/longhorn-commands/svelte`: one per-instance session and mounted lifecycle
+- `@inflatable-cookie/longhorn-commands/poodle`: controlled public Poodle palette and keybinding
   settings bindings

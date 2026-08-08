@@ -53,7 +53,7 @@ Generated artifacts are:
 
 The fixture covers catalogue, preview/commit/reset requests, catalogue/keymap
 events, all load/preview/mutation result statuses, all source origins, and
-failure discriminants. `@longhorn/commands` rejects future versions and unknown
+failure discriminants. `@inflatable-cookie/longhorn-commands` rejects future versions and unknown
 discriminants. Its root is side-effect-free and framework-neutral.
 
 ## Tauri Boundary

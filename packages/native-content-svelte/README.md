@@ -1,6 +1,6 @@
-# @longhorn/native-content-svelte
+# @inflatable-cookie/longhorn-native-content-svelte
 
-Per-mounted-instance Svelte coordination for `@longhorn/native-content`.
+Per-mounted-instance Svelte coordination for `@inflatable-cookie/longhorn-native-content`.
 
 The consumer creates one `NativeContentSession` per native island, binds the
 exact public viewport element with `use:nativeContentViewport`, and mounts the
@@ -17,7 +17,7 @@ and input-routing policy.
     nativeContentViewport,
     resolveNativeContentVisibility,
     useNativeContentSession,
-  } from "@longhorn/native-content-svelte";
+  } from "@inflatable-cookie/longhorn-native-content-svelte";
 
   let { client, scale, obscured } = $props();
   const session = new NativeContentSession({

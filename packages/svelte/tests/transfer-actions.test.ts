@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { EventTransport } from "@longhorn/core";
+import type { EventTransport } from "@inflatable-cookie/longhorn-core";
 import {
   TRANSFER_CLIENT_CHANGED_EVENT,
   TRANSFER_PUBLISH_LEASE_COMMAND,
@@ -10,7 +10,7 @@ import {
   type TransferClientSnapshot,
   type TransferLeaseRequest,
   type TransferLeaseResponse,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import {
   DropZoneLeaseRegistry,

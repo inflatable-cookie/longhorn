@@ -113,14 +113,14 @@ Loophole examples must remain visibly different compositions.
 
 ## Promoted Decisions
 
-- `@longhorn/core` owns structural transport and checked subscription lifetime
+- `@inflatable-cookie/longhorn-core` owns structural transport and checked subscription lifetime
   primitives.
 - Domain packages retain compatibility guards, commands, and freshness rules.
-- `@longhorn/tauri` implements structural invoke/listen transport and carries
+- `@inflatable-cookie/longhorn-tauri` implements structural invoke/listen transport and carries
   no domain dependency.
-- `@longhorn/svelte` has a Surface-free root and optional domain subpaths.
+- `@inflatable-cookie/longhorn-svelte` has a Surface-free root and optional domain subpaths.
 - Optional domain peers are marked optional and are never root re-exports.
-- `@longhorn/poodle` binds public components; it does not persist
+- `@inflatable-cookie/longhorn-poodle` binds public components; it does not persist
   `WorkspaceLayoutSnapshot` or infer product metadata.
 - Poodle public drag extension and packable preview evidence form a named
   upstream checkpoint.

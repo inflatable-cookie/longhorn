@@ -153,7 +153,7 @@ const packageDirectories = new Map(
     "tauri",
     "bridge",
     "commands",
-  ].map((directory) => [`@longhorn/${directory}`, directory]),
+  ].map((directory) => [`@inflatable-cookie/longhorn-${directory}`, directory]),
 );
 const poodlePackages = [
   ["@poodle/headless", "packages/core"],

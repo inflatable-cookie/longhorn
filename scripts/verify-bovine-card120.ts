@@ -258,7 +258,7 @@ function verifySettings(): void {
 
   const dialog = bovineRead("src/components/SettingsDialog.svelte");
   for (const token of [
-    'import { SettingsShell } from "@longhorn/settings/poodle"',
+    'import { SettingsShell } from "@inflatable-cookie/longhorn-settings/poodle"',
     "StorageSettingsPage",
     "WorkspaceSettingsPage",
     '<SettingsShell',
@@ -270,7 +270,7 @@ function verifyComposition(): void {
     dependencies: Record<string, string>;
   };
   const selectedTs = Object.keys(manifest.dependencies)
-    .filter((name) => name.startsWith("@longhorn/"))
+    .filter((name) => name.startsWith("@inflatable-cookie/longhorn-"))
     .sort();
   equal(selectedTs, [...fixture.composition.typescript_packages].sort(), "TypeScript package graph");
   for (const name of selectedTs) {
@@ -290,7 +290,7 @@ function verifyComposition(): void {
   for (const system of fixture.composition.forbidden_systems) {
     const rustName = `longhorn-${system} `;
     assert(!tree.includes(rustName), `Rust graph resolves ${rustName.trim()}`);
-    assert(!manifest.dependencies[`@longhorn/${system}`], `renderer graph resolves @longhorn/${system}`);
+    assert(!manifest.dependencies[`@inflatable-cookie/longhorn-${system}`], `renderer graph resolves @inflatable-cookie/longhorn-${system}`);
   }
   const vite = bovineRead("vite.config.ts");
   const tsconfig = bovineRead("tsconfig.json");

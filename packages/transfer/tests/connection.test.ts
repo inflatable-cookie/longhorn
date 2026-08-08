@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
-import type { EventTransport, Unlisten } from "@longhorn/core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
 
 import {
   TRANSFER_CLIENT_CHANGED_EVENT,
   TransferClient,
   TransferClientConnectionDisposedError,
   type TransferClientSnapshot,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 test("installs the epoch listener before snapshot and keeps the newest authority", async () => {
   const operations: string[] = [];

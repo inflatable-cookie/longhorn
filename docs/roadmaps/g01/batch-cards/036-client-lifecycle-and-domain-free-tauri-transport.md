@@ -14,12 +14,12 @@ clients to it, and remove the transfer dependency from the raw Tauri edge.
 
 ## Scope
 
-- usable `@longhorn/core` package
+- usable `@inflatable-cookie/longhorn-core` package
 - structural invoke, event, and unlisten contracts
 - checked subscription registration, synchronization, and teardown
 - injected domain validation and freshness comparison
 - Surface and transfer client consolidation
-- domain-free `@longhorn/tauri`
+- domain-free `@inflatable-cookie/longhorn-tauri`
 - package, import-safety, fault, and dependency checks
 
 ## Public Behavior
@@ -29,8 +29,8 @@ domain-current snapshots and closes its listener exactly once, including when
 registration resolves after disposal. Registration, validation, load, and
 unlisten failures remain explicit.
 
-`@longhorn/core` does not define domain commands or freshness policy.
-`@longhorn/tauri` satisfies structural transport contracts without importing
+`@inflatable-cookie/longhorn-core` does not define domain commands or freshness policy.
+`@inflatable-cookie/longhorn-tauri` satisfies structural transport contracts without importing
 transfer, Surface, layout, Svelte, or Poodle packages.
 
 ## Out Of Scope
@@ -94,7 +94,7 @@ framework-neutral lifetime or optional package graph.
 
 Completed 2026-07-29.
 
-- added pure `@longhorn/core` structural invoke/event transport contracts
+- added pure `@inflatable-cookie/longhorn-core` structural invoke/event transport contracts
 - added one checked snapshot connection with listener-first registration,
   boolean-coalesced refresh, injected validation and freshness, explicit
   failure phases, and exact asynchronous teardown

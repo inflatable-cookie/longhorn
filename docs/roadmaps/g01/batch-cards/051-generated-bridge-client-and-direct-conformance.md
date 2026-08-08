@@ -19,7 +19,7 @@ deterministic serialized-loopback adapters.
 - split Card 049 negotiation and contract fixtures along protocol boundaries
   before adding generation code
 - `longhorn-bindings` bridge generation and golden fixtures
-- `@longhorn/bridge`
+- `@inflatable-cookie/longhorn-bridge`
 - strict compatibility validation for negotiation, authority, operations,
   streams, jobs, and failures
 - injected domain codecs and operation clients
@@ -32,7 +32,7 @@ deterministic serialized-loopback adapters.
 ## Public Behavior
 
 The client negotiates before exposing domain capability or authority. Domain
-packages inject checked codecs; `@longhorn/bridge` does not accept unchecked
+packages inject checked codecs; `@inflatable-cookie/longhorn-bridge` does not accept unchecked
 product JSON as authoritative state.
 
 The direct and loopback adapters produce identical replies, stream decisions,
@@ -104,7 +104,7 @@ Rust-owned golden fixture. The fixture includes negotiation, authority,
 query/command, ordered stream, job, incompatibility, and semantic-trace
 evidence. Generation is deterministic and zero-drift checked.
 
-`@longhorn/bridge` now negotiates before exposing a session. Exact
+`@inflatable-cookie/longhorn-bridge` now negotiates before exposing a session. Exact
 compatibility validators reject unknown versions, states, retry classes,
 authority shapes, outcomes, and correlation metadata. Domain codecs, routes,
 operation names, and payload meaning remain injected domain authority.

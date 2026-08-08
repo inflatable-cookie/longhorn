@@ -1,5 +1,5 @@
-import { OperationClient, createDirectOperationPort, type OperationCancellationCommand, type OperationCancellationResult, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@longhorn/operation";
-import { createTauriOperationPort, OPERATION_CANCEL_COMMAND, OPERATION_MUTATE_COMMAND, OPERATION_SNAPSHOT_COMMAND } from "@longhorn/operation/tauri";
+import { OperationClient, createDirectOperationPort, type OperationCancellationCommand, type OperationCancellationResult, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@inflatable-cookie/longhorn-operation";
+import { createTauriOperationPort, OPERATION_CANCEL_COMMAND, OPERATION_MUTATE_COMMAND, OPERATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-operation/tauri";
 
 import { equal, operationTrace } from "../../common.ts";
 import fixtureValue from "./fixture.json";

@@ -81,8 +81,8 @@ try {
             requiredArtifacts: [
               "longhorn-native-content",
               "longhorn-tauri-native-content-child-view",
-              "@longhorn/native-content",
-              "@longhorn/native-content-svelte",
+              "@inflatable-cookie/longhorn-native-content",
+              "@inflatable-cookie/longhorn-native-content-svelte",
             ],
             artifactGate: "pass",
             nextAdmission: "migration_planning",
@@ -112,8 +112,8 @@ try {
             requiredArtifacts: [
               "longhorn-native-content",
               "longhorn-native-content-backing-surface",
-              "@longhorn/native-content",
-              "@longhorn/native-content-svelte",
+              "@inflatable-cookie/longhorn-native-content",
+              "@inflatable-cookie/longhorn-native-content-svelte",
             ],
             artifactGate: "pass",
             nextAdmission: "after_g01_014_and_g01_015",
@@ -216,9 +216,9 @@ async function verifyProtocolIsolation() {
 
 async function packTypescriptArtifacts() {
   const packages = [
-    ["@longhorn/core", "core"],
-    ["@longhorn/native-content", "native-content"],
-    ["@longhorn/native-content-svelte", "native-content-svelte"],
+    ["@inflatable-cookie/longhorn-core", "core"],
+    ["@inflatable-cookie/longhorn-native-content", "native-content"],
+    ["@inflatable-cookie/longhorn-native-content-svelte", "native-content-svelte"],
   ] as const;
   const identities: ArtifactIdentity[] = [];
   const paths = new Map<string, string>();
@@ -268,16 +268,16 @@ async function inspectTypescriptArtifact(name: string, path: string) {
     throw new Error(`${name} packed identity mismatch`);
   }
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@longhorn/core": [],
-    "@longhorn/native-content": ["@longhorn/core"],
-    "@longhorn/native-content-svelte": ["@longhorn/native-content"],
+    "@inflatable-cookie/longhorn-core": [],
+    "@inflatable-cookie/longhorn-native-content": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn-native-content-svelte": ["@inflatable-cookie/longhorn-native-content"],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(manifest.dependencies ?? {}),
     expectedDependencies[name]!,
   );
-  if (name === "@longhorn/native-content-svelte") {
+  if (name === "@inflatable-cookie/longhorn-native-content-svelte") {
     assertExactSet(
       "native-content Svelte peers",
       Object.keys(manifest.peerDependencies ?? {}),
@@ -287,7 +287,7 @@ async function inspectTypescriptArtifact(name: string, path: string) {
       throw new Error("native-content Svelte peer range changed");
     }
   }
-  if (name === "@longhorn/native-content") {
+  if (name === "@inflatable-cookie/longhorn-native-content") {
     assertExactSet(
       "native-content exports",
       Object.keys(manifest.exports ?? {}),
@@ -488,30 +488,30 @@ async function verifyConsumer(
 
   const expectedLonghorn =
     shape === "soundcheck"
-      ? ["@longhorn/core", "@longhorn/native-content"]
+      ? ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-native-content"]
       : [
-          "@longhorn/core",
-          "@longhorn/native-content",
-          "@longhorn/native-content-svelte",
+          "@inflatable-cookie/longhorn-core",
+          "@inflatable-cookie/longhorn-native-content",
+          "@inflatable-cookie/longhorn-native-content-svelte",
         ];
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    (await installedScope(stage, "@longhorn")).map((name) => `@longhorn/${name}`),
+    (await installedScope(stage, "@longhorn")).map((name) => `@inflatable-cookie/longhorn-${name}`),
     expectedLonghorn,
   );
   for (const name of expectedLonghorn) await assertArtifactInstall(stage, name);
   for (const forbidden of [
-    "@longhorn/bridge",
-    "@longhorn/commands",
-    "@longhorn/config",
-    "@longhorn/history",
-    "@longhorn/layout",
-    "@longhorn/notifications",
-    "@longhorn/operation",
-    "@longhorn/settings",
-    "@longhorn/surfaces",
-    "@longhorn/tauri",
-    "@longhorn/transfer",
+    "@inflatable-cookie/longhorn-bridge",
+    "@inflatable-cookie/longhorn-commands",
+    "@inflatable-cookie/longhorn-config",
+    "@inflatable-cookie/longhorn-history",
+    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-notifications",
+    "@inflatable-cookie/longhorn-operation",
+    "@inflatable-cookie/longhorn-settings",
+    "@inflatable-cookie/longhorn-surfaces",
+    "@inflatable-cookie/longhorn-tauri",
+    "@inflatable-cookie/longhorn-transfer",
   ]) {
     await assertPackageAbsent(stage, forbidden);
   }
@@ -551,11 +551,11 @@ async function verifyConsumer(
 
   const expectedImports = usesSvelte
     ? [
-        "@longhorn/native-content",
-        "@longhorn/native-content-svelte",
+        "@inflatable-cookie/longhorn-native-content",
+        "@inflatable-cookie/longhorn-native-content-svelte",
         "@poodle/svelte",
       ]
-    : ["@longhorn/native-content"];
+    : ["@inflatable-cookie/longhorn-native-content"];
   assertExactSet(`${shape} imports`, await packageImports(stage), expectedImports);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   if (

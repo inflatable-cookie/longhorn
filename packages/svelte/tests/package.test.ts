@@ -5,22 +5,22 @@ import { describe, expect, it } from "vitest";
 
 const packageRoot = resolve(process.cwd(), "packages/svelte");
 
-describe("@longhorn/svelte package boundary", () => {
+describe("@inflatable-cookie/longhorn-svelte package boundary", () => {
   it("keeps the root Surface-free and marks domain peers optional", async () => {
     const metadata = JSON.parse(
       await readFile(resolve(packageRoot, "package.json"), "utf8"),
     );
     expect(metadata.dependencies).toEqual({
-      "@longhorn/core": "0.1.0",
+      "@inflatable-cookie/longhorn-core": "0.1.0",
     });
     expect(metadata.peerDependencies.svelte).toBe(
       ">=5.38.6 <=5.56.8",
     );
     for (const peer of [
-      "@longhorn/layout",
-      "@longhorn/surfaces",
-      "@longhorn/transfer",
-      "@longhorn/surface-transfer",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-transfer",
+      "@inflatable-cookie/longhorn-surface-transfer",
     ]) {
       expect(metadata.peerDependenciesMeta[peer]).toEqual({
         optional: true,
@@ -45,9 +45,9 @@ describe("@longhorn/svelte package boundary", () => {
       resolve(packageRoot, "src/surface-transfer.svelte.ts"),
       "utf8",
     );
-    expect(surfaceSource).toContain('from "@longhorn/surfaces"');
+    expect(surfaceSource).toContain('from "@inflatable-cookie/longhorn-surfaces"');
     expect(surfaceTransferSource).toContain(
-      'from "@longhorn/surface-transfer"',
+      'from "@inflatable-cookie/longhorn-surface-transfer"',
     );
   });
 });

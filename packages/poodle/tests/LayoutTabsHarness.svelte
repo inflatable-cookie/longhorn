@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LayoutContainerId, RegionId } from "@longhorn/layout";
+  import type { LayoutContainerId, RegionId } from "@inflatable-cookie/longhorn-layout";
 
   import {
     LayoutTabs,

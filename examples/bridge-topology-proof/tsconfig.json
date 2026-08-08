@@ -6,13 +6,13 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@longhorn/bridge": ["../../packages/bridge/src/index.ts"],
-      "@longhorn/bridge/stream": ["../../packages/bridge/src/stream.ts"],
-      "@longhorn/bridge/supervision": [
+      "@inflatable-cookie/longhorn-bridge": ["../../packages/bridge/src/index.ts"],
+      "@inflatable-cookie/longhorn-bridge/stream": ["../../packages/bridge/src/stream.ts"],
+      "@inflatable-cookie/longhorn-bridge/supervision": [
         "../../packages/bridge/src/supervision.ts"
       ],
-      "@longhorn/bridge/tauri": ["../../packages/bridge/src/tauri.ts"],
-      "@longhorn/bridge/tauri-events": [
+      "@inflatable-cookie/longhorn-bridge/tauri": ["../../packages/bridge/src/tauri.ts"],
+      "@inflatable-cookie/longhorn-bridge/tauri-events": [
         "../../packages/bridge/src/tauri-events.ts"
       ]
     },

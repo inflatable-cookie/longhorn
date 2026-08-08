@@ -6,7 +6,7 @@ import {
   assertCompatibleLayoutMutationOutcome,
   assertCompatibleLayoutMutationRejectionCode,
   assertLayoutProtocolVersion,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 
 const fixtures = [
   load("loophole-conformance-v1.json"),

@@ -20,10 +20,10 @@ progress, or decide which operation may start.
 - `longhorn-operation`: pure operation authority and projections
 - `longhorn-tauri-operation`: narrow handler/event assembly over an injected
   authority
-- `@longhorn/operation`: generated framework-neutral protocol and client
-- `@longhorn/operation/tauri`: optional Tauri transport composition
-- `@longhorn/operation/svelte`: optional per-instance reactive session
-- `@longhorn/operation/poodle`: optional controlled public-Poodle projection
+- `@inflatable-cookie/longhorn-operation`: generated framework-neutral protocol and client
+- `@inflatable-cookie/longhorn-operation/tauri`: optional Tauri transport composition
+- `@inflatable-cookie/longhorn-operation/svelte`: optional per-instance reactive session
+- `@inflatable-cookie/longhorn-operation/poodle`: optional controlled public-Poodle projection
 
 The pure crate imports no async runtime, bridge, config, Tauri, Svelte,
 Poodle, executor, or consumer package.

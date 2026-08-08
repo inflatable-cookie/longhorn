@@ -33,7 +33,7 @@
     "page_size": 50,
     "positions": ["past", "current", "future"],
     "payloads_exposed": false,
-    "component": "@longhorn/history/poodle HistoryPanel",
+    "component": "@inflatable-cookie/longhorn-history/poodle HistoryPanel",
     "eight_entry_heuristic_active": false
   },
   "retained_product_edges": [

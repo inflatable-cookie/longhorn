@@ -1,5 +1,5 @@
 {
-  "name": "@longhorn/poodle",
+  "name": "@inflatable-cookie/longhorn-poodle",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -30,16 +30,16 @@
     "README.md"
   ],
   "dependencies": {
-    "@longhorn/layout": "0.1.0",
-    "@longhorn/svelte": "0.1.0"
+    "@inflatable-cookie/longhorn-layout": "0.1.0",
+    "@inflatable-cookie/longhorn-svelte": "0.1.0"
   },
   "peerDependencies": {
-    "@longhorn/transfer": "0.1.0",
+    "@inflatable-cookie/longhorn-transfer": "0.1.0",
     "@poodle/svelte": "0.1.0",
     "svelte": ">=5.38.6 <6"
   },
   "peerDependenciesMeta": {
-    "@longhorn/transfer": {
+    "@inflatable-cookie/longhorn-transfer": {
       "optional": true
     }
   },

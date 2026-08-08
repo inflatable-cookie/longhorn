@@ -14,7 +14,7 @@ host consumer pages as a modal, window, or routed panel.
 
 ## Scope
 
-- optional `@longhorn/settings/svelte` and `/poodle` subpaths
+- optional `@inflatable-cookie/longhorn-settings/svelte` and `/poodle` subpaths
 - per-instance route, registry, page-session, draft, apply, reset, conflict,
   activation, and error state
 - consumer renderer-key resolver and page snippets
@@ -100,13 +100,13 @@ shared pages without weakening contract-004 authority or receipts.
 
 ## Result
 
-`@longhorn/settings/svelte` now provides isolated per-instance registry,
+`@inflatable-cookie/longhorn-settings/svelte` now provides isolated per-instance registry,
 scope, route, draft, mutation, guard, recovery, conflict, and activation
 state. Renderer keys resolve before reveal. Scope and listener connections
 start listener-first, reconnect explicitly, ignore late work after stop, and
 tear down exactly.
 
-`@longhorn/settings/poodle` adds one controller-driven shell for modal,
+`@inflatable-cookie/longhorn-settings/poodle` adds one controller-driven shell for modal,
 independent-window, and routed-panel hosts. It uses public Poodle primitives
 from the exact Card 038 artifact. Consumer snippets retain product schemas,
 copy, validation, and intent codecs.

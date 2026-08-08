@@ -29,7 +29,7 @@ the shared document.
 Nucleus now composes `LayoutDockRegion` and `LayoutSplitView`; tabs and drag
 semantics remain inside those public bindings. Longhorn adds:
 
-- `@longhorn/poodle/binding` for state-only consumers
+- `@inflatable-cookie/longhorn-poodle/binding` for state-only consumers
 - DockRegion size, semantic size-role, and density pass-through
 - projection-only `primaryHidden` and `secondaryHidden` SplitView inputs
 - zero-size, disabled hidden panes without durable collapse commands

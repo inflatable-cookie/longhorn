@@ -1,4 +1,4 @@
-# @longhorn/layout
+# @inflatable-cookie/longhorn-layout
 
 Framework-neutral TypeScript protocol for `longhorn-layout`.
 
@@ -21,7 +21,7 @@ import {
   layoutRatioFromMillionths,
   type LayoutDocument,
   type LayoutMutationRequest,
-} from "@longhorn/layout";
+} from "@inflatable-cookie/longhorn-layout";
 ```
 
 Call the compatibility guards at a transport or stored-fixture boundary before

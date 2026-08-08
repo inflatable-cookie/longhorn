@@ -46,7 +46,7 @@
         "workspace-*",
         "visible"
       ],
-      "excludes": ["@longhorn/"]
+      "excludes": ["@inflatable-cookie/longhorn-"]
     },
     {
       "repository": "loophole",
@@ -111,19 +111,19 @@
         "window.localStorage.getItem",
         "window.localStorage.setItem"
       ],
-      "excludes": ["@longhorn/config"]
+      "excludes": ["@inflatable-cookie/longhorn-config"]
     },
     {
       "repository": "loophole",
       "path": "aura/src/renderer/settings/SettingsModal.svelte",
       "contains": ["Appearance", "Hardware", "Keybindings", "Workspace"],
-      "excludes": ["@longhorn/settings"]
+      "excludes": ["@inflatable-cookie/longhorn-settings"]
     },
     {
       "repository": "loophole",
       "path": "aura/src/renderer/workspace/CommandPalette.svelte",
       "contains": ["searchCommandPalette", "Command palette"],
-      "excludes": ["@longhorn/commands"]
+      "excludes": ["@inflatable-cookie/longhorn-commands"]
     },
     {
       "repository": "loophole",

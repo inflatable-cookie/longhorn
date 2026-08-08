@@ -3,14 +3,14 @@ import type {
   SurfaceSessionStartRequest,
   SurfaceTransferCommand,
   SurfaceTransferResponse,
-} from "@longhorn/surface-transfer";
+} from "@inflatable-cookie/longhorn-surface-transfer";
 import {
   LONGHORN_TRANSFER_MIME_TYPE,
   TRANSFER_PROTOCOL_VERSION,
   parseTransferPayload,
   serializeTransferPayload,
   type TransferCommitSelector,
-} from "@longhorn/transfer";
+} from "@inflatable-cookie/longhorn-transfer";
 
 import type { SurfaceTransferState } from "./surface-transfer.svelte.ts";
 

@@ -3,7 +3,7 @@ import {
   type ConnectionFailure,
   type ConnectionFailureReporter,
   type EventTransport,
-} from "@longhorn/core";
+} from "@inflatable-cookie/longhorn-core";
 
 import type {
   SettingsLoadCommand,

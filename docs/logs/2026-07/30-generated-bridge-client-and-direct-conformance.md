@@ -7,7 +7,7 @@ Roadmap: g01.009
 ## Result
 
 Generated the bridge v1 TypeScript protocol and Rust-owned golden fixture,
-then added the framework-neutral `@longhorn/bridge` package. The package
+then added the framework-neutral `@inflatable-cookie/longhorn-bridge` package. The package
 negotiates exact compatibility before exposing a session and keeps product
 payload meaning in injected codecs and routes.
 

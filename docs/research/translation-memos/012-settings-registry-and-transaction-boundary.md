@@ -84,9 +84,9 @@ g01.008.
 - `longhorn-settings-config`: registered config-domain apply units and shared
   storage/backup/restore modules
 - `longhorn-tauri-settings`: narrow command/event host assembly
-- `@longhorn/settings`: checked protocol, client, registry projection, session
+- `@inflatable-cookie/longhorn-settings`: checked protocol, client, registry projection, session
   controller, and optional Svelte/Poodle subpaths
-- `@longhorn/config`: generated storage, backup, restore, and recovery client
+- `@inflatable-cookie/longhorn-config`: generated storage, backup, restore, and recovery client
   used only by composed shared pages
 
 The root settings protocol does not depend on layout, Surfaces, commands,

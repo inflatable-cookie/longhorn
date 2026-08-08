@@ -10,8 +10,8 @@ import {
   parseBridgeStreamCursor,
   record,
   type BridgeStreamCursor,
-} from "@longhorn/bridge";
-import { BridgeStreamTracker } from "@longhorn/bridge/stream";
+} from "@inflatable-cookie/longhorn-bridge";
+import { BridgeStreamTracker } from "@inflatable-cookie/longhorn-bridge/stream";
 
 import {
   commandPayloadCodec,

@@ -185,7 +185,7 @@ same winning specificity are an unresolved conflict and cannot execute.
   Checked TypeScript runs the same fixtures.
 - Palette, menu, shortcut, help, and keybinding-settings records are
   projections of one registry and effective keymap.
-- `@longhorn/commands` is framework-neutral and accepts injected catalogue,
+- `@inflatable-cookie/longhorn-commands` is framework-neutral and accepts injected catalogue,
   keymap, availability, and executor ports.
 - Optional Svelte state is per instance and follows contract 013.
 - Optional Poodle bindings use public `CommandPalette` and settings primitives.
@@ -198,7 +198,7 @@ same winning specificity are an unresolved conflict and cannot execute.
   admission, keyboard/keymap resolution, search, and projection
 - `longhorn-command-config`: registered keymap domain and coordinated mutation
 - `longhorn-tauri-command`: narrow registry/keymap query and mutation assembly
-- `@longhorn/commands`: checked protocol, clients, resolver helpers, and
+- `@inflatable-cookie/longhorn-commands`: checked protocol, clients, resolver helpers, and
   optional `/svelte` and `/poodle` subpaths
 - `longhorn-bindings`: checked command/keymap protocol generation
 

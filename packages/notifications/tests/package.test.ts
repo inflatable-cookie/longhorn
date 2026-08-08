@@ -6,7 +6,7 @@ const metadata = JSON.parse(readFileSync(new URL("package.json", packageRoot), "
 
 describe("notification package boundary", () => {
   test("keeps optional renderer adapters behind subpaths", async () => {
-    expect(metadata.dependencies).toEqual({ "@longhorn/core": "0.1.0" });
+    expect(metadata.dependencies).toEqual({ "@inflatable-cookie/longhorn-core": "0.1.0" });
     expect(metadata.peerDependenciesMeta).toEqual({ "@poodle/svelte": { optional: true }, svelte: { optional: true } });
     const exports = metadata.exports as Record<string, string | Record<string, string>>;
     expect(Object.keys(exports)).toEqual([".", "./protocol", "./tauri", "./svelte", "./poodle", "./package.json"]);
@@ -21,7 +21,7 @@ describe("notification package boundary", () => {
 
   test("root has no operation, command, Tauri, Svelte, or Poodle edge", () => {
     const sources = ["src/index.ts", "src/client.ts", "src/controller.ts", "src/direct.ts", "src/serialized.ts"].map((path) => readFileSync(new URL(path, packageRoot), "utf8")).join("\n");
-    for (const forbidden of ["@longhorn/operation", "@longhorn/command", "@tauri-apps", 'from "svelte', "@poodle/", "./tauri", "./svelte", "./poodle"]) expect(sources).not.toContain(forbidden);
+    for (const forbidden of ["@inflatable-cookie/longhorn-operation", "@inflatable-cookie/longhorn-command", "@tauri-apps", 'from "svelte', "@poodle/", "./tauri", "./svelte", "./poodle"]) expect(sources).not.toContain(forbidden);
   });
 
   test("Poodle adapters use both public toast exports", () => {

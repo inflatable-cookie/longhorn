@@ -1,7 +1,7 @@
 import {
   assertCompatibleNativeContentSnapshot,
   type NativeContentSnapshot,
-} from "@longhorn/native-content";
+} from "@inflatable-cookie/longhorn-native-content";
 
 import fixture from "./fixture.json";
 import {

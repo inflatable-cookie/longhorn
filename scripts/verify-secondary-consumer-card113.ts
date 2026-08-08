@@ -555,7 +555,7 @@ function verifyLonghornPackageSelection(): string[] {
     fixture.consumers,
   ) as Array<[ConsumerName, ConsumerFixture]>) {
     for (const packageName of consumer.selected_typescript) {
-      const directory = packageName.replace("@longhorn/", "");
+      const directory = packageName.replace("@inflatable-cookie/longhorn-", "");
       const path = `packages/${directory}`;
       const manifest = JSON.parse(
         readFileSync(resolve(longhornRoot, path, "package.json"), "utf8"),
@@ -613,7 +613,7 @@ function verifyLonghornPackageSelection(): string[] {
 
 function packageMatchesSystem(name: string, system: string): boolean {
   const normalized = name
-    .replace("@longhorn/", "")
+    .replace("@inflatable-cookie/longhorn-", "")
     .replace("longhorn-", "")
     .replace(/^tauri-/, "");
   const aliases: Record<string, string[]> = {

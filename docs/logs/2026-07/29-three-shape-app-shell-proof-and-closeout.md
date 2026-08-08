@@ -20,13 +20,13 @@ State: complete
 
 | Package | SHA-256 |
 | --- | --- |
-| `@longhorn/core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
-| `@longhorn/surfaces` | `449cc0b1751860912cc3468ca41f1be3e4987b513e306988cad05a27fd27d088` |
-| `@longhorn/transfer` | `37b50416c2b81531435a320e38138342d923f0b2a90b122cb13f4e18c3f0d7cf` |
-| `@longhorn/surface-transfer` | `2c3803d47892142a213c7388601721bbb3f281efa1276c9dbc369d58ba8b3d5b` |
-| `@longhorn/svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
-| `@longhorn/poodle` | `75cb6ed35ec623fc60db6af14daf9c0e923d45ad51bc68b2a2d2f5c3548ebb63` |
+| `@inflatable-cookie/longhorn-core` | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-layout` | `f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5` |
+| `@inflatable-cookie/longhorn-surfaces` | `449cc0b1751860912cc3468ca41f1be3e4987b513e306988cad05a27fd27d088` |
+| `@inflatable-cookie/longhorn-transfer` | `37b50416c2b81531435a320e38138342d923f0b2a90b122cb13f4e18c3f0d7cf` |
+| `@inflatable-cookie/longhorn-surface-transfer` | `2c3803d47892142a213c7388601721bbb3f281efa1276c9dbc369d58ba8b3d5b` |
+| `@inflatable-cookie/longhorn-svelte` | `024dd873ff3d99e99755d76046076476783f60228b2bf1f2ecef7439aae83ca3` |
+| `@inflatable-cookie/longhorn-poodle` | `75cb6ed35ec623fc60db6af14daf9c0e923d45ad51bc68b2a2d2f5c3548ebb63` |
 
 The verifier reads manifests from the packed archives, rejects workspace and
 link dependencies, installs into fresh temporary roots, checks installed

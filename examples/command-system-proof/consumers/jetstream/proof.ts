@@ -1,7 +1,7 @@
 import {
   routeCommandKeyboardEvent,
   searchCommands,
-} from "@longhorn/commands";
+} from "@inflatable-cookie/longhorn-commands";
 
 import {
   contextPath,

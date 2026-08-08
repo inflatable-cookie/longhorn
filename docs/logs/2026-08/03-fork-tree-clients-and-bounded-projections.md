@@ -43,7 +43,7 @@ returns exactly the requested 17 records.
 ## Boundary Audit
 
 The Tauri crate imports only tree history, serde, and Tauri. The TypeScript
-root depends only on `@longhorn/core`; Svelte and Poodle remain optional
+root depends only on `@inflatable-cookie/longhorn-core`; Svelte and Poodle remain optional
 subpaths and peers. The Poodle adapter imports public Button, Callout,
 InlineListSection, Spinner, and Stack primitives. No Poodle source or internal
 selector is copied. Product payloads, checkpoints, storage, durability,

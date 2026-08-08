@@ -14,7 +14,7 @@ and clear the two deferrals parked behind the Card 127 receipt.
 
 ## Scope
 
-- bridge `@longhorn/tauri` demotion to optional peer (package test,
+- bridge `@inflatable-cookie/longhorn-tauri` demotion to optional peer (package test,
   topology artifact proof, proof consumers)
 - new candidate fixture, verifier, and receipt superseding Card 127
 - refreshed 18-package/38-crate counts and dependency graph
@@ -57,7 +57,7 @@ then the proof, docs, and closeout steps.
 
 ## Progress
 
-Part 1 is complete and committed: the bridge `@longhorn/tauri` dependency
+Part 1 is complete and committed: the bridge `@inflatable-cookie/longhorn-tauri` dependency
 is an optional peer, asserted by the bridge package test, the
 bridge-topology and operation-notification artifact proofs, and the five
 proof consumers; the card149 candidate verifier exists with truthful

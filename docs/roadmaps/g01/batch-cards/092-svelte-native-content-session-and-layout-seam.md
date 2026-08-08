@@ -15,7 +15,7 @@ Poodle or inspecting its private DOM.
 
 ## Scope
 
-- `@longhorn/native-content-svelte`
+- `@inflatable-cookie/longhorn-native-content-svelte`
 - mounted client and attach-generation lifetime
 - consumer-supplied viewport element measurement
 - current scale input and resize observation

@@ -16,9 +16,9 @@ TypeScript artifacts:
 
 | Package | Version | SHA-256 |
 | --- | --- | --- |
-| `@longhorn/core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
-| `@longhorn/tauri` | 0.1.0 | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
-| `@longhorn/bridge` | 0.1.0 | `b492c930fe1c2e03d65fce49ec5d928f6b6370e535970451d4b178fa756ba9a8` |
+| `@inflatable-cookie/longhorn-core` | 0.1.0 | `b41c3585e48f8e538acaccc68209660e7be55962bdea0af443af924011fcc9f0` |
+| `@inflatable-cookie/longhorn-tauri` | 0.1.0 | `4df629c1bc5ebd889bdb29e100956f0a2327fc4fc7cee38843b45a086f7fa3c5` |
+| `@inflatable-cookie/longhorn-bridge` | 0.1.0 | `b492c930fe1c2e03d65fce49ec5d928f6b6370e535970451d4b178fa756ba9a8` |
 
 Private Rust inventory archives:
 
@@ -41,8 +41,8 @@ private.
 | Nucleus | root, supervision, Tauri invoke | query, mutate | external local | 2 |
 | Loophole | root, supervision, Tauri invoke | query, mutate | external remote | 3 |
 
-Every root resolves `@longhorn/bridge`, `@longhorn/core`, and
-`@longhorn/tauri` at 0.1.0 plus one `@tauri-apps/api` 2.10.1 peer. No root
+Every root resolves `@inflatable-cookie/longhorn-bridge`, `@inflatable-cookie/longhorn-core`, and
+`@inflatable-cookie/longhorn-tauri` at 0.1.0 plus one `@tauri-apps/api` 2.10.1 peer. No root
 contains a workspace alias, sibling package source, or undeclared Longhorn
 package.
 

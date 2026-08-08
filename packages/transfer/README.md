@@ -1,4 +1,4 @@
-# @longhorn/transfer
+# @inflatable-cookie/longhorn-transfer
 
 Framework-neutral session, lease, cancellation, and same-document panel
 transfer client.
@@ -11,7 +11,7 @@ effigy generate:transfer
 effigy check:transfer-bindings
 ```
 
-The client accepts the structural `@longhorn/core` transport and checked
+The client accepts the structural `@inflatable-cookie/longhorn-core` transport and checked
 connection lifetime. Transfer retains its client-epoch freshness rule. It
 contains no raw Tauri call, browser global, Svelte store, or Poodle component.
 

@@ -23,7 +23,7 @@ transport.
 - request/session/authority checks at dispatch
 - optional event emitter and query-only assembly
 - mock-runtime handler proof
-- `@longhorn/bridge` composition over `@longhorn/tauri`
+- `@inflatable-cookie/longhorn-bridge` composition over `@inflatable-cookie/longhorn-tauri`
 - minimal Tauri capability examples
 
 ## Public Behavior
@@ -60,7 +60,7 @@ checked current-session metadata and supports explicit resync.
 ## Acceptance Criteria
 
 - real and mock hosts use one assembly function
-- raw invoke/listen stays in `@longhorn/tauri`
+- raw invoke/listen stays in `@inflatable-cookie/longhorn-tauri`
 - domain operation names and payloads stay in registered domain adapters
 - invalid session, capability, authority, or request metadata reaches no handler
 - query-only Bovine shape registers and imports no event support
@@ -103,8 +103,8 @@ publication is an injected edge. Query-only assembly has no sink and rejects
 publication; subscription assembly publishes checked domain, progress, and
 terminal envelopes.
 
-`@longhorn/tauri` now separates its invoke-only root from optional `/events`.
-`@longhorn/bridge/tauri` composes checked sessions and domain descriptors over
+`@inflatable-cookie/longhorn-tauri` now separates its invoke-only root from optional `/events`.
+`@inflatable-cookie/longhorn-bridge/tauri` composes checked sessions and domain descriptors over
 the invoke-only transport. `/tauri-events` adds listener-first snapshot
 resync and checked request/job-correlated listeners.
 

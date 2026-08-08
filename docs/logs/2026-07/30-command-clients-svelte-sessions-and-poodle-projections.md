@@ -12,7 +12,7 @@ bindings, and capability-gated keybinding settings registration.
 
 ## Framework-neutral Boundary
 
-`@longhorn/commands` accepts injected catalogue, keymap, availability, and
+`@inflatable-cookie/longhorn-commands` accepts injected catalogue, keymap, availability, and
 executor ports. It attaches invalidation listeners before loading snapshots,
 joins matching registry generations and digests, rejects stale async results,
 and handles late listener completion after disposal.
@@ -47,12 +47,12 @@ product admission.
 
 ## Optional UI And Settings
 
-`@longhorn/commands/svelte` owns one session's listeners, query, palette,
+`@inflatable-cookie/longhorn-commands/svelte` owns one session's listeners, query, palette,
 capture, draft access, and teardown. Mounted multi-instance tests prove no
 hidden global state. Late listener, repeated start/stop, capture cleanup, and
 SSR imports are covered.
 
-`@longhorn/commands/poodle` uses only public controlled exports from exact
+`@inflatable-cookie/longhorn-commands/poodle` uses only public controlled exports from exact
 Poodle preview set
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.
 Product category labels, copy, icons, handlers, and keymap patch construction

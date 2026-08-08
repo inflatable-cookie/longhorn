@@ -23,7 +23,7 @@ execution.
 - registry-generation and expected-keymap-revision checks
 - patch digest binding conflict preview to commit
 - `longhorn-bindings` command/keymap generation and golden fixtures
-- `@longhorn/commands` generated protocol and compatibility validation
+- `@inflatable-cookie/longhorn-commands` generated protocol and compatibility validation
 - `longhorn-tauri-command` injected catalogue/keymap host assembly
 - exact read and mutate command/event names plus capability examples
 
@@ -122,7 +122,7 @@ Invalid, unknown-command, ambiguous, and already-stale changes do not create
 or alter the domain file.
 
 `longhorn-bindings` now generates the command/keymap protocol and Rust-produced
-golden fixture. `@longhorn/commands` exposes the generated protocol and
+golden fixture. `@inflatable-cookie/longhorn-commands` exposes the generated protocol and
 fail-closed compatibility guards with no runtime dependency. Regeneration is
 zero-diff and package imports touch no browser, Tauri, Svelte, Poodle, or
 execution global.

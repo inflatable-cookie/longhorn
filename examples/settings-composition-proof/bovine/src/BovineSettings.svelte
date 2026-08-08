@@ -10,7 +10,7 @@
     SettingsShell,
     type SettingsPageRenderContext,
     type SettingsSession,
-  } from "@longhorn/settings/poodle";
+  } from "@inflatable-cookie/longhorn-settings/poodle";
   import { tick, untrack } from "svelte";
 
   let {

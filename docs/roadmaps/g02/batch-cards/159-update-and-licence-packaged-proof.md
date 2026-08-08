@@ -99,7 +99,7 @@ the evidence record is emitted as JSON.
 Two questions had to settle before the packaged half could be built:
 
 1. the `tauri-plugin-updater` pin on the locked Tauri graph (the concrete
-   installer behind the `UpdateInstaller` port from Card 153), and
+   installer that Card 153 originally fronted with a port, since removed), and
 2. the keychain crate for the `CredentialStore` seam (the platform backend
    from Card 157).
 

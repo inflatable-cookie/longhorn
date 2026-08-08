@@ -23,35 +23,35 @@ const poodleEvidencePath = resolve(
 );
 
 const longhornPackages = [
-  ["@longhorn/core", "core"],
-  ["@longhorn/layout", "layout"],
-  ["@longhorn/surfaces", "surfaces"],
-  ["@longhorn/transfer", "transfer"],
-  ["@longhorn/surface-transfer", "surface-transfer"],
-  ["@longhorn/svelte", "svelte"],
-  ["@longhorn/poodle", "poodle"],
+  ["@inflatable-cookie/longhorn-core", "core"],
+  ["@inflatable-cookie/longhorn-layout", "layout"],
+  ["@inflatable-cookie/longhorn-surfaces", "surfaces"],
+  ["@inflatable-cookie/longhorn-transfer", "transfer"],
+  ["@inflatable-cookie/longhorn-surface-transfer", "surface-transfer"],
+  ["@inflatable-cookie/longhorn-svelte", "svelte"],
+  ["@inflatable-cookie/longhorn-poodle", "poodle"],
 ] as const;
 
 const shapes = {
   bovine: {
-    longhorn: ["@longhorn/core", "@longhorn/svelte"],
+    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-svelte"],
     forbidden: [
-      "@longhorn/layout",
-      "@longhorn/poodle",
-      "@longhorn/surfaces",
-      "@longhorn/transfer",
-      "@longhorn/surface-transfer",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-poodle",
+      "@inflatable-cookie/longhorn-surfaces",
+      "@inflatable-cookie/longhorn-transfer",
+      "@inflatable-cookie/longhorn-surface-transfer",
     ],
     regions: 0,
   },
   nucleus: {
     longhorn: [
-      "@longhorn/core",
-      "@longhorn/layout",
-      "@longhorn/svelte",
-      "@longhorn/poodle",
+      "@inflatable-cookie/longhorn-core",
+      "@inflatable-cookie/longhorn-layout",
+      "@inflatable-cookie/longhorn-svelte",
+      "@inflatable-cookie/longhorn-poodle",
     ],
-    forbidden: ["@longhorn/surfaces", "@longhorn/surface-transfer"],
+    forbidden: ["@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-surface-transfer"],
     regions: 5,
   },
   loophole: {
