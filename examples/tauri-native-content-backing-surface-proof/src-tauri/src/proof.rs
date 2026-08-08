@@ -547,7 +547,24 @@ fn exercise_available_scale(
 
 fn boundary_audit() -> Check {
     let adapter_source = concat!(
-        include_str!("../../../../crates/longhorn-native-content-backing-surface/src/adapter.rs"),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/mod.rs"
+        ),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/api.rs"
+        ),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/execute.rs"
+        ),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/receipt.rs"
+        ),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/state.rs"
+        ),
+        include_str!(
+            "../../../../crates/longhorn-native-content-backing-surface/src/adapter/util.rs"
+        ),
         include_str!("../../../../crates/longhorn-native-content-backing-surface/src/runtime.rs"),
         include_str!("../../../../crates/longhorn-native-content-backing-surface/src/lib.rs"),
     )

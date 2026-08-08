@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{Sha256Digest, StorageFileEvidence};
 
-pub(super) fn receipt_digest(
+pub(crate) fn receipt_digest(
     transition_id: &str,
     target_layout: &Sha256Digest,
     copied: &[DomainId],

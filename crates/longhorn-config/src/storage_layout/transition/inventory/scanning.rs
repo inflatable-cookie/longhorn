@@ -54,7 +54,7 @@ pub(crate) fn read_evidence(
     })
 }
 
-pub(super) fn scan_layout(
+pub(crate) fn scan_layout(
     layout: &crate::ResolvedStorageLayout,
     known: &BTreeSet<PathBuf>,
     limits: super::super::StorageTransitionLimits,

@@ -8,7 +8,7 @@ use super::super::{
     StorageTransitionUnknownFile,
 };
 
-pub(super) fn evidence_digest(
+pub(crate) fn evidence_digest(
     domains: &[StorageTransitionDomain],
     source_unknown: &[StorageTransitionUnknownFile],
     target_unknown: &[StorageTransitionUnknownFile],
@@ -57,7 +57,7 @@ pub(super) fn evidence_digest(
     Sha256Digest::from_bytes(&bytes)
 }
 
-pub(super) fn confirmation_digest(
+pub(crate) fn confirmation_digest(
     request: &StorageTransitionRequest<'_>,
     evidence: &Sha256Digest,
 ) -> Sha256Digest {

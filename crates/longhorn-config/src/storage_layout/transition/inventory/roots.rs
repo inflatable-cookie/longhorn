@@ -7,7 +7,7 @@ use super::{
     StorageTransitionRequest,
 };
 
-pub(super) fn root_conflicts(
+pub(crate) fn root_conflicts(
     request: &StorageTransitionRequest<'_>,
 ) -> Vec<StorageTransitionConflict> {
     if request.source_layout.digest() == request.target_layout.digest() {
@@ -42,7 +42,7 @@ pub(super) fn root_conflicts(
     conflicts
 }
 
-pub(super) fn equal_root_paths(request: &StorageTransitionRequest<'_>) -> BTreeSet<PathBuf> {
+pub(crate) fn equal_root_paths(request: &StorageTransitionRequest<'_>) -> BTreeSet<PathBuf> {
     MIGRATING_ROOTS
         .iter()
         .filter_map(|kind| {

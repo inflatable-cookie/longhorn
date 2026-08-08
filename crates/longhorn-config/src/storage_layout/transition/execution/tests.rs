@@ -14,8 +14,8 @@ use crate::{
 
 use super::*;
 use crate::storage_layout::transition::{
-    StorageTransitionCatalog, StorageTransitionRequest, inspect_storage_transition,
-    plan_storage_transition,
+    StorageTransitionCatalog, StorageTransitionError, StorageTransitionRequest,
+    inspect_storage_transition, plan_storage_transition,
 };
 
 struct Domain {

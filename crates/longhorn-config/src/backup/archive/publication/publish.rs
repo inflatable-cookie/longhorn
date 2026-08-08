@@ -1,23 +1,19 @@
-use std::{
-    fs,
-    io::{self, Read, Write},
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::{fs, io::Write, path::Path};
 
 use crate::{Durability, DurabilityRequirement};
 
-use super::{
-    BackupArchiveError, BackupArchiveLimits, EncodedBackupArchive, inspect_backup_archive,
+use super::super::{
+    inspect_backup_archive,
     publication_types::{
         BackupArchiveFileName, BackupDestinationKind, BackupExportTarget, BackupOperationalRoot,
         BackupPublicationError, BackupPublicationOptions, BackupPublicationReceipt,
         BackupPublicationStage, ExportOverwrite,
     },
+    EncodedBackupArchive,
 };
-
-const TEMP_ATTEMPTS: u64 = 32;
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+use super::support::{
+    cleanup, create_temporary, publication_error, read_bounded_archive, verification_error,
+};
 
 /// Publishes one verified archive below the operational backup root.
 pub fn publish_operational_backup(
@@ -63,7 +59,7 @@ pub fn export_backup(
     )
 }
 
-fn publish(
+pub(super) fn publish(
     parent_path: &Path,
     file_name: &str,
     archive: &EncodedBackupArchive,
@@ -214,127 +210,6 @@ fn publish(
     })
 }
 
-fn create_temporary(
-    parent: &Path,
-    file_name: &str,
-    target: &Path,
-) -> Result<(fs::File, PathBuf), BackupPublicationError> {
-    for _ in 0..TEMP_ATTEMPTS {
-        let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let partial_name = format!(
-            ".{file_name}.{}.{}.longhorn-partial",
-            std::process::id(),
-            sequence
-        );
-        let path = parent.join(partial_name);
-        let mut options = fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        set_private_mode(&mut options);
-        match options.open(&path) {
-            Ok(file) => return Ok((file, path)),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(publication_error(
-                    BackupPublicationStage::CreateTemporary,
-                    target.to_path_buf(),
-                    false,
-                    error.to_string(),
-                ));
-            }
-        }
-    }
-    Err(publication_error(
-        BackupPublicationStage::CreateTemporary,
-        target.to_path_buf(),
-        false,
-        "temporary name collision retry limit reached",
-    ))
-}
-
-pub(super) fn read_bounded_archive(
-    path: &Path,
-    limits: BackupArchiveLimits,
-) -> Result<Vec<u8>, BackupArchiveError> {
-    let mut file = fs::File::open(path).map_err(|error| BackupArchiveError::Read {
-        path: path.display().to_string(),
-        detail: error.to_string(),
-    })?;
-    let observed = file
-        .metadata()
-        .map_err(|error| BackupArchiveError::Read {
-            path: path.display().to_string(),
-            detail: error.to_string(),
-        })?
-        .len();
-    if observed > limits.max_archive_bytes() as u64 {
-        return Err(BackupArchiveError::ArchiveTooLarge {
-            limit: limits.max_archive_bytes(),
-            observed: usize::try_from(observed).unwrap_or(usize::MAX),
-        });
-    }
-    let mut bytes = Vec::with_capacity(usize::try_from(observed).unwrap_or(0));
-    Read::by_ref(&mut file)
-        .take(limits.max_archive_bytes() as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| BackupArchiveError::Read {
-            path: path.display().to_string(),
-            detail: error.to_string(),
-        })?;
-    if bytes.len() > limits.max_archive_bytes() {
-        return Err(BackupArchiveError::ArchiveTooLarge {
-            limit: limits.max_archive_bytes(),
-            observed: bytes.len(),
-        });
-    }
-    Ok(bytes)
-}
-
-fn verification_error(
-    path: PathBuf,
-    published: bool,
-    error: BackupArchiveError,
-) -> BackupPublicationError {
-    BackupPublicationError {
-        stage: BackupPublicationStage::VerifyTemporary,
-        path,
-        published,
-        detail: error.to_string(),
-        verification: Some(error),
-    }
-}
-
-fn publication_error(
-    stage: BackupPublicationStage,
-    path: PathBuf,
-    published: bool,
-    detail: impl Into<String>,
-) -> BackupPublicationError {
-    BackupPublicationError {
-        stage,
-        path,
-        published,
-        verification: None,
-        detail: detail.into(),
-    }
-}
-
-fn cleanup(mut error: BackupPublicationError, temporary: &Path) -> BackupPublicationError {
-    if let Err(cleanup_error) = fs::remove_file(temporary) {
-        error.detail = format!("{}; partial cleanup failed: {cleanup_error}", error.detail);
-    }
-    error
-}
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut fs::OpenOptions) {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut fs::OpenOptions) {}
-
 #[cfg(test)]
 pub(super) fn publish_corrupt_staging_for_test(
     root: &BackupOperationalRoot,
@@ -352,65 +227,4 @@ pub(super) fn publish_corrupt_staging_for_test(
         options,
         true,
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use std::io::{Cursor, Write};
-
-    use serde_json::json;
-    use tempfile::TempDir;
-    use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
-
-    use super::*;
-
-    #[test]
-    fn failed_reopen_verification_cleans_partial_and_publishes_nothing() {
-        let temporary = TempDir::new().unwrap();
-        let root = BackupOperationalRoot::new(temporary.path().join("backups")).unwrap();
-        let name = BackupArchiveFileName::new("failed.longhorn-backup").unwrap();
-        let archive = minimal_operational_archive();
-        let error = publish_corrupt_staging_for_test(
-            &root,
-            &name,
-            &archive,
-            BackupPublicationOptions::new(
-                DurabilityRequirement::Durable,
-                BackupArchiveLimits::default(),
-            ),
-        )
-        .unwrap_err();
-        assert_eq!(error.stage, BackupPublicationStage::VerifyTemporary);
-        assert!(!error.published);
-        assert!(!root.path().join(name.as_str()).exists());
-        assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
-    }
-
-    fn minimal_operational_archive() -> EncodedBackupArchive {
-        let manifest = serde_json::to_vec(&json!({
-            "format": "longhorn.config-backup",
-            "formatVersion": 1,
-            "archiveId": "publication-test",
-            "kind": "operational",
-            "createdAt": "2026-07-28T12:00:00Z",
-            "application": {"id": "com.example.app", "version": "1.0.0"},
-            "producer": {"name": "longhorn-config", "version": "0.1.0"},
-            "consistencyGroups": [],
-            "domains": [],
-            "exclusions": []
-        }))
-        .unwrap();
-        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
-        let options = SimpleFileOptions::default()
-            .compression_method(CompressionMethod::Deflated)
-            .compression_level(Some(super::super::DEFLATE_LEVEL))
-            .last_modified_time(DateTime::default())
-            .unix_permissions(0o600)
-            .large_file(false);
-        writer
-            .start_file(super::super::MANIFEST_PATH, options)
-            .unwrap();
-        writer.write_all(&manifest).unwrap();
-        EncodedBackupArchive::new(writer.finish().unwrap().into_inner())
-    }
 }
