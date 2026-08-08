@@ -14,6 +14,7 @@
 | [g02.008](008-distribution-candidate-v2.md) | operator-held | candidate receipt v2 over the refreshed graph |
 | [g02.009](009-application-update-and-release-channels.md) | in progress | in-app update: channels, client-side rollout, source adapters, restart safety |
 | [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
+| [g02.011](011-ipc-boundary-validation.md) | ready | IPC boundary validation derived from the Rust authority |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -49,9 +50,14 @@ memo 020 licensing
                           └─ 157 host and storage ─ 158 client surface
 ```
 
-009 and 010 are independent of 001-008 and of the poodle release blocking
-the v0.1.0 tag. They meet at the update window: the updater asks the licence
-whether a release may be taken.
+```text
+P2-10 audit finding -> Card 160 inventory
+ └─ 011 IPC boundary validation
+```
+
+009, 010 and 011 are independent of 001-008 and of the poodle release
+blocking the v0.1.0 tag. 009 and 010 meet at the update window: the updater
+asks the licence whether a release may be taken. 011 touches neither.
 
 ## Current Checkpoint
 
@@ -70,8 +76,14 @@ its quiescence contract landed; its host wiring waits on a packaged proof
 application.
 
 Research memo 020 compiles contract 019 over licensing. Cards 155-158
-(g02.010) are ready. Both new milestones are independent of the poodle
-release currently blocking the v0.1.0 tag.
+(g02.010) are ready.
+
+g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
+named 5,330 lines; Card 160's inventory turned that into a coverage table
+showing nine of thirteen packages never validate keys at the IPC boundary,
+and 29 hardcoded bounds with no link to the 55 Rust constants defining them.
+All three new milestones are independent of the poodle release currently
+blocking the v0.1.0 tag.
 
 ## Candidate Runway
 

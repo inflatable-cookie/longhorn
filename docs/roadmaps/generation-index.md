@@ -63,6 +63,13 @@ dependency) plus the headless regression harness. The machine-bound claims
 stay recorded as unmet. The card resumes when a consumer needs the packaged
 evidence.
 
+[Card 160](g02/batch-cards/160-ipc-validation-derived-from-authority.md)
+opens g02.011 and is ready. Its inventory found nine of thirteen packages
+never validate keys at the IPC boundary, and 29 hardcoded bounds with no
+link to the 55 Rust constants that define them. Step 2 alone — emitting the
+bound constants — is separable and closes the only finding with a live drift
+mechanism.
+
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
 Also outstanding: Card 149's receipt freeze remains operator-held on
