@@ -5,6 +5,7 @@
     ControlSize,
     SemanticControlSizeRole,
     SplitOrientation,
+    SplitToggleVisibility,
   } from "@poodle/svelte";
   import {
     layoutRatioFromMillionths,
@@ -26,6 +27,9 @@
     secondaryRegionId?: RegionId | null;
     primaryHidden?: boolean;
     secondaryHidden?: boolean;
+    /** Forwarded to SplitView; "hover" hides the collapse pills until the
+     * divider is hovered or focused. */
+    toggleVisibility?: SplitToggleVisibility;
     size?: ControlSize | null;
     sizeRole?: SemanticControlSizeRole;
     density?: ControlDensity | null;
@@ -43,6 +47,7 @@
     secondaryRegionId = null,
     primaryHidden = false,
     secondaryHidden = false,
+    toggleVisibility = "always",
     size = null,
     sizeRole = "chrome",
     density = null,
@@ -87,6 +92,7 @@
   {size}
   {sizeRole}
   {density}
+  {toggleVisibility}
   {ariaLabel}
   onRatioChange={setRatio}
   onPrimaryCollapsedChange={(collapsed) => {
