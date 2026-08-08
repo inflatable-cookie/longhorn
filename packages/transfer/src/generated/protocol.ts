@@ -26,11 +26,11 @@ export type TransferRequestId = string;
 
 export type WindowId = string;
 
-export type ClientCssPx = number;
+export type ClientLogicalPx = number;
 
-export type ClientPoint = { x: ClientCssPx, y: ClientCssPx, };
+export type ClientPoint = { x: ClientLogicalPx, y: ClientLogicalPx, };
 
-export type ClientSize = { width: ClientCssPx, height: ClientCssPx, };
+export type ClientSize = { width: ClientLogicalPx, height: ClientLogicalPx, };
 
 export type ClientRect = { origin: ClientPoint, size: ClientSize, };
 

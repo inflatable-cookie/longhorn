@@ -2,14 +2,18 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-/// Finite local webview content coordinate measured in CSS pixels.
+/// Finite window-content coordinate in logical (device-independent) pixels.
+///
+/// Host-neutral. A webview calls these CSS pixels and GPUI calls them
+/// logical pixels; both mean the same thing — a device-independent unit
+/// scaled to physical pixels by the display's scale factor.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
-pub struct ClientCssPx(f64);
+pub struct ClientLogicalPx(f64);
 
-impl ClientCssPx {
-    /// Validates and constructs a client CSS coordinate.
+impl ClientLogicalPx {
+    /// Validates and constructs a logical-pixel coordinate.
     pub fn new(value: f64) -> Result<Self, ClientGeometryError> {
         if !value.is_finite() {
             return Err(ClientGeometryError::NonFiniteValue);
@@ -18,14 +22,14 @@ impl ClientCssPx {
         Ok(Self(if value == 0.0 { 0.0 } else { value }))
     }
 
-    /// Returns the finite CSS-pixel value.
+    /// Returns the finite logical-pixel value.
     #[must_use]
     pub const fn get(self) -> f64 {
         self.0
     }
 }
 
-impl Serialize for ClientCssPx {
+impl Serialize for ClientLogicalPx {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -34,7 +38,7 @@ impl Serialize for ClientCssPx {
     }
 }
 
-impl<'de> Deserialize<'de> for ClientCssPx {
+impl<'de> Deserialize<'de> for ClientLogicalPx {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -44,7 +48,7 @@ impl<'de> Deserialize<'de> for ClientCssPx {
     }
 }
 
-/// A local webview content point.
+/// A window-content point in logical pixels.
 ///
 /// Client-local coordinates cannot substitute for screen coordinates:
 ///
@@ -57,46 +61,46 @@ impl<'de> Deserialize<'de> for ClientCssPx {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 pub struct ClientPoint {
-    x: ClientCssPx,
-    y: ClientCssPx,
+    x: ClientLogicalPx,
+    y: ClientLogicalPx,
 }
 
 impl ClientPoint {
     /// Validates and constructs a point.
     pub fn new(x: f64, y: f64) -> Result<Self, ClientGeometryError> {
         Ok(Self {
-            x: ClientCssPx::new(x)?,
-            y: ClientCssPx::new(y)?,
+            x: ClientLogicalPx::new(x)?,
+            y: ClientLogicalPx::new(y)?,
         })
     }
 
     /// Returns the horizontal coordinate.
     #[must_use]
-    pub const fn x(self) -> ClientCssPx {
+    pub const fn x(self) -> ClientLogicalPx {
         self.x
     }
 
     /// Returns the vertical coordinate.
     #[must_use]
-    pub const fn y(self) -> ClientCssPx {
+    pub const fn y(self) -> ClientLogicalPx {
         self.y
     }
 }
 
-/// A non-negative local webview content size.
+/// A non-negative window-content size in logical pixels.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(try_from = "UncheckedClientSize")]
 pub struct ClientSize {
-    width: ClientCssPx,
-    height: ClientCssPx,
+    width: ClientLogicalPx,
+    height: ClientLogicalPx,
 }
 
 impl ClientSize {
     /// Validates and constructs a size.
     pub fn new(width: f64, height: f64) -> Result<Self, ClientGeometryError> {
-        let width = ClientCssPx::new(width)?;
-        let height = ClientCssPx::new(height)?;
+        let width = ClientLogicalPx::new(width)?;
+        let height = ClientLogicalPx::new(height)?;
         if width.get() < 0.0 || height.get() < 0.0 {
             return Err(ClientGeometryError::NegativeExtent);
         }
@@ -106,13 +110,13 @@ impl ClientSize {
 
     /// Returns the width.
     #[must_use]
-    pub const fn width(self) -> ClientCssPx {
+    pub const fn width(self) -> ClientLogicalPx {
         self.width
     }
 
     /// Returns the height.
     #[must_use]
-    pub const fn height(self) -> ClientCssPx {
+    pub const fn height(self) -> ClientLogicalPx {
         self.height
     }
 }
@@ -131,7 +135,7 @@ impl TryFrom<UncheckedClientSize> for ClientSize {
     }
 }
 
-/// A local webview content rectangle.
+/// A window-content rectangle in logical pixels.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 pub struct ClientRect {
@@ -171,8 +175,12 @@ pub enum ClientGeometryError {
 impl fmt::Display for ClientGeometryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFiniteValue => formatter.write_str("client CSS value must be finite"),
-            Self::NegativeExtent => formatter.write_str("client CSS size cannot be negative"),
+            Self::NonFiniteValue => {
+                formatter.write_str("client logical-pixel value must be finite")
+            }
+            Self::NegativeExtent => {
+                formatter.write_str("client logical-pixel size cannot be negative")
+            }
         }
     }
 }

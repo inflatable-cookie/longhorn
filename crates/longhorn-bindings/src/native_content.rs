@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use longhorn_core::{
-    ClientCssPx, ClientPoint, ClientRect, ClientSize, MAX_OPAQUE_ID_BYTES,
+    ClientLogicalPx, ClientPoint, ClientRect, ClientSize, MAX_OPAQUE_ID_BYTES,
     NativeContentFailureCode, NativeContentIslandId, NativeContentKindId, NativeContentRequestId,
     NativeContentRevision, RoundingMode, ScaleFactor, VisibilityReasonId, WindowId,
 };
@@ -76,7 +76,7 @@ fn render_protocol() -> Result<String, Box<dyn Error>> {
     let decision_result = NativeContentContentSizeDecisionResult::decl();
     let change = NativeContentChangeProjection::decl();
     let declarations = [
-        ClientCssPx::decl(),
+        ClientLogicalPx::decl(),
         ClientPoint::decl(),
         ClientSize::decl(),
         ClientRect::decl(),

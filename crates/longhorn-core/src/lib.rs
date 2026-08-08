@@ -13,7 +13,9 @@ mod settings_id;
 mod store_compatibility;
 mod window_metrics;
 
-pub use client_geometry::{ClientCssPx, ClientGeometryError, ClientPoint, ClientRect, ClientSize};
+pub use client_geometry::{
+    ClientGeometryError, ClientLogicalPx, ClientPoint, ClientRect, ClientSize,
+};
 pub use command_id::{
     CommandAvailabilityReasonId, CommandBindingId, CommandCapabilityId, CommandCategoryId,
     CommandContextId, CommandEnumValueId, CommandEvidenceCode, CommandFieldId, CommandId,

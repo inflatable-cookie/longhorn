@@ -22,7 +22,7 @@ finishing a separation that mostly exists rather than creating one.
 
 ### Batch 1. Make the existing separation honest
 
-- [ ] [Card 161](batch-cards/161-host-tier-positioning-and-leak-fixes.md)
+- [x] [Card 161](batch-cards/161-host-tier-positioning-and-leak-fixes.md)
   restates positioning, tiers the contracts, and closes the two leaks
 
 ### Batch 2. Delegated capability
@@ -48,15 +48,15 @@ memo 021 dual-backend positioning
 
 ## Goals
 
-- [ ] no pure crate depends on a host adapter
-- [ ] no host-shaped concept sits unqualified in `longhorn-core`
-- [ ] contract tiers are stated, and webview-edge contracts are optional
+- [x] no pure crate depends on a host adapter
+- [x] no host-shaped concept sits unqualified in `longhorn-core`
+- [x] contract tiers are stated, and webview-edge contracts are optional
 - [ ] update installs on a host with no plugin, under the same contract
 - [ ] one host-contract claim is proved against both backends
 
 ## Acceptance Criteria
 
-- [ ] `longhorn-windowing-config` compiles with no `longhorn-tauri-*`
+- [x] `longhorn-windowing-config` compiles with no `longhorn-tauri-*`
   dependency
 - [ ] every host-contract requirement is stated without naming a backend
 - [ ] the native installer and the Tauri plugin path share one conformance

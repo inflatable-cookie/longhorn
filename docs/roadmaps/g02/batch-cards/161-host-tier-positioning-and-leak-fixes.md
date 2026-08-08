@@ -1,11 +1,12 @@
 # 161 Host Tier Positioning And Leak Fixes
 
-Status: in progress — leak closed; geometry rename outstanding
+Status: complete
 Owner: Tom
 Roadmap: g02.012 batch 1
 Governing refs: contract 020; research memo 021
 Depends on: none
 Auto-start next card: no
+Completed: 2026-08-08
 
 ## Objective
 
@@ -76,6 +77,32 @@ Only the placement port moved in this card, because that is what removed the
 dependency edge. Whether the remaining seven pure port types should also
 move is a contract-020 question that **Card 163 should answer with evidence**
 rather than this card answering by assumption.
+
+### Geometry generalisation — and a correction
+
+This was recorded as a breaking change touching every consumer's public
+surface. Measurement says otherwise, per type:
+
+| type | longhorn refs | consumer files |
+| --- | ---: | ---: |
+| `ClientCssPx` | 27 | **0** |
+| `ClientPoint` | 51 | 4 |
+| `ClientSize` | 66 | 4 |
+| `ClientRect` | 67 | 4 |
+| `ClientGeometryError` | 12 | 0 |
+
+The only badly-named type is the one nothing outside Longhorn references.
+`ClientPoint`, `ClientSize` and `ClientRect` are already host-neutral names;
+only their doc comments said "webview".
+
+`ClientCssPx` is now `ClientLogicalPx`, and the doc comments are host-neutral.
+The concepts were never different: a webview calls these CSS pixels and GPUI
+calls them logical pixels, and both mean a device-independent unit scaled to
+physical by the display's scale factor. This was naming, not modelling.
+
+The generated TypeScript alias renames with it, but `ClientPoint` and
+`ClientSize` keep their names and structural shape (`{ x: number, y: number }`),
+so no consumer breaks. All four consumer repositories compile unchanged.
 
 ## Acceptance Criteria
 

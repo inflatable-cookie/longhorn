@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use longhorn_core::{
-    ClientCssPx, ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, TransferClientId,
+    ClientLogicalPx, ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, TransferClientId,
     TransferHostBindingId, TransferRequestId, WindowId,
 };
 use longhorn_transfer::{
@@ -75,7 +75,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         TransferHostBindingId::decl(),
         TransferRequestId::decl(),
         WindowId::decl(),
-        ClientCssPx::decl(),
+        ClientLogicalPx::decl(),
         ClientPoint::decl(),
         ClientSize::decl(),
         ClientRect::decl(),

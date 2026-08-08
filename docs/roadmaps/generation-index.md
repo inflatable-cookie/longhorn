@@ -63,8 +63,13 @@ dependency) plus the headless regression harness. The machine-bound claims
 stay recorded as unmet. The card resumes when a consumer needs the packaged
 evidence.
 
-[Card 161](g02/batch-cards/161-host-tier-positioning-and-leak-fixes.md)
-opens g02.012 and is ready. Research memo 021 repositions Longhorn as a
+[Card 161](g02/batch-cards/161-host-tier-positioning-and-leak-fixes.md) is
+complete: zero pure crates depend on a host adapter, and the webview-shaped
+geometry in core is host-neutral.
+
+[Card 162](g02/batch-cards/162-native-update-execution.md) and
+[Card 163](g02/batch-cards/163-gpui-host-adapter.md) are ready and
+independent of each other. Research memo 021 repositions Longhorn as a
 framework with two first-class, permanent hosts — Tauri and GPUI. The
 separation mostly exists already: 12.5% of the Rust is Tauri-bound, with one
 pure-to-host dependency edge and one webview-shaped concept in core. Card
