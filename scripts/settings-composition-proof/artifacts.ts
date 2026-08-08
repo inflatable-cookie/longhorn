@@ -1,3 +1,4 @@
+import { poodleArtifactSet, poodleEvidence } from "../poodle-evidence.ts";
 import { basename, join, resolve } from "node:path";
 import {
   mkdir,
@@ -12,12 +13,10 @@ import type {
   PoodleEvidenceFile,
 } from "./types.ts";
 
-export const POODLE_ARTIFACT_SET =
-  "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
+export const POODLE_ARTIFACT_SET = poodleArtifactSet();
 
 const poodleEvidencePath = resolve(
-  process.env.POODLE_PREVIEW_EVIDENCE ??
-    "../poodle/.artifacts/g12.016-A698XB/evidence.json",
+  poodleEvidence().evidencePath,
 );
 
 const rustCrates = [

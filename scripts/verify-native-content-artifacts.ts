@@ -1,3 +1,4 @@
+import { poodleArtifactSet, poodleEvidence } from "./poodle-evidence.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -13,8 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-const POODLE_ARTIFACT_SET =
-  "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
+const POODLE_ARTIFACT_SET = poodleArtifactSet();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
   "948fcd5481fd0df00dafc40575beb1aae76bff0a0ef6cf240639a005958f2b0c";
 const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
@@ -162,8 +162,7 @@ try {
 
 async function readPoodleEvidence() {
   const evidencePath = resolve(
-    process.env.POODLE_PREVIEW_EVIDENCE ??
-      "../poodle/.artifacts/g12.016-A698XB/evidence.json",
+    poodleEvidence().evidencePath,
   );
   const evidence = JSON.parse(
     await readFile(evidencePath, "utf8"),

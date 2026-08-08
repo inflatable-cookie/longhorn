@@ -1,3 +1,4 @@
+import { poodleEvidence } from "./poodle-evidence.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -15,11 +16,9 @@ import { basename, join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/app-shell-proof");
-const expectedPoodleSet =
-  "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
+const expectedPoodleSet = poodleEvidence().artifactSetId;
 const poodleEvidencePath = resolve(
-  process.env.POODLE_CARD_038_EVIDENCE ??
-    join(repoRoot, "../poodle/.artifacts/g12.016-A698XB/evidence.json"),
+  process.env.POODLE_CARD_038_EVIDENCE ?? poodleEvidence().evidencePath,
 );
 
 const longhornPackages = [

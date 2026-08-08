@@ -1,10 +1,11 @@
+import { poodleArtifactSet, poodleEvidence } from "../poodle-evidence.ts";
 import { basename, join, resolve } from "node:path";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
 import type { ArtifactIdentity, PoodleEvidence, Shape } from "./types.ts";
 
-export const POODLE_ARTIFACT_SET = "39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74";
+export const POODLE_ARTIFACT_SET = poodleArtifactSet();
 
 const typescriptPackages = [
   ["@inflatable-cookie/longhorn-core", "core"],
@@ -24,7 +25,7 @@ const rustCrates = [
 ] as const;
 
 export async function readPoodleEvidence(): Promise<PoodleEvidence> {
-  const evidencePath = resolve(process.env.POODLE_PREVIEW_EVIDENCE ?? "../poodle/.artifacts/g12.016-A698XB/evidence.json");
+  const evidencePath = resolve(poodleEvidence().evidencePath,);
   const evidence = JSON.parse(await readFile(evidencePath, "utf8")) as { artifactSetId: string; artifacts: readonly ArtifactIdentity[] };
   if (evidence.artifactSetId !== POODLE_ARTIFACT_SET) throw new Error(`Poodle artifact set mismatch: ${evidence.artifactSetId}`);
   const packDirectory = join(resolve(evidencePath, ".."), "packs");

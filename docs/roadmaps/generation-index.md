@@ -93,6 +93,15 @@ aliased Longhorn by path and is now normalised onto `file:` dependencies like
 the rest. Card 149's receipt still needs regenerating against the new counts
 once it is unblocked.
 
+[Card 165](g02/batch-cards/165-artifact-proof-selection-model.md) is ready and
+is what stands between the repository and a green `proof:artifacts`. The stale
+Poodle evidence pin that was blamed for those failures is fixed — the pin now
+derives from the root manifest, so the packs Longhorn installs and the packs
+the proofs verify cannot disagree — but ten proofs still encode the
+eighteen-package selection model, and contract 012's Acceptance list still
+states two of its claims in install terms the TypeScript tier can no longer
+satisfy.
+
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
 Also outstanding: Card 149's receipt freeze remains operator-held on

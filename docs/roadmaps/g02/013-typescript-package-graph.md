@@ -49,4 +49,6 @@ dependency — published names freeze.
 
 ## Next Task
 
-Card 164, landed 2026-08-08. Consumer migration remains, tracked on the card.
+Card 164, landed 2026-08-08. [Card 165](batch-cards/165-artifact-proof-selection-model.md)
+follows: the ten artifact proofs still encode the eighteen-package selection
+model and cannot pass until they are rewritten.
