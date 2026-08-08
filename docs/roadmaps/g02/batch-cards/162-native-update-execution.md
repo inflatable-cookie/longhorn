@@ -1,6 +1,6 @@
 # 162 Native Update Execution
 
-Status: ready
+Status: in progress — contract and suite landed; implementations outstanding
 Owner: Tom
 Roadmap: g02.012 batch 2
 Governing refs: contracts 018 and 020; research memo 021
@@ -44,6 +44,60 @@ framework exists to prevent.
 5. Keep the restart interlock host-agnostic. `UpdateGate::authorize` already
    answers for both paths.
 6. Add the system browser opener as a host capability.
+
+## Steps 1 Landed — 2026-08-08
+
+The contract and its conformance suite exist before either implementation,
+as the card required.
+
+`UpdateInstaller::apply(version, artifact, signature) -> Result<Applied,
+InstallFailure>` in `longhorn-update`, with `run_conformance` returning one
+outcome per claim.
+
+**The contract is deliberately coarse.** Tauri's plugin performs download,
+verification, and replacement as one opaque call, so a contract demanding
+separable steps could not be satisfied by it. What both implementations can
+promise is observable behaviour: what reaches disk, and what is reported.
+
+**The suite reports every failure rather than the first**, so a report names
+everything an implementation gets wrong instead of inviting fix-and-rerun-blind.
+
+**Seven meta-tests prove the suite catches what it claims.** A suite nobody
+has seen fail is a suite nobody should trust, so each feeds it a
+deliberately wrong implementation and asserts the specific claim goes red:
+an installer that skips verification, one that rejects for the wrong reason,
+one that conflates an unusable artifact with a signature failure, and one
+that applies the wrong version.
+
+Two distinctions the suite enforces that a naive implementation loses:
+
+- **Rejecting is not enough.** A signature failure reported as a generic
+  fault invites a retry loop against an attacker-supplied artifact, so
+  `SignatureRejected` is not retryable and the suite checks the reason, not
+  just the refusal.
+- **"We do not trust this" and "we trust it and cannot use it" are different
+  messages**, and only one is a security event. `MalformedArtifact` is
+  separate from `SignatureRejected`.
+
+### Format decision — minisign, from the Tauri side
+
+Tauri's plugin verifies with **minisign**, via `minisign-verify ^0.2`.
+
+The native implementation must use the same format and the same key.
+Anything else means two signatures per artifact, two keys, and two signing
+steps per release — for one product shipping to two hosts. One release, one
+signature, two verifiers that agree by construction.
+
+This is a constraint on the native implementation, not a choice it gets to
+make.
+
+## Outstanding
+
+- the native implementation: minisign verification, unpack, atomic
+  replacement, relaunch
+- the baseline conformance run against the Tauri plugin path, which needs a
+  packaged application and therefore shares Card 159's blocker
+- the system browser opener
 
 ## Acceptance Criteria
 

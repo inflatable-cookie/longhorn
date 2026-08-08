@@ -12,6 +12,7 @@
 mod channel;
 mod decision;
 mod deferral;
+mod install;
 mod manifest;
 mod restart;
 mod rollout;
@@ -20,6 +21,10 @@ mod source;
 pub use channel::{BuildIdentity, Channel};
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
 pub use deferral::{Deferral, DeferralCause};
+pub use install::{
+    Applied, ConformanceFixtures, ConformanceOutcome, InstallFailure, UpdateInstaller,
+    run_conformance,
+};
 pub use manifest::{Artifact, ChannelManifest, TargetTriple, TargetTripleError};
 pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
 pub use rollout::{InstallId, InstallIdError, Rollout, RolloutFraction, RolloutFractionError};
