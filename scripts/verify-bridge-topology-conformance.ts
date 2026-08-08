@@ -42,14 +42,14 @@ for (const shape of shapes) {
     }
   }
   const imports = importGraph[shape]!;
-  const hasEvents = imports.includes("@inflatable-cookie/longhorn-bridge/tauri-events");
+  const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
   const hasEventAdmission = fixture.tauriPermissions.some((permission) =>
     permission.startsWith("core:event:")
   );
   if (hasEvents !== hasEventAdmission) {
     throw new Error(`${shape} event imports and permissions diverge`);
   }
-  const hasService = imports.includes("@inflatable-cookie/longhorn-bridge/supervision");
+  const hasService = imports.includes("@inflatable-cookie/longhorn/bridge/supervision");
   if (hasService !== (fixture.serviceOwnership !== null)) {
     throw new Error(`${shape} service import and ownership diverge`);
   }
@@ -71,7 +71,7 @@ assertEqualSet(
 );
 
 const rootBarrel = await readFile(
-  join(repoRoot, "packages/bridge/src/index.ts"),
+  join(repoRoot, "packages/longhorn/src/bridge/index.ts"),
   "utf8",
 );
 for (const optional of ["./stream", "./supervision", "./tauri-events"]) {
@@ -81,7 +81,7 @@ for (const optional of ["./stream", "./supervision", "./tauri-events"]) {
 }
 
 const sharedSources = await sourceText([
-  join(repoRoot, "packages/bridge/src"),
+  join(repoRoot, "packages/longhorn/src/bridge"),
   join(repoRoot, "crates/longhorn-bridge/src"),
   join(repoRoot, "crates/longhorn-tauri-bridge/src"),
 ]);
@@ -168,7 +168,7 @@ async function packageImports(entry: string): Promise<readonly string[]> {
     const pattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
     for (const match of source.matchAll(pattern)) {
       const specifier = match[1]!;
-      if (specifier.startsWith("@inflatable-cookie/longhorn-")) {
+      if (/^@inflatable-cookie\/longhorn(\/|-)/.test(specifier)) {
         packages.add(specifier);
       } else if (specifier.startsWith(".")) {
         await visit(resolve(path, "..", specifier));

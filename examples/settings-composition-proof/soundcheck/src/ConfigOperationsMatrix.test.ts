@@ -7,7 +7,7 @@ import type {
   RestorePlanCommand,
   RestoreRecoveryCommand,
   StorageTransitionInspectCommand,
-} from "@inflatable-cookie/longhorn-config";
+} from "@inflatable-cookie/longhorn/config";
 
 import configFixture from "./fixtures/config-protocol-v1.json";
 import { ConfigProofTransport } from "./config-proof.ts";

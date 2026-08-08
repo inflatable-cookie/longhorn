@@ -151,7 +151,7 @@ registry and effective keymap.
 Rust owns canonical search, ranking, shortcut labels, candidate ordering, and
 conflict semantics. Checked TypeScript passes the same fixtures.
 
-- `@inflatable-cookie/longhorn-commands` owns framework-neutral clients and injected catalogue,
+- `@inflatable-cookie/longhorn/commands` owns framework-neutral clients and injected catalogue,
   keymap, availability, and executor ports.
 - Optional Svelte state is per instance and follows contract 013.
 - Optional Poodle bindings use public controlled `CommandPalette` and settings
@@ -168,7 +168,7 @@ No Longhorn visual adapter calls raw Tauri IPC or copies a Poodle component.
 - `longhorn-command-config`: registered keymap domain and coordinated mutation
 - `longhorn-tauri-command`: narrow registry/keymap query and mutation assembly;
   no generic command execution
-- `@inflatable-cookie/longhorn-commands`: checked protocol and optional `/svelte` and `/poodle`
+- `@inflatable-cookie/longhorn/commands`: checked protocol and optional `/svelte` and `/poodle`
   subpaths
 - `longhorn-bindings`: checked command/keymap protocol generation
 

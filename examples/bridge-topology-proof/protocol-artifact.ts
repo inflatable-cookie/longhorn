@@ -1,7 +1,7 @@
 import {
   BridgeProtocolIncompatibilityError,
   parseBridgeHelloRequest,
-} from "@inflatable-cookie/longhorn-bridge";
+} from "@inflatable-cookie/longhorn/bridge";
 
 export function protocolArtifactTrace() {
   const accepted = parseBridgeHelloRequest({

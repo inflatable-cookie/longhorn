@@ -8,8 +8,8 @@ export default defineConfig({
   },
   ssr: {
     noExternal: [
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-settings",
+      "@inflatable-cookie/longhorn/commands",
+      "@inflatable-cookie/longhorn/settings",
       "@inflatable-cookie/poodle-headless",
       "@inflatable-cookie/poodle-icons-lucide",
       "@inflatable-cookie/poodle-styles",

@@ -24,7 +24,7 @@ use crate::generation::{
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/notifications/src/generated/protocol.ts";
+const GENERATED_PROTOCOL: &str = "packages/longhorn/src/notifications/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/notifications/protocol-v1.json";
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {

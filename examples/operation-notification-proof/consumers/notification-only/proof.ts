@@ -1,5 +1,5 @@
-import { NotificationClient, SerializedNotificationPort, createDirectNotificationPort, type NotificationMutationCommand, type NotificationMutationResult, type NotificationSnapshotResponse } from "@inflatable-cookie/longhorn-notifications";
-import { createTauriNotificationPort, NOTIFICATION_MUTATE_COMMAND, NOTIFICATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-notifications/tauri";
+import { NotificationClient, SerializedNotificationPort, createDirectNotificationPort, type NotificationMutationCommand, type NotificationMutationResult, type NotificationSnapshotResponse } from "@inflatable-cookie/longhorn/notifications";
+import { createTauriNotificationPort, NOTIFICATION_MUTATE_COMMAND, NOTIFICATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-tauri/notifications";
 
 import { equal, notificationTrace } from "../../common.ts";
 import fixtureValue from "./fixture.json";

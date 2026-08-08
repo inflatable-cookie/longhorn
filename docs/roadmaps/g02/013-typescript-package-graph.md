@@ -1,6 +1,6 @@
 # g02.013 TypeScript Package Graph
 
-Status: ready
+Status: complete
 Owner: Tom
 Updated: 2026-08-08
 Governing refs: contract 012; contracts 013 and 020
@@ -23,7 +23,7 @@ dependency — published names freeze.
 
 ### Batch 1. Consolidation
 
-- [ ] [Card 164](batch-cards/164-typescript-package-consolidation.md)
+- [x] [Card 164](batch-cards/164-typescript-package-consolidation.md)
   collapses eighteen packages to three and migrates the four consumers
 
 ## Goals
@@ -49,4 +49,4 @@ dependency — published names freeze.
 
 ## Next Task
 
-Card 164, before poodle publishes.
+Card 164, landed 2026-08-08. Consumer migration remains, tracked on the card.

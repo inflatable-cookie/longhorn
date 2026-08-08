@@ -35,8 +35,8 @@ longhorn-core
        └─ longhorn-native-content-backing-surface
 
 longhorn-native-content
-  └─ @inflatable-cookie/longhorn-native-content
-       └─ @inflatable-cookie/longhorn-native-content-svelte
+  └─ @inflatable-cookie/longhorn/native-content
+       └─ @inflatable-cookie/longhorn-poodle-svelte/native-content
 
 Poodle public layout seam ─ consumer composition only
 ```
@@ -60,14 +60,14 @@ cursor interpretation, data-store choice, and all persisted browser state
 remain consumer authority.
 
 Navigation is deliberately absent from `longhorn-native-content` and
-`@inflatable-cookie/longhorn-native-content`. It is specific to the retained child-view
+`@inflatable-cookie/longhorn/native-content`. It is specific to the retained child-view
 mechanism. A consumer-owned Tauri command may call the adapter without
 exporting a raw webview handle or granting the remote child a capability.
 Repeated navigation to the fresh current URL is unchanged; a submitted receipt
 means only that the native runtime accepted the request. Page-load callbacks
 separately drive not-ready/ready evidence.
 
-`@inflatable-cookie/longhorn-native-content` is generated from Rust authority. The Svelte
+`@inflatable-cookie/longhorn/native-content` is generated from Rust authority. The Svelte
 package owns mounted connection lifetime, viewport measurement, explicit
 visibility and focus gates, stale async rejection, and teardown. It accepts a
 consumer-supplied element and policy; it does not inspect Poodle internals.
@@ -150,8 +150,8 @@ or treat prototype API shape as compatibility authority.
 
 ## Artifact And Adoption Checkpoint
 
-Card 093 packs `@inflatable-cookie/longhorn-core`, `@inflatable-cookie/longhorn-native-content`, and
-`@inflatable-cookie/longhorn-native-content-svelte`, inventories the five Rust crates, and runs
+Card 093 packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn/native-content`, and
+`@inflatable-cookie/longhorn-poodle-svelte/native-content`, inventories the five Rust crates, and runs
 four offline Rust consumers plus three isolated renderer consumers. The pure,
 Nucleus, Soundcheck, and Jetstream graphs contain exactly their selected
 mechanism. Browser, plugin, GPU, Tauri, Svelte, and Poodle edges remain absent
@@ -219,7 +219,7 @@ types cover connection, snapshots, desired updates, observations,
 content-size proposals and decisions, apply receipts, and host destruction.
 The checked fixture is generated beside TypeScript; drift fails the gate.
 
-`@inflatable-cookie/longhorn-native-content` owns no mechanism. Its root accepts injected direct
+`@inflatable-cookie/longhorn/native-content` owns no mechanism. Its root accepts injected direct
 or serialized transports. `/tauri` only maps four narrow commands and one
 product-neutral event. Connection is listener-first. Each connect issues a
 new client epoch while attach generation remains host authority. Independent
@@ -231,7 +231,7 @@ content.
 
 ## Svelte Lifecycle Checkpoint
 
-Card 092 adds `@inflatable-cookie/longhorn-native-content-svelte` as a separate package over the
+Card 092 adds `@inflatable-cookie/longhorn-poodle-svelte/native-content` as a separate package over the
 checked client. Each `NativeContentSession` owns one connection per mount and
 accepts the current scale plus final visibility, focus, and input-routing
 policy. It measures only the exact consumer-supplied viewport element. Host

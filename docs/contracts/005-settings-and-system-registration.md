@@ -172,9 +172,9 @@ settings wrapper.
 - `longhorn-settings-config`: config-domain apply units and shared config
   modules
 - `longhorn-tauri-settings`: narrow command/event host assembly
-- `@inflatable-cookie/longhorn-settings`: checked protocol, client, projections, and optional
+- `@inflatable-cookie/longhorn/settings`: checked protocol, client, projections, and optional
   Svelte/Poodle subpaths
-- `@inflatable-cookie/longhorn-config`: checked storage, backup, restore, and recovery client
+- `@inflatable-cookie/longhorn/config`: checked storage, backup, restore, and recovery client
 
 ## Acceptance
 

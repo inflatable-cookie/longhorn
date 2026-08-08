@@ -3,7 +3,7 @@
     CommandPaletteBinding,
     KeybindingSettings,
     type CommandSession,
-  } from "@inflatable-cookie/longhorn-commands/poodle";
+  } from "@inflatable-cookie/longhorn-poodle-svelte/commands/poodle";
 
   let { session }: { session: CommandSession } = $props();
 </script>

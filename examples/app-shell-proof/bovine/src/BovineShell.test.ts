@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   ReactiveClientState,
   type ReactiveConnection,
-} from "@inflatable-cookie/longhorn-svelte";
+} from "@inflatable-cookie/longhorn-poodle-svelte";
 
 import BovineShell, {
   type BovineAuthority,

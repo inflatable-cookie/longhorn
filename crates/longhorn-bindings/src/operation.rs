@@ -25,7 +25,7 @@ use crate::generation::{
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/operation/src/generated/protocol.ts";
+const GENERATED_PROTOCOL: &str = "packages/longhorn/src/operation/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/operation/protocol-v1.json";
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {

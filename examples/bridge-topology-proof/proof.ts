@@ -1,7 +1,7 @@
 import {
   BridgeQueryRetryRuntime,
   type BridgeRuntimeClock,
-} from "@inflatable-cookie/longhorn-bridge";
+} from "@inflatable-cookie/longhorn/bridge";
 
 import {
   adapterNames,
@@ -58,9 +58,9 @@ function dependencyGraph() {
         imports: declaration(name).imports,
         tauriPermissions: declaration(name).tauriPermissions,
         events:
-          declaration(name).imports.includes("@inflatable-cookie/longhorn-bridge/tauri-events"),
+          declaration(name).imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events"),
         service:
-          declaration(name).imports.includes("@inflatable-cookie/longhorn-bridge/supervision"),
+          declaration(name).imports.includes("@inflatable-cookie/longhorn/bridge/supervision"),
       },
     ]),
   );

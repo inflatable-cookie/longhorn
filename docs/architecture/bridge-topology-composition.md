@@ -14,13 +14,13 @@ reach it.
 
 | Need | Rust | TypeScript | Tauri capability |
 | --- | --- | --- | --- |
-| Direct in-process domain | `longhorn-bridge` | `@inflatable-cookie/longhorn-bridge` | none |
+| Direct in-process domain | `longhorn-bridge` | `@inflatable-cookie/longhorn/bridge` | none |
 | Tauri-local query | `longhorn-tauri-bridge` | root plus `/tauri` | query |
 | Ordered Tauri projection | same host | add `/stream` and `/tauri-events` | query, listen, unlisten |
 | Correlated Tauri job | same host | add `/tauri-events` | query/mutate as registered, listen, unlisten |
 | Injected service lifecycle | `longhorn-bridge/supervision` | add `/supervision` | none from supervision |
 
-`@inflatable-cookie/longhorn-bridge` depends on `@inflatable-cookie/longhorn-core` and `@inflatable-cookie/longhorn-tauri`.
+`@inflatable-cookie/longhorn/bridge` depends on `@inflatable-cookie/longhorn/core` and `@inflatable-cookie/longhorn-tauri`.
 The Tauri package carries one `@tauri-apps/api` peer. Event support is a
 subpath import, not an automatic capability grant.
 
@@ -116,8 +116,8 @@ needs. Tauri capabilities remain the outer admission boundary.
 
 Renderer composition uses:
 
-- `@inflatable-cookie/longhorn-bridge/tauri` for invoke
-- `@inflatable-cookie/longhorn-bridge/tauri-events` only for ordered domain or job events
+- `@inflatable-cookie/longhorn-tauri/bridge` for invoke
+- `@inflatable-cookie/longhorn-tauri/bridge-events` only for ordered domain or job events
 - domain-owned codecs and operation descriptors
 
 Do not pass raw product command names through a generic bridge string bus. Do
@@ -145,8 +145,8 @@ capabilities. Do not keep a silent fallback between old and new authorities.
 
 ## Artifact Evidence
 
-`proof:bridge-topology-artifacts` packs `@inflatable-cookie/longhorn-core`,
-`@inflatable-cookie/longhorn-tauri`, and `@inflatable-cookie/longhorn-bridge`, then installs five clean consumers.
+`proof:bridge-topology-artifacts` packs `@inflatable-cookie/longhorn/core`,
+`@inflatable-cookie/longhorn-tauri`, and `@inflatable-cookie/longhorn/bridge`, then installs five clean consumers.
 It rejects workspace aliases, sibling source resolution, undeclared imports,
 permission drift, product vocabulary, credential values, and production
 network dependencies.

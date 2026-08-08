@@ -15,7 +15,7 @@ cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 vitest_owned_tests_dir() {
   local config="packages/$1/vitest.config.ts"
-  [[ -f "$config" ]] && grep -q "packages/$1/tests/" "$config"
+  [[ -f "$config" ]] && grep -q "packages/$1/tests" "$config"
 }
 
 files=()
@@ -24,7 +24,7 @@ for dir in packages/*/tests; do
   vitest_owned_tests_dir "$package" && continue
   while IFS= read -r file; do
     files+=("$file")
-  done < <(find "$dir" -maxdepth 1 -name '*.test.ts')
+  done < <(find "$dir" -name '*.test.ts')
 done
 
 if [[ ${#files[@]} -eq 0 ]]; then

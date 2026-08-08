@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { NotificationPanel, NotificationToastHost } from "@inflatable-cookie/longhorn-notifications/poodle";
-  import { useNotificationSession, type NotificationSession } from "@inflatable-cookie/longhorn-notifications/svelte";
-  import { OperationPanel } from "@inflatable-cookie/longhorn-operation/poodle";
-  import { useOperationSession, type OperationSession } from "@inflatable-cookie/longhorn-operation/svelte";
+  import { NotificationPanel, NotificationToastHost } from "@inflatable-cookie/longhorn-poodle-svelte/notifications/poodle";
+  import { useNotificationSession, type NotificationSession } from "@inflatable-cookie/longhorn-poodle-svelte/notifications/svelte";
+  import { OperationPanel } from "@inflatable-cookie/longhorn-poodle-svelte/operation/poodle";
+  import { useOperationSession, type OperationSession } from "@inflatable-cookie/longhorn-poodle-svelte/operation/svelte";
 
   let { operations, notifications }: { operations: OperationSession; notifications: NotificationSession } = $props();
   useOperationSession(operations);

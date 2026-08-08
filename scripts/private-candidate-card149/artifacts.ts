@@ -39,7 +39,7 @@ export async function longhornPackageManifests(): Promise<Map<string, { director
   for (const entry of entries.filter((candidate) => candidate.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
     const directory = `packages/${entry.name}`;
     const manifest = JSON.parse(await readFile(join(repoRoot, directory, "package.json"), "utf8")) as PackageManifest;
-    assert(manifest.name.startsWith("@inflatable-cookie/longhorn-"), `${directory} is not a Longhorn package`);
+    assert(/^@inflatable-cookie\/longhorn(-|$)/.test(manifest.name), `${directory} is not a Longhorn package`);
     equal(manifest.version, candidateVersion, `${manifest.name} version`);
     equal(manifest.private, true, `${manifest.name} private posture`);
     result.set(manifest.name, { directory, manifest });

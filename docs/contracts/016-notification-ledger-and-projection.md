@@ -21,10 +21,10 @@ usable for non-operation events.
   operation-observer seam
 - `longhorn-tauri-notifications`: narrow handler/event assembly over an
   injected ledger
-- `@inflatable-cookie/longhorn-notifications`: generated framework-neutral protocol and client
-- `@inflatable-cookie/longhorn-notifications/tauri`: optional Tauri transport composition
-- `@inflatable-cookie/longhorn-notifications/svelte`: optional per-instance reactive session
-- `@inflatable-cookie/longhorn-notifications/poodle`: optional panel and toast projection over
+- `@inflatable-cookie/longhorn/notifications`: generated framework-neutral protocol and client
+- `@inflatable-cookie/longhorn-tauri/notifications`: optional Tauri transport composition
+- `@inflatable-cookie/longhorn-poodle-svelte/notifications/svelte`: optional per-instance reactive session
+- `@inflatable-cookie/longhorn-poodle-svelte/notifications/poodle`: optional panel and toast projection over
   public Poodle primitives
 
 The pure notification root does not require the operation package. Optional

@@ -1,4 +1,4 @@
-import type { NativeContentSnapshot } from "@inflatable-cookie/longhorn-native-content";
+import type { NativeContentSnapshot } from "@inflatable-cookie/longhorn/native-content";
 
 export interface NativeContentTraceFixture {
   readonly snapshots: readonly NativeContentSnapshot[];

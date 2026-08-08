@@ -83,7 +83,7 @@ export async function graphDefinitions(): Promise<GraphDefinition[]> {
         devDependencies?: Record<string, string>;
       };
       for (const name of Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })) {
-        if (name.startsWith("@inflatable-cookie/longhorn-")) typescript.add(name);
+        if (/^@inflatable-cookie\/longhorn(\/|-|$)/.test(name)) typescript.add(name);
       }
     }
     const rust = new Set<string>();
@@ -243,10 +243,10 @@ function dependencyClosure(selected: string[], manifests: Map<string, { manifest
     assert(manifest, `unknown TypeScript package ${name}`);
     result.add(name);
     for (const dependency of Object.keys(manifest.dependencies ?? {})) {
-      if (dependency.startsWith("@inflatable-cookie/longhorn-")) pending.push(dependency);
+      if (/^@inflatable-cookie\/longhorn(\/|-|$)/.test(dependency)) pending.push(dependency);
     }
     for (const peer of Object.keys(manifest.peerDependencies ?? {})) {
-      if (peer.startsWith("@inflatable-cookie/longhorn-") && manifest.peerDependenciesMeta?.[peer]?.optional !== true) pending.push(peer);
+      if (/^@inflatable-cookie\/longhorn(\/|-|$)/.test(peer) && manifest.peerDependenciesMeta?.[peer]?.optional !== true) pending.push(peer);
     }
   }
   return [...result].sort();

@@ -8,8 +8,8 @@ import {
   type BridgeCancellationRequest,
   type BridgeCommandEnvelope,
   type BridgeOperationDescriptor,
-} from "@inflatable-cookie/longhorn-bridge";
-import { BridgeServiceRuntime } from "@inflatable-cookie/longhorn-bridge/supervision";
+} from "@inflatable-cookie/longhorn/bridge";
+import { BridgeServiceRuntime } from "@inflatable-cookie/longhorn/bridge/supervision";
 
 import {
   cancellationParity,

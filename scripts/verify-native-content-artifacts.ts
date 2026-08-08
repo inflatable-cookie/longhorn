@@ -789,7 +789,7 @@ async function packageImports(stage: string) {
   const imports = new Set<string>();
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
-    for (const match of source.matchAll(/from\s+["']((?:@inflatable-cookie\/(?:longhorn-|poodle-))[^"']+)["']/g)) {
+    for (const match of source.matchAll(/from\s+["']((?:@inflatable-cookie\/(?:longhorn[/-]|poodle-))[^"']+)["']/g)) {
       imports.add(match[1]!);
     }
   }

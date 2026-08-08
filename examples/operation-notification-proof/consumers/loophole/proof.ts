@@ -1,9 +1,9 @@
-import { BridgeDomainClient, BridgeSession, type BridgeOperationDescriptor } from "@inflatable-cookie/longhorn-bridge";
-import { NotificationClient, createDirectNotificationPort, type NotificationMutationCommand, type NotificationMutationResult, type NotificationSnapshotResponse } from "@inflatable-cookie/longhorn-notifications";
-import { createTauriNotificationPort, NOTIFICATION_MUTATE_COMMAND, NOTIFICATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-notifications/tauri";
-import { OperationClient, createDirectOperationPort, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@inflatable-cookie/longhorn-operation";
-import { createBridgeOperationPort } from "@inflatable-cookie/longhorn-operation/bridge";
-import { createTauriOperationPort, OPERATION_MUTATE_COMMAND, OPERATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-operation/tauri";
+import { BridgeDomainClient, BridgeSession, type BridgeOperationDescriptor } from "@inflatable-cookie/longhorn/bridge";
+import { NotificationClient, createDirectNotificationPort, type NotificationMutationCommand, type NotificationMutationResult, type NotificationSnapshotResponse } from "@inflatable-cookie/longhorn/notifications";
+import { createTauriNotificationPort, NOTIFICATION_MUTATE_COMMAND, NOTIFICATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-tauri/notifications";
+import { OperationClient, createDirectOperationPort, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@inflatable-cookie/longhorn/operation";
+import { createBridgeOperationPort } from "@inflatable-cookie/longhorn/operation/bridge";
+import { createTauriOperationPort, OPERATION_MUTATE_COMMAND, OPERATION_SNAPSHOT_COMMAND } from "@inflatable-cookie/longhorn-tauri/operation";
 
 import { equal, notificationTrace, operationTrace } from "../../common.ts";
 import fixtureValue from "./fixture.json";

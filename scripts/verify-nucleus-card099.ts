@@ -173,7 +173,7 @@ function verifyLonghornCommit(): void {
     "./src/binding.ts",
     "state-only binding export",
   );
-  const split = longhornRead("packages/poodle/src/LayoutSplitView.svelte");
+  const split = longhornRead("packages/longhorn-poodle-svelte/src/poodle/LayoutSplitView.svelte");
   for (const token of [
     "primaryHidden",
     "secondaryHidden",
@@ -182,13 +182,13 @@ function verifyLonghornCommit(): void {
   ]) {
     assertContains(split, token, "public split projection");
   }
-  const dock = longhornRead("packages/poodle/src/LayoutDockRegion.svelte");
+  const dock = longhornRead("packages/longhorn-poodle-svelte/src/poodle/LayoutDockRegion.svelte");
   for (const token of ["sizeRole", "density", "{size}"]) {
     assertContains(dock, token, "public dock presentation");
   }
   const tests = [
-    longhornRead("packages/poodle/tests/split.test.ts"),
-    longhornRead("packages/poodle/tests/package.test.ts"),
+    longhornRead("packages/longhorn-poodle-svelte/tests/poodle/split.test.ts"),
+    longhornRead("packages/longhorn-poodle-svelte/tests/poodle/package.test.ts"),
   ].join("\n");
   assertContains(tests, "hidden pane without dispatching durable collapse", "hidden-pane proof");
   assertContains(tests, "metadata.exports[\"./binding\"]", "binding export proof");

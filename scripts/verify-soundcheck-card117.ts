@@ -120,7 +120,7 @@ function verifyLonghornBoundary(): void {
     "Consumers own admission, scheduling, execution,",
     "product progress, outcomes, artifacts, persistence, and recovery",
   ]) assertContains(library, token, "Longhorn operation authority boundary");
-  const compatibility = longhornRead("packages/operation/src/compatibility.ts");
+  const compatibility = longhornRead("packages/longhorn/src/operation/compatibility.ts");
   for (const token of ['"payload"', '"result"', '"artifact"', '"report"', '"log"']) {
     assertContains(compatibility, token, "payload-free protocol guard");
   }

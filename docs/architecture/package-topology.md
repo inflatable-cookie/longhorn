@@ -74,27 +74,48 @@ protocols with Rust-produced golden fixtures.
 
 ## TypeScript Packages
 
-| Package | Responsibility |
+Three published packages, grouped by peer requirement rather than by domain.
+Card 164 collapsed the earlier eighteen; contract 012 records why the split
+earned its keep on the Rust side and not here.
+
+### `@inflatable-cookie/longhorn` — no peers
+
+| Subpath | Responsibility |
 | --- | --- |
-| `@inflatable-cookie/longhorn-core` | structural transport, checked subscription lifetime, and shared framework-neutral utilities |
-| `@inflatable-cookie/longhorn-config` | checked storage-layout, backup, restore, and recovery client |
-| `@inflatable-cookie/longhorn-windowing` | window snapshots and placement client |
-| `@inflatable-cookie/longhorn-layout` | generated layout snapshots, commands, receipts, and framework-neutral helpers |
-| `@inflatable-cookie/longhorn-surfaces` | optional Surface protocol |
-| `@inflatable-cookie/longhorn-transfer` | session, lease, target, and panel-transfer clients |
-| `@inflatable-cookie/longhorn-surface-transfer` | optional whole-Surface transfer client |
-| `@inflatable-cookie/longhorn-commands` | optional checked command/keymap clients and `/svelte` plus `/poodle` projections |
-| `@inflatable-cookie/longhorn-history` | checked metadata clients plus optional `/tauri`, `/svelte`, and `/poodle` edges |
-| `@inflatable-cookie/longhorn-history-tree` | checked bounded tree metadata clients plus optional `/tauri`, `/svelte`, and `/poodle` edges |
-| `@inflatable-cookie/longhorn-operation` | checked finite-operation clients plus optional transport, Svelte, Poodle, and bridge edges |
-| `@inflatable-cookie/longhorn-notifications` | checked retained-ledger client plus optional Tauri, isolated Svelte, and public-Poodle panel/toast edges |
-| `@inflatable-cookie/longhorn-native-content` | checked native-content protocol and framework-neutral direct, serialized, and optional Tauri clients |
-| `@inflatable-cookie/longhorn-native-content-svelte` | per-instance native-content connection, supplied-element measurement, explicit policy, and teardown |
-| `@inflatable-cookie/longhorn-bridge` | checked bridge session, topology, authority, lifecycle, retry, and conformance runtime with optional `/supervision` |
-| `@inflatable-cookie/longhorn-tauri` | domain-free raw invoke transport plus optional `/events` listen edge |
-| `@inflatable-cookie/longhorn-svelte` | reactive client state, actions, and optional capability subpaths |
-| `@inflatable-cookie/longhorn-poodle` | public Tabs, DockRegion, and SplitView bindings |
-| `@inflatable-cookie/longhorn-settings` | optional settings protocol, client, session state, and Svelte/Poodle shell subpaths |
+| `/core` (also the root) | structural transport, checked subscription lifetime, and shared framework-neutral utilities |
+| `/config` | checked storage-layout, backup, restore, and recovery client |
+| `/layout` | generated layout snapshots, commands, receipts, and framework-neutral helpers |
+| `/surfaces` | optional Surface protocol |
+| `/transfer` | session, lease, target, and panel-transfer clients |
+| `/surface-transfer` | optional whole-Surface transfer client |
+| `/commands` | optional checked command and keymap clients |
+| `/settings` | optional settings protocol, client, and registry projection |
+| `/history`, `/history-tree` | checked metadata clients and bounded tree metadata clients |
+| `/operation`, `/notifications` | checked finite-operation clients and the retained-ledger client |
+| `/native-content` | checked native-content protocol with direct and serialized clients |
+| `/bridge` | checked bridge session, topology, authority, lifecycle, retry, and conformance runtime, with optional `/bridge/stream` and `/bridge/supervision` |
+| `/<domain>/protocol` | the generated types and compatibility guards alone, for consumers that want the wire contract without the client |
+
+### `@inflatable-cookie/longhorn-poodle-svelte` — peers `svelte`, `@inflatable-cookie/poodle-svelte` (optional), `@inflatable-cookie/longhorn`
+
+| Subpath | Responsibility |
+| --- | --- |
+| root, `/layout`, `/surfaces`, `/transfer`, `/surface-transfer` | reactive client state and actions |
+| `/<domain>/svelte` | per-instance reactive controller for a domain |
+| `/<domain>/poodle` | public-Poodle shell over that controller |
+| `/poodle`, `/poodle/binding`, `/poodle/transfer` | public Tabs, DockRegion, and SplitView bindings |
+| `/native-content` | per-instance native-content connection, supplied-element measurement, explicit policy, and teardown |
+
+### `@inflatable-cookie/longhorn-tauri` — peers `@tauri-apps/api`, `@inflatable-cookie/longhorn`
+
+| Subpath | Responsibility |
+| --- | --- |
+| root, `/events` | domain-free raw invoke transport plus the listen edge |
+| `/bridge`, `/bridge-events` | invoke-only bridge transport; the events subpath adds listener-first resync and correlated job events |
+| `/history`, `/history-tree`, `/notifications`, `/operation`, `/native-content` | per-domain host port construction, no domain logic |
+
+A planned `@inflatable-cookie/longhorn-windowing` surface for window snapshots
+and placement is not yet implemented.
 
 Names are working names until registry verification. Packages appear only
 when their milestone implements a usable slice.
@@ -102,25 +123,25 @@ when their milestone implements a usable slice.
 The implemented TypeScript packages remain private until registry authority
 is verified. `@inflatable-cookie/longhorn-tauri` contains only the raw Tauri transport adapter;
 domain behavior remains in the framework-neutral packages.
-`@inflatable-cookie/longhorn-bridge` adds no product payload vocabulary. Its checked session,
+`@inflatable-cookie/longhorn/bridge` adds no product payload vocabulary. Its checked session,
 strict compatibility layer, direct adapter, deterministic serialized
 loopback, and optional stream subpath compose with domain-owned generated
-codecs and clients. Its `/tauri` subpath uses the invoke-only transport;
-`/tauri-events` adds listener-first resync and correlated job events.
+codecs and clients. `@inflatable-cookie/longhorn-tauri/bridge` uses the invoke-only transport;
+`/bridge-events` adds listener-first resync and correlated job events.
 Injected-clock connection and bounded query-retry controllers remain in the
 framework-neutral root. `/supervision` is the only service runtime: it accepts
 consumer-supplied operations and opaque credential references, rejects
 external lifecycle ownership, and imports no production transport.
-`@inflatable-cookie/longhorn-svelte` now provides the per-instance reactive lifecycle, generic
+`@inflatable-cookie/longhorn-poodle-svelte` now provides the per-instance reactive lifecycle, generic
 optimism, consumer-fed layout state, and optional domain adapters.
 
-`@inflatable-cookie/longhorn-native-content` is generated from the pure Rust authority. Its root
+`@inflatable-cookie/longhorn/native-content` is generated from the pure Rust authority. Its root
 owns listener-first connection, renderer epochs, bounded correlation, and
-stale-result rejection over injected transports. `/tauri` maps only the
+stale-result rejection over injected transports. `@inflatable-cookie/longhorn-tauri/native-content` maps only the
 native-content protocol commands and event. Mechanism construction, browser
 policy, plugin/GPU payloads, Svelte, and Poodle remain absent.
 
-`@inflatable-cookie/longhorn-native-content-svelte` depends only on that checked client plus its
+`@inflatable-cookie/longhorn-poodle-svelte/native-content` depends only on that checked client plus its
 Svelte peer. One session owns one mounted connection, exact supplied-element
 measurement, explicit scale and visibility/focus/input policy, serialized
 desired updates, remount invalidation, and observer teardown. Poodle remains
@@ -133,13 +154,13 @@ Surface-free and owns public Tabs, DockRegion, and SplitView integration. It is
 tested against the exact Card 038 preview artifact. A public peer range remains
 a later release-lane gate, not an inferred promise from sibling source.
 
-`@inflatable-cookie/longhorn-settings` keeps its framework-neutral root UI-free. Its optional
+`@inflatable-cookie/longhorn/settings` keeps its framework-neutral root UI-free. Its optional
 `/svelte` subpath owns per-instance settings sessions; `/poodle` composes one
 modal, window, or panel shell over the same controller. Both use optional
 peers, and the Poodle shell is verified against the exact Card 038 artifact.
 Consumer renderer snippets retain product schemas, validation, and copy.
 
-`@inflatable-cookie/longhorn-commands` keeps its framework-neutral root independent of Tauri,
+`@inflatable-cookie/longhorn/commands` keeps its framework-neutral root independent of Tauri,
 Svelte, Poodle, settings, and bridge. It accepts injected catalogue, keymap,
 availability, and executor ports. `/svelte` owns per-instance reactive state;
 `/poodle` binds public controlled palette and settings primitives. Command
@@ -148,7 +169,7 @@ execution transport. Clean artifact proof keeps Jetstream on the root alone
 while Loophole selects Svelte, Poodle, settings, config, and Tauri edges
 explicitly.
 
-`@inflatable-cookie/longhorn-history` keeps its framework-neutral root independent of config,
+`@inflatable-cookie/longhorn/history` keeps its framework-neutral root independent of config,
 bridge, Tauri, Svelte, Poodle, and consumer payloads. It carries checked
 metadata snapshots, paged past/current/future entries, navigation commands,
 receipts, and errors. `/svelte` owns per-instance reactive state. `/poodle`
@@ -178,11 +199,11 @@ See [Greenfield Composition Matrix](greenfield-composition-matrix.md).
 ## Operation And Notification Layers
 
 Contracts 015-016 compile working package names `longhorn-operation`,
-`longhorn-tauri-operation`, `@inflatable-cookie/longhorn-operation`,
+`longhorn-tauri-operation`, `@inflatable-cookie/longhorn/operation`,
 `longhorn-notifications`, `longhorn-tauri-notifications`, and
-`@inflatable-cookie/longhorn-notifications`. The pure `longhorn-operation` authority is
+`@inflatable-cookie/longhorn/notifications`. The pure `longhorn-operation` authority is
 implemented through progress, cancellation, retention, retry lineage, and
-teardown. `longhorn-tauri-operation` and `@inflatable-cookie/longhorn-operation` add generated
+teardown. `longhorn-tauri-operation` and `@inflatable-cookie/longhorn/operation` add generated
 direct, serialized, Tauri, and optional bridge composition. The optional
 `/svelte` subpath owns one controller lifetime per renderer instance.
 `/poodle` maps the same state to public feedback primitives and accepts
@@ -227,8 +248,8 @@ Card 086 promotes a split production direction:
   process-boundary coordination over consumer-owned native content
 - `longhorn-native-content-backing-surface`: generic clip, visibility, and
   input-gate coordination over consumer-owned native storage and rendering
-- `@inflatable-cookie/longhorn-native-content`: generated checked client
-- `@inflatable-cookie/longhorn-native-content-svelte`: per-instance lifecycle, viewport
+- `@inflatable-cookie/longhorn/native-content`: generated checked client
+- `@inflatable-cookie/longhorn-poodle-svelte/native-content`: per-instance lifecycle, viewport
   measurement, explicit gates, and teardown
 
 These are g01.018 working production names, not released registry promises.
@@ -264,7 +285,7 @@ Soundcheck and Jetstream retain their sequential and consumer-authority gates. S
 ## Optional History-tree Layer
 
 Card 069 promotes a downward-only tree layer. `longhorn-history-tree`,
-`longhorn-tauri-history-tree`, and `@inflatable-cookie/longhorn-history-tree` are now implemented
+`longhorn-tauri-history-tree`, and `@inflatable-cookie/longhorn/history-tree` are now implemented
 private-workspace packages. Card 074 proves their produced private artifacts;
 none is published or implicitly enabled in a consumer.
 
@@ -287,7 +308,7 @@ The rich graph adds the narrow Tauri adapter plus optional Svelte and Poodle
 subpaths. Rust-produced metadata fixtures and isolated renderer traces match.
 See [History Composition](history-composition.md).
 
-`@inflatable-cookie/longhorn-config` keeps its framework-neutral root independent of settings,
+`@inflatable-cookie/longhorn/config` keeps its framework-neutral root independent of settings,
 Svelte, Poodle, and Tauri. Its optional `/poodle` subpath exposes storage,
 backup, restore, and recovery pages over public Poodle primitives. The
 settings root does not import it. `longhorn-settings-config` registers its

@@ -226,7 +226,7 @@ or policy.
 Rust serde types are authoritative. Contract 010 applies:
 
 - snapshots, commands, receipts, and errors generate checked TypeScript
-- generated files live in `@inflatable-cookie/longhorn-layout`
+- generated files live in `@inflatable-cookie/longhorn/layout`
 - regeneration must be zero-diff
 - unknown future variants fail explicit compatibility checks
 - TypeScript cannot invent normalization, placement fallback, or active state
@@ -278,7 +278,7 @@ Cards 023-027 implement this contract through:
 - `longhorn-layout-config` for registered persistence, registry-digest
   migration policy, fresh coordinated publication, debounce, and flush
 - `longhorn-bindings` for checked Rust-to-TypeScript generation
-- `@inflatable-cookie/longhorn-layout` for generated protocol types and exact framework-neutral
+- `@inflatable-cookie/longhorn/layout` for generated protocol types and exact framework-neutral
   helpers
 - checked Loophole and Nucleus conformance fixtures under `fixtures/layout/`
 

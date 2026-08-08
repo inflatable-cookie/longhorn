@@ -157,7 +157,7 @@ function verifyFixture(): void {
 
 function verifyLonghornShell(): void {
   const shell = longhornRead(
-    "packages/settings/src/poodle/SettingsShell.svelte",
+    "packages/longhorn-poodle-svelte/src/settings/poodle/SettingsShell.svelte",
   );
   for (const token of [
     "const hasStagedUnit = $derived(",
@@ -166,7 +166,7 @@ function verifyLonghornShell(): void {
   ]) {
     assertContains(shell, token, "Longhorn settings shell");
   }
-  const tests = longhornRead("packages/settings/tests-svelte/shell.test.ts");
+  const tests = longhornRead("packages/longhorn-poodle-svelte/tests/settings-svelte/shell.test.ts");
   assertContains(
     tests,
     'queryByRole("button", { name: "Apply" })',

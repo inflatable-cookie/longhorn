@@ -1,0 +1,169 @@
+{
+  "name": "@inflatable-cookie/longhorn",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/core/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/core/index.ts",
+      "import": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./bridge": {
+      "types": "./src/bridge/index.ts",
+      "import": "./src/bridge/index.ts",
+      "default": "./src/bridge/index.ts"
+    },
+    "./bridge/protocol": {
+      "types": "./src/bridge/generated/protocol.ts",
+      "import": "./src/bridge/generated/protocol.ts",
+      "default": "./src/bridge/generated/protocol.ts"
+    },
+    "./commands": {
+      "types": "./src/commands/index.ts",
+      "import": "./src/commands/index.ts",
+      "default": "./src/commands/index.ts"
+    },
+    "./commands/protocol": {
+      "types": "./src/commands/generated/protocol.ts",
+      "import": "./src/commands/generated/protocol.ts",
+      "default": "./src/commands/generated/protocol.ts"
+    },
+    "./config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts",
+      "default": "./src/config/index.ts"
+    },
+    "./config/protocol": {
+      "types": "./src/config/generated/protocol.ts",
+      "import": "./src/config/generated/protocol.ts",
+      "default": "./src/config/generated/protocol.ts"
+    },
+    "./core": {
+      "types": "./src/core/index.ts",
+      "import": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./history": {
+      "types": "./src/history/index.ts",
+      "import": "./src/history/index.ts",
+      "default": "./src/history/index.ts"
+    },
+    "./history/protocol": {
+      "types": "./src/history/generated/protocol.ts",
+      "import": "./src/history/generated/protocol.ts",
+      "default": "./src/history/generated/protocol.ts"
+    },
+    "./history-tree": {
+      "types": "./src/history-tree/index.ts",
+      "import": "./src/history-tree/index.ts",
+      "default": "./src/history-tree/index.ts"
+    },
+    "./history-tree/protocol": {
+      "types": "./src/history-tree/generated/protocol.ts",
+      "import": "./src/history-tree/generated/protocol.ts",
+      "default": "./src/history-tree/generated/protocol.ts"
+    },
+    "./layout": {
+      "types": "./src/layout/index.ts",
+      "import": "./src/layout/index.ts",
+      "default": "./src/layout/index.ts"
+    },
+    "./layout/protocol": {
+      "types": "./src/layout/generated/protocol.ts",
+      "import": "./src/layout/generated/protocol.ts",
+      "default": "./src/layout/generated/protocol.ts"
+    },
+    "./native-content": {
+      "types": "./src/native-content/index.ts",
+      "import": "./src/native-content/index.ts",
+      "default": "./src/native-content/index.ts"
+    },
+    "./native-content/protocol": {
+      "types": "./src/native-content/generated/protocol.ts",
+      "import": "./src/native-content/generated/protocol.ts",
+      "default": "./src/native-content/generated/protocol.ts"
+    },
+    "./notifications": {
+      "types": "./src/notifications/index.ts",
+      "import": "./src/notifications/index.ts",
+      "default": "./src/notifications/index.ts"
+    },
+    "./notifications/protocol": {
+      "types": "./src/notifications/generated/protocol.ts",
+      "import": "./src/notifications/generated/protocol.ts",
+      "default": "./src/notifications/generated/protocol.ts"
+    },
+    "./operation": {
+      "types": "./src/operation/index.ts",
+      "import": "./src/operation/index.ts",
+      "default": "./src/operation/index.ts"
+    },
+    "./operation/protocol": {
+      "types": "./src/operation/generated/protocol.ts",
+      "import": "./src/operation/generated/protocol.ts",
+      "default": "./src/operation/generated/protocol.ts"
+    },
+    "./settings": {
+      "types": "./src/settings/index.ts",
+      "import": "./src/settings/index.ts",
+      "default": "./src/settings/index.ts"
+    },
+    "./settings/protocol": {
+      "types": "./src/settings/generated/protocol.ts",
+      "import": "./src/settings/generated/protocol.ts",
+      "default": "./src/settings/generated/protocol.ts"
+    },
+    "./surface-transfer": {
+      "types": "./src/surface-transfer/index.ts",
+      "import": "./src/surface-transfer/index.ts",
+      "default": "./src/surface-transfer/index.ts"
+    },
+    "./surface-transfer/protocol": {
+      "types": "./src/surface-transfer/generated/protocol.ts",
+      "import": "./src/surface-transfer/generated/protocol.ts",
+      "default": "./src/surface-transfer/generated/protocol.ts"
+    },
+    "./surfaces": {
+      "types": "./src/surfaces/index.ts",
+      "import": "./src/surfaces/index.ts",
+      "default": "./src/surfaces/index.ts"
+    },
+    "./surfaces/protocol": {
+      "types": "./src/surfaces/generated/protocol.ts",
+      "import": "./src/surfaces/generated/protocol.ts",
+      "default": "./src/surfaces/generated/protocol.ts"
+    },
+    "./transfer": {
+      "types": "./src/transfer/index.ts",
+      "import": "./src/transfer/index.ts",
+      "default": "./src/transfer/index.ts"
+    },
+    "./transfer/protocol": {
+      "types": "./src/transfer/generated/protocol.ts",
+      "import": "./src/transfer/generated/protocol.ts",
+      "default": "./src/transfer/generated/protocol.ts"
+    },
+    "./bridge/stream": {
+      "types": "./src/bridge/stream.ts",
+      "import": "./src/bridge/stream.ts",
+      "default": "./src/bridge/stream.ts"
+    },
+    "./bridge/supervision": {
+      "types": "./src/bridge/supervision.ts",
+      "import": "./src/bridge/supervision.ts",
+      "default": "./src/bridge/supervision.ts"
+    },
+    "./operation/bridge": {
+      "types": "./src/operation/bridge.ts",
+      "import": "./src/operation/bridge.ts",
+      "default": "./src/operation/bridge.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": false
+}

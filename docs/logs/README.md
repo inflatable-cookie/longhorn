@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-08
 
+### 2026-08-08
+
+- [TypeScript Package Consolidation](2026-08/08-typescript-package-consolidation.md)
+
 ### 2026-08-07
 
 - [Update Policy, Channels, And Rollout](2026-08/07-update-policy-channels-and-rollout.md)

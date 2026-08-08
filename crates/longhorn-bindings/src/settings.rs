@@ -29,7 +29,7 @@ use crate::generation::{
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/settings/src/generated/protocol.ts";
+const GENERATED_PROTOCOL: &str = "packages/longhorn/src/settings/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/settings/protocol-v1.json";
 
 struct RenderedProtocol {

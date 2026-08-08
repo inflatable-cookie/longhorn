@@ -4,7 +4,7 @@ import {
   searchCommands,
   type CommandEffectiveBinding,
   type CommandKeymapPatch,
-} from "@inflatable-cookie/longhorn-commands";
+} from "@inflatable-cookie/longhorn/commands";
 
 import {
   availability,

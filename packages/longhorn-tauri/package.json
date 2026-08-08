@@ -1,0 +1,63 @@
+{
+  "name": "@inflatable-cookie/longhorn-tauri",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/transport/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/transport/index.ts",
+      "import": "./src/transport/index.ts",
+      "default": "./src/transport/index.ts"
+    },
+    "./events": {
+      "types": "./src/transport/events.ts",
+      "import": "./src/transport/events.ts",
+      "default": "./src/transport/events.ts"
+    },
+    "./bridge-events": {
+      "types": "./src/bridge-events.ts",
+      "import": "./src/bridge-events.ts",
+      "default": "./src/bridge-events.ts"
+    },
+    "./bridge": {
+      "types": "./src/bridge.ts",
+      "import": "./src/bridge.ts",
+      "default": "./src/bridge.ts"
+    },
+    "./history-tree": {
+      "types": "./src/history-tree.ts",
+      "import": "./src/history-tree.ts",
+      "default": "./src/history-tree.ts"
+    },
+    "./history": {
+      "types": "./src/history.ts",
+      "import": "./src/history.ts",
+      "default": "./src/history.ts"
+    },
+    "./native-content": {
+      "types": "./src/native-content.ts",
+      "import": "./src/native-content.ts",
+      "default": "./src/native-content.ts"
+    },
+    "./notifications": {
+      "types": "./src/notifications.ts",
+      "import": "./src/notifications.ts",
+      "default": "./src/notifications.ts"
+    },
+    "./operation": {
+      "types": "./src/operation.ts",
+      "import": "./src/operation.ts",
+      "default": "./src/operation.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "@inflatable-cookie/longhorn": "0.1.0",
+    "@tauri-apps/api": "^2.10.1"
+  },
+  "sideEffects": false
+}

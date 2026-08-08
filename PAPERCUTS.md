@@ -7,6 +7,33 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Poodle 0.1.0 does not export `SplitToggleVisibility` — 2026-08-08
+- Friction: `@inflatable-cookie/poodle-svelte` defines `SplitToggleVisibility`
+  in `src/types.ts` and uses it for `SplitView`'s `toggleVisibility` prop, but
+  its `index.ts` never re-exports it — unlike `SplitOrientation`,
+  `ControlDensity`, and the rest, which are all public.
+- Impact: a consumer typing that prop must either reach past the package root
+  (contract 012 forbids it) or mirror the union. `LayoutSplitView.svelte` now
+  derives it via `ComponentProps<typeof SplitView>["toggleVisibility"]`, which
+  works but is a workaround for a one-line upstream gap.
+- Possible fix: add the export to Poodle's root barrel, then drop the derived
+  alias here.
+- Surface: `packages/longhorn-poodle-svelte/src/poodle/LayoutSplitView.svelte`,
+  poodle `packages/svelte/components/src/index.ts`.
+
+### [ ] `split.test.ts` asserts a Poodle attribute the pinned pack lacks — 2026-08-08
+- Friction: Card 161 mapped region-hidden to SplitView `hidden` rather than
+  `collapsed`, and the test asserts `data-primary-hidden`. The pinned pack
+  renders `data-primary-collapsed` and has no hidden attribute, so the test
+  fails. Confirmed failing at `HEAD` in a worktree, so it is not merge drift.
+- Impact: `test:vitest` has one standing failure with no defect behind it, and
+  it reads as a regression to anyone who has not checked `HEAD`.
+- Possible fix: nothing to do here — it clears when longhorn moves onto a
+  released poodle. Worth listing because it is the second failure in one
+  session that looked caused by the current change and was not.
+- Surface: `packages/longhorn-poodle-svelte/tests/poodle/split.test.ts`,
+  Card 161.
+
 ### [ ] SSR vitest suites flake under machine load — 2026-08-08
 - Friction: `packages/commands/tests-svelte/ssr.test.ts` and
   `packages/config/tests-svelte/ssr.test.ts` carry 20s and 15s timeouts. Both

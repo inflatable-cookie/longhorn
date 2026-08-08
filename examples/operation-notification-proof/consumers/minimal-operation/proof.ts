@@ -1,4 +1,4 @@
-import { OperationClient, SerializedOperationPort, createDirectOperationPort, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@inflatable-cookie/longhorn-operation";
+import { OperationClient, SerializedOperationPort, createDirectOperationPort, type OperationMutationCommand, type OperationMutationResult, type OperationSnapshotResponse } from "@inflatable-cookie/longhorn/operation";
 
 import { equal, operationTrace } from "../../common.ts";
 import fixtureValue from "./fixture.json";

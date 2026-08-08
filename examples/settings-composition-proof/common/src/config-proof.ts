@@ -1,4 +1,4 @@
-import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
 import {
   CONFIG_BACKUP_CREATE_COMMAND,
   CONFIG_BACKUP_EXPORT_COMMAND,
@@ -14,7 +14,7 @@ import {
   CONFIG_STORAGE_INSPECT_COMMAND,
   CONFIG_STORAGE_RECOVER_COMMAND,
   ConfigOperationsClient,
-} from "@inflatable-cookie/longhorn-config";
+} from "@inflatable-cookie/longhorn/config";
 
 import configFixture from "./fixtures/config-protocol-v1.json";
 

@@ -89,7 +89,7 @@ an injected reporter.
 
 ## Implementation Evidence
 
-Card 039 implements private `@inflatable-cookie/longhorn-poodle` against the exact Card 038
+Card 039 implements private `@inflatable-cookie/longhorn-poodle-svelte/poodle` against the exact Card 038
 artifact. Public Tabs, DockRegion, and SplitView bindings project registered
 layout state, serialize expected-revision mutation, reconcile controlled state,
 and keep labels, icons, bodies, and static panels in consumer resolvers and

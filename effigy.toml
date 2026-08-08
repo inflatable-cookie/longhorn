@@ -26,7 +26,7 @@ exclude = ["history/**"]
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:ts" = "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'"
-"check:svelte" = "bun x svelte-check --tsconfig packages/svelte/tsconfig.json"
+"check:svelte" = "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json"
 "check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
 "test:ts" = "bash scripts/test-packages.sh"
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"

@@ -64,7 +64,7 @@ async function renderReference(): Promise<string> {
     const manifestPath = join(repoRoot, "packages", directory.name, "package.json");
     if (!(await exists(manifestPath))) continue;
     const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as PackageManifest;
-    if (!manifest.name.startsWith("@inflatable-cookie/longhorn-") || manifest.version !== "0.1.0" || manifest.private !== true) {
+    if (manifest.name !== "@inflatable-cookie/longhorn" && !manifest.name.startsWith("@inflatable-cookie/longhorn-") || manifest.version !== "0.1.0" || manifest.private !== true) {
       throw new Error(`${directory.name} package identity or private posture drift`);
     }
     const entrypoints = [];
@@ -128,7 +128,7 @@ async function renderReference(): Promise<string> {
 
   for (const { directory, manifest, entrypoints } of typescriptPackages) {
     const dependencies = Object.entries(manifest.dependencies ?? {})
-      .filter(([name]) => name.startsWith("@inflatable-cookie/longhorn-"))
+      .filter(([name]) => name === "@inflatable-cookie/longhorn" || name.startsWith("@inflatable-cookie/longhorn-"))
       .map(([name, version]) => `\`${name} ${version}\``);
     const peers = Object.entries(manifest.peerDependencies ?? {}).map(([name, version]) => {
       const optional = manifest.peerDependenciesMeta?.[name]?.optional === true ? "; optional" : "";

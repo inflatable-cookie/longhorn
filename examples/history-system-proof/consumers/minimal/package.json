@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@inflatable-cookie/longhorn-history": "0.1.0"
+    "@inflatable-cookie/longhorn": "0.1.0"
   },
   "devDependencies": {
     "typescript": "5.9.3"

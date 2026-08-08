@@ -165,7 +165,7 @@ for (const removed of [
 const binding = readFileSync(
   resolve(
     longhornRoot,
-    "packages/commands/src/poodle/CommandPaletteBinding.svelte",
+    "packages/longhorn-poodle-svelte/src/commands/poodle/CommandPaletteBinding.svelte",
   ),
   "utf8",
 );

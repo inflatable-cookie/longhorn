@@ -1,4 +1,4 @@
-import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn-core";
+import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
 import {
   SETTINGS_APPLY_COMMAND,
   SETTINGS_LOAD_COMMAND,
@@ -11,8 +11,8 @@ import {
   type SettingsMutationResult,
   type SettingsRegistrySnapshot,
   type SettingsScopeSnapshot,
-} from "@inflatable-cookie/longhorn-settings";
-import { SettingsSession } from "@inflatable-cookie/longhorn-settings/poodle";
+} from "@inflatable-cookie/longhorn/settings";
+import { SettingsSession } from "@inflatable-cookie/longhorn-poodle-svelte/settings/poodle";
 
 import {
   createProofRegistry,

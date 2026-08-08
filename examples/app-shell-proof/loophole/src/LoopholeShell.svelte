@@ -9,21 +9,21 @@
     createThemeController,
     type DockEdge,
   } from "@inflatable-cookie/poodle-svelte";
-  import type { LayoutDocument } from "@inflatable-cookie/longhorn-layout";
+  import type { LayoutDocument } from "@inflatable-cookie/longhorn/layout";
   import {
     LayoutDockRegion,
     createPoodleLayoutBinding,
     type PanelRenderContext,
-  } from "@inflatable-cookie/longhorn-poodle";
+  } from "@inflatable-cookie/longhorn-poodle-svelte/poodle";
   import {
     createPanelTransferDragSource,
     createPanelTransferDropTarget,
-  } from "@inflatable-cookie/longhorn-poodle/transfer";
-  import { SURFACE_TRANSFER_TARGET_KINDS } from "@inflatable-cookie/longhorn-surface-transfer";
-  import type { SurfaceState } from "@inflatable-cookie/longhorn-svelte/surfaces";
-  import type { SurfaceTransferState } from "@inflatable-cookie/longhorn-svelte/surface-transfer";
-  import type { LayoutState } from "@inflatable-cookie/longhorn-svelte/layout";
-  import type { TransferState } from "@inflatable-cookie/longhorn-svelte/transfer";
+  } from "@inflatable-cookie/longhorn-poodle-svelte/poodle/transfer";
+  import { SURFACE_TRANSFER_TARGET_KINDS } from "@inflatable-cookie/longhorn/surface-transfer";
+  import type { SurfaceState } from "@inflatable-cookie/longhorn-poodle-svelte/surfaces";
+  import type { SurfaceTransferState } from "@inflatable-cookie/longhorn-poodle-svelte/surface-transfer";
+  import type { LayoutState } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
+  import type { TransferState } from "@inflatable-cookie/longhorn-poodle-svelte/transfer";
   import { onMount, tick } from "svelte";
 
   import { definitions, resolvePanel, schema } from "./model.ts";

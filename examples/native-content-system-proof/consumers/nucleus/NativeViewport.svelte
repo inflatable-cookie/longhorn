@@ -4,7 +4,7 @@
     nativeContentViewport,
     useNativeContentSession,
     type NativeContentSession,
-  } from "@inflatable-cookie/longhorn-native-content-svelte";
+  } from "@inflatable-cookie/longhorn-poodle-svelte/native-content";
 
   let { session }: { session: NativeContentSession } = $props();
   useNativeContentSession(session);

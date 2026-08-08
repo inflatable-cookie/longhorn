@@ -8,7 +8,7 @@ import {
   type HistoryPageSnapshot,
   type HistoryPort,
   type HistorySnapshot,
-} from "@inflatable-cookie/longhorn-history";
+} from "@inflatable-cookie/longhorn/history";
 
 export interface RendererFixture {
   readonly initialSnapshot: HistorySnapshot;

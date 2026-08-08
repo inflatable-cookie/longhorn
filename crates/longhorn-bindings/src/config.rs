@@ -42,9 +42,9 @@ use crate::generation::{
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/config/src/generated/protocol.ts";
-const GENERATED_BASE_PROTOCOL: &str = "packages/config/src/generated/base.ts";
-const GENERATED_RESTORE_PROTOCOL: &str = "packages/config/src/generated/restore.ts";
+const GENERATED_PROTOCOL: &str = "packages/longhorn/src/config/generated/protocol.ts";
+const GENERATED_BASE_PROTOCOL: &str = "packages/longhorn/src/config/generated/base.ts";
+const GENERATED_RESTORE_PROTOCOL: &str = "packages/longhorn/src/config/generated/restore.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/config/protocol-v1.json";
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {

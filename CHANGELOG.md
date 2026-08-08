@@ -44,6 +44,15 @@ with `git` + `tag` dependencies.
 
 ### Changed
 
+- **Collapsed the eighteen TypeScript packages into three**, grouped by peer
+  requirement rather than by domain: `@inflatable-cookie/longhorn` (no peers),
+  `@inflatable-cookie/longhorn-poodle-svelte`, and
+  `@inflatable-cookie/longhorn-tauri`. Every domain is now a subpath. 61 entry
+  points became 62 and nothing that resolved before stopped resolving, but
+  every import specifier changes: `@inflatable-cookie/longhorn-core` is
+  `@inflatable-cookie/longhorn/core`, `longhorn-settings/poodle` is
+  `longhorn-poodle-svelte/settings/poodle`, and `longhorn-bridge/tauri` is
+  `longhorn-tauri/bridge`. Consumers migrate at their next uptake.
 - Migrated Nucleus, Loophole, Soundcheck, Bovine, and Jetstream onto selected
   shared systems while retaining product authority downstream.
 - Standardized canonical-id storage defaults, stable storage-name overrides,

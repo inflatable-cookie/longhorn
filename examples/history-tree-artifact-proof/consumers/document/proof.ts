@@ -1,4 +1,4 @@
-import { ForkHistoryClient } from "@inflatable-cookie/longhorn-history-tree";
+import { ForkHistoryClient } from "@inflatable-cookie/longhorn/history-tree";
 import fixtureJson from "./fixture.json";
 
 const fixture = structuredClone(fixtureJson) as any;

@@ -10,7 +10,7 @@ describe("greenfield shell lifecycle", () => {
     const teardown = vi.fn();
     const mounted = render(App, {
       shape: "proof",
-      selectedModules: ["@inflatable-cookie/longhorn-core"],
+      selectedModules: ["@inflatable-cookie/longhorn/core"],
       status: { kind: "loading" },
       onTeardown: teardown,
     });
@@ -18,7 +18,7 @@ describe("greenfield shell lifecycle", () => {
 
     await mounted.rerender({
       shape: "proof",
-      selectedModules: ["@inflatable-cookie/longhorn-core"],
+      selectedModules: ["@inflatable-cookie/longhorn/core"],
       status: { kind: "failed", detail: "capability missing" },
       onTeardown: teardown,
     });
@@ -26,7 +26,7 @@ describe("greenfield shell lifecycle", () => {
 
     await mounted.rerender({
       shape: "proof",
-      selectedModules: ["@inflatable-cookie/longhorn-core"],
+      selectedModules: ["@inflatable-cookie/longhorn/core"],
       status: { kind: "ready", authority: "revision:1" },
       onTeardown: teardown,
     });

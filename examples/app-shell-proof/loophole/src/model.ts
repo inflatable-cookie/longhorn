@@ -2,12 +2,12 @@ import type {
   LayoutDocument,
   LayoutSchemaDefinition,
   PanelDefinition,
-} from "@inflatable-cookie/longhorn-layout";
+} from "@inflatable-cookie/longhorn/layout";
 import type {
   PanelPresentationResolver,
   PoodleLayoutDefinitions,
-} from "@inflatable-cookie/longhorn-poodle";
-import type { SurfaceSnapshot } from "@inflatable-cookie/longhorn-surfaces";
+} from "@inflatable-cookie/longhorn-poodle-svelte/poodle";
+import type { SurfaceSnapshot } from "@inflatable-cookie/longhorn/surfaces";
 
 const regionIds = [
   "primary",

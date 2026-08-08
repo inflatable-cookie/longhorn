@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest";
 import {
   SETTINGS_APPLY_COMMAND,
   SETTINGS_RESET_COMMAND,
-} from "@inflatable-cookie/longhorn-settings";
+} from "@inflatable-cookie/longhorn/settings";
 
 import BovineSettings from "./BovineSettings.svelte";
 import { SettingsProofTransport } from "./settings-proof.ts";

@@ -28,13 +28,13 @@ import {
   type BridgeSessionId,
   type DomainAuthorityDescriptor,
   type DomainId,
-} from "@inflatable-cookie/longhorn-bridge";
+} from "@inflatable-cookie/longhorn/bridge";
 import {
   BRIDGE_CANCEL_COMMAND,
   BRIDGE_HELLO_COMMAND,
   BRIDGE_QUERY_COMMAND,
   connectTauriBridge,
-} from "@inflatable-cookie/longhorn-bridge/tauri";
+} from "@inflatable-cookie/longhorn-tauri/bridge";
 
 export type ShapeName =
   | "bovine"

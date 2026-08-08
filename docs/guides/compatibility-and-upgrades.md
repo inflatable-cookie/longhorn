@@ -36,7 +36,7 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | Poodle | exact five-package private artifact receipt; no general registry range claim |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 
-`@inflatable-cookie/longhorn-svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
+`@inflatable-cookie/longhorn-poodle-svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
 Svelte adapters commonly declare `>=5.38.6 <6`; consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
 range. The greenfield matrix proves one runtime at 5.38.6. Later consumer
@@ -46,7 +46,7 @@ Concretely, the generated surface says two different things about Svelte:
 
 ```json
 { "peerDependencies": { "svelte": ">=5.38.6 <6" } }        // most adapters
-{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @inflatable-cookie/longhorn-svelte
+{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @inflatable-cookie/longhorn-poodle-svelte
 ```
 
 The first is an optional peer on most adapters — an app that does not use

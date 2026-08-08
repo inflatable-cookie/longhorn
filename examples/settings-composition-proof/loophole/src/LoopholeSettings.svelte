@@ -7,7 +7,7 @@
     type SettingsPageRenderContext,
     type SettingsRendererResolver,
     type SettingsSession,
-  } from "@inflatable-cookie/longhorn-settings/poodle";
+  } from "@inflatable-cookie/longhorn-poodle-svelte/settings/poodle";
   import {
     UiPresentationProvider,
     createThemeController,

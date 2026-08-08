@@ -50,9 +50,9 @@ The minimal shape selects exactly four TypeScript and six Rust packages:
 {
   "name": "my-app",
   "dependencies": {
-    "@inflatable-cookie/longhorn-config": "0.1.0",
-    "@inflatable-cookie/longhorn-core": "0.1.0",
-    "@inflatable-cookie/longhorn-settings": "0.1.0",
+    "@inflatable-cookie/longhorn/config": "0.1.0",
+    "@inflatable-cookie/longhorn/core": "0.1.0",
+    "@inflatable-cookie/longhorn/settings": "0.1.0",
     "@inflatable-cookie/longhorn-tauri": "0.1.0",
     "@inflatable-cookie/poodle-svelte": "0.1.0",
     "svelte": "5.38.6"
@@ -80,19 +80,19 @@ artifacts described in the [distribution reference](../reference/private-0-1-can
 
 | Need | Pure/client selection | Add only when needed |
 | --- | --- | --- |
-| config, backup, restore | `longhorn-config`, `@inflatable-cookie/longhorn-config` | config Tauri host, age encryption, Poodle recovery pages |
-| settings registry and shell | `longhorn-settings`, `@inflatable-cookie/longhorn-settings` | config apply units, Tauri host, `/svelte`, `/poodle` |
+| config, backup, restore | `longhorn-config`, `@inflatable-cookie/longhorn/config` | config Tauri host, age encryption, Poodle recovery pages |
+| settings registry and shell | `longhorn-settings`, `@inflatable-cookie/longhorn/settings` | config apply units, Tauri host, `/svelte`, `/poodle` |
 | display/window hosting | `longhorn-display`, `longhorn-windowing` | config persistence and Tauri window adapter |
-| registered regions/panels | `longhorn-layout`, `@inflatable-cookie/longhorn-layout` | config persistence, Svelte, Poodle bindings |
-| optional Surfaces | `longhorn-surfaces`, `@inflatable-cookie/longhorn-surfaces` | persistence and window-host projection |
-| panel transfer | `longhorn-transfer`, `@inflatable-cookie/longhorn-transfer` | Tauri transfer host and Svelte/Poodle interaction |
+| registered regions/panels | `longhorn-layout`, `@inflatable-cookie/longhorn/layout` | config persistence, Svelte, Poodle bindings |
+| optional Surfaces | `longhorn-surfaces`, `@inflatable-cookie/longhorn/surfaces` | persistence and window-host projection |
+| panel transfer | `longhorn-transfer`, `@inflatable-cookie/longhorn/transfer` | Tauri transfer host and Svelte/Poodle interaction |
 | whole-Surface transfer | Surface plus `longhorn-surface-transfer` | `surface-transfer` host feature and renderer subpath |
-| commands and keymaps | `longhorn-command`, `@inflatable-cookie/longhorn-commands` | config, settings, Tauri, `/svelte`, `/poodle` |
-| linear history | `longhorn-history`, `@inflatable-cookie/longhorn-history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
-| optional service bridge | `longhorn-bridge`, `@inflatable-cookie/longhorn-bridge` | Tauri, events, or stream subpaths |
-| finite operations | `longhorn-operation`, `@inflatable-cookie/longhorn-operation` | Tauri, bridge, Svelte, or Poodle edges |
-| retained notifications | `longhorn-notifications`, `@inflatable-cookie/longhorn-notifications` | Tauri, Svelte, Poodle, or operation observation |
-| native-content island | `longhorn-native-content`, `@inflatable-cookie/longhorn-native-content` | select exactly one host mechanism and optional Svelte lifetime |
+| commands and keymaps | `longhorn-command`, `@inflatable-cookie/longhorn/commands` | config, settings, Tauri, `/svelte`, `/poodle` |
+| linear history | `longhorn-history`, `@inflatable-cookie/longhorn/history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
+| optional service bridge | `longhorn-bridge`, `@inflatable-cookie/longhorn/bridge` | Tauri, events, or stream subpaths |
+| finite operations | `longhorn-operation`, `@inflatable-cookie/longhorn/operation` | Tauri, bridge, Svelte, or Poodle edges |
+| retained notifications | `longhorn-notifications`, `@inflatable-cookie/longhorn/notifications` | Tauri, Svelte, Poodle, or operation observation |
+| native-content island | `longhorn-native-content`, `@inflatable-cookie/longhorn/native-content` | select exactly one host mechanism and optional Svelte lifetime |
 
 ## Held Surface (built, not selectable)
 
@@ -107,25 +107,25 @@ status list and names the trigger for each.
 | licensing and activation (`longhorn-licence`) | held-for-consumer | the licensing renderer runway (g02.010) |
 | bridge supervision and contract machinery | held-for-consumer | a bridge consumer with a real service topology |
 | age encryption (`longhorn-config-age`) | held-for-consumer | a consumer that needs encrypted backups |
-| fork-tree history (`longhorn-history-tree`, `@inflatable-cookie/longhorn-history-tree`) | planning-evidence | the recorded g01.017 adoption decision |
+| fork-tree history (`longhorn-history-tree`, `@inflatable-cookie/longhorn/history-tree`) | planning-evidence | the recorded g01.017 adoption decision |
 
 ## Add One System At A Time
 
 | Need | Pure/client selection | Add only when needed |
 | --- | --- | --- |
-| config, backup, restore | `longhorn-config`, `@inflatable-cookie/longhorn-config` | config Tauri host, Poodle recovery pages |
-| settings registry and shell | `longhorn-settings`, `@inflatable-cookie/longhorn-settings` | config apply units, Tauri host, `/svelte`, `/poodle` |
+| config, backup, restore | `longhorn-config`, `@inflatable-cookie/longhorn/config` | config Tauri host, Poodle recovery pages |
+| settings registry and shell | `longhorn-settings`, `@inflatable-cookie/longhorn/settings` | config apply units, Tauri host, `/svelte`, `/poodle` |
 | display/window hosting | `longhorn-display`, `longhorn-windowing` | config persistence and Tauri window adapter |
-| registered regions/panels | `longhorn-layout`, `@inflatable-cookie/longhorn-layout` | config persistence, Svelte, Poodle bindings |
-| optional Surfaces | `longhorn-surfaces`, `@inflatable-cookie/longhorn-surfaces` | persistence and window-host projection |
-| panel transfer | `longhorn-transfer`, `@inflatable-cookie/longhorn-transfer` | Tauri transfer host and Svelte/Poodle interaction |
+| registered regions/panels | `longhorn-layout`, `@inflatable-cookie/longhorn/layout` | config persistence, Svelte, Poodle bindings |
+| optional Surfaces | `longhorn-surfaces`, `@inflatable-cookie/longhorn/surfaces` | persistence and window-host projection |
+| panel transfer | `longhorn-transfer`, `@inflatable-cookie/longhorn/transfer` | Tauri transfer host and Svelte/Poodle interaction |
 | whole-Surface transfer | Surface plus `longhorn-surface-transfer` | `surface-transfer` host feature and renderer subpath |
-| commands and keymaps | `longhorn-command`, `@inflatable-cookie/longhorn-commands` | config, settings, Tauri, `/svelte`, `/poodle` |
-| linear history | `longhorn-history`, `@inflatable-cookie/longhorn-history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
-| optional service bridge | `longhorn-bridge`, `@inflatable-cookie/longhorn-bridge` | Tauri, events, or stream subpaths |
-| finite operations | `longhorn-operation`, `@inflatable-cookie/longhorn-operation` | Tauri, bridge, Svelte, or Poodle edges |
-| retained notifications | `longhorn-notifications`, `@inflatable-cookie/longhorn-notifications` | Tauri, Svelte, Poodle, or operation observation |
-| native-content island | `longhorn-native-content`, `@inflatable-cookie/longhorn-native-content` | select exactly one host mechanism and optional Svelte lifetime |
+| commands and keymaps | `longhorn-command`, `@inflatable-cookie/longhorn/commands` | config, settings, Tauri, `/svelte`, `/poodle` |
+| linear history | `longhorn-history`, `@inflatable-cookie/longhorn/history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
+| optional service bridge | `longhorn-bridge`, `@inflatable-cookie/longhorn/bridge` | Tauri, events, or stream subpaths |
+| finite operations | `longhorn-operation`, `@inflatable-cookie/longhorn/operation` | Tauri, bridge, Svelte, or Poodle edges |
+| retained notifications | `longhorn-notifications`, `@inflatable-cookie/longhorn/notifications` | Tauri, Svelte, Poodle, or operation observation |
+| native-content island | `longhorn-native-content`, `@inflatable-cookie/longhorn/native-content` | select exactly one host mechanism and optional Svelte lifetime |
 
 The [generated API surface](../reference/api-surface.md) is authoritative for
 current features and export subpaths.

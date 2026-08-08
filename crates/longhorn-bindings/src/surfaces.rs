@@ -16,7 +16,7 @@ use crate::generation::{
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/surfaces/src/generated/protocol.ts";
+const GENERATED_PROTOCOL: &str = "packages/longhorn/src/surfaces/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/surfaces/protocol-v1.json";
 #[cfg(test)]
 const LOOPHOLE_REGISTERED_AUTHORITY: &str =
