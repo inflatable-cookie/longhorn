@@ -10,14 +10,36 @@ Research: `../research/translation-memos/019-application-update-and-release-chan
 
 Longhorn owns update *policy* — channel resolution, version comparison,
 rollout eligibility, deferral, and restart readiness. Longhorn does not own
-artifact hosting, signing, or the installation mechanism. Consuming
-applications own their release cadence, their signing identity, and where
-their artifacts live.
+artifact hosting or signing. Consuming applications own their release
+cadence, their signing identity, and where their artifacts live.
+
+**Amended 2026-08-08 — execution is host-dependent.** This contract
+previously stated that Longhorn does not own the installation mechanism, and
+`longhorn-tauri-update` was reduced to authorization-only on that basis.
+That was correct while Tauri was the only host: a mature, notarization-aware
+plugin existed. It became wrong when GPUI became a first-class host, because
+no plugin exists there and the alternative is every product implementing
+minisign verification and macOS bundle replacement itself — security-
+sensitive code, duplicated per application, which is precisely what a
+framework exists to prevent.
+
+- **Tauri hosts** use the updater plugin. Longhorn authorizes; the plugin
+  installs.
+- **Non-Tauri hosts** use Longhorn's native implementation.
+- **Both satisfy one behavioural contract and one conformance suite.** Two
+  implementations without a shared suite is a fork, not an adapter.
+
+Authorization is unchanged and remains host-agnostic: `UpdateGate::authorize`
+answers whether an install may proceed, whoever performs it.
 
 ## Verification And Trust
 
-- Artifact signature verification belongs to the Tauri updater plugin.
-  Longhorn never implements, wraps, or bypasses it.
+- Artifact signature verification belongs to whichever component installs.
+  On Tauri that is the updater plugin, which Longhorn never wraps or
+  bypasses. On hosts with no plugin, Longhorn's native installer performs it.
+- An installer that does not verify is not an installer. There is no
+  configuration, host, or build profile under which an unverified artifact
+  may be applied.
 - Because every artifact is verified against a key compiled into the
   application, the artifact host is untrusted infrastructure. No adapter may
   claim a security property on the basis of its transport.
@@ -107,4 +129,7 @@ their artifacts live.
   consumer-owned.
 - Delta updates, rollback, and server-side rollout orchestration are out of
   scope for the compiled boundary.
+- Reimplementing installation for hosts that already provide it. Longhorn's
+  native installer exists for hosts with no equivalent, not to replace a
+  working one.
 - Longhorn publishes no update server.

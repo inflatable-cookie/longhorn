@@ -15,6 +15,7 @@
 | [g02.009](009-application-update-and-release-channels.md) | in progress | in-app update: channels, client-side rollout, source adapters, restart safety |
 | [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
 | [g02.011](011-ipc-boundary-validation.md) | ready | IPC boundary validation derived from the Rust authority |
+| [g02.012](012-dual-backend-host-positioning.md) | ready | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -55,6 +56,14 @@ P2-10 audit finding -> Card 160 inventory
  └─ 011 IPC boundary validation
 ```
 
+```text
+memo 021 dual-backend positioning
+ └─ 012 dual-backend host positioning
+     ├─ 161 positioning and leak fixes   (independent)
+     ├─ 162 native update execution      (independent)
+     └─ 163 GPUI host adapter            (validates 161's contract)
+```
+
 009, 010 and 011 are independent of 001-008 and of the poodle release
 blocking the v0.1.0 tag. 009 and 010 meet at the update window: the updater
 asks the licence whether a release may be taken. 011 touches neither.
@@ -77,6 +86,14 @@ application.
 
 Research memo 020 compiles contract 019 over licensing. Cards 155-158
 (g02.010) are ready.
+
+Research memo 021 repositions the framework: Tauri and GPUI become two
+first-class, permanent hosts. Measurement found the separation largely
+already exists — 12.5% of the Rust is Tauri-bound, with exactly one
+pure-to-host dependency edge and one webview-shaped concept in core.
+Contract 020 compiles the host-adapter boundary, contract 018 is amended so
+update execution is host-dependent, and the register is tiered into core,
+host, and webview edge. Cards 161-163 (g02.012) execute it.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

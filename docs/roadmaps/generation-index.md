@@ -63,6 +63,13 @@ dependency) plus the headless regression harness. The machine-bound claims
 stay recorded as unmet. The card resumes when a consumer needs the packaged
 evidence.
 
+[Card 161](g02/batch-cards/161-host-tier-positioning-and-leak-fixes.md)
+opens g02.012 and is ready. Research memo 021 repositions Longhorn as a
+framework with two first-class, permanent hosts — Tauri and GPUI. The
+separation mostly exists already: 12.5% of the Rust is Tauri-bound, with one
+pure-to-host dependency edge and one webview-shaped concept in core. Card
+161 is documentation plus a type move and unblocks the rest.
+
 [Card 160](g02/batch-cards/160-ipc-validation-derived-from-authority.md)
 opens g02.011 and is ready. Its inventory found nine of thirteen packages
 never validate keys at the IPC boundary, and 29 hardcoded bounds with no

@@ -30,6 +30,7 @@ Updated: 2026-07-31
 | workspace integrity audit | [Workspace Integrity Audit](translation-memos/018-workspace-integrity-audit.md) | `../roadmaps/g02/README.md`; cards 138-148 |
 | application update and release channels | [Application Update And Release Channels](translation-memos/019-application-update-and-release-channels.md) | `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/009-application-update-and-release-channels.md`; cards 150-154 |
 | licensing, entitlement, and activation | [Licensing, Entitlement, And Activation](translation-memos/020-licensing-entitlement-and-activation.md) | `../contracts/019-licensing-entitlement-and-activation.md`; `../roadmaps/g02/010-licensing-entitlement-and-activation.md`; cards 155-158 |
+| dual-backend host positioning | [Dual-backend Host Positioning](translation-memos/021-dual-backend-host-positioning.md) | `../contracts/020-host-adapter-boundary.md`; `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/012-dual-backend-host-positioning.md`; cards 161-163 |
 
 ## Open Research
 

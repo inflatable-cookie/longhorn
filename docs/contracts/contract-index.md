@@ -4,6 +4,28 @@ Status: active
 Owner: Tom  
 Updated: 2026-08-03
 
+## Positioning
+
+Longhorn is a **Rust desktop application framework with pluggable host
+backends**. Tauri and GPUI are both first-class and permanent; neither is the
+reference implementation. Applications on either host compose the same
+host-agnostic core.
+
+## Contract Tiers
+
+Contracts sit in one of three tiers, and the tier decides who must satisfy
+them.
+
+- **Core** — host-agnostic. Every application satisfies these whatever its
+  backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
+  018 (policy), 019.
+- **Host** — what a backend must provide: 009, 017, 020, and contract 018's
+  execution half. Satisfied per backend, proved per backend.
+- **Webview edge** — optional, and only meaningful where a webview exists:
+  010, 013. A GPUI application composes none of it, and that is not a gap.
+
+A claim proved on one backend does not close a host-tier contract.
+
 ## Contract Register
 
 | Contract | Boundary | Status |
@@ -27,6 +49,7 @@ Updated: 2026-08-03
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |
 | [018 Application Update And Release Channels](018-application-update-and-release-channels.md) | update policy, source adapters, channels, client-side rollout, restart readiness, cross-channel store compatibility | active compiled boundary |
 | [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
+| [020 Host Adapter Boundary](020-host-adapter-boundary.md) | what a backend must provide, what it may not do, delegated capabilities, dual-backend evidence | active compiled boundary |
 
 ## Pending Contracts
 
