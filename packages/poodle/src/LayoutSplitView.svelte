@@ -82,12 +82,12 @@
   ratio={layoutRatioToUnitInterval(sizing.ratio)}
   minRatio={layoutRatioToUnitInterval(sizing.definition.minimum)}
   maxRatio={layoutRatioToUnitInterval(sizing.definition.maximum)}
-  primaryCollapsed={primaryHidden || (primaryRegion?.collapsed ?? false)}
-  secondaryCollapsed={secondaryHidden || (secondaryRegion?.collapsed ?? false)}
+  primaryCollapsed={primaryRegion?.collapsed ?? false}
+  secondaryCollapsed={secondaryRegion?.collapsed ?? false}
+  primaryHidden={primaryHidden}
+  secondaryHidden={secondaryHidden}
   showCollapsePrimary={!primaryHidden && primaryRegionId !== null}
   showCollapseSecondary={!secondaryHidden && secondaryRegionId !== null}
-  primaryCollapsedSize={primaryHidden ? 0 : null}
-  secondaryCollapsedSize={secondaryHidden ? 0 : null}
   disabled={primaryHidden || secondaryHidden}
   {size}
   {sizeRole}
