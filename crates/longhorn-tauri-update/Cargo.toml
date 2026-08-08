@@ -5,19 +5,16 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Restart-interlocked Tauri update host for Longhorn"
+description = "Restart-interlocked update authorization for Longhorn"
 publish = false
 
 [dependencies]
 longhorn-core.workspace = true
 longhorn-update.workspace = true
 semver.workspace = true
-serde.workspace = true
-tauri.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
-tauri = { workspace = true, features = ["test"] }
 
 [lints]
 workspace = true

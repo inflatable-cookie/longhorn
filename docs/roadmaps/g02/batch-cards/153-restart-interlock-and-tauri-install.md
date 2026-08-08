@@ -148,6 +148,19 @@ disk and reporting otherwise invites retrying an update already installed.
 
 Outstanding: the concrete `tauri-plugin-updater` installer, under Card 159.
 
+Correction 2026-08-08: Longhorn does not implement an installer — Tauri's
+updater plugin performs check, download, verification, and bundle
+replacement. The gate was reshaped from driving an injected installer to
+authorizing the install: `UpdateGate::authorize(&Version)` returns
+`InstallAuthorization::Approved` or `Deferred` with the reason, and the
+application hands the downloaded artifact to the plugin itself. The tested
+policy is unchanged: quiescence is rechecked at authorization time, every
+probe runs, and a refused install carries its reason. The tauri dependency
+is gone from this crate; it is pure again. The mechanism findings below
+(install is endpoint-only; macOS separates install from relaunch) remain the
+guide for the application-side wiring, and the plugin's lack of a typed
+non-writable error is a recorded limitation of the app-facing surface.
+
 ## Next Task
 
 Finish `longhorn-tauri-update` against a packaged proof application, then

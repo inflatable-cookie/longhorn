@@ -47,6 +47,7 @@ members = [
   "examples/tauri-native-content-backing-surface-proof/src-tauri",
   "examples/tauri-transfer-proof/src-tauri",
   "examples/tauri-windowing-proof/src-tauri",
+  "examples/update-licence-proof/rust/harness",
 ]
 exclude = [
   "prototypes/native-content",

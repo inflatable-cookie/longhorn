@@ -1,0 +1,17 @@
+[package]
+name = "longhorn-update-licence-proof"
+version.workspace = true
+edition.workspace = true
+publish = false
+description = "Headless update and licence flow proof harness (Card 159)"
+
+[dependencies]
+ed25519-dalek.workspace = true
+longhorn-licence.workspace = true
+longhorn-tauri-update.workspace = true
+longhorn-update.workspace = true
+semver.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

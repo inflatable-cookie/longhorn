@@ -53,11 +53,15 @@ its pure half complete — PKCE, callback validation, machine identity, and
 the credential seam — and reached its documented stop condition on platform
 storage, so the seam is injected and the decision is recorded.
 
-[Card 159](g02/batch-cards/159-update-and-licence-packaged-proof.md) is
-ready and is the next thing to run. Cards 153 and 157 both stopped at claims
-that cannot be verified headlessly — macOS install and relaunch, a real
-keychain, a real browser redirect — so the proof application they both need
-is now its own card.
+[Card 159](g02/batch-cards/159-update-and-licence-packaged-proof.md)
+completed its headless batch and then stopped on an operator decision
+(2026-08-08): the packaged proof application is deprioritized, and Longhorn
+does not implement an installer — Tauri's updater plugin installs. The
+card's landed value is the authorize-only interlock
+(`UpdateGate::authorize` in `longhorn-tauri-update`, pure, no tauri
+dependency) plus the headless regression harness. The machine-bound claims
+stay recorded as unmet. The card resumes when a consumer needs the packaged
+evidence.
 
 The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
 
@@ -65,3 +69,6 @@ Also outstanding: Card 149's receipt freeze remains operator-held on
 consumer manifest quiescence, and the
 [g02 candidate runway](g02/README.md#candidate-runway) still tiers the
 deferred options. Package-manager publication remains deferred.
+
+Next live pointer: the g02 planning checkpoint — characterize the next
+shared gap from consumer evidence, or extend the runway.

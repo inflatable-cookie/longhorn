@@ -2813,9 +2813,7 @@ dependencies = [
  "longhorn-core",
  "longhorn-update",
  "semver",
- "serde",
  "serde_json",
- "tauri",
 ]
 
 [[package]]
@@ -2870,6 +2868,18 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "ts-rs",
+]
+
+[[package]]
+name = "longhorn-update-licence-proof"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "longhorn-licence",
+ "longhorn-tauri-update",
+ "longhorn-update",
+ "semver",
+ "serde_json",
 ]
 
 [[package]]
