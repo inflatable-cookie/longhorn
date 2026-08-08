@@ -55,7 +55,7 @@ requireAll(guides, [
 const api = documents.get("docs/reference/api-surface.md")!;
 const rustCount = [...api.matchAll(/^\| `longhorn-[^`]+` \|/gm)].length;
 const typescriptCount = [...api.matchAll(/^\| `@longhorn\/[^`]+` \|/gm)].length;
-if (rustCount !== 36 || typescriptCount !== 17) {
+  if (rustCount !== 41 || typescriptCount !== 18) {
   throw new Error(`API inventory count drift: Rust ${rustCount}, TypeScript ${typescriptCount}`);
 }
 if (!api.includes("not available from npm or crates.io") || !api.includes("private: true") || !api.includes("publish = false")) {

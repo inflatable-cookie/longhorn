@@ -184,7 +184,11 @@ try {
       packageManagerPublication: false,
     },
   };
-  await verifyReceipt(report);
+  if (process.env.WRITE_GREENFIELD_RECEIPT === "1") {
+    await writeReceipt(report);
+  } else {
+    await verifyReceipt(report);
+  }
   console.log(JSON.stringify(report, null, 2));
 } finally {
   if (process.env.KEEP_GREENFIELD_COMPOSITION_PROOF === "1") {
@@ -192,6 +196,58 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+}
+
+async function writeReceipt(report: {
+  schema: string;
+  sources: { longhorn: string; poodle: string };
+  artifacts: {
+    typescript: ArtifactIdentity[];
+    poodle: ArtifactIdentity[];
+    rust: ArtifactIdentity[];
+    sets: { typescript: string; poodle: string; rust: string };
+  };
+  shapes: Array<{
+    shape: ShapeName;
+    hierarchy: readonly string[];
+    typescriptPackages: string[];
+    rust: { rustPackages: string[] } | undefined;
+  }>;
+  optionalServerLocal: { rustPackages: string[] };
+  audits: Record<string, boolean>;
+}): Promise<void> {
+  const shapes = Object.fromEntries(
+    report.shapes.map((shape) => {
+      if (!shape.rust) throw new Error(`${shape.shape} Rust report missing`);
+      return [
+        shape.shape,
+        {
+          hierarchy: [...shape.hierarchy],
+          typescript: [...shape.typescriptPackages].sort(),
+          rust: [...shape.rust.rustPackages].sort(),
+        },
+      ];
+    }),
+  ) as Record<ShapeName, { hierarchy: string[]; typescript: string[]; rust: string[] }>;
+  const receipt = {
+    schema: report.schema,
+    sources: {
+      longhornSelected: report.sources.longhorn,
+      poodleSelected: report.sources.poodle,
+    },
+    artifacts: {
+      sets: report.artifacts.sets,
+      inventories: {
+        typescript: report.artifacts.typescript.map(({ name }) => name).sort(),
+        poodle: report.artifacts.poodle.map(({ name }) => name).sort(),
+        rust: report.artifacts.rust.map(({ name }) => name).sort(),
+      },
+    },
+    shapes,
+    optionalServerLocalRust: [...report.optionalServerLocal.rustPackages].sort(),
+    audits: report.audits,
+  };
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
 }
 
 async function verifyReceipt(report: {

@@ -1,14 +1,14 @@
 {
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
-    "longhornSelected": "c05fde26c505d83565dd05106a2ea35c549d93b7",
-    "poodleSelected": "a2b041bad8132e38ce7219cb6872861dcc5866e0"
+    "longhornSelected": "647a18122cc47675bdf7b3879e65cbfbc2f2c74a",
+    "poodleSelected": "dfb61f2f727db7657416c5f1831df58ad1aff0a4"
   },
   "artifacts": {
     "sets": {
-      "typescript": "2a996c0811ef5bdb0578e15c13c253bfb94c75c15cfb4772778ab5acb165d946",
-      "poodle": "c7ffcca6397e05440530968e54cace5c7a51f028371180536cdabbb518c85301",
-      "rust": "7e7c0537e804583954031d8fe9a4963f641ef9f98c6637d645df8d589a240854"
+      "typescript": "e385683c9b6a17ba3ca97c9ce5991f7e1b7f21a7f4a31e286661c02c3558b691",
+      "poodle": "6406ead6b67c4aa437243731b045660e3dee945bfba3b62cec514e55fcd46fd6",
+      "rust": "0b272f464d00afc4a854f8bcc6034e1af72f48ab54583d4327b8575d9f95f6a4"
     },
     "inventories": {
       "typescript": [
@@ -65,8 +65,15 @@
   },
   "shapes": {
     "minimal": {
-      "hierarchy": ["window"],
-      "typescript": ["@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+      "hierarchy": [
+        "window"
+      ],
+      "typescript": [
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
       "rust": [
         "longhorn-config",
         "longhorn-core",
@@ -77,7 +84,12 @@
       ]
     },
     "workspace": {
-      "hierarchy": ["window", "layout-container", "region", "panel"],
+      "hierarchy": [
+        "window",
+        "layout-container",
+        "region",
+        "panel"
+      ],
       "typescript": [
         "@longhorn/commands",
         "@longhorn/config",
@@ -108,7 +120,14 @@
       ]
     },
     "full-hosting": {
-      "hierarchy": ["display", "window", "surface", "layout-container", "region", "panel"],
+      "hierarchy": [
+        "display",
+        "window",
+        "surface",
+        "layout-container",
+        "region",
+        "panel"
+      ],
       "typescript": [
         "@longhorn/commands",
         "@longhorn/config",
@@ -151,8 +170,17 @@
       ]
     },
     "optional-server": {
-      "hierarchy": ["window", "optional-service-bridge"],
-      "typescript": ["@longhorn/bridge", "@longhorn/config", "@longhorn/core", "@longhorn/settings", "@longhorn/tauri"],
+      "hierarchy": [
+        "window",
+        "optional-service-bridge"
+      ],
+      "typescript": [
+        "@longhorn/bridge",
+        "@longhorn/config",
+        "@longhorn/core",
+        "@longhorn/settings",
+        "@longhorn/tauri"
+      ],
       "rust": [
         "longhorn-bridge",
         "longhorn-config",
