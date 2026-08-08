@@ -128,6 +128,33 @@ Three groups, not one:
   from. Whether those domains should bound their collections is a separate
   question from generating validators, and belongs to whoever owns each.
 
+## Step 2 Extended — 2026-08-08
+
+Extending to the four `pub` packages found almost nothing to repoint, and a
+better target instead.
+
+**Correction to the inventory's "ts bounds" column.** It conflated
+non-empty checks with maximums. Of the four packages, history has one real
+maximum and the other three have none — their counted "bounds" are
+`.length === 0` minimums. Across history, history-tree, notifications and
+operation there is essentially **one** enforced maximum against 24 declared
+Rust constants. So emitting those 24 would be preparation for step 4, not a
+fix for existing drift, and it is deferred to the target decision.
+
+**The cross-cutting bound was the real find.** `MAX_OPAQUE_ID_BYTES = 128`
+lives in `longhorn-core/src/opaque_id.rs`, was **private**, and was
+hand-copied into six sites across five packages: history, native-content,
+config, and bridge (×3). It is now `pub`, emitted by four generators, and
+consumed at all six sites. No literal remains.
+
+**Open discrepancy, deliberately not fixed here.** The constant is a *byte*
+bound. Bridge measures `new TextEncoder().encode(value).length` — correct.
+History, native-content and config measure `value.length`, which is UTF-16
+code units. A 100-character identifier with multi-byte characters exceeds
+128 bytes and passes all three. Repointing preserved each site's existing
+unit rather than silently tightening validation; aligning them is a
+behaviour change and belongs to the step 1 target decision.
+
 ## Scope
 
 - an agreed target for what boundary validation checks, applied uniformly

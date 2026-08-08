@@ -2,6 +2,7 @@
 // Rust serde types are the wire authority. Browser, plugin, GPU, and product payloads are absent.
 
 export const NATIVE_CONTENT_PROTOCOL_VERSION = 1 as const;
+export const NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES = 128 as const;
 export const NATIVE_CONTENT_MECHANISMS = ["child_view","isolated_window","backing_surface"] as const;
 export const NATIVE_CONTENT_DETACH_POLICIES = ["reversible","owner_process_termination","process_lifetime"] as const;
 export const NATIVE_CONTENT_INPUT_ROUTING_MODES = ["native_direct","renderer_forwarded","disabled"] as const;

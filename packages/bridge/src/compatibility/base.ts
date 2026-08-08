@@ -1,3 +1,4 @@
+import { BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
 export type BridgeProtocolIncompatibilityCode =
   | "unsupported_protocol_version"
   | "invalid_object"
@@ -104,7 +105,7 @@ export function unique<T>(
 export function opaqueId(value: unknown): string {
   if (
     typeof value !== "string" ||
-    new TextEncoder().encode(value).length > 128 ||
+    new TextEncoder().encode(value).length > BRIDGE_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z0-9._:-]+$/.test(value)
   ) {
     incompatible("invalid_id", value);
@@ -115,7 +116,7 @@ export function opaqueId(value: unknown): string {
 export function domainId(value: unknown): string {
   if (
     typeof value !== "string" ||
-    new TextEncoder().encode(value).length > 128 ||
+    new TextEncoder().encode(value).length > BRIDGE_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)*$/.test(value)
   ) {
     incompatible("invalid_domain_id", value);

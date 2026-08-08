@@ -1,4 +1,5 @@
 import {
+  BRIDGE_MAXIMUM_OPAQUE_ID_BYTES,
   BRIDGE_FAILURE_PHASES,
   BRIDGE_RETRY_CLASSES,
   type BridgeCancellationRequest,
@@ -219,7 +220,7 @@ function variant(
 function parseDomainId(value: unknown): string {
   if (
     typeof value !== "string" ||
-    new TextEncoder().encode(value).length > 128 ||
+    new TextEncoder().encode(value).length > BRIDGE_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)*$/.test(value)
   ) {
     incompatible("invalid_domain_id", value);

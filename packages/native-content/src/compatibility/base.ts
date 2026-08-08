@@ -1,4 +1,7 @@
-import { NATIVE_CONTENT_PROTOCOL_VERSION } from "../generated/protocol.ts";
+import {
+  NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES,
+  NATIVE_CONTENT_PROTOCOL_VERSION,
+} from "../generated/protocol.ts";
 
 const FORBIDDEN_KEYS = new Set([
   "payload",
@@ -88,7 +91,7 @@ export function opaqueId(
   text(value, path);
   if (
     value.length === 0 ||
-    value.length > 128 ||
+    value.length > NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z0-9._:-]+$/.test(value)
   ) {
     fail(path, "invalid bounded opaque id");

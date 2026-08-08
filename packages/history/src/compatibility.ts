@@ -1,4 +1,5 @@
 import {
+  HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
   HISTORY_ENTRY_POSITIONS,
   HISTORY_MODES,
@@ -318,7 +319,7 @@ function id(value: unknown, path: string): void {
   string(value, path);
   if (
     (value as string).length === 0 ||
-    (value as string).length > 128 ||
+    (value as string).length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z0-9._:-]+$/.test(value as string)
   ) {
     fail(path, "expected bounded lowercase opaque id");

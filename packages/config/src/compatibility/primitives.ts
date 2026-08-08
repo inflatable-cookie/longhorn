@@ -1,3 +1,4 @@
+import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
 export type ConfigProtocolIncompatibilityCode =
@@ -100,7 +101,7 @@ export function opaqueId(
   string(value, path);
   if (
     value.length === 0 ||
-    value.length > 128 ||
+    value.length > CONFIG_MAXIMUM_OPAQUE_ID_BYTES ||
     !/^[a-z0-9._:-]+$/.test(value)
   ) {
     fail("invalid_payload", path, "expected bounded lowercase opaque id");

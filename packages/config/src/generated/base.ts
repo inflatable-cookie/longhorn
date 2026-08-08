@@ -3,6 +3,7 @@
 import type { RestoreOperationsProjection } from "./restore.ts";
 
 export const CONFIG_OPERATIONS_PROTOCOL_VERSION = 1 as const;
+export const CONFIG_MAXIMUM_OPAQUE_ID_BYTES = 128 as const;
 export const CONFIG_OPERATION_CAPABILITIES = ["storageDiagnostics","storageTransition","backupInventory","backupCreate","backupExport","backupRetention","backupEncryption","restoreInspection","restoreExecution","restoreAdapterExecution","restoreRecovery"] as const;
 export const CONFIG_OPERATION_REJECTION_CODES = ["unauthorized","unsupported","authorityChanged","confirmationMismatch","transitionActive","recoveryRequired","conflicts","pendingPublication","selectionCancelled","archiveChanged","archiveCorrupt","archiveFutureVersion","identityMismatch","restorePlanStale","restoreActive","restoreAdapterChanged","incompleteInventory","encryptionInteractionRequired","policyBlocked"] as const;
 export const STORAGE_BOOTSTRAP_STATES = ["selected","recoveryRequired"] as const;

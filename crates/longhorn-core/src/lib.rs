@@ -28,6 +28,7 @@ pub use geometry::{
     PhysicalSpace, PhysicalVector, Point, Rect, ScreenDip, ScreenPoint, ScreenRect, ScreenSize,
     ScreenSpace, ScreenVector, Size, Vector,
 };
+pub use opaque_id::MAX_OPAQUE_ID_BYTES;
 pub use opaque_id::{
     AuthorityScopeId, BridgeCapabilityId, BridgeCredentialRef, BridgeDiagnosticId, BridgeErrorCode,
     BridgeId, BridgeIdempotencyKey, BridgeJobId, BridgeRequestId, BridgeSessionId, ConfigRequestId,

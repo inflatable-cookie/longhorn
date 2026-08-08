@@ -2,7 +2,11 @@ use std::{error::Error, fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-const MAX_OPAQUE_ID_BYTES: usize = 128;
+/// Longest opaque identifier, in bytes.
+///
+/// Public because the TypeScript boundary validators must bound identifiers
+/// against the same authority rather than a hand-copied literal.
+pub const MAX_OPAQUE_ID_BYTES: usize = 128;
 
 macro_rules! opaque_id {
     ($name:ident, $description:literal) => {
