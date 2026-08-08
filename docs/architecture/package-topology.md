@@ -26,8 +26,8 @@ discovery and validation entry points.
 | `longhorn-config` | domains, roots, coordinated safe writes, backup, ordinary restore, grouped custom-adapter restore, boot recovery | core, `cap-std`, `fs4` |
 | `longhorn-config-age` | optional authenticated binary age v1 backup envelopes | config, exact `age` adapter |
 | `longhorn-display` | known/observed displays and correlation | core |
-| `longhorn-windowing` | placement, desired/apply plans, pure event attribution and settling | core, display |
-| `longhorn-windowing-config` | consumer-domain placement staging and coordinated flush | core, config, tauri-windowing |
+| `longhorn-windowing` | placement, desired/apply plans, pure event attribution and settling, host-agnostic capture/flush model and placement port | core, display |
+| `longhorn-windowing-config` | consumer-domain placement staging and coordinated flush | core, config, windowing |
 | `longhorn-layout` | containers, regions, panels, normalization | core |
 | `longhorn-layout-config` | registered layout domains, coordinated mutation, debounce, and flush | core, config, layout |
 | `longhorn-surfaces` | optional Surface identity, topology, lifecycle, and pure host resolution | core |
