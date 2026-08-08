@@ -1,6 +1,6 @@
 # 164 TypeScript Package Consolidation
 
-Status: ready
+Status: ready — first attempt reverted 2026-08-08; see Attempt Notes
 Owner: Tom
 Roadmap: g02.013 batch 1
 Governing refs: contract 012; contracts 013 and 020
@@ -116,6 +116,70 @@ the framework now avoids renaming after publication.
    `docs/reference/api-surface.md`, and Card 149's candidate receipt, which
    freezes counts.
 
+## Attempt Notes — 2026-08-08, reverted
+
+A full attempt was made and reverted cleanly. Nothing was committed; the
+repository is back at 18 packages with every gate green. What it learned
+changes the plan, so a second attempt should start from here rather than
+from the steps above.
+
+### What worked
+
+The bulk is genuinely mechanical and went in without trouble:
+
+- 363 source and test files moved into three packages with `git mv`
+- 344 files had their import specifiers rewritten by a literal map, using a
+  sentinel pass so `longhorn-poodle-svelte` was not caught by the
+  `longhorn-poodle` rule and `longhorn-tauri` survived intact
+- 60 entry points expressed across three exports maps: 32 on `longhorn`,
+  19 on `longhorn-poodle-svelte`, 10 on `longhorn-tauri`
+
+### What stopped it
+
+**The peered subpaths are not leaf entry points.** The card assumed
+`config/poodle`, `history/svelte` and friends were single files that could
+be lifted out. They are subsystems that reach *back* into their domain's
+internals:
+
+    packages/commands/src/poodle.ts     imports ./projectors.ts
+    packages/commands/src/poodle/…      imports ../controller.ts
+    packages/commands/src/svelte.ts     imports ./svelte/session.svelte.ts
+
+Inside one package those are free. Split across packages, every one becomes
+a cross-package import of something `longhorn` does not export.
+
+**Each peered surface is a directory as well as a file.** Six domains carry
+`src/<domain>/svelte/` and seven carry `src/<domain>/poodle/`, alongside the
+`svelte.ts` and `poodle.ts` entry files. Moving only the entry files leaves
+the directories orphaned; moving the directories too raised the type-error
+count from 150 to 188, because their own relative imports then pointed
+across the new boundary in the opposite direction.
+
+**Test files break on depth.** Tests moved from
+`packages/<domain>/tests/` to `packages/longhorn/tests/<domain>/`, so every
+`../src/x` needs re-rooting. Mechanical, but it interacts with the above.
+
+### What a second attempt should do first
+
+Map the coupling before moving anything. For each of the 13 peered surfaces,
+list which domain internals it imports. That set is the real decision:
+
+- internals only the peered surface uses **move with it**
+- internals shared with the domain's public client **become exports of
+  `longhorn`**, which is a public-surface decision, not a mechanical one
+- anything reaching in both directions means the boundary is wrong and the
+  domain needs splitting differently
+
+Only once that map exists is the move mechanical. Attempting it in the other
+order produces a half-migrated graph, which is worse than either end — the
+reason this attempt was reverted rather than pushed through.
+
+### Revised estimate
+
+Larger than the card implied. The file movement is an afternoon; the
+coupling map and the export decisions it forces are the actual work, and
+they touch `longhorn`'s public surface, which contract 012 governs.
+
 ## Acceptance Criteria
 
 - three published packages; every current entry point still resolves
@@ -139,7 +203,13 @@ the framework now avoids renaming after publication.
 
 ## Timing
 
-**Before poodle publishes.** Published names freeze, and this changes
+**Corrected 2026-08-08.** This card said "before poodle publishes", which
+was wrong: poodle publishing does not freeze *longhorn's* names. Longhorn's
+own publication does, and that is still several steps out — poodle
+publishes, longhorn moves off `file:` refs, CI runs its TypeScript lane,
+then a tag. There is more room than the original framing claimed.
+
+**Before longhorn publishes.** Published names freeze, and this changes
 longhorn's names. It is also cheap now and expensive later: eighteen
 published packages cannot be collapsed without deprecating seventeen of
 them.
