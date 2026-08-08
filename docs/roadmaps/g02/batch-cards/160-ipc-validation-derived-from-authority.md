@@ -1,6 +1,6 @@
 # 160 IPC Validation Derived From The Authority
 
-Status: ready
+Status: in progress — step 2 proven on bridge
 Owner: Tom
 Roadmap: g02.011 batch 1
 Governing refs: contracts 010 and 012; the P2-10 audit finding
@@ -91,6 +91,42 @@ extends an existing capability rather than adding one.
 validity matrix (`ready: ["negotiationAccepted", "capabilityChanged"]`, and
 so on). Both sides are plain string unions; the *pairing* rule exists in no
 type. It stays hand-written and must be moved somewhere that says so.
+
+## Step 2 Landed — 2026-08-08 (`37b49a0a`)
+
+Bridge emits its eight `MAXIMUM_*` constants from the Rust authority, and
+its negotiation validator consumes them instead of six literals.
+
+**The drift gate was tested in both directions**, not assumed: changing
+`MAXIMUM_DIAGNOSTICS` from 64 to 63 in Rust made `check:bindings` fail;
+restoring and regenerating made it pass.
+
+### Correction to Finding 2
+
+The card assumed the remaining bounds were all hand-copied from constants
+that exist. Measuring crate visibility says otherwise:
+
+| package | `pub` | `pub(crate)` |
+| --- | ---: | ---: |
+| history-tree | 9 | 0 |
+| history | 6 | 0 |
+| notifications | 6 | 0 |
+| operation | 3 | 0 |
+| commands | 1 | 2 |
+| settings | 0 | 4 |
+| config, layout, native-content, surfaces, surface-transfer, transfer | 0 | 0 |
+
+Three groups, not one:
+
+- **history, history-tree, notifications, operation** — `pub`, follow the
+  bridge pattern directly. 24 constants.
+- **commands, settings** — behind `pub(crate)`, so a visibility decision
+  comes first. Six constants.
+- **config, layout, native-content, surfaces, surface-transfer, transfer**
+  — declare no `MAXIMUM_*` at all. Their missing TypeScript bounds are a
+  **Rust-side gap**, not a binding gap: there is no authority to derive
+  from. Whether those domains should bound their collections is a separate
+  question from generating validators, and belongs to whoever owns each.
 
 ## Scope
 
