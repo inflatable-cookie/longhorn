@@ -147,13 +147,24 @@ hand-copied into six sites across five packages: history, native-content,
 config, and bridge (×3). It is now `pub`, emitted by four generators, and
 consumed at all six sites. No literal remains.
 
-**Open discrepancy, deliberately not fixed here.** The constant is a *byte*
-bound. Bridge measures `new TextEncoder().encode(value).length` — correct.
-History, native-content and config measure `value.length`, which is UTF-16
-code units. A 100-character identifier with multi-byte characters exceeds
-128 bytes and passes all three. Repointing preserved each site's existing
-unit rather than silently tightening validation; aligning them is a
-behaviour change and belongs to the step 1 target decision.
+**Retracted 2026-08-08 — there is no discrepancy.** This card previously
+recorded a live validation hole: the constant bounds bytes, and three of the
+six sites measure `value.length` (UTF-16 code units) rather than encoded
+byte length. That reading was wrong. All six sites — including the three —
+also enforce `/^[a-z0-9._:-]+$/`, and every character in that set is
+single-byte ASCII, so for any value that passes the charset check the two
+measurements are identical. Rust agrees: `opaque_id.rs` bounds `value.len()`
+(bytes) and restricts to the same ASCII set.
+
+The mismatch is therefore cosmetic. Bridge's `TextEncoder` is belt-and-braces
+against a charset that cannot produce multi-byte input; the other three are
+equivalent and cheaper. No behaviour change is warranted, and the step 1
+target decision does not inherit this question.
+
+The error came from reading the unit mismatch in isolation without checking
+the adjacent charset guard — worth remembering, because the same shape
+(a bound plus a charset restriction that makes the bound's unit moot)
+recurs across these validators.
 
 ## Scope
 
