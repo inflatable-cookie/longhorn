@@ -10,11 +10,11 @@ export default defineConfig({
     noExternal: [
       "@inflatable-cookie/longhorn/config",
       "@inflatable-cookie/longhorn/settings",
-      "@inflatable-cookie/poodle-headless",
-      "@inflatable-cookie/poodle-icons-lucide",
-      "@inflatable-cookie/poodle-styles",
+      "@inflatable-cookie/poodle-core",
+      "@inflatable-cookie/poodle-core/icons",
+      "@inflatable-cookie/poodle-core/styles",
       "@inflatable-cookie/poodle-svelte",
-      "@inflatable-cookie/poodle-svelte-tokens",
+      "@inflatable-cookie/poodle-core/tokens",
     ],
   },
   test: {

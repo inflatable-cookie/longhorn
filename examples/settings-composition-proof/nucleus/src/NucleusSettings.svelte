@@ -1,6 +1,6 @@
 <script lang="ts">
-  import "@inflatable-cookie/poodle-svelte-tokens/styles.css";
-  import "@inflatable-cookie/poodle-svelte-tokens/theme-graphite.css";
+  import "@inflatable-cookie/poodle-core/tokens/styles.css";
+  import "@inflatable-cookie/poodle-core/tokens/theme-graphite.css";
 
   import {
     SettingsShell,

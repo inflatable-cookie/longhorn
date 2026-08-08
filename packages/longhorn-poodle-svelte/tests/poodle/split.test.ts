@@ -27,10 +27,15 @@ describe("LayoutSplitView", () => {
       props: { binding, primaryHidden: true },
     });
 
+    // Poodle's SplitView contract is explicit that a hidden pane is absent
+    // rather than collapsed: it takes zero space and renders no toggle, and
+    // deliberately sets no collapsed data attribute. Card 161 chose hidden
+    // over collapsed for exactly that reason, so the projection is proven by
+    // the effects below, not by a collapse marker Poodle will never set.
     expect(
       screen.getByLabelText("Nucleus workspace split").dataset.primaryCollapsed,
-    ).toBe("true");
-    expect(screen.getByText("Navigation").style.flexBasis).toBe("0px");
+    ).toBeUndefined();
+    expect(screen.queryByText("Navigation")).toBeNull();
     expect(screen.getByRole("separator").tabIndex).toBe(-1);
     expect(
       screen.queryByRole("button", { name: "Expand primary" }),

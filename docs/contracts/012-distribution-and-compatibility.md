@@ -116,6 +116,23 @@ A release candidate requires:
 
 ## Current Poodle Preview Checkpoint
 
+**Superseded 2026-08-08 by Poodle Card 020.** Poodle collapsed its six
+publish-intent packages into three grouped by framework binding, so the set
+below is now two tarballs rather than five:
+
+- artifact set
+  `ec626ac7c66cfd45249690270195e7be74e34fe96940e32a938852a41ed7bba8`
+  from `~/Dev/projects/poodle/.artifacts/svelte-pack-install-V2Wu2n/`
+- `@inflatable-cookie/poodle-core` — `ac13b2ef31c84b11…`, 291,471 bytes
+- `@inflatable-cookie/poodle-svelte` — `8a845d0fb7279ef5…`, 200,091 bytes
+
+`poodle-core` carries the former `poodle-headless`, `poodle-styles`,
+`poodle-svelte-tokens` and `poodle-icons-lucide` as the subpaths `.`,
+`./styles/*`, `./tokens/*` and `./icons/*`. Longhorn pins both tarballs.
+
+The paragraphs below record the sets each card was bound to at the time and
+keep their original package names deliberately.
+
 Card 039 is bound to artifact set
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`
 from `~/Dev/projects/poodle/.artifacts/g12.016-A698XB/evidence.json`.
