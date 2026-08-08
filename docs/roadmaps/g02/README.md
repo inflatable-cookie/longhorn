@@ -16,6 +16,7 @@
 | [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
 | [g02.011](011-ipc-boundary-validation.md) | ready | IPC boundary validation derived from the Rust authority |
 | [g02.012](012-dual-backend-host-positioning.md) | ready | two first-class hosts: Tauri and GPUI, one host-agnostic core |
+| [g02.013](013-typescript-package-graph.md) | ready | eighteen TypeScript packages to three, grouped by peer requirement |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

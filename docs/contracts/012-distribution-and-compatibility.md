@@ -32,8 +32,18 @@ policy remain consumer-owned.
 ## Dependency Discipline
 
 - Pure domain packages cannot depend on Tauri, Svelte, Poodle, or a consumer.
-- Optional systems are separate packages; disabling Surfaces, history,
-  commands, settings, or service topology removes their dependency graph.
+- **Rust:** optional systems are separate crates, and disabling Surfaces,
+  history, commands, settings, or service topology removes their dependency
+  graph. This is measured, not asserted: finch compiles 8 crates of 41,
+  soundcheck 17, nucleus and loophole 24. No consumer takes more than 59%.
+- **TypeScript:** the same claim does not hold and must not be made. Every
+  domain package depends on `core` and nothing else; `layout` and `commands`
+  depend on nothing at all, and no third-party dependency differs between
+  them. Removing a domain removes that domain — there is no tree beneath it
+  to prune, and tree-shaking already keeps unused exports out of an
+  application bundle.
+- TypeScript packages are therefore grouped by **peer requirement**, which is
+  the only axis on which they genuinely differ, not by domain. See Card 164.
 - Adapter packages depend only on the capabilities they adapt.
 - A shared adapter package may expose optional capability subpaths only when
   those capabilities are optional peers and the root entry does not re-export
