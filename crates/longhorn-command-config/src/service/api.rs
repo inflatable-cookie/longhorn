@@ -3,21 +3,18 @@
 use std::time::Duration;
 
 use longhorn_command::{CommandDiscoveryRecord, CommandReservedChordPolicy};
-use longhorn_config::{CheckedMutationError, ConfigStore, MutationError, MutationOptions};
+use longhorn_config::{CheckedMutationError, ConfigStore, MutationOptions};
 
 use crate::{
     CommandKeymapCommit, CommandKeymapCommitEvidence, CommandKeymapDiagnostic,
     CommandKeymapDurability, CommandKeymapLoadOrigin, CommandKeymapLoadOutcome,
     CommandKeymapMigration, CommandKeymapMutationOutcome, CommandKeymapMutationReceipt,
-    CommandKeymapMutationResult, CommandKeymapPreview, CommandKeymapPreviewResult,
-    CommandKeymapPresetRecord, CommandKeymapProtocolVersion, CommandKeymapRejectionCode,
+    CommandKeymapMutationResult, CommandKeymapPresetRecord, CommandKeymapPreview,
+    CommandKeymapPreviewResult, CommandKeymapProtocolVersion, CommandKeymapRejectionCode,
     CommandKeymapReset, CommandKeymapSnapshot, RegisteredCommandKeymapDomain,
 };
 
-use super::{
-    AcceptedCommit, CommandKeymapServiceError, CommitAbort, Proposal, apply_patch, rejection,
-    snapshot_from_effective, validate_patch,
-};
+use super::{AcceptedCommit, CommandKeymapServiceError, CommitAbort, Proposal, rejection};
 
 /// Coordinated command keymap load, preview, commit, and reset authority.
 pub struct CommandKeymapService<P, M> {

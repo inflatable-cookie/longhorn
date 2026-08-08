@@ -194,4 +194,3 @@ impl WindowLifecycleScheduler for TauriAsyncWindowLifecycleScheduler {
         Ok(())
     }
 }
-

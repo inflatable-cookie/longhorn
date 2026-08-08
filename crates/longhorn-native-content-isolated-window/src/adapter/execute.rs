@@ -3,8 +3,8 @@
 use std::{collections::HashSet, sync::Arc};
 
 use longhorn_native_content::{
-    ApplyPlan, AttachGeneration, AttachmentLifecycle, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation,
+    ApplyPlan, AttachGeneration, DetachPolicy, InputRoutingMode, NativeContentMechanism,
+    NativeContentOperation,
 };
 
 use crate::{

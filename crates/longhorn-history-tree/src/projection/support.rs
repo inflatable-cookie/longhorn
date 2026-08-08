@@ -11,4 +11,3 @@ pub(crate) fn check_offset(offset: usize, maximum: usize) -> Result<(), ForkProj
     }
     Ok(())
 }
-

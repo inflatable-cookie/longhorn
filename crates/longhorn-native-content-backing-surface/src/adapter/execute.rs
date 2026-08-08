@@ -3,20 +3,18 @@
 use std::sync::Arc;
 
 use longhorn_native_content::{
-    ApplyPlan, AttachGeneration, AttachmentLifecycle, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation,
+    ApplyPlan, AttachGeneration, DetachPolicy, InputRoutingMode, NativeContentMechanism,
+    NativeContentOperation,
 };
 
-use crate::runtime::contains;
 use crate::{
-    BackingSurfaceAdapterEvent, BackingSurfaceError, BackingSurfaceRuntime,
-    BackingSurfaceRuntimeEventKind, BackingSurfaceSnapshot, RuntimeAttachRequest,
+    BackingSurfaceAdapterEvent, BackingSurfaceError, BackingSurfaceRuntime, BackingSurfaceSnapshot,
+    RuntimeAttachRequest,
 };
 
 use super::{
     Attachment, BackingSurfaceAdapter, BackingSurfaceDetachOutcome, compare_attached_generation,
-    compare_generation, compare_generation_allow_next, current_attachment, current_attachment_mut,
-    validate_snapshot,
+    compare_generation, compare_generation_allow_next, current_attachment_mut, validate_snapshot,
 };
 
 impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {

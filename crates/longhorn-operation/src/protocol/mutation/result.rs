@@ -1,24 +1,13 @@
 //! Mutation rejection and cancellation results.
 
 use longhorn_core::{
-    OperationCatalogueRevision, OperationId, OperationKindId, OperationRequestId, OperationRevision,
-    OperationScopeId,
+    OperationCatalogueRevision, OperationId, OperationRequestId, OperationRevision,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{OperationRemoval, OperationRemovalReason};
-use crate::protocol::{
-    OperationAuthorityProjection, OperationCancellationSupportProjection,
-    OperationCatalogueLimitsProjection, OperationEntryProjection,
-    OperationOverallProgressProjection, OperationPhaseProgressProjection,
-    OperationProgressProjection, OperationProtocolVersion, OperationSnapshot,
-    OperationStateProjection, OperationTeardownResolutionProjection, incompatible_protocol,
-};
+use crate::protocol::{OperationSnapshot, OperationStateProjection};
 
-use super::{
-    OperationMutationReceiptProjection, OperationRemovalProjection,
-    OperationTeardownOutcomeProjection,
-};
+use super::{OperationMutationReceiptProjection, OperationRemovalProjection};
 
 /// Stable checked mutation rejection category.
 #[allow(missing_docs)]

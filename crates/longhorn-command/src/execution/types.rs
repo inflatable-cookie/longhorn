@@ -1,19 +1,15 @@
 //! Execution request, admission, and outcome types.
 
-use std::{error::Error, fmt};
-
 use longhorn_core::{CommandContextId, CommandId, CommandRequestId, CommandRouteId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    CommandArgumentError, CommandArguments, CommandAvailability, CommandAvailabilityReason,
-    CommandAvailabilityReasonCode, CommandAvailabilityRecord, CommandAvailabilitySnapshot,
-    CommandCapabilitySnapshot, CommandContextSnapshot, CommandDefinition, CommandEvidence,
-    CommandRegistry, CommandRegistryGeneration,
+    CommandArgumentError, CommandArguments, CommandAvailability, CommandEvidence,
+    CommandRegistryGeneration,
 };
 
-use super::{CommandFailure, CommandFailureCode, CommandFailurePhase};
+use super::CommandFailure;
 /// Structurally unchecked command invocation request.
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -186,7 +182,10 @@ pub struct CommandExecutionResult {
 }
 
 impl CommandExecutionResult {
-    pub(crate) const fn new(request_id: CommandRequestId, outcome: CommandExecutionOutcome) -> Self {
+    pub(crate) const fn new(
+        request_id: CommandRequestId,
+        outcome: CommandExecutionOutcome,
+    ) -> Self {
         Self {
             request_id,
             outcome,
@@ -205,4 +204,3 @@ impl CommandExecutionResult {
         &self.outcome
     }
 }
-

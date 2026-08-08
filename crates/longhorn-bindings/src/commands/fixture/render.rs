@@ -1,13 +1,8 @@
 use std::error::Error;
 
 use longhorn_command::{
-    CommandArgumentSchema, CommandBindingDefinition, CommandContextDefinition,
-    CommandContextRevision, CommandContextSnapshot, CommandDefinition, CommandEffectiveKeymap,
-    CommandKeyChord, CommandKeyTrigger, CommandKeyboardInput, CommandKeyboardMode,
-    CommandKeymapOverride, CommandKeymapPreset, CommandLimits, CommandModifiers,
-    CommandPhysicalCode, CommandPlatform, CommandPlatformScope, CommandRegistryBuilder,
-    CommandRegistryGeneration, CommandReservedChordPolicy, CommandSurface, CommandTextInputPolicy,
-    CommandTriggerModifiers, CommandVisibility, NoReservedCommandChords,
+    CommandContextRevision, CommandContextSnapshot, CommandEffectiveKeymap, CommandKeyboardMode,
+    CommandKeymapOverride, CommandPlatform, CommandSurface, NoReservedCommandChords,
 };
 use longhorn_command_config::{
     CommandCatalogueChangedEvent, CommandCatalogueSnapshot, CommandKeymapChangedEvent,
@@ -19,12 +14,8 @@ use longhorn_command_config::{
     CommandKeymapRecoveryCode, CommandKeymapRejection, CommandKeymapRejectionCode,
     CommandKeymapReset, CommandKeymapRevision, CommandKeymapSnapshot, CommandKeymapState,
 };
-use longhorn_core::{
-    CommandBindingId, CommandCategoryId, CommandContextId, CommandId, CommandRequestId,
-    CommandRouteId, SchemaVersion,
-};
+use longhorn_core::{CommandContextId, CommandId, SchemaVersion};
 use serde_json::{Value, json, to_value};
-
 
 use super::*;
 
@@ -312,4 +303,3 @@ pub fn render() -> Result<String, Box<dyn Error>> {
     rendered.push('\n');
     Ok(rendered)
 }
-

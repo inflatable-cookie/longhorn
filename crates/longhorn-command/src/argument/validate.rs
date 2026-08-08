@@ -1,11 +1,9 @@
 use std::{
-    cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fmt,
 };
 
 use longhorn_core::{CommandEnumValueId, CommandFieldId};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use serde_json::Value;
 
 use crate::{
@@ -14,9 +12,10 @@ use crate::{
     error::{argument_error, registry_error},
 };
 
-
-use super::{CommandArgumentField, CommandArgumentKind, CommandArgumentSchema, CommandArgumentValue, CommandArguments, CommandFiniteNumber};
-
+use super::{
+    CommandArgumentField, CommandArgumentKind, CommandArgumentValue, CommandArguments,
+    CommandFiniteNumber,
+};
 
 pub(crate) fn validate_kind(
     field: &CommandArgumentField,
@@ -68,7 +67,10 @@ pub(crate) fn validate_kind(
     Ok(())
 }
 
-pub(crate) fn invalid_schema(field_id: &CommandFieldId, detail: impl fmt::Display) -> CommandRegistryError {
+pub(crate) fn invalid_schema(
+    field_id: &CommandFieldId,
+    detail: impl fmt::Display,
+) -> CommandRegistryError {
     registry_error(
         CommandRegistryErrorCode::InvalidArgumentSchema,
         format!("invalid schema for field {field_id}: {detail}"),

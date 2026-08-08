@@ -3,13 +3,12 @@ use std::{fs, io::Write, path::Path};
 use crate::{Durability, DurabilityRequirement};
 
 use super::super::{
-    inspect_backup_archive,
+    EncodedBackupArchive, inspect_backup_archive,
     publication_types::{
         BackupArchiveFileName, BackupDestinationKind, BackupExportTarget, BackupOperationalRoot,
         BackupPublicationError, BackupPublicationOptions, BackupPublicationReceipt,
         BackupPublicationStage, ExportOverwrite,
     },
-    EncodedBackupArchive,
 };
 use super::support::{
     cleanup, create_temporary, publication_error, read_bounded_archive, verification_error,

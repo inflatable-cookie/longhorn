@@ -5,10 +5,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use longhorn_command::{CommandEffectiveKeymap, CommandKeymapConflict, CommandReservedChordPolicy};
 
 use crate::{
-    CommandKeymapDiagnostic, CommandKeymapLoadOrigin, CommandKeymapMigration, CommandKeymapPatch,
-    CommandKeymapProtocolVersion, CommandKeymapRejection, CommandKeymapRejectionCode,
-    CommandKeymapSnapshot, CommandKeymapState, CommandKeymapMutationResult, RegisteredCommandKeymapDomain,
-    protocol::override_binding_id,
+    CommandKeymapDiagnostic, CommandKeymapLoadOrigin, CommandKeymapMigration,
+    CommandKeymapMutationResult, CommandKeymapPatch, CommandKeymapProtocolVersion,
+    CommandKeymapRejection, CommandKeymapRejectionCode, CommandKeymapSnapshot, CommandKeymapState,
+    RegisteredCommandKeymapDomain, protocol::override_binding_id,
 };
 
 use super::CommandKeymapServiceError;

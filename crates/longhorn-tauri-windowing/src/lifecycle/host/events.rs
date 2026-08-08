@@ -1,25 +1,13 @@
 //! Tauri and lifecycle event handling.
 
-use std::{
-    collections::BTreeMap,
-    sync::{
-        Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
-use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
-};
-use tauri::{Runtime, WebviewWindow, WindowEvent};
+use longhorn_core::WindowId;
+use longhorn_windowing::WindowLifecycleEvent;
+use tauri::{Runtime, WindowEvent};
 
 use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
-    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
-    WindowLifecycleWakeHandler, translate_tauri_window_event,
+    ScheduledWindowLifecycleWake, TauriWindowLifecycleAction, TauriWindowLifecycleError,
+    TauriWindowLifecycleReceipt, WindowFlushRequest, WindowLifecycleReport,
+    translate_tauri_window_event,
 };
 
 use super::{FlushDisposition, PendingFlush, TauriWindowLifecycleHost, coordination_error};
@@ -151,5 +139,4 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
     ) -> Result<TauriWindowLifecycleReceipt, TauriWindowLifecycleError> {
         self.handle_lifecycle_event(wake.event().clone())
     }
-
 }

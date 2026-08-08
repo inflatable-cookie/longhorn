@@ -1,11 +1,9 @@
 //! Fork-history projection view types.
 
-use std::{error::Error, fmt};
-
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 use longhorn_history::{HistoryEntryPosition, HistoryEntrySequence, HistoryLabel};
 
-use crate::{ForkBranchId, ForkHistory};
+use crate::ForkBranchId;
 
 use super::ForkProjectionError;
 

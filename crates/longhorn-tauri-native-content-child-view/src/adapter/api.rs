@@ -2,9 +2,9 @@
 
 use longhorn_core::{NativeContentFailureCode, WindowId};
 use longhorn_native_content::{
-    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, DetachPolicy, EffectiveFocus,
-    EffectiveVisibility, InputRoutingMode, NativeContentCoordinator, ObservationUpdate,
-    ObservedGeometry, ObservedReadiness, StepExecution,
+    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, EffectiveFocus,
+    EffectiveVisibility, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
+    ObservedReadiness, StepExecution,
 };
 use tauri::Url;
 
@@ -16,7 +16,6 @@ use super::{
     ChildViewAdapter, ChildViewHostDestroyOutcome, ChildViewHostDestroyReceipt,
     ChildViewNavigationOutcome, ChildViewNavigationReceipt, ChildViewTeardownOutcome,
     ChildViewTeardownReceipt, compare_attached_generation, compare_generation,
-    compare_generation_allow_next, current_attachment_mut,
 };
 
 impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {

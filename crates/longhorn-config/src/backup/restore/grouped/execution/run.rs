@@ -1,20 +1,14 @@
 //! Grouped adapter restore execution.
 
-use std::{
-    collections::BTreeSet,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     BackupAdapterGroupedApplyKind, BackupAdapterGroupedApplyRequest,
-    BackupAdapterGroupedStageRequest, BackupAdapterGroupedVerifyRequest,
-    BackupAdapterInspectRequest, BackupAdapterRestoreParticipation, BackupAdapterStateEvidence,
-    BackupArchiveInspection, BackupCatalog, ConfigStore, backup::CatalogDecision,
+    BackupAdapterGroupedVerifyRequest, BackupArchiveInspection, BackupCatalog, ConfigStore,
 };
 
 use super::super::{
-    journal::{self, GroupedJournalPhase, PreparedGroupedDomain},
-    planning::group_confirmation_digest,
+    journal::{self, GroupedJournalPhase},
     recovery,
     types::{
         RestoreAdapterGroupError, RestoreAdapterGroupExecutionOptions,
@@ -22,13 +16,9 @@ use super::super::{
         RestoreAdapterGroupPlan,
     },
 };
-use crate::backup::restore::{
-    RestoreFailureTerminal, RestoreInspection, inspection::payloads_for_adapter,
-};
+use crate::backup::restore::{RestoreFailureTerminal, RestoreInspection};
 
-use super::{
-    failure, prepare_domains, rollback_after_failure, validate_plan,
-};
+use super::{failure, prepare_domains, rollback_after_failure, validate_plan};
 
 static OPERATION_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
@@ -70,14 +60,8 @@ pub(crate) fn execute(
         )
     })?;
 
-    let (prepared_domains, _staged_total) = prepare_domains(
-        store,
-        catalog,
-        archive,
-        inspection,
-        plan,
-        &options,
-    )?;
+    let (prepared_domains, _staged_total) =
+        prepare_domains(store, catalog, archive, inspection, plan, &options)?;
 
     let authority = store.coordinator.authority_root();
     let operation_id = format!(
@@ -240,5 +224,3 @@ pub(crate) fn execute(
         entries: plan.entries.iter().map(Into::into).collect(),
     })
 }
-
-

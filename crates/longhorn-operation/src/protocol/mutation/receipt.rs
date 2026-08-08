@@ -1,19 +1,13 @@
 //! Mutation and teardown receipt projections.
 
-use longhorn_core::{
-    OperationCatalogueRevision, OperationId, OperationKindId, OperationRequestId, OperationRevision,
-    OperationScopeId,
-};
+use longhorn_core::{OperationCatalogueRevision, OperationId, OperationRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::{OperationRemoval, OperationRemovalReason};
 use crate::protocol::{
-    OperationAuthorityProjection, OperationCancellationSupportProjection,
-    OperationCatalogueLimitsProjection, OperationEntryProjection,
-    OperationOverallProgressProjection, OperationPhaseProgressProjection,
-    OperationProgressProjection, OperationProtocolVersion, OperationSnapshot,
-    OperationStateProjection, OperationTeardownResolutionProjection, incompatible_protocol,
+    OperationAuthorityProjection, OperationCatalogueLimitsProjection, OperationEntryProjection,
+    OperationProgressProjection, OperationStateProjection,
 };
+use crate::{OperationRemoval, OperationRemovalReason};
 
 /// Why one retained terminal entry was removed.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -215,4 +209,3 @@ pub enum OperationTeardownOutcomeProjection {
         target_authority: OperationAuthorityProjection,
     },
 }
-

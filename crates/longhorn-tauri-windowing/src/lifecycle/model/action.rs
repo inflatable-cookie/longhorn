@@ -1,14 +1,14 @@
 //! Lifecycle actions, receipts, and errors.
 
-use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
+use longhorn_core::WindowId;
 use longhorn_windowing::{
-    ApplyGeneration, CaptureGeneration, CaptureReason, FlushReason, IgnoreReason, MonotonicMillis,
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement, WindowLifecycleDuration,
-    WindowLifecycleEvent, WindowLifecycleEventKind, resolve_saved_display_association,
+    ApplyGeneration, CaptureGeneration, CaptureReason, IgnoreReason, WindowLifecycleEventKind,
 };
 use serde::{Deserialize, Serialize};
 
-use super::{CapturedWindowPlacement, ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest};
+use super::{
+    CapturedWindowPlacement, ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest,
+};
 
 /// One executed adapter action.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -182,4 +182,3 @@ pub enum TauriWindowLifecycleError {
         detail: String,
     },
 }
-

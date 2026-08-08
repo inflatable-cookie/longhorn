@@ -2,7 +2,10 @@
 
 use std::collections::HashSet;
 
-use longhorn_core::{NotificationId, NotificationLedgerRevision, NotificationProducerToken, NotificationReplacementKey, NotificationSourceId};
+use longhorn_core::{
+    NotificationId, NotificationLedgerRevision, NotificationProducerToken,
+    NotificationReplacementKey, NotificationSourceId,
+};
 
 use crate::{
     NotificationAuthorityCursor, NotificationLedgerError, NotificationLedgerLimits,
@@ -103,7 +106,9 @@ impl NotificationLedger {
             })
     }
 
-    pub(crate) fn next_revision(&self) -> Result<NotificationLedgerRevision, NotificationLedgerError> {
+    pub(crate) fn next_revision(
+        &self,
+    ) -> Result<NotificationLedgerRevision, NotificationLedgerError> {
         self.revision
             .checked_next()
             .map_err(|_| NotificationLedgerError::RevisionOverflow)
@@ -117,7 +122,9 @@ pub(crate) fn unseen_count(records: &[NotificationRecord]) -> usize {
         .count()
 }
 
-pub(crate) fn encoded_weight(records: &[NotificationRecord]) -> Result<u64, NotificationLedgerError> {
+pub(crate) fn encoded_weight(
+    records: &[NotificationRecord],
+) -> Result<u64, NotificationLedgerError> {
     records.iter().try_fold(0_u64, |total, record| {
         total
             .checked_add(record.encoded_metadata_weight())
@@ -157,7 +164,10 @@ pub(crate) fn prune_to_limits(
     }
 }
 
-pub(crate) fn increment_pruned_count(current: u64, removals: usize) -> Result<u64, NotificationLedgerError> {
+pub(crate) fn increment_pruned_count(
+    current: u64,
+    removals: usize,
+) -> Result<u64, NotificationLedgerError> {
     let removals =
         u64::try_from(removals).map_err(|_| NotificationLedgerError::PrunedCountOverflow)?;
     current

@@ -1,12 +1,12 @@
 //! Stage and reinspect preparation for grouped restore.
 
+use crate::backup::restore::{
+    RestoreFailureTerminal, RestoreInspection, inspection::payloads_for_adapter,
+};
 use crate::{
     BackupAdapterGroupedStageRequest, BackupAdapterInspectRequest,
     BackupAdapterRestoreParticipation, BackupArchiveInspection, BackupCatalog, ConfigStore,
     backup::CatalogDecision,
-};
-use crate::backup::restore::{
-    RestoreFailureTerminal, RestoreInspection, inspection::payloads_for_adapter,
 };
 
 use super::super::{
@@ -16,7 +16,7 @@ use super::super::{
         RestoreAdapterGroupExecutionStage, RestoreAdapterGroupPlan,
     },
 };
-use super::{failure, stage_limit_failure, validate_payload_set, validate_state_payload_set, validation_failure};
+use super::{failure, stage_limit_failure, validate_state_payload_set};
 
 pub(crate) fn prepare_domains(
     store: &ConfigStore,

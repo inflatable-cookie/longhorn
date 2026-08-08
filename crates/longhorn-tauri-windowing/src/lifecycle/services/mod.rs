@@ -12,7 +12,10 @@ pub use bundle::TauriWindowLifecycleServices;
 pub use clock::{ProcessMonotonicClock, WindowLifecycleClock};
 pub use ports::{
     NoopWindowLifecycleReporter, NoopWindowUserCloseHandler, ProgrammaticApplyObserver,
-    TauriWindowRevealBackend, WindowCaptureBackend, WindowLifecycleReporter, WindowPlacementFlushCompletion,
-    WindowPlacementFlushTicket, WindowPlacementSink, WindowRevealBackend, WindowUserCloseHandler,
+    TauriWindowRevealBackend, WindowCaptureBackend, WindowLifecycleReporter,
+    WindowPlacementFlushCompletion, WindowPlacementFlushTicket, WindowPlacementSink,
+    WindowRevealBackend, WindowUserCloseHandler,
 };
-pub use scheduler::{TauriAsyncWindowLifecycleScheduler, WindowLifecycleScheduler, WindowLifecycleWakeHandler};
+pub use scheduler::{
+    TauriAsyncWindowLifecycleScheduler, WindowLifecycleScheduler, WindowLifecycleWakeHandler,
+};

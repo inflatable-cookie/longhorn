@@ -1,12 +1,9 @@
 //! Observed native-content island state.
 
-use longhorn_core::{
-    ClientRect, NativeContentIslandId, NativeContentKindId, NativeContentRevision, PhysicalRect,
-    PhysicalSize, RoundingMode, ScaleFactor, VisibilityReasonId, WindowId,
-};
+use longhorn_core::NativeContentRevision;
 use serde::{Deserialize, Serialize};
 
-use crate::{AttachGeneration, CoordinationError};
+use crate::AttachGeneration;
 
 use super::{
     AttachmentLifecycle, EffectiveFocus, EffectiveVisibility, InputRoutingMode, ObservedGeometry,

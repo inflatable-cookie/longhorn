@@ -10,7 +10,6 @@ use serde_json::Value;
 
 use crate::{
     CommandArguments, CommandKeyChord, CommandKeyTrigger, CommandPlatform, CommandPlatformScope,
-    CommandTextInputPolicy,
 };
 
 pub(crate) const MAXIMUM_PRESET_BINDINGS: usize = 65_536;

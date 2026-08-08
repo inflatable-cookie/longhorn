@@ -1,18 +1,10 @@
-use longhorn_core::{NativeContentRevision, WindowId};
-use serde::{Deserialize, Serialize};
+use longhorn_core::NativeContentRevision;
 
 use crate::{
-    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
-    ContentSizeProposal, ContentSizeProposalReceipt, CoordinationError, DesiredState,
-    DesiredUpdate, EffectiveFocus, EffectiveVisibility, NativeContentMechanism, ObservationUpdate,
-    ObservedGeometry, ObservedReadiness, ObservedState, ReceiptError, StepExecution,
+    AttachGeneration, AttachmentLifecycle, CoordinationError, DesiredState, DesiredUpdate,
+    EffectiveFocus, EffectiveVisibility, NativeContentMechanism, ObservationUpdate,
+    ObservedGeometry, ObservedReadiness, ObservedState,
 };
-use crate::{
-    plan::plan_transition,
-    proposal::{decide_content_size, validate_content_size_proposal},
-};
-
-
 
 pub(crate) fn require_revision(
     current: NativeContentRevision,
@@ -104,7 +96,10 @@ pub(crate) fn validate_observation_capabilities(
     }
 }
 
-pub(crate) fn legal_transition(current: AttachmentLifecycle, proposed: AttachmentLifecycle) -> bool {
+pub(crate) fn legal_transition(
+    current: AttachmentLifecycle,
+    proposed: AttachmentLifecycle,
+) -> bool {
     current == proposed
         || matches!(
             (current, proposed),

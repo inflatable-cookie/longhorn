@@ -1,6 +1,5 @@
 //! Generation and observation helpers.
 
-use longhorn_core::WindowId;
 use longhorn_native_content::{
     AttachGeneration, AttachmentLifecycle, EffectiveFocus, EffectiveVisibility, InputRoutingMode,
     ObservationUpdate, ObservedGeometry, ObservedReadiness,

@@ -1,21 +1,17 @@
 //! Internal load, snapshot, and proposal helpers.
 
 use longhorn_command::{CommandEffectiveKeymap, CommandReservedChordPolicy};
-use longhorn_config::{LoadOutcome, MutationOptions};
+use longhorn_config::LoadOutcome;
 
 use crate::{
-    CommandKeymapCommit, CommandKeymapCommitEvidence, CommandKeymapDiagnostic,
-    CommandKeymapDurability, CommandKeymapLoadOrigin, CommandKeymapLoadOutcome,
-    CommandKeymapMigration, CommandKeymapMutationOutcome, CommandKeymapMutationReceipt,
-    CommandKeymapMutationResult, CommandKeymapPatch, CommandKeymapPreview,
-    CommandKeymapPreviewResult, CommandKeymapProtocolVersion, CommandKeymapRecovery,
-    CommandKeymapRejection, CommandKeymapRejectionCode, CommandKeymapReset, CommandKeymapSnapshot,
-    CommandKeymapState,
+    CommandKeymapCommitEvidence, CommandKeymapDiagnostic, CommandKeymapLoadOrigin,
+    CommandKeymapLoadOutcome, CommandKeymapMigration, CommandKeymapPatch, CommandKeymapRecovery,
+    CommandKeymapRejectionCode, CommandKeymapSnapshot, CommandKeymapState,
 };
 
 use super::{
-    AcceptedCommit, CommandKeymapService, CommandKeymapServiceError, CommitAbort, Proposal,
-    apply_patch, rejection, snapshot_from_effective, validate_patch,
+    CommandKeymapService, CommandKeymapServiceError, Proposal, apply_patch, rejection,
+    snapshot_from_effective, validate_patch,
 };
 
 impl<P, M> CommandKeymapService<P, M>

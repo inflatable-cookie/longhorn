@@ -14,6 +14,9 @@ pub(crate) fn projection_source(
     CommandAvailabilityProjectionError(CommandFailure::source(phase, failure))
 }
 
-pub(crate) fn failed_result(request_id: CommandRequestId, failure: CommandFailure) -> CommandExecutionResult {
+pub(crate) fn failed_result(
+    request_id: CommandRequestId,
+    failure: CommandFailure,
+) -> CommandExecutionResult {
     CommandExecutionResult::new(request_id, CommandExecutionOutcome::Failed { failure })
 }

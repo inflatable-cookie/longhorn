@@ -1,19 +1,14 @@
 //! Snapshot, summary, and page projections.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-};
+use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryEntryPosition,
-    HistoryNavigationDirection, HistoryNavigationPosition, HistoryNavigationReceipt, HistoryPage,
-    HistorySummary,
-};
+use crate::{HistoryEntryPosition, HistoryPage, HistorySummary};
 
-use super::{HistoryAuthorityEpoch, HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolProjectionError, HistoryProtocolVersion, project_count};
+use super::{
+    HistoryAuthorityEpoch, HistoryProjectionPosition, HistoryProtocolMode,
+    HistoryProtocolProjectionError, HistoryProtocolVersion, project_count,
+};
 
 /// Payload-free durable baseline evidence.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -241,4 +236,3 @@ impl HistoryPageSnapshot {
         })
     }
 }
-

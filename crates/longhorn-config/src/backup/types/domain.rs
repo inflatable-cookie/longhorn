@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::StorageClass;
 
 use super::{
-    consistency::ORDINARY_CONSISTENCY_GROUP, identity::deserialize_metadata, BackupPayloadManifest,
-    BackupSourceIssue, BackupSourceState,
+    BackupPayloadManifest, BackupSourceIssue, BackupSourceState,
+    consistency::ORDINARY_CONSISTENCY_GROUP, identity::deserialize_metadata,
 };
 
 const ORDINARY_ADAPTER: &str = "longhorn-json-v1";

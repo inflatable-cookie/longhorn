@@ -2,25 +2,17 @@
 
 use std::collections::HashSet;
 
-use longhorn_core::{
-    NotificationAuthorityId, NotificationId, NotificationLedgerRevision, NotificationProducerToken,
-    NotificationReplacementKey, NotificationSourceId,
-};
+use longhorn_core::{NotificationId, NotificationLedgerRevision};
 
 use crate::{
-    NotificationAdd, NotificationAuthorityCursor, NotificationAuthorityEpoch, NotificationClear,
-    NotificationClearTarget, NotificationLedgerError, NotificationLedgerLimits,
-    NotificationLedgerProjection, NotificationMutationReceipt, NotificationPage,
-    NotificationPublishOnce, NotificationPublishOutcome, NotificationReadState, NotificationRecord,
-    NotificationRemoval, NotificationRemovalReason, NotificationRemovalReceipt,
-    NotificationReplace, NotificationRetentionChange, NotificationRetentionClass, NotificationSeen,
-    NotificationSequence,
+    NotificationAdd, NotificationAuthorityCursor, NotificationClear, NotificationClearTarget,
+    NotificationLedgerError, NotificationMutationReceipt, NotificationPublishOnce,
+    NotificationPublishOutcome, NotificationReadState, NotificationRecord, NotificationRemoval,
+    NotificationRemovalReason, NotificationRemovalReceipt, NotificationReplace,
+    NotificationRetentionChange, NotificationSeen,
 };
 
-use super::{
-    NotificationLedger, encoded_weight, increment_pruned_count, prune_to_limits, unseen_count,
-    validate_clear_targets,
-};
+use super::{NotificationLedger, increment_pruned_count, prune_to_limits, validate_clear_targets};
 
 impl NotificationLedger {
     /// Adds a new record. Text never participates in deduplication.

@@ -7,8 +7,8 @@ mod path;
 mod summary;
 
 pub use branch::{ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord};
-pub use changed::{ForkChangedEvent, ForkChangedKind, ForkProtocolProjectionError};
 pub(crate) use changed::count;
+pub use changed::{ForkChangedEvent, ForkChangedKind, ForkProtocolProjectionError};
 pub use navigation::{
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,

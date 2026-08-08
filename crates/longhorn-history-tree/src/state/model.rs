@@ -3,9 +3,7 @@
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
 use longhorn_history::HistoryEntrySequence;
 
-use crate::{
-    ForkBranch, ForkBranchId, ForkCheckpoint, ForkHistoryNode, MAXIMUM_FORK_CHECKPOINTS,
-};
+use crate::{ForkBranch, ForkBranchId, ForkCheckpoint, ForkHistoryNode};
 
 /// Defensive hard ceiling for retained fork-history nodes.
 pub const MAXIMUM_FORK_NODES: usize = 65_536;

@@ -2,16 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-};
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryEntryPosition,
-    HistoryNavigationDirection, HistoryNavigationPosition, HistoryNavigationReceipt, HistoryPage,
-    HistorySummary,
-};
 
 /// Current exact metadata-only renderer protocol version.
 pub const HISTORY_PROTOCOL_VERSION: u32 = 1;
@@ -101,4 +92,3 @@ pub enum HistoryProjectionPosition {
     /// Retained redo entry.
     Future,
 }
-

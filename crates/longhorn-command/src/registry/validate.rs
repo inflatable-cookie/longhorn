@@ -5,15 +5,10 @@ use std::{
     fmt,
 };
 
-use longhorn_core::{CommandCapabilityId, CommandContextId, CommandId};
-use serde::{Deserialize, Serialize};
+use longhorn_core::CommandContextId;
 
 use crate::{
-    CommandArgumentError, CommandArguments, CommandCapabilityDefinition, CommandContextDefinition,
-    CommandDefinition, CommandLimits, CommandRegistryDigest, CommandRegistryError,
-    CommandRegistryErrorCode, CommandRegistryGeneration, CommandSearchError, CommandSearchHit,
-    CommandSurface, CommandTextInputPolicy, CommandVisibility, error::registry_error,
-    search::search_records,
+    CommandDefinition, CommandRegistryError, CommandRegistryErrorCode, error::registry_error,
 };
 
 use super::CommandRegistryBuilder;
@@ -37,7 +32,9 @@ where
     Ok(())
 }
 
-pub(crate) fn validate_limits(builder: &CommandRegistryBuilder) -> Result<(), CommandRegistryError> {
+pub(crate) fn validate_limits(
+    builder: &CommandRegistryBuilder,
+) -> Result<(), CommandRegistryError> {
     if !builder.limits.is_valid() {
         return Err(registry_error(
             CommandRegistryErrorCode::InvalidLimits,
@@ -61,7 +58,11 @@ pub(crate) fn validate_limits(builder: &CommandRegistryBuilder) -> Result<(), Co
     )
 }
 
-pub(crate) fn check_count(category: &str, actual: usize, maximum: usize) -> Result<(), CommandRegistryError> {
+pub(crate) fn check_count(
+    category: &str,
+    actual: usize,
+    maximum: usize,
+) -> Result<(), CommandRegistryError> {
     if actual > maximum {
         return Err(registry_error(
             CommandRegistryErrorCode::LimitExceeded,
@@ -71,7 +72,9 @@ pub(crate) fn check_count(category: &str, actual: usize, maximum: usize) -> Resu
     Ok(())
 }
 
-pub(crate) fn validate_contexts(builder: &CommandRegistryBuilder) -> Result<(), CommandRegistryError> {
+pub(crate) fn validate_contexts(
+    builder: &CommandRegistryBuilder,
+) -> Result<(), CommandRegistryError> {
     let root = builder
         .contexts
         .get(&CommandContextId::new("global").map_err(|error| {
@@ -136,7 +139,9 @@ pub(crate) fn validate_contexts(builder: &CommandRegistryBuilder) -> Result<(), 
     Ok(())
 }
 
-pub(crate) fn validate_commands(builder: &CommandRegistryBuilder) -> Result<(), CommandRegistryError> {
+pub(crate) fn validate_commands(
+    builder: &CommandRegistryBuilder,
+) -> Result<(), CommandRegistryError> {
     for command in builder.commands.values() {
         validate_text(
             "command label",

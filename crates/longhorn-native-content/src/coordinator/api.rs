@@ -1,19 +1,20 @@
 use longhorn_core::{NativeContentRevision, WindowId};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
     ContentSizeProposal, ContentSizeProposalReceipt, CoordinationError, DesiredState,
-    DesiredUpdate, EffectiveFocus, EffectiveVisibility, NativeContentMechanism, ObservationUpdate,
-    ObservedGeometry, ObservedReadiness, ObservedState, ReceiptError, StepExecution,
+    DesiredUpdate, ObservationUpdate, ObservedState, ReceiptError, StepExecution,
 };
 use crate::{
     plan::plan_transition,
     proposal::{decide_content_size, validate_content_size_proposal},
 };
 
-
-use super::{DesiredUpdateReceipt, HostDestroyOutcome, HostDestroyReceipt, ObservationReceipt, compare_generation, legal_transition, require_revision, validate_desired_generation, validate_observation_capabilities};
+use super::{
+    DesiredUpdateReceipt, HostDestroyOutcome, HostDestroyReceipt, ObservationReceipt,
+    compare_generation, legal_transition, require_revision, validate_desired_generation,
+    validate_observation_capabilities,
+};
 
 /// Pure desired/observed authority for one native-content island.
 /// Pure desired/observed authority for one native-content island.

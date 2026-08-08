@@ -2,19 +2,13 @@
 
 use std::collections::BTreeSet;
 
-use crate::{
-    BackupAdapterRestoreParticipation, BackupAdapterStateEvidence, BackupArchiveInspection,
-    BackupCatalog, ConfigStore,
-};
+use crate::{BackupAdapterStateEvidence, BackupArchiveInspection, BackupCatalog, ConfigStore};
 
 use super::super::{
-    journal::{self, GroupedJournalPhase, PreparedGroupedDomain},
+    journal::{self, GroupedJournalPhase},
     planning::group_confirmation_digest,
     recovery,
-    types::{
-        RestoreAdapterGroupError, RestoreAdapterGroupExecutionReceipt,
-        RestoreAdapterGroupExecutionStage, RestoreAdapterGroupPlan,
-    },
+    types::{RestoreAdapterGroupError, RestoreAdapterGroupExecutionStage, RestoreAdapterGroupPlan},
 };
 use crate::backup::restore::{RestoreFailureTerminal, RestoreInspection};
 
@@ -153,4 +147,3 @@ pub(crate) fn failure(
         detail: detail.to_string(),
     }
 }
-

@@ -1,12 +1,9 @@
 //! Navigation plan execution.
 
-use std::{collections::BTreeSet, error::Error, fmt};
+use std::collections::BTreeSet;
 
-use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
-use longhorn_history::{
-    HistoryNavigationStep, HistoryNavigationTransactionFailure, HistoryPolicy,
-    MAXIMUM_HISTORY_NAVIGATION_STEPS,
-};
+use longhorn_core::HistoryEntryId;
+use longhorn_history::HistoryNavigationTransactionFailure;
 
 use crate::{ForkBranchId, ForkHistory};
 
@@ -169,7 +166,10 @@ impl<P> ForkHistory<P> {
         }
     }
 
-    pub(crate) fn validate_plan<E>(&self, plan: &ForkNavigationPlan<P>) -> Result<(), ForkNavigationError<E>> {
+    pub(crate) fn validate_plan<E>(
+        &self,
+        plan: &ForkNavigationPlan<P>,
+    ) -> Result<(), ForkNavigationError<E>> {
         if plan.history_id != self.history_id {
             return Err(ForkNavigationError::WrongHistory {
                 expected: self.history_id.clone(),
@@ -239,4 +239,3 @@ pub(crate) fn shared_depth(left: &[HistoryEntryId], right: &[HistoryEntryId]) ->
         .take_while(|(left, right)| left == right)
         .count()
 }
-

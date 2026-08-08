@@ -6,8 +6,8 @@ mod result;
 
 pub use command::{OperationCancellationCommand, OperationMutationCommand};
 pub use receipt::{
-    OperationMutationReceiptProjection, OperationRemovalProjection, OperationRemovalReasonProjection,
-    OperationTeardownOutcomeProjection,
+    OperationMutationReceiptProjection, OperationRemovalProjection,
+    OperationRemovalReasonProjection, OperationTeardownOutcomeProjection,
 };
 pub use result::{
     OperationCancellationOutcomeProjection, OperationCancellationReceiptProjection,

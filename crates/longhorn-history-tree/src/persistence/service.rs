@@ -1,13 +1,11 @@
 //! Encode and load service for fork-history envelopes.
 
-use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
-use longhorn_history::{HistoryPayloadCodec, HistoryPayloadMigrationTarget};
+use longhorn_core::HistoryId;
+use longhorn_history::HistoryPayloadCodec;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{
-    ForkBranch, ForkHistory, ForkHistoryState, ForkPreferredChild,
-};
+use crate::ForkHistory;
 
 use super::{
     CURRENT_FORK_HISTORY_STRUCTURAL_VERSION, FORK_HISTORY_FORMAT_FAMILY, ForkEncodeError,

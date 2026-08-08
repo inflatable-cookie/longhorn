@@ -3,12 +3,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
-use longhorn_history::{
-    HistoryEntryMetadata, HistoryEntrySequence, MAXIMUM_HISTORY_ENCODED_WEIGHT,
-};
+use longhorn_history::{HistoryEntrySequence, MAXIMUM_HISTORY_ENCODED_WEIGHT};
 
 use crate::{
-    ForkBranch, ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkCheckpoint, ForkCheckpointId,
+    ForkBranch, ForkBranchId, ForkBranchMetadata, ForkCheckpoint, ForkCheckpointId,
     ForkHistoryError, ForkHistoryNode, ForkHistoryStateError,
 };
 

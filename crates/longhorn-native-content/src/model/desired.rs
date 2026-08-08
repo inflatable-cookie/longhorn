@@ -1,8 +1,8 @@
 //! Desired native-content island state.
 
 use longhorn_core::{
-    ClientRect, NativeContentIslandId, NativeContentKindId, NativeContentRevision, PhysicalRect,
-    PhysicalSize, RoundingMode, ScaleFactor, VisibilityReasonId, WindowId,
+    ClientRect, NativeContentIslandId, NativeContentKindId, NativeContentRevision, RoundingMode,
+    ScaleFactor, WindowId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -233,4 +233,3 @@ impl DesiredUpdate {
         self.input_routing
     }
 }
-

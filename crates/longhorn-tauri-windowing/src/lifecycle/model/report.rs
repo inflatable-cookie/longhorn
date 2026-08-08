@@ -1,14 +1,13 @@
 //! Lifecycle reports and reveal/shutdown receipts.
 
-use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, CaptureGeneration, CaptureReason, FlushReason, IgnoreReason, MonotonicMillis,
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement, WindowLifecycleDuration,
-    WindowLifecycleEvent, WindowLifecycleEventKind, resolve_saved_display_association,
-};
+use longhorn_core::WindowId;
+use longhorn_windowing::WindowLifecycleEventKind;
 use serde::{Deserialize, Serialize};
 
-use super::{TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt, WindowFlushOutcome};
+use super::{
+    TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt,
+    WindowFlushOutcome,
+};
 
 /// Asynchronously reported listener result.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

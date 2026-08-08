@@ -1,19 +1,10 @@
 //! Revision-bound ledger mutation requests.
 
-use longhorn_core::{
-    NotificationActionReferenceId, NotificationAuthorityId, NotificationCauseId, NotificationId,
-    NotificationLedgerRevision, NotificationProducerToken, NotificationReplacementKey,
-    NotificationSourceId,
-};
+use longhorn_core::{NotificationId, NotificationLedgerRevision};
 
-use crate::{
-    MAXIMUM_NOTIFICATION_ACTIONS, NotificationActionLabel, NotificationAuthorityEpoch,
-    NotificationLedgerLimits, NotificationSequence, NotificationSummary, NotificationTitle,
-};
+use crate::NotificationLedgerLimits;
 
-use super::{
-    NotificationAuthorityCursor, NotificationDraft, NotificationRecord,
-};
+use super::{NotificationAuthorityCursor, NotificationDraft, NotificationRecord};
 /// Revision-bound request to add a fresh record.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NotificationAdd {
@@ -176,4 +167,3 @@ pub enum NotificationPublishOutcome {
         ledger_revision: NotificationLedgerRevision,
     },
 }
-

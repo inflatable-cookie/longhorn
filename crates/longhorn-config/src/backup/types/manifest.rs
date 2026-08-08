@@ -1,9 +1,9 @@
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use super::{
-    identity::deserialize_metadata, identity::deserialize_utc_timestamp, BackupApplication,
-    BackupConsistencyGroup, BackupExclusion, BackupKind, BackupManifestDomain, BackupMetadata,
-    BackupProducer,
+    BackupApplication, BackupConsistencyGroup, BackupExclusion, BackupKind, BackupManifestDomain,
+    BackupMetadata, BackupProducer, identity::deserialize_metadata,
+    identity::deserialize_utc_timestamp,
 };
 
 const BACKUP_FORMAT: &str = "longhorn.config-backup";

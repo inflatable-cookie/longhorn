@@ -1,22 +1,11 @@
 use crate::{
-    BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation, BackupConsistencyMode,
-    BackupSourceState, DomainLocation, RestoreAction, RestoreAdapterReceipt, RestoreConflictChoice,
-    RestoreCurrentEvidence, RestoreDomainCompatibility, RestoreExecutionError,
-    RestoreExecutionReceipt, RestoreExecutionStage, RestoreFailureTerminal, RestoreIdentityStatus,
-    RestoreInspection, RestoreOperationState, RestorePlan, RestoreRecoveryOutcome,
-    RestoreRecoveryReceipt, RestoreStagingReceipt, Sha256Digest,
+    BackupAdapterRestoreParticipation, BackupSourceState, DomainLocation, RestoreAction,
+    RestoreConflictChoice, RestoreCurrentEvidence, RestoreDomainCompatibility,
+    RestoreExecutionStage, RestoreFailureTerminal, RestoreIdentityStatus,
     operations::{
-        RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
-        RestoreAuthenticityProjection, RestoreConflictChoiceProjection,
-        RestoreConsistencyGroupProjection, RestoreCurrentEvidenceProjection,
-        RestoreDomainCompatibilityProjection, RestoreDomainInspectionProjection,
-        RestoreExclusionProjection, RestoreExecutionFailureProjection,
-        RestoreExecutionReceiptProjection, RestoreIdentityProjection,
-        RestoreIdentityStatusProjection, RestoreInspectionProjection,
-        RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
-        RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanEntryProjection,
-        RestorePlanProjection, RestorePlanReceiptProjection, RestoreRecoveryReceiptProjection,
-        RestoreStagingReceiptProjection,
+        RestoreAdapterParticipationProjection, RestoreConflictChoiceProjection,
+        RestoreCurrentEvidenceProjection, RestoreDomainCompatibilityProjection,
+        RestoreIdentityStatusProjection,
     },
 };
 
@@ -34,7 +23,9 @@ pub(crate) fn identity_status(value: &RestoreIdentityStatus) -> RestoreIdentityS
     }
 }
 
-pub(crate) fn compatibility(value: &RestoreDomainCompatibility) -> RestoreDomainCompatibilityProjection {
+pub(crate) fn compatibility(
+    value: &RestoreDomainCompatibility,
+) -> RestoreDomainCompatibilityProjection {
     match value {
         RestoreDomainCompatibility::Ready => RestoreDomainCompatibilityProjection::Ready,
         RestoreDomainCompatibility::MigrationRequired { from, to } => {

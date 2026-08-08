@@ -1,9 +1,7 @@
 //! JSON wire shapes for fork-history envelopes.
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision,
-};
+use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 use longhorn_history::{HistoryPayloadCodecFamily, HistoryPayloadCodecVersion};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 

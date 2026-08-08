@@ -1,18 +1,16 @@
 //! Mutation and cancellation commands.
 
 use longhorn_core::{
-    OperationCatalogueRevision, OperationId, OperationKindId, OperationRequestId, OperationRevision,
-    OperationScopeId,
+    OperationCatalogueRevision, OperationId, OperationKindId, OperationRequestId,
+    OperationRevision, OperationScopeId,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{OperationRemoval, OperationRemovalReason};
 use crate::protocol::{
     OperationAuthorityProjection, OperationCancellationSupportProjection,
-    OperationCatalogueLimitsProjection, OperationEntryProjection,
-    OperationOverallProgressProjection, OperationPhaseProgressProjection,
-    OperationProgressProjection, OperationProtocolVersion, OperationSnapshot,
-    OperationStateProjection, OperationTeardownResolutionProjection, incompatible_protocol,
+    OperationCatalogueLimitsProjection, OperationOverallProgressProjection,
+    OperationPhaseProgressProjection, OperationProtocolVersion, OperationStateProjection,
+    OperationTeardownResolutionProjection,
 };
 
 /// Typed management mutation command.
@@ -177,4 +175,3 @@ pub struct OperationCancellationCommand {
     /// Expected operation revision.
     pub expected_operation_revision: OperationRevision,
 }
-

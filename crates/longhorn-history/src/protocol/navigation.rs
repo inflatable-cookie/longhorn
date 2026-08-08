@@ -1,17 +1,9 @@
 //! Navigation commands and result projections.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-};
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryEntryPosition,
-    HistoryNavigationDirection, HistoryNavigationPosition, HistoryNavigationReceipt, HistoryPage,
-    HistorySummary,
-};
+use crate::{HistoryNavigationDirection, HistoryNavigationPosition, HistoryNavigationReceipt};
 
 use super::{
     HistoryAuthorityEpoch, HistoryProtocolProjectionError, HistoryProtocolVersion, HistorySnapshot,

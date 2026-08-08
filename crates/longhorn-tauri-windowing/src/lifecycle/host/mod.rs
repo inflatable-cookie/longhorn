@@ -9,6 +9,6 @@ mod shutdown;
 mod state;
 mod support;
 
-pub use state::TauriWindowLifecycleHost;
 pub(crate) use observers::coordination_error;
+pub use state::TauriWindowLifecycleHost;
 pub(crate) use state::{FlushDisposition, InstalledWindow, PendingFlush};

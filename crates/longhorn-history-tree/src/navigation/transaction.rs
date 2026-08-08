@@ -1,18 +1,13 @@
 //! Navigation transaction port and receipts.
 
-use std::{collections::BTreeSet, error::Error, fmt};
-
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
-use longhorn_history::{
-    HistoryNavigationStep, HistoryNavigationTransactionFailure, HistoryPolicy,
-    MAXIMUM_HISTORY_NAVIGATION_STEPS,
-};
+use longhorn_history::HistoryNavigationTransactionFailure;
 
-use crate::{ForkBranchId, ForkHistory};
+use crate::ForkBranchId;
 
 use super::ForkNavigationPlan;
-/// Consumer-owned atomic product transaction for one complete graph route.
 
+/// Consumer-owned atomic product transaction for one complete graph route.
 pub trait ForkNavigationTransaction<P> {
     /// Product apply or rollback failure.
     type Error;

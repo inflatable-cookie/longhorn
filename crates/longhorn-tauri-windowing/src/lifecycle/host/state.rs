@@ -2,24 +2,16 @@
 
 use std::{
     collections::BTreeMap,
-    sync::{
-        Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Mutex, atomic::AtomicBool},
 };
 
 use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
-};
-use tauri::{Runtime, WebviewWindow, WindowEvent};
+use longhorn_windowing::{WindowLifecycleCoordinator, WindowLifecyclePolicy};
+use tauri::{Runtime, WebviewWindow};
 
 use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
-    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
-    WindowLifecycleWakeHandler, translate_tauri_window_event,
+    TauriWindowLifecycleError, TauriWindowLifecycleServices, WindowFlushScope, WindowFlushTarget,
+    WindowLifecycleWakeHandler,
 };
 
 pub(crate) struct InstalledWindow<R: Runtime> {

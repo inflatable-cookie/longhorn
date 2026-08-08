@@ -2,9 +2,8 @@
 
 use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
 use longhorn_windowing::{
-    ApplyGeneration, CaptureGeneration, CaptureReason, FlushReason, IgnoreReason, MonotonicMillis,
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement, WindowLifecycleDuration,
-    WindowLifecycleEvent, WindowLifecycleEventKind, resolve_saved_display_association,
+    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
+    resolve_saved_display_association,
 };
 use serde::{Deserialize, Serialize};
 
@@ -196,4 +195,3 @@ impl CapturedWindowPlacement {
         self.saved(display_id)
     }
 }
-

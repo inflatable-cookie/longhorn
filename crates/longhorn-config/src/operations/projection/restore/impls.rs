@@ -1,18 +1,13 @@
 use crate::{
-    BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation, BackupConsistencyMode,
-    BackupSourceState, DomainLocation, RestoreAction, RestoreAdapterReceipt, RestoreConflictChoice,
-    RestoreCurrentEvidence, RestoreDomainCompatibility, RestoreExecutionError,
-    RestoreExecutionReceipt, RestoreExecutionStage, RestoreFailureTerminal, RestoreIdentityStatus,
-    RestoreInspection, RestoreOperationState, RestorePlan, RestoreRecoveryOutcome,
-    RestoreRecoveryReceipt, RestoreStagingReceipt, Sha256Digest,
+    BackupAdapterRestoreOutcome, BackupConsistencyMode, RestoreAction, RestoreAdapterReceipt,
+    RestoreConflictChoice, RestoreExecutionError, RestoreExecutionReceipt, RestoreInspection,
+    RestoreOperationState, RestorePlan, RestoreRecoveryOutcome, RestoreRecoveryReceipt,
+    RestoreStagingReceipt, Sha256Digest,
     operations::{
-        RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
-        RestoreAuthenticityProjection, RestoreConflictChoiceProjection,
-        RestoreConsistencyGroupProjection, RestoreCurrentEvidenceProjection,
-        RestoreDomainCompatibilityProjection, RestoreDomainInspectionProjection,
+        RestoreAdapterReceiptProjection, RestoreAuthenticityProjection,
+        RestoreConsistencyGroupProjection, RestoreDomainInspectionProjection,
         RestoreExclusionProjection, RestoreExecutionFailureProjection,
-        RestoreExecutionReceiptProjection, RestoreIdentityProjection,
-        RestoreIdentityStatusProjection, RestoreInspectionProjection,
+        RestoreExecutionReceiptProjection, RestoreIdentityProjection, RestoreInspectionProjection,
         RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
         RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanEntryProjection,
         RestorePlanProjection, RestorePlanReceiptProjection, RestoreRecoveryReceiptProjection,
@@ -25,9 +20,8 @@ use crate::{BackupPublicationReceiptProjection, ConfigOperationProjectionError};
 use super::super::{backup, storage};
 use super::{
     action_id, choice, compatibility, current_evidence, domain_ids, execution_stage,
-    failure_terminal, identity_status, location_id, participation, source_state,
+    failure_terminal, identity_status, participation, source_state,
 };
-
 
 impl RestoreOperationsProjection {
     /// Projects durable journal state without journal or rollback paths.

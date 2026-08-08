@@ -1,10 +1,8 @@
 //! Scheduled wakes and flush requests.
 
-use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
+use longhorn_core::WindowId;
 use longhorn_windowing::{
-    ApplyGeneration, CaptureGeneration, CaptureReason, FlushReason, IgnoreReason, MonotonicMillis,
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement, WindowLifecycleDuration,
-    WindowLifecycleEvent, WindowLifecycleEventKind, resolve_saved_display_association,
+    CaptureGeneration, FlushReason, MonotonicMillis, WindowLifecycleDuration, WindowLifecycleEvent,
 };
 use serde::{Deserialize, Serialize};
 
@@ -139,4 +137,3 @@ pub enum WindowFlushOutcome {
     /// Acknowledgement channel closed without a result.
     Disconnected,
 }
-

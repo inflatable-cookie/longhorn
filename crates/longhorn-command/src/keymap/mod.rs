@@ -7,8 +7,8 @@ mod types;
 
 pub use compile::CommandEffectiveKeymap;
 pub(crate) use support::{
-    collect_conflicts, compile_binding, conflict_from_matches, context_is_descendant,
-    effective_binding, gated, validate_base_target, validate_binding,
+    collect_conflicts, compile_binding, conflict_from_matches, effective_binding, gated,
+    validate_base_target, validate_binding,
 };
 pub use types::{
     CommandBindingCandidate, CommandBindingDefinition, CommandBindingReplacement,

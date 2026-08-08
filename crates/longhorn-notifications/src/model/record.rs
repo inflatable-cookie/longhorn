@@ -1,15 +1,8 @@
 //! Authority cursor and retained notification records.
 
-use longhorn_core::{
-    NotificationActionReferenceId, NotificationAuthorityId, NotificationCauseId, NotificationId,
-    NotificationLedgerRevision, NotificationProducerToken, NotificationReplacementKey,
-    NotificationSourceId,
-};
+use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationLedgerRevision};
 
-use crate::{
-    MAXIMUM_NOTIFICATION_ACTIONS, NotificationActionLabel, NotificationAuthorityEpoch,
-    NotificationLedgerLimits, NotificationSequence, NotificationSummary, NotificationTitle,
-};
+use crate::{NotificationAuthorityEpoch, NotificationSequence};
 
 use super::{NotificationDraft, NotificationReadState};
 /// Exact identity of one live notification authority instance.
@@ -152,4 +145,3 @@ impl NotificationRecord {
         self.last_changed_ledger_revision = revision;
     }
 }
-

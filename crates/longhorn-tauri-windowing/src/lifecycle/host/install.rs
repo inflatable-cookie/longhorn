@@ -1,28 +1,15 @@
 //! Window install and retag operations.
 
-use std::{
-    collections::BTreeMap,
-    sync::{
-        Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
 use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
-};
+use longhorn_windowing::HostWindowHandle;
 use tauri::{Runtime, WebviewWindow, WindowEvent};
 
 use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
-    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
-    WindowLifecycleWakeHandler, translate_tauri_window_event,
+    TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt,
+    WindowLifecycleReport,
 };
 
-use super::{FlushDisposition, InstalledWindow, PendingFlush, TauriWindowLifecycleHost, coordination_error};
+use super::{FlushDisposition, InstalledWindow, TauriWindowLifecycleHost, coordination_error};
 
 impl<R: Runtime> TauriWindowLifecycleHost<R> {
     /// Installs a listener for a predeclared or dynamically created window.
@@ -158,5 +145,4 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         }
         Ok(())
     }
-
 }

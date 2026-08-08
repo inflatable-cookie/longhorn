@@ -2,7 +2,6 @@
 
 use std::{convert::Infallible, error::Error, fmt};
 
-use longhorn_core::CompatibilityStore;
 use serde_json::Value;
 
 /// Stable structural format family for fork-tree envelopes.
@@ -135,4 +134,3 @@ impl ForkStructuralMigration for NoForkStructuralMigration {
         Ok(None)
     }
 }
-

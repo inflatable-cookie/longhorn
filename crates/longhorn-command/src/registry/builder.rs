@@ -1,22 +1,18 @@
 //! Unsealed registry builder.
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fmt,
-};
+use std::collections::BTreeMap;
 
 use longhorn_core::{CommandCapabilityId, CommandContextId, CommandId};
-use serde::{Deserialize, Serialize};
 
 use crate::{
-    CommandArgumentError, CommandArguments, CommandCapabilityDefinition, CommandContextDefinition,
-    CommandDefinition, CommandLimits, CommandRegistryDigest, CommandRegistryError,
-    CommandRegistryErrorCode, CommandRegistryGeneration, CommandSearchError, CommandSearchHit,
-    CommandSurface, CommandTextInputPolicy, CommandVisibility, error::registry_error,
-    search::search_records,
+    CommandCapabilityDefinition, CommandContextDefinition, CommandDefinition, CommandLimits,
+    CommandRegistryDigest, CommandRegistryError, CommandRegistryGeneration,
 };
 
-use super::{CommandDiscoveryRecord, CommandRegistry, canonicalize_command, compute_digest, insert_unique, validate_commands, validate_contexts, validate_limits};
+use super::{
+    CommandDiscoveryRecord, CommandRegistry, canonicalize_command, compute_digest, insert_unique,
+    validate_commands, validate_contexts, validate_limits,
+};
 /// Mutable pre-seal collection of command declarations.
 
 #[derive(Clone, Debug)]
@@ -109,4 +105,3 @@ impl CommandRegistryBuilder {
         Ok(registry)
     }
 }
-

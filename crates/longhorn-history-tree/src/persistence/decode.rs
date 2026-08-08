@@ -1,6 +1,5 @@
 //! Decode a validated envelope into fork-history authority.
 
-use longhorn_core::HistoryRevision;
 use longhorn_history::{
     HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, HistoryPayloadCodec,
     HistoryPayloadCodecVersion, HistoryPayloadMigrationTarget,
@@ -11,10 +10,7 @@ use crate::{
     ForkPreferredChild,
 };
 
-use super::{
-    ForkLoadError,
-    wire::{Envelope, Node},
-};
+use super::{ForkLoadError, wire::Envelope};
 
 pub(crate) fn decode_graph<P, C, ME>(
     envelope: Envelope,

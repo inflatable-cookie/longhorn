@@ -1,16 +1,10 @@
 //! Protocol execution over OperationCatalogue.
 
-use longhorn_core::OperationRequestId;
-
 use crate::{
-    OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue,
-    OperationCatalogueError, OperationDismissal, OperationProgressUpdate, OperationRegistration,
-    OperationRetentionChange, OperationTeardown, OperationTeardownOutcome,
-    OperationTeardownResolution, OperationTeardownResolutionOutcome, OperationTransition,
+    OperationTeardownOutcome, OperationTeardownResolution, OperationTeardownResolutionOutcome,
 };
 
 use super::super::*;
-
 
 pub(crate) fn project_teardown_resolution(
     value: OperationTeardownResolutionProjection,

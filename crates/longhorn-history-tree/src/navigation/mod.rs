@@ -7,6 +7,6 @@ mod transaction;
 mod types;
 
 pub use error::ForkNavigationError;
+pub(crate) use execute::shared_depth;
 pub use transaction::{ForkNavigationReceipt, ForkNavigationTransaction};
 pub use types::{ForkNavigationPlan, ForkNavigationTarget};
-pub(crate) use execute::shared_depth;

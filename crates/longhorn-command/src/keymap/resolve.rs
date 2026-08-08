@@ -8,10 +8,9 @@ use crate::{
 };
 
 use super::{
-    CommandBindingCandidate, CommandBindingSource, CommandBindingWinner,
-    CommandCandidateDisposition, CommandEffectiveKeymap, CommandInvocation, CommandKeyResolution,
-    CommandKeyResolutionError, CommandKeyboardGate, CommandKeymapConflict, conflict_from_matches,
-    context_is_descendant, gated,
+    CommandBindingCandidate, CommandBindingWinner, CommandCandidateDisposition,
+    CommandEffectiveKeymap, CommandKeyResolution, CommandKeyResolutionError, CommandKeyboardGate,
+    conflict_from_matches, gated,
 };
 
 impl CommandEffectiveKeymap {

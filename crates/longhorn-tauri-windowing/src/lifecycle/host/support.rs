@@ -1,26 +1,12 @@
 //! Host activity and lock helpers.
 
-use std::{
-    collections::BTreeMap,
-    sync::{
-        Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
+use std::{collections::BTreeMap, sync::atomic::Ordering};
 
 use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
-};
-use tauri::{Runtime, WebviewWindow, WindowEvent};
+use longhorn_windowing::{HostWindowHandle, WindowLifecycleCoordinator};
+use tauri::{Runtime, WebviewWindow};
 
-use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
-    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
-    WindowLifecycleWakeHandler, translate_tauri_window_event,
-};
+use crate::lifecycle::TauriWindowLifecycleError;
 
 use super::{InstalledWindow, TauriWindowLifecycleHost};
 
@@ -67,7 +53,10 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         }
     }
 
-    pub(crate) fn ensure_installed(&self, window_id: &WindowId) -> Result<(), TauriWindowLifecycleError> {
+    pub(crate) fn ensure_installed(
+        &self,
+        window_id: &WindowId,
+    ) -> Result<(), TauriWindowLifecycleError> {
         if self.lock_windows()?.contains_key(window_id) {
             Ok(())
         } else {

@@ -1,19 +1,11 @@
 //! History changed events.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-};
+use longhorn_core::{HistoryId, HistoryRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    HistoryCommittedTransition, HistoryCommittedTransitionKind, HistoryEntryPosition,
-    HistoryNavigationDirection, HistoryNavigationPosition, HistoryNavigationReceipt, HistoryPage,
-    HistorySummary,
-};
+use crate::{HistoryCommittedTransition, HistoryCommittedTransitionKind};
 
-use super::{HistoryAuthorityEpoch, HistoryProtocolMode, HistoryProtocolVersion, HistorySnapshot};
+use super::{HistoryAuthorityEpoch, HistoryProtocolVersion};
 
 /// Coarse payload-free committed transition kind used for live invalidation.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -81,4 +73,3 @@ impl HistoryChangedEvent {
         }
     }
 }
-

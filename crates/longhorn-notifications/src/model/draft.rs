@@ -1,14 +1,12 @@
 //! Draft notification content and actions.
 
 use longhorn_core::{
-    NotificationActionReferenceId, NotificationAuthorityId, NotificationCauseId, NotificationId,
-    NotificationLedgerRevision, NotificationProducerToken, NotificationReplacementKey,
-    NotificationSourceId,
+    NotificationActionReferenceId, NotificationCauseId, NotificationProducerToken,
+    NotificationReplacementKey, NotificationSourceId,
 };
 
 use crate::{
-    MAXIMUM_NOTIFICATION_ACTIONS, NotificationActionLabel, NotificationAuthorityEpoch,
-    NotificationLedgerLimits, NotificationSequence, NotificationSummary, NotificationTitle,
+    MAXIMUM_NOTIFICATION_ACTIONS, NotificationActionLabel, NotificationSummary, NotificationTitle,
 };
 
 /// Closed, product-neutral notification severity.
@@ -226,4 +224,3 @@ impl NotificationDraft {
         self.presentation_time_unix_ms
     }
 }
-

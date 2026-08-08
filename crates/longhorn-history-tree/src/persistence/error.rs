@@ -2,11 +2,11 @@
 
 use std::{error::Error, fmt};
 
+use crate::{ForkBranchId, ForkCheckpointId, ForkHistoryStateError};
 use longhorn_core::{
     CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused, HistoryEntryId, HistoryId,
 };
 use longhorn_history::{HistoryPayloadCodecFamily, HistoryPayloadCodecVersion};
-use crate::{ForkBranchId, ForkCheckpointId, ForkHistoryStateError};
 
 #[derive(Debug)]
 /// Failed graph encoding.

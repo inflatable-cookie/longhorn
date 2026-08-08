@@ -5,17 +5,17 @@ use std::{
 
 use serde_json::json;
 use tempfile::TempDir;
-use zip::{write::SimpleFileOptions, CompressionMethod, DateTime, ZipWriter};
+use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
+    BackupArchiveLimits, DurabilityRequirement,
     backup::archive::{
+        EncodedBackupArchive,
         publication_types::{
             BackupArchiveFileName, BackupOperationalRoot, BackupPublicationOptions,
             BackupPublicationStage,
         },
-        EncodedBackupArchive,
     },
-    BackupArchiveLimits, DurabilityRequirement,
 };
 
 use super::publish::publish_corrupt_staging_for_test;

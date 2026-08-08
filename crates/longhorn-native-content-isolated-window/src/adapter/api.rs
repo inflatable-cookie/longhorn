@@ -1,6 +1,6 @@
 //! Public adapter operations.
 
-use longhorn_core::{ClientSize, NativeContentFailureCode, NativeContentRequestId, PhysicalSize};
+use longhorn_core::{ClientSize, NativeContentFailureCode};
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
     ContentSizeProposal, ContentSizeProposalReceipt, EffectiveFocus, EffectiveVisibility,
@@ -16,7 +16,7 @@ use crate::{
 
 use super::{
     IsolatedWindowAdapter, MAX_PENDING_CONTENT_REQUESTS, compare_attached_generation,
-    compare_generation, compare_generation_allow_next, current_attachment_mut,
+    compare_generation, current_attachment_mut,
 };
 
 impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {

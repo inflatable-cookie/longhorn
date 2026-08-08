@@ -1,23 +1,18 @@
 //! Command admission and execution engine.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{CommandContextId, CommandId, CommandRequestId, CommandRouteId};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use longhorn_core::CommandContextId;
 
 use crate::{
-    CommandArgumentError, CommandArguments, CommandAvailability, CommandAvailabilityReason,
-    CommandAvailabilityReasonCode, CommandAvailabilityRecord, CommandAvailabilitySnapshot,
-    CommandCapabilitySnapshot, CommandContextSnapshot, CommandDefinition, CommandEvidence,
-    CommandRegistry, CommandRegistryGeneration,
+    CommandAvailability, CommandAvailabilityReason, CommandAvailabilityReasonCode,
+    CommandAvailabilityRecord, CommandAvailabilitySnapshot, CommandCapabilitySnapshot,
+    CommandContextSnapshot, CommandDefinition, CommandRegistry,
 };
 
 use super::{
     AdmittedCommandInvocation, CommandAvailabilityProjectionError, CommandAvailabilitySource,
-    CommandCapabilitySource, CommandContextSource, CommandExecutionOutcome, CommandExecutionRequest,
-    CommandExecutionResult, CommandExecutor, CommandExecutorOutcome, CommandFailure,
-    CommandFailureCode, CommandFailurePhase, CommandSourceFailure, failed_result, projection_source,
+    CommandCapabilitySource, CommandContextSource, CommandExecutionOutcome,
+    CommandExecutionRequest, CommandExecutionResult, CommandExecutor, CommandExecutorOutcome,
+    CommandFailure, CommandFailureCode, CommandFailurePhase, failed_result, projection_source,
 };
 /// Pure fresh-admission engine over one immutable command registry.
 
@@ -223,7 +218,10 @@ impl<'registry> CommandAdmissionEngine<'registry> {
         CommandExecutionResult::new(invocation.request_id.clone(), outcome)
     }
 
-    pub(crate) fn validate_context(&self, context: &CommandContextSnapshot) -> Result<(), CommandFailure> {
+    pub(crate) fn validate_context(
+        &self,
+        context: &CommandContextSnapshot,
+    ) -> Result<(), CommandFailure> {
         let path = context.path_slice();
         if path.len() > self.registry.limits().maximum_context_depth {
             return Err(CommandFailure::invalid(
@@ -303,4 +301,3 @@ impl<'registry> CommandAdmissionEngine<'registry> {
             })
     }
 }
-

@@ -1,14 +1,9 @@
 //! Navigation targets and plans.
 
-use std::{collections::BTreeSet, error::Error, fmt};
-
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
-use longhorn_history::{
-    HistoryNavigationStep, HistoryNavigationTransactionFailure, HistoryPolicy,
-    MAXIMUM_HISTORY_NAVIGATION_STEPS,
-};
+use longhorn_history::HistoryNavigationStep;
 
-use crate::{ForkBranchId, ForkHistory};
+use crate::ForkBranchId;
 /// Stable graph navigation intent.
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -102,4 +97,3 @@ impl<P> ForkNavigationPlan<P> {
         &self.steps
     }
 }
-

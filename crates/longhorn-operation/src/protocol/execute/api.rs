@@ -2,17 +2,11 @@
 
 use longhorn_core::OperationRequestId;
 
-use crate::{
-    OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue,
-    OperationCatalogueError, OperationDismissal, OperationProgressUpdate, OperationRegistration,
-    OperationRetentionChange, OperationTeardown, OperationTeardownOutcome,
-    OperationTeardownResolution, OperationTeardownResolutionOutcome, OperationTransition,
-};
+use crate::{OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue};
 
 use super::super::*;
 
-use super::{execute_mutation, project_teardown_outcome, project_teardown_resolution};
-
+use super::execute_mutation;
 
 impl OperationCatalogue {
     /// Executes one strict management command and returns fresh authority.

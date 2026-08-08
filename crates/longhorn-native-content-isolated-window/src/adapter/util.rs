@@ -1,6 +1,6 @@
 //! Generation helpers.
 
-use longhorn_native_content::{AttachGeneration, AttachmentLifecycle};
+use longhorn_native_content::AttachGeneration;
 
 use crate::IsolatedWindowError;
 

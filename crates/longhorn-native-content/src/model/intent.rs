@@ -1,12 +1,8 @@
 //! Desired and observed surface intent enums.
 
-use longhorn_core::{
-    ClientRect, NativeContentIslandId, NativeContentKindId, NativeContentRevision, PhysicalRect,
-    PhysicalSize, RoundingMode, ScaleFactor, VisibilityReasonId, WindowId,
-};
+use longhorn_core::{PhysicalRect, PhysicalSize, VisibilityReasonId};
 use serde::{Deserialize, Serialize};
 
-use crate::{AttachGeneration, CoordinationError};
 /// Desired native-content presence.
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -146,4 +142,3 @@ pub enum ObservedGeometry {
         clip: PhysicalRect,
     },
 }
-

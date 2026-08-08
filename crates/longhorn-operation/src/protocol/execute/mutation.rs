@@ -1,18 +1,13 @@
 //! Protocol execution over OperationCatalogue.
 
-use longhorn_core::OperationRequestId;
-
 use crate::{
-    OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue,
-    OperationCatalogueError, OperationDismissal, OperationProgressUpdate, OperationRegistration,
-    OperationRetentionChange, OperationTeardown, OperationTeardownOutcome,
-    OperationTeardownResolution, OperationTeardownResolutionOutcome, OperationTransition,
+    OperationCatalogue, OperationDismissal, OperationProgressUpdate, OperationRegistration,
+    OperationRetentionChange, OperationTeardown, OperationTransition,
 };
 
 use super::super::*;
 
 use super::{project_teardown_outcome, project_teardown_resolution};
-
 
 pub(crate) fn execute_mutation(
     catalogue: &mut OperationCatalogue,

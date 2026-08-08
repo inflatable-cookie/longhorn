@@ -5,8 +5,8 @@ use crate::{
     HistoryNavigationTarget, HistoryPolicy, LinearHistory,
 };
 
-use super::helpers::direction;
 use super::HistoryNavigationPlan;
+use super::helpers::direction;
 
 impl<P: Clone> LinearHistory<P> {
     /// Plans undo, redo, or entry-id checkout without changing history.

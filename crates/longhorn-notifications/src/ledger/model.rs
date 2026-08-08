@@ -1,19 +1,10 @@
 //! Validated mutable authority for one finite retained notification ledger.
 
-use std::collections::HashSet;
-
-use longhorn_core::{
-    NotificationAuthorityId, NotificationId, NotificationLedgerRevision, NotificationProducerToken,
-    NotificationReplacementKey, NotificationSourceId,
-};
+use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationLedgerRevision};
 
 use crate::{
-    NotificationAdd, NotificationAuthorityCursor, NotificationAuthorityEpoch, NotificationClear,
-    NotificationClearTarget, NotificationLedgerError, NotificationLedgerLimits,
-    NotificationLedgerProjection, NotificationMutationReceipt, NotificationPage,
-    NotificationPublishOnce, NotificationPublishOutcome, NotificationReadState, NotificationRecord,
-    NotificationRemoval, NotificationRemovalReason, NotificationRemovalReceipt,
-    NotificationReplace, NotificationRetentionChange, NotificationRetentionClass, NotificationSeen,
+    NotificationAuthorityCursor, NotificationAuthorityEpoch, NotificationLedgerError,
+    NotificationLedgerLimits, NotificationLedgerProjection, NotificationPage, NotificationRecord,
     NotificationSequence,
 };
 
@@ -116,5 +107,4 @@ impl NotificationLedger {
             records,
         })
     }
-
 }

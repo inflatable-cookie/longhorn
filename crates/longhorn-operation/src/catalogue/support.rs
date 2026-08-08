@@ -87,7 +87,10 @@ impl OperationCatalogue {
             .map_err(|_| OperationCatalogueError::CatalogueRevisionOverflow)
     }
 
-    pub(crate) fn next_terminal_eviction_count(&self, evicted: usize) -> Result<u64, OperationCatalogueError> {
+    pub(crate) fn next_terminal_eviction_count(
+        &self,
+        evicted: usize,
+    ) -> Result<u64, OperationCatalogueError> {
         let evicted = u64::try_from(evicted)
             .map_err(|_| OperationCatalogueError::TerminalEvictionCountOverflow)?;
         self.terminal_eviction_count
@@ -130,7 +133,9 @@ pub(crate) fn validate_progress(
     Ok(())
 }
 
-pub(crate) fn terminal_weight(operations: &[OperationRecord]) -> Result<u64, OperationCatalogueError> {
+pub(crate) fn terminal_weight(
+    operations: &[OperationRecord],
+) -> Result<u64, OperationCatalogueError> {
     operations
         .iter()
         .filter(|operation| operation.state().is_terminal())
@@ -232,4 +237,3 @@ pub(crate) fn validate_teardown(
     }
     Ok(())
 }
-

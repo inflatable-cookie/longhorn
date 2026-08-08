@@ -72,5 +72,4 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
     pub const fn spec(&self) -> &ChildViewSpec {
         &self.spec
     }
-
 }

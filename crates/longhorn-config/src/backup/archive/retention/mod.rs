@@ -4,9 +4,7 @@ mod plan;
 mod policy;
 mod types;
 
-pub use apply::{
-    BackupRetentionApplyError, BackupRetentionApplyReceipt, apply_backup_retention,
-};
+pub use apply::{BackupRetentionApplyError, BackupRetentionApplyReceipt, apply_backup_retention};
 pub use listing::list_operational_backups;
 pub use plan::{
     BackupRetentionDeletion, BackupRetentionPlan, BackupRetentionPlanError, BackupRetentionReason,

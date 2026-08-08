@@ -1,15 +1,13 @@
 //! Fork-history projection methods.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
-use longhorn_history::{HistoryEntryPosition, HistoryEntrySequence, HistoryLabel};
+use longhorn_core::HistoryEntryId;
+use longhorn_history::HistoryEntryPosition;
 
 use crate::{ForkBranchId, ForkHistory};
 
 use super::{
     ForkBranchPage, ForkBranchProjection, ForkEntryProjection, ForkPathPage, ForkProjectionError,
-    ForkProjectionPageRequest, ForkSummary, MAXIMUM_FORK_PROJECTION_PAGE_SIZE, check_offset,
+    ForkProjectionPageRequest, ForkSummary, check_offset,
 };
 
 impl<P> ForkHistory<P> {

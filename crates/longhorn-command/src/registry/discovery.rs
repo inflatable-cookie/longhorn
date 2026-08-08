@@ -1,20 +1,9 @@
 //! Discovery projection for sealed commands.
 
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fmt,
-};
-
-use longhorn_core::{CommandCapabilityId, CommandContextId, CommandId};
+use longhorn_core::CommandId;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    CommandArgumentError, CommandArguments, CommandCapabilityDefinition, CommandContextDefinition,
-    CommandDefinition, CommandLimits, CommandRegistryDigest, CommandRegistryError,
-    CommandRegistryErrorCode, CommandRegistryGeneration, CommandSearchError, CommandSearchHit,
-    CommandSurface, CommandTextInputPolicy, CommandVisibility, error::registry_error,
-    search::search_records,
-};
+use crate::{CommandDefinition, CommandTextInputPolicy, CommandVisibility};
 
 /// Stable framework-neutral discovery projection for one command.
 /// Stable framework-neutral discovery projection for one command.
@@ -57,4 +46,3 @@ impl From<&CommandDefinition> for CommandDiscoveryRecord {
         }
     }
 }
-

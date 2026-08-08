@@ -2,7 +2,7 @@
 
 use longhorn_core::{NativeContentFailureCode, PhysicalPoint, WindowId};
 use longhorn_native_content::{
-    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, DetachPolicy, EffectiveFocus,
+    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, EffectiveFocus,
     EffectiveVisibility, InputRoutingMode, NativeContentCoordinator, ObservationUpdate,
     ObservedGeometry, ObservedReadiness, StepExecution,
 };
@@ -15,10 +15,9 @@ use crate::{
 use crate::runtime::contains;
 
 use super::{
-    BackingSurfaceAdapter, BackingSurfaceDetachOutcome, BackingSurfaceDetachReceipt,
-    BackingSurfaceHostDestroyOutcome, BackingSurfaceHostDestroyReceipt,
-    compare_attached_generation, compare_generation, compare_generation_allow_next,
-    current_attachment, current_attachment_mut, observation, validate_snapshot,
+    BackingSurfaceAdapter, BackingSurfaceDetachReceipt, BackingSurfaceHostDestroyOutcome,
+    BackingSurfaceHostDestroyReceipt, compare_attached_generation, compare_generation,
+    current_attachment, current_attachment_mut, observation,
 };
 
 impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {

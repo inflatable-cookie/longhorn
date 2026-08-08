@@ -1,11 +1,7 @@
-use std::{
-    cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
-    fmt,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{CommandEnumValueId, CommandFieldId};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
@@ -14,8 +10,7 @@ use crate::{
     error::{argument_error, registry_error},
 };
 
-
-use super::{CommandFiniteNumber, invalid_schema, type_mismatch, validate_kind, validate_object, validate_range, validate_raw_value, validate_typed_value};
+use super::{CommandFiniteNumber, validate_kind, validate_object, validate_typed_value};
 
 /// Closed primitive kind accepted by one command argument field.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

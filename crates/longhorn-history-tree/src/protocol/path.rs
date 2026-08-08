@@ -1,6 +1,4 @@
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision,
-};
+use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 use longhorn_history::HistoryAuthorityEpoch;
 use serde::{Deserialize, Serialize};
 

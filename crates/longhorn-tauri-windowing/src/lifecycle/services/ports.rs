@@ -7,10 +7,7 @@ use longhorn_core::{WindowId, WindowPlacement};
 use longhorn_windowing::{ApplyGeneration, WindowOperation};
 use tauri::{Runtime, WebviewWindow};
 
-use super::super::{
-    CapturedWindowPlacement, WindowFlushRequest, WindowLifecycleReport,
-};
-
+use super::super::{CapturedWindowPlacement, WindowFlushRequest, WindowLifecycleReport};
 
 /// Complete live capture seam.
 pub trait WindowCaptureBackend<R: Runtime>: Send + Sync {
@@ -158,4 +155,3 @@ pub trait ProgrammaticApplyObserver: Send + Sync {
         operation: &WindowOperation,
     ) -> Result<(), String>;
 }
-

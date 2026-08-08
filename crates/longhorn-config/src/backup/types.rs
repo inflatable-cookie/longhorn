@@ -22,5 +22,5 @@ pub use snapshot::{
     BackupAdapterCaptureReceipt, BackupCaptureReceipt, BackupSnapshot, BackupSnapshotPayload,
 };
 
-pub(crate) use identity::{parse_utc_timestamp, UtcTimestamp};
+pub(crate) use identity::{UtcTimestamp, parse_utc_timestamp};
 pub(crate) use manifest::BACKUP_FORMAT_VERSION;

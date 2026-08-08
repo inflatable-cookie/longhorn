@@ -2,29 +2,17 @@ use std::error::Error;
 
 use longhorn_command::{
     CommandArgumentSchema, CommandBindingDefinition, CommandContextDefinition,
-    CommandContextRevision, CommandContextSnapshot, CommandDefinition, CommandEffectiveKeymap,
-    CommandKeyChord, CommandKeyTrigger, CommandKeyboardInput, CommandKeyboardMode,
-    CommandKeymapOverride, CommandKeymapPreset, CommandLimits, CommandModifiers,
-    CommandPhysicalCode, CommandPlatform, CommandPlatformScope, CommandRegistryBuilder,
-    CommandRegistryGeneration, CommandReservedChordPolicy, CommandSurface, CommandTextInputPolicy,
-    CommandTriggerModifiers, CommandVisibility, NoReservedCommandChords,
-};
-use longhorn_command_config::{
-    CommandCatalogueChangedEvent, CommandCatalogueSnapshot, CommandKeymapChangedEvent,
-    CommandKeymapCommit, CommandKeymapCommitEvidence, CommandKeymapDiagnostic,
-    CommandKeymapDurability, CommandKeymapLoadOrigin, CommandKeymapLoadOutcome,
-    CommandKeymapMutationOutcome, CommandKeymapMutationReceipt, CommandKeymapMutationResult,
-    CommandKeymapPatch, CommandKeymapPresetRecord, CommandKeymapPreview,
-    CommandKeymapPreviewResult, CommandKeymapProtocolVersion, CommandKeymapRecovery,
-    CommandKeymapRecoveryCode, CommandKeymapRejection, CommandKeymapRejectionCode,
-    CommandKeymapReset, CommandKeymapRevision, CommandKeymapSnapshot, CommandKeymapState,
+    CommandContextSnapshot, CommandDefinition, CommandEffectiveKeymap, CommandKeyChord,
+    CommandKeyTrigger, CommandKeyboardInput, CommandKeyboardMode, CommandKeymapPreset,
+    CommandLimits, CommandModifiers, CommandPhysicalCode, CommandPlatform, CommandPlatformScope,
+    CommandRegistryBuilder, CommandRegistryGeneration, CommandReservedChordPolicy,
+    CommandTextInputPolicy, CommandTriggerModifiers, CommandVisibility, NoReservedCommandChords,
 };
 use longhorn_core::{
     CommandBindingId, CommandCategoryId, CommandContextId, CommandId, CommandRequestId,
     CommandRouteId, SchemaVersion,
 };
-use serde_json::{Value, json, to_value};
-
+use serde_json::{Value, json};
 
 pub(crate) fn keyboard_input(
     code: &str,
@@ -96,7 +84,8 @@ impl CommandReservedChordPolicy for FixtureReservedChords {
     }
 }
 
-pub(crate) fn authority() -> Result<(longhorn_command::CommandRegistry, CommandKeymapPreset), Box<dyn Error>> {
+pub(crate) fn authority()
+-> Result<(longhorn_command::CommandRegistry, CommandKeymapPreset), Box<dyn Error>> {
     let mut builder =
         CommandRegistryBuilder::new(CommandRegistryGeneration::INITIAL, CommandLimits::default());
     builder.register_context(CommandContextDefinition {

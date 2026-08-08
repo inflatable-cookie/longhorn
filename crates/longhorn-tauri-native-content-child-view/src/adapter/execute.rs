@@ -7,9 +7,7 @@ use longhorn_native_content::{
     NativeContentOperation,
 };
 
-use crate::{
-    ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, RuntimeAttachRequest,
-};
+use crate::{ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, RuntimeAttachRequest};
 
 use super::{
     Attachment, ChildViewAdapter, compare_attached_generation, compare_generation,
@@ -266,7 +264,10 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             .ok_or(ChildViewError::AttachInProgress)
     }
 
-    pub(crate) fn clear_reservation(&self, generation: AttachGeneration) -> Result<(), ChildViewError> {
+    pub(crate) fn clear_reservation(
+        &self,
+        generation: AttachGeneration,
+    ) -> Result<(), ChildViewError> {
         let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
         if state.attachment.as_ref().is_some_and(|attachment| {
             attachment.generation == generation && attachment.handle.is_none()

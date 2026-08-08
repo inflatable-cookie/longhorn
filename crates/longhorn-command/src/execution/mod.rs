@@ -14,8 +14,8 @@ pub use ports::{
     CommandAvailabilitySource, CommandCapabilitySource, CommandContextSource, CommandExecutor,
     CommandSourceFailure,
 };
+pub(crate) use support::{failed_result, projection_source};
 pub use types::{
     AdmittedCommandInvocation, CommandExecutionOutcome, CommandExecutionRequest,
     CommandExecutionResult, CommandExecutorOutcome,
 };
-pub(crate) use support::{failed_result, projection_source};

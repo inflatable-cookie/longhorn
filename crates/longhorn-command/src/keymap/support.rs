@@ -2,17 +2,17 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use longhorn_core::{CommandBindingId, CommandContextId, CommandId};
+use longhorn_core::{CommandBindingId, CommandContextId};
 
 use crate::{
-    CommandArguments, CommandInvocation, CommandKeyChord, CommandKeyTrigger, CommandPlatform,
-    CommandPlatformScope, CommandRegistry, CommandReservedChordPolicy, CommandTextInputPolicy,
+    CommandArguments, CommandInvocation, CommandKeyChord, CommandPlatform, CommandRegistry,
+    CommandReservedChordPolicy,
 };
 
 use super::{
     CommandBindingDefinition, CommandBindingSource, CommandEffectiveBinding, CommandKeyResolution,
     CommandKeyboardGate, CommandKeymapConflict, CommandKeymapError, CommandKeymapErrorCode,
-    CommandKeymapOverride, keymap_error,
+    keymap_error,
 };
 
 pub(crate) fn gated(gate: CommandKeyboardGate) -> CommandKeyResolution {

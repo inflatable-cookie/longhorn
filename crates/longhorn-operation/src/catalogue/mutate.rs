@@ -1,7 +1,13 @@
 //! Catalogue mutation operations.
 
 use crate::{
-    OperationCancellationOutcome, OperationCancellationReceipt, OperationCancellationRequest, OperationCancellationSupport, OperationCatalogueError, OperationDismissal, OperationDismissalReceipt, OperationProgressReceipt, OperationProgressUpdate, OperationRecord, OperationRegistration, OperationRegistrationReceipt, OperationRemoval, OperationRemovalReason, OperationRetentionChange, OperationRetentionReceipt, OperationState, OperationTeardown, OperationTeardownOutcome, OperationTeardownReceipt, OperationTeardownResolutionOutcome, OperationTransition, OperationTransitionReceipt,
+    OperationCancellationOutcome, OperationCancellationReceipt, OperationCancellationRequest,
+    OperationCancellationSupport, OperationCatalogueError, OperationDismissal,
+    OperationDismissalReceipt, OperationProgressReceipt, OperationProgressUpdate, OperationRecord,
+    OperationRegistration, OperationRegistrationReceipt, OperationRemoval, OperationRemovalReason,
+    OperationRetentionChange, OperationRetentionReceipt, OperationState, OperationTeardown,
+    OperationTeardownOutcome, OperationTeardownReceipt, OperationTeardownResolutionOutcome,
+    OperationTransition, OperationTransitionReceipt,
 };
 
 use super::{

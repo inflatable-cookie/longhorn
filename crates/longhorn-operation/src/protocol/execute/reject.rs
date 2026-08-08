@@ -1,16 +1,8 @@
 //! Protocol execution over OperationCatalogue.
 
-use longhorn_core::OperationRequestId;
-
-use crate::{
-    OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue,
-    OperationCatalogueError, OperationDismissal, OperationProgressUpdate, OperationRegistration,
-    OperationRetentionChange, OperationTeardown, OperationTeardownOutcome,
-    OperationTeardownResolution, OperationTeardownResolutionOutcome, OperationTransition,
-};
+use crate::OperationCatalogueError;
 
 use super::super::*;
-
 
 impl From<OperationCatalogueError> for OperationRejection {
     fn from(error: OperationCatalogueError) -> Self {

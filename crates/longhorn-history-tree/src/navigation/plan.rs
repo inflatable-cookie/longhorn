@@ -1,16 +1,11 @@
 //! Navigation plan construction.
 
-use std::{collections::BTreeSet, error::Error, fmt};
+use longhorn_core::{HistoryPlanId, HistoryRevision};
+use longhorn_history::{HistoryNavigationStep, HistoryPolicy, MAXIMUM_HISTORY_NAVIGATION_STEPS};
 
-use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
-use longhorn_history::{
-    HistoryNavigationStep, HistoryNavigationTransactionFailure, HistoryPolicy,
-    MAXIMUM_HISTORY_NAVIGATION_STEPS,
-};
+use crate::ForkHistory;
 
-use crate::{ForkBranchId, ForkHistory};
-
-use super::{ForkNavigationError, ForkNavigationPlan, ForkNavigationTarget, ForkNavigationTransaction, shared_depth};
+use super::{ForkNavigationError, ForkNavigationPlan, ForkNavigationTarget, shared_depth};
 
 impl<P: Clone> ForkHistory<P> {
     /// Plans an undo, preferred redo, or branch checkout.

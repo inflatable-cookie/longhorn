@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use super::{BackupManifest, BACKUP_FORMAT};
+use super::{BACKUP_FORMAT, BackupManifest};
 
 #[test]
 fn strict_manifest_rejects_unknown_format_version_and_fields() {

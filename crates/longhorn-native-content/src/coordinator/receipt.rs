@@ -1,17 +1,7 @@
-use longhorn_core::{NativeContentRevision, WindowId};
+use longhorn_core::NativeContentRevision;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
-    ContentSizeProposal, ContentSizeProposalReceipt, CoordinationError, DesiredState,
-    DesiredUpdate, EffectiveFocus, EffectiveVisibility, NativeContentMechanism, ObservationUpdate,
-    ObservedGeometry, ObservedReadiness, ObservedState, ReceiptError, StepExecution,
-};
-use crate::{
-    plan::plan_transition,
-    proposal::{decide_content_size, validate_content_size_proposal},
-};
-
+use crate::{AttachGeneration, AttachmentLifecycle};
 
 /// Successful desired-state replacement evidence.
 /// Successful desired-state replacement evidence.
@@ -117,4 +107,3 @@ impl HostDestroyReceipt {
         self.outcome
     }
 }
-

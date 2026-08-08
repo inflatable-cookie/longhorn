@@ -1,18 +1,12 @@
 //! Admission and execution ports.
 
-use std::{error::Error, fmt};
-
-use longhorn_core::{CommandContextId, CommandId, CommandRequestId, CommandRouteId};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use super::{AdmittedCommandInvocation, CommandExecutorOutcome};
 
 use crate::{
-    CommandArgumentError, CommandArguments, CommandAvailability, CommandAvailabilityReason,
-    CommandAvailabilityReasonCode, CommandAvailabilityRecord, CommandAvailabilitySnapshot,
-    CommandCapabilitySnapshot, CommandContextSnapshot, CommandDefinition, CommandEvidence,
-    CommandRegistry, CommandRegistryGeneration,
+    CommandAvailability, CommandCapabilitySnapshot, CommandContextSnapshot, CommandDefinition,
+    CommandEvidence,
 };
 
 /// Consumer failure while loading fresh command admission facts.
@@ -65,4 +59,3 @@ pub trait CommandExecutor {
     /// Executes an admitted invocation and returns a typed terminal posture.
     fn execute(&mut self, invocation: &AdmittedCommandInvocation) -> CommandExecutorOutcome;
 }
-

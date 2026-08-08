@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use longhorn_core::HistoryEntryId;
-use longhorn_history::HistoryEntrySequence;
 use longhorn_core::HistoryRevision;
+use longhorn_history::HistoryEntrySequence;
 
 use crate::{
     ForkBranch, ForkBranchId, ForkHistoryNode, ForkHistoryStateError, MAXIMUM_FORK_CHECKPOINTS,

@@ -1,25 +1,11 @@
 //! Wake and programmatic-apply observer adapters.
 
-use std::{
-    collections::BTreeMap,
-    sync::{
-        Mutex,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
-use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{
-    ApplyGeneration, ApplyRegistrationOutcome, HostWindowHandle, WindowLifecycleCoordinator,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation,
-};
-use tauri::{Runtime, WebviewWindow, WindowEvent};
+use longhorn_windowing::{ApplyGeneration, ApplyRegistrationOutcome, WindowOperation};
+use tauri::Runtime;
 
 use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleAction,
-    TauriWindowLifecycleError, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleReport,
-    WindowLifecycleWakeHandler, translate_tauri_window_event,
+    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleError,
+    WindowLifecycleReport, WindowLifecycleWakeHandler,
 };
 
 use super::TauriWindowLifecycleHost;

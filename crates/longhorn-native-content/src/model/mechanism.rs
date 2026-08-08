@@ -1,12 +1,8 @@
 //! Native mechanism selection and capabilities.
 
-use longhorn_core::{
-    ClientRect, NativeContentIslandId, NativeContentKindId, NativeContentRevision, PhysicalRect,
-    PhysicalSize, RoundingMode, ScaleFactor, VisibilityReasonId, WindowId,
-};
 use serde::{Deserialize, Serialize};
 
-use crate::{AttachGeneration, CoordinationError};
+use crate::CoordinationError;
 
 /// Native host mechanism selected for one island.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -127,4 +123,3 @@ impl MechanismCapabilities {
         }
     }
 }
-

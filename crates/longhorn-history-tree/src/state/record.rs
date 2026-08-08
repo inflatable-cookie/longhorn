@@ -1,8 +1,8 @@
 //! Mutation receipts for fork history.
 
-use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
+use longhorn_core::{HistoryEntryId, HistoryRevision};
 
-use crate::{ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistoryNode};
+use crate::{ForkBranchId, ForkBranchMetadata, ForkBranchSeed};
 use longhorn_history::HistoryEntryMetadata;
 
 /// One already-applied product mutation offered to the graph authority.
@@ -142,4 +142,3 @@ impl ForkBranchUpdateReceipt {
         &self.committed_metadata
     }
 }
-

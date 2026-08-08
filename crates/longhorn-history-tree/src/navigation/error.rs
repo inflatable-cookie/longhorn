@@ -2,8 +2,7 @@
 
 use std::{error::Error, fmt};
 
-use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
-use longhorn_history::HistoryNavigationTransactionFailure;
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
 
 use crate::ForkBranchId;
 /// Rejected graph navigation.

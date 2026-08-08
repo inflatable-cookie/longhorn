@@ -5,9 +5,9 @@ use crate::{
     BridgeReconnectSchedule, BridgeRetryClass, BridgeStreamCursor,
 };
 
+use super::BridgeConnectionMachine;
 use super::authority::validate_requirements;
 use super::transitions::invalid_transition;
-use super::BridgeConnectionMachine;
 
 impl BridgeConnectionMachine {
     /// Begins the initial connection attempt.
