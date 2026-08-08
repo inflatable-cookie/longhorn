@@ -7,13 +7,7 @@ import type { ArtifactIdentity, PoodleEvidence, Shape } from "./types.ts";
 
 export const POODLE_ARTIFACT_SET = poodleArtifactSet();
 
-const typescriptPackages = [
-  ["@inflatable-cookie/longhorn-core", "core"],
-  ["@inflatable-cookie/longhorn-tauri", "tauri"],
-  ["@inflatable-cookie/longhorn-bridge", "bridge"],
-  ["@inflatable-cookie/longhorn-operation", "operation"],
-  ["@inflatable-cookie/longhorn-notifications", "notifications"],
-] as const;
+const typescriptPackages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
 
 const rustCrates = [
   "longhorn-core",
@@ -62,13 +56,11 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
   };
   if (manifest.name !== name || manifest.version !== "0.1.0") throw new Error(`${name} packed identity mismatch`);
   const dependencies: Record<string, readonly string[]> = {
-    "@inflatable-cookie/longhorn-core": [],
-    "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-bridge": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-operation": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-notifications": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn": [],
+    "@inflatable-cookie/longhorn-poodle-svelte": [],
+    "@inflatable-cookie/longhorn-tauri": [],
   };
-  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), dependencies[name]!);
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), dependencies[name] ?? []);
   if (name === "@inflatable-cookie/longhorn-operation" || name === "@inflatable-cookie/longhorn-notifications") {
     for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) throw new Error(`${name} ${peer} peer is not optional`);
   }

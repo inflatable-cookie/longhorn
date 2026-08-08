@@ -20,13 +20,12 @@ import type {
 
 const shapes: Record<string, ShapePolicy> = {
   bovine: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-layout",
-      "@inflatable-cookie/longhorn-surfaces",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-backend",
+    longhorn: ["@inflatable-cookie/longhorn"],
+    forbiddenImports: [
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/layout",
+      "@inflatable-cookie/longhorn/surfaces",
+      "@inflatable-cookie/longhorn/commands",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -38,12 +37,11 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Preferences"],
   },
   soundcheck: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-settings"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-layout",
-      "@inflatable-cookie/longhorn-surfaces",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-backend",
+    longhorn: ["@inflatable-cookie/longhorn"],
+    forbiddenImports: [
+      "@inflatable-cookie/longhorn/layout",
+      "@inflatable-cookie/longhorn/surfaces",
+      "@inflatable-cookie/longhorn/commands",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -59,13 +57,12 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Audio", "Storage", "Backups", "Restore & Recovery"],
   },
   loophole: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-layout",
-      "@inflatable-cookie/longhorn-surfaces",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-backend",
+    longhorn: ["@inflatable-cookie/longhorn"],
+    forbiddenImports: [
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/layout",
+      "@inflatable-cookie/longhorn/surfaces",
+      "@inflatable-cookie/longhorn/commands",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -79,13 +76,12 @@ const shapes: Record<string, ShapePolicy> = {
     pages: ["Application", "Appearance", "Hardware", "Keybindings"],
   },
   nucleus: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-surfaces",
-      "@inflatable-cookie/longhorn-surface-transfer",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-backend",
+    longhorn: ["@inflatable-cookie/longhorn"],
+    forbiddenImports: [
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/surfaces",
+      "@inflatable-cookie/longhorn/surface-transfer",
+      "@inflatable-cookie/longhorn/commands",
     ],
     permissions: [
       "allow-longhorn-settings-read",
@@ -182,9 +178,13 @@ async function verifyConsumer(
   for (const artifact of context.poodle.artifacts) {
     await assertArtifactInstall(stage, artifact.name);
   }
-  for (const name of policy.forbidden) {
-    await assertPackageAbsent(stage, name);
-  }
+  // Card 164 collapsed the domains into one package, so "this consumer does
+  // not install layout" is no longer expressible or true — layout ships in
+  // @inflatable-cookie/longhorn whether composed or not, and tree-shaking is
+  // what keeps it out of a bundle. The half that still holds is that the
+  // consumer never imports it.
+  await assertImportsAbsent(stage, policy.forbiddenImports);
+  await assertLonghornGraphExact(stage);
   const svelte = await installedPackage(stage, "svelte");
   if (svelte.manifest.version !== "5.38.6") {
     throw new Error(`${shape} installed unexpected Svelte version`);
@@ -208,7 +208,7 @@ async function verifyConsumer(
     host: policy.host,
     pages: policy.pages,
     longhornPackages: policy.longhorn,
-    forbiddenPackagesAbsent: policy.forbidden,
+    forbiddenImportsAbsent: policy.forbiddenImports,
     permissions: policy.permissions,
     artifactResolution: resolved,
     poodleArtifactSet: POODLE_ARTIFACT_SET,
@@ -257,14 +257,36 @@ async function installedPackage(stage: string, name: string) {
   return { path, realPath: await realpath(path), manifest };
 }
 
-async function assertPackageAbsent(stage: string, name: string): Promise<void> {
-  try {
-    await lstat(join(stage, "node_modules", ...name.split("/")));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
+async function assertImportsAbsent(
+  stage: string,
+  specifiers: readonly string[],
+): Promise<void> {
+  const files = (await readdir(join(stage, "src"), { recursive: true })).filter(
+    (path) => /\.(ts|svelte)$/.test(path),
+  );
+  const sources = await Promise.all(
+    files.map((path) => readFile(join(stage, "src", path), "utf8")),
+  );
+  const joined = sources.join("\n");
+  for (const specifier of specifiers) {
+    if (joined.includes(specifier)) {
+      throw new Error(`${specifier} unexpectedly imported by the consumer`);
+    }
   }
-  throw new Error(`${name} unexpectedly entered the install graph`);
+}
+
+async function assertLonghornGraphExact(stage: string): Promise<void> {
+  const scope = join(stage, "node_modules", "@inflatable-cookie");
+  const installed = (await readdir(scope))
+    .filter((entry) => entry === "longhorn" || entry.startsWith("longhorn-"))
+    .sort();
+  const expected = [
+    "longhorn",
+    "longhorn-poodle-svelte",
+  ];
+  if (JSON.stringify(installed) !== JSON.stringify(expected)) {
+    throw new Error(`install graph carries ${installed.join(", ")}`);
+  }
 }
 
 async function assertSingleSvelteRuntime(stage: string): Promise<void> {

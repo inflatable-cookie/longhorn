@@ -30,25 +30,15 @@ const shapes: readonly Shape[] = [
 
 const policies = {
   "minimal-operation": {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-operation"],
-    imports: ["@inflatable-cookie/longhorn-operation"],
+    longhorn: ["@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn/operation"],
     permissions: [],
-    forbidden: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-history",
-      "@inflatable-cookie/longhorn-notifications",
-      "@inflatable-cookie/longhorn-settings",
-      "@inflatable-cookie/longhorn-tauri",
-      "@inflatable-cookie/poodle-svelte",
-      "svelte",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/settings", "@inflatable-cookie/longhorn-tauri"],
     mountedTests: 0,
   },
   soundcheck: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-operation"],
-    imports: ["@inflatable-cookie/longhorn-operation", "@inflatable-cookie/longhorn-operation/tauri"],
+    longhorn: ["@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-tauri/operation", "@inflatable-cookie/longhorn/operation"],
     permissions: [
       "allow-longhorn-operation-read",
       "allow-longhorn-operation-manage",
@@ -56,39 +46,12 @@ const policies = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-history",
-      "@inflatable-cookie/longhorn-notifications",
-      "@inflatable-cookie/longhorn-settings",
-      "@inflatable-cookie/longhorn-tauri",
-      "@inflatable-cookie/poodle-svelte",
-      "svelte",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/settings"],
     mountedTests: 0,
   },
   loophole: {
-    longhorn: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-core",
-      "@inflatable-cookie/longhorn-notifications",
-      "@inflatable-cookie/longhorn-operation",
-      "@inflatable-cookie/longhorn-tauri",
-    ],
-    imports: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-notifications",
-      "@inflatable-cookie/longhorn-notifications/poodle",
-      "@inflatable-cookie/longhorn-notifications/svelte",
-      "@inflatable-cookie/longhorn-notifications/tauri",
-      "@inflatable-cookie/longhorn-operation",
-      "@inflatable-cookie/longhorn-operation/bridge",
-      "@inflatable-cookie/longhorn-operation/poodle",
-      "@inflatable-cookie/longhorn-operation/svelte",
-      "@inflatable-cookie/longhorn-operation/tauri",
-    ],
+    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-poodle-svelte/notifications/poodle", "@inflatable-cookie/longhorn-poodle-svelte/notifications/svelte", "@inflatable-cookie/longhorn-poodle-svelte/operation/poodle", "@inflatable-cookie/longhorn-poodle-svelte/operation/svelte", "@inflatable-cookie/longhorn-tauri/notifications", "@inflatable-cookie/longhorn-tauri/operation", "@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/operation", "@inflatable-cookie/longhorn/operation/bridge"],
     permissions: [
       "allow-longhorn-operation-read",
       "allow-longhorn-operation-manage",
@@ -98,34 +61,19 @@ const policies = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: [
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-history",
-      "@inflatable-cookie/longhorn-settings",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/settings"],
     mountedTests: 1,
   },
   "notification-only": {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-notifications"],
-    imports: ["@inflatable-cookie/longhorn-notifications", "@inflatable-cookie/longhorn-notifications/tauri"],
+    longhorn: ["@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-tauri/notifications", "@inflatable-cookie/longhorn/notifications"],
     permissions: [
       "read-notifications",
       "manage-notifications",
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-history",
-      "@inflatable-cookie/longhorn-operation",
-      "@inflatable-cookie/longhorn-settings",
-      "@inflatable-cookie/longhorn-tauri",
-      "@inflatable-cookie/poodle-svelte",
-      "svelte",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/operation", "@inflatable-cookie/longhorn/settings"],
     mountedTests: 0,
   },
 } as const;
@@ -195,10 +143,12 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
     throw new Error(`${shape} renderer trace diverged from native trace`);
   }
 
-  const installedLonghorn = await installedScope(stage, "@longhorn");
+  const installedLonghorn = (
+    await installedScope(stage, "@inflatable-cookie")
+  ).filter((name) => name === "longhorn" || name.startsWith("longhorn-"));
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    installedLonghorn.map((name) => `@inflatable-cookie/longhorn-${name}`),
+    installedLonghorn.map((name) => `@inflatable-cookie/${name}`),
     policy.longhorn,
   );
   const artifactResolution = [];
@@ -338,7 +288,7 @@ async function longhornImports(stage: string): Promise<readonly string[]> {
   const imports = new Set<string>();
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
-    for (const match of source.matchAll(/from\s+["'](@longhorn\/[^"']+)["']/g)) {
+    for (const match of source.matchAll(/from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g)) {
       imports.add(match[1]!);
     }
   }

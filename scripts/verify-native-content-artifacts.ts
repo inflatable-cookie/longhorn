@@ -17,8 +17,13 @@ import { basename, join, resolve } from "node:path";
 const POODLE_ARTIFACT_SET = poodleArtifactSet();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
   "948fcd5481fd0df00dafc40575beb1aae76bff0a0ef6cf240639a005958f2b0c";
+// Rebaselined 2026-08-08 for Card 164. The generated file changed only in its
+// import header — `@inflatable-cookie/longhorn-core` became
+// `@inflatable-cookie/longhorn/core` — and `check:bindings` confirms it still
+// matches the Rust authority byte for byte. The constant exists to catch
+// unintended drift, so it is updated deliberately rather than relaxed.
 const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
-  "d1840dfe333b33f666389f7d7a1ebeea00deea7e0ba7c27d788ff9d3e0451a0e";
+  "1770327218ac9381fc59613d966040d550331c57eb25895d8c7e03dd4c06cd08";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
 const temporaryRoot = await mkdtemp(
@@ -191,8 +196,9 @@ async function verifyProtocolIsolation() {
   const typescriptPath = join(
     repoRoot,
     "packages",
-    "native-content",
+    "longhorn",
     "src",
+    "native-content",
     "generated",
     "protocol.ts",
   );
@@ -214,11 +220,7 @@ async function verifyProtocolIsolation() {
 }
 
 async function packTypescriptArtifacts() {
-  const packages = [
-    ["@inflatable-cookie/longhorn-core", "core"],
-    ["@inflatable-cookie/longhorn-native-content", "native-content"],
-    ["@inflatable-cookie/longhorn-native-content-svelte", "native-content-svelte"],
-  ] as const;
+  const packages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"]] as const;
   const identities: ArtifactIdentity[] = [];
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
@@ -266,15 +268,17 @@ async function inspectTypescriptArtifact(name: string, path: string) {
   if (manifest.name !== name || manifest.version !== "0.1.0") {
     throw new Error(`${name} packed identity mismatch`);
   }
+  // Card 164: both tiers carry no dependencies at all. The framework package
+  // has none by construction, and the projection tier expresses its needs as
+  // peers rather than dependencies.
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@inflatable-cookie/longhorn-core": [],
-    "@inflatable-cookie/longhorn-native-content": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-native-content-svelte": ["@inflatable-cookie/longhorn-native-content"],
+    "@inflatable-cookie/longhorn": [],
+    "@inflatable-cookie/longhorn-poodle-svelte": [],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(manifest.dependencies ?? {}),
-    expectedDependencies[name]!,
+    expectedDependencies[name] ?? [],
   );
   if (name === "@inflatable-cookie/longhorn-native-content-svelte") {
     assertExactSet(
@@ -300,17 +304,25 @@ async function inspectTypescriptArtifact(name: string, path: string) {
   );
   await mkdir(extractRoot);
   await run(["tar", "-xzf", path, "-C", extractRoot], typescriptArtifactRoot);
-  const source = await readSourceTree(join(extractRoot, "package", "src"));
-  for (const marker of [
-    "SignalPlugin",
-    "wgpu",
-    "devicePixelRatio",
-    "querySelector",
-    "@inflatable-cookie/poodle-",
-  ]) {
+  // Card 164: the projection tier is one package, so scanning the whole
+  // artifact for a Poodle edge would flag every unrelated Poodle projection in
+  // it. The claim was always about the native-content tier specifically, so it
+  // is scoped to that subtree; the mechanism markers still apply everywhere.
+  const packageSrc = join(extractRoot, "package", "src");
+  const source = await readSourceTree(packageSrc);
+  for (const marker of ["SignalPlugin", "wgpu", "devicePixelRatio", "querySelector"]) {
     if (source.includes(marker)) {
       throw new Error(`${name} artifact contains forbidden authority marker ${marker}`);
     }
+  }
+  const nativeContentSource =
+    name === "@inflatable-cookie/longhorn-poodle-svelte"
+      ? await readSourceTree(join(packageSrc, "native-content"))
+      : source;
+  if (nativeContentSource.includes("@inflatable-cookie/poodle-")) {
+    throw new Error(
+      `${name} native-content tier contains a Poodle edge`,
+    );
   }
 }
 
@@ -485,17 +497,19 @@ async function verifyConsumer(
     throw new Error(`${shape} renderer trace diverged from packed Rust trace`);
   }
 
+  // Card 164: soundcheck composes the framework tier only; the other two also
+  // take the Svelte projection. The distinction survives the consolidation
+  // because the projection tier is still a separate package.
   const expectedLonghorn =
     shape === "soundcheck"
-      ? ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-native-content"]
+      ? ["@inflatable-cookie/longhorn"]
       : [
-          "@inflatable-cookie/longhorn-core",
-          "@inflatable-cookie/longhorn-native-content",
-          "@inflatable-cookie/longhorn-native-content-svelte",
+          "@inflatable-cookie/longhorn",
+          "@inflatable-cookie/longhorn-poodle-svelte",
         ];
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    (await installedScope(stage, "@longhorn")).map((name) => `@inflatable-cookie/longhorn-${name}`),
+    (await installedScope(stage, "@inflatable-cookie")).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`),
     expectedLonghorn,
   );
   for (const name of expectedLonghorn) await assertArtifactInstall(stage, name);
@@ -552,11 +566,11 @@ async function verifyConsumer(
 
   const expectedImports = usesSvelte
     ? [
-        "@inflatable-cookie/longhorn-native-content",
-        "@inflatable-cookie/longhorn-native-content-svelte",
+        "@inflatable-cookie/longhorn-poodle-svelte/native-content",
+        "@inflatable-cookie/longhorn/native-content",
         "@inflatable-cookie/poodle-svelte",
       ]
-    : ["@inflatable-cookie/longhorn-native-content"];
+    : ["@inflatable-cookie/longhorn/native-content"];
   assertExactSet(`${shape} imports`, await packageImports(stage), expectedImports);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   if (

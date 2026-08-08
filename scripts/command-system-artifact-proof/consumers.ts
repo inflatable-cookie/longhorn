@@ -1,3 +1,4 @@
+import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "../consumer-absence.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import {
@@ -26,39 +27,22 @@ import type {
 
 const policies = {
   jetstream: {
-    longhorn: ["@inflatable-cookie/longhorn-commands"],
-    imports: ["@inflatable-cookie/longhorn-commands"],
+    longhorn: ["@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn/commands"],
     permissions: ["allow-longhorn-command-read"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-core",
-      "@inflatable-cookie/longhorn-settings",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-tauri",
-      "svelte",
-      "@inflatable-cookie/poodle-svelte",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/core", "@inflatable-cookie/longhorn/settings", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn-tauri"],
     mountedTests: 0,
   },
   loophole: {
-    longhorn: ["@inflatable-cookie/longhorn-commands", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings"],
-    imports: [
-      "@inflatable-cookie/longhorn-commands",
-      "@inflatable-cookie/longhorn-commands/poodle",
-      "@inflatable-cookie/longhorn-commands/svelte",
-      "@inflatable-cookie/longhorn-settings",
-    ],
+    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-poodle-svelte/commands/poodle", "@inflatable-cookie/longhorn-poodle-svelte/commands/svelte", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/settings"],
     permissions: [
       "allow-longhorn-command-read",
       "allow-longhorn-command-mutate",
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: [
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-tauri",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn-tauri"],
     mountedTests: 1,
   },
 } as const;
@@ -142,19 +126,26 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     await run(["bun", `consumers/${shape}/proof.ts`], stage),
   );
 
-  const installedLonghorn = await installedScope(stage, "@longhorn");
+  const installedLonghorn = (
+    await installedScope(stage, "@inflatable-cookie")
+  ).filter((name) => name === "longhorn" || name.startsWith("longhorn-"));
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    installedLonghorn.map((name) => `@inflatable-cookie/longhorn-${name}`),
+    installedLonghorn.map((name) => `@inflatable-cookie/${name}`),
     policy.longhorn,
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
     artifactResolution.push(await assertArtifactInstall(stage, name));
   }
-  for (const name of policy.forbidden) {
+  // Card 164: a domain is a subpath now, so install-absence for it would
+  // pass vacuously. Packages keep install-absence; subpaths become
+  // import-absence. See scripts/consumer-absence.ts.
+  const forbidden = splitForbidden(policy.forbidden);
+  for (const name of forbidden.packages) {
     await assertPackageAbsent(stage, name);
   }
+  await assertImportsAbsent(stage, forbidden.imports);
   if (shape === "loophole") {
     for (const artifact of context.poodle.artifacts) {
       await assertArtifactInstall(stage, artifact.name);
@@ -262,15 +253,6 @@ async function installedPackage(stage: string, name: string) {
   return { realPath: await realpath(path), manifest };
 }
 
-async function assertPackageAbsent(stage: string, name: string): Promise<void> {
-  try {
-    await lstat(join(stage, "node_modules", ...name.split("/")));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  throw new Error(`${name} unexpectedly entered the install graph`);
-}
 
 async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   const manifests = (await readdir(join(stage, "node_modules"), {
@@ -296,7 +278,7 @@ async function longhornImports(stage: string): Promise<readonly string[]> {
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
     for (const match of source.matchAll(
-      /from\s+["'](@longhorn\/[^"']+)["']/g,
+      /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
       imports.add(match[1]!);
     }

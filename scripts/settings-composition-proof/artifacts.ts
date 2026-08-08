@@ -29,9 +29,8 @@ const rustCrates = [
 ] as const;
 
 const typescriptPackages = [
-  ["@inflatable-cookie/longhorn-core", "core"],
-  ["@inflatable-cookie/longhorn-config", "config"],
-  ["@inflatable-cookie/longhorn-settings", "settings"],
+  ["@inflatable-cookie/longhorn", "longhorn"],
+  ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
 ] as const;
 
 export async function readPoodleEvidence(): Promise<PoodleEvidence> {
@@ -154,8 +153,8 @@ async function inspectNpmArtifact(
   ) {
     throw new Error(`${name} artifact contains workspace dependency aliases`);
   }
-  if (name === "@inflatable-cookie/longhorn-settings") {
-    assertSettingsRootBoundary(
+  if (name === "@inflatable-cookie/longhorn") {
+    assertFrameworkRootBoundary(
       JSON.parse(packedManifest) as {
         dependencies?: Record<string, string>;
         peerDependenciesMeta?: Record<string, { optional?: boolean }>;
@@ -165,23 +164,23 @@ async function inspectNpmArtifact(
   return { name, filename: basename(path), sha256: await digest(path) };
 }
 
-function assertSettingsRootBoundary(manifest: {
+function assertFrameworkRootBoundary(manifest: {
   dependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  peerDependencies?: Record<string, string>;
 }): void {
+  // Card 164 made this claim stronger, not weaker. The settings root was
+  // allowed exactly one dependency, on longhorn-core; the consolidated
+  // framework package is allowed none at all and no peers, because everything
+  // that needed a peer moved to longhorn-poodle-svelte.
   const dependencies = Object.keys(manifest.dependencies ?? {});
-  if (
-    dependencies.length !== 1 ||
-    dependencies[0] !== "@inflatable-cookie/longhorn-core"
-  ) {
+  if (dependencies.length !== 0) {
     throw new Error(
-      `settings root has upward optional dependencies: ${dependencies.join(", ")}`,
+      `framework root declares dependencies: ${dependencies.join(", ")}`,
     );
   }
-  for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
-    if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
-      throw new Error(`${peer} is not an optional settings peer`);
-    }
+  const peers = Object.keys(manifest.peerDependencies ?? {});
+  if (peers.length !== 0) {
+    throw new Error(`framework root declares peers: ${peers.join(", ")}`);
   }
 }
 

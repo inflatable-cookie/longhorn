@@ -21,18 +21,18 @@ interface PackageManifest { readonly name: string; dependencies: Record<string, 
 const policies = {
   document: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree"],
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history-tree"],
-    imports: ["@inflatable-cookie/longhorn-history-tree"],
+    longhorn: ["@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn/history-tree"],
     permissions: [],
-    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/poodle-svelte", "svelte"],
+    forbidden: ["@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn-tauri"],
     metrics: { nodes: 132, branches: 5, payload: 4_224, lca: 65, baseline: 99_295 },
   },
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"],
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history-tree"],
-    imports: ["@inflatable-cookie/longhorn-history-tree", "@inflatable-cookie/longhorn-history-tree/poodle", "@inflatable-cookie/longhorn-history-tree/svelte", "@inflatable-cookie/longhorn-history-tree/tauri"],
+    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-poodle-svelte/history-tree/poodle", "@inflatable-cookie/longhorn-poodle-svelte/history-tree/svelte", "@inflatable-cookie/longhorn-tauri/history-tree", "@inflatable-cookie/longhorn/history-tree"],
     permissions: ["allow-longhorn-history-tree-read", "allow-longhorn-history-tree-mutate", "core:event:allow-listen", "core:event:allow-unlisten"],
-    forbidden: ["@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-tauri"],
+    forbidden: ["@inflatable-cookie/longhorn/history"],
     metrics: { nodes: 2_112, branches: 65, payload: 540_672, lca: 1_025, baseline: 7_534_856 },
   },
 } as const;
@@ -101,7 +101,7 @@ async function readPoodleEvidence(): Promise<PoodleEvidence> {
 }
 
 async function packTypescriptArtifacts(): Promise<{ identities: readonly ArtifactIdentity[]; paths: ReadonlyMap<string, string> }> {
-  const packages = [["@inflatable-cookie/longhorn-core", "core"], ["@inflatable-cookie/longhorn-history-tree", "history-tree"]] as const;
+  const packages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
   const identities = [];
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
@@ -195,7 +195,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   const trace = parseTrace(await run(["bun", `consumers/${shape}/proof.ts`], stage));
   if (!equalJson(trace.publicTrace, nativeTrace.publicTrace)) throw new Error(`${shape} native and renderer traces diverged`);
 
-  assertExactSet(`${shape} installed Longhorn packages`, (await installedScope(stage, "@longhorn")).map((name) => `@inflatable-cookie/longhorn-${name}`), policy.longhorn);
+  assertExactSet(`${shape} installed Longhorn packages`, (await installedScope(stage, "@inflatable-cookie")).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`), policy.longhorn);
   const artifactResolution = [];
   for (const name of policy.longhorn) artifactResolution.push(await assertArtifactInstall(stage, name));
   for (const name of policy.forbidden) await assertPackageAbsent(stage, name);
@@ -283,4 +283,4 @@ async function assertArtifactInstall(stage: string, name: string) { const instal
 async function installedPackage(stage: string, name: string) { const path = join(stage, "node_modules", ...name.split("/")); const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as { name: string; version: string }; if (manifest.name !== name) throw new Error(`installed package identity mismatch for ${name}`); return { realPath: await realpath(path), manifest }; }
 async function assertPackageAbsent(stage: string, name: string): Promise<void> { try { await lstat(join(stage, "node_modules", ...name.split("/"))); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; } throw new Error(`${name} unexpectedly entered the install graph`); }
 async function assertSingleSvelteRuntime(stage: string): Promise<void> { const manifests = (await readdir(join(stage, "node_modules"), { recursive: true })).filter((path) => path === "svelte/package.json" || path.endsWith("/node_modules/svelte/package.json")); if (manifests.length !== 1) throw new Error(`expected one Svelte runtime, found ${manifests.length}`); }
-async function longhornImports(stage: string): Promise<readonly string[]> { const files = (await readdir(stage, { recursive: true })).filter((path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/")); const imports = new Set<string>(); for (const path of files) { const source = await readFile(join(stage, path), "utf8"); for (const match of source.matchAll(/from\s+["'](@longhorn\/[^"']+)["']/g)) imports.add(match[1]!); } return [...imports].sort(); }
+async function longhornImports(stage: string): Promise<readonly string[]> { const files = (await readdir(stage, { recursive: true })).filter((path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/")); const imports = new Set<string>(); for (const path of files) { const source = await readFile(join(stage, path), "utf8"); for (const match of source.matchAll(/from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g)) imports.add(match[1]!); } return [...imports].sort(); }

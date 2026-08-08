@@ -27,9 +27,8 @@ const poodleEvidencePath = resolve(
 );
 
 const typescriptPackages = [
-  ["@inflatable-cookie/longhorn-core", "core"],
-  ["@inflatable-cookie/longhorn-settings", "settings"],
-  ["@inflatable-cookie/longhorn-commands", "commands"],
+  ["@inflatable-cookie/longhorn", "longhorn"],
+  ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
 ] as const;
 
 const rustCrates = [
@@ -141,26 +140,41 @@ async function inspectNpmArtifact(
   if (manifest.name !== name || manifest.version !== "0.1.0") {
     throw new Error(`${name} packed identity mismatch`);
   }
+  // Card 164: the framework tier is one package with no dependencies and no
+  // peers; everything that needed a peer moved to longhorn-poodle-svelte. The
+  // command surface is proven by the entries each package exposes rather than
+  // by a package per domain.
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@inflatable-cookie/longhorn-core": [],
-    "@inflatable-cookie/longhorn-settings": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-commands": [],
+    "@inflatable-cookie/longhorn": [],
+    "@inflatable-cookie/longhorn-poodle-svelte": [],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(manifest.dependencies ?? {}),
-    expectedDependencies[name]!,
+    expectedDependencies[name] ?? [],
   );
-  if (name === "@inflatable-cookie/longhorn-commands") {
-    assertExactSet(
-      "command package exports",
-      Object.keys(manifest.exports ?? {}),
-      [".", "./protocol", "./svelte", "./poodle", "./package.json"],
-    );
-    for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
-      if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
-        throw new Error(`${peer} is not an optional command peer`);
+  const exports = Object.keys(manifest.exports ?? {});
+  if (name === "@inflatable-cookie/longhorn") {
+    for (const entry of [".", "./commands", "./commands/protocol"]) {
+      if (!exports.includes(entry)) {
+        throw new Error(`framework package is missing the ${entry} entry`);
       }
+    }
+    if (Object.keys(manifest.peerDependencies ?? {}).length !== 0) {
+      throw new Error("framework package declares a peer");
+    }
+  }
+  if (name === "@inflatable-cookie/longhorn-poodle-svelte") {
+    for (const entry of ["./commands/svelte", "./commands/poodle"]) {
+      if (!exports.includes(entry)) {
+        throw new Error(`projection package is missing the ${entry} entry`);
+      }
+    }
+    if (
+      manifest.peerDependenciesMeta?.["@inflatable-cookie/poodle-svelte"]
+        ?.optional !== true
+    ) {
+      throw new Error("Poodle is not an optional projection peer");
     }
   }
   const extractRoot = join(

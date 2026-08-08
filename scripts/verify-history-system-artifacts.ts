@@ -1,3 +1,4 @@
+import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { poodleArtifactSet, poodleEvidence } from "./poodle-evidence.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -50,34 +51,23 @@ interface PackageManifest {
 const policies = {
   minimal: {
     rust: ["longhorn-core", "longhorn-history"],
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history"],
-    imports: ["@inflatable-cookie/longhorn-history"],
+    longhorn: ["@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn/history"],
     permissions: [],
-    forbidden: [
-      "@inflatable-cookie/longhorn-bridge",
-      "@inflatable-cookie/longhorn-config",
-      "@inflatable-cookie/longhorn-tauri",
-      "svelte",
-      "@inflatable-cookie/poodle-svelte",
-    ],
+    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn-tauri"],
     mountedTests: 0,
   },
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-tauri-history"],
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history"],
-    imports: [
-      "@inflatable-cookie/longhorn-history",
-      "@inflatable-cookie/longhorn-history/poodle",
-      "@inflatable-cookie/longhorn-history/svelte",
-      "@inflatable-cookie/longhorn-history/tauri",
-    ],
+    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
+    imports: ["@inflatable-cookie/longhorn-poodle-svelte/history/poodle", "@inflatable-cookie/longhorn-poodle-svelte/history/svelte", "@inflatable-cookie/longhorn-tauri/history", "@inflatable-cookie/longhorn/history"],
     permissions: [
       "allow-longhorn-history-read",
       "allow-longhorn-history-mutate",
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-tauri"],
+    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/config"],
     mountedTests: 1,
   },
 } as const;
@@ -186,8 +176,9 @@ async function packTypescriptArtifacts(): Promise<{
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const packages = [
-    ["@inflatable-cookie/longhorn-core", "core"],
-    ["@inflatable-cookie/longhorn-history", "history"],
+    ["@inflatable-cookie/longhorn", "longhorn"],
+    ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
+    ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"],
   ] as const;
   const identities = [];
   const paths = new Map<string, string>();
@@ -485,18 +476,23 @@ async function verifyTypescriptConsumer(
 
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    (await installedScope(stage, "@longhorn")).map(
-      (name) => `@inflatable-cookie/longhorn-${name}`,
-    ),
+    (await installedScope(stage, "@inflatable-cookie"))
+      .filter((name) => name === "longhorn" || name.startsWith("longhorn-"))
+      .map((name) => `@inflatable-cookie/${name}`),
     policy.longhorn,
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
     artifactResolution.push(await assertArtifactInstall(stage, name));
   }
-  for (const name of policy.forbidden) {
+  // Card 164: a domain is a subpath now, so install-absence for it would
+  // pass vacuously. Packages keep install-absence; subpaths become
+  // import-absence. See scripts/consumer-absence.ts.
+  const forbidden = splitForbidden(policy.forbidden);
+  for (const name of forbidden.packages) {
     await assertPackageAbsent(stage, name);
   }
+  await assertImportsAbsent(stage, forbidden.imports);
   if (shape === "loophole") {
     for (const artifact of poodle.artifacts) {
       await assertArtifactInstall(stage, artifact.name);
@@ -739,15 +735,6 @@ async function installedPackage(stage: string, name: string) {
   return { realPath: await realpath(path), manifest };
 }
 
-async function assertPackageAbsent(stage: string, name: string): Promise<void> {
-  try {
-    await lstat(join(stage, "node_modules", ...name.split("/")));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  throw new Error(`${name} unexpectedly entered the install graph`);
-}
 
 async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   const manifests = (
@@ -772,7 +759,7 @@ async function longhornImports(stage: string): Promise<readonly string[]> {
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
     for (const match of source.matchAll(
-      /from\s+["'](@longhorn\/[^"']+)["']/g,
+      /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
       imports.add(match[1]!);
     }

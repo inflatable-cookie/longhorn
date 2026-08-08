@@ -55,8 +55,12 @@ requireAll(guides, [
 
 const api = documents.get("docs/reference/api-surface.md")!;
 const rustCount = [...api.matchAll(/^\| `longhorn-[^`]+` \|/gm)].length;
-const typescriptCount = [...api.matchAll(/^\| `@longhorn\/[^`]+` \|/gm)].length;
-  if (rustCount !== 41 || typescriptCount !== 18) {
+const typescriptCount = [
+  ...api.matchAll(/^\| `@inflatable-cookie\/longhorn[^`]*` \|/gm),
+].length;
+  // Card 164 collapsed eighteen TypeScript packages into three; the Rust
+// count moved with the capability crates added since.
+if (rustCount !== 42 || typescriptCount !== 3) {
   throw new Error(`API inventory count drift: Rust ${rustCount}, TypeScript ${typescriptCount}`);
 }
 if (!api.includes("not available from npm or crates.io") || !api.includes("private: true") || !api.includes("publish = false")) {

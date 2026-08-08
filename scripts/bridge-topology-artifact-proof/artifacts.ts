@@ -9,11 +9,7 @@ import {
 import { assertExactSet, digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 
-const typescriptPackages = [
-  ["@inflatable-cookie/longhorn-core", "core"],
-  ["@inflatable-cookie/longhorn-tauri", "tauri"],
-  ["@inflatable-cookie/longhorn-bridge", "bridge"],
-] as const;
+const typescriptPackages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
 
 const rustCrates = [
   "longhorn-core",
@@ -164,14 +160,14 @@ async function inspectNpmArtifact(
     throw new Error(`${name} packed identity mismatch`);
   }
   const expectedDependencies: Record<string, readonly string[]> = {
-    "@inflatable-cookie/longhorn-core": [],
-    "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-core"],
-    "@inflatable-cookie/longhorn-bridge": ["@inflatable-cookie/longhorn-core"],
+    "@inflatable-cookie/longhorn": [],
+    "@inflatable-cookie/longhorn-poodle-svelte": [],
+    "@inflatable-cookie/longhorn-tauri": [],
   };
   assertExactSet(
     `${name} dependencies`,
     Object.keys(packedManifest.dependencies ?? {}),
-    expectedDependencies[name]!,
+    expectedDependencies[name] ?? [],
   );
   if (
     name === "@inflatable-cookie/longhorn-bridge" &&

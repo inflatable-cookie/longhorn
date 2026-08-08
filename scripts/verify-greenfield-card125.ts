@@ -34,25 +34,12 @@ const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
 
 const longhornTypescriptPackages = [
-  ["@inflatable-cookie/longhorn-bridge", "packages/bridge"],
-  ["@inflatable-cookie/longhorn-commands", "packages/commands"],
-  ["@inflatable-cookie/longhorn-config", "packages/config"],
-  ["@inflatable-cookie/longhorn-core", "packages/core"],
-  ["@inflatable-cookie/longhorn-history", "packages/history"],
-  ["@inflatable-cookie/longhorn-layout", "packages/layout"],
-  ["@inflatable-cookie/longhorn-poodle", "packages/poodle"],
-  ["@inflatable-cookie/longhorn-settings", "packages/settings"],
-  ["@inflatable-cookie/longhorn-surface-transfer", "packages/surface-transfer"],
-  ["@inflatable-cookie/longhorn-surfaces", "packages/surfaces"],
-  ["@inflatable-cookie/longhorn-svelte", "packages/svelte"],
-  ["@inflatable-cookie/longhorn-tauri", "packages/tauri"],
-  ["@inflatable-cookie/longhorn-transfer", "packages/transfer"],
+  ["@inflatable-cookie/longhorn", "packages/longhorn"],
+  ["@inflatable-cookie/longhorn-poodle-svelte", "packages/longhorn-poodle-svelte"],
+  ["@inflatable-cookie/longhorn-tauri", "packages/longhorn-tauri"],
 ] as const;
 const poodlePackages = [
-  ["@inflatable-cookie/poodle-headless", "packages/core"],
-  ["@inflatable-cookie/poodle-styles", "packages/styles"],
-  ["@inflatable-cookie/poodle-svelte-tokens", "packages/svelte/tokens"],
-  ["@inflatable-cookie/poodle-icons-lucide", "packages/svelte/icons-lucide"],
+  ["@inflatable-cookie/poodle-core", "packages/core"],
   ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
 ] as const;
 const allRustCrates = [
@@ -105,33 +92,33 @@ const fullRust = [
 const policies: Record<ShapeName, ShapePolicy> = {
   minimal: {
     hierarchy: ["window"],
-    typescript: ["@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings", "@inflatable-cookie/longhorn-tauri"],
+    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
     rust: baseRust,
-    forbiddenTypescript: ["@inflatable-cookie/longhorn-layout", "@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-native-content"],
+    forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
     forbiddenRust: ["longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-config-read", "core:event:allow-listen", "core:event:allow-unlisten"],
   },
   workspace: {
     hierarchy: ["window", "layout-container", "region", "panel"],
-    typescript: ["@inflatable-cookie/longhorn-commands", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-layout", "@inflatable-cookie/longhorn-poodle", "@inflatable-cookie/longhorn-settings", "@inflatable-cookie/longhorn-svelte", "@inflatable-cookie/longhorn-tauri"],
+    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri"],
     rust: workspaceRust,
-    forbiddenTypescript: ["@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-transfer", "@inflatable-cookie/longhorn-surface-transfer", "@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-native-content"],
+    forbiddenTypescript: [],
     forbiddenRust: ["longhorn-surfaces", "longhorn-transfer", "longhorn-surface-transfer", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-command-read", "allow-longhorn-command-mutate", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-start-dragging"],
   },
   "full-hosting": {
     hierarchy: ["display", "window", "surface", "layout-container", "region", "panel"],
-    typescript: ["@inflatable-cookie/longhorn-commands", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-layout", "@inflatable-cookie/longhorn-poodle", "@inflatable-cookie/longhorn-settings", "@inflatable-cookie/longhorn-surface-transfer", "@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn-transfer"],
+    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri"],
     rust: fullRust,
-    forbiddenTypescript: ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-native-content", "@inflatable-cookie/longhorn-operation", "@inflatable-cookie/longhorn-notifications"],
+    forbiddenTypescript: [],
     forbiddenRust: ["longhorn-bridge", "longhorn-native-content", "longhorn-operation", "longhorn-notifications"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-command-read", "allow-longhorn-command-mutate", "allow-longhorn-transfer-base", "allow-longhorn-transfer-surface", "allow-longhorn-history-read", "allow-longhorn-history-mutate", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-start-dragging"],
   },
   "optional-server": {
     hierarchy: ["window", "optional-service-bridge"],
-    typescript: ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-config", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-settings", "@inflatable-cookie/longhorn-tauri"],
+    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
     rust: [...baseRust, "longhorn-bridge", "longhorn-tauri-bridge"],
-    forbiddenTypescript: ["@inflatable-cookie/longhorn-layout", "@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-history", "@inflatable-cookie/longhorn-native-content"],
+    forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
     forbiddenRust: ["longhorn-layout", "longhorn-surfaces", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-bridge-query", "core:event:allow-listen", "core:event:allow-unlisten"],
   },
@@ -223,7 +210,7 @@ async function writeReceipt(report: {
         shape.shape,
         {
           hierarchy: [...shape.hierarchy],
-          typescript: [...shape.typescriptPackages].sort(),
+          typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"].sort(),
           rust: [...shape.rust.rustPackages].sort(),
         },
       ];
@@ -314,7 +301,7 @@ async function verifyExampleSources(): Promise<void> {
     .filter((path) => path.endsWith(".svelte"));
   equalSet(svelteFiles, ["common/App.svelte"], "greenfield Svelte implementation inventory");
   const shell = await readFile(join(exampleRoot, "common/App.svelte"), "utf8");
-  if (!shell.includes('from "@inflatable-cookie/poodle-svelte"') || !shell.includes('import "@inflatable-cookie/poodle-svelte-tokens/styles.css"')) {
+  if (!shell.includes('from "@inflatable-cookie/poodle-svelte"') || !shell.includes('import "@inflatable-cookie/poodle-core/tokens/styles.css"')) {
     throw new Error("greenfield shell does not compose public Poodle roots");
   }
 }
@@ -377,7 +364,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     const tests = await run([...bunCommand, "x", "vitest", "run", "--config", `${shape}/vitest.config.ts`], stage);
     if (!/1 passed/.test(tests)) throw new Error(`${shape} mounted lifecycle test did not pass`);
 
-    const installedLonghorn = (await readdir(join(stage, "node_modules/@longhorn"))).map((name) => `@inflatable-cookie/longhorn-${name}`).sort();
+    const installedLonghorn = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`).sort();
     equalSet(installedLonghorn, policy.typescript, `${shape} TypeScript graph`);
     for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
     const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name.startsWith("poodle-")).map((name) => `@inflatable-cookie/${name}`).sort();
@@ -396,8 +383,21 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     equalSet(capability.permissions, policy.permissions, `${shape} permissions`);
     if (!capability.failurePosture.includes("visible") && shape !== "optional-server") throw new Error(`${shape} hides failure posture`);
     const selectedSource = await readFile(join(stage, shape, "src/selected.ts"), "utf8");
+    // Card 164: selected.ts names subpaths now, and the policy names packages.
+    // Fold each specifier back to the package that provides it.
     const selectedNames = [...new Set(
-      [...selectedSource.matchAll(/"(@longhorn\/[^"]+)"/g)].map((match) => match[1]!),
+      [...selectedSource.matchAll(/"(@inflatable-cookie\/longhorn(?:[/-][^"]*)?)"/g)].map(
+        (match) => {
+          const specifier = match[1]!;
+          for (const pkg of [
+            "@inflatable-cookie/longhorn-poodle-svelte",
+            "@inflatable-cookie/longhorn-tauri",
+          ]) {
+            if (specifier === pkg || specifier.startsWith(`${pkg}/`)) return pkg;
+          }
+          return "@inflatable-cookie/longhorn";
+        },
+      ),
     )];
     equalSet(selectedNames, policy.typescript, `${shape} selected imports`);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");

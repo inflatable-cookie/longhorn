@@ -101,15 +101,19 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
       "",
   ) as Record<string, unknown>;
 
-  const installed = (await readdir(join(stage, "node_modules", "@longhorn")))
+  const installed = (
+    await readdir(join(stage, "node_modules", "@inflatable-cookie"))
+  )
+    .filter((name) => name === "longhorn" || name.startsWith("longhorn-"))
+    .map((name) => `@inflatable-cookie/${name}`)
     .sort();
   assertExactSet(
     `${shape} installed Longhorn packages`,
     installed,
-    ["bridge", "core", "tauri"],
+    ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
   );
   const artifactResolution = [];
-  for (const name of ["@inflatable-cookie/longhorn-bridge", "@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-tauri"]) {
+  for (const name of ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"]) {
     artifactResolution.push(await assertArtifactInstall(stage, name));
   }
   const tauriApi = await installedPackage(stage, "@tauri-apps/api");
@@ -128,14 +132,14 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
   );
   const imports = await longhornImports(stage);
   assertExactSet(`${shape} imports`, imports, declaration.imports);
-  const hasEvents = imports.includes("@inflatable-cookie/longhorn-bridge/tauri-events");
+  const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
   const hasEventPermissions = capability.permissions.includes(
     "core:event:allow-listen",
   ) && capability.permissions.includes("core:event:allow-unlisten");
   if (hasEvents !== hasEventPermissions) {
     throw new Error(`${shape} event imports and permissions diverged`);
   }
-  const hasSupervision = imports.includes("@inflatable-cookie/longhorn-bridge/supervision");
+  const hasSupervision = imports.includes("@inflatable-cookie/longhorn/bridge/supervision");
   if (hasSupervision !== (declaration.serviceOwnership !== null)) {
     throw new Error(`${shape} supervision import and ownership diverged`);
   }
@@ -208,7 +212,7 @@ async function longhornImports(stage: string): Promise<readonly string[]> {
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
     for (const match of source.matchAll(
-      /from\s+["'](@longhorn\/[^"']+)["']/g,
+      /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
       imports.add(match[1]!);
     }

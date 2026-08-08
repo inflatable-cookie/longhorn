@@ -1,3 +1,4 @@
+import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { poodleEvidence } from "./poodle-evidence.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -22,35 +23,19 @@ const poodleEvidencePath = resolve(
 );
 
 const longhornPackages = [
-  ["@inflatable-cookie/longhorn-core", "core"],
-  ["@inflatable-cookie/longhorn-layout", "layout"],
-  ["@inflatable-cookie/longhorn-surfaces", "surfaces"],
-  ["@inflatable-cookie/longhorn-transfer", "transfer"],
-  ["@inflatable-cookie/longhorn-surface-transfer", "surface-transfer"],
-  ["@inflatable-cookie/longhorn-svelte", "svelte"],
-  ["@inflatable-cookie/longhorn-poodle", "poodle"],
+  ["@inflatable-cookie/longhorn", "longhorn"],
+  ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
 ] as const;
 
 const shapes = {
   bovine: {
-    longhorn: ["@inflatable-cookie/longhorn-core", "@inflatable-cookie/longhorn-svelte"],
-    forbidden: [
-      "@inflatable-cookie/longhorn-layout",
-      "@inflatable-cookie/longhorn-poodle",
-      "@inflatable-cookie/longhorn-surfaces",
-      "@inflatable-cookie/longhorn-transfer",
-      "@inflatable-cookie/longhorn-surface-transfer",
-    ],
+    longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
+    forbidden: ["@inflatable-cookie/longhorn/layout", "@inflatable-cookie/longhorn-poodle-svelte/poodle", "@inflatable-cookie/longhorn/surfaces", "@inflatable-cookie/longhorn/transfer", "@inflatable-cookie/longhorn/surface-transfer"],
     regions: 0,
   },
   nucleus: {
-    longhorn: [
-      "@inflatable-cookie/longhorn-core",
-      "@inflatable-cookie/longhorn-layout",
-      "@inflatable-cookie/longhorn-svelte",
-      "@inflatable-cookie/longhorn-poodle",
-    ],
-    forbidden: ["@inflatable-cookie/longhorn-surfaces", "@inflatable-cookie/longhorn-surface-transfer"],
+    longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
+    forbidden: ["@inflatable-cookie/longhorn/surfaces", "@inflatable-cookie/longhorn/surface-transfer"],
     regions: 5,
   },
   loophole: {
@@ -141,9 +126,14 @@ try {
         await assertArtifactInstall(stage, artifact.name, repoRoot),
       );
     }
-    for (const name of policy.forbidden) {
+    // Card 164: a domain is a subpath now, so install-absence for it would
+    // pass vacuously. Packages keep install-absence; subpaths become
+    // import-absence. See scripts/consumer-absence.ts.
+    const forbidden = splitForbidden(policy.forbidden);
+    for (const name of forbidden.packages) {
       await assertPackageAbsent(stage, name);
     }
+    await assertImportsAbsent(stage, forbidden.imports);
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") {
       throw new Error(
@@ -333,15 +323,6 @@ async function installedPackage(stage: string, name: string) {
   };
 }
 
-async function assertPackageAbsent(stage: string, name: string): Promise<void> {
-  try {
-    await lstat(join(stage, "node_modules", ...name.split("/")));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  throw new Error(`${name} unexpectedly entered the install graph`);
-}
 
 function assertCapabilityPolicy(
   shape: string,
