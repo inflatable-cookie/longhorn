@@ -217,7 +217,13 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
     }
     await assertSingleSvelteRuntime(stage);
   } else {
-    assertExactSet(`${shape} installed Poodle packages`, await installedScope(stage, "@poodle"), []);
+    assertExactSet(
+      `${shape} installed Poodle packages`,
+      (await installedScope(stage, "@inflatable-cookie")).filter((name) =>
+        name.startsWith("poodle-")
+      ),
+      [],
+    );
   }
 
   const capabilityPath = join(stage, "consumers", shape, "capability.json");

@@ -203,7 +203,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") throw new Error("Loophole installed unexpected Svelte version");
     await assertSingleSvelteRuntime(stage);
-  } else if ((await installedScope(stage, "@poodle")).length !== 0) throw new Error("document consumer acquired Poodle");
+  } else if ((await installedScope(stage, "@inflatable-cookie")).some((name) => name.startsWith("poodle-"))) throw new Error("document consumer acquired Poodle");
   const permissions = shape === "loophole" ? (JSON.parse(await readFile(join(stage, "consumers", shape, "capability.json"), "utf8")) as { permissions: string[] }).permissions : [];
   assertExactSet(`${shape} permissions`, permissions, policy.permissions);
   assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);

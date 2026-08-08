@@ -380,7 +380,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     const installedLonghorn = (await readdir(join(stage, "node_modules/@longhorn"))).map((name) => `@inflatable-cookie/longhorn-${name}`).sort();
     equalSet(installedLonghorn, policy.typescript, `${shape} TypeScript graph`);
     for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
-    const installedPoodle = (await readdir(join(stage, "node_modules/@poodle"))).map((name) => `@inflatable-cookie/poodle-${name}`).sort();
+    const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name.startsWith("poodle-")).map((name) => `@inflatable-cookie/${name}`).sort();
     equalSet(installedPoodle, poodlePackages.map(([name]) => name), `${shape} Poodle graph`);
     await assertOnePackage(stage, "svelte", "5.38.6");
     await assertOnePackage(stage, "@tauri-apps/api", "2.10.1");

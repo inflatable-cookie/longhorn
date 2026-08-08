@@ -165,7 +165,9 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     }
     await assertSingleSvelteRuntime(stage);
   } else {
-    const poodle = await installedScope(stage, "@poodle");
+    const poodle = (await installedScope(stage, "@inflatable-cookie")).filter((name) =>
+      name.startsWith("poodle-")
+    );
     if (poodle.length !== 0) {
       throw new Error("Jetstream acquired Poodle packages");
     }

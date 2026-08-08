@@ -507,7 +507,7 @@ async function verifyTypescriptConsumer(
       throw new Error("Loophole installed unexpected Svelte version");
     }
     await assertSingleSvelteRuntime(stage);
-  } else if ((await installedScope(stage, "@poodle")).length !== 0) {
+  } else if ((await installedScope(stage, "@inflatable-cookie")).some((name) => name.startsWith("poodle-"))) {
     throw new Error("minimal consumer acquired Poodle packages");
   }
 
