@@ -185,12 +185,54 @@ predicates were widened here so they see the consolidated root, but the
 receipt itself stays operator-held on consumer manifest quiescence and cannot
 be produced yet. Card 127's superseded scripts were left alone.
 
-Consumer migration — nucleus, loophole, soundcheck, jetstream — is the one
-scoped item not in this card's landing. Their manifests still name the old
-eighteen, and the frozen migration fixtures under `fixtures/migration/`
-record that state deliberately, so neither was rewritten. The consumer-facing
-verifiers that assert against those fixtures were left untouched for the same
-reason.
+The frozen migration fixtures under `fixtures/migration/` and the verifiers
+asserting against them still record the old eighteen names, deliberately —
+they are evidence of what consumers looked like at those cards' dates, not
+live inventory.
+
+## Consumer Migration
+
+Five consumers, not the four this card listed: **figmatic** also imports
+Longhorn, through vite aliases rather than manifest dependencies, which is
+why the package inventory missed it.
+
+| consumer | validated by | result |
+| --- | --- | --- |
+| nucleus | `svelte-check`, 23 tests, `check:longhorn-consumer` | green |
+| loophole (aura) | renderer build | green |
+| soundcheck | `svelte-check` + build, 56 tests | green |
+| jetstream (editor-ui) | 67 tests, build | green |
+| figmatic (studio) | build | green |
+
+Three things the migration exposed that the card had not anticipated:
+
+**Domain `/tauri` subpaths became a new dependency.** A consumer using
+`longhorn-notifications/tauri` got the host edge inside the domain package it
+already had. Now those edges live in `longhorn-tauri`, so nucleus and
+soundcheck needed it added explicitly.
+
+**Peer satisfaction needs an override under `file:` refs.** The two peered
+packages declare `@inflatable-cookie/longhorn` at `0.1.0`, which a bare
+`file:` dependency does not satisfy on its own. Nucleus and soundcheck
+already carried overrides and were fine; jetstream did not, and 404'd against
+the registry until one was added.
+
+**Nucleus's boundary claim had to weaken, honestly.** It asserted that
+Surfaces, history and surface-transfer were not installed. With one package
+that is no longer true or expressible — those domains ship whether composed
+or not, and tree-shaking is what keeps them out of a bundle. The check moved
+to source absence, which is the half that ever mattered, and the packed
+artifact proof gained a stronger assertion in its place: exactly three
+Longhorn packages resolve and no fourth leaked in. Rust crate selection is
+untouched, since that split is still real.
+
+Two pre-existing defects surfaced and were fixed in passing. Figmatic's vite
+aliases still named the retired `@longhorn/*` scope, so nothing they listed
+matched what the studio imports — its Longhorn resolution had been broken
+since that rename. And soundcheck's committed lockfile recorded Poodle's
+pre-rename peers at `0.0.0`, while current Poodle source wants
+`0.1.0` of four siblings that exist on no registry; those are now overridden
+to Poodle's source directories.
 
 ## Acceptance Criteria
 
@@ -198,7 +240,7 @@ reason.
 - [x] optional peers still gate the subpaths that need them
 - [x] no consumer can install a skewed pair of longhorn packages
 - [x] bindings regenerate with no semantic diff
-- [ ] all four consumers compile and their suites pass
+- [x] all consumers compile and their suites pass (five, not four)
 - [x] contract 012 no longer claims a dependency-graph benefit the TypeScript
       side does not deliver
 

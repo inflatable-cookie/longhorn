@@ -7,6 +7,21 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Peered packages need a consumer override under `file:` refs — 2026-08-08
+- Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
+  `@inflatable-cookie/longhorn` as a peer at `0.1.0`. A consumer that installs
+  longhorn as `file:../longhorn/packages/longhorn` does not satisfy that peer
+  by itself, so bun reaches for the registry and 404s. Nucleus and soundcheck
+  happened to carry `overrides` already; jetstream did not and failed to
+  install until one was added.
+- Impact: every new consumer hits a confusing registry 404 for a package that
+  is sitting on disk beside them, and the fix is not discoverable from the
+  error.
+- Possible fix: it disappears once longhorn publishes and consumers depend by
+  version. Until then, the getting-started guide should show the override
+  block alongside the `file:` dependencies rather than leaving it implicit.
+- Surface: `docs/guides/getting-started.md`, consumer manifests.
+
 ### [ ] Poodle 0.1.0 does not export `SplitToggleVisibility` — 2026-08-08
 - Friction: `@inflatable-cookie/poodle-svelte` defines `SplitToggleVisibility`
   in `src/types.ts` and uses it for `SplitView`'s `toggleVisibility` prop, but

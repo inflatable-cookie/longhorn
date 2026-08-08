@@ -101,8 +101,52 @@ looked merge-caused and were not:
 
 Both are blocked on the Poodle release that already blocks the v0.1.0 tag.
 
+## Consumers
+
+Five, not the four the card listed — figmatic also imports Longhorn, through
+vite aliases rather than manifest dependencies, which is how the inventory
+missed it. All five migrated and validated: nucleus (`svelte-check`, 23
+tests, its consumer-boundary verifier), loophole aura (renderer build),
+soundcheck (`svelte-check` + build, 56 tests), jetstream editor-ui (67 tests,
+build), figmatic studio (build).
+
+Three things the migration exposed that the card had not anticipated.
+
+**Domain `/tauri` subpaths became a new dependency.** Consumers using
+`longhorn-notifications/tauri` got the host edge inside a domain package they
+already had. Those edges now live in `longhorn-tauri`, so nucleus and
+soundcheck had to add it.
+
+**Peer satisfaction needs an override under `file:` refs.** The peered
+packages declare `@inflatable-cookie/longhorn` at `0.1.0`, which a bare
+`file:` dependency does not satisfy. Nucleus and soundcheck already carried
+overrides; jetstream did not and 404'd against the registry until one was
+added.
+
+**Nucleus's boundary claim had to weaken, honestly.** It asserted Surfaces,
+history and surface-transfer were not installed. With one package that is
+neither true nor expressible — those domains ship whether composed or not,
+and tree-shaking is what keeps them out of a bundle. The check moved to
+source absence, which is the half that ever mattered, and the packed-artifact
+proof gained a stronger assertion in its place: exactly three Longhorn
+packages resolve, no fourth leaked in. Rust crate selection is untouched,
+because that split is still real.
+
+Two unrelated defects surfaced and were fixed in passing. Figmatic's vite
+aliases still named the retired `@longhorn/*` scope, so nothing they listed
+matched what the studio imports — its Longhorn resolution had been broken
+since that rename, silently. And soundcheck's committed lockfile recorded
+Poodle's pre-rename peers at `0.0.0` while current Poodle source wants
+`0.1.0` of four siblings that exist on no registry, so those are now
+overridden to Poodle's source directories.
+
 ## Remaining
 
-Consumer migration. Nucleus, loophole, soundcheck and jetstream still name the
-old eighteen. The frozen migration fixtures record that state deliberately, so
-neither they nor the verifiers asserting against them were rewritten.
+Card 149's candidate receipt freezes package counts and needs regenerating.
+Its predicates were widened to see the consolidated root, but the receipt
+stays operator-held on consumer manifest quiescence.
+
+The frozen migration fixtures under `fixtures/migration/`, and the verifiers
+that assert against them, still record the old eighteen names deliberately —
+they are evidence of what consumers looked like on those cards' dates, not
+live inventory.
