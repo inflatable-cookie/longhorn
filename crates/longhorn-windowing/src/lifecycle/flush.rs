@@ -1,9 +1,9 @@
 //! Scheduled wakes and flush requests.
 
-use longhorn_core::WindowId;
-use longhorn_windowing::{
+use crate::{
     CaptureGeneration, FlushReason, MonotonicMillis, WindowLifecycleDuration, WindowLifecycleEvent,
 };
+use longhorn_core::WindowId;
 use serde::{Deserialize, Serialize};
 
 /// One host wake requested by the pure lifecycle coordinator.
@@ -14,7 +14,11 @@ pub struct ScheduledWindowLifecycleWake {
 }
 
 impl ScheduledWindowLifecycleWake {
-    pub(crate) const fn new(due_at: MonotonicMillis, event: WindowLifecycleEvent) -> Self {
+    /// Records one scheduled wake. Public because host adapters construct
+    /// wakes; the type moved out of the Tauri crate with the rest of the
+    /// host-agnostic lifecycle model.
+    #[must_use]
+    pub const fn new(due_at: MonotonicMillis, event: WindowLifecycleEvent) -> Self {
         Self { due_at, event }
     }
 

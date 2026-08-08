@@ -1,6 +1,6 @@
 # 161 Host Tier Positioning And Leak Fixes
 
-Status: ready
+Status: in progress — leak closed; geometry rename outstanding
 Owner: Tom
 Roadmap: g02.012 batch 1
 Governing refs: contract 020; research memo 021
@@ -41,6 +41,41 @@ the two leaks measurement found.
    is fine — it names a real host form.
 5. Propagate the tiering into `docs/README.md` and the architecture front
    door so a reader can tell which contracts apply to their backend.
+
+## Progress — 2026-08-08
+
+**The pure-to-host edge is gone.** A workspace scan now reports zero pure
+crates depending on any `longhorn-tauri-*` crate.
+
+Moved into `longhorn-windowing`: `lifecycle/capture.rs` and
+`lifecycle/flush.rs` wholesale (both were already Tauri-free), plus the
+placement port extracted from `services/ports.rs` into a new
+`lifecycle/placement_sink.rs`.
+
+**Consumers did not break.** `longhorn-tauri-windowing` re-exports the moved
+types at their previous paths, so its public surface is unchanged. That is a
+facade, not a compatibility shim: the point was to correct the dependency
+direction, and four consumer files import these types
+(`nucleus/apps/desktop`, `loophole/aura`, `soundcheck`, `finch`). All four
+compile unchanged.
+
+`ScheduledWindowLifecycleWake::new` was `pub(crate)` and is now `pub` — host
+adapters construct wakes, and the type is host-agnostic now.
+
+### Finding — the ports module is already the host contract
+
+Only **two** of eleven types in `services/ports.rs` are Tauri-bound:
+`WindowCaptureBackend<R: Runtime>` and `WindowRevealBackend<R: Runtime>`
+plus its `TauriWindowRevealBackend` impl. The other nine are pure, and they
+map directly onto contract 020's requirements — `WindowUserCloseHandler` is
+close handling, `WindowLifecycleReporter` is lifecycle events,
+`WindowPlacementSink` is placement application.
+
+The host seam already exists in Rust; it was written inside the Tauri crate.
+Only the placement port moved in this card, because that is what removed the
+dependency edge. Whether the remaining seven pure port types should also
+move is a contract-020 question that **Card 163 should answer with evidence**
+rather than this card answering by assumption.
 
 ## Acceptance Criteria
 

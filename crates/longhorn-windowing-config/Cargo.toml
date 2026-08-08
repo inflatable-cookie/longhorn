@@ -10,10 +10,9 @@ publish = false
 [dependencies]
 longhorn-config.workspace = true
 longhorn-core.workspace = true
-longhorn-tauri-windowing.workspace = true
+longhorn-windowing.workspace = true
 
 [dev-dependencies]
-longhorn-windowing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

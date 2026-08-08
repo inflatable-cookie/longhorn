@@ -16,9 +16,13 @@ pub use diff::{
     WindowDiffReceipt, WindowOperation, WindowOperationKind, plan_window_diff,
 };
 pub use lifecycle::{
-    ApplyRegistrationOutcome, CaptureGeneration, CaptureReason, FlushReason, IgnoreReason,
-    MonotonicMillis, WindowLifecycleCoordinator, WindowLifecycleDirective, WindowLifecycleDuration,
-    WindowLifecycleError, WindowLifecycleEvent, WindowLifecycleEventKind, WindowLifecyclePolicy,
+    ApplyRegistrationOutcome, CaptureGeneration, CaptureReason, CapturedDisplayAssociation,
+    CapturedDisplayEvidence, CapturedWindowPlacement, FlushReason, IgnoreReason, MonotonicMillis,
+    ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest, WindowFlushScope,
+    WindowFlushTarget, WindowLifecycleCoordinator, WindowLifecycleDirective,
+    WindowLifecycleDuration, WindowLifecycleError, WindowLifecycleEvent, WindowLifecycleEventKind,
+    WindowLifecyclePolicy, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
+    WindowPlacementSink,
 };
 pub use outcome::{
     PlacementReason, PlacementResolutionError, ResolvedWindowPlacement, UnavailablePlacementReason,

@@ -15,7 +15,7 @@ use longhorn_config::{
     MutationReceipt, RegistrationError, StoreError,
 };
 use longhorn_core::WindowId;
-use longhorn_tauri_windowing::{
+use longhorn_windowing::{
     CapturedWindowPlacement, WindowFlushRequest, WindowPlacementFlushTicket, WindowPlacementSink,
 };
 

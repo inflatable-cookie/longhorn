@@ -8,7 +8,7 @@ use longhorn_config::{
     StorageRoots,
 };
 use longhorn_core::{DomainId, SchemaVersion, ScreenPoint, ScreenSize, WindowId, WindowPlacement};
-use longhorn_tauri_windowing::{
+use longhorn_windowing::{
     CapturedDisplayAssociation, CapturedWindowPlacement, WindowFlushRequest, WindowFlushScope,
     WindowFlushTarget, WindowPlacementSink,
 };

@@ -1,10 +1,10 @@
 //! Captured display and placement evidence.
 
-use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
-use longhorn_windowing::{
+use crate::{
     SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
     resolve_saved_display_association,
 };
+use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
 use serde::{Deserialize, Serialize};
 
 /// Raw current-monitor evidence without canonical display identity.
