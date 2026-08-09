@@ -89,7 +89,8 @@ jobs:
       - name: Rust gate
         run: |
           set -euo pipefail
-          cargo fmt --all --check
+          # Members-only; see ci.yml for why `--all` is wrong here.
+          sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
           cargo test --workspace --locked
 

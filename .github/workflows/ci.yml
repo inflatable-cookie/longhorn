@@ -30,8 +30,12 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      # Not `--all`: that walks every *local* package in the graph, so a
+      # relative path dependency drags a sibling repository into this
+      # repository's format gate and applies the wrong style edition to it.
+      # `--no-deps` is genuinely members-only.
       - name: Format
-        run: cargo fmt --all --check
+        run: sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'
       - name: Clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       # Default features leave bindings/supervision/operation and the proof

@@ -31,6 +31,7 @@ Updated: 2026-07-31
 | application update and release channels | [Application Update And Release Channels](translation-memos/019-application-update-and-release-channels.md) | `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/009-application-update-and-release-channels.md`; cards 150-154 |
 | licensing, entitlement, and activation | [Licensing, Entitlement, And Activation](translation-memos/020-licensing-entitlement-and-activation.md) | `../contracts/019-licensing-entitlement-and-activation.md`; `../roadmaps/g02/010-licensing-entitlement-and-activation.md`; cards 155-158 |
 | dual-backend host positioning | [Dual-backend Host Positioning](translation-memos/021-dual-backend-host-positioning.md) | `../contracts/020-host-adapter-boundary.md`; `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/012-dual-backend-host-positioning.md`; cards 161-163 |
+| cross-backend projection divergence | [Cross-backend Projection Divergence](translation-memos/022-cross-backend-projection-divergence.md) | `../contracts/013-svelte-and-poodle-adapter-lifecycle.md`; `../contracts/020-host-adapter-boundary.md`; `../roadmaps/g02/batch-cards/169-poodle-projection-tier.md` |
 
 ## Open Research
 
