@@ -306,6 +306,47 @@ discovered by a bug report.
 `SidebarNavSpec`, `SidebarNavGroup` and `SidebarNavItem` carried everything
 the shell uses. Stop condition did not fire.
 
+## Fourth domain — operations, 2026-08-09
+
+`operation/poodle/projectors.ts` is 82 lines, entirely pure, and the closest
+thing in the whole Svelte tier to a projection with nothing mixed in. All of
+it crossed. `longhorn-poodle::operation` emits `StatusIndicatorSpec` and
+`ProgressSpec`. Six tests.
+
+### The Svelte tier re-declares Poodle's specs as prop bundles
+
+`OperationStatusTone` is a local string union with six members. Poodle's
+`StatusTone` has the same six, including `Pending`. `OperationProgressView` is
+an interface with `indeterminate`, `value`, `max`, `valueText`. Poodle's
+`ProgressSpec` has exactly those fields.
+
+Neither was invented because Poodle lacked something. They exist because a
+Svelte projection hands *props to a component*, so it needs a prop-shaped
+object, while a Rust projection emits the spec itself. The Rust module needs
+no intermediate type at all — `progress()` returns `ProgressSpec` and the
+function is the projection.
+
+This is the structural difference between the two tiers, stated plainly for
+the first time. It also means every re-declared shape is a place the two
+backends can drift while both compile.
+
+### A second collapse, and why this one is not lossy
+
+Seven operation states into six tones: `Cancelling` and `Interrupted` are both
+`Warning`. The notification domain flagged its five-into-four collapse as
+lossy; this one is not, and the difference is real rather than a judgement
+call. `status_indicator` always emits the label with the tone, so the two
+states are never distinguished by colour alone. A toast tone can stand by
+itself; a status indicator's cannot.
+
+`Cancelled` is `Neutral` rather than `Danger`, because the operator asked for
+it. Worth stating because it is the one mapping that looks wrong at a glance.
+
+### Poodle needed no change
+
+`StatusTone`, `StatusIndicatorSpec` and `ProgressSpec` carried everything.
+Stop condition did not fire — four domains, zero Poodle changes.
+
 ### Parity against `longhorn-poodle-svelte`
 
 | Domain | Rust | Note |
@@ -313,7 +354,7 @@ the shell uses. Stop condition did not fire.
 | notifications | projected | toasts; severity collapse recorded above |
 | config | projected | restore inspection: choices and evidence block |
 | settings | projected | sidebar navigation; page runtime is deliberately framework-bound |
-| operations | not yet | |
+| operations | projected | status tone, label, progress, cancel eligibility |
 | licence | not yet | |
 | update | not yet | |
 | layout | **deliberately absent** | not in the first target's needs; memo 021 |

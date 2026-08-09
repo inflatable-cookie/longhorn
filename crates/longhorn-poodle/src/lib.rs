@@ -25,6 +25,7 @@
 
 pub mod config;
 mod notifications;
+pub mod operation;
 pub mod settings;
 
 pub use notifications::{ToneMapping, project_notification, project_notifications, tone_for};

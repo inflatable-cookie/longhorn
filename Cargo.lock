@@ -2657,6 +2657,7 @@ dependencies = [
  "longhorn-config",
  "longhorn-core",
  "longhorn-notifications",
+ "longhorn-operation",
  "longhorn-settings",
  "poodle-specs",
 ]
