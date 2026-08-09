@@ -181,10 +181,97 @@ that, but it would make a pure policy crate depend on one that spawns
 processes. The clean answer is the `longhorn-update` / `longhorn-update-native`
 split applied here too. Left for a decision rather than taken mid-card.
 
+## Step 2 Answered — 2026-08-09, negatively
+
+**The Tauri plugin cannot satisfy `UpdateInstaller` as specified.** Not
+"needs a packaged application to prove" — cannot, in either of the two ways
+it could be wired. Read from `tauri-plugin-updater` 2.10.1.
+
+`verify_signature` is called in exactly one place: `updater.rs:712`, at the
+end of `Update::download`. `Update::install(bytes)` calls `install_inner`
+directly, and the macOS `install_inner` extracts the gzip tar and replaces
+the bundle with **no verification at any point**.
+
+So verification is welded to the downloader, and an adapter has two choices:
+
+1. **Let the plugin download.** Then it verifies, but the contract's
+   `apply(version, artifact, signature)` is the wrong shape — the caller
+   holds the bytes and the plugin insists on fetching its own.
+2. **Hand it the caller's bytes** via `Update::install`. Then the shape fits
+   and nothing is verified, which violates the contract's one absolute rule:
+   "there is no configuration, host, or build profile under which an
+   unverified artifact may reach disk."
+
+There is no third option. `Update`'s fields are private and only `check()`
+constructs one, so an adapter cannot fabricate an `Update` around bytes it
+already has, and cannot reach the plugin's verifier without a network round
+trip to an endpoint.
+
+### What this means for contract 018
+
+If a Longhorn adapter over the plugin must verify with Longhorn's own
+minisign verifier before calling `install`, then the plugin contributes
+exactly one thing: macOS bundle replacement. `longhorn-update-native` already
+does that, and Step 3 recorded three deliberate ways it does it *more*
+safely — no shell interpolation, classified failures, bounded extraction.
+
+Which makes the plugin path strictly worse than the native path on the only
+platform either targets today, and makes contract 018's "Tauri hosts use the
+updater plugin, non-Tauri hosts use Longhorn's native implementation" a
+distinction with nothing behind it. **Update execution looks host-independent,
+not host-dependent.**
+
+That reverses an operator decision recorded in memo 021 on 2026-08-08, so it
+is stated here rather than taken. The plugin may still be wanted for Windows
+NSIS/MSI handling, which Longhorn's native installer does not cover — that is
+the strongest remaining argument for it and it is not a macOS argument.
+
+### The suite did its job
+
+Nothing above was found by running the suite, because the suite cannot be run
+against an implementation that cannot be written. But the suite is why the
+gap is legible: it demanded verify-before-apply as a claim, and that is
+precisely the claim the plugin's public surface cannot honour for
+caller-supplied bytes.
+
+## macOS Bundle Replacement Proved — 2026-08-09
+
+Against a real `Soundcheck.app`, built with `cargo tauri build --debug
+--bundles app`. `examples/packaged-update-proof` takes any `.app`, copies it
+twice — one standing in for the installed application, one bumped to the next
+version and signed — and runs the native installer against the copy. The real
+build is never at risk.
+
+```json
+{"outcome":"pass","bundle":"Soundcheck.app",
+ "claims":{"aTamperedArtifactIsRejected":true,
+           "aTamperedArtifactLeavesTheInstallUntouched":true,
+           "aVerifiedArtifactReplacesTheBundle":true,
+           "executableBitsSurviveTheRoundTrip":true},
+ "versions":{"installed":"0.1.0","applied":"0.1.1","requested":"0.1.1"}}
+```
+
+The fourth claim is the one the crate's own tests cannot make. They archive
+flat files at mode `0644` under a fake `Example.app`; a real bundle carries
+executable bits, and an installer that dropped them would produce an
+application that replaces cleanly and will not start. Both of Soundcheck's
+binaries came out the far side still executable.
+
+Relaunch is **not** claimed, by design rather than by omission. macOS
+separates replacement from relaunch and `longhorn-update-native` keeps that
+separation, so relaunch belongs to the host and contract 018 says so.
+
+Soundcheck was chosen over a fresh proof application because it is a real
+product already composing five `longhorn-tauri-*` crates, so the bundle under
+test is one a user would actually receive. It needed no changes — the proof
+consumes a build output. Operator authorised work in that repository on
+2026-08-09; none turned out to be necessary.
+
 ## Outstanding
 
-- the baseline conformance run against the Tauri plugin path, which needs a
-  packaged application and therefore shares Card 159's blocker
+- **A decision on contract 018**: keep the plugin path and say what it is
+  for, or make update execution host-independent and delete the distinction.
+  This is the last thing between Card 162 and closing g02.012.
 
 ## Acceptance Criteria
 

@@ -45,6 +45,7 @@ members = [
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
   "examples/nucleus-no-surface-proof",
+  "examples/packaged-update-proof",
   "examples/tauri-native-content-child-view-proof/src-tauri",
   "examples/tauri-native-content-isolated-window-proof/src-tauri",
   "examples/tauri-native-content-backing-surface-proof/src-tauri",

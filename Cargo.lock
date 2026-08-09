@@ -2636,6 +2636,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-packaged-update-proof"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "longhorn-update",
+ "longhorn-update-native",
+ "minisign",
+ "minisign-verify",
+ "semver",
+ "serde_json",
+ "tar",
+ "tempfile",
+]
+
+[[package]]
 name = "longhorn-settings"
 version = "0.1.0"
 dependencies = [
