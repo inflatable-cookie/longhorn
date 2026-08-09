@@ -125,18 +125,27 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   unrelated proof with it.
 - Surface: `scripts/generate-api-reference-card126.ts`, `effigy.toml`.
 
-### [ ] Heavyweight host SDKs have no in-gate home — 2026-08-09
+### [x] Heavyweight host SDKs have no in-gate home — 2026-08-09
 - Friction: `gpui` cannot join the workspace without adding several hundred
   transitive crates and a Metal shader build to `lint:rust`,
   `lint:rust:features`, `test:rust` and `docs:rust`. The only alternative the
   repo offers is `prototypes/`, which is outside every gate, so the binding
   is verified by hand and can rot silently.
 - Impact: the one artefact proving a host seam matches its real SDK is the
-  one thing CI never builds.
-- Possible fix: an Effigy selector that builds excluded prototypes on a
-  slower cadence than `qa` — nightly, or as a release gate — so they are
-  checked without taxing every run.
-- Surface: `effigy.toml`, `prototypes/`, `.github/workflows/ci.yml`.
+  one thing CI never builds. It rotted exactly as predicted: the render
+  binary was broken by a signature change in the session that introduced it,
+  and a hand-run caught it.
+- Fixed 2026-08-09 by Card 172, against measurements rather than impressions.
+  `gpui` is 757 packages and 3.3 GiB of linked artifacts, but 37s cold and
+  5.6s warm on this machine — heavy in disk and CPU, not in wall clock. So the
+  exclusion stays and a named selector covers the gap: `check:prototypes`
+  runs `cargo check --all-targets --locked` over all six prototypes in 1.3s
+  warm, sits deliberately outside `qa`, and is wired into both `release:gates`
+  and `[release.gates]`. "The host seam still matches its SDK" is a claim that
+  must hold before a tag, not before every commit.
+  Proved by breaking `project_notification_stack`'s signature and watching the
+  selector fail, then restoring it.
+- Surface: `effigy.toml`, `prototypes/`.
 
 ### [ ] Peered packages need a consumer override under `file:` refs — 2026-08-08
 - Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare

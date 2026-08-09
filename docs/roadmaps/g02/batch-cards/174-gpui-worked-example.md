@@ -20,12 +20,9 @@ was broken by a signature change in the same session that introduced it.
 
 ## Blocked on
 
-**Card 172.** Where this lives depends entirely on where a `gpui` build runs.
-If the answer is a nightly selector, this is a workspace member excluded from
-`qa`. If it is a release gate, it is an example built at tag time. If it is
-hand-run, this card should probably not exist at all and the guide's example
-stays illustrative — which is a legitimate outcome and the reason 172 comes
-first.
+**Card 173**, for what the example must show. Card 172 is done and settled
+where it lives: a sibling of the existing prototypes, covered by
+`effigy check:prototypes`, checked outside `qa` and built before a tag.
 
 ## Scope
 
@@ -35,7 +32,8 @@ first.
 
 ## Steps
 
-1. Site it per Card 172's decision.
+1. Site it under `prototypes/`, alongside the existing six, so
+   `check:prototypes` picks it up with no selector change.
 2. Assemble exactly what Card 173's guide describes, in the same order, so a
    reader can follow one against the other.
 3. Draw one domain end to end. Notifications is the cheapest — it needs a
@@ -53,16 +51,16 @@ first.
 
 ## Acceptance Criteria
 
-- the example compiles under the cadence Card 172 chose
+- the example is covered by `check:prototypes` with no selector change
 - it follows the guide's order, so the two can be read together
 - it supplies every seam the guide names
 
 ## Evidence Required
 
-- the example, building under its chosen cadence
-- one deliberate signature break proving the cadence catches it
+- the example, green under `effigy check:prototypes`
+- Card 172 already proved the selector catches a signature break; this needs only to be inside it
 
 ## Stop Conditions
 
-- Card 172 chose "hand-run", in which case reconsider whether this card should
-  exist rather than adding a second ungated artefact
+- the guide's assembly turns out to need surface Longhorn does not have, which
+  is Card 173's stop condition arriving late

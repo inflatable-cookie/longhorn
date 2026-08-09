@@ -1,6 +1,7 @@
 # 172 GPUI Build Cadence
 
-Status: ready
+Status: complete
+Completed: 2026-08-09
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020; contract 001
@@ -54,6 +55,51 @@ became ungated, so this card comes before the example that would join it.
 4. If the choice is a workflow change, get approval before editing anything
    under `.github/workflows/`.
 
+## Result
+
+### The measurement
+
+| | |
+| --- | --- |
+| packages in the graph | 757 |
+| cold build, wall | 37s |
+| cold build, CPU | 349s |
+| warm build, wall | 5.6s |
+| linked artifacts | 3.3 GiB (6.2 GiB before `cargo clean`) |
+| `check:prototypes`, warm, all six | 1.3s |
+
+The impression that led to the exclusion was "several hundred crates and a
+Metal shader build". Both true. The conclusion drawn from it — that this is
+expensive — is true of disk and CPU and not of wall clock: 37s cold on this
+machine, because 349s of CPU parallelises.
+
+### The decision: a named selector, wired to release
+
+Not the workspace. Adding `gpui` there taxes `lint:rust`,
+`lint:rust:features`, `test:rust` and `docs:rust`, doubles under
+`--all-features`, and puts 3.3 GiB in every cache — for one prototype, on a
+CI runner with a fraction of this machine's cores.
+
+Not nightly either. This repo's CI deliberately does not run on pushes; it
+runs on pull requests and tags, because it exists to prove a clean clone. A
+nightly would be the only trigger in the file that fires on nothing in
+particular.
+
+So: `check:prototypes`, `cargo check --all-targets --locked` across all six
+prototypes, outside `qa`, in `release:gates` and `[release.gates]`. `check`
+rather than `build` because the failure mode is API drift, which type checking
+catches, and linking is where the cost is.
+
+All six prototypes check clean today, which is worth recording — the selector
+starts green rather than inheriting a backlog.
+
+### It bites
+
+Renaming `project_notification_stack` to take a second argument failed the
+selector with `E0061` on the render binary. Restored and re-verified green. The
+first attempt at this proof broke a symbol no prototype used and the selector
+stayed green, correctly — which is its own small piece of evidence.
+
 ## Do Not
 
 - Move `gpui` into the default workspace. That is the trade this exists to
@@ -63,10 +109,11 @@ became ungated, so this card comes before the example that would join it.
 
 ## Acceptance Criteria
 
-- the cadence is chosen, written down, and reachable by name
-- a change that breaks the prototype's compilation is caught by something
+- [x] the cadence is chosen, written down, and reachable by name —
+  `effigy check:prototypes`
+- [x] a change that breaks the prototype's compilation is caught by something
   other than a person remembering
-- the papercut entry is closed or updated to say what was decided
+- [x] the papercut entry is closed and says what was decided
 
 ## Evidence Required
 
@@ -76,6 +123,8 @@ became ungated, so this card comes before the example that would join it.
 
 ## Stop Conditions
 
-- the measured cost turns out to be small enough that the original exclusion
-  was wrong, in which case the answer is to bring the prototype into the
-  workspace and this card becomes that instead
+Did not fire, but it was close enough to be worth saying why. 37s cold is not
+obviously too expensive, and the stop condition would have triggered on wall
+clock alone. What kept the exclusion is the shape of the cost rather than its
+size: it lands on four selectors, doubles under `--all-features`, and 3.3 GiB
+goes into every cache — all of it paid by every unrelated Rust change.

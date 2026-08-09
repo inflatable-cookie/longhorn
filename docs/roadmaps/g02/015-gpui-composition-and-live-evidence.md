@@ -23,12 +23,9 @@ been evidence, and the evidence has hit the ceiling a real application removes.
 
 Named here rather than buried, because one of them governs the whole shape.
 
-- **Heavyweight host SDKs have no in-gate home.** `gpui` adds several hundred
-  transitive crates and a Metal shader build to every Rust selector, so the
-  binding lives in `prototypes/`, outside every gate, verified by hand.
-  Recorded in `PAPERCUTS.md`. Batch 1 decides this before anything is built on
-  top of it; if the answer is "a slower cadence", that is an Effigy change, not
-  a workspace change.
+- ~~**Heavyweight host SDKs have no in-gate home.**~~ Closed by Card 172:
+  `check:prototypes`, outside `qa`, in the release gates. The answer was an
+  Effigy change rather than a workspace change, as anticipated.
 - **Longhorn does not own the first product target.** Memo 021 names a small
   audio-conversion application, and the authority map puts Soundcheck's
   workflows and desktop policy in Soundcheck. This milestone owns the
@@ -39,9 +36,12 @@ Named here rather than buried, because one of them governs the whole shape.
 
 ### Batch 1. Decide where a GPUI build runs
 
-- [ ] Card 172: choose the cadence for prototype and example builds — nightly
-  Effigy selector, release gate, or explicitly hand-run — and make whichever it
-  is real. Until this lands, everything below is verified by hand.
+- [x] [Card 172](batch-cards/172-gpui-build-cadence.md) chose a named selector
+  wired to release. `effigy check:prototypes` covers all six prototypes in 1.3s
+  warm, outside `qa`. Measured first: `gpui` is 757 packages and 3.3 GiB linked,
+  but 37s cold — heavy in disk and CPU, not wall clock, so what kept the
+  exclusion is that the cost lands on four selectors and every cache rather
+  than that it is large.
 
 ### Batch 2. Composition surface
 
@@ -102,8 +102,12 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 172. It is the only one of the five that needs no new evidence and blocks
-three of the other four.
+Card 173 — the composition guide. It is independent of everything left and is
+the only remaining card that needs no application to exist first.
+
+Card 174 is now unblocked in principle: Card 172 chose a cadence, so the
+example's home is decided. It stays `blocked` until 173 says what the example
+must show.
 
 ## Planning Checkpoint
 

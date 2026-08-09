@@ -30,6 +30,18 @@ exclude = ["history/**"]
 "test:rust" = "cargo test --workspace --locked"
 "docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
 
+# Prototypes are separate workspaces, so no selector above touches them. They
+# are the only artefacts binding a Longhorn seam to a real host SDK, and until
+# this existed the one proving the GPUI seam was the one thing nothing built —
+# it was broken by a signature change and caught by a hand-run.
+#
+# `check` rather than `build`: the failure mode is API drift, which type
+# checking catches, and `gpui` alone is 757 packages and 3.3 GiB of artifacts
+# once linked. Deliberately absent from `qa`; wired into the release gates
+# instead, because "the host seam still matches its SDK" is a claim that must
+# hold before a tag rather than before every commit.
+"check:prototypes" = "sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"
+
 # --- TypeScript and Svelte ----------------------------------------------
 "check:ts" = "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'"
 "check:svelte" = "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json"
@@ -53,6 +65,7 @@ exclude = ["history/**"]
 "release:gates" = [
   { task = "release:floor" },
   { task = "release:source-consumer" },
+  { task = "check:prototypes" },
 ]
 
 # --- Documentation ------------------------------------------------------
@@ -106,3 +119,4 @@ tag-format = "v{version}"
 [release.gates]
 private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
 workspace = "effigy qa"
+prototypes = "effigy check:prototypes"
