@@ -8,14 +8,14 @@ State: complete; Card 114 ready
 ## Result
 
 The read-only common freeze passed for Soundcheck, soundcheck-library, Signal,
-Bovine Accelerator Desktop, Jetstream, Poodle, and the compiled Longhorn
+Split Shell Desktop, Jetstream, Poodle, and the compiled Longhorn
 graph. No consumer or Poodle file changed.
 
 ## Evidence
 
 - exact branches and commits for six external repositories
 - clean Soundcheck, soundcheck-library, Signal, Jetstream, and Poodle trees
-- exact 19-path Bovine overlap, all below `docs/` or `CHANGELOG.md`
+- exact 19-path Split-shell overlap, all below `docs/` or `CHANGELOG.md`
 - exact app ids and active Northstar lanes
 - 23 source-backed behavior and toolchain checks
 - 27 unique selected Longhorn package paths
@@ -30,7 +30,7 @@ The verifier is `scripts/verify-secondary-consumer-card113.ts`.
 
 Soundcheck keeps SQLite, backup semantics, scan execution, product settings,
 DAW and inspection policy; soundcheck-library and Signal retain their named
-sibling domains. Bovine keeps repository, content, navigation, editorial,
+sibling domains. Split-shell keeps repository, content, navigation, editorial,
 Git, and local SplitView meaning. Jetstream keeps product command execution,
 snapshot payload, WGPU/native-view storage, rendering, world, and semantic
 input.

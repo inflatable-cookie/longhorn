@@ -48,7 +48,7 @@ remains an explicit XDG fact because Tauri has no state-directory API.
 
 - exact native path matrices pass for macOS, Windows, and Linux
 - unified and portable matrices pass on all three targets
-- Soundcheck, Loophole, Bovine, and Nucleus identity fixtures pass
+- Soundcheck, Loophole, Split-shell, and Nucleus identity fixtures pass
 - missing, empty, relative, invalid identity, and invalid profile inputs fail
   typed
 - root overrides, lifecycle warnings, provenance, database placement,

@@ -38,7 +38,7 @@ implementation without turning Longhorn into one framework.
 - no active foundation roadmap depends on a pending boundary
 - dependency graph has no upward optional-module edge
 - Loophole full-hosting and Nucleus no-Surface compositions fit
-- Bovine minimal composition imports only selected packages
+- Split-shell minimal composition imports only selected packages
 - `effigy test --plan` discovers the intended package checks
 
 ## Gate

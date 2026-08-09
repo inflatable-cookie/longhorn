@@ -1,7 +1,7 @@
 {
   "schema": "longhorn.bridge-topology-declarations.v1",
   "shapes": {
-    "bovine": {
+    "split-shell": {
       "hostForms": ["tauriLocal"],
       "transportFeatures": ["request_reply"],
       "imports": ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn-tauri/bridge"],

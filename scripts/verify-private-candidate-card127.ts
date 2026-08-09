@@ -57,7 +57,7 @@ try {
     consumers: Object.fromEntries(definitions
       .filter(({ repository }) => repository !== null)
       .map(({ name, sourceCommit, sourceManifests }) => [name, {
-        repository: name === "bovine" ? "acowtancy/bovine-accelerator-desktop" : name,
+        repository: name === "split-shell" ? "<private-consumer>" : name,
         branch: "main",
         commit: sourceCommit,
         selectedManifests: sourceManifests,

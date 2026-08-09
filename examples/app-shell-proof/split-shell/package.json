@@ -1,12 +1,11 @@
 {
-  "name": "longhorn-bovine-settings-proof",
+  "name": "longhorn-split-shell-shell-proof",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@inflatable-cookie/longhorn": "0.1.0",
     "@inflatable-cookie/longhorn-poodle-svelte": "0.1.0",
-    "@inflatable-cookie/poodle-core": "0.1.0",
     "@inflatable-cookie/poodle-svelte": "0.1.0",
+    "@inflatable-cookie/poodle-core": "0.1.0",
     "svelte": "5.38.6"
   },
   "devDependencies": {

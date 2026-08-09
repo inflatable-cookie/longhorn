@@ -80,4 +80,4 @@ native 1:1 editor coordinate contract.
 
 Execute Card 119. Run the complete Soundcheck artifact, storage, window,
 settings, scan, helper, rollback, and retained-authority closeout before any
-Bovine write.
+Split-shell write.

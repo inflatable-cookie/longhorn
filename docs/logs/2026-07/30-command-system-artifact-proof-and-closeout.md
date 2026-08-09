@@ -73,7 +73,7 @@ resolution.
 
 - generated command bindings have zero drift
 - shared Rust and TypeScript source contains no Loophole, Jetstream,
-  Soundcheck, or Bovine command payload
+  Soundcheck, or Split-shell command payload
 - shared Tauri hosting has catalogue/keymap reads and checked mutation only
 - no generic command execution endpoint or bridge bus exists
 - command execution remains an injected consumer authority

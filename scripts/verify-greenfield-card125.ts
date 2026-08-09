@@ -321,7 +321,7 @@ async function selectedSourcesClean(root: string, paths: readonly string[]): Pro
 }
 
 async function verifyExampleSources(): Promise<void> {
-  const source = Bun.spawnSync(["rg", "-n", "-i", "loophole|nucleus|soundcheck|bovine|jetstream", exampleRoot], { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+  const source = Bun.spawnSync(["rg", "-n", "-i", "loophole|nucleus|soundcheck|split-shell|jetstream", exampleRoot], { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
   if (source.exitCode === 0) throw new Error(`greenfield examples contain donor vocabulary:\n${source.stdout.toString()}`);
   if (source.exitCode !== 1) throw new Error(`greenfield vocabulary scan failed:\n${source.stderr.toString()}`);
   const svelteFiles = (await readdir(exampleRoot, { recursive: true }))

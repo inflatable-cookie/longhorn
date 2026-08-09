@@ -10,20 +10,20 @@ Auto-start next card: no
 
 ## Objective
 
-Freeze current Soundcheck, Bovine, and Jetstream behavior, authority, selected
+Freeze current Soundcheck, Split-shell, and Jetstream behavior, authority, selected
 package shape, and rollback inputs before any consumer migration write.
 
 ## Repository Scope
 
 - Longhorn: documentation, fixtures, and focused verification may change.
-- Soundcheck, soundcheck-library, Signal, Bovine, Jetstream, and Poodle:
+- Soundcheck, soundcheck-library, Signal, Split-shell, Jetstream, and Poodle:
   read-only.
 
 ## Scope
 
 - exact branches, commits, worktree posture, toolchains, dependencies, and app ids
 - Soundcheck storage, window, settings, backup, scan, and inspection-helper seams
-- Bovine workspace preference and Poodle presentation seams
+- Split-shell workspace preference and Poodle presentation seams
 - Jetstream bridge, keyboard, command, backing surface, viewport, and teardown seams
 - selected versus rejected Longhorn packages for each consumer
 - retained product/sibling authority and per-slice rollback evidence
@@ -44,11 +44,11 @@ package shape, and rollback inputs before any consumer migration write.
 
 - every source receipt and worktree posture is exact
 - Soundcheck stable-name storage and external SQLite authority are explicit
-- Bovine remains the minimal no-service, no-Surface, no-layout case
+- Split-shell remains the minimal no-service, no-Surface, no-layout case
 - Jetstream product commands, renderer, WGPU, world, and semantic input stay local
 - all planned shared behavior maps to implemented Longhorn packages
 - every donor slice has one rollback route without dual writes or silent fallback
-- unrelated Bovine documentation work remains untouched
+- unrelated Split-shell documentation work remains untouched
 - no consumer or Poodle files change
 
 ## Evidence Required
@@ -73,7 +73,7 @@ package shape, and rollback inputs before any consumer migration write.
   `../../../../fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`
 - verifier: `../../../../scripts/verify-secondary-consumer-card113.ts`
 - exact clean receipts: Soundcheck, soundcheck-library, Signal, Jetstream, and
-  Poodle; exact 19-path docs-only overlap in Bovine
+  Poodle; exact 19-path docs-only overlap in Split-shell
 - checked graph: 23 source matrices, 27 selected Longhorn package paths, and
   zero selected/forbidden overlap
 - rollback: retained sources, exact receipts, and previous locks required;

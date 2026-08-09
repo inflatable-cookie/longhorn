@@ -19,16 +19,16 @@ fn negotiation_accepts_exact_v1_and_rejects_every_other_version() {
 
     let valid = json!({
         "protocolVersion": 1,
-        "bridgeId": "bridge:bovine",
-        "requestedDomains": ["bovine.workspace"]
+        "bridgeId": "bridge:split-shell",
+        "requestedDomains": ["split-shell.workspace"]
     });
     let request: BridgeHelloRequest = serde_json::from_value(valid).unwrap();
     assert_eq!(request.protocol_version(), BridgeProtocolVersion::CURRENT);
 
     let incompatible = json!({
         "protocolVersion": 2,
-        "bridgeId": "bridge:bovine",
-        "requestedDomains": ["bovine.workspace"]
+        "bridgeId": "bridge:split-shell",
+        "requestedDomains": ["split-shell.workspace"]
     });
     assert!(serde_json::from_value::<BridgeHelloRequest>(incompatible).is_err());
 }

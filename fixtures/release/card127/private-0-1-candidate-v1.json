@@ -110,8 +110,8 @@
           "src-tauri/Cargo.toml"
         ]
       },
-      "bovine": {
-        "repository": "acowtancy/bovine-accelerator-desktop",
+      "split-shell": {
+        "repository": "<private-consumer>",
         "branch": "main",
         "commit": "8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28",
         "selectedManifests": [
@@ -1093,7 +1093,7 @@
       "lockedRust185": true
     },
     {
-      "name": "bovine",
+      "name": "split-shell",
       "sourceCommit": "8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28",
       "sourceManifests": [
         "package.json",

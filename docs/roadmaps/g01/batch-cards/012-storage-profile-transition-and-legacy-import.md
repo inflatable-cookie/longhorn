@@ -25,7 +25,7 @@ without stranding data, copying live databases, or deleting legacy authority.
 - locator-last commit
 - retained-source receipt and separate receipt-bound cleanup plan
 - cache, log, runtime, secret, and unknown-file policies
-- Loophole, Soundcheck, Nucleus, and Bovine legacy discovery fixtures
+- Loophole, Soundcheck, Nucleus, and Split-shell legacy discovery fixtures
 
 ## Public Behavior
 

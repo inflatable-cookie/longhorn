@@ -18,7 +18,7 @@ boundaries, and close g01.009.
 
 - produced `longhorn-bridge`, `longhorn-tauri-bridge`,
   `@inflatable-cookie/longhorn-bridge`, `@inflatable-cookie/longhorn-core`, and `@inflatable-cookie/longhorn-tauri` artifacts
-- isolated Bovine, Jetstream, Soundcheck, Nucleus, and Loophole-shaped installs
+- isolated Split-shell, Jetstream, Soundcheck, Nucleus, and Loophole-shaped installs
 - query-only, snapshot, job, embedded, local-service, and remote-attach forms
 - exact dependency and optional-feature inventories
 - protocol, compatibility, lifecycle, retry, credential, payload, authority,
@@ -67,7 +67,7 @@ remain consumer/integration work.
 
 - every proof consumes produced artifacts
 - no proof resolves sibling source
-- Bovine imports no event or service package
+- Split-shell imports no event or service package
 - Jetstream, Soundcheck, Nucleus, and Loophole shapes resolve only declared
   optional features
 - bridge generation and protocol compatibility checks pass from artifacts

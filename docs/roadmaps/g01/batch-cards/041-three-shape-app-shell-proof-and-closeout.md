@@ -16,7 +16,7 @@ reusable shell guidance, audit package boundaries, and close g01.007.
 
 - produced Longhorn package artifacts
 - exact Card 038 Poodle preview artifact
-- minimal Bovine-shaped shell
+- minimal Split-shell-shaped shell
 - Nucleus-shaped Surface-free workspace
 - full Loophole-shaped Surface and cross-window workspace
 - public theme and presentation bootstrap
@@ -29,7 +29,7 @@ reusable shell guidance, audit package boundaries, and close g01.007.
 ## Public Behavior
 
 The examples share primitives and guidance, not one application frame.
-Bovine remains a small split shell. Nucleus composes window, layout, regions,
+Split-shell remains a small split shell. Nucleus composes window, layout, regions,
 and panels without Surfaces. Loophole composes the full
 display-window-Surface-container-region-panel hierarchy and cross-window drag.
 
@@ -49,7 +49,7 @@ instead of silently falling back.
 
 1. Pack Longhorn artifacts and install them outside workspace resolution.
 2. Install the exact Poodle preview artifact without source aliases.
-3. Build the minimal Bovine-shaped composition.
+3. Build the minimal Split-shell-shaped composition.
 4. Build the Surface-free Nucleus-shaped composition.
 5. Build the full Loophole-shaped composition.
 6. Add theme, presentation, readiness, capability, and error guidance.
@@ -62,7 +62,7 @@ instead of silently falling back.
 
 - all examples consume produced artifacts
 - no example uses sibling source aliases
-- Bovine imports no layout host unless its composition needs it
+- Split-shell imports no layout host unless its composition needs it
 - Nucleus imports no Surface package
 - Loophole shape resolves the full optional hierarchy
 - minimal and full examples are materially different compositions
@@ -101,7 +101,7 @@ research before continuing.
 ## Result
 
 Three isolated consumers now install produced Longhorn tarballs and exact
-Poodle Card 038 artifacts. Bovine uses core and generic Svelte lifetime only.
+Poodle Card 038 artifacts. Split-shell uses core and generic Svelte lifetime only.
 Nucleus adds registered layout and Poodle bindings without any Surface
 package. Loophole installs the full optional Surface and transfer graph and
 mounts the display-window-Surface-container-region-panel hierarchy.

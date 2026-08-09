@@ -26,7 +26,7 @@ payload, Tauri, service, renderer, or consumer dependencies.
 - separate domain capability and authority descriptors
 - authority epoch and optional authoritative revision evidence
 - stable negotiation and authority failures
-- Bovine, Nucleus, and Loophole-shaped negotiation fixtures
+- Split-shell, Nucleus, and Loophole-shaped negotiation fixtures
 
 ## Public Behavior
 
@@ -72,7 +72,7 @@ placeholder.
 - connection does not imply project/domain authority
 - execution-only ownership can be represented without write authority
 - one scope cannot declare multiple current writers
-- query-only Bovine shape advertises no subscription or service feature
+- query-only Split-shell shape advertises no subscription or service feature
 - Nucleus shape represents embedded and remote hosts plus per-domain authority
 - Loophole shape changes host form without changing domain identity
 - pure crate imports no Tauri, async runtime, network, renderer, or consumer
@@ -112,7 +112,7 @@ transport features, domain capabilities, per-domain read/write/execution
 authority, nonzero epochs, and optional authoritative revisions remain
 separate facts. One authority scope rejects multiple current writers.
 
-Bovine, Nucleus, and Loophole-shaped fixtures prove the query-only floor,
+Split-shell, Nucleus, and Loophole-shaped fixtures prove the query-only floor,
 execution-only ownership, embedded/remote host distinction, and topology
 switches without semantic domain drift.
 

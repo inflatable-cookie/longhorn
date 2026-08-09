@@ -11,7 +11,7 @@
 {"detail":{"generation":2,"kind":"host_invalidated"},"event":"adapter_event","sequence":11,"unix_millis":1785544689209}
 {"detail":{"generation":2,"kind":"detach_started"},"event":"adapter_event","sequence":12,"unix_millis":1785544689209}
 {"detail":{"generation":2,"kind":"detached"},"event":"adapter_event","sequence":13,"unix_millis":1785544689209}
-{"detail":{"failed":false,"report":"/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json"},"event":"proof_completed","sequence":14,"unix_millis":1785544689210}
+{"detail":{"failed":false,"report":"/Users/example/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json"},"event":"proof_completed","sequence":14,"unix_millis":1785544689210}
 {"detail":{"architecture":"aarch64","detach_policy":"reversible","fixture":"production adapter, full-host NSView, deterministic consumer renderer","native_scale":2.0,"platform":"macos","tauri_version":"2.10.3"},"event":"proof_started","sequence":1,"unix_millis":1785577186178}
 {"detail":{"generation":2,"kind":"listener_installed"},"event":"adapter_event","sequence":2,"unix_millis":1785577186364}
 {"detail":{"generation":2,"kind":"attach_started"},"event":"adapter_event","sequence":3,"unix_millis":1785577186364}
@@ -25,4 +25,4 @@
 {"detail":{"generation":2,"kind":"host_invalidated"},"event":"adapter_event","sequence":11,"unix_millis":1785577186750}
 {"detail":{"generation":2,"kind":"detach_started"},"event":"adapter_event","sequence":12,"unix_millis":1785577186750}
 {"detail":{"generation":2,"kind":"detached"},"event":"adapter_event","sequence":13,"unix_millis":1785577186751}
-{"detail":{"failed":false,"report":"/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json"},"event":"proof_completed","sequence":14,"unix_millis":1785577186754}
+{"detail":{"failed":false,"report":"/Users/example/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64/final-report.json"},"event":"proof_completed","sequence":14,"unix_millis":1785577186754}

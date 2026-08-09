@@ -1,7 +1,7 @@
 import { queryParity, sameValues } from "./common.ts";
 
-export async function runBovineTrace() {
-  const query = await queryParity("bovine");
+export async function runSplit-shellTrace() {
+  const query = await queryParity("split-shell");
   return {
     topology: "tauriLocal",
     queryOnly: true,

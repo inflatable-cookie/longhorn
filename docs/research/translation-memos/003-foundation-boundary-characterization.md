@@ -15,7 +15,7 @@ across the audited Tauri apps, and which proposed abstractions are new?
 - `nucleus`
 - `soundcheck`
 - `jetstream`
-- `acowtancy/bovine-accelerator-desktop`
+- `<private-consumer>`
 
 All five are Svelte 5 and Tauri 2 applications. Rust editions and package
 manager choices differ.

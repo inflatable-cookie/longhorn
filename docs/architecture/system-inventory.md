@@ -76,7 +76,7 @@ backup operations, exact Rust projections, an injected Tauri edge,
 capability-gated page registration, and public-Poodle storage/backup pages.
 Card 047 adds checked restore inspection, explicit conflict planning, exact
 terminal receipts, recovery gating, and the public-Poodle destructive flow.
-Card 048 proves Bovine, Soundcheck, Loophole, and Nucleus compositions from
+Card 048 proves Split-shell, Soundcheck, Loophole, and Nucleus compositions from
 produced artifacts with exact package, capability, authority, transaction, and
 UI boundaries. `g01.008` is complete.
 Research memo 013 and compiled contracts 007 and 010 bound the generic bridge
@@ -150,12 +150,12 @@ fresh action admission. `g01.012` is complete.
 | Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
 | Surface hosting | optional Rust + config + TS packages | Surface lifecycle, persistence, and window hosting | Loophole Aura/Echo | pure identity, topology, presence, resolution, lifecycle, persistence, and window-host composition implemented |
 | Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | g01.006 complete; direct and Surface-enabled packaged macOS proofs pass |
-| Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Bovine | g01.002 complete |
+| Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Split-shell | g01.002 complete |
 | Backup and recovery | Rust library + adapters | inventory, verify, rotate, ordinary and grouped custom restore, explicit present/absent state, boot recovery receipts | cross-app need; Nucleus grouped restore consumer | g01.002 and g01.019 complete; Nucleus app orchestration remains consumer work |
-| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Bovine, Poodle | g01.007 complete |
+| Svelte/Poodle bindings | TS/Svelte package | state and interaction adapters | Loophole, Nucleus, Split-shell, Poodle | g01.007 complete |
 | Tauri IPC/event bridge | Rust + TS package/tooling | checked command/event seam | all five apps | Cards 049-053 implement pure semantics, generated clients, direct/loopback adapters, registered-domain Tauri assembly, bounded reconnect, and optional events/supervision |
 | Window chrome helper | TS utility | safe native titlebar drag | identical Loophole/Nucleus helpers | Card 040 |
-| Settings registry/shell | Rust + TS/Svelte package | sealed page composition, checked apply units, policy/activation projection | Loophole, Soundcheck, Bovine, Nucleus | Cards 042-048 implement authority, config apply, checked clients/Tauri host, isolated sessions, public-Poodle shell, exact recovery pages, and four artifact-installed compositions; g01.008 complete |
+| Settings registry/shell | Rust + TS/Svelte package | sealed page composition, checked apply units, policy/activation projection | Loophole, Soundcheck, Split-shell, Nucleus | Cards 042-048 implement authority, config apply, checked clients/Tauri host, isolated sessions, public-Poodle shell, exact recovery pages, and four artifact-installed compositions; g01.008 complete |
 | Command/keymap/palette | Rust + config + TS/Svelte/Poodle packages | sealed catalogue, fresh admission, keyboard resolution, durable overrides, shared projections | Loophole full system; Jetstream basic shortcuts | Cards 056-061 and g01.010 complete; rich/minimal artifact proof passes |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | five host forms, separate authority, explicit replay, checked direct/loopback/Tauri sessions, bounded lifecycle, stream/job semantics, and injected supervision implemented |
 | History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams | Loophole Pulse plus non-editor fixture | public linear slice complete through Card 067 artifact proof |
@@ -163,7 +163,7 @@ fresh action admission. `g01.012` is complete.
 | Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
 | Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
 | Native content islands | pure coordination plus separate optional mechanisms | identity, attach generation, typed viewport, visibility/focus/input mode, observation, receipts; child-specific retained navigation | Nucleus and Figmatic child webviews; Soundcheck isolated plugin window; Jetstream backing surface | g01.018 and g01.020 complete; remaining adoption is consumer-owned |
-| Greenfield starter | examples + docs | composition without donor baggage | Bovine and all future apps | g01.016 complete; produced-artifact examples and guidance proved |
+| Greenfield starter | examples + docs | composition without donor baggage | Split-shell and all future apps | g01.016 complete; produced-artifact examples and guidance proved |
 
 ## Consumer Repos
 
@@ -173,7 +173,7 @@ fresh action admission. `g01.012` is complete.
 | `nucleus/apps/desktop` + `nucleus-workspaces` | no-Surface donor and simple conformance consumer |
 | `soundcheck` | single-window persistence, job, event, and native-inspection specimen |
 | `jetstream` editor | snapshot bridge, shortcut, and embedded-native-surface specimen |
-| `acowtancy/bovine-accelerator-desktop` | greenfield-simple preference, split, tree-state, dialog specimen |
+| `<private-consumer>` | greenfield-simple preference, split, tree-state, dialog specimen |
 | `poodle` | external visual primitive authority |
 
 ## External And Host Surfaces

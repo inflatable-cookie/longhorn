@@ -48,7 +48,7 @@ effigy qa
 ## Current State
 
 Pre-1.0 private workspace. Generation g01 is complete (20 milestones, cards
-001-137, five migrated consumers: Nucleus, Loophole, Soundcheck, Bovine,
+001-137, five migrated consumers: Nucleus, Loophole, Soundcheck, Split-shell,
 Jetstream). Generation g02 is active, adding application-update and licensing
 runways (cards 138-159). The private `0.1.0` compatibility candidate spans 18
 TypeScript packages and 41 Rust crates; package-manager publication remains

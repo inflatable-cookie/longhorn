@@ -187,20 +187,20 @@ mod tests {
 
     #[test]
     fn canonical_id_is_default_and_explicit_name_replaces_it() {
-        let canonical = StorageIdentity::new("audio.infiniteloop.soundcheck").unwrap();
-        assert_eq!(canonical.effective_leaf(), "audio.infiniteloop.soundcheck");
+        let canonical = StorageIdentity::new("audio.example.soundcheck").unwrap();
+        assert_eq!(canonical.effective_leaf(), "audio.example.soundcheck");
 
         let named = canonical.with_storage_name("Soundcheck").unwrap();
         assert_eq!(named.effective_leaf(), "Soundcheck");
         assert_eq!(
             named.canonical_application_id(),
-            "audio.infiniteloop.soundcheck"
+            "audio.example.soundcheck"
         );
     }
 
     #[test]
     fn explicit_invalid_name_never_falls_back() {
-        let identity = StorageIdentity::new("audio.infiniteloop.soundcheck").unwrap();
+        let identity = StorageIdentity::new("audio.example.soundcheck").unwrap();
         let error = identity.with_storage_name("../Soundcheck").unwrap_err();
 
         assert_eq!(error.field(), StorageIdentityField::StableStorageName);
@@ -218,7 +218,7 @@ mod tests {
             StorageIdentityErrorKind::Reserved
         );
         assert_eq!(
-            StorageIdentity::new("audio.infiniteloop.soundcheck")
+            StorageIdentity::new("audio.example.soundcheck")
                 .unwrap()
                 .with_storage_name("Soundcheck?")
                 .unwrap_err()

@@ -32,7 +32,7 @@ unbounded wire input.
 
 | Shape | Host posture | Proof |
 | --- | --- | --- |
-| Bovine | Tauri-local, request/reply | query only; no subscription or service feature |
+| Split-shell | Tauri-local, request/reply | query only; no subscription or service feature |
 | Nucleus | direct and remote | host/session identities differ; execution ownership grants no write authority |
 | Loophole | local-first and local-service | host form changes while domain and authority-scope identity remain stable |
 

@@ -16,7 +16,7 @@ State: complete
 
 - tracked and no-ignore Tauri manifest scans
 - refreshed Effigy graphs for all five apps
-- exact source inspection in Loophole, Nucleus, Soundcheck, Jetstream, Bovine,
+- exact source inspection in Loophole, Nucleus, Soundcheck, Jetstream, Split-shell,
   and Poodle
 - audit memo:
   `../../research/translation-memos/001-tauri-application-extraction-audit.md`

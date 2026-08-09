@@ -19,7 +19,7 @@
 | [g01.013](013-native-content-islands-prototype.md) | complete | split production graph promoted from private evidence |
 | [g01.014](014-nucleus-no-surface-migration.md) | complete | Surface-free Nucleus migration proved |
 | [g01.015](015-loophole-full-hosting-migration.md) | complete | advanced full-stack consumer |
-| [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Bovine, Jetstream, greenfield, private candidate |
+| [g01.016](016-secondary-consumers-and-greenfield-release.md) | complete | Soundcheck, Split-shell, Jetstream, greenfield, private candidate |
 | [g01.017](017-optional-forkable-history-tree.md) | complete | optional production fork-tree layer after linear adoption |
 | [g01.018](018-native-content-production-and-adoption-gate.md) | complete | isolated artifacts, three-shape parity, packaged support, and adoption gates proved |
 | [g01.019](019-grouped-custom-adapter-restore.md) | complete | grouped failure-atomic custom restore and boot recovery |
@@ -365,7 +365,7 @@ Cards 113-127 compile g01.016 into five batches. Cards 113-114 refresh exact
 secondary-consumer authority and admit one private artifact graph. Cards
 115-119 migrate and close Soundcheck across stable-name storage, protected
 windowing, settings/recovery, scan operations, and isolated plugin windows.
-Cards 120-121 complete Bovine's minimal config/settings graph, native restart,
+Cards 120-121 complete Split-shell's minimal config/settings graph, native restart,
 rollback, settings lifetime, artifact, and no-optional-system proof while
 preserving unrelated work. Card 122 completes Jetstream's checked bridge,
 sealed commands, fresh admission, and physical keyboard. Card 123 completes

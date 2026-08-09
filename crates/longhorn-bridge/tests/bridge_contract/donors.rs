@@ -39,15 +39,15 @@ fn absent_domains_remain_absent_and_extra_domains_are_rejected() {
 }
 
 #[test]
-fn query_only_bovine_fixture_has_no_subscription_or_service_feature() {
-    let bovine = receipt(
-        host("host:bovine-desktop", BridgeHostForm::TauriLocal),
-        "session:bovine",
+fn query_only_split-shell_fixture_has_no_subscription_or_service_feature() {
+    let split-shell = receipt(
+        host("host:split-shell-desktop", BridgeHostForm::TauriLocal),
+        "session:split-shell",
         &["request_reply"],
-        vec![capabilities("bovine.workspace", &["query"]).unwrap()],
+        vec![capabilities("split-shell.workspace", &["query"]).unwrap()],
         vec![authority(
-            "bovine.workspace",
-            "scope:bovine-workspace",
+            "split-shell.workspace",
+            "scope:split-shell-workspace",
             ReadAuthority::Authoritative,
             WriteAuthority::None,
             ExecutionAuthority::None,
@@ -57,14 +57,14 @@ fn query_only_bovine_fixture_has_no_subscription_or_service_feature() {
     )
     .unwrap();
 
-    let feature_names: Vec<_> = bovine
+    let feature_names: Vec<_> = split-shell
         .transport_features()
         .iter()
         .map(TransportFeatureId::as_str)
         .collect();
     assert_eq!(feature_names, ["request_reply"]);
     assert_eq!(
-        bovine.domain_capabilities()[0].capabilities()[0].as_str(),
+        split-shell.domain_capabilities()[0].capabilities()[0].as_str(),
         "query"
     );
 }

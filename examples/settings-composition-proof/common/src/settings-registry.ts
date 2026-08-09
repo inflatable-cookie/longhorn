@@ -7,7 +7,7 @@ import type {
 
 import settingsFixture from "./fixtures/settings-protocol-v1.json";
 
-export type ProofShape = "bovine" | "soundcheck" | "loophole" | "nucleus";
+export type ProofShape = "split-shell" | "soundcheck" | "loophole" | "nucleus";
 
 const featureDefaults = {
   reset: false,
@@ -62,15 +62,15 @@ export function createProofSnapshot(
 
 function declarationsFor(shape: ProofShape) {
   switch (shape) {
-    case "bovine":
+    case "split-shell":
       return productDeclarations(
         shape,
         [
-          page("bovine:preferences", "bovine:preferences", "Preferences", [
-            "bovine:preferences",
+          page("split-shell:preferences", "split-shell:preferences", "Preferences", [
+            "split-shell:preferences",
           ]),
         ],
-        [{ id: "bovine:preferences", timing: "staged" }],
+        [{ id: "split-shell:preferences", timing: "staged" }],
       );
     case "nucleus":
       return productDeclarations(
@@ -90,7 +90,7 @@ function declarationsFor(shape: ProofShape) {
 }
 
 function productDeclarations(
-  shape: "bovine" | "nucleus",
+  shape: "split-shell" | "nucleus",
   pages: SettingsPageDefinition[],
   units: readonly { id: string; timing: SettingsMutationTiming }[],
 ) {

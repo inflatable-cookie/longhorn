@@ -33,13 +33,13 @@
 </script>
 
 {#snippet preferencePage(context: SettingsPageRenderContext)}
-  <article data-testid="bovine-preferences" data-dirty={context.dirty}>
+  <article data-testid="split-shell-preferences" data-dirty={context.dirty}>
     <h3>Editing</h3>
     <p>One consumer-owned staged preference domain.</p>
     <button
       type="button"
       onclick={() =>
-        void context.change("bovine:preferences", {
+        void context.change("split-shell:preferences", {
           codecVersion: 1,
           value: { compactEditor: true },
         })}
@@ -49,7 +49,7 @@
     <button
       type="button"
       onclick={() =>
-        void context.requestReset("bovine:preferences", ["bovine:primary"])}
+        void context.requestReset("split-shell:preferences", ["split-shell:primary"])}
     >
       Reset preference
     </button>
@@ -60,8 +60,8 @@
   <SettingsShell
     {session}
     host="modal"
-    title="Bovine preferences"
-    ariaLabel="Bovine preferences"
+    title="Split-shell preferences"
+    ariaLabel="Split-shell preferences"
     resolveRenderer={() => preferencePage}
   />
 </UiPresentationProvider>

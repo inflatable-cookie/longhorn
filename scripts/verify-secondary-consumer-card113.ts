@@ -6,11 +6,11 @@ type RepositoryName =
   | "soundcheck"
   | "soundcheck_library"
   | "signal"
-  | "bovine"
+  | "split-shell"
   | "jetstream"
   | "poodle";
 
-type ConsumerName = "soundcheck" | "bovine" | "jetstream";
+type ConsumerName = "soundcheck" | "split-shell" | "jetstream";
 
 type ConsumerFixture = {
   app_id: string;
@@ -29,13 +29,13 @@ type FreezeFixture = {
     soundcheck_commit: string;
     soundcheck_library_commit: string;
     signal_commit: string;
-    bovine_commit: string;
+    split-shell_commit: string;
     jetstream_commit: string;
     poodle_commit: string;
     poodle_prior_artifact_set: string;
   };
   branches: Record<RepositoryName, string>;
-  bovine_unrelated_dirty_paths: string[];
+  split-shell_unrelated_dirty_paths: string[];
   consumers: Record<ConsumerName, ConsumerFixture>;
   authority: Record<string, string[]>;
   rollback: {
@@ -81,9 +81,9 @@ const repositories: Record<RepositoryName, string> = {
   signal: resolve(
     process.env.SIGNAL_REPO ?? resolve(longhornRoot, "../signal"),
   ),
-  bovine: resolve(
-    process.env.BOVINE_REPO ??
-      resolve(longhornRoot, "../acowtancy/bovine-accelerator-desktop"),
+  split-shell: resolve(
+    process.env.SPLIT_SHELL_REPO ??
+      resolve(longhornRoot, "../<private-consumer>"),
   ),
   jetstream: resolve(
     process.env.JETSTREAM_REPO ?? resolve(longhornRoot, "../jetstream"),
@@ -97,7 +97,7 @@ const commits: Record<RepositoryName, string> = {
   soundcheck: fixture.sources.soundcheck_commit,
   soundcheck_library: fixture.sources.soundcheck_library_commit,
   signal: fixture.sources.signal_commit,
-  bovine: fixture.sources.bovine_commit,
+  split-shell: fixture.sources.split-shell_commit,
   jetstream: fixture.sources.jetstream_commit,
   poodle: fixture.sources.poodle_commit,
 };
@@ -126,7 +126,7 @@ console.log(
         soundcheck: commits.soundcheck,
         soundcheckLibrary: commits.soundcheck_library,
         signal: commits.signal,
-        bovine: commits.bovine,
+        split-shell: commits.split-shell,
         jetstream: commits.jetstream,
         poodle: commits.poodle,
         poodlePriorArtifactSet: fixture.sources.poodle_prior_artifact_set,
@@ -150,7 +150,7 @@ console.log(
         ]),
       ),
       overlap: {
-        bovineUnrelatedDirtyPaths: fixture.bovine_unrelated_dirty_paths.length,
+        split-shellUnrelatedDirtyPaths: fixture.split-shell_unrelated_dirty_paths.length,
         migrationOwnedDirtyPaths: 0,
       },
       rollback: fixture.rollback,
@@ -238,20 +238,20 @@ function verifyRepositoryReceipts(): void {
     );
   }
 
-  const bovineDirtyPaths = porcelainPaths(
-    gitRaw(repositories.bovine, ["status", "--porcelain=v1", "-z"]),
+  const split-shellDirtyPaths = porcelainPaths(
+    gitRaw(repositories.split-shell, ["status", "--porcelain=v1", "-z"]),
   );
-  const expected = [...fixture.bovine_unrelated_dirty_paths].sort();
+  const expected = [...fixture.split-shell_unrelated_dirty_paths].sort();
   assertEqual(
-    JSON.stringify(bovineDirtyPaths),
+    JSON.stringify(split-shellDirtyPaths),
     JSON.stringify(expected),
-    "Bovine unrelated dirty paths",
+    "Split-shell unrelated dirty paths",
   );
   assert(
-    bovineDirtyPaths.every(
+    split-shellDirtyPaths.every(
       (path) => path === "CHANGELOG.md" || path.startsWith("docs/"),
     ),
-    "Bovine dirty work overlaps runtime or package metadata",
+    "Split-shell dirty work overlaps runtime or package metadata",
   );
 }
 
@@ -289,8 +289,8 @@ function verifyApplicationIdentityAndLanes(): void {
       path: "src-tauri/tauri.conf.json",
     },
     {
-      consumer: "bovine",
-      repository: "bovine",
+      consumer: "split-shell",
+      repository: "split-shell",
       path: "src-tauri/tauri.conf.json",
     },
     {
@@ -315,7 +315,7 @@ function verifyApplicationIdentityAndLanes(): void {
     token: string;
   }> = [
     { repository: "soundcheck", token: "g04-minimal-product-rebuild" },
-    { repository: "bovine", token: "g01.010" },
+    { repository: "split-shell", token: "g01.010" },
     { repository: "jetstream", token: "g05.008" },
   ];
   for (const lane of lanes) {
@@ -336,14 +336,14 @@ function verifyApplicationIdentityAndLanes(): void {
     "Soundcheck stable storage name",
   );
   assertEqual(
-    fixture.consumers.bovine.storage_profile,
+    fixture.consumers.split-shell.storage_profile,
     "native-platform-v1",
-    "Bovine storage profile",
+    "Split-shell storage profile",
   );
   assertEqual(
-    fixture.consumers.bovine.stable_storage_name,
+    fixture.consumers.split-shell.stable_storage_name,
     null,
-    "Bovine stable storage name",
+    "Split-shell stable storage name",
   );
   assertEqual(
     fixture.consumers.jetstream.storage_profile,
@@ -439,7 +439,7 @@ function verifySourceBackedBehavior(): number {
       ],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "src-tauri/src/workspace.rs",
       contains: [
         "PREFERENCES_FILE",
@@ -450,22 +450,22 @@ function verifySourceBackedBehavior(): number {
       ],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "src/App.svelte",
       contains: ["SplitView", "saveWorkspacePresentation"],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "tsconfig.json",
       contains: ["@inflatable-cookie/poodle-headless", "@inflatable-cookie/poodle-svelte/*"],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "vite.config.ts",
       contains: ["@inflatable-cookie/poodle-headless", "@inflatable-cookie/poodle-svelte"],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "src-tauri/src/lib.rs",
       contains: [
         "mod repository",
@@ -478,7 +478,7 @@ function verifySourceBackedBehavior(): number {
       ],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "package.json",
       contains: [
         '"@tauri-apps/api": "^2.11.1"',
@@ -487,7 +487,7 @@ function verifySourceBackedBehavior(): number {
       ],
     },
     {
-      repository: "bovine",
+      repository: "split-shell",
       path: "src-tauri/Cargo.toml",
       contains: ['tauri = { version = "2.11.5"'],
     },

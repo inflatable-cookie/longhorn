@@ -201,7 +201,7 @@ fn sqlite_external_snapshot_captures_wal_state_and_restores_only_with_explicit_a
 }
 
 #[test]
-fn loophole_soundcheck_and_bovine_fixtures_round_trip_without_library_schemas() {
+fn loophole_soundcheck_and_split-shell_fixtures_round_trip_without_library_schemas() {
     let source = Fixture::new();
     let loophole = OpaqueDomain::new(
         "loophole.machine-window-layout",
@@ -215,10 +215,10 @@ fn loophole_soundcheck_and_bovine_fixtures_round_trip_without_library_schemas() 
         "soundcheck/settings-window.json",
         &["agentReviewModel", "availabilityTargetId", "mainWindow"],
     );
-    let bovine = OpaqueDomain::new(
-        "bovine.workspace-presentation",
+    let split-shell = OpaqueDomain::new(
+        "split-shell.workspace-presentation",
         StorageClass::WorkspaceLocal,
-        "bovine/workspace-presentation.json",
+        "split-shell/workspace-presentation.json",
         &[
             "workspaceRoot",
             "navigationRatio",
@@ -244,9 +244,9 @@ fn loophole_soundcheck_and_bovine_fixtures_round_trip_without_library_schemas() 
             }),
         ),
         (
-            &bovine,
+            &split-shell,
             json!({
-                "workspaceRoot": "/fixture/acowtancy",
+                "workspaceRoot": "/fixture/private-consumer",
                 "navigationRatio": 0.24,
                 "expandedNodeIds": ["pathway:acca"],
                 "selectedNodeId": "module:e3"
@@ -285,10 +285,10 @@ fn loophole_soundcheck_and_bovine_fixtures_round_trip_without_library_schemas() 
         "soundcheck/settings-window.json",
         &["agentReviewModel", "availabilityTargetId", "mainWindow"],
     );
-    let target_bovine = OpaqueDomain::new(
-        "bovine.workspace-presentation",
+    let target_split-shell = OpaqueDomain::new(
+        "split-shell.workspace-presentation",
         StorageClass::WorkspaceLocal,
-        "bovine/workspace-presentation.json",
+        "split-shell/workspace-presentation.json",
         &[
             "workspaceRoot",
             "navigationRatio",
@@ -296,7 +296,7 @@ fn loophole_soundcheck_and_bovine_fixtures_round_trip_without_library_schemas() 
             "selectedNodeId",
         ],
     );
-    let target_domains = [&target_loophole, &target_soundcheck, &target_bovine];
+    let target_domains = [&target_loophole, &target_soundcheck, &target_split-shell];
     let mut target_store = target.store();
     let mut target_catalog = BackupCatalog::new();
     for domain in target_domains {

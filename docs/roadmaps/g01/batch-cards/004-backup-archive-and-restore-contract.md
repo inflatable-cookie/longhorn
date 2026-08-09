@@ -73,7 +73,7 @@ Contract 004 now owns:
 ## Completion Evidence
 
 - donor audit covers Soundcheck library and DAW restore, Loophole recovery and
-  export, plus negative evidence from Nucleus, Jetstream, and Bovine
+  export, plus negative evidence from Nucleus, Jetstream, and Split-shell
 - current primary archive, encryption, rename, and SQLite snapshot sources are
   recorded
 - every gate question has one promoted answer

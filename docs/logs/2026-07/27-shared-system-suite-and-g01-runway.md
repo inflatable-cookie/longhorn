@@ -22,7 +22,7 @@ State: complete planning batch
 - Loophole `pulse-history`, `echo-configuration`, action/input, settings, and
   command runtime sources
 - Soundcheck settings/window persistence
-- Bovine Tauri config-root preference storage
+- Split-shell Tauri config-root preference storage
 
 ## Decisions
 

@@ -52,7 +52,7 @@ mutation timing.
 
 | Shape | Proof |
 | --- | --- |
-| Bovine | one staged page, one scope, one apply unit, no optional system |
+| Split-shell | one staged page, one scope, one apply unit, no optional system |
 | Soundcheck | immediate product state beside staged library and capability-gated recovery |
 | Loophole | immediate appearance and hardware beside staged keybindings; specialist authority stays consumer-owned |
 

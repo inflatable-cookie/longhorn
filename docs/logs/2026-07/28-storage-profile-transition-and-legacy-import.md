@@ -12,7 +12,7 @@ State: complete implementation batch
 - added side-effect-free source/target inventory with bounded evidence,
   visible lifecycle policy, overlap checks, and destination conflicts
 - added declarative read-only legacy candidates and donor-shaped discovery
-  fixtures for Loophole, Soundcheck, Nucleus, and Bovine
+  fixtures for Loophole, Soundcheck, Nucleus, and Split-shell
 - added confirmation-bound plans, deterministic dual-store coordination,
   staged ordinary publication, durable journals, and locator-last commit
 - added schema-opaque adapter transition participation under an external

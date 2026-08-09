@@ -21,7 +21,7 @@ No donor supplies the complete protocol.
 | Soundcheck DAW sync | exact-byte content-addressed payloads, absent-file evidence, checksum/length verification, target compatibility, preview-bound confirmation, stale-plan detection, safety snapshot, staged files, post-restore verification, and verified rollback | app-specific host adapters; sequential multi-file replacement has no crash journal or coordination with other processes |
 | Loophole Echo | corrupt workspace and command files are renamed to timestamped `.bak` files before defaults are recreated | best-effort rename can fail silently; no manifest, verification, retention, or restore path |
 | Loophole Spark | explicit project export and separate autosave/recovery roots | project authority, not reusable configuration backup |
-| Nucleus, Jetstream, Bovine | no complete configuration backup/archive protocol found | negative evidence only |
+| Nucleus, Jetstream, Split-shell | no complete configuration backup/archive protocol found | negative evidence only |
 
 Soundcheck contributes the strongest invariants: preserve exact bytes, record
 absence, verify before and after mutation, bind confirmation to a preview,

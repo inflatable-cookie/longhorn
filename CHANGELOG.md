@@ -53,7 +53,7 @@ with `git` + `tag` dependencies.
   `@inflatable-cookie/longhorn/core`, `longhorn-settings/poodle` is
   `longhorn-poodle-svelte/settings/poodle`, and `longhorn-bridge/tauri` is
   `longhorn-tauri/bridge`. Consumers migrate at their next uptake.
-- Migrated Nucleus, Loophole, Soundcheck, Bovine, and Jetstream onto selected
+- Migrated Nucleus, Loophole, Soundcheck, Split-shell, and Jetstream onto selected
   shared systems while retaining product authority downstream.
 - Standardized canonical-id storage defaults, stable storage-name overrides,
   profile transitions, backup, restore, and receipt-bound cleanup.

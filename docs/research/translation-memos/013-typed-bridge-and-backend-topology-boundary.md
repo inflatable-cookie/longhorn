@@ -10,7 +10,7 @@ Extends: `001-tauri-application-extraction-audit.md`,
 ## Prompt
 
 Resolve the open bridge and optional-backend decisions before compiling
-g01.009. The result must serve a Bovine-sized local app without forcing events
+g01.009. The result must serve a Split-shell-sized local app without forcing events
 or a service while preserving Nucleus and Loophole host topologies.
 
 ## Evidence
@@ -77,7 +77,7 @@ or a service while preserving Nucleus and Loophole host topologies.
 - A separately exposed loopback API and helper processes prove that an app may
   host or supervise services without making service topology mandatory.
 
-### Bovine Accelerator Desktop
+### Split Shell Desktop
 
 - The app has 11 typed invoke calls, 11 Tauri commands, no event listeners, no
   host event emissions, and no service topology.

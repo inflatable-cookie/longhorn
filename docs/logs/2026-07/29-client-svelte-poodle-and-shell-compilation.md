@@ -7,7 +7,7 @@ State: complete planning batch
 
 - revalidated current Longhorn clients and package graph
 - revalidated public Poodle Tabs, DockRegion, and SplitView APIs
-- compared Loophole, Nucleus, and Bovine shell shapes read-only
+- compared Loophole, Nucleus, and Split-shell shell shapes read-only
 - promoted exact lifecycle, optional-subpath, and peer rules
 - separated same-window Poodle interaction from Longhorn transfer authority
 - identified the missing public Poodle drag and artifact checkpoint

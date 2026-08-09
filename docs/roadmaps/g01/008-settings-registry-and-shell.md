@@ -8,7 +8,7 @@ Governing refs: contracts 001, 004, 005, 010, 012, and 013; research memo 012
 ## Outcome
 
 Provide an optional settings authority and shell that composes a one-page
-Bovine preference, Soundcheck product and recovery pages, and Loophole custom
+Split-shell preference, Soundcheck product and recovery pages, and Loophole custom
 pages without importing their product schemas or optional systems.
 
 ## Generation Runway
@@ -73,7 +73,7 @@ command settings adapter and composed command/keymap capabilities.
 
 ## Acceptance Criteria
 
-- [x] Bovine installs settings without layout, Surfaces, commands, or backend
+- [x] Split-shell installs settings without layout, Surfaces, commands, or backend
 - [x] Soundcheck-shaped product pages coexist with shared recovery pages
 - [x] Loophole-shaped hardware and keybinding pages retain consumer authority
 - [x] optional modules produce no dead navigation or upward dependency

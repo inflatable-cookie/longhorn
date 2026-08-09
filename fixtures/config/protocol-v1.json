@@ -20,18 +20,18 @@
       "layout": {
         "profile": "platform-native-v1",
         "platform": "macos",
-        "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-        "effectiveLeaf": "audio.infiniteloop.soundcheck",
+        "canonicalApplicationId": "audio.example.soundcheck",
+        "effectiveLeaf": "audio.example.soundcheck",
         "leafProvenance": "canonicalApplicationId",
         "roots": [
           {
             "kind": "config",
-            "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+            "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
             "provenance": "platform:config"
           },
           {
             "kind": "cache",
-            "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+            "path": "/Users/example/Library/Caches/audio.example.soundcheck",
             "provenance": "platform:cache"
           }
         ],
@@ -41,7 +41,7 @@
       "bootstrap": {
         "state": "selected",
         "origin": "locator",
-        "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+        "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
         "transitionId": null,
         "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
@@ -340,18 +340,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -361,7 +361,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -534,18 +534,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -555,7 +555,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -729,18 +729,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -750,7 +750,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -935,18 +935,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -956,7 +956,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -1130,18 +1130,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -1151,7 +1151,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -1321,18 +1321,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -1342,7 +1342,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -1671,18 +1671,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -1692,7 +1692,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -1869,18 +1869,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -1890,7 +1890,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -2063,18 +2063,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -2084,7 +2084,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -2491,18 +2491,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -2512,7 +2512,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -2685,18 +2685,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -2706,7 +2706,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
@@ -2879,18 +2879,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.infiniteloop.soundcheck",
-            "effectiveLeaf": "audio.infiniteloop.soundcheck",
+            "canonicalApplicationId": "audio.example.soundcheck",
+            "effectiveLeaf": "audio.example.soundcheck",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
                 "provenance": "platform:cache"
               }
             ],
@@ -2900,7 +2900,7 @@
           "bootstrap": {
             "state": "selected",
             "origin": "locator",
-            "locatorPath": "/Users/tom/Library/Application Support/Longhorn/locator.json",
+            "locatorPath": "/Users/example/Library/Application Support/Longhorn/locator.json",
             "transitionId": null,
             "lastCommittedLayoutDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },

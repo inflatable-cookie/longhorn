@@ -9,7 +9,7 @@ import {
   declarations,
   type ShapeName,
 } from "./common.ts";
-import { runBovineTrace } from "./bovine.ts";
+import { runSplit-shellTrace } from "./split-shell.ts";
 import { runJetstreamTrace } from "./jetstream.ts";
 import { runLoopholeTrace } from "./loophole.ts";
 import { runNucleusTrace } from "./nucleus.ts";
@@ -17,7 +17,7 @@ import { runSoundcheckTrace } from "./soundcheck.ts";
 
 export async function runBridgeTopologyProof() {
   const traces = {
-    bovine: await runBovineTrace(),
+    split-shell: await runSplit-shellTrace(),
     jetstream: await runJetstreamTrace(),
     soundcheck: await runSoundcheckTrace(),
     nucleus: await runNucleusTrace(),
@@ -89,7 +89,7 @@ function retryAudit() {
 
 function shapeNames(): ShapeName[] {
   return [
-    "bovine",
+    "split-shell",
     "jetstream",
     "soundcheck",
     "nucleus",

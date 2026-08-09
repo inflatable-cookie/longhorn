@@ -37,7 +37,7 @@ import {
 } from "@inflatable-cookie/longhorn-tauri/bridge";
 
 export type ShapeName =
-  | "bovine"
+  | "split-shell"
   | "jetstream"
   | "soundcheck"
   | "nucleus"

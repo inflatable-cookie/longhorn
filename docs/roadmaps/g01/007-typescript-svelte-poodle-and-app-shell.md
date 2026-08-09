@@ -37,12 +37,12 @@ components or creating a mandatory application framework.
 - cross-window drag uses a host session armed before native dragstart
 - no private Poodle selector, generated id, class, or payload becomes a
   contract
-- Bovine minimal shell and Loophole full shell remain different compositions
+- Split-shell minimal shell and Loophole full shell remain different compositions
 
 ## Compilation
 
 Research memo 011 revalidates current Longhorn, Poodle, Loophole, Nucleus, and
-Bovine behavior. It promotes:
+Split-shell behavior. It promotes:
 
 - a small domain-neutral client lifetime base
 - a raw Tauri transport with no domain dependency
@@ -66,7 +66,7 @@ presentation snippets, serialized revisioned mutation, and mounted Nucleus and
 Loophole shapes. Card 040 is complete with armed panel and Surface drag,
 protocol-only payloads, compatible reveal, measured replacement leases,
 authoritative commits, and injected titlebar behavior. Card 041 is complete
-with isolated artifact installs, minimal Bovine, Surface-free Nucleus, and
+with isolated artifact installs, minimal Split-shell, Surface-free Nucleus, and
 full Loophole shell proofs, public Poodle bootstrap, guarded reveal, visible
 failures, narrow capabilities, and package-boundary audits.
 

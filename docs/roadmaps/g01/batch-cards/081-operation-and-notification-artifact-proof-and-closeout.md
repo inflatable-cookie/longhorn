@@ -30,7 +30,7 @@ claiming consumer migration.
 
 ## Out Of Scope
 
-- writes to Soundcheck, Loophole, Nucleus, Jetstream, or Bovine
+- writes to Soundcheck, Loophole, Nucleus, Jetstream, or Split-shell
 - production registry publication
 - production network transport
 - durable operation scheduler or resume

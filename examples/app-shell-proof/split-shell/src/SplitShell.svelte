@@ -15,13 +15,13 @@
   } from "@inflatable-cookie/longhorn-poodle-svelte";
   import { untrack } from "svelte";
 
-  export interface BovineAuthority {
+  export interface Split-shellAuthority {
     readonly documentTitle: string;
     readonly sectionTitle: string;
   }
 
   interface Props {
-    clientState: ReactiveClientState<BovineAuthority>;
+    clientState: ReactiveClientState<Split-shellAuthority>;
     reveal: () => Promise<void>;
     reportError?: (error: unknown) => void;
   }
@@ -77,7 +77,7 @@
       announceMode="assertive"
     />
   {:else if clientState.snapshot}
-    <main data-shell="bovine" aria-label="Bovine workspace">
+    <main data-shell="split-shell" aria-label="Split-shell workspace">
       <h1>{clientState.snapshot.documentTitle}</h1>
       {#snippet navigation()}
         <nav aria-label="Sections">

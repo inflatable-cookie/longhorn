@@ -1,5 +1,5 @@
 {
-  "identifier": "bovine-shell",
+  "identifier": "split-shell-shell",
   "description": "Minimal local shell with guarded reveal and native titlebar drag only.",
   "windows": ["main"],
   "permissions": [

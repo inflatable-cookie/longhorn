@@ -21,7 +21,7 @@ schemas or transaction authority into Longhorn.
 - SQLite native-snapshot fixture without copying live main/WAL files
 - Loophole machine/window/layout configuration fixture
 - Soundcheck settings/window configuration fixture
-- Bovine workspace-presentation fixture
+- Split-shell workspace-presentation fixture
 - mixed ordinary/external consistency-group inspection
 - consumer mapping and adoption notes without donor writes
 
@@ -41,7 +41,7 @@ higher-level authority.
 
 ## Out Of Scope
 
-- direct changes to Loophole, Soundcheck, Bovine, or other consumer repos
+- direct changes to Loophole, Soundcheck, Split-shell, or other consumer repos
 - app-specific schemas, DAW state policy, or SQLite schema knowledge
 - cloud/server synchronization
 - settings UI

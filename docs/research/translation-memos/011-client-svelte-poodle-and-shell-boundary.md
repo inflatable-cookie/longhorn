@@ -15,7 +15,7 @@ g01.006, and which donor behavior still depends on private UI structure?
 - `poodle`
 - `loophole/aura`
 - `nucleus/apps/desktop`
-- `acowtancy/bovine-accelerator-desktop`
+- `<private-consumer>`
 
 Inspection was read-only. Donor and Poodle worktrees were not modified.
 
@@ -49,7 +49,7 @@ through `^5.56.7`. Reactive ownership remains app-local:
 
 - Loophole carries the full Surface and region hierarchy
 - Nucleus uses regions and split panes without making Surfaces mandatory
-- Bovine uses a smaller shell and no shared workspace host
+- Split-shell uses a smaller shell and no shared workspace host
 
 The reusable boundary is per-window reactive state, explicit start/stop,
 authoritative reconciliation, request-keyed optimism, and injected transport
@@ -86,7 +86,7 @@ owns session ids, target eligibility, leases, and authoritative commits.
 ## Package Evidence
 
 `@inflatable-cookie/poodle-svelte` currently identifies itself as a private `0.1.0` preview and
-peers Svelte `^5.38.6`. Loophole and Bovine still use source aliases; Nucleus
+peers Svelte `^5.38.6`. Loophole and Split-shell still use source aliases; Nucleus
 uses file dependencies. These are useful API evidence, not install or release
 evidence.
 
@@ -108,7 +108,7 @@ report through an injected sink.
 
 Theme and presentation bootstrap, readiness reveal ordering, capability
 diagnostics, and explicit error surfaces are reusable guidance and small
-helpers. A single application shell component is not. Minimal Bovine and full
+helpers. A single application shell component is not. Minimal Split-shell and full
 Loophole examples must remain visibly different compositions.
 
 ## Promoted Decisions

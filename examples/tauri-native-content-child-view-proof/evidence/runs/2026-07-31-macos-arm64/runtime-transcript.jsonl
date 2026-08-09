@@ -54,7 +54,7 @@
 {"detail":{"event":"page_load_finished","generation":3,"kind":"runtime"},"event":"adapter_event","sequence":54,"unix_millis":1785540299464}
 {"detail":{"observation":{"focus":"unknown","generation":3,"geometry":{"bounds":{"origin":{"x":172,"y":144},"size":{"height":620,"width":1040}},"kind":"child_bounds"},"input_routing":"native_direct","lifecycle":"attached","readiness":"ready","visibility":"unknown"},"phase":"before_host_destroy"},"event":"observation","sequence":55,"unix_millis":1785540299465}
 {"detail":{"generation":3,"kind":"host_invalidated"},"event":"adapter_event","sequence":56,"unix_millis":1785540299465}
-{"detail":{"report":"/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_completed","sequence":57,"unix_millis":1785540299465}
+{"detail":{"report":"/Users/example/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_completed","sequence":57,"unix_millis":1785540299465}
 {"detail":{"adapter":"longhorn-tauri-native-content-child-view","architecture":"aarch64","platform":"macos","tauri_version":"2.10.3","unstable_api":["WebviewBuilder","Window::add_child"]},"event":"proof_started","sequence":1,"unix_millis":1785577146726}
 {"detail":{"generation":1,"kind":"listener_installed"},"event":"adapter_event","sequence":2,"unix_millis":1785577146850}
 {"detail":{"generation":1,"kind":"attach_started"},"event":"adapter_event","sequence":3,"unix_millis":1785577146851}
@@ -119,4 +119,4 @@
 {"detail":{"event":"page_load_finished","generation":3,"kind":"runtime"},"event":"adapter_event","sequence":62,"unix_millis":1785577148199}
 {"detail":{"observation":{"focus":"unknown","generation":3,"geometry":{"bounds":{"origin":{"x":172,"y":144},"size":{"height":620,"width":1040}},"kind":"child_bounds"},"input_routing":"native_direct","lifecycle":"attached","readiness":"ready","visibility":"unknown"},"phase":"before_host_destroy"},"event":"observation","sequence":63,"unix_millis":1785577148200}
 {"detail":{"generation":3,"kind":"host_invalidated"},"event":"adapter_event","sequence":64,"unix_millis":1785577148200}
-{"detail":{"report":"/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_completed","sequence":65,"unix_millis":1785577148201}
+{"detail":{"report":"/Users/example/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_completed","sequence":65,"unix_millis":1785577148201}

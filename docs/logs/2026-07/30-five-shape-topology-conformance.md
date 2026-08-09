@@ -19,7 +19,7 @@ retry. Product payloads stay outside shared packages.
 
 | Shape | Trace | Result |
 | --- | --- | --- |
-| Bovine | query through direct, Tauri, loopback | equal reply; no event or service edge |
+| Split-shell | query through direct, Tauri, loopback | equal reply; no event or service edge |
 | Jetstream | listen, snapshot 0, gap, snapshot 2 | equal ordering and final state on all adapters |
 | Soundcheck | progress, wrong correlation, terminal, late messages | equal five-decision trace; cancellation parity; local domains stay live |
 | Nucleus | direct/local-service, query, execution, denied write | connection, capability, execution, write remain separate |
@@ -33,7 +33,7 @@ accept → ignoreAfterTerminal → ignoreAlreadyTerminal`.
 
 | Shape | Event subpath | Supervision subpath | Host forms | Service ownership |
 | --- | --- | --- | --- | --- |
-| Bovine | absent | absent | Tauri local | none |
+| Split-shell | absent | absent | Tauri local | none |
 | Jetstream | present | absent | direct, Tauri local | none |
 | Soundcheck | present | present | Tauri local, local service | external local |
 | Nucleus | absent | present | direct, local service | external local |
@@ -47,7 +47,7 @@ opt-in feature.
 
 ## Authority And Failure Evidence
 
-- Bovine admits only the generic query capability.
+- Split-shell admits only the generic query capability.
 - Jetstream registers before snapshot load and resyncs a gap.
 - Soundcheck marks the service domain offline while local config, window, and
   settings domains stay authoritative and writable. Failed service attachment
@@ -74,7 +74,7 @@ updates remain injected integration work.
 
 | Decision | Behavior |
 | --- | --- |
-| Retained | Bovine query-only admission; Jetstream whole-snapshot resync; Soundcheck correlation; Nucleus per-domain authority; Loophole stable scope |
+| Retained | Split-shell query-only admission; Jetstream whole-snapshot resync; Soundcheck correlation; Nucleus per-domain authority; Loophole stable scope |
 | Changed | Donor operations and payloads become neutral probe fixtures; topology identity is explicit protocol data |
 | Rejected | capability-as-authority, silent service fallback, implicit retry, event permission without event import |
 | Deferred | production service transport, security, discovery, provisioning, update delivery, donor migration |

@@ -1,4 +1,4 @@
-# Bovine Config And Settings Cutover
+# Split-shell Config And Settings Cutover
 
 Date: 2026-08-02
 Roadmap: g01.016
@@ -7,8 +7,8 @@ State: complete; Card 121 ready
 
 ## Result
 
-Bovine now uses Longhorn's smallest useful desktop composition. Canonical id
-`com.acowtancy.bovine-accelerator` is also the storage leaf under
+Split-shell now uses Longhorn's smallest useful desktop composition. Canonical id
+`com.example.split-shell` is also the storage leaf under
 `platform-native-v1`; no stable-name override exists. One versioned UserConfig
 domain owns the selected workspace and three presentation fields.
 
@@ -29,22 +29,22 @@ product-owned presentation, not a Longhorn layout document.
 
 ## Evidence
 
-- prior Bovine: `b713644e08be384d20879b0ac31f7899589c8a9b`
-- Bovine cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
+- prior Split-shell: `b713644e08be384d20879b0ac31f7899589c8a9b`
+- Split-shell cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
 - Longhorn selected source: `b25a46f6ab5d06fa1cc06867f2cae61712b7c162`
 - config/settings fixture:
-  `fixtures/migration/bovine-card120/config-settings-cutover-v1.json`
+  `fixtures/migration/split-shell-card120/config-settings-cutover-v1.json`
 - private artifact fixture:
-  `fixtures/migration/bovine-card120/private-artifact-admission-v1.json`
-- verifier: `effigy proof:bovine-card120`
+  `fixtures/migration/split-shell-card120/private-artifact-admission-v1.json`
+- verifier: `effigy proof:split-shell-card120`
 
-The Bovine commit changes exactly 19 runtime, manifest, lock, and renderer
+The Split-shell commit changes exactly 19 runtime, manifest, lock, and renderer
 paths. The pre-existing 19 dirty docs/CHANGELOG paths remain uncommitted and
 untouched by the migration.
 
 ## Validation
 
-Bovine `effigy qa` passes: 60 Rust tests and zero Svelte errors or warnings.
+Split-shell `effigy qa` passes: 60 Rust tests and zero Svelte errors or warnings.
 The renderer production build and macOS debug app bundle pass. Tests cover
 invalid selection, publication failure invariance, fresh defaults, restart,
 exact legacy backup, unknown-field retention, interrupted resume, and receipt
@@ -60,4 +60,4 @@ storage or package registry was touched.
 
 Execute Card 121. Exercise settings lifetime and isolated storage paths, prove
 previous-build readback and rollback, audit duplicates and authorities, then
-close Bovine.
+close Split-shell.

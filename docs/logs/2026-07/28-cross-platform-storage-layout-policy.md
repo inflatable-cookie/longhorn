@@ -5,7 +5,7 @@ State: complete research and planning batch
 
 ## Outcome
 
-- audited Loophole, Nucleus, Soundcheck, Bovine, and Jetstream storage paths
+- audited Loophole, Nucleus, Soundcheck, Split-shell, and Jetstream storage paths
 - verified Apple, XDG, Windows, and Tauri path semantics
 - made canonical app id the default leaf and one stable storage name the
   explicit whole-layout override
@@ -22,7 +22,7 @@ State: complete research and planning batch
 
 Every platform uses canonical app id as its default app-specific leaf.
 Soundcheck may opt into one stable storage name, `Soundcheck`, for the whole
-layout while `audio.infiniteloop.soundcheck` remains canonical identity in
+layout while `audio.example.soundcheck` remains canonical identity in
 locators, manifests, and receipts. The storage name is not changed by a later
 product display-name rename.
 

@@ -57,7 +57,7 @@ the Tauri and platform bundle identifier.
 The effective storage leaf is the storage name when supplied, otherwise the
 canonical app id. The storage name is explicitly chosen, validated as one path
 component, and never derived from the current display name. Soundcheck may opt
-into `Soundcheck` while retaining `audio.infiniteloop.soundcheck` as canonical
+into `Soundcheck` while retaining `audio.example.soundcheck` as canonical
 machine identity.
 
 An invalid explicit storage name fails resolution. It never falls back to
@@ -613,7 +613,7 @@ restore operate at explicit scopes.
 - restore preview is bound to current evidence and stale confirmation fails
 - every publication failure rolls back and verifies or blocks normal writes
 - a crash journal recovers before later mutation
-- Loophole, Soundcheck, and Bovine state map without sharing product schemas
+- Loophole, Soundcheck, and Split-shell state map without sharing product schemas
 
 ## Settings Policy Resolution
 

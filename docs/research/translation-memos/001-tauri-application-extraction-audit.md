@@ -23,9 +23,9 @@ tests, and Effigy code graphs:
 - `nucleus/apps/desktop`
 - `soundcheck`
 - `jetstream` editor
-- `acowtancy/bovine-accelerator-desktop`
+- `<private-consumer>`
 
-Loophole, Nucleus, Soundcheck, and Bovine had uncommitted work. This audit is
+Loophole, Nucleus, Soundcheck, and Split-shell had uncommitted work. This audit is
 read-only and describes the observed worktree, not a stable-API endorsement.
 
 ## App Findings
@@ -36,9 +36,9 @@ read-only and describes the observed worktree, not a stable-API endorsement.
 | Nucleus Desktop | primary-window restore; project-keyed five-region panel layout; split ratios; panel policy; cross-region drag; native browser panels | proves Surface is optional and exposes duplicated window/layout work |
 | Soundcheck | single-window restore in app settings; atomic JSON write; debounced flush; 100+ command calls; progress/listen/cancel flows; isolated plugin inspection | strong persistence, async-operation, and native-integration specimen |
 | Jetstream Editor | centralized snapshot bridge; command handler tests; shortcuts; native WGPU view under transparent webview; viewport geometry/input forwarding | strong native-content and bridge specimen; workspace layout is mostly static |
-| Bovine Accelerator Desktop | remembered workspace; persisted split/tree/selection state; folder dialog; compact typed invoke facade | greenfield-simple specimen; useful guard against overbuilding |
+| Split Shell Desktop | remembered workspace; persisted split/tree/selection state; folder dialog; compact typed invoke facade | greenfield-simple specimen; useful guard against overbuilding |
 
-All five use Svelte 5 and Tauri 2. Four declare Poodle packages; Bovine imports
+All five use Svelte 5 and Tauri 2. Four declare Poodle packages; Split-shell imports
 Poodle source directly. Poodle already owns tabs, dock regions, split views,
 drag payload primitives, menus, dialogs, and presentation tokens.
 
@@ -52,7 +52,7 @@ drag payload primitives, menus, dialogs, and presentation tokens.
   allowed-region policy, active tabs, split ratios, and drag affordances.
 - Loophole Echo and `nucleus-workspaces` both define display ids, window ids,
   bounds, display fallback, window planning, regions, and panel placement.
-- Loophole, Nucleus, Soundcheck, and Bovine each own a local JSON preference
+- Loophole, Nucleus, Soundcheck, and Split-shell each own a local JSON preference
   path with different locking, atomicity, migration, merge, and corruption
   behavior.
 - The five renderers contain about 218 direct `invoke` call sites and 17
@@ -129,7 +129,7 @@ region regardless of which composition is active.
 - Nucleus project/task/agent resource attachment
 - Soundcheck scan/sync/taxonomy and plugin-inspection policy
 - Jetstream render loop and viewport semantics
-- Bovine content/navigation/editorial models
+- Split-shell content/navigation/editorial models
 - product workspace defaults and labels
 
 ## Tradeoffs

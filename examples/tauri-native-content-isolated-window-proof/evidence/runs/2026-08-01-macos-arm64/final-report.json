@@ -4,7 +4,7 @@
   "platform": "macOS 26.5.2",
   "architecture": "aarch64",
   "tauri_version": "2.10.3",
-  "evidence_root": "/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64",
+  "evidence_root": "/Users/example/Dev/projects/longhorn/examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64",
   "checks": [
     {
       "id": "packaged_fake_nsview_attach_and_progress",

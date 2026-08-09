@@ -1,5 +1,5 @@
 {
-  "name": "longhorn-bovine-bridge-artifact-proof",
+  "name": "longhorn-split-shell-bridge-artifact-proof",
   "private": true,
   "type": "module",
   "dependencies": {

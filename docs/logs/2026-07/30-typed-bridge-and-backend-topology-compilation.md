@@ -5,7 +5,7 @@ State: complete research and planning batch
 
 ## Outcome
 
-- re-audited Nucleus, Loophole, Jetstream, Soundcheck, and Bovine read-only
+- re-audited Nucleus, Loophole, Jetstream, Soundcheck, and Split-shell read-only
 - separated structural bridge protocol from consumer domain payload authority
 - separated host connection, capability advertisement, authentication posture,
   execution ownership, and domain write authority
@@ -32,7 +32,7 @@ lifecycle ownership changes.
 Jetstream supplies the listener-before-current-snapshot handshake and coherent
 whole-state projection. Soundcheck supplies request-correlated progress,
 cancellation, terminal cleanup, optional services, and local-service hosting.
-Bovine supplies the zero-event, zero-service request/reply floor.
+Split-shell supplies the zero-event, zero-service request/reply floor.
 
 The donors do not prove one production local/remote network protocol. Nucleus
 lists candidates but has no production remote transport. Loophole remote

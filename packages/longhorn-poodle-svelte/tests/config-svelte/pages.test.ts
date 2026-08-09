@@ -28,11 +28,11 @@ describe("public Poodle config pages", () => {
     });
 
     expect(
-      screen.getAllByText("audio.infiniteloop.soundcheck"),
+      screen.getAllByText("audio.example.soundcheck"),
     ).toHaveLength(2);
     expect(
       screen.getByText(
-        "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck",
+        "/Users/example/Library/Caches/audio.example.soundcheck",
       ),
     ).toBeTruthy();
     const select = screen.getByLabelText("Storage profile");

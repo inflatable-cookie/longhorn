@@ -58,7 +58,7 @@ Read-only donor inspection informed three schema-opaque fixtures:
 
 - Loophole machine, window, layout, and Surface-shaped state
 - Soundcheck settings and main-window state
-- Bovine workspace root and presentation state
+- Split-shell workspace root and presentation state
 
 Each fixture uses its own domain id, fields, storage class, and validator. All
 three complete capture, ZIP encode/inspect, restore planning, private staging,

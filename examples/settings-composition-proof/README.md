@@ -5,7 +5,7 @@ defining a shared application frame.
 
 | Shape | Host | Composition |
 | --- | --- | --- |
-| Bovine | modal | one staged product preference |
+| Split-shell | modal | one staged product preference |
 | Soundcheck | window | product settings plus shared storage, backup, restore, and recovery |
 | Loophole | panel | immediate, staged, policy-controlled, hardware, and keybinding pages |
 | Nucleus | window | one product page; no Surface or backend navigation |

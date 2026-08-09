@@ -22,7 +22,7 @@ complete cross-process coordinator.
 | Soundcheck | `src-tauri/src/app_settings.rs` serializes through a static process mutex and renames a temporary JSON file | process-local only; no file or directory sync |
 | Soundcheck Keepsake | `src-tauri/src/keepsake_settings.rs` uses a PID/sequence temporary name, `create_new`, file sync, rename, and cleanup | no process lock or directory sync |
 | Nucleus | workspace/editor persistence includes direct writes and local temporary-file replacement | no shared coordinator |
-| Jetstream and Bovine | no reusable configuration coordination mechanism found | no shared coordinator |
+| Jetstream and Split-shell | no reusable configuration coordination mechanism found | no shared coordinator |
 
 No audited donor declares `fs2`, `fs4`, `fd-lock`, or an equivalent Rust file
 lock dependency. Longhorn can retain the proven replacement shape. The

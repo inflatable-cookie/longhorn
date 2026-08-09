@@ -7,7 +7,7 @@ State: complete; Card 115 ready
 
 ## Result
 
-The exact Soundcheck-, Bovine-, and Jetstream-shaped private graphs pass from
+The exact Soundcheck-, Split-shell-, and Jetstream-shaped private graphs pass from
 produced artifacts. No consumer or Poodle repository changed. No package was
 published, tagged, or released.
 
@@ -30,7 +30,7 @@ published, tagged, or released.
 
 Fresh packing produced 5 Poodle tarballs, 9 Longhorn TypeScript tarballs, 18
 selected Rust archives, and 3 dev-only support archives. Renderer graphs pass
-at 7/4/6 selected Longhorn packages for Soundcheck/Bovine/Jetstream. Rust
+at 7/4/6 selected Longhorn packages for Soundcheck/Split-shell/Jetstream. Rust
 graphs pass at 14/6/6 selected crates. Every non-selected package is absent
 from its consumer graph.
 
@@ -48,4 +48,4 @@ Rust 1.85.0, Tauri 2.11.5, `--locked`, and `--offline`.
 
 Execute Card 115 only. Migrate Soundcheck's stable product root, separate app
 and window domains, external SQLite participant, and protected primary-window
-host. Bovine and Jetstream remain read-only.
+host. Split-shell and Jetstream remain read-only.

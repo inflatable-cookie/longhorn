@@ -9,7 +9,7 @@ State: complete research and planning batch
   surfaces read-only
 - audited Loophole render queue, Aura export host, retained notifications,
   notification panel, and transient toasts read-only
-- checked Nucleus agent cancellation plus Jetstream and Bovine weaker busy-state
+- checked Nucleus agent cancellation plus Jetstream and Split-shell weaker busy-state
   evidence
 - confirmed Soundcheck scan and Loophole render queue as two strong operation
   donors
@@ -43,7 +43,7 @@ panel keeps retained history. This disproves one combined operation and
 notification state machine.
 
 Nucleus corroborates cancellation and terminal behavior. Its approval, input,
-provider, tool, and recovery states remain agent workflow. Jetstream and Bovine
+provider, tool, and recovery states remain agent workflow. Jetstream and Split-shell
 do not add a third strong lifecycle.
 
 ## Compiled Runway

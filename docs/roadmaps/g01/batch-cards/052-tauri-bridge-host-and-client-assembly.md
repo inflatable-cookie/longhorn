@@ -63,7 +63,7 @@ checked current-session metadata and supports explicit resync.
 - raw invoke/listen stays in `@inflatable-cookie/longhorn-tauri`
 - domain operation names and payloads stay in registered domain adapters
 - invalid session, capability, authority, or request metadata reaches no handler
-- query-only Bovine shape registers and imports no event support
+- query-only Split-shell shape registers and imports no event support
 - subscription fixture follows listener-before-snapshot ordering
 - cancellation and terminal events remain request-correlated
 - Tauri capability admission does not grant domain authority

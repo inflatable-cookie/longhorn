@@ -1,4 +1,4 @@
-# Bovine Minimal Composition Conformance Closeout
+# Split-shell Minimal Composition Conformance Closeout
 
 Date: 2026-08-02
 Roadmap: g01.016
@@ -7,7 +7,7 @@ State: complete; Card 122 ready
 
 ## Result
 
-Bovine closes as Longhorn's minimal real consumer. It resolves four
+Split-shell closes as Longhorn's minimal real consumer. It resolves four
 TypeScript packages, six Rust crates, and five public Poodle packages. It has
 no shared display/window/layout hierarchy and no Surface, transfer, bridge,
 command, history, operation, notification, or native-content edge.
@@ -26,14 +26,14 @@ failure found during conformance.
 
 ## Evidence
 
-- Bovine cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
-- Bovine closeout: `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28`
+- Split-shell cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
+- Split-shell closeout: `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28`
 - previous authority: `b713644e08be384d20879b0ac31f7899589c8a9b`
 - closeout fixture:
-  `fixtures/migration/bovine-card121/conformance-closeout-v1.json`
+  `fixtures/migration/split-shell-card121/conformance-closeout-v1.json`
 - private artifact fixture:
-  `fixtures/migration/bovine-card121/private-artifact-admission-v1.json`
-- verifier: `effigy proof:bovine-card121`
+  `fixtures/migration/split-shell-card121/private-artifact-admission-v1.json`
+- verifier: `effigy proof:split-shell-card121`
 
 Native GUI control could not attach deterministically because installed and
 debug bundles share the same bundle identifier. The native launch/restart path
@@ -42,13 +42,13 @@ click-through path is not claimed.
 
 ## Validation
 
-Bovine `effigy qa` passes with 63 Rust tests, one renderer conformance test,
+Split-shell `effigy qa` passes with 63 Rust tests, one renderer conformance test,
 and zero Svelte errors or warnings. Production renderer build and debug macOS
 bundle pass. The previous `b713644` workspace suite passes seven tests from a
 temporary detached worktree, then that worktree is removed.
 
 Private artifact proof passes outside workspace resolution with one Svelte
-runtime. No package was published. No live app storage changed. Bovine's 19
+runtime. No package was published. No live app storage changed. Split-shell's 19
 unrelated docs/CHANGELOG paths and authored content remain untouched.
 
 ## Next

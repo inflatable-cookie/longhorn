@@ -1,4 +1,4 @@
-# 121 Bovine Minimal Composition Conformance And Closeout
+# 121 Split-shell Minimal Composition Conformance And Closeout
 
 Status: complete
 Owner: Tom
@@ -9,12 +9,12 @@ Auto-start next card: Card 122
 
 ## Objective
 
-Prove Bovine as a real minimal Longhorn consumer, remove superseded generic
+Prove Split-shell as a real minimal Longhorn consumer, remove superseded generic
 preference code, and keep its local two-pane presentation product-owned.
 
 ## Repository Scope
 
-- Longhorn and Bovine: tests, evidence, duplicate cleanup, and canonical docs.
+- Longhorn and Split-shell: tests, evidence, duplicate cleanup, and canonical docs.
 - Poodle and other consumers: read-only receipts.
 - Package registries: unchanged.
 
@@ -30,7 +30,7 @@ preference code, and keep its local two-pane presentation product-owned.
 ## Steps
 
 1. Reverify exact source and artifact receipts.
-2. Run Bovine and selected Longhorn config/settings suites.
+2. Run Split-shell and selected Longhorn config/settings suites.
 3. Exercise preference import, mutation, failure, restart, and rollback.
 4. Exercise settings open/load/apply/close/remount behavior.
 5. Audit package graph, peers, capabilities, and Poodle public imports.
@@ -42,12 +42,12 @@ preference code, and keep its local two-pane presentation product-owned.
 
 - one config authority owns the preference document
 - the existing SplitView remains consumer/Poodle presentation, not a fake layout document
-- selected-content and navigation meaning remain Bovine-owned
+- selected-content and navigation meaning remain Split-shell-owned
 - clean artifacts install without source aliases
 - the graph contains only selected config/settings/Svelte/Poodle/Tauri edges
 - no server, event bridge, layout, Surface, history, command, operation,
   notification, or native-content package resolves
-- full Bovine validation passes with unrelated work preserved
+- full Split-shell validation passes with unrelated work preserved
 - package-manager publication remains deferred
 
 ## Stop Conditions

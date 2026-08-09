@@ -1,5 +1,5 @@
 export type ShapeName =
-  | "bovine"
+  | "split-shell"
   | "jetstream"
   | "soundcheck"
   | "nucleus"

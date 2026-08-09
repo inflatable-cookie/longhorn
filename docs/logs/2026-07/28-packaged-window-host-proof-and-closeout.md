@@ -28,7 +28,7 @@ unexecuted, not inferred.
 - executable SHA-256:
   `2eaa2bc99bd490b9aa65bc53c2d54ee10ee72181ee700ad720778cd135f31222`
 - executable format: Mach-O 64-bit arm64
-- bundle id: `audio.infiniteloop.longhorn-window-proof`
+- bundle id: `audio.example.longhorn-window-proof`
 - bundle version: `0.1.0`
 
 The archive is a local proof artifact, not a signed or notarized release.
@@ -70,9 +70,9 @@ conditionals. No MSRV change or compatibility fallback was added.
 The proof sink wrote:
 
 - placement state:
-  `~/Library/Application Support/audio.infiniteloop.longhorn-window-proof/placement-state.json`
+  `~/Library/Application Support/audio.example.longhorn-window-proof/placement-state.json`
 - structured JSONL:
-  `~/Library/Application Support/audio.infiniteloop.longhorn-window-proof/operator-transcript.jsonl`
+  `~/Library/Application Support/audio.example.longhorn-window-proof/operator-transcript.jsonl`
 
 Selected executed observations:
 

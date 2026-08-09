@@ -8,7 +8,7 @@ Governing refs: contracts 003-007, 009-010, 012-017; g01.018;
 
 ## Outcome
 
-Prove Longhorn in Soundcheck, Bovine, and Jetstream; leave four buildable
+Prove Longhorn in Soundcheck, Split-shell, and Jetstream; leave four buildable
 greenfield compositions and a deterministic private `0.1.0` compatibility
 candidate. Package-manager publication, release tags, and hosted releases are
 not part of this roadmap.
@@ -25,7 +25,7 @@ Immediate runway:
 1. refresh read-only consumer behavior and authority evidence
 2. admit one exact private artifact graph
 3. migrate Soundcheck sequentially
-4. migrate Bovine only after unrelated-work clearance
+4. migrate Split-shell only after unrelated-work clearance
 5. migrate Jetstream sequentially
 6. prove greenfield compositions and usage docs
 7. close on a private compatibility candidate without publication
@@ -49,7 +49,7 @@ lane from current evidence; it does not infer package publication.
 - [x] adopt isolated-window coordination for disposable plugin inspection
 - [x] prove exact artifacts, behavior, rollback, and retained sibling authority
 
-### Batch 3: Bovine
+### Batch 3: Split-shell
 
 - [x] preserve unrelated docs work and migrate one minimal preference domain
 - [x] compose the minimal settings shell and exact Poodle artifacts
@@ -72,7 +72,7 @@ lane from current evidence; it does not infer package publication.
 
 - [x] each app adopts only useful packages
 - [x] Soundcheck uses `com.inflatablecookie.soundcheck` plus stable name `Soundcheck`
-- [x] Bovine proves the smallest config/settings graph
+- [x] Split-shell proves the smallest config/settings graph
 - [x] Jetstream proves bridge, command, and backing-surface composition
 - [x] product, sibling, renderer, plugin, content, and engine authority stay downstream
 - [x] examples prove optional dependency boundaries outside workspace resolution
@@ -85,7 +85,7 @@ lane from current evidence; it does not infer package publication.
 - [x] every source-linked consumer graph has matching produced-artifact proof
 - [x] each migrated concern has one active structural authority
 - [x] rollback uses retained sources and exact receipts, not dual writes or silent fallback
-- [x] Bovine's unrelated work and authored content are untouched
+- [x] Split-shell's unrelated work and authored content are untouched
 - [x] Soundcheck's SQLite, scan, plugin, DAW, Composer, Keepsake, and Signal authority remain local
 - [x] Jetstream's command execution, renderer, WGPU, frame, world, and input authority remain local
 - [x] examples contain no donor vocabulary, umbrella dependency, or copied Poodle primitive
@@ -115,8 +115,8 @@ Complete:
 - `batch-cards/117-soundcheck-plugin-scan-operation-adoption.md`
 - `batch-cards/118-soundcheck-isolated-window-coordination-cutover.md`
 - `batch-cards/119-soundcheck-migration-conformance-and-closeout.md`
-- `batch-cards/120-bovine-config-and-settings-cutover.md`
-- `batch-cards/121-bovine-minimal-composition-conformance-and-closeout.md`
+- `batch-cards/120-split-shell-config-and-settings-cutover.md`
+- `batch-cards/121-split-shell-minimal-composition-conformance-and-closeout.md`
 - `batch-cards/122-jetstream-bridge-command-and-keyboard-cutover.md`
 - `batch-cards/123-jetstream-backing-surface-coordination-cutover.md`
 - `batch-cards/124-jetstream-migration-conformance-and-closeout.md`
@@ -128,7 +128,7 @@ Complete:
 
 Cards 113-114 freeze exact authority and admit the three selected private
 artifact graphs without consumer writes. Cards 115-119 complete Soundcheck.
-Cards 120-121 complete Bovine's canonical storage, one preference domain,
+Cards 120-121 complete Split-shell's canonical storage, one preference domain,
 minimal settings shell, settings lifetime, failure/restart/rollback matrix,
 exact artifact graph, and no-optional-system closeout. Card 122 completes
 Jetstream's checked editor-state bridge, sealed command catalogue, fresh
@@ -145,9 +145,9 @@ graphs, exact peers/protocols/platform claims, and both read-only release
 gates. g01.016 is complete.
 Consumer writes remain sequential so each app closes before the next opens.
 
-Bovine's current dirty files are unrelated Northstar/schema-coverage docs.
+Split-shell's current dirty files are unrelated Northstar/schema-coverage docs.
 They are preserved and are not write authority for g01.016. Card 120 must
-recheck overlap before editing any Bovine path.
+recheck overlap before editing any Split-shell path.
 
 The release portion ends at a local, deterministic candidate. Working package
 names, registry ownership, public compatibility ranges beyond proof, package
@@ -157,7 +157,7 @@ authority.
 ## Risks
 
 - Soundcheck's external SQLite and disposable helper need honest adapter boundaries.
-- Bovine is actively changing and may require overlap clearance at write time.
+- Split-shell is actively changing and may require overlap clearance at write time.
 - Jetstream native-content support is macOS-only and its current view is process-lived.
 - greenfield examples can accidentally become an umbrella framework.
 - release language can overstate registry or cross-platform availability.

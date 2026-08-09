@@ -11,7 +11,7 @@ g01.016 now has a 15-card runway across five meaningful batches:
 1. common behavior/authority freeze and private artifact admission
 2. Soundcheck storage, window, settings/recovery, operation, isolated-window,
    and closeout
-3. Bovine minimal config/settings adoption and closeout
+3. Split-shell minimal config/settings adoption and closeout
 4. Jetstream bridge/command/backing-surface adoption and closeout
 5. four greenfield examples, adoption guides, and a private `0.1.0` candidate
 
@@ -26,11 +26,11 @@ releases remain outside the executable chain.
 | Soundcheck | `f4544e621b8ba3f4558c6b068db1cb36d6ef161f` | clean |
 | soundcheck-library | `40418635674d598f7e311bf311c3165300edd35b` | clean |
 | Signal | `4c5b60681071095aedbf9013720e76c1c89e91ed` | clean |
-| Bovine Accelerator Desktop | `b713644e08be384d20879b0ac31f7899589c8a9b` | unrelated docs changes present |
+| Split Shell Desktop | `b713644e08be384d20879b0ac31f7899589c8a9b` | unrelated docs changes present |
 | Jetstream | `4df74e756c222a3b207391c44775e5b3148c46dd` | clean |
 | Poodle | `208532f0d18dcd1683cdef157e370d0ba0f0d3b3` | clean |
 
-No consumer or Poodle files changed. Bovine's schema-coverage planning work is
+No consumer or Poodle files changed. Split-shell's schema-coverage planning work is
 explicitly outside g01.016 and must be preserved at write time.
 
 ## Selected Boundaries
@@ -45,7 +45,7 @@ explicitly outside g01.016 and must be preserved at write time.
 - isolated-window coordination around the disposable inspection helper
 - retained soundcheck-library SQLite/scan authority and Signal plugin authority
 
-### Bovine
+### Split-shell
 
 - canonical-id `native-platform-v1` roots
 - one versioned config domain and minimal settings shell
@@ -55,7 +55,7 @@ explicitly outside g01.016 and must be preserved at write time.
 
 The current two-pane SplitView is not enough reason to create a registered
 layout document. Repository, content, navigation, editorial, validation, and
-Git meaning remain Bovine authority.
+Git meaning remain Split-shell authority.
 
 ### Jetstream
 

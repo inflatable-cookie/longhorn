@@ -23,14 +23,14 @@ The machine receipt is
 
 ## Consumer Proof
 
-Minimal, Nucleus, Loophole, Soundcheck, Bovine, Jetstream, and optional-server
+Minimal, Nucleus, Loophole, Soundcheck, Split-shell, Jetstream, and optional-server
 roots install from produced artifacts outside sibling workspace resolution.
 All seven renderer roots resolve one Svelte 5.56.8 and Tauri API 2.11.1
 runtime. All seven Rust roots check offline on Rust 1.85 with the exact lock;
 selected Tauri roots resolve 2.11.5. Optional edges match each declared graph.
 
 The exact merged consumer commits remain read-only. Poodle contract-generation
-work and Bovine documentation work lie outside selected candidate paths and are
+work and Split-shell documentation work lie outside selected candidate paths and are
 untouched.
 
 ## Compatibility

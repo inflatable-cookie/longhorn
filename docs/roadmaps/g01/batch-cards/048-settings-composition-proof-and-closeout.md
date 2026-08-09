@@ -17,7 +17,7 @@ artifacts, audit optional boundaries, publish guidance, and close g01.008.
 
 - produced Rust and TypeScript settings/config artifacts
 - exact supported Poodle artifact
-- Bovine-shaped one-page staged preference shell
+- Split-shell-shaped one-page staged preference shell
 - Soundcheck-shaped product plus storage/backup/restore shell
 - Loophole-shaped immediate, staged, policy-controlled, hardware, and
   consumer-owned keybinding pages
@@ -29,7 +29,7 @@ artifacts, audit optional boundaries, publish guidance, and close g01.008.
 
 ## Public Behavior
 
-Bovine installs only the settings foundation it needs. Soundcheck composes
+Split-shell installs only the settings foundation it needs. Soundcheck composes
 shared recovery modules beside product pages. Loophole resolves custom
 renderers and specialist commands without moving product authority. Nucleus
 proves that an absent server or Surface module creates no dead navigation.
@@ -49,7 +49,7 @@ application frame.
 ## Steps
 
 1. Pack every g01.008 Rust and TypeScript artifact.
-2. Install isolated Bovine, Soundcheck, and Loophole proof consumers.
+2. Install isolated Split-shell, Soundcheck, and Loophole proof consumers.
 3. Install the exact supported Poodle artifacts without source aliases.
 4. Mount minimal, product-rich, and advanced registry/shell shapes.
 5. Exercise modal, window, and panel hosting.
@@ -66,7 +66,7 @@ application frame.
 
 - every proof consumes produced artifacts
 - no proof resolves sibling source
-- Bovine resolves no layout, Surface, command, backend, or recovery package it
+- Split-shell resolves no layout, Surface, command, backend, or recovery package it
   did not compose
 - Soundcheck combines consumer pages and shared recovery modules
 - Loophole custom pages retain consumer renderers and commands
@@ -95,7 +95,7 @@ application frame.
 
 - proof needs a donor repository modification
 - one app shape requires product authority in Longhorn
-- Bovine resolves an unused optional system
+- Split-shell resolves an unused optional system
 - a package resolves sibling source or duplicate peer runtime
 - a settings receipt overstates persistence, activation, or recovery
 - public Poodle APIs cannot support the shell

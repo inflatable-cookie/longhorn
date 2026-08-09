@@ -13,7 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-type ConsumerName = "soundcheck" | "bovine" | "jetstream";
+type ConsumerName = "soundcheck" | "split-shell" | "jetstream";
 
 type ConsumerSelection = {
   selected_typescript: string[];
@@ -27,7 +27,7 @@ type FreezeFixture = {
     soundcheck_commit: string;
     soundcheck_library_commit: string;
     signal_commit: string;
-    bovine_commit: string;
+    split-shell_commit: string;
     jetstream_commit: string;
     poodle_commit: string;
     poodle_prior_artifact_set: string;
@@ -48,7 +48,7 @@ type AdmissionFixture = {
     longhorn_selected_tree_sha256: string;
     poodle_commit: string;
     soundcheck_commit?: string;
-    bovine_commit?: string;
+    split-shell_commit?: string;
   };
   artifact_sets: {
     poodle: string;
@@ -133,9 +133,9 @@ const consumerRepositories = {
       resolve(repoRoot, "../soundcheck-library"),
   ),
   signal: resolve(process.env.SIGNAL_REPO ?? resolve(repoRoot, "../signal")),
-  bovine: resolve(
-    process.env.BOVINE_REPO ??
-      resolve(repoRoot, "../acowtancy/bovine-accelerator-desktop"),
+  split-shell: resolve(
+    process.env.SPLIT_SHELL_REPO ??
+      resolve(repoRoot, "../<private-consumer>"),
   ),
   jetstream: resolve(
     process.env.JETSTREAM_REPO ?? resolve(repoRoot, "../jetstream"),
@@ -292,7 +292,7 @@ async function verifySources() {
       admission.sources.soundcheck_commit ?? fixture.sources.soundcheck_commit,
     soundcheck_library: fixture.sources.soundcheck_library_commit,
     signal: fixture.sources.signal_commit,
-    bovine: admission.sources.bovine_commit ?? fixture.sources.bovine_commit,
+    split-shell: admission.sources.split-shell_commit ?? fixture.sources.split-shell_commit,
     jetstream: fixture.sources.jetstream_commit,
   } as const;
   for (const [name, root] of Object.entries(consumerRepositories)) {
@@ -899,15 +899,15 @@ function verifyAdmissionEvidence(
   );
   assertEqual(admission.audits.tags, false, "tags");
   assertEqual(admission.audits.hosted_releases, false, "hosted releases");
-  const refreshedBovineAdmission = admission.sources.bovine_commit !== undefined;
+  const refreshedSplit-shellAdmission = admission.sources.split-shell_commit !== undefined;
   const refreshedSoundcheckAdmission = admission.sources.soundcheck_commit !== undefined;
-  const admittedScopes = refreshedBovineAdmission
+  const admittedScopes = refreshedSplit-shellAdmission
     ? new Map([
-        [121, "bovine-minimal-composition-conformance-closeout"],
+        [121, "split-shell-minimal-composition-conformance-closeout"],
         [122, "jetstream-bridge-command-keyboard-cutover"],
       ])
     : refreshedSoundcheckAdmission
-      ? new Map([[120, "bovine-config-and-settings-cutover"]])
+      ? new Map([[120, "split-shell-config-and-settings-cutover"]])
       : new Map([[115, "soundcheck-storage-config-protected-primary-window"]]);
   assert(
     admittedScopes.has(admission.write_admission.next_card),
@@ -955,7 +955,7 @@ function privateDevelopmentMaps() {
 }
 
 function consumerNames(): ConsumerName[] {
-  return ["soundcheck", "bovine", "jetstream"];
+  return ["soundcheck", "split-shell", "jetstream"];
 }
 
 function artifactSetId(artifacts: ArtifactIdentity[]) {

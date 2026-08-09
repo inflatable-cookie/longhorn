@@ -16,13 +16,13 @@ fn fixed_locator_uses_canonical_identity_and_missing_selects_native_default() {
         PlatformDirectoryFact::Config,
         temp.path().join("Application Support"),
     );
-    let identity = StorageIdentity::new("audio.infiniteloop.soundcheck")
+    let identity = StorageIdentity::new("audio.example.soundcheck")
         .unwrap()
         .with_storage_name("Soundcheck")
         .unwrap();
     let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
     assert!(paths.locator().ends_with(
-        "Application Support/audio.infiniteloop.soundcheck/config/.longhorn/storage-profile.json"
+        "Application Support/audio.example.soundcheck/config/.longhorn/storage-profile.json"
     ));
     assert!(!paths.locator().to_string_lossy().contains("Soundcheck"));
 

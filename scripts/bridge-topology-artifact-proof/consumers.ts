@@ -21,7 +21,7 @@ import type {
 } from "./types.ts";
 
 const shapes: readonly ShapeName[] = [
-  "bovine",
+  "split-shell",
   "jetstream",
   "soundcheck",
   "nucleus",
@@ -50,7 +50,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
   ]) {
     await cp(join(context.proofRoot, filename), join(stage, filename));
   }
-  if (shape === "bovine") {
+  if (shape === "split-shell") {
     await cp(
       join(context.proofRoot, "protocol-artifact.ts"),
       join(stage, "protocol-artifact.ts"),

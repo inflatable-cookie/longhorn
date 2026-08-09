@@ -122,4 +122,4 @@ Evidence: `../logs/2026-07/31-operation-svelte-session-and-poodle-projection.md`
 - public Poodle adapters cover tabs, regions, and split views without source
   duplication
 - cross-window drag uses no Poodle-private selector or payload
-- a minimal Bovine shell and full Loophole shell use different compositions
+- a minimal Split-shell shell and full Loophole shell use different compositions

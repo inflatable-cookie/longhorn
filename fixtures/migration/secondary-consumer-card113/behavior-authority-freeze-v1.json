@@ -6,7 +6,7 @@
     "soundcheck_commit": "f4544e621b8ba3f4558c6b068db1cb36d6ef161f",
     "soundcheck_library_commit": "40418635674d598f7e311bf311c3165300edd35b",
     "signal_commit": "4c5b60681071095aedbf9013720e76c1c89e91ed",
-    "bovine_commit": "b713644e08be384d20879b0ac31f7899589c8a9b",
+    "split-shell_commit": "b713644e08be384d20879b0ac31f7899589c8a9b",
     "jetstream_commit": "4df74e756c222a3b207391c44775e5b3148c46dd",
     "poodle_commit": "208532f0d18dcd1683cdef157e370d0ba0f0d3b3",
     "poodle_prior_artifact_set": "25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69"
@@ -15,14 +15,14 @@
     "soundcheck": "main",
     "soundcheck_library": "main",
     "signal": "main",
-    "bovine": "main",
+    "split-shell": "main",
     "jetstream": "main",
     "poodle": "main"
   },
-  "bovine_unrelated_dirty_paths": [
+  "split-shell_unrelated_dirty_paths": [
     "CHANGELOG.md",
     "docs/README.md",
-    "docs/architecture/002-bovine-source-content-model.md",
+    "docs/architecture/002-split-shell-source-content-model.md",
     "docs/architecture/system-architecture.md",
     "docs/architecture/system-inventory.md",
     "docs/contracts/001-working-rules.md",
@@ -82,8 +82,8 @@
         "child-view"
       ]
     },
-    "bovine": {
-      "app_id": "com.acowtancy.bovine-accelerator",
+    "split-shell": {
+      "app_id": "com.example.split-shell",
       "storage_profile": "native-platform-v1",
       "stable_storage_name": null,
       "selected_typescript": [
@@ -155,7 +155,7 @@
       "signal-plugin-abi-editor-audio-midi",
       "soundcheck-daw-sync-inspection-and-product-pages"
     ],
-    "bovine_retained": [
+    "split-shell_retained": [
       "repository-and-content-parsing",
       "navigation-and-editorial-meaning",
       "git-operations",

@@ -6,7 +6,7 @@ State: complete research and planning batch
 ## Outcome
 
 - audited configuration write and lock behavior across Loophole, Nucleus,
-  Soundcheck, Jetstream, and Bovine
+  Soundcheck, Jetstream, and Split-shell
 - confirmed no donor has a reusable cross-process file-lock protocol
 - characterized Rust rename, macOS/Linux advisory locking, Windows replacement,
   `fs4`, `atomic-write-file`, and `cap-std`

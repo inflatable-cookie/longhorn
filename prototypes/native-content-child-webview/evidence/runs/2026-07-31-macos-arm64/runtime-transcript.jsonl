@@ -63,4 +63,4 @@
 {"detail":{"counter":"1","generation":"1","name":"loaded","session":"packaged-66052-1785521744563"},"event":"content_event","sequence":63,"unix_millis":1785521746385}
 {"detail":{"generation":2,"kind":"host_invalidated"},"event":"adapter_event","sequence":64,"unix_millis":1785521746396}
 {"detail":{"invalidated":{"generation":2,"island_id":"island:child-proof"}},"event":"host_destroyed","sequence":65,"unix_millis":1785521746396}
-{"detail":{"platform":"macos","report":"/Users/tom/Dev/projects/longhorn/prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_complete","sequence":66,"unix_millis":1785521746404}
+{"detail":{"platform":"macos","report":"/Users/example/Dev/projects/longhorn/prototypes/native-content-child-webview/evidence/runs/2026-07-31-macos-arm64/final-report.json"},"event":"proof_complete","sequence":66,"unix_millis":1785521746404}

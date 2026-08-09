@@ -16,7 +16,7 @@ leakage.
 
 ## Scope
 
-- Bovine query-only Tauri-local shape
+- Split-shell query-only Tauri-local shape
 - Jetstream listener-first whole-snapshot shape
 - Soundcheck correlated progress/cancel/terminal and optional-service shape
 - Nucleus embedded/optional-host, capability, execution, and per-domain
@@ -46,7 +46,7 @@ failed services remain visible and cannot block unrelated local domains.
 ## Steps
 
 1. Freeze five consumer-neutral declarations from the promoted memo.
-2. Implement the Bovine no-event/no-service trace.
+2. Implement the Split-shell no-event/no-service trace.
 3. Implement the Jetstream listener-first resync trace.
 4. Implement the Soundcheck correlated job and optional-service trace.
 5. Implement Nucleus embedded, remote, execution-only, and authority-map
@@ -60,7 +60,7 @@ failed services remain visible and cannot block unrelated local domains.
 ## Acceptance Criteria
 
 - five fixtures contain no donor product payload in Longhorn packages
-- Bovine resolves neither event nor service support
+- Split-shell resolves neither event nor service support
 - Jetstream receives initial state after listener registration and resyncs gaps
 - Soundcheck correlates progress/cancel/terminal and survives optional-service
   absence
@@ -100,7 +100,7 @@ Completed 2026-07-30.
   capability, authority, import, permission, service, and retry facts.
 - Ran query, stream, cancellation, and job semantics through direct, injected
   Tauri, and serialized-loopback adapters.
-- Proved Bovine has no event or supervision edge, Jetstream is listener-first
+- Proved Split-shell has no event or supervision edge, Jetstream is listener-first
   and gap-safe, and Soundcheck local authority survives service failure.
 - Proved Nucleus capability, execution, and write authority remain separate.
 - Proved Loophole authority is stable across local-first and remote host

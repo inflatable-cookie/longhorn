@@ -140,7 +140,7 @@ until a production consumer supplies cross-platform and security evidence.
 - Rust-owned bridge types generate checked TypeScript with a zero-diff check.
 - The same semantic fixture passes direct, Tauri, and serialized-loopback
   adapters.
-- A Bovine-shaped request/response composition imports no event or service
+- A Split-shell-shaped request/response composition imports no event or service
   runtime.
 - A Jetstream-shaped listener-first snapshot cannot miss the initial state.
 - A Soundcheck-shaped job correlates progress, cancel, and terminal cleanup.

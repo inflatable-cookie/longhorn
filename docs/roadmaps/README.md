@@ -13,7 +13,7 @@ g01 delivered the first generation of shared systems: 20 milestones and cards
 layout, optional Surface and transfer, Svelte/Poodle clients, settings,
 bridge, commands/keymaps/palette, linear and optional fork-tree history,
 operations/notifications, native-content islands, and five consumer
-migrations (Nucleus, Loophole, Soundcheck, Bovine, Jetstream). All g01
+migrations (Nucleus, Loophole, Soundcheck, Split-shell, Jetstream). All g01
 milestones are closed; the per-milestone detail lives in
 [g01/README.md](g01/README.md).
 

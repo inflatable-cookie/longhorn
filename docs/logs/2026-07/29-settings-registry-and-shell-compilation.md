@@ -7,7 +7,7 @@ State: complete planning batch
 
 - revalidated contract 005 against delivered configuration and client
   foundations
-- compared current Loophole, Soundcheck, and Bovine settings shapes read-only
+- compared current Loophole, Soundcheck, and Split-shell settings shapes read-only
 - separated immediate/staged mutation timing from restart activation
 - bounded built-in failure atomicity to one registered configuration domain
 - made managed-policy precedence, editability, and provenance host authority
@@ -23,7 +23,7 @@ State: complete planning batch
 Loophole supplies a rich page set and host registry/state/set/reset protocol,
 but its hardware, isolation, and keybinding pages retain specialist product
 authority. Soundcheck mixes immediate preferences, discovery, product data,
-integrations, and recovery in one dialog. Bovine supplies the minimal
+integrations, and recovery in one dialog. Split-shell supplies the minimal
 one-domain case and proves the shell cannot require optional workspace systems.
 
 No donor proves a generic cross-domain atomic settings transaction. Longhorn's

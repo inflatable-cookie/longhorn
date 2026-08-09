@@ -18,9 +18,9 @@ Nucleus, Loophole, Soundcheck, Jetstream and Figmatic are the operator's own
 products. They stay named — a framework with visible adopters is better
 evidence than one with anonymised ones.
 
-**The acowtancy family is client work and must not appear.** That is
-`acowtancy`, `bovine`, `bovine-accelerator`, and the reverse-DNS
-`com.acowtancy.bovine-accelerator`. `dairy`, `froyo` and `cream` were checked
+**The private-consumer family is client work and must not appear.** That is
+`private-consumer`, `split-shell`, `split-shell`, and the reverse-DNS
+`com.example.split-shell`. `dairy`, `froyo` and `cream` were checked
 and appear nowhere in Longhorn or Poodle; they exist only in their own private
 repositories.
 
@@ -40,8 +40,9 @@ Poodle: 7 files.
 
 Two other disclosure classes, unrelated to clients:
 
-- `/Users/tom` in 18 files, all under `examples/` and `prototypes/`
-- `audio.infiniteloop.soundcheck` style identifiers in crate `#[cfg(test)]`
+- a developer home directory path in 18 files, all under `examples/` and
+  `prototypes/`
+- `audio.example.soundcheck` style identifiers in crate `#[cfg(test)]`
   modules, which disclose an org identifier that is not otherwise present
 
 No credentials, keys, emails or customer data were found in the tree or in the
@@ -50,7 +51,7 @@ history's added-file names.
 ## No Live Gate Depends On Any Of It
 
 This is what makes the card small. `effigy.toml` references none of the
-acowtancy material. `verify-bovine-card120.ts` and `verify-bovine-card121.ts`
+private-consumer material. `verify-split-shell-card120.ts` and `verify-split-shell-card121.ts`
 are dormant historical scripts belonging to completed cards; they are in no
 aggregate, and `proof:artifacts` does not run them.
 
@@ -60,8 +61,8 @@ removing that material cannot break a gate.
 ## What Moves Where
 
 **Third-party evidence leaves the repository.** The two dormant verifiers and
-their frozen fixtures (`fixtures/migration/bovine-card120`,
-`bovine-card121`) assert a client's application id, storage leaf and
+their frozen fixtures (`fixtures/migration/split-shell-card120`,
+`split-shell-card121`) assert a client's application id, storage leaf and
 dependency graph. Move them to a gitignored `private/` overlay with a
 committed `private/README.md` stating that consumer-specific migration
 evidence for third-party products is held outside the public repository.
@@ -72,19 +73,19 @@ that it is not the whole record.
 
 **The candidate receipt lists need the path parameterised.**
 `private-candidate-card149/consumers.ts` resolves
-`../acowtancy/bovine-accelerator-desktop`. Card 149 is live and
+`../<private-consumer>`. Card 149 is live and
 operator-held. Read the consumer set from a gitignored
 `config/private-consumers.json`, defaulting to the public consumers when it is
 absent, so the receipt can still be produced publicly with a smaller consumer
 set and privately with the full one. Card 127's copy is superseded and can
 move to the overlay with the rest.
 
-**The proof shape is renamed, not anonymised.** `bovine` is a proof consumer
+**The proof shape is renamed, not anonymised.** `split-shell` is a proof consumer
 shape — "a small split composition", a content workspace with minimal
 config/settings and no forced layout host. Rename it `split-shell`, describing
 the shape rather than the product, exactly as `greenfield-compositions`
 already names `minimal`, `workspace`, `full-hosting` and `optional-server`.
-That covers `examples/*/bovine/`, the shape tables in the proofs, and the
+That covers `examples/*/split-shell/`, the shape tables in the proofs, and the
 contract 012 acceptance bullet.
 
 **Logs and cards are renamed consistently.** A log recording work on the
@@ -98,16 +99,16 @@ substitution — a note that says "this used to be called X" discloses X.
    verifiers and their fixtures into it.
 2. Parameterise the Card 149 consumer set behind
    `config/private-consumers.json`; move Card 127's copy to the overlay.
-3. Rename `bovine` to `split-shell` across examples, scripts, fixtures, docs
-   and crate tests. Remove every `acowtancy` path and the
-   `com.acowtancy.bovine-accelerator` identifier.
-4. Replace `/Users/tom` in the 18 example and prototype files with a
-   placeholder or a resolved-at-runtime path.
-5. Neutralise the `audio.infiniteloop.*` test identifiers.
+3. Rename `split-shell` to `split-shell` across examples, scripts, fixtures, docs
+   and crate tests. Remove every `private-consumer` path and the
+   `com.example.split-shell` identifier.
+4. Replace the developer home path in the 18 example and prototype files
+   with a neutral placeholder.
+5. Neutralise the `audio.example.*` test identifiers.
 6. Apply the same three tokens to Poodle's 7 files.
 7. Re-run `effigy qa` in both repositories.
-8. Scan the result: no `acowtancy`, `bovine`, `infiniteloop` or `/Users/tom`
-   outside the gitignored overlay.
+8. Scan the result: none of the client tokens, no stray organisation
+   identifier, and no developer home path outside the gitignored overlay.
 
 ## History Is Not Rewritten
 
@@ -125,9 +126,9 @@ choose the fresh-repository route.
 
 ## Acceptance Criteria
 
-- no `acowtancy`, `bovine`, `bovine-accelerator` or `com.acowtancy.*` in the
+- no `private-consumer`, `split-shell`, `split-shell` or `com.private-consumer.*` in the
   working tree of either repository, outside a gitignored overlay
-- no `/Users/tom` and no `infiniteloop` identifier
+- no developer home path and no stray organisation identifier
 - `effigy qa` green in both repositories
 - Card 149's receipt can still be produced, with the public consumer set
 - the `private/` overlay is documented as existing, without naming what is in

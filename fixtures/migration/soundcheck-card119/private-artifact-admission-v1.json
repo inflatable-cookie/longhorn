@@ -29,7 +29,7 @@
   },
   "graphs": {
     "soundcheck": { "typescript": 7, "rust": 14 },
-    "bovine": { "typescript": 4, "rust": 6 },
+    "split-shell": { "typescript": 4, "rust": 6 },
     "jetstream": { "typescript": 6, "rust": 6 }
   },
   "audits": {
@@ -45,6 +45,6 @@
   },
   "write_admission": {
     "next_card": 120,
-    "scope": "bovine-config-and-settings-cutover"
+    "scope": "split-shell-config-and-settings-cutover"
   }
 }

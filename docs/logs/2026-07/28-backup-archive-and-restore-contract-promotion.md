@@ -7,7 +7,7 @@ State: complete research and planning batch
 
 - audited Soundcheck library backups and DAW restore, Loophole corrupt-source
   preservation and project export, plus negative evidence in Nucleus,
-  Jetstream, and Bovine
+  Jetstream, and Split-shell
 - selected a strict standard ZIP inner bundle with normalized metadata,
   DEFLATE, SHA-256, bounded readers, and an exact declared entry inventory
 - separated operational backup roots from explicit user export destinations

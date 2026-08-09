@@ -45,7 +45,7 @@ g01.008.
 - Backup and restore require richer confirmation and receipt state than an
   ordinary preference field.
 
-### Bovine
+### Split-shell
 
 - The app has one small preference domain and no settings shell.
 - It proves that registry and shell packages must not require layout, Surface,

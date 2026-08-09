@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Longhorn Child Webview Proof",
   "version": "0.0.0",
-  "identifier": "audio.infiniteloop.longhorn-child-webview-proof",
+  "identifier": "audio.example.longhorn-child-webview-proof",
   "build": {
     "frontendDist": "../frontend"
   },

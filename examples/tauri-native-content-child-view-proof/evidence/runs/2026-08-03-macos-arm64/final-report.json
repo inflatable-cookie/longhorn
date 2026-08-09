@@ -3,7 +3,7 @@
   "outcome": "pass_with_unmet_environment_claims",
   "platform": "macos-aarch64",
   "architecture": "aarch64",
-  "evidence_root": "/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64",
+  "evidence_root": "/Users/example/Dev/projects/longhorn/examples/tauri-native-content-child-view-proof/evidence/runs/2026-08-03-macos-arm64",
   "checks": [
     {
       "id": "packaged_child_creation_and_readiness",

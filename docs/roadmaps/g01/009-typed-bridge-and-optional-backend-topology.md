@@ -25,7 +25,7 @@ dependencies on simple apps.
   serialized-loopback adapters.
 - [x] Compose injected local/remote service supervision without selecting or
   claiming a production network protocol.
-- [x] Prove Bovine, Jetstream, Soundcheck, Nucleus, and Loophole-shaped
+- [x] Prove Split-shell, Jetstream, Soundcheck, Nucleus, and Loophole-shaped
   compositions from produced artifacts.
 
 ## Execution Plan
@@ -82,7 +82,7 @@ projections never accept authoritative writes.
 
 - [x] Rust bridge types generate checked TypeScript with zero drift.
 - [x] Direct, Tauri, and serialized-loopback adapters pass one semantic suite.
-- [x] Query-only Bovine shape resolves no event or service runtime.
+- [x] Query-only Split-shell shape resolves no event or service runtime.
 - [x] Jetstream shape cannot miss initial or intervening snapshot state.
 - [x] Soundcheck shape correlates progress, cancellation, and terminal cleanup.
 - [x] Nucleus shape separates connection, capability, execution, and write

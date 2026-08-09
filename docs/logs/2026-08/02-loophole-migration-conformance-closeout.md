@@ -93,6 +93,6 @@ fallback.
 
 ## Next
 
-Compile g01.016 into bounded Soundcheck, Bovine, Jetstream, greenfield, and
+Compile g01.016 into bounded Soundcheck, Split-shell, Jetstream, greenfield, and
 release-readiness cards. Package-manager publication remains a later card, not
 an automatic next action.

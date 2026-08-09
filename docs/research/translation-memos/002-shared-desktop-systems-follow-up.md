@@ -29,7 +29,7 @@ Longhorn's runway.
 - Soundcheck stores product settings and window geometry together beside its
   database. It serializes access, debounces geometry, and replaces through a
   temporary file.
-- Bovine uses Tauri `app_config_dir`, but writes a single unversioned
+- Split-shell uses Tauri `app_config_dir`, but writes a single unversioned
   `workspace.json` directly.
 - Nucleus has several domain stores plus desktop-local UI state. Its server
   topology proves that not all durable state shares one authority.

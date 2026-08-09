@@ -32,7 +32,7 @@ Missing optional modules contribute no pages, permissions, or dead navigation.
 
 | Shape | Host | Product composition | Longhorn packages |
 | --- | --- | --- | --- |
-| Bovine | modal | one staged Preferences page | core, settings |
+| Split-shell | modal | one staged Preferences page | core, settings |
 | Soundcheck | window | Audio plus shared Storage, Backups, Restore & Recovery | core, settings, config |
 | Loophole | panel | immediate Application; staged Appearance; consumer Hardware and Keybindings | core, settings |
 | Nucleus | window | one General page; no Surface or backend pages | core, settings |

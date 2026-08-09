@@ -142,16 +142,16 @@ The default donors are `../loophole` and `../poodle`. Override them with
 `LOOPHOLE_REPO` and `POODLE_REPO` only for exact clean checkouts.
 
 Secondary-consumer Card 113 checks exact Soundcheck, soundcheck-library,
-Signal, Bovine, Jetstream, Poodle, and Longhorn receipts; freezes source-backed
+Signal, Split-shell, Jetstream, Poodle, and Longhorn receipts; freezes source-backed
 behavior and retained authority; rejects selected/forbidden package overlap;
-and protects Bovine's exact docs-only worktree overlap:
+and protects Split-shell's exact docs-only worktree overlap:
 
 ```sh
 effigy qa:northstar:g01-secondary-consumer-card113
 ```
 
 The default donors are sibling checkouts. Override them with
-`SOUNDCHECK_REPO`, `SOUNDCHECK_LIBRARY_REPO`, `SIGNAL_REPO`, `BOVINE_REPO`,
+`SOUNDCHECK_REPO`, `SOUNDCHECK_LIBRARY_REPO`, `SIGNAL_REPO`, `SPLIT_SHELL_REPO`,
 `JETSTREAM_REPO`, or `POODLE_REPO` only for equivalent exact checkouts.
 
 Card 114 freshly packs the exact selected Longhorn and Poodle artifacts,
@@ -162,27 +162,27 @@ three locked/offline Rust 1.95 and Tauri 2.11.5 graphs:
 effigy proof:secondary-consumer-private-artifacts
 ```
 
-The default receipt is the Card 119 refresh. Card 120 supplies a Bovine-refreshed
+The default receipt is the Card 119 refresh. Card 120 supplies a Split-shell-refreshed
 receipt through its focused verifier. Set
 `SECONDARY_CONSUMER_ADMISSION_FIXTURE` to Card 114's fixture only when running
 against its exact historical consumer checkouts.
 
-Card 120 verifies Bovine's canonical native-platform storage, versioned
+Card 120 verifies Split-shell's canonical native-platform storage, versioned
 workspace-preference domain, exact retained legacy import, two-page modal
 settings composition, storage-only capability, scoped source diff, and the
 refreshed isolated private artifact graph:
 
 ```sh
-effigy qa:northstar:g01-bovine-card120
+effigy qa:northstar:g01-split-shell-card120
 ```
 
-Card 121 verifies Bovine's debug-only isolated profile, native first launch
+Card 121 verifies Split-shell's debug-only isolated profile, native first launch
 and restart receipt, valid and corrupt target evolution, modal session
 teardown/remount, exact minimal graph, retained product authority, previous
 source rollback suite, and refreshed artifact admission for Jetstream:
 
 ```sh
-effigy qa:northstar:g01-bovine-card121
+effigy qa:northstar:g01-split-shell-card121
 ```
 
 Card 122 verifies Jetstream's checked editor-state session, listener-first

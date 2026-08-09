@@ -42,7 +42,7 @@ Status: complete; cards 005 through 010 complete
 
 - Loophole machine/windowing fixture
 - Soundcheck settings/window fixture
-- Bovine workspace preference fixture
+- Split-shell workspace preference fixture
 
 Status: complete as card 010
 

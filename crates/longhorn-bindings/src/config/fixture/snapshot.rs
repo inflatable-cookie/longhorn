@@ -31,20 +31,20 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
             layout: StorageLayoutProjection {
                 profile: StorageProfileId::PlatformNativeV1,
                 platform: "macos".into(),
-                canonical_application_id: "audio.infiniteloop.soundcheck".into(),
-                effective_leaf: "audio.infiniteloop.soundcheck".into(),
+                canonical_application_id: "audio.example.soundcheck".into(),
+                effective_leaf: "audio.example.soundcheck".into(),
                 leaf_provenance: StorageLeafProvenanceProjection::CanonicalApplicationId,
                 roots: vec![
                     StorageRootProjection {
                         kind: "config".into(),
                         path:
-                            "/Users/tom/Library/Application Support/audio.infiniteloop.soundcheck"
+                            "/Users/example/Library/Application Support/audio.example.soundcheck"
                                 .into(),
                         provenance: "platform:config".into(),
                     },
                     StorageRootProjection {
                         kind: "cache".into(),
-                        path: "/Users/tom/Library/Caches/audio.infiniteloop.soundcheck".into(),
+                        path: "/Users/example/Library/Caches/audio.example.soundcheck".into(),
                         provenance: "platform:cache".into(),
                     },
                 ],
@@ -54,7 +54,7 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
             bootstrap: StorageBootstrapProjection::Selected {
                 origin: "locator".into(),
                 locator_path: Some(
-                    "/Users/tom/Library/Application Support/Longhorn/locator.json".into(),
+                    "/Users/example/Library/Application Support/Longhorn/locator.json".into(),
                 ),
                 transition_id: None,
                 last_committed_layout_digest: Some(digest('a')),

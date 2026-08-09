@@ -32,7 +32,7 @@ separate adapter crate. A query-only Rust consumer can compile with
 
 | Shape | Host form | Optional imports | Permissions | Service owner | Query retries |
 | --- | --- | --- | --- | --- | ---: |
-| Bovine | Tauri-local | none | query | none | 0 |
+| Split-shell | Tauri-local | none | query | none | 0 |
 | Jetstream | direct, Tauri-local | stream, Tauri events | query, listen, unlisten | none | 1 |
 | Soundcheck | Tauri-local, local service | supervision, Tauri events | query, mutate, listen, unlisten | external local | 2 |
 | Nucleus | direct, optional local service | supervision | query, mutate | external local | 2 |

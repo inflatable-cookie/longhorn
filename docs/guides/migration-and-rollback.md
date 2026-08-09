@@ -10,7 +10,7 @@ Governing contracts: [003](../contracts/003-extraction-and-consumer-migration.md
 
 Migration is where apps lose data — dual systems running in parallel, silent
 fallbacks, deletion before rollback is proven. The rules below exist because
-five apps (Nucleus, Loophole, Soundcheck, Bovine, Jetstream) have already been
+five apps (Nucleus, Loophole, Soundcheck, Split-shell, Jetstream) have already been
 migrated, and every one of these failure modes has been hit. If you follow
 only one thing from this guide: pick exactly one authority at bootstrap and
 keep the old implementation frozen until the new one is proven.
@@ -112,7 +112,7 @@ Failure states stay distinct:
 | Nucleus | canonical storage, protected windows, Surface-free layout, child view | project semantics and browser/security policy | omit Surface; use project-keyed registered layout; preserve browser policy |
 | Loophole | full display/window/Surface/layout/transfer/settings/commands/linear history | DAW/Pulse payload, journal, project version, focused-panel policy | decompose the hierarchy; keep history payload/apply/durability local |
 | Soundcheck | stable-name storage, settings/recovery, operation lifecycle, isolated window | SQLite schema, scan reports, plugin/Signal policy | use native DB adapter and product-owned helper authorization |
-| Bovine | minimal config/settings | content, navigation, editorial and Git behavior | a split UI does not justify layout; preserve unrelated authored work |
+| Split-shell | minimal config/settings | content, navigation, editorial and Git behavior | a split UI does not justify layout; preserve unrelated authored work |
 | Jetstream | bridge/commands and backing-surface coordination | WGPU, renderer, world, input and execution | coordinate native geometry/lifecycle without absorbing engine authority |
 
 Read the canonical [Nucleus](../architecture/nucleus-migration-map.md),

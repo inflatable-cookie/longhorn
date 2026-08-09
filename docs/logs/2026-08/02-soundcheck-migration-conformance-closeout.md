@@ -57,5 +57,5 @@ Linux, and non-1x Signal editor scale remain unsupported.
 
 ## Next
 
-Execute Card 120 after rechecking Bovine's exact dirty-path overlap. Preserve
+Execute Card 120 after rechecking Split-shell's exact dirty-path overlap. Preserve
 all unrelated docs work and admit only the minimal config/settings graph.

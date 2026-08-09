@@ -130,7 +130,7 @@ public traces match. This is conformance evidence, not donor migration.
 | Soundcheck | inventory scan start/reconnect/cancel/terminal paths; capture current capabilities and legacy state | scanner executor, same-active policy, reports, warnings, restart recovery, wording | operation authority, Tauri port, optional Poodle status |
 | Loophole | inventory render queue, cancellation races, progress phases, completion notices, command admission, window mounts | queue/scheduler, render payloads, artifacts, retry policy, notification wording/actions, durable project integration | full operation hierarchy plus independent notification ledger and optional bridge port |
 | Nucleus | identify first genuine long task or retained outcome; do not add either system speculatively | executor, placement, wording, retention | select only the needed minimal package |
-| Bovine | separate service reliability facts from task state | backend lifecycle, retry, action mapping | notification-only or operation-only composition as evidence requires |
+| Split-shell | separate service reliability facts from task state | backend lifecycle, retry, action mapping | notification-only or operation-only composition as evidence requires |
 | Jetstream | identify batch/CLI work that benefits from desktop projection | process execution, logs, cancellation mechanics | framework-neutral operation root; UI edges optional |
 
 For every migration:

@@ -23,7 +23,7 @@ The crate neither schedules nor executes either shape.
 | Soundcheck scan | stable identity, direct-running registration, remount-safe host truth, cancellation race terminal | same-active reuse, scan coordinator, phases, plugin counts, warnings, reconciliation |
 | Loophole render | queued registration, explicit start, insertion-ordered active view, newest-terminal view | queue order, pause, executor, polling, report, artifact, cleanup, export policy |
 | Nucleus turn | generic cancelling and terminal state vocabulary | approval, input, tools, tokens, provider state, recovery workflow |
-| Bovine and Jetstream busy state | evidence for later small projections | Git and engine task meaning |
+| Split-shell and Jetstream busy state | evidence for later small projections | Git and engine task meaning |
 
 No donor repository changed.
 

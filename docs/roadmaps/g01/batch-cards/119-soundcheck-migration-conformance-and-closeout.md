@@ -11,7 +11,7 @@ Auto-start next card: no
 ## Objective
 
 Prove Soundcheck's complete selected composition, rollback posture, optional
-boundaries, and retained authority before opening Bovine writes.
+boundaries, and retained authority before opening Split-shell writes.
 
 ## Repository Scope
 
@@ -59,5 +59,5 @@ boundaries, and retained authority before opening Bovine writes.
 
 ## Next Task
 
-If Soundcheck closes cleanly, execute Card 120's bounded Bovine config and
+If Soundcheck closes cleanly, execute Card 120's bounded Split-shell config and
 settings cutover after clearing overlap with its unrelated docs work.

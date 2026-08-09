@@ -17,7 +17,7 @@ tag, or hosted-release mutation.
 
 - Longhorn: version metadata, local artifacts, checksums, compatibility
   evidence, changelog, docs, and closeout.
-- Nucleus, Loophole, Soundcheck, Bovine, Jetstream, and Poodle: read-only exact
+- Nucleus, Loophole, Soundcheck, Split-shell, Jetstream, and Poodle: read-only exact
   receipt and isolated-consumer checks.
 - Registries, Git tags, hosted releases, and consumer release channels: no writes.
 
@@ -26,7 +26,7 @@ tag, or hosted-release mutation.
 - coordinated Rust/TypeScript version inventory
 - deterministic package contents, checksums, generated bindings, and source mapping
 - Rust 1.85, Tauri 2.11, Svelte 5, TypeScript, Poodle, platform, and protocol matrix
-- minimal, Nucleus, Loophole, Soundcheck, Bovine, Jetstream, and optional-server installs
+- minimal, Nucleus, Loophole, Soundcheck, Split-shell, Jetstream, and optional-server installs
 - public API, migration, rollback, compatibility, and upgrade notes
 - package-name/registry-ownership gap and deferred publication statement
 
@@ -68,7 +68,7 @@ tag, or hosted-release mutation.
 - `docs/reference/private-0-1-candidate.md` is the human compatibility matrix.
 - 17 Longhorn TypeScript packages, five Poodle packages, and 36 Rust packages
   reproduce across two independent production passes.
-- Minimal, Nucleus, Loophole, Soundcheck, Bovine, Jetstream, and optional-
+- Minimal, Nucleus, Loophole, Soundcheck, Split-shell, Jetstream, and optional-
   server roots install outside sibling resolution and pass locked Rust 1.85.
 - All 12 generated protocol families are current.
 - Both configured read-only Effigy release gates pass. No publication, tag,

@@ -1,5 +1,5 @@
 {
-  "identifier": "bovine-bridge-proof",
+  "identifier": "split-shell-bridge-proof",
   "description": "Query-only Tauri-local bridge proof.",
   "windows": ["main"],
   "permissions": ["allow-longhorn-bridge-query"]

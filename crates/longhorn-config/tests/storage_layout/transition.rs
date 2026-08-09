@@ -422,16 +422,16 @@ fn declared_legacy_candidates_are_discovered_read_only_with_unknowns_preserved()
             "nucleus/state.json",
         ),
         TestDomain::new(
-            "bovine.workspace-presentation",
+            "split-shell.workspace-presentation",
             StorageClass::UserConfig,
-            "bovine/workspace.json",
+            "split-shell/workspace.json",
         ),
     ];
     let mut registry = fixture.store(&fixture.source);
     for domain in &domains {
         registry.register(domain).unwrap();
     }
-    let names = ["loophole", "soundcheck", "nucleus", "bovine"];
+    let names = ["loophole", "soundcheck", "nucleus", "split-shell"];
     let mut candidates = Vec::new();
     for (index, name) in names.iter().enumerate() {
         let root = fixture.temp.path().join("legacy").join(name);

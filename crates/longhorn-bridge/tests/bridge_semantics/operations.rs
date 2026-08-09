@@ -220,7 +220,7 @@ fn finite_deduplication_evidence_never_evicts_into_false_freshness() {
 #[test]
 fn query_only_shape_needs_no_stream_or_job_metadata() {
     let query = BridgeQueryEnvelope::new(
-        context("request:bovine-query"),
+        context("request:split-shell-query"),
         QueryPayload {
             include_archived: false,
         },

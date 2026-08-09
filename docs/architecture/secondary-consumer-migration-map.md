@@ -24,7 +24,7 @@ receipts plus isolated produced-artifact proof.
 | Soundcheck | `f4544e621b8ba3f4558c6b068db1cb36d6ef161f` | clean | desktop consumer |
 | soundcheck-library | `40418635674d598f7e311bf311c3165300edd35b` | clean | shared plugin-library and SQLite authority |
 | Signal | `4c5b60681071095aedbf9013720e76c1c89e91ed` | clean | plugin ABI, discovery, audio, and runtime authority |
-| Bovine Accelerator Desktop | `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` | unrelated docs work preserved | minimal config/settings consumer; Card 121 closed |
+| Split Shell Desktop | `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` | unrelated docs work preserved | minimal config/settings consumer; Card 121 closed |
 | Jetstream | `4df74e756c222a3b207391c44775e5b3148c46dd` | clean | editor and backing-surface consumer |
 | Poodle | `208532f0d18dcd1683cdef157e370d0ba0f0d3b3` | clean | visual primitives and exact private artifact set |
 
@@ -36,7 +36,7 @@ admission; no migration may rely on a stale or dirty selected source.
 Card 113 passed against Longhorn compilation commit
 `efe3483d499b5416cd6f1690d1c4598fd75cdfa4` and the exact consumer commits
 above. Soundcheck, soundcheck-library, Signal, Jetstream, and Poodle are clean
-on `main`. Bovine remains on its recorded commit with exactly 19 unrelated
+on `main`. Split-shell remains on its recorded commit with exactly 19 unrelated
 `docs/` or `CHANGELOG.md` paths; no runtime or package path overlaps.
 
 The checked freeze covers 23 source matrices and 27 unique selected Longhorn
@@ -58,7 +58,7 @@ sibling source.
 Eighteen selected Rust crates were inventoried and archived from Longhorn
 `ec465b2a86fe6fbaef789b3677a8e7288e7df2d2`; three dev-only support crates
 enable isolated workspace checking but enter no consumer's normal graph. The
-Soundcheck, Bovine, and Jetstream graphs pass locked and offline on Rust 1.85.0
+Soundcheck, Split-shell, and Jetstream graphs pass locked and offline on Rust 1.85.0
 with Tauri 2.11.5. Native-content isolated-window and backing-surface packages
 remain independently selected.
 
@@ -73,7 +73,7 @@ and restore structure. Card 117 moved plugin-scan lifecycle structure onto
 Longhorn while retaining soundcheck-library job truth. Card 118 wraps the
 disposable inspection helper in isolated-window coordination while retaining
 Soundcheck and Signal policy. Card 119 closes the exact composition, artifact,
-restart, and rollback gates. Card 120 cuts over Bovine's minimal
+restart, and rollback gates. Card 120 cuts over Split-shell's minimal
 config/settings graph. Card 121 closes exact conformance and optional-edge
 audits. Jetstream remains read-only.
 
@@ -216,9 +216,9 @@ coordinate its native snapshot adapter but may not reinterpret its schema,
 move it independently of the selected storage transition, or replace its
 recovery rules.
 
-## Bovine Accelerator Desktop
+## Split Shell Desktop
 
-Bovine is the minimal no-service, no-Surface case. Card 120 replaces its
+Split-shell is the minimal no-service, no-Surface case. Card 120 replaces its
 unversioned `workspace.json` writer and sibling aliases with one versioned
 preference authority and exact source-linked development packages backed by
 produced-artifact proof.
@@ -226,13 +226,13 @@ produced-artifact proof.
 ### Selected shared composition
 
 - `platform-native-v1`, canonical id
-  `com.acowtancy.bovine-accelerator`, no stable-name override
+  `com.example.split-shell`, no stable-name override
 - one registered configuration domain with safe mutation, explicit flush, and
   receipt-backed legacy import
 - a minimal modal settings shell only for admitted shared and product pages
 - public Poodle artifacts and framework-neutral Longhorn clients
 
-### Retained Bovine authority
+### Retained Split-shell authority
 
 - repository parsing, content hierarchy, search, editorial, validation, and Git
 - authored workspace content and every rule governing its mutation
@@ -247,11 +247,11 @@ backend topology, and native content absent.
 ### Card 120 checked cutover
 
 Commit `6afc8da9f4ccc2989541312560eaeb4a154057d2` selects canonical leaf
-`com.acowtancy.bovine-accelerator` under `platform-native-v1`, with config,
+`com.example.split-shell` under `platform-native-v1`, with config,
 cache, state, logs, runtime, and backups kept in their native lifecycle roots.
 No stable-name override exists.
 
-`bovine.workspace-preferences` schema 1 is the sole UserConfig authority for
+`split-shell.workspace-preferences` schema 1 is the sole UserConfig authority for
 workspace root, split ratio, expanded nodes, and selected node. Mutations are
 store-coordinated and durable. The legacy file is imported backup-first with
 source and target SHA-256 receipts, restart revalidation, conflict refusal,
@@ -266,7 +266,7 @@ docs/CHANGELOG paths remain outside the cutover commit.
 
 ### Card 121 checked closeout
 
-Bovine commit `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` adds a debug-only,
+Split-shell commit `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` adds a debug-only,
 absolute, confinement-checked acceptance root without changing release storage
 selection. A fresh native macOS launch and restart preserve canonical root,
 ratio, valid expanded and selected ids, and an unknown product field. Retained
@@ -282,7 +282,7 @@ worktree; rollback uses the retained legacy document, not a second writer.
 
 The real modal settings component now owns one session per opening. Apply,
 close, listener teardown, reopen, and retained value pass in the renderer.
-Bovine QA reports 63 Rust tests, one renderer test, and zero Svelte errors or
+Split-shell QA reports 63 Rust tests, one renderer test, and zero Svelte errors or
 warnings. Produced-artifact proof retains four TypeScript, six Rust, and five
 public Poodle packages with one Svelte runtime. Layout, Surfaces, transfer,
 bridge, commands, history, operations, notifications, and native content are
@@ -411,7 +411,7 @@ operator-authorized release action.
 1. refresh read-only behavior and authority receipts
 2. prove the exact private artifact graph for all three consumers
 3. migrate and close Soundcheck
-4. migrate and close Bovine without touching unrelated work
+4. migrate and close Split-shell without touching unrelated work
 5. migrate and close Jetstream
 6. build the greenfield matrix and public-facing usage guides
 7. prove one private compatibility candidate and close g01.016

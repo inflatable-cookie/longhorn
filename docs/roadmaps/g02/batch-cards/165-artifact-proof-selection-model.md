@@ -29,7 +29,7 @@ const longhornPackages = [
   ...
 ];
 const shapes = {
-  bovine: {
+  split-shell: {
     longhorn: ["…/longhorn-core", "…/longhorn-svelte"],
     forbidden: ["…/longhorn-layout", "…/longhorn-surfaces", …],
   },
@@ -64,7 +64,7 @@ bullets are stated in install terms that the TypeScript tier can no longer
 satisfy:
 
 - "Nucleus can install window/layout support without Surfaces"
-- "Bovine can install configuration and shell support without layout hosting"
+- "Split-shell can install configuration and shell support without layout hosting"
 - "a Surface-free root import does not resolve Surface or Surface-transfer
   code"
 

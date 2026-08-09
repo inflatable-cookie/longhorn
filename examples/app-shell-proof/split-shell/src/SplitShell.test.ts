@@ -6,9 +6,9 @@ import {
   type ReactiveConnection,
 } from "@inflatable-cookie/longhorn-poodle-svelte";
 
-import BovineShell, {
-  type BovineAuthority,
-} from "./BovineShell.svelte";
+import Split-shellShell, {
+  type Split-shellAuthority,
+} from "./Split-shellShell.svelte";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -18,13 +18,13 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe("Bovine shell", () => {
+describe("Split-shell shell", () => {
   it("reveals only after authority and tears down its connection", async () => {
     const ready = deferred<void>();
     const events: string[] = [];
-    let current: BovineAuthority | undefined;
+    let current: Split-shellAuthority | undefined;
     let disposals = 0;
-    const state = new ReactiveClientState<BovineAuthority>({
+    const state = new ReactiveClientState<Split-shellAuthority>({
       capability: {
         kind: "supported",
         connect: () =>
@@ -34,10 +34,10 @@ describe("Bovine shell", () => {
             async dispose() {
               disposals += 1;
             },
-          }) satisfies ReactiveConnection<BovineAuthority>,
+          }) satisfies ReactiveConnection<Split-shellAuthority>,
       },
     });
-    const screen = render(BovineShell, {
+    const screen = render(Split-shellShell, {
       props: {
         clientState: state,
         async reveal() {
@@ -49,14 +49,14 @@ describe("Bovine shell", () => {
     expect(screen.getByText("Loading workspace authority")).toBeTruthy();
     expect(events).toEqual([]);
     current = {
-      documentTitle: "Bovine Accelerator",
+      documentTitle: "Split Shell",
       sectionTitle: "Accounts",
     };
     events.push("authority");
     ready.resolve();
 
     await waitFor(() =>
-      expect(screen.getByRole("main", { name: "Bovine workspace" })).toBeTruthy(),
+      expect(screen.getByRole("main", { name: "Split-shell workspace" })).toBeTruthy(),
     );
     expect(events).toEqual(["authority", "reveal"]);
     expect(document.documentElement.dataset.theme).toBe("clay");
@@ -67,13 +67,13 @@ describe("Bovine shell", () => {
   });
 
   it("renders an unsupported host instead of a fallback document", async () => {
-    const state = new ReactiveClientState<BovineAuthority>({
+    const state = new ReactiveClientState<Split-shellAuthority>({
       capability: {
         kind: "unsupported",
         reason: "guarded reveal command is absent",
       },
     });
-    const screen = render(BovineShell, {
+    const screen = render(Split-shellShell, {
       props: { clientState: state, reveal: async () => undefined },
     });
 

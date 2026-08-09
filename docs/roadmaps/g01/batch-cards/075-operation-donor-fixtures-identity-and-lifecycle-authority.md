@@ -24,7 +24,7 @@ state, and terminal-transition authority.
 - checked forward transitions and sticky terminals
 - active and recent projections without final retention policy
 - Soundcheck scan and Loophole render fixtures
-- weaker Nucleus, Bovine, and Jetstream boundary notes
+- weaker Nucleus, Split-shell, and Jetstream boundary notes
 
 ## Public Behavior
 

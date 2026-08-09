@@ -52,7 +52,7 @@ partial failure, and is not a cross-domain transaction. Drop performs no I/O.
 - intervening store and helper-process updates survive flush
 - Loophole layout command fixture
 - Nucleus bounded last-geometry fixture
-- Bovine presentation projection fixture
+- Split-shell presentation projection fixture
 - semantic no-op, explicit discard, duplicate lane, wrong store, stable
   aggregate order, partial failure, and drop-with-pending proofs
 - Rust 1.85 workspace check

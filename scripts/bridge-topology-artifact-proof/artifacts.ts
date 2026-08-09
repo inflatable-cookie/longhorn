@@ -18,7 +18,7 @@ const rustCrates = [
 ] as const;
 
 const donorNames = [
-  "bovine",
+  "split-shell",
   "jetstream",
   "soundcheck",
   "nucleus",

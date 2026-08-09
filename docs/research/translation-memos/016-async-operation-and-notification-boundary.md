@@ -49,7 +49,7 @@ Corroborating read-only audits:
   `crates/nucleus-agent-protocol` and desktop agent command/state surfaces
 - Jetstream at `95222397974caa276123fa52c284024d18eadb3c`:
   editor and runtime task/progress surfaces
-- Bovine Accelerator Desktop at
+- Split Shell Desktop at
   `b1958794da2d0080104c9f2146c7f3e3f122249b`:
   `src/App.svelte`, `src/components/GitWorkspaceBar.svelte`, and Git commands
 - Poodle public feedback primitives: `Progress`, `StatusIndicator`,
@@ -114,7 +114,7 @@ input, provider, token, tool, and recovery semantics are product workflow. A
 generic operation may carry an opaque phase or blocker reference; it must not
 absorb the agent state machine.
 
-Bovine has renderer-local `load`, `switch`, and `sync` busy state around
+Split-shell has renderer-local `load`, `switch`, and `sync` busy state around
 awaited Git commands. Jetstream has runtime tasks and feedback primitives but
 no mature retained desktop operation catalogue. They can consume a small
 projection later, but neither is the second strong contract donor.
@@ -156,7 +156,7 @@ changes. Terminal operations reject later progress and terminal changes.
 
 ### Scheduling and retry stay outside
 
-Loophole needs a queue. Soundcheck scan needs same-active-job reuse. Bovine
+Loophole needs a queue. Soundcheck scan needs same-active-job reuse. Split-shell
 needs neither. The pure authority records `queued` but does not choose
 concurrency, ordering, deduplication, pause, or start policy.
 

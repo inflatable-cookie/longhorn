@@ -25,7 +25,7 @@ dependencies.
 - authority tokens, scope revisions, load/apply/reset commands, outcomes, and
   receipts
 - consumer-owned opaque value envelope with explicit limits and codec version
-- Bovine, Soundcheck, and Loophole registry fixtures
+- Split-shell, Soundcheck, and Loophole registry fixtures
 
 ## Public Behavior
 
@@ -113,7 +113,7 @@ and reset commands carry checked registry generation, scope revision, and
 host-issued authority tokens. Consumer values remain versioned bounded JSON
 envelopes without becoming shared schema.
 
-Bovine, Soundcheck, and Loophole fixtures prove minimal, optional-recovery, and
+Split-shell, Soundcheck, and Loophole fixtures prove minimal, optional-recovery, and
 consumer-owned specialist compositions. The crate graph contains only
 `longhorn-core`, Serde/JSON, and SHA-256 support.
 

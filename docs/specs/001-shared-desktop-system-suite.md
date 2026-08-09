@@ -19,7 +19,7 @@ shape and admission questions.
 
 | Capability | Intended reusable unit | State | Main evidence |
 | --- | --- | --- | --- |
-| configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, Bovine, Nucleus |
+| configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, Split-shell, Nucleus |
 | backup and recovery | inventory, snapshot, verify, rotate, restore | promoted first pass | cross-app need; partial Loophole evidence |
 | display inventory | pure model plus Tauri probe adapter | contract 009 | Loophole, Nucleus, Soundcheck |
 | geometry/window planning | pure planner plus native host | contract 009 | Loophole, Nucleus, Soundcheck |

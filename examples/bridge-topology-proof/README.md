@@ -5,7 +5,7 @@ without donor writes or production networking.
 
 | Shape | Required seam | Optional seam |
 | --- | --- | --- |
-| Bovine | query-only Tauri invoke | none |
+| Split-shell | query-only Tauri invoke | none |
 | Jetstream | listener-first snapshot stream | Tauri events |
 | Soundcheck | correlated job and cancellation | external local service |
 | Nucleus | per-domain capability and authority | external local host |

@@ -35,7 +35,7 @@ private.
 
 | Shape | Imports | Permissions | Service owner | Query retries |
 | --- | --- | --- | --- | ---: |
-| Bovine | root, Tauri invoke | query | none | 0 |
+| Split-shell | root, Tauri invoke | query | none | 0 |
 | Jetstream | root, stream, Tauri invoke/events | query, listen, unlisten | none | 1 |
 | Soundcheck | root, supervision, Tauri invoke/events | query, mutate, listen, unlisten | external local | 2 |
 | Nucleus | root, supervision, Tauri invoke | query, mutate | external local | 2 |

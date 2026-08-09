@@ -46,7 +46,7 @@ Surface mode:
   `target/card035-surface-final.0vEp3F/final-report.json`
 
 Both executables are Mach-O 64-bit arm64. The bundle id is
-`audio.infiniteloop.longhorn-transfer-proof`; version is `0.1.0`. These are
+`audio.example.longhorn-transfer-proof`; version is `0.1.0`. These are
 local unsigned proof artifacts, not releases.
 
 ## Executed Environment

@@ -11,7 +11,7 @@ State: complete
 - installed three isolated consumer graphs outside workspace resolution
 - pinned exact Poodle artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`
-- mounted minimal Bovine, Surface-free Nucleus, and full Loophole shells
+- mounted minimal Split-shell, Surface-free Nucleus, and full Loophole shells
 - published canonical theme, readiness, capability, error, and teardown
   guidance
 - closed Card 041 and g01.007
@@ -36,7 +36,7 @@ realpaths, and scans generated lockfiles for sibling source resolution.
 
 | Shape | Longhorn packages | Regions | Explicit exclusions |
 | --- | --- | ---: | --- |
-| Bovine | core, Svelte | 0 | layout, Poodle adapter, Surfaces, transfer |
+| Split-shell | core, Svelte | 0 | layout, Poodle adapter, Surfaces, transfer |
 | Nucleus | core, layout, Svelte, Poodle adapter | 5 | Surfaces, Surface transfer |
 | Loophole | core, layout, Surfaces, transfer, Surface transfer, Svelte, Poodle adapter | 8 | none |
 
@@ -47,7 +47,7 @@ preview tarballs. No example uses a Vite alias or sibling package source.
 
 Six mounted tests cover:
 
-- Bovine loading before authority, reveal after authority, theme application,
+- Split-shell loading before authority, reveal after authority, theme application,
   teardown, and unsupported guarded reveal
 - Nucleus checked layout load, five mounted regions, reveal order, missing
   commands, host-load failure, and destruction
@@ -72,7 +72,7 @@ Poodle status components. No renderer fallback becomes authority.
 
 Capability examples are profile-specific:
 
-- Bovine: core window and titlebar drag
+- Split-shell: core window and titlebar drag
 - Nucleus: event lifetime, window behavior, consumer-registered layout host
 - Loophole: base transfer, optional Surface transfer, event lifetime, and
   titlebar drag

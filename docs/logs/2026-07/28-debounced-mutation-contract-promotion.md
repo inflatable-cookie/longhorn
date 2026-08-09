@@ -5,7 +5,7 @@ State: complete research and planning batch
 
 ## Outcome
 
-- audited Loophole, Nucleus, Soundcheck, Bovine, and Jetstream debounce
+- audited Loophole, Nucleus, Soundcheck, Split-shell, and Jetstream debounce
   behavior
 - separated reusable trailing-edge scheduling from donor-owned threads,
   renderer timers, and close policy
@@ -32,7 +32,7 @@ Their acknowledgements do not contain ordinary write failure. Soundcheck does
 reread the full settings document before changing only the window projection,
 which supports fresh-value intent application.
 
-Bovine uses a 200 ms renderer timer and flushes on gesture end, blur, and
+Split-shell uses a 200 ms renderer timer and flushes on gesture end, blur, and
 teardown. Errors are visible, but rejected saves are not retained and teardown
 cannot await publication.
 

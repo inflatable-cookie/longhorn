@@ -178,7 +178,7 @@ settings wrapper.
 
 ## Acceptance
 
-- Bovine composes one staged preference page without layout or Surfaces
+- Split-shell composes one staged preference page without layout or Surfaces
 - Soundcheck composes product pages beside shared backup and restore pages
 - Loophole composes custom hardware and keybinding pages without moving their
   product authorities into Longhorn

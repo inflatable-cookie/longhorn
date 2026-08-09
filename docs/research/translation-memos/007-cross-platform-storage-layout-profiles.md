@@ -35,7 +35,7 @@ Donor evidence:
   `~/.nucleus`, with one explicit root override.
 - Soundcheck keeps its SQLite library, settings, geometry, screenshots, and
   integrations below `~/Library/Application Support/Soundcheck`.
-- Bovine writes `workspace.json` through Tauri `app_config_dir`.
+- Split-shell writes `workspace.json` through Tauri `app_config_dir`.
 - Jetstream has a Tauri identifier but no established durable desktop layout.
 
 ## Platform Findings
@@ -54,7 +54,7 @@ Application Support while still using the native cache and log roots.
 
 Apple recommends the bundle identifier as the leaf. Longhorn follows that
 collision-safe convention by default. The canonical id remains
-`audio.infiniteloop.soundcheck`; Soundcheck may explicitly register
+`audio.example.soundcheck`; Soundcheck may explicitly register
 `Soundcheck` as its stable storage name to preserve a readable existing root.
 
 The storage name is optional and is not read from the current display name. It

@@ -36,7 +36,7 @@ interdependent crates are not published.
 
 | Shape | Host | Pages | Tests | Optional-boundary result |
 | --- | --- | --- | ---: | --- |
-| Bovine | modal | Preferences | 5 | no config, layout, Surface, command, or backend package |
+| Split-shell | modal | Preferences | 5 | no config, layout, Surface, command, or backend package |
 | Soundcheck | window | Audio, Storage, Backups, Restore & Recovery | 4 | config composed explicitly; no layout, Surface, command, or backend |
 | Loophole | panel | Application, Appearance, Hardware, Keybindings | 2 | specialist renderers and commands stay consumer-owned |
 | Nucleus | window | General | 1 | no Surface or backend navigation; no optional package |
@@ -49,8 +49,8 @@ Unmount released the session listeners.
 | Behavior | Evidence |
 | --- | --- |
 | immediate | Loophole Application publishes one checked command |
-| staged | Bovine and Loophole Appearance publish only on Apply |
-| reset | Bovine sends the separate checked reset command |
+| staged | Split-shell and Loophole Appearance publish only on Apply |
+| reset | Split-shell sends the separate checked reset command |
 | managed policy | Loophole managed control is disabled |
 | stale authority | visible conflict; zero publications |
 | invalid intent | visible rejection; zero publications |
@@ -68,7 +68,7 @@ Unmount released the session listeners.
 Dependency:
 
 - root `@inflatable-cookie/longhorn-settings` has no upward optional dependency
-- Bovine resolves only core and settings
+- Split-shell resolves only core and settings
 - Soundcheck opts into config
 - Loophole specialist pages do not pull command or backend packages
 - Nucleus proves absence does not create dead navigation

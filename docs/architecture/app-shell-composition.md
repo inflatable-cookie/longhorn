@@ -55,7 +55,7 @@ optimism, and removes timers. Late listener registration still unlistens once.
 
 ### Minimal
 
-Bovine proves a small split composition. It uses the generic Svelte client
+Split-shell proves a small split composition. It uses the generic Svelte client
 lifetime and public Poodle `SplitView`. It has no layout, Surface, or transfer
 package.
 

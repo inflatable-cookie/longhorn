@@ -10,7 +10,7 @@ Auto-start next card: no
 ## Objective
 
 Prove the exact private Longhorn and Poodle graphs selected by Soundcheck,
-Bovine, and Jetstream before admitting consumer writes. Do not publish.
+Split-shell, and Jetstream before admitting consumer writes. Do not publish.
 
 ## Repository Scope
 
@@ -33,7 +33,7 @@ Bovine, and Jetstream before admitting consumer writes. Do not publish.
 
 1. Refresh exact selected Longhorn and Poodle commits.
 2. Pack or inventory every selected Rust and TypeScript artifact.
-3. Build isolated Soundcheck-, Bovine-, and Jetstream-shaped consumers.
+3. Build isolated Soundcheck-, Split-shell-, and Jetstream-shaped consumers.
 4. Verify exact toolchain, peer, lock, and generated-protocol compatibility.
 5. Audit each graph for selected and forbidden optional packages.
 6. Record explicit private-development source maps and artifact digests.
@@ -45,7 +45,7 @@ Bovine, and Jetstream before admitting consumer writes. Do not publish.
 - every selected artifact maps to one exact clean source commit
 - isolated consumers resolve no sibling or workspace source
 - one compatible Svelte/Poodle runtime resolves where selected
-- Bovine resolves no layout, Surface, bridge, operation, history, or native-content edge
+- Split-shell resolves no layout, Surface, bridge, operation, history, or native-content edge
 - Soundcheck resolves no Surface, transfer, history, command, or bridge edge
 - Jetstream resolves no config, settings, Surface, transfer, history, or operation edge
 - native-content mechanisms remain independently selectable
@@ -57,7 +57,7 @@ Bovine, and Jetstream before admitting consumer writes. Do not publish.
 - selected artifacts differ from their receipts
 - an optional package enters the wrong consumer graph
 - a consumer toolchain falls outside proven compatibility
-- Bovine overlap clearance is required before the first Soundcheck slice
+- Split-shell overlap clearance is required before the first Soundcheck slice
 
 ## Completion Evidence
 
@@ -68,7 +68,7 @@ Bovine, and Jetstream before admitting consumer writes. Do not publish.
   Longhorn Rust `42a1a40...`
 - fresh artifacts: 5 Poodle, 9 Longhorn TypeScript, 18 selected Longhorn
   Rust, and 3 dev-only Rust workspace support archives
-- isolated graphs: Soundcheck 7 TypeScript/14 Rust, Bovine 4/6, Jetstream
+- isolated graphs: Soundcheck 7 TypeScript/14 Rust, Split-shell 4/6, Jetstream
   6/6; every forbidden package absent
 - toolchain: Bun 1.3.14, TypeScript 6.0.3, Svelte 5.56.8, Tauri API
   2.11.1, Rust 1.85.0, and locked/offline Tauri 2.11.5

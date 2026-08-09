@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Longhorn Window Proof",
   "version": "0.1.0",
-  "identifier": "audio.infiniteloop.longhorn-window-proof",
+  "identifier": "audio.example.longhorn-window-proof",
   "build": {
     "frontendDist": "../frontend"
   },

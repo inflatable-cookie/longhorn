@@ -4,7 +4,7 @@
   "platform": "macos",
   "architecture": "aarch64",
   "tauri_version": "2.10.3",
-  "evidence_root": "/Users/tom/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64",
+  "evidence_root": "/Users/example/Dev/projects/longhorn/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64",
   "checks": [
     {
       "id": "packaged_macos_native_view_below_transparent_webview",

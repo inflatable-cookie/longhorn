@@ -71,7 +71,7 @@ function requireAll(content: string, values: string[]): void {
 
 function displayName(name: string): string {
   if (name === "optional-server") return "optional server";
-  if (["nucleus", "loophole", "soundcheck", "bovine", "jetstream"].includes(name)) {
+  if (["nucleus", "loophole", "soundcheck", "split-shell", "jetstream"].includes(name)) {
     return `${name[0]!.toUpperCase()}${name.slice(1)}`;
   }
   return name;

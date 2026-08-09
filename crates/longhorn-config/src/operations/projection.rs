@@ -31,18 +31,18 @@ mod tests {
             "/native/runtime",
         );
         let layout = resolve_storage_layout(&StorageLayoutRequest::new(
-            StorageIdentity::new("audio.infiniteloop.soundcheck").unwrap(),
+            StorageIdentity::new("audio.example.soundcheck").unwrap(),
             facts,
         ))
         .unwrap();
         let projection = StorageLayoutProjection::try_from(&layout.diagnostic()).unwrap();
         assert_eq!(
             projection.canonical_application_id,
-            "audio.infiniteloop.soundcheck"
+            "audio.example.soundcheck"
         );
         assert_eq!(
             projection.roots[0].path,
-            "/native/config/audio.infiniteloop.soundcheck/config"
+            "/native/config/audio.example.soundcheck/config"
         );
         assert_eq!(projection.roots[0].provenance, "platform:config");
     }

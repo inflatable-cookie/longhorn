@@ -52,7 +52,7 @@ this receipt as the *proven* point-in-time artifact set, and the
 | Nucleus | `c0aeeed84ea76e7c8dbcdcfd7943d0f9a5cb10d9` | merged no-Surface app manifests |
 | Loophole | `7bf096d4d17f77194c47456f5c59661fe3c4495f` | merged Aura, Echo storage, and Pulse manifests |
 | Soundcheck | `e8970aa212e9464f53264f58f6628cd98254fc30` | merged desktop and workspace manifests |
-| Bovine | `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` | merged minimal graph manifests; unrelated docs work excluded |
+| Split-shell | `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` | merged minimal graph manifests; unrelated docs work excluded |
 | Jetstream | `e9a54daacdec1f5c6573687a5543e9ffb2dae2b0` | merged editor graph manifests |
 
 Selected paths are clean against each commit. No consumer repository is
@@ -79,7 +79,7 @@ public-release gate.
 | Nucleus | 11 | 24 | 24 | workspace and child view; no Surface/transfer graph |
 | Loophole | 12 | 23 | 23 | full layout/Surface/transfer and linear history |
 | Soundcheck | 6 | 14 | 14 | storage/settings/window/operation/isolated window |
-| Bovine | 4 | 6 | 6 | minimal config/settings graph |
+| Split-shell | 4 | 6 | 6 | minimal config/settings graph |
 | Jetstream | 6 | 6 | 6 | bridge/commands/backing surface |
 | optional server | 5 | 8 | 8 | valid local config/settings plus selected bridge |
 

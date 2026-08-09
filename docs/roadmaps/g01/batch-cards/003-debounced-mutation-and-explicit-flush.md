@@ -165,7 +165,7 @@ consumer owns optimistic UI projection.
 - same-process and helper-process intervening-mutation fixtures
 - failure-injection tests before and after atomic replacement
 - aggregate partial-failure and drop-with-pending tests
-- Loophole layout, Nucleus/Soundcheck geometry, and Bovine presentation-shaped
+- Loophole layout, Nucleus/Soundcheck geometry, and Split-shell presentation-shaped
   conformance fixtures
 - Rust 1.85 workspace check
 - `effigy doctor`
@@ -216,7 +216,7 @@ consumer owns optimistic UI projection.
 - semantic no-op and explicit discard proofs
 - known post-publication durability-failure clearing proof
 - aggregate stable-order partial-failure proof
-- Loophole layout, Nucleus geometry, and Bovine presentation fixtures
+- Loophole layout, Nucleus geometry, and Split-shell presentation fixtures
 - intervening same-process and helper-process fresh-value proofs
 - drop-with-pending no-write proof
 - `cargo +1.85.0 check --workspace --all-targets`

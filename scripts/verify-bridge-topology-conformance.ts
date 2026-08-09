@@ -13,7 +13,7 @@ import {
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/bridge-topology-proof");
 const shapes: readonly ShapeName[] = [
-  "bovine",
+  "split-shell",
   "jetstream",
   "soundcheck",
   "nucleus",
@@ -65,9 +65,9 @@ const queryCapability = JSON.parse(
   ),
 ) as { readonly permissions: readonly string[] };
 assertEqualSet(
-  "Bovine query-only Tauri admission",
+  "Split-shell query-only Tauri admission",
   queryCapability.permissions,
-  declaration("bovine").tauriPermissions,
+  declaration("split-shell").tauriPermissions,
 );
 
 const rootBarrel = await readFile(
@@ -97,7 +97,7 @@ const proofSources = (
       "README.md",
       "declarations.json",
       "common.ts",
-      "bovine.ts",
+      "split-shell.ts",
       "jetstream.ts",
       "soundcheck.ts",
       "nucleus.ts",
