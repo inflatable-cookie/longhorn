@@ -33,7 +33,7 @@ finishing a separation that mostly exists rather than creating one.
 
 ### Batch 3. Second backend
 
-- [ ] [Card 163](batch-cards/163-gpui-host-adapter.md) implements the
+- [x] [Card 163](batch-cards/163-gpui-host-adapter.md) implements the
   minimal GPUI host adapter that validates or refutes contract 020
 
 ## Dependency Shape
@@ -52,16 +52,16 @@ memo 021 dual-backend positioning
 - [x] no host-shaped concept sits unqualified in `longhorn-core`
 - [x] contract tiers are stated, and webview-edge contracts are optional
 - [ ] update installs on a host with no plugin, under the same contract
-- [ ] one host-contract claim is proved against both backends
+- [x] one host-contract claim is proved against both backends
 
 ## Acceptance Criteria
 
 - [x] `longhorn-windowing-config` compiles with no `longhorn-tauri-*`
   dependency
-- [ ] every host-contract requirement is stated without naming a backend
+- [x] every host-contract requirement is stated without naming a backend
 - [ ] the native installer and the Tauri plugin path share one conformance
   suite
-- [ ] the GPUI adapter's unproven claims are recorded as unproven
+- [x] the GPUI adapter's unproven claims are recorded as unproven
 
 ## Explicit Non-goals
 
@@ -75,5 +75,14 @@ memo 021 dual-backend positioning
 
 ## Next Task
 
-Card 161. It is documentation plus a type move, unblocks the rest, and makes
-the architecture honest about what it already is.
+Card 162 finishes the milestone. Cards 161 and 163 are complete.
+
+Two follow-ups fell out of Card 163. Neither blocks 162.
+
+- Split `HostCapability::MoveResize` into `Move` and `Resize`. GPUI has
+  resize and no move, so the compound forces it to withhold both and a GPUI
+  window can never be resized from a plan. Touches the pure planner,
+  `WindowOperation`, and both adapters.
+- Move `CountingProbe`, `transfer_session_probe` and `operation_probe` out of
+  `longhorn-tauri-update`. None reference Tauri — the same leak class Card
+  161 closed for windowing.

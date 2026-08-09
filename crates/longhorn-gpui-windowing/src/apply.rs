@@ -2,16 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{WindowId, WindowPlacement};
 use longhorn_windowing::{
-    HostCapability, HostWindowHandle, WindowDiffDiagnostic, WindowDiffInput, WindowOperation,
-    WindowOperationKind, plan_window_diff,
+    DesiredWindow, HostCapability, HostWindowHandle, WindowDiffDiagnostic, WindowDiffInput,
+    WindowOperation, WindowOperationKind, plan_window_diff,
 };
 
 use crate::{
     GpuiApplyAttempt, GpuiApplyConvergence, GpuiApplyError, GpuiApplyFailure, GpuiApplyFailureKind,
-    GpuiApplyOutcome, GpuiApplyReadback, GpuiApplyReceipt, GpuiDisplayFactsSource,
-    GpuiLogicalRect, GpuiLogicalSize, GpuiWindowBackend, GpuiWindowCall, GpuiWindowCreateRequest,
-    GpuiWindowKey, GpuiWindowRegistry, GpuiWindowRegistryError, gpui_host_capabilities,
-    observe_gpui_desktop,
+    GpuiApplyOutcome, GpuiApplyReadback, GpuiApplyReceipt, GpuiDisplayFactsSource, GpuiLogicalRect,
+    GpuiLogicalSize, GpuiWindowBackend, GpuiWindowCall, GpuiWindowCreateRequest,
+    GpuiWindowRegistry, GpuiWindowRegistryError, gpui_host_capabilities, observe_gpui_desktop,
 };
 
 /// What became of one plan diagnostic a GPUI host produced.
@@ -124,14 +123,25 @@ impl GpuiApplyOutcomeBundle {
 /// backend borrows the application context. There is no in-place variant that
 /// leaves the registry with the caller across a suspension point: on this host
 /// there is no suspension point to leave it across.
+///
+/// `desired_windows` repeats what the caller already put in `input`. That is
+/// not a convenience — GPUI takes a window's bounds, maximized state, focus
+/// and display as creation-time options and cannot change the first two
+/// afterwards, so the adapter must know a window's final placement before the
+/// window exists. `WindowDiffInput` exposes desired state only to the planner,
+/// because Tauri can mutate after creating and never had to ask. Making it
+/// readable is the right fix and is recorded against contract 020; it is a
+/// change to a crate the current release candidate has frozen, so the
+/// parameter carries it until that freeze lifts.
 pub fn execute_gpui_window_apply(
     input: WindowDiffInput,
+    desired_windows: &[DesiredWindow],
     mut registry: GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
     displays: &mut impl GpuiDisplayFactsSource,
 ) -> Result<GpuiApplyOutcomeBundle, GpuiApplyError> {
     let input = input.with_capabilities(gpui_host_capabilities(backend.can_create()));
-    let desired = desired_state(&input);
+    let desired = desired_state(desired_windows);
     let plan = plan_window_diff(&input).map_err(GpuiApplyError::Planning)?;
     registry
         .begin_generation(plan.generation())
@@ -210,13 +220,8 @@ struct DesiredState {
     visible: bool,
 }
 
-fn desired_state(input: &WindowDiffInput) -> BTreeMap<WindowId, DesiredState> {
-    // `WindowDiffInput::desired_windows` was `pub(crate)` until this adapter
-    // needed it. A host that must know final placement before a window exists
-    // cannot execute the plan without it; Tauri's never asked, which is why
-    // the pure input did not offer it.
-    input
-        .desired_windows()
+fn desired_state(desired_windows: &[DesiredWindow]) -> BTreeMap<WindowId, DesiredState> {
+    desired_windows
         .iter()
         .map(|desired| {
             (
@@ -257,11 +262,7 @@ fn classify(
             operation: *operation,
             reason: "a gpui window is on screen from creation",
         },
-        HostCapability::Hide
-            if desired
-                .get(window_id)
-                .is_some_and(|state| state.visible) =>
-        {
+        HostCapability::Hide if desired.get(window_id).is_some_and(|state| state.visible) => {
             GpuiDiagnosticDisposition::AlreadyTrue {
                 window_id: window_id.clone(),
                 operation: *operation,
@@ -430,7 +431,8 @@ fn execute_existing(
             );
         }
     };
-    if matches!(operation, WindowOperation::Close { .. }) && registry.is_protected_primary(&handle) {
+    if matches!(operation, WindowOperation::Close { .. }) && registry.is_protected_primary(&handle)
+    {
         return failed(
             generation,
             window_id,
@@ -487,7 +489,14 @@ fn execute_existing(
             }
             succeeded(generation, window_id, Some(handle), kind, completed)
         }
-        Err(failure) => failed(generation, window_id, Some(handle), kind, completed, failure),
+        Err(failure) => failed(
+            generation,
+            window_id,
+            Some(handle),
+            kind,
+            completed,
+            failure,
+        ),
     }
 }
 

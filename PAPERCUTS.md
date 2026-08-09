@@ -7,6 +7,32 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] A new crate silently staleness-fails an unrelated gate — 2026-08-09
+- Friction: adding `crates/longhorn-gpui-windowing` turned `check:api-reference`
+  red, because `docs/reference/api-surface.md` enumerates every crate
+  directory and asserts the count. The failure surfaces during `effigy qa`,
+  several steps after the change that caused it, and its message names a
+  generator selector rather than "you added a crate".
+- Impact: every new crate costs an unexplained red gate and a hunt for the
+  right regenerate command.
+- Possible fix: mention the regenerate step in the crate-creation path, or
+  have the generator's staleness error say which crates it found that the
+  document does not list.
+- Surface: `scripts/generate-api-reference-card126.ts`, `effigy.toml`.
+
+### [ ] Heavyweight host SDKs have no in-gate home — 2026-08-09
+- Friction: `gpui` cannot join the workspace without adding several hundred
+  transitive crates and a Metal shader build to `lint:rust`,
+  `lint:rust:features`, `test:rust` and `docs:rust`. The only alternative the
+  repo offers is `prototypes/`, which is outside every gate, so the binding
+  is verified by hand and can rot silently.
+- Impact: the one artefact proving a host seam matches its real SDK is the
+  one thing CI never builds.
+- Possible fix: an Effigy selector that builds excluded prototypes on a
+  slower cadence than `qa` — nightly, or as a release gate — so they are
+  checked without taxing every run.
+- Surface: `effigy.toml`, `prototypes/`, `.github/workflows/ci.yml`.
+
 ### [ ] Peered packages need a consumer override under `file:` refs — 2026-08-08
 - Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
   `@inflatable-cookie/longhorn` as a peer at `0.1.0`. A consumer that installs

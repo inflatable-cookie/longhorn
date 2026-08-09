@@ -63,10 +63,19 @@ discovery and validation entry points.
 | `longhorn-tauri-history` | registered metadata query and navigation assembly over injected history authorities | core, history, Tauri |
 | `longhorn-tauri-operation` | read, manage, and cancel handlers over injected operation authority and executor ports | core, operation, Tauri |
 | `longhorn-tauri-notifications` | bounded page and mutation handlers over an injected notification authority; app-wide invalidation hints | notifications, Tauri |
+| `longhorn-gpui-windowing` | GPUI host adapter: window create/destroy/observe, creation-time placement, lifecycle translation, synchronous close decision, quiescence probe, and refusal-typed display facts. Takes no `gpui` dependency — the backend is an injected seam, bound to real GPUI in `prototypes/gpui-windowing` | core, display, update, windowing |
 | `longhorn-bindings` | checked TypeScript generation | publishable domains |
 
 The bindings tool is development-only. Additional adapter crates stay narrow;
 there is no all-capabilities `longhorn-tauri` crate.
+
+Host adapters are per-backend and an application composes exactly one.
+`longhorn-gpui-windowing` deliberately has no `gpui` dependency: `gpui` pulls
+several hundred transitive crates and a Metal shader build, so binding it in
+the workspace would tax every QA lane for one adapter. The seam it exposes is
+bound to real GPUI by the excluded `prototypes/gpui-windowing` crate, which
+is the same line Poodle draws between `packages/gpui/adapter` and
+`packages/gpui/preview`.
 
 Implemented generator slices cover config operations, settings, layout,
 Surface, transfer, optional Surface-transfer, bridge, history, operation, and notification

@@ -2434,6 +2434,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-gpui-windowing"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-display",
+ "longhorn-update",
+ "longhorn-windowing",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "longhorn-history"
 version = "0.1.0"
 dependencies = [

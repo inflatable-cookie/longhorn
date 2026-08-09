@@ -18,6 +18,7 @@
 | `longhorn-config-age` | library | none | [source](../../crates/longhorn-config-age/src/lib.rs) |
 | `longhorn-core` | library | `bindings` | [source](../../crates/longhorn-core/src/lib.rs) |
 | `longhorn-display` | library | none | [source](../../crates/longhorn-display/src/lib.rs) |
+| `longhorn-gpui-windowing` | library | none | [source](../../crates/longhorn-gpui-windowing/src/lib.rs) |
 | `longhorn-history` | library | `bindings` | [source](../../crates/longhorn-history/README.md) |
 | `longhorn-history-tree` | library | `bindings`, `default` | [source](../../crates/longhorn-history-tree/README.md) |
 | `longhorn-layout` | library | `bindings` | [source](../../crates/longhorn-layout/src/lib.rs) |

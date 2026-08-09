@@ -100,13 +100,22 @@ impl fmt::Display for GpuiDisplayError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidScale { ordinal, source } => {
-                write!(formatter, "display {ordinal} reported an invalid scale: {source}")
+                write!(
+                    formatter,
+                    "display {ordinal} reported an invalid scale: {source}"
+                )
             }
             Self::InvalidBounds { ordinal, detail } => {
-                write!(formatter, "display {ordinal} reported invalid bounds: {detail}")
+                write!(
+                    formatter,
+                    "display {ordinal} reported invalid bounds: {detail}"
+                )
             }
             Self::DuplicateObservationId { observation_id } => {
-                write!(formatter, "duplicate display observation id {observation_id}")
+                write!(
+                    formatter,
+                    "duplicate display observation id {observation_id}"
+                )
             }
             Self::Unobtainable { ordinal, fact } => write!(
                 formatter,
@@ -176,10 +185,16 @@ impl fmt::Display for GpuiObservationError {
                 write!(formatter, "duplicate observed window id {window_id}")
             }
             Self::InvalidScale { handle, source } => {
-                write!(formatter, "window {handle} reported an invalid scale: {source}")
+                write!(
+                    formatter,
+                    "window {handle} reported an invalid scale: {source}"
+                )
             }
             Self::Geometry { handle, detail } => {
-                write!(formatter, "window {handle} geometry conversion failed: {detail}")
+                write!(
+                    formatter,
+                    "window {handle} geometry conversion failed: {detail}"
+                )
             }
             Self::Host { handle, detail } => {
                 write!(formatter, "gpui probe of window {handle} failed: {detail}")

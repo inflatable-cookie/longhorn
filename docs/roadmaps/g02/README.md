@@ -95,7 +95,13 @@ already exists — 12.5% of the Rust is Tauri-bound, with exactly one
 pure-to-host dependency edge and one webview-shaped concept in core.
 Contract 020 compiles the host-adapter boundary, contract 018 is amended so
 update execution is host-dependent, and the register is tiered into core,
-host, and webview edge. Cards 161-163 (g02.012) execute it.
+host, and webview edge. Cards 161-163 (g02.012) execute it. Cards 161 and
+163 are complete: the second backend exists, and contract 020 is amended from
+what building it found — eleven bends, seven GPUI's shape and four Tauri
+assumptions the contract had absorbed. The contract now carries a divergence
+register and says in its own Evidence section that it is not complete, because
+neither backend has proved multi-window placement, cross-window transfer, or
+lifecycle teardown under load.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

@@ -306,7 +306,10 @@ impl fmt::Display for GpuiWindowRegistryError {
                 write!(formatter, "duplicate managed window id {window_id}")
             }
             Self::ProtectedPrimaryMissing(handle) => {
-                write!(formatter, "protected primary handle {handle} is not managed")
+                write!(
+                    formatter,
+                    "protected primary handle {handle} is not managed"
+                )
             }
             Self::UnknownTransportHandle(handle) => {
                 write!(formatter, "unknown managed handle {handle}")

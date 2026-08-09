@@ -234,16 +234,7 @@ impl WindowDiffInput {
         self
     }
 
-    /// Returns desired host-facing state for every resolved logical window.
-    ///
-    /// A host adapter reads this when it must know a window's final placement
-    /// before the window exists. GPUI is such a host: bounds, maximized state
-    /// and initial focus are creation-time options, and two of the three
-    /// cannot be changed afterwards, so its adapter cannot execute the plan's
-    /// neutral-slot-then-mutate order literally. A host that can mutate after
-    /// creating never reads this and is unaffected by its being visible.
-    #[must_use]
-    pub fn desired_windows(&self) -> &[DesiredWindow] {
+    pub(crate) fn desired_windows(&self) -> &[DesiredWindow] {
         &self.desired_windows
     }
 

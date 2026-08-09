@@ -388,7 +388,12 @@ mod tests {
         let key = GpuiWindowKey::new(7);
 
         assert_eq!(key.transport_handle().as_str(), "gpui-window:7");
-        assert_eq!(GpuiWindowKey::new(u64::MAX).transport_handle().as_str().len(), 33);
+        // The widest possible slot still renders well inside the handle's
+        // 256-byte bound, so the infallible construction is honest.
+        assert_eq!(
+            GpuiWindowKey::new(u64::MAX).transport_handle().as_str(),
+            "gpui-window:18446744073709551615"
+        );
     }
 
     #[test]

@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-gpui-windowing-prototype"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[dependencies]
+gpui = "0.2.2"
+longhorn-core = { path = "../../crates/longhorn-core" }
+longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
+longhorn-windowing = { path = "../../crates/longhorn-windowing" }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"

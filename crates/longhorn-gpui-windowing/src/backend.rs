@@ -132,11 +132,7 @@ pub trait GpuiWindowBackend {
     ) -> Result<GpuiWindowKey, GpuiWindowError>;
 
     /// Sets the content size. GPUI resizes about the window's current origin.
-    fn resize(
-        &mut self,
-        key: GpuiWindowKey,
-        size: GpuiLogicalSize,
-    ) -> Result<(), GpuiWindowError>;
+    fn resize(&mut self, key: GpuiWindowKey, size: GpuiLogicalSize) -> Result<(), GpuiWindowError>;
 
     /// Drives the window to an absolute maximized state.
     ///
@@ -145,11 +141,8 @@ pub trait GpuiWindowBackend {
     /// idempotent from Longhorn's side but not atomic: a user zoom between the
     /// read and the toggle inverts the result. Tauri has absolute `maximize`
     /// and `unmaximize` and no such window.
-    fn set_maximized(
-        &mut self,
-        key: GpuiWindowKey,
-        maximized: bool,
-    ) -> Result<(), GpuiWindowError>;
+    fn set_maximized(&mut self, key: GpuiWindowKey, maximized: bool)
+    -> Result<(), GpuiWindowError>;
 
     /// Brings the window forward and gives it key focus.
     fn activate(&mut self, key: GpuiWindowKey) -> Result<(), GpuiWindowError>;

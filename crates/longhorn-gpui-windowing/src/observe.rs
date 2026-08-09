@@ -120,10 +120,11 @@ pub fn project_gpui_display(
     facts: &GpuiDisplayFacts,
     source: &mut impl GpuiDisplayFactsSource,
 ) -> Result<GpuiDisplayObservation, GpuiDisplayError> {
-    let observation_id = ObservationId::new(format!("gpui-probe:{ordinal}"))
-        .map_err(|error| GpuiDisplayError::Host {
+    let observation_id = ObservationId::new(format!("gpui-probe:{ordinal}")).map_err(|error| {
+        GpuiDisplayError::Host {
             detail: error.to_string(),
-        })?;
+        }
+    })?;
     let full_bounds =
         facts
             .bounds()
@@ -278,11 +279,9 @@ pub fn observe_gpui_displays(
     backend: &mut impl GpuiWindowBackend,
     source: &mut impl GpuiDisplayFactsSource,
 ) -> Result<Vec<GpuiDisplayObservation>, GpuiDisplayError> {
-    let facts = backend
-        .displays()
-        .map_err(|error| GpuiDisplayError::Host {
-            detail: error.detail().to_string(),
-        })?;
+    let facts = backend.displays().map_err(|error| GpuiDisplayError::Host {
+        detail: error.detail().to_string(),
+    })?;
     let mut observation_ids = BTreeSet::new();
     let mut displays = Vec::with_capacity(facts.len());
     for (ordinal, display) in facts.iter().enumerate() {
