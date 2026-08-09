@@ -1,6 +1,6 @@
 # 169 Poodle Projection Tier
 
-Status: ready
+Status: blocked — no mechanism exists for Longhorn to depend on Poodle's Rust crates
 Owner: Tom
 Roadmap: g02.012 follow-up
 Governing refs: contract 020; contract 013; research memo 021
@@ -83,6 +83,61 @@ one this card has to solve.
 This is the same shape twice over: `longhorn-gpui-windowing` takes no `gpui`
 and pushes the binding to an excluded prototype; `poodle-gpui` takes no `gpui`
 and pushes it to a preview. Two repositories reached it independently.
+
+## Blocked — 2026-08-09: there is no Rust route from Longhorn to Poodle
+
+The name and the dependency shape are settled, and then the card stops. It
+cannot start, and the reason is mechanical rather than hard.
+
+`longhorn-poodle` must depend on `poodle-specs`. There is no sanctioned way
+for it to do so.
+
+| Route | State |
+| --- | --- |
+| crates.io | `poodle-specs` is not published |
+| private registry | none configured for either repository |
+| git dependency | not used anywhere in either repository |
+| cross-repo path | breaks CI, which checks out Longhorn alone |
+| pinned artifacts | **exists for npm only** |
+
+Longhorn already consumes Poodle, and does it well: pinned tarballs from
+`~/Dev/projects/poodle/.artifacts/`, each with a recorded SHA-256, and a set
+id that is a membership hash over `name:sha256` pairs. Contract 012 records
+the pins; `scripts/poodle-evidence.ts` derives them from the root manifest so
+they cannot rot. That is a considered mechanism with an integrity claim.
+
+It is **entirely npm**. `grep -rn poodle --include=Cargo.toml` across Longhorn
+returns nothing, and Poodle's `.artifacts/` holds only `svelte-pack-install-*`
+sets. Poodle's Rust crates are path dependencies inside Poodle and reach no
+further.
+
+### Why not just add a path dependency
+
+Because it would be the first thing in either repository to assume a fixed
+relative checkout, it would fail in CI, and it would carry no integrity claim
+at all — against a contract whose whole cross-repo model is pinned hashes.
+A one-line `path = "../poodle/…"` would work on this machine and nowhere else.
+
+### The options, for a decision
+
+1. **Publish Poodle's Rust contract crates to crates.io.** Simplest, and
+   already the direction of travel: g02.014 is "Poodle and Longhorn on public
+   npm". Publishing the Rust contract layer publicly is the consistent
+   parallel. Cost: `poodle-specs` becomes public API with a versioning
+   commitment, which it does not have today.
+2. **Extend the artifact-pinning model to Rust.** Most consistent with
+   contract 012 as written — vendored crate sources with recorded hashes, the
+   same integrity claim the npm side already makes. Cost: building a
+   mechanism that does not exist, for one consumer.
+3. **Wait.** The projection tier is not on the critical path for anything
+   shipping. Cost: GPUI applications stay unable to draw.
+
+Option 1 is the recommendation, on the grounds that the parallel already
+exists and the alternative is inventing distribution machinery for a single
+dependency edge.
+
+**This is a cross-repository distribution decision touching contract 012, so
+it is recorded rather than taken.**
 
 ## Scope
 

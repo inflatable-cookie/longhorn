@@ -82,13 +82,16 @@ The milestone is closed. Two follow-up cards came out of it:
 - [Card 168](batch-cards/168-installation-provenance.md) — complete. Fixed a
   live defect: a Homebrew-managed application self-updated and desynced
   `brew` silently.
-- [Card 169](batch-cards/169-poodle-projection-tier.md) — ready, and the
+- [Card 169](batch-cards/169-poodle-projection-tier.md) — blocked, and the
   largest remaining GPUI piece. The host boundary is done; a GPUI application
   can open and place a window and has nothing to draw in it. Its two
   structural questions are answered: the crate is `longhorn-poodle`, not
   `longhorn-poodle-gpui`, because `poodle-specs` already carries two Rust
   renderers; and no `gpui` dependency arises, because the projection emits
-  specs.
+  specs. **Now blocked**: Longhorn has no sanctioned way to depend on
+  Poodle's Rust crates at all. The cross-repo mechanism that exists — pinned
+  tarballs with recorded hashes — is npm-only, and needs an operator decision
+  on contract 012.
 
 Earlier follow-ups, all now done:
 
