@@ -29,6 +29,13 @@ existed for exactly one release — eighteen from Longhorn, three from Poodle.
 - [ ] [Card 166](batch-cards/166-first-publication.md) publishes both
   repositories, repoints twenty-four consumer manifests, and cuts the tag
 
+### Batch 2. Disclosure readiness
+
+- [ ] [Card 167](batch-cards/167-publication-disclosure-readiness.md) removes
+  third-party identity so either repository can be made public. Independent of
+  Batch 1 — publication does not require public repositories, but the operator
+  intends them.
+
 ## Goals
 
 - the six publish-intent packages resolve from the public registry
