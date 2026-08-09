@@ -250,13 +250,69 @@ Rust one is possible and is not this card's work.
 does, so it is assigned directly. The field exists, so this is an asymmetry
 and not a gap, and the stop condition did not fire.
 
+## Third domain — settings navigation, 2026-08-09
+
+Settings was picked because it is the only domain with a `svelte/` directory
+next to its `poodle/` one, which made it the sharpest test of whether the tier
+has a second, framework-bound layer with no Rust answer. It does, and that
+turns out to be correct rather than a problem.
+
+`longhorn-poodle::settings` projects a sealed registry into `SidebarNavSpec`.
+Five tests.
+
+### 1,308 of 1,743 lines are not a projection
+
+`settings/svelte/` is session, document and page runtime built on Svelte
+runes — `$state`, `$derived`, reactive lifecycle. `settings/poodle/` is one
+435-line shell. Only the shell's navigation derivation crossed, and only
+because it is pure.
+
+This is the clean case. The runtime is genuinely framework-bound, a GPUI
+application will need its own, and the two will not resemble each other. That
+is not a parity gap; it is what a projection tier is for. The card's earlier
+worry — that the Svelte tier hides a webview assumption in its bones — is only
+half right. It does, and the bones are correctly separated from the flesh.
+
+### Domain logic sitting in the client tier
+
+`projectSettingsRegistry` is in `packages/longhorn/src/settings/registry.ts`.
+It is a pure function over Rust-generated types that states a Longhorn rule:
+drop sections with no pages, then drop modules left with no sections. That is
+a rule about Longhorn's own registry, in TypeScript, in the *client* tier
+rather than the projection tier.
+
+Same class as `compatibility_label` in the previous domain and a tier further
+out. Rust is where the rule belongs; the TypeScript is a port that nothing
+checks.
+
+### One implicit dependency, now explicit
+
+The TypeScript projection never sorts. It is correct only because
+`SettingsRegistryBuilder::seal` sorts modules, sections, pages and anchors by
+explicit `order` then by id. Nothing on the TypeScript side says so. The Rust
+projection does not re-sort either, and its doc comment says why — a second
+statement of the same ordering rule is a second thing that can drift.
+
+### A divergence banked for whoever projects search
+
+`searchSettingsRegistry` normalises with `toLocaleLowerCase("en-US")`. Rust's
+`str::to_lowercase` is Unicode-default and locale-free. The two will not agree
+on every input, so a Rust search projection has to state which one is right
+rather than assume they match. Not projected here; recorded so it is not
+discovered by a bug report.
+
+### Poodle needed no change
+
+`SidebarNavSpec`, `SidebarNavGroup` and `SidebarNavItem` carried everything
+the shell uses. Stop condition did not fire.
+
 ### Parity against `longhorn-poodle-svelte`
 
 | Domain | Rust | Note |
 | --- | --- | --- |
 | notifications | projected | toasts; severity collapse recorded above |
 | config | projected | restore inspection: choices and evidence block |
-| settings | not yet | |
+| settings | projected | sidebar navigation; page runtime is deliberately framework-bound |
 | operations | not yet | |
 | licence | not yet | |
 | update | not yet | |
