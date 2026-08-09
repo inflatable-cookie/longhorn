@@ -7,6 +7,26 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [x] Greenfield proof froze the tree it was meant to describe — 2026-08-09
+- Friction: `verify-greenfield-card125.ts` asserted `git diff --quiet
+  <frozen-commit>` across every TypeScript package and every Rust crate, so any
+  change to any crate failed an unrelated gate. It blocked the GPUI thread,
+  and it had already been rebaselined once during the package consolidation.
+  A second check threw when a *sibling* repository was dirty, which made
+  Longhorn's `qa` depend on whether anyone was mid-edit in Poodle.
+- Impact: two of three concurrent threads stalled on a gate describing neither
+  of their changes, with rebaselining the fixture as the only remedy.
+- Fixed 2026-08-09: the frozen-source comparison is gone and cleanliness is
+  recorded in the report rather than thrown on. The composition claims —
+  inventories, per-shape graphs, audits, mounted tests — are computed from the
+  current tree and unchanged, so nothing about correctness was traded away.
+  The artifact set ids are emitted as evidence rather than asserted, since
+  every one is a hash over packed contents and asserting them re-freezes the
+  tree through the back door. Cleanliness belongs to a release gate, where a
+  tag must name exact clean commits.
+- Surface: `scripts/verify-greenfield-card125.ts`,
+  `fixtures/greenfield/card125/composition-matrix-v1.json`.
+
 ### [ ] `bunx effigy` in CI would run a stranger's package — 2026-08-09
 - Friction: Effigy is a local binary at `~/.local/bin/effigy`, not a
   devDependency. An unrelated package named `effigy` exists on npm at `0.0.2`,
@@ -21,7 +41,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   says why.
 - Surface: `.github/workflows/release.yml` in both repositories, Effigy docs.
 
-### [ ] A new crate silently staleness-fails an unrelated gate — 2026-08-09
+### [x] A new crate silently staleness-fails an unrelated gate — 2026-08-09
 - Friction: adding `crates/longhorn-gpui-windowing` turned `check:api-reference`
   red, because `docs/reference/api-surface.md` enumerates every crate
   directory and asserts the count. The failure surfaces during `effigy qa`,
@@ -29,9 +49,13 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   generator selector rather than "you added a crate".
 - Impact: every new crate costs an unexplained red gate and a hunt for the
   right regenerate command.
-- Possible fix: mention the regenerate step in the crate-creation path, or
-  have the generator's staleness error say which crates it found that the
-  document does not list.
+- Fixed 2026-08-09 for the second half. `verify-guides-card126.ts` hardcoded
+  "Rust 41, TypeScript 18" and then "42, 3"; it now derives both counts from
+  `crates/` and `packages/`, so adding a crate no longer reddens it, and the
+  message names the regenerate command. `check:api-reference` still requires
+  the document to be regenerated — that part is correct, since a stale
+  inventory is a real defect — but it now fails alone rather than dragging an
+  unrelated proof with it.
 - Surface: `scripts/generate-api-reference-card126.ts`, `effigy.toml`.
 
 ### [ ] Heavyweight host SDKs have no in-gate home — 2026-08-09

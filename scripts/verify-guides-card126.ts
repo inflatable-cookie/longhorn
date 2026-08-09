@@ -1,4 +1,4 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -54,14 +54,27 @@ requireAll(guides, [
 ]);
 
 const api = documents.get("docs/reference/api-surface.md")!;
+// Derived from the workspace rather than hardcoded. A literal count means
+// every new crate reddens this gate with a message that names a generator
+// selector rather than "you added a crate" -- which is exactly what happened
+// when longhorn-gpui-windowing landed. The claim worth keeping is that the
+// generated inventory lists everything, not that the total equals a number
+// someone wrote down.
 const rustCount = [...api.matchAll(/^\| `longhorn-[^`]+` \|/gm)].length;
 const typescriptCount = [
   ...api.matchAll(/^\| `@inflatable-cookie\/longhorn[^`]*` \|/gm),
 ].length;
-  // Card 164 collapsed eighteen TypeScript packages into three; the Rust
-// count moved with the capability crates added since.
-if (rustCount !== 42 || typescriptCount !== 3) {
-  throw new Error(`API inventory count drift: Rust ${rustCount}, TypeScript ${typescriptCount}`);
+const crateDirectories = (await readdir(join(repoRoot, "crates"), { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .length;
+const packageDirectories = (await readdir(join(repoRoot, "packages"), { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .length;
+if (rustCount !== crateDirectories || typescriptCount !== packageDirectories) {
+  throw new Error(
+    `API inventory does not list the workspace: api-surface.md has ${rustCount} crates and ${typescriptCount} packages, ` +
+      `the workspace has ${crateDirectories} and ${packageDirectories}. Run \`effigy generate:api-reference\`.`,
+  );
 }
 if (!api.includes("not available from npm or crates.io") || !api.includes("private: true") || !api.includes("publish = false")) {
   throw new Error("API reference publication posture missing");

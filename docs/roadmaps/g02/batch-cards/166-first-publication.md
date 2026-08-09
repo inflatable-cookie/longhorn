@@ -176,6 +176,50 @@ one for that reason and because publishing 245 KB of unused icon data as
 `0.1.0` means carrying it forever or breaking immediately after. The token CSS
 generation still needs wiring; the icon half goes away.
 
+## Bootstrapping Trusted Publishing
+
+Trusted publishing has a chicken-and-egg problem the rest of this card assumed
+away: the trusted publisher is configured on a package's settings page, and
+that page exists only once the package does. A package that has never been
+published cannot be configured, so the **first** publish has to happen another
+way and every publish after it is automated.
+
+Both repositories are also **private**, which matters for one thing.
+Provenance attestation links a package to a public commit and a public workflow
+run; from a private repository there is nothing publicly verifiable to link to.
+Trusted publishing itself is unaffected — the OIDC exchange does not care about
+visibility — but the provenance badge waits on making the repositories public,
+which is a separate decision and not a blocker.
+
+Verify both against npm's current documentation before relying on them. Trusted
+publishing is recent and the first-publish flow is exactly the kind of detail
+that moves.
+
+### The bootstrap, without a token on GitHub
+
+1. Enable 2FA on the npm account and confirm it owns `@inflatable-cookie`.
+2. Run the release workflow with `workflow_dispatch` and `dry-run: true`. It
+   packs from a clean clone, generates what is generated, verifies the tarball
+   and uploads the `.tgz` files as run artifacts. Nothing publishes.
+3. Download those artifacts and inspect them — `tar -tzf` — confirming the
+   token CSS is present and, after Poodle Card 021, that no icon catalogue is.
+4. `npm login` locally (interactive, 2FA) and
+   `npm publish <tarball> --access public` on those exact files.
+5. Configure the trusted publisher on each new package page: the repository and
+   `release.yml`.
+6. `npm logout`. Every release after this is a tag push with no credential
+   anywhere.
+
+Step 4 uploads a CI-built artifact rather than a locally built one, which is
+the property worth keeping: what was built and who uploaded it are separate,
+and the clean-clone hazard cannot apply to a tarball that was never built on a
+developer machine.
+
+Two traps. `npm publish` on a tarball still needs `--access public`, or a
+scoped package defaults to restricted and fails. And if the workflow job ever
+gains a GitHub `environment:`, the trusted publisher configuration must name it
+too or the OIDC claim will not match.
+
 ## Steps
 
 1. **Poodle publishes.** Drop `private`, add `publishConfig.access: "public"`,
@@ -207,7 +251,8 @@ generation still needs wiring; the icon half goes away.
 - v0.1.0 tagged, with Rust by tag and TypeScript by version
 - contract 012's "working names" and "publication is deferred" clauses updated
   to describe what actually happened
-- no `NPM_TOKEN` secret exists in either repository
+- no `NPM_TOKEN` secret exists in either repository, at any point
+- trusted publishing is configured for all five published packages
 - a tarball built from a clean checkout contains the generated icon and token
   trees
 
