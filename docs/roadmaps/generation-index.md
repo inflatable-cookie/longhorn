@@ -100,7 +100,17 @@ manifest, and `forbidden` was split into install-absence for packages and
 import-absence for subpaths — the old check could only pass vacuously once a
 domain became a subpath. Contract 012's Acceptance list is restated to match.
 
-The v0.1.0 tag is blocked on a poodle release; g02.009 is independent of it.
+[Card 166](g02/batch-cards/166-first-publication.md) opens g02.014 and is the
+live next step. The `@inflatable-cookie` scope was claimed on 2026-08-09, which
+satisfies contract 012's working-names gate, so publication is no longer
+deferred. The ordering is forced: Poodle publishes, Longhorn repoints off
+`file:` packs, Longhorn's CI TypeScript lane runs for the first time, Longhorn
+publishes, v0.1.0 is tagged, and twenty-four consumer manifests move to
+versions. One decision has to be taken before the repoint — the artifact proofs
+derive their pin from the `file:` pack reference that the repoint removes.
+
+Rust is not part of it. Every crate sets `publish = false` and consumers take
+them by git tag, so the Rust half of v0.1.0 needs only the tag.
 
 Also outstanding: Card 149's receipt freeze remains operator-held on
 consumer manifest quiescence, and the

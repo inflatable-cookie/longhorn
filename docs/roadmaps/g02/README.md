@@ -17,6 +17,7 @@
 | [g02.011](011-ipc-boundary-validation.md) | ready | IPC boundary validation derived from the Rust authority |
 | [g02.012](012-dual-backend-host-positioning.md) | ready | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
+| [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -135,7 +136,8 @@ tiered by readiness. None auto-starts; the operator picks.
 - production backend transport and endpoint-security policy
 - durable offline mutation policy
 - secure credential-store provider selection
-- package-registry naming and publication (explicitly deferred)
+- ~~package-registry naming and publication~~ — promoted to g02.014 on
+  2026-08-09 when the `@inflatable-cookie` scope was claimed
 
 ## Consumer Guardrails
 
