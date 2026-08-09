@@ -258,12 +258,7 @@
       "canUseArchive": false
     }
   ],
-  "deliberateDifferences": [
-    {
-      "what": "The Rust toast prefixes a Critical title with \"Critical: \"; no Svelte surface does.",
-      "why": "Memo 022 D5. The Svelte tier projects tone and label, and its toast projection lives in the client tier where the prefix has not been applied. A real gap, narrower than it looks, and the only one left in this fixture."
-    }
-  ],
+  "deliberateDifferences": [],
   "toastAction": [
     {
       "actions": [],
@@ -284,6 +279,24 @@
       ],
       "actionLabel": "Retry",
       "why": "A toast holds one action. Both tiers take the first and leave the rest to the notification centre. Memo 022, D9."
+    }
+  ],
+  "toastTitle": [
+    {
+      "severity": "info",
+      "title": "Scan complete",
+      "toastTitle": "Scan complete"
+    },
+    {
+      "severity": "error",
+      "title": "Sync failed",
+      "toastTitle": "Sync failed"
+    },
+    {
+      "severity": "critical",
+      "title": "Storage is read-only",
+      "toastTitle": "Critical: Storage is read-only",
+      "why": "Critical shares the danger tone with Error, so the severity says itself in the title. Memo 022, D5."
     }
   ]
 }

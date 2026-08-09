@@ -1,3 +1,5 @@
+import { NOTIFICATION_SEVERITY_TITLE_PREFIXES } from "./generated/labels.ts";
+
 import type {
   NotificationActionProjection,
   NotificationDraftProjection,
@@ -18,4 +20,22 @@ export function toastAction(
   draft: NotificationDraftProjection,
 ): NotificationActionProjection | undefined {
   return draft.actions[0];
+}
+
+/**
+ * The title a toast shows, with the severity said in words where the tone
+ * cannot say it.
+ *
+ * `Critical` and `Error` share the `danger` tone — four tones against five
+ * severities — so on screen they are the same tint and the same weight. A
+ * surface that renders the tone alone tells an operator that a read-only
+ * volume is the same class of problem as a failed sync.
+ *
+ * The prefixes are generated from `NotificationSeverity::title_prefix`, so
+ * both backends mark the same titles. A severity absent from the map needs no
+ * prefix: its tone says enough. Memo 022, D5.
+ */
+export function toastTitle(draft: NotificationDraftProjection): string {
+  const prefix = NOTIFICATION_SEVERITY_TITLE_PREFIXES[draft.severity] ?? "";
+  return `${prefix}${draft.title}`;
 }

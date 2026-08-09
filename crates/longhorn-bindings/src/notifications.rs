@@ -56,7 +56,16 @@ fn render_labels() -> String {
         .iter()
         .map(|severity| (severity.wire_name(), severity.label()))
         .collect();
-    label_module(
+    let prefixes: Vec<(&str, &str)> = NotificationSeverity::ALL
+        .iter()
+        .filter_map(|severity| {
+            severity
+                .title_prefix()
+                .map(|prefix| (severity.wire_name(), prefix))
+        })
+        .collect();
+
+    let mut rendered = label_module(
         "generate:notifications",
         &[LabelMap {
             constant: "NOTIFICATION_SEVERITY_LABELS",
@@ -64,7 +73,22 @@ fn render_labels() -> String {
             key_type: "NotificationSeverityProjection",
             entries: &entries,
         }],
-    )
+    );
+
+    // Partial by design: only the severities whose tone cannot carry them
+    // appear, so a lookup miss means "the tone says enough". See memo 022, D5.
+    rendered.push_str("\n/** Title prefixes for severities the tone cannot distinguish. */\n");
+    rendered.push_str("export const NOTIFICATION_SEVERITY_TITLE_PREFIXES: Partial<\n");
+    rendered.push_str("  Record<NotificationSeverityProjection, string>\n> = {\n");
+    for (name, prefix) in prefixes {
+        rendered.push_str("  ");
+        rendered.push_str(name);
+        rendered.push_str(": \"");
+        rendered.push_str(prefix);
+        rendered.push_str("\",\n");
+    }
+    rendered.push_str("};\n");
+    rendered
 }
 
 fn render_protocol() -> Result<String, Box<dyn Error>> {

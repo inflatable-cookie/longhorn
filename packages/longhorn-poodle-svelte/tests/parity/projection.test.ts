@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import fixture from "../../../../fixtures/parity/projection-v1.json";
 
-import { toastAction } from "@inflatable-cookie/longhorn/notifications";
+import { toastAction, toastTitle } from "@inflatable-cookie/longhorn/notifications";
 
 import { notificationStatusTone } from "../../src/notifications/poodle/projectors.ts";
 import {
@@ -108,12 +108,30 @@ describe("cross-backend projection parity", () => {
     }
   });
 
-  it("records the differences that are deliberate rather than omitting them", () => {
-    // A parity suite that only lists agreements reads as though there are no
-    // differences. Every entry here is a decision or an open question from
-    // memo 022, and each carries its own reason.
-    expect(fixture.deliberateDifferences.length).toBeGreaterThan(0);
-    for (const difference of fixture.deliberateDifferences) {
+  it("says a severity in the title where the tone cannot", () => {
+    for (const testCase of fixture.toastTitle) {
+      const draft = {
+        severity: testCase.severity,
+        title: testCase.title,
+      } as never;
+
+      expect(toastTitle(draft), JSON.stringify(testCase)).toBe(
+        testCase.toastTitle,
+      );
+    }
+  });
+
+  it("gives every deliberate difference a stated reason", () => {
+    // The list is empty as of 2026-08-09 and the assertion is deliberately
+    // not "must be non-empty": a parity suite listing only agreements reads
+    // as though there are no differences, but so does one that invents them.
+    // The cast is because an empty JSON array infers as `never[]`.
+    const differences = fixture.deliberateDifferences as ReadonlyArray<{
+      what: string;
+      why: string;
+    }>;
+
+    for (const difference of differences) {
       expect(difference.what).toBeTruthy();
       expect(difference.why).toBeTruthy();
     }

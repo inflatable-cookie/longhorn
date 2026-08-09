@@ -11,3 +11,10 @@ export const NOTIFICATION_SEVERITY_LABELS: Record<NotificationSeverityProjection
   error: "Error",
   critical: "Critical",
 };
+
+/** Title prefixes for severities the tone cannot distinguish. */
+export const NOTIFICATION_SEVERITY_TITLE_PREFIXES: Partial<
+  Record<NotificationSeverityProjection, string>
+> = {
+  critical: "Critical: ",
+};

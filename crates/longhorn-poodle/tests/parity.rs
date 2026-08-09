@@ -176,6 +176,17 @@ fn every_restore_classification_labels_and_gates_as_the_fixture_states() {
 }
 
 #[test]
+fn a_toast_says_a_severity_the_tone_cannot_carry() {
+    for case in cases("toastTitle") {
+        let severity = severity(&text(&case, "severity"));
+        let prefix = severity.title_prefix().unwrap_or("");
+        let rendered = format!("{prefix}{}", text(&case, "title"));
+
+        assert_eq!(rendered, text(&case, "toastTitle"), "{case}");
+    }
+}
+
+#[test]
 fn a_toast_carries_the_first_action_and_no_more() {
     use longhorn_core::{
         NotificationActionReferenceId, NotificationAuthorityId, NotificationId,

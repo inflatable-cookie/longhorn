@@ -52,6 +52,27 @@ impl NotificationSeverity {
         }
     }
 
+    /// The prefix a title needs when the tone cannot carry this severity.
+    ///
+    /// `Critical` shares `Danger` with `Error` — four tones against five
+    /// severities — so on screen the two are the same tint and the same
+    /// weight. A surface that renders the tone alone tells an operator that a
+    /// read-only volume is the same class of problem as a failed sync.
+    ///
+    /// A word rather than a symbol or a second colour: an icon lands in the
+    /// vocabulary that already cannot tell them apart, and a screen reader
+    /// announces a word. On the title rather than the body because a toast is
+    /// read at a glance and a body may truncate.
+    ///
+    /// `None` for every severity whose tone says enough. See memo 022, D5.
+    #[must_use]
+    pub const fn title_prefix(self) -> Option<&'static str> {
+        match self {
+            Self::Critical => Some("Critical: "),
+            Self::Info | Self::Success | Self::Warning | Self::Error => None,
+        }
+    }
+
     /// The operator-facing name.
     ///
     /// Lives here rather than in a projection because what a severity is

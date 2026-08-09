@@ -269,7 +269,7 @@ open one.
 | D2 | duplicated label maps | generate from Rust | **done** — card 170 |
 | D3 | settings rules in the client tier | port now, generate later | **done** |
 | D4 | search normalisation | host decides, via `HostServices` | **done** |
-| D5 | Critical vs Error collapse | carry in text | **done** |
+| D5 | Critical vs Error collapse | carry in text, both tiers | **done** |
 | D6 | re-declared spec shapes | import or generate | open — Poodle-side |
 | D7 | read state on toasts | drop from Svelte | **done** |
 | D8 | platform services | bundle as `HostServices` | **done** |
@@ -349,6 +349,27 @@ tier's copy was unchecked and could have drifted without a red gate.
 Moved to `notificationSeverityTone` in `packages/longhorn`, which both
 TypeScript callers now use and the parity fixture checks. Found only because
 D9 sent me to read `projectToast`.
+
+## D5, finished properly — 2026-08-09
+
+The first pass applied the `Critical: ` prefix in Rust only, and the parity
+fixture recorded the gap as a deliberate difference. It was not deliberate; it
+was half a decision. "Longhorn carries the distinction in text" is about
+Longhorn, and the Svelte tier is Longhorn.
+
+The prefix moved onto `NotificationSeverity::title_prefix`, where it belongs —
+what a severity needs said about it is a property of the severity, the same
+argument Card 170 made for labels. It generates into
+`NOTIFICATION_SEVERITY_TITLE_PREFIXES`, `NotificationController.projectToast`
+applies it through `toastTitle`, and the parity fixture checks three cases on
+both sides.
+
+The map is partial by design: a severity absent from it needs no prefix
+because its tone says enough. Only `Critical` is in it.
+
+**`deliberateDifferences` is now empty.** The test that reads it no longer
+requires it to be non-empty — a suite that lists only agreements reads as
+though there are no differences, but so does one that invents them.
 
 ## What is still open
 

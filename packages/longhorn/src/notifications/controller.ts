@@ -10,7 +10,7 @@ import {
   type NotificationSnapshot,
 } from "./generated/protocol.ts";
 import { notificationSeverityTone, type NotificationStatusTone } from "./tone.ts";
-import { toastAction } from "./toast.ts";
+import { toastAction, toastTitle } from "./toast.ts";
 
 import type { NotificationPort } from "./ports.ts";
 
@@ -219,7 +219,7 @@ export class NotificationController {
     return {
       id: `notification-toast:${++this.toastSequence}`,
       notificationId: record.notificationId,
-      title: record.draft.title,
+      title: toastTitle(record.draft),
       description: record.draft.summary,
       tone: notificationSeverityTone(record.draft.severity),
       action: toastAction(record.draft),
