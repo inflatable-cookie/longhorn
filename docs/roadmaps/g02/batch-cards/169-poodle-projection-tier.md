@@ -181,6 +181,14 @@ reads it as a bug later.
 
 Neither of these needed a Poodle change, so the stop condition did not fire.
 
+**A path dependency widened the format gate into Poodle.** `cargo fmt --all`
+walks every local package in the graph rather than the workspace, so it
+reformatted `poodle-specs` under Longhorn's style edition and failed on files
+that pass Poodle's own gate. `fmt:rust` now derives its package list from
+`cargo metadata --no-deps`. Worth stating plainly: the fix task would have
+written into a sibling checkout. The two GitHub workflows still carry the old
+form and need the same change.
+
 ### Parity against `longhorn-poodle-svelte`
 
 | Domain | Rust | Note |

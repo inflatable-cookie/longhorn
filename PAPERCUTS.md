@@ -7,6 +7,25 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [x] `cargo fmt --all` reformats sibling repositories — 2026-08-09
+- Friction: `--all` is not workspace-scoped the way `--workspace` is. It walks
+  every *local* package in the graph, so the moment `crates/longhorn-poodle`
+  took a relative path dependency, `fmt:rust` started formatting Poodle — and
+  failing, because Longhorn is edition 2024 and Poodle is 2021, so the same
+  files pass Poodle's own gate and fail Longhorn's. Fifty-four diffs in a
+  repository this change never touched. `clippy`, `test` and `doc` were
+  unaffected; they all say `--workspace`.
+- Impact: the fix task would have *written* to a sibling checkout another
+  thread was working in. On a shared tree that is the same failure mode as
+  `git add -A`, arriving through a formatter.
+- Fixed 2026-08-09: `fmt:rust` derives its package list from `cargo metadata
+  --no-deps`, which is genuinely members-only, and passes each as `-p`.
+  `.github/workflows/ci.yml:34` and `release.yml:92` still say
+  `cargo fmt --all` and need the same change; workflows are not edited without
+  approval, so this is flagged rather than done.
+- Surface: `effigy.toml`, `.github/workflows/ci.yml`,
+  `.github/workflows/release.yml`.
+
 ### [ ] CI claims no sibling checkouts; two manifests need one — 2026-08-09
 - Friction: `ci.yml` states it "exists to prove a clean clone with no sibling
   checkouts, no `[patch]` config, and no warm caches". Two manifests contradict

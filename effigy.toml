@@ -16,7 +16,13 @@ exclude = ["history/**"]
 # runners cover the same ground.
 
 # --- Rust ---------------------------------------------------------------
-"fmt:rust" = "cargo fmt --all --check"
+# `cargo fmt --all` is not workspace-scoped the way `--workspace` is: it walks
+# every *local* package in the graph, so a relative path dependency drags a
+# sibling repository in and reformats it under this workspace's style edition.
+# Longhorn is edition 2024 and Poodle is 2021, so `poodle-specs` failed here
+# while passing its own gate. The package list comes from `--no-deps`, which
+# is genuinely members-only.
+"fmt:rust" = "sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
 "lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
