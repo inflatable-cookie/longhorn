@@ -2,10 +2,26 @@
   "version": 1,
   "note": "The cross-backend projection contract. Rust checks it in longhorn-poodle; TypeScript checks it in longhorn-poodle-svelte. Either side drifting fails its own gate. Hand-written on purpose: the point is that two independent implementations agree, so neither generates the other. See card 171 and memo 022.",
   "notificationSeverityTone": [
-    { "severity": "info", "tone": "info", "isLossy": false },
-    { "severity": "success", "tone": "success", "isLossy": false },
-    { "severity": "warning", "tone": "warning", "isLossy": false },
-    { "severity": "error", "tone": "danger", "isLossy": false },
+    {
+      "severity": "info",
+      "tone": "info",
+      "isLossy": false
+    },
+    {
+      "severity": "success",
+      "tone": "success",
+      "isLossy": false
+    },
+    {
+      "severity": "warning",
+      "tone": "warning",
+      "isLossy": false
+    },
+    {
+      "severity": "error",
+      "tone": "danger",
+      "isLossy": false
+    },
     {
       "severity": "critical",
       "tone": "danger",
@@ -14,29 +30,59 @@
     }
   ],
   "operationState": [
-    { "state": "queued", "tone": "pending", "label": "Queued" },
-    { "state": "running", "tone": "info", "label": "Running" },
-    { "state": "cancelling", "tone": "warning", "label": "Cancelling" },
-    { "state": "succeeded", "tone": "success", "label": "Succeeded" },
-    { "state": "failed", "tone": "danger", "label": "Failed" },
+    {
+      "state": "queued",
+      "tone": "pending",
+      "label": "Queued"
+    },
+    {
+      "state": "running",
+      "tone": "info",
+      "label": "Running"
+    },
+    {
+      "state": "cancelling",
+      "tone": "warning",
+      "label": "Cancelling"
+    },
+    {
+      "state": "succeeded",
+      "tone": "success",
+      "label": "Succeeded"
+    },
+    {
+      "state": "failed",
+      "tone": "danger",
+      "label": "Failed"
+    },
     {
       "state": "cancelled",
       "tone": "neutral",
       "label": "Cancelled",
       "why": "Neutral rather than danger: the operator asked for it."
     },
-    { "state": "interrupted", "tone": "warning", "label": "Interrupted" }
+    {
+      "state": "interrupted",
+      "tone": "warning",
+      "label": "Interrupted"
+    }
   ],
   "operationProgress": [
     {
-      "progress": { "kind": "indeterminate" },
+      "progress": {
+        "kind": "indeterminate"
+      },
       "indeterminate": true,
       "value": null,
       "max": 100,
       "valueText": null
     },
     {
-      "progress": { "kind": "units", "completed": 3, "total": 7 },
+      "progress": {
+        "kind": "units",
+        "completed": 3,
+        "total": 7
+      },
       "indeterminate": false,
       "value": 3,
       "max": 7,
@@ -44,7 +90,10 @@
       "why": "Units keep the executor's own totals rather than being normalised into a percentage."
     },
     {
-      "progress": { "kind": "normalized", "value": 0.256 },
+      "progress": {
+        "kind": "normalized",
+        "value": 0.256
+      },
       "indeterminate": false,
       "value": 0.256,
       "max": 1,
@@ -53,38 +102,104 @@
     }
   ],
   "cancelEligibility": [
-    { "support": "supported", "state": "queued", "canCancel": true },
-    { "support": "supported", "state": "running", "canCancel": true },
+    {
+      "support": "supported",
+      "state": "queued",
+      "canCancel": true
+    },
+    {
+      "support": "supported",
+      "state": "running",
+      "canCancel": true
+    },
     {
       "support": "supported",
       "state": "cancelling",
       "canCancel": false,
       "why": "The request is already in flight; a second one says nothing new."
     },
-    { "support": "supported", "state": "succeeded", "canCancel": false },
-    { "support": "supported", "state": "failed", "canCancel": false },
-    { "support": "supported", "state": "cancelled", "canCancel": false },
-    { "support": "supported", "state": "interrupted", "canCancel": false },
-    { "support": "unsupported", "state": "queued", "canCancel": false },
-    { "support": "unsupported", "state": "running", "canCancel": false }
+    {
+      "support": "supported",
+      "state": "succeeded",
+      "canCancel": false
+    },
+    {
+      "support": "supported",
+      "state": "failed",
+      "canCancel": false
+    },
+    {
+      "support": "supported",
+      "state": "cancelled",
+      "canCancel": false
+    },
+    {
+      "support": "supported",
+      "state": "interrupted",
+      "canCancel": false
+    },
+    {
+      "support": "unsupported",
+      "state": "queued",
+      "canCancel": false
+    },
+    {
+      "support": "unsupported",
+      "state": "running",
+      "canCancel": false
+    }
   ],
   "restoreCompatibility": [
-    { "compatibility": { "status": "ready" }, "label": "Ready", "canUseArchive": true },
     {
-      "compatibility": { "status": "migrationRequired", "from": 3, "to": 7 },
+      "compatibility": {
+        "status": "ready"
+      },
+      "label": "Ready",
+      "canUseArchive": true
+    },
+    {
+      "compatibility": {
+        "status": "migrationRequired",
+        "from": 3,
+        "to": 7
+      },
       "label": "Migration required (3 → 7)",
       "canUseArchive": true
     },
-    { "compatibility": { "status": "unknownDomain" }, "label": "Unknown domain", "canUseArchive": false },
-    { "compatibility": { "status": "descriptorMismatch" }, "label": "Descriptor mismatch", "canUseArchive": false },
-    { "compatibility": { "status": "domainCodeUnavailable" }, "label": "Domain code unavailable", "canUseArchive": false },
     {
-      "compatibility": { "status": "policyExcluded", "reason": "beta" },
+      "compatibility": {
+        "status": "unknownDomain"
+      },
+      "label": "Unknown domain",
+      "canUseArchive": false
+    },
+    {
+      "compatibility": {
+        "status": "descriptorMismatch"
+      },
+      "label": "Descriptor mismatch",
+      "canUseArchive": false
+    },
+    {
+      "compatibility": {
+        "status": "domainCodeUnavailable"
+      },
+      "label": "Domain code unavailable",
+      "canUseArchive": false
+    },
+    {
+      "compatibility": {
+        "status": "policyExcluded",
+        "reason": "beta"
+      },
       "label": "Policy excluded: beta",
       "canUseArchive": false
     },
     {
-      "compatibility": { "status": "customAdapterUnavailable", "adapter": "vault" },
+      "compatibility": {
+        "status": "customAdapterUnavailable",
+        "adapter": "vault"
+      },
       "label": "Adapter unavailable: vault",
       "canUseArchive": false
     },
@@ -92,7 +207,9 @@
       "compatibility": {
         "status": "customAdapterReady",
         "adapter": "vault",
-        "participation": { "kind": "separate" },
+        "participation": {
+          "kind": "separate"
+        },
         "confirmationDigest": "abc"
       },
       "label": "Custom adapter ready: vault",
@@ -100,39 +217,73 @@
       "why": "Adapter restore is a separate receipted operation, not a radio choice."
     },
     {
-      "compatibility": { "status": "customAdapterRejected", "adapter": "vault", "detail": "checksum" },
+      "compatibility": {
+        "status": "customAdapterRejected",
+        "adapter": "vault",
+        "detail": "checksum"
+      },
       "label": "Adapter rejected: vault — checksum",
       "canUseArchive": false
     },
     {
-      "compatibility": { "status": "targetUnavailable", "reason": "sealed" },
+      "compatibility": {
+        "status": "targetUnavailable",
+        "reason": "sealed"
+      },
       "label": "Target unavailable: sealed",
       "canUseArchive": false
     },
     {
-      "compatibility": { "status": "sourcePreserved", "issue": "truncated" },
+      "compatibility": {
+        "status": "sourcePreserved",
+        "issue": "truncated"
+      },
       "label": "Source preserved: truncated",
       "canUseArchive": false
     },
     {
-      "compatibility": { "status": "sourceRejected", "issue": "corrupt" },
+      "compatibility": {
+        "status": "sourceRejected",
+        "issue": "corrupt"
+      },
       "label": "Source rejected: corrupt",
       "canUseArchive": false
     },
     {
-      "compatibility": { "status": "targetPreparationFailed", "detail": "no space" },
+      "compatibility": {
+        "status": "targetPreparationFailed",
+        "detail": "no space"
+      },
       "label": "Target preparation failed: no space",
       "canUseArchive": false
     }
   ],
   "deliberateDifferences": [
     {
-      "what": "The Rust toast prefixes a Critical title with \"Critical: \"; the Svelte tier has no toast projector at all.",
-      "why": "Memo 022 D5. Not a disagreement — the Svelte tier projects tone and label only, and there is nothing to compare."
+      "what": "The Rust toast prefixes a Critical title with \"Critical: \"; no Svelte surface does.",
+      "why": "Memo 022 D5. The Svelte tier projects tone and label, and its toast projection lives in the client tier where the prefix has not been applied. A real gap, narrower than it looks, and the only one left in this fixture."
+    }
+  ],
+  "toastAction": [
+    {
+      "actions": [],
+      "actionLabel": null,
+      "why": "No actions means no button. Neither tier invents one."
     },
     {
-      "what": "notificationStatusLabel appends \", unseen\"; Rust carries no read state into the toast.",
-      "why": "Memo 022 D7, open. Recorded so the gap is visible while it waits for a decision."
+      "actions": [
+        "Retry"
+      ],
+      "actionLabel": "Retry"
+    },
+    {
+      "actions": [
+        "Retry",
+        "Open log",
+        "Dismiss for now"
+      ],
+      "actionLabel": "Retry",
+      "why": "A toast holds one action. Both tiers take the first and leave the rest to the notification centre. Memo 022, D9."
     }
   ]
 }

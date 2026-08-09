@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import fixture from "../../../../fixtures/parity/projection-v1.json";
 
-import {
-  notificationStatusTone,
-} from "../../src/notifications/poodle/projectors.ts";
+import { toastAction } from "@inflatable-cookie/longhorn/notifications";
+
+import { notificationStatusTone } from "../../src/notifications/poodle/projectors.ts";
 import {
   canCancelOperation,
   operationProgressView,
@@ -90,6 +90,21 @@ describe("cross-backend projection parity", () => {
         canUseArchive({ compatibility } as never),
         JSON.stringify(testCase),
       ).toBe(testCase.canUseArchive);
+    }
+  });
+
+  it("puts one action on a toast and leaves the rest to the centre", () => {
+    for (const testCase of fixture.toastAction) {
+      const draft = {
+        actions: testCase.actions.map((label, index) => ({
+          referenceId: `action:${index}`,
+          label,
+        })),
+      } as never;
+
+      expect(toastAction(draft)?.label ?? null, JSON.stringify(testCase)).toBe(
+        testCase.actionLabel,
+      );
     }
   });
 

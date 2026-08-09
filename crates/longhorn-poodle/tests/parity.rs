@@ -175,6 +175,69 @@ fn every_restore_classification_labels_and_gates_as_the_fixture_states() {
     }
 }
 
+#[test]
+fn a_toast_carries_the_first_action_and_no_more() {
+    use longhorn_core::{
+        NotificationActionReferenceId, NotificationAuthorityId, NotificationId,
+        NotificationSourceId,
+    };
+    use longhorn_notifications::{
+        NotificationAction, NotificationActionLabel, NotificationAdd, NotificationAuthorityEpoch,
+        NotificationDraft, NotificationLedger, NotificationLedgerLimits, NotificationSummary,
+        NotificationTitle,
+    };
+
+    for case in cases("toastAction") {
+        let labels: Vec<String> = case["actions"]
+            .as_array()
+            .expect("actions")
+            .iter()
+            .map(|value| value.as_str().expect("label").to_owned())
+            .collect();
+
+        let actions: Vec<NotificationAction> = labels
+            .iter()
+            .enumerate()
+            .map(|(index, label)| {
+                NotificationAction::new(
+                    NotificationActionReferenceId::new(format!("action:{index}")).expect("id"),
+                    NotificationActionLabel::new(label.clone()).expect("label"),
+                )
+            })
+            .collect();
+
+        let mut ledger = NotificationLedger::new(
+            NotificationAuthorityId::new("notifications:parity").expect("authority"),
+            NotificationAuthorityEpoch::new(1).expect("epoch"),
+            NotificationLedgerLimits::new(8, 1_024 * 1_024).expect("limits"),
+        );
+        let draft = NotificationDraft::new(
+            NotificationSourceId::new("parity").expect("source"),
+            NotificationSeverity::Info,
+            NotificationTitle::new("Title").expect("title"),
+            NotificationSummary::new("Summary").expect("summary"),
+        )
+        .with_actions(actions)
+        .expect("actions");
+        let add = NotificationAdd::new(
+            ledger.authority().clone(),
+            ledger.revision(),
+            NotificationId::new("parity:1").expect("id"),
+            draft,
+        );
+        ledger.add(add).expect("add");
+
+        let record = ledger.records().next().expect("record");
+        let toast = longhorn_poodle::project_notification(record);
+
+        assert_eq!(
+            toast.action_label.as_deref(),
+            case["actionLabel"].as_str(),
+            "{case}"
+        );
+    }
+}
+
 fn domain_with(
     compatibility: RestoreDomainCompatibilityProjection,
 ) -> longhorn_config::RestoreDomainInspectionProjection {

@@ -1,6 +1,6 @@
 # 022 Cross-backend Projection Divergence
 
-Status: decided 2026-08-09 — six implemented, three open
+Status: decided 2026-08-09 — eight implemented, one open
 Owner: Tom
 Updated: 2026-08-09
 Depends on: memo 021; contract 013; contract 020; Card 169
@@ -271,9 +271,9 @@ open one.
 | D4 | search normalisation | host decides, via `HostServices` | **done** |
 | D5 | Critical vs Error collapse | carry in text | **done** |
 | D6 | re-declared spec shapes | import or generate | open — Poodle-side |
-| D7 | read state on toasts | drop from Svelte | open |
+| D7 | read state on toasts | drop from Svelte | **done** |
 | D8 | platform services | bundle as `HostServices` | **done** |
-| D9 | toast actions | match Rust | open |
+| D9 | toast actions | first action, both tiers | **done** — already agreed |
 
 ## What was decided and built — 2026-08-09
 
@@ -320,7 +320,36 @@ Svelte surface renders a serde `rename_all` output any more. One exception is
 written down: `identityLabel` interpolates two fields into a sentence and is
 still stated twice.
 
+## D7 and D9 — decided 2026-08-09
+
+**D7 — read state left the toast.** `notificationStatusLabel` no longer
+appends `", unseen"`. A toast appears *because* something just happened, so
+marking it unseen is close to tautology; unread-ness belongs to the
+notification centre, where it can be acted on. No Poodle change, and the
+alternative would have needed one — `ToastStackSpec` has no unread affordance.
+
+**D9 needed no code, and this memo had it wrong.** The claim above that "the
+Svelte tier does not project actions onto toasts at all" is false.
+`NotificationController.projectToast` takes `record.draft.actions[0]` — the
+same first-action rule Rust uses. The two tiers already agreed; only this memo
+did not.
+
+The rule is now stated once as `toastAction` in `packages/longhorn`, and the
+parity fixture checks it on both sides with three cases: no actions, one, and
+three.
+
+### A third tone implementation, found while checking
+
+`NotificationController.projectToast` carried its own copy of the
+severity-to-tone rule — `severity === "error" || "critical" ? "danger" :
+severity` — inline, in the client tier, while the Poodle projector had another
+and Rust a third. The parity fixture checked the projector, so the client
+tier's copy was unchecked and could have drifted without a red gate.
+
+Moved to `notificationSeverityTone` in `packages/longhorn`, which both
+TypeScript callers now use and the parity fixture checks. Found only because
+D9 sent me to read `projectToast`.
+
 ## What is still open
 
-D6, D7 and D9 need no code until someone decides them, and none blocks a GPUI
-application. D6 is Poodle-side work in either form.
+D6 alone. It is Poodle-side work in either form, and blocks nothing.

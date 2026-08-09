@@ -9,6 +9,9 @@ import {
   type NotificationRequestId,
   type NotificationSnapshot,
 } from "./generated/protocol.ts";
+import { notificationSeverityTone, type NotificationStatusTone } from "./tone.ts";
+import { toastAction } from "./toast.ts";
+
 import type { NotificationPort } from "./ports.ts";
 
 export type NotificationControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
@@ -38,7 +41,7 @@ export interface NotificationToastProjection {
   readonly notificationId: NotificationId;
   readonly title: string;
   readonly description: string;
-  readonly tone: "info" | "success" | "warning" | "danger";
+  readonly tone: NotificationStatusTone;
   readonly action?: NotificationActionProjection;
 }
 
@@ -218,8 +221,8 @@ export class NotificationController {
       notificationId: record.notificationId,
       title: record.draft.title,
       description: record.draft.summary,
-      tone: record.draft.severity === "error" || record.draft.severity === "critical" ? "danger" : record.draft.severity,
-      action: record.draft.actions[0],
+      tone: notificationSeverityTone(record.draft.severity),
+      action: toastAction(record.draft),
     };
   }
 
