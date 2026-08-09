@@ -69,28 +69,37 @@ Longhorn**.
 
 ## The Artifact Proofs Are A Pre-publication Device
 
+**Decided 2026-08-09: retire the Poodle half.** Recorded here so it is not
+reopened during execution.
+
 Card 165 left `scripts/poodle-evidence.ts` deriving the artifact-set pin from
 the root manifest's `file:` pack reference. That is correct while Poodle is
 consumed as local tarballs and strictly better than the eight hardcoded paths
-it replaced. **Step 2 removes the pack reference it derives from.**
+it replaced. Step 2 removes the pack reference it derives from.
 
-This is not a defect to patch around. The whole artifact-proof model — pack a
-sibling build directory, install it into an isolated root, assert the graph —
-exists to prove something that publication proves better: that a consumer can
-install the real thing and compose it. After step 2 the proofs should verify
-the *published* tarball, which is a smaller and truer claim.
+The Poodle evidence file — set id, per-tarball digests, `svelteFloor` — exists
+for exactly one reason: Poodle is unpublished. With no registry, naming an
+exact Poodle build requires a local directory and a set of hashes. That is the
+only way to say *this* artifact.
 
-Decide this before step 2, not after. The options:
+A published version says it natively, and better: the lockfile pins the
+version and npm records an integrity hash the registry enforces. Keeping the
+evidence file after publication would be an elaborate restatement of what
+`"@inflatable-cookie/poodle-core": "0.1.0"` already pins, and it would need a
+new source of truth invented for it.
 
-- **Point the proofs at the published tarball.** `npm pack @inflatable-cookie/
-  poodle-core@0.1.0` gives the same artifact shape the proofs already handle,
-  and the digest claim becomes meaningful rather than self-referential.
-- **Retire the Poodle half of the proofs** and keep only the Longhorn-side
-  composition claims. The Poodle evidence file exists because Poodle was
-  unpublished; a version range is the ordinary way to express the same thing.
+So at step 2:
 
-The first keeps the evidence, the second admits publication replaced the need
-for it. Either is defensible; drifting into neither is not.
+- `scripts/poodle-evidence.ts` is deleted, and with it the derivation problem
+  — nothing needs a pack path once no pack path exists
+- the isolated proof consumers install Poodle from npm by version
+- **every Longhorn-side composition claim is unchanged** — which packages
+  resolve, import-absence, one Svelte runtime, no workspace references in the
+  lockfile, mounted component tests
+
+Contract 012's acceptance bullet "Poodle adapter evidence names the exact
+preview artifact under test" becomes "names the exact published version". A
+wording amendment, not a weakened claim.
 
 ## Irreversibility
 
@@ -173,8 +182,9 @@ generation still needs wiring; the icon half goes away.
    wire icon and token generation into the release workflow ahead of the pack,
    assert the tarball carries both, configure trusted publishing per package,
    tag, publish `poodle-core` and `poodle-svelte`. `poodle-react` is held.
-2. **Decide the proof model** per the section above, then repoint Longhorn's
-   root manifest and overrides from `file:` packs to `^0.1.0`.
+2. **Repoint Longhorn** from `file:` packs to `^0.1.0`, deleting
+   `scripts/poodle-evidence.ts` and moving the proof consumers onto the
+   published version in the same change.
 3. **Longhorn CI.** The clients lane has never completed — `bun install
    --frozen-lockfile` has failed on the machine-local Poodle path since
    2026-08-06. This is the first honest run of the TypeScript lane.
@@ -193,7 +203,7 @@ generation still needs wiring; the icon half goes away.
   `-poodle-svelte`, `-tauri` resolve from the public registry
 - no repository in the portfolio pins Poodle or Longhorn by `file:`
 - Longhorn's CI clients lane completes on a clean checkout
-- `proof:artifacts` green under whichever proof model step 2 chooses
+- `proof:artifacts` green with Poodle installed from the registry
 - v0.1.0 tagged, with Rust by tag and TypeScript by version
 - contract 012's "working names" and "publication is deferred" clauses updated
   to describe what actually happened
