@@ -189,12 +189,73 @@ that pass Poodle's own gate. `fmt:rust` now derives its package list from
 written into a sibling checkout. The two GitHub workflows still carry the old
 form and need the same change.
 
+## Second domain — config restore, 2026-08-09
+
+Restore inspection, chosen because it is the densest thing the config tier
+shows: thirteen compatibility classifications, a per-domain choice, and an
+evidence block. `longhorn-poodle::config` projects it into `RadioGroupSpec`
+and `DetailItemSpec`. Six tests.
+
+### The Svelte tier is three things wearing one name
+
+The config projection is 1,247 lines of `.svelte` and 60 lines of `.ts`.
+Reading it apart:
+
+- **Fact to presentation.** `compatibilityLabel`, `canUseArchive`. Pure,
+  framework-free, and about Longhorn's own enums. This is the projection.
+- **Spec assembly.** Which options exist, which are disabled, which detail
+  items appear in which order. Also projectable, and currently inlined in
+  markup where it cannot be tested or reused.
+- **Session and transport.** `client`, `onMount`, `$state`,
+  `crypto.randomUUID()`. Genuinely host-shaped and correctly there.
+
+Only the first two crossed. The third stays, and naming it is what makes the
+tier's boundary decidable rather than a matter of taste.
+
+### The webview assumption, found
+
+`crypto.randomUUID()` is the default `nextRequestId` in all three pages. It is
+a browser global. A GPUI application has no `crypto` object, so any Rust
+counterpart must be handed an id source rather than reaching for one — which
+is the same shape `longhorn-gpui-windowing` already uses for its backend seam.
+The projection tier does not generate request ids, so nothing here needed it;
+the finding is about what the Svelte pages assume, and it would have bitten a
+literal port.
+
+### Serde encodings are being used as UI text
+
+`RestoreIntegrityProjection` and `RestoreAuthenticityProjection` are unit
+enums. The Svelte page renders them straight — `value={inspection.integrity}`
+— so the operator reads `"verified"` and `"unauthenticated"`, which are serde
+`rename_all = "camelCase"` outputs, not chosen words. Rust holds the enum and
+has to pick text, so `integrity_label` and `authenticity_label` exist.
+
+Two consequences. Renaming a serde variant silently changes UI text in the
+webview and changes nothing in Rust. And the two backends will not agree on
+these strings until the Svelte side stops rendering the wire form. The Rust
+side is the one that is right.
+
+### One duplication that cannot be removed
+
+`compatibility_label` now exists twice — once in Rust, once in
+`restore-model.ts`. The Svelte tier cannot call Rust, so this is unavoidable
+rather than sloppy, but it is a live parity risk: a fourteenth compatibility
+variant means editing two label maps, and only the Rust one fails to compile
+if it is missed. Recorded rather than solved; generating the TS map from the
+Rust one is possible and is not this card's work.
+
+### Poodle needed no change
+
+`RadioGroupSpec.aria_label` has no `with_` builder while every other field
+does, so it is assigned directly. The field exists, so this is an asymmetry
+and not a gap, and the stop condition did not fire.
+
 ### Parity against `longhorn-poodle-svelte`
 
 | Domain | Rust | Note |
 | --- | --- | --- |
 | notifications | projected | toasts; severity collapse recorded above |
-| config | not yet | |
+| config | projected | restore inspection: choices and evidence block |
 | settings | not yet | |
 | operations | not yet | |
 | licence | not yet | |

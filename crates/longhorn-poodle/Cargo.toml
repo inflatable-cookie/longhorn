@@ -8,6 +8,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+longhorn-config.workspace = true
 longhorn-core.workspace = true
 longhorn-notifications.workspace = true
 # Path ref while Poodle is untagged. Swaps to a git ref, with every other

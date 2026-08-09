@@ -23,6 +23,7 @@
 //! spec to land in, the gap is raised in Poodle rather than worked around by
 //! forking a primitive.
 
+pub mod config;
 mod notifications;
 
 pub use notifications::{ToneMapping, project_notification, project_notifications, tone_for};

@@ -2654,6 +2654,7 @@ dependencies = [
 name = "longhorn-poodle"
 version = "0.1.0"
 dependencies = [
+ "longhorn-config",
  "longhorn-core",
  "longhorn-notifications",
  "poodle-specs",
