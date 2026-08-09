@@ -11,8 +11,18 @@ publish = false
 core-graphics = "0.25.0"
 gpui = "0.2.2"
 longhorn-core = { path = "../../crates/longhorn-core" }
+longhorn-licence = { path = "../../crates/longhorn-licence" }
+longhorn-notifications = { path = "../../crates/longhorn-notifications" }
+longhorn-operation = { path = "../../crates/longhorn-operation" }
+longhorn-poodle = { path = "../../crates/longhorn-poodle" }
+longhorn-update = { path = "../../crates/longhorn-update" }
 longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
 longhorn-windowing = { path = "../../crates/longhorn-windowing" }
+poodle-adapter = { path = "../../../poodle/packages/contracts/adapter" }
+poodle-gpui = { path = "../../../poodle/packages/gpui/adapter" }
+poodle-gpui-node-backend = { path = "../../../poodle/packages/gpui/node-backend" }
+poodle-render = { path = "../../../poodle/packages/render" }
+semver = "1"
 
 [lints.rust]
 missing_docs = "deny"

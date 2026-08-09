@@ -1,6 +1,7 @@
 # 169 Poodle Projection Tier
 
-Status: in progress — first domain projected
+Status: complete
+Completed: 2026-08-09
 Owner: Tom
 Roadmap: g02.012 follow-up
 Governing refs: contract 020; contract 013; research memo 021
@@ -411,61 +412,110 @@ Six domains, zero Poodle changes. The stop condition has not fired once, which
 is the strongest evidence so far that `poodle-specs` is a real contract layer
 rather than a Svelte extraction wearing Rust.
 
-## Adapter coverage — checked 2026-08-09
+## Adapter coverage — checked 2026-08-09, corrected the same day
 
-The last open criterion is "renders through at least one adapter". Checking it
-before building a window found that for half the projections, it cannot be met
-today — and the reason is in Poodle, not here.
+**The first version of this section was wrong and its conclusion was
+backwards.** It measured `poodle-gpui`'s `RenderComponent` implementations,
+found no `BannerSpec`, `DetailItemSpec` or `SidebarNavSpec` among them, and
+concluded that three of six domains could not be drawn without Poodle adding
+renderers. Recorded here rather than deleted, because the mistake is
+instructive: I measured a layer that is being retired and read its absence as
+a gap.
 
-`poodle-gpui` implements `RenderComponent` for 100 specs. `poodle-jetstream`
-covers a similar set. Against what the six domains emit:
+### What the render path actually is
 
-| Spec | `poodle-gpui` | `poodle-jetstream` | Emitted by |
-| --- | --- | --- | --- |
-| `ToastStackSpec` | yes | yes | notifications |
-| `ProgressSpec` | yes | yes | operation |
-| `StatusIndicatorSpec` | yes | yes | operation |
-| `RadioGroupSpec` | yes | yes | config |
-| `SidebarNavSpec` | **no** | yes | settings |
-| `BannerSpec` | **no** | **no** | licence, update |
-| `DetailItemSpec` | **no** | **no** | config |
+```text
+longhorn-poodle  ->  spec
+                       |
+                       v
+poodle-render          Spec + Theme -> poodle_node::Node   (pure, no backend)
+                       |
+        +--------------+--------------+
+        v                             v
+poodle-gpui-node-backend      jetstream's backend
+Node -> gpui elements         Node -> its own elements
+```
 
-So notifications and operation render on both adapters. Settings renders on
-Jetstream only. Licence and update render on neither, and config renders its
-choices but not its evidence block.
+`poodle-render` is "the single Rust component implementation" — a pure
+function per component, no backend types, no window. The backends interpret
+the node tree. Poodle's g12.019 calls this an inversion, and it is: the
+component decides what a Banner *is* once, and each backend decides how to
+draw a node.
 
-### What this is and is not
+`poodle-gpui`'s `RenderComponent` is the tier that inversion replaces. Its
+`render` returns `GpuiElementHandle { element_id, spec_type }` — a two-field
+struct with no styling, no children and no text. It is a conformance manifest
+asserting the adapter knows a spec type, not a renderer. Counting its impls
+measures which specs the *old* tier reached, not what can be drawn.
 
-It is not the stop condition. No Poodle *primitive* needs changing —
-`BannerSpec` and `DetailItemSpec` exist, are complete, and carry everything
-these projections need. What is missing is a renderer for them in the GPUI
-adapter, and for `BannerSpec` and `DetailItemSpec` in any adapter.
+### Coverage against the tier that renders
 
-It is also not something to work around. Swapping `BannerSpec` for
-`CallOutSpec` would make licence and update render today, and `CallOutSpec` is
-rendered by GPUI. It would also be choosing a spec for the renderer's
-convenience rather than for what the thing is, which is the failure mode this
-whole tier exists to avoid. A page-level licence failure is a banner. It stays
-a banner.
+`poodle-render` has 155 components. All seven specs the six domains emit are
+present: `banner.rs`, `detail_item.rs`, `sidebar_nav.rs`, `toast_stack.rs`,
+`progress.rs`, `radio_group.rs`, `status_indicator.rs`.
 
-`DetailSectionSpec` renders and `DetailItemSpec` does not, which is the same
-shape: the container is covered and its leaf is not.
+So every one of the six domains can be drawn, on both backends. Nothing is
+blocked and no Poodle change is needed — which keeps the record consistent:
+six domains, zero Poodle changes, stop condition unfired.
 
 ### One fix that was ours to make
 
-`project_notifications` returned `Vec<Toast>`, and no adapter renders a bare
-`Toast` — it is a leaf inside `ToastStackSpec`. Added
-`project_notification_stack`, which returns the unit that actually renders.
-That is a Longhorn defect found by asking the rendering question, not a Poodle
-gap.
+The wrong measurement still found a real defect. `project_notifications`
+returned `Vec<Toast>`, and `Toast` is a leaf inside `ToastStackSpec` — the
+stack is the rendered unit, in `poodle-render` as much as anywhere. Added
+`project_notification_stack`, which returns the unit that renders. Asking the
+rendering question was worth it even though the answer came back wrong first.
 
-### What this blocks
+## Drawn in a real GPUI window — 2026-08-09
 
-Three of six domains cannot satisfy the final criterion until Poodle adds the
-missing renderers. The gap is raised there rather than forked here, which is
-what the card's stop condition asks for even though this is not technically
-that condition. Notifications and operation can be drawn now, and are the
-right first proof.
+`prototypes/gpui-windowing/src/bin/render.rs`. Every stage real, no fixture
+standing in for a layer:
+
+```text
+NotificationLedger, Usability, UpdateAvailability   Longhorn domains
+  -> longhorn-poodle                                projection
+    -> poodle-render          Spec + Theme -> Node  pure component tier
+      -> poodle-gpui-node-backend  Node -> Element  GPUI interpretation
+        -> gpui                                     pixels
+```
+
+Four projections drawn at once: the licence banner, the update banner, two
+operation status indicators, a unit progress bar, and a four-toast stack built
+from a real `NotificationLedger` with real publications.
+
+Observed on screen, all correct: the lapsed-lease banner in danger red reading
+"Renewal did not succeed and grace ran out on 9 August 2026" — with the date
+in words, proving the injected `TimestampFormat` is what reaches the surface;
+the managed-install banner reading "Version 1.3.0 is available from Homebrew /
+Run `brew upgrade --cask soundcheck` to install it"; `Running` and
+`Cancelling` indicators with distinct dots and labels; progress at three of
+seven; and four toasts tinted green, amber, red, red.
+
+### The severity collapse, seen rather than asserted
+
+The last two toasts — "Sync failed" (`Error`) and "Storage is read-only"
+(`Critical`) — are **visually identical**. Same tint, same weight, nothing
+separating them but their words.
+
+That is exactly what `ToneMapping::is_lossy` was introduced to report in the
+first domain, and it is the first time the claim has been checked by looking
+rather than by a unit test. A surface that renders the tone and drops the flag
+tells an operator that a read-only volume is the same class of problem as a
+failed sync. It is not.
+
+### One defect the window found
+
+`publish_once` rejects a draft with no producer token — it is the idempotent
+path and wants one. The proof uses `add`, because a fixture has no honest
+producer token to supply. Worth recording only because it is the kind of thing
+that never surfaces until something real drives the domain.
+
+### What this closes and what it does not
+
+The final acceptance criterion is met: six domains projected, and four of them
+drawn through the GPUI backend. It does **not** prove parity with the Svelte
+tier's rendering of the same facts — nobody has put the two side by side, and
+until someone does, "the two backends agree" stays an assumption.
 
 ## Parity against `longhorn-poodle-svelte`
 
@@ -505,8 +555,9 @@ memo 021 about the first GPUI target's actual needs.
 
 - [x] the crate name is a recorded decision, not an inherited assumption
 - [x] one domain is projected — six are: notifications, config, settings,
-  operation, licence, update. Rendering through an adapter is the one
-  criterion still open, and it needs an application to render into.
+  operation, licence, update
+- [x] the projection renders through an adapter — four domains drawn in a real
+  GPUI window, via `poodle-render` and `poodle-gpui-node-backend`
 - [x] parity is stated per domain, across the whole Svelte tier, with
   "deliberately absent" and "will not" both distinguished from "not yet"
 - [x] no Poodle primitive is forked

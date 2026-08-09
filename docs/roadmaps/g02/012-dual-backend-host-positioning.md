@@ -82,16 +82,14 @@ The milestone is closed. Two follow-up cards came out of it:
 - [Card 168](batch-cards/168-installation-provenance.md) — complete. Fixed a
   live defect: a Homebrew-managed application self-updated and desynced
   `brew` silently.
-- [Card 169](batch-cards/169-poodle-projection-tier.md) — in progress, and
-  the largest remaining GPUI piece. The host boundary is done; a GPUI
-  application can open and place a window and has nothing to draw in it. Its
-  two structural questions are answered: the crate is `longhorn-poodle`, not
-  `longhorn-poodle-gpui`, because `poodle-specs` already carries two Rust
-  renderers; and no `gpui` dependency arises, because the projection emits
-  specs. `crates/longhorn-poodle` now exists and projects notifications into
-  `Toast` over a relative path dependency on `poodle-specs` — the same
-  temporary mechanism `package.json` already uses for the npm edge, and it
-  swaps to a git ref when Poodle is tagged.
+- [Card 169](batch-cards/169-poodle-projection-tier.md) — complete. Six
+  domains projected into `poodle-specs` — notifications, config, settings,
+  operation, licence and update — and four of them drawn in a real GPUI
+  window through `poodle-render` and `poodle-gpui-node-backend`. Zero Poodle
+  changes were needed, which is the strongest evidence yet that `poodle-specs`
+  is a real contract layer rather than a Svelte extraction. The one thing it
+  does not prove is parity: nobody has put the Svelte and GPUI renderings of
+  the same facts side by side.
 
 Earlier follow-ups, all now done:
 
