@@ -347,28 +347,112 @@ it. Worth stating because it is the one mapping that looks wrong at a glance.
 `StatusTone`, `StatusIndicatorSpec` and `ProgressSpec` carried everything.
 Stop condition did not fire — four domains, zero Poodle changes.
 
-### Parity against `longhorn-poodle-svelte`
+## Fifth and sixth domains — licence and update, 2026-08-09
 
-| Domain | Rust | Note |
-| --- | --- | --- |
-| notifications | projected | toasts; severity collapse recorded above |
-| config | projected | restore inspection: choices and evidence block |
-| settings | projected | sidebar navigation; page runtime is deliberately framework-bound |
-| operations | projected | status tone, label, progress, cancel eligibility |
-| licence | not yet | |
-| update | not yet | |
-| layout | **deliberately absent** | not in the first target's needs; memo 021 |
-| surfaces | **deliberately absent** | as above |
-| transfer | **deliberately absent** | as above |
+Both projected into `BannerSpec`. Eleven tests between them.
 
-"Not yet" and "deliberately absent" are different claims and stay separated.
+These two are different from the first four: **`longhorn-poodle-svelte` has no
+licence projection and no update projection.** There is nothing to port and
+nothing to compare, so neither produced a port-versus-source finding. They are
+the first statement of their rules rather than the second.
+
+### Rust has no free date formatting, and a webview does
+
+`Timestamp` is Unix seconds and its `Display` prints the integer. That is
+right for a log and a defect in a banner. A webview reaches for
+`toLocaleString` and gets a localised date from the platform for nothing;
+Rust has no equivalent without a date library *and* a locale, neither of which
+belongs in a projection crate.
+
+So `usability_banner` takes a `TimestampFormat`. Same shape as
+`crypto.randomUUID()` in the config domain and the same underlying fact: the
+browser is a platform as well as a renderer, and several things the Svelte
+tier gets for free have to be injected on the Rust side. That is a seam, not a
+gap — it is exactly how `longhorn-gpui-windowing` handles its backend.
+
+### Silence is a projection decision, twice
+
+`Usability::Active` and `InGrace` produce no banner, because
+`warrants_attention` already says grace is deliberate quiet: a backend outage
+must never look to a paying customer like a licensing failure. The projection
+mirrors that rule rather than deciding again.
+
+`UpdateAvailability::UpToDate` produces no banner either. "You are up to date"
+on every launch is noise, and the check's result is available without one.
+
+Returning `Option<BannerSpec>` rather than a neutral banner is what makes both
+statements possible.
+
+### The two states that look like a broken updater
+
+`AheadOfChannel` and `ManagedElsewhere` are correct outcomes that a user reads
+as a failure unless the surface explains them. `longhorn-update` gave each its
+own variant instead of folding it into `UpToDate` precisely so a surface
+could; this is the surface doing it.
+
+`ManagedElsewhere` derives its instruction from
+`InstallManager::upgrade_command`, which returns `None` for the App Store, an
+AppImage and a distribution package. Those get a banner naming the owner and
+no command, because inventing an instruction that does not work is worse than
+admitting there is not one. This is the presentation half of the live defect
+Card 168 found.
+
+### Tone discipline across two domains
+
+`Danger` means the software has stopped working. Licence uses it for every
+unusable state. Update never uses it — a mandatory update is `Warning`,
+everything else is `Info` — because the application still runs. Stated here
+because the two domains are the first place the tones had to agree with each
+other rather than only with themselves.
+
+### Poodle needed no change
+
+Six domains, zero Poodle changes. The stop condition has not fired once, which
+is the strongest evidence so far that `poodle-specs` is a real contract layer
+rather than a Svelte extraction wearing Rust.
+
+## Parity against `longhorn-poodle-svelte`
+
+The earlier version of this table listed only the six domains from step 2 and
+read as though it covered the tier. It did not: `commands`, `history`,
+`history-tree` and `native-content` were missing entirely, and `layout` was
+marked absent from Rust without saying it is present in Svelte. Corrected.
+
+| Domain | Svelte | Rust | Note |
+| --- | --- | --- | --- |
+| notifications | yes | **projected** | toasts; severity collapse recorded above |
+| config | yes | **projected** | restore inspection: choices and evidence block |
+| settings | yes | **projected** | sidebar navigation; page runtime stays framework-bound |
+| operation | yes | **projected** | status tone, label, progress, cancel eligibility |
+| licence | **no** | **projected** | no Svelte counterpart exists; Rust is first |
+| update | **no** | **projected** | as above |
+| commands | yes | not yet | out of scope for the first target |
+| history | yes | not yet | out of scope for the first target |
+| history-tree | yes | not yet | out of scope for the first target |
+| layout | yes | **deliberately absent** | memo 021 excludes it; do not build speculatively |
+| surfaces | yes | **deliberately absent** | as above |
+| transfer | yes | **deliberately absent** | as above |
+| native-content | yes | **will not** | see below |
+
+`native-content` is the only "will not". `longhorn-native-content` already
+exists and is host-agnostic, so the *coordination* is shared. What has no
+analogue is the Svelte binding: `nativeContentViewport(node: HTMLElement)`
+attaches an island to a DOM element, and a GPUI window has no DOM. A GPUI
+application that needs a native island binds it some other way, and that
+binding belongs to the host adapter, not to a projection.
+
+"Not yet", "deliberately absent" and "will not" are three different claims and
+stay separated. Out-of-scope domains are not failures; they are decisions from
+memo 021 about the first GPUI target's actual needs.
 
 ## Acceptance Criteria
 
 - [x] the crate name is a recorded decision, not an inherited assumption
-- [x] one domain is projected — notifications to `Toast`. Rendering through an adapter is the next step and needs an application to render into.
-- [x] parity is stated per domain, with "deliberately absent" distinguished
-  from "not yet"
+- [x] one domain is projected — six are: notifications, config, settings,
+  operation, licence, update. Rendering through an adapter is the one
+  criterion still open, and it needs an application to render into.
+- [x] parity is stated per domain, across the whole Svelte tier, with
+  "deliberately absent" and "will not" both distinguished from "not yet"
 - [x] no Poodle primitive is forked
 - [x] Poodle contains no reference to Longhorn
 - [x] the `gpui` dependency's home is decided: it does not arise, because the

@@ -2656,10 +2656,13 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-licence",
  "longhorn-notifications",
  "longhorn-operation",
  "longhorn-settings",
+ "longhorn-update",
  "poodle-specs",
+ "semver",
 ]
 
 [[package]]

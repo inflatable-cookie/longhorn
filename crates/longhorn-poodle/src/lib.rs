@@ -24,8 +24,10 @@
 //! forking a primitive.
 
 pub mod config;
+pub mod licence;
 mod notifications;
 pub mod operation;
 pub mod settings;
+pub mod update;
 
 pub use notifications::{ToneMapping, project_notification, project_notifications, tone_for};

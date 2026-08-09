@@ -10,9 +10,12 @@ publish = false
 [dependencies]
 longhorn-config.workspace = true
 longhorn-core.workspace = true
+longhorn-licence.workspace = true
 longhorn-notifications.workspace = true
 longhorn-operation.workspace = true
 longhorn-settings.workspace = true
+longhorn-update.workspace = true
+semver.workspace = true
 # Path ref while Poodle is untagged. Swaps to a git ref, with every other
 # consumer's, once Poodle carries a tag — the same migration the npm side
 # already has queued for its `file:../poodle/.artifacts/...` pins.
