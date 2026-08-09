@@ -77,9 +77,12 @@ memo 021 dual-backend positioning
 
 ## Next Task
 
-The milestone is closed. One follow-up remains, and it is not blocking:
+The milestone is closed. One follow-up card came out of it:
+[Card 168](batch-cards/168-installation-provenance.md), which fixes a live
+defect — a Homebrew-managed application currently self-updates and desyncs
+`brew` silently.
 
-Three follow-ups fell out of Card 163. Two are done; one waits on 162.
+Earlier follow-ups, all now done:
 
 - [x] Split `HostCapability::MoveResize` into `Move` and `Resize`, so a host
   with one axis and not the other can declare it. GPUI now resizes for real.
