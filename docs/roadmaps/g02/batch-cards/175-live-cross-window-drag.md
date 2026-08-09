@@ -1,6 +1,6 @@
 # 175 Live Cross-window Drag
 
-Status: blocked
+Status: ready
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -25,9 +25,10 @@ generation established is that each step closer to a real machine found
 something no fake would: the readback divergence, the discarded display origin,
 three teardown defects. There is no reason to expect this step to be different.
 
-## Blocked on
+## Ready
 
-Card 174. A live drag needs an application to drag in.
+`prototypes/gpui-composition` is the application to drag in. It currently opens
+one window; this card gives it a second.
 
 ## Scope
 

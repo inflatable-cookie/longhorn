@@ -49,9 +49,13 @@ Named here rather than buried, because one of them governs the whole shape.
   `docs/guides/gpui-composition.md`. Leads with the three platform facilities a
   webview gives away and GPUI does not, then names all eight seams in one list.
   Nothing invented; the stop condition did not fire.
-- [ ] [Card 174](batch-cards/174-gpui-worked-example.md): the guide's assembly
-  as a compiling artifact rather than prose. Now the live next step — both its
-  blockers are closed.
+- [x] [Card 174](batch-cards/174-gpui-worked-example.md) —
+  `prototypes/gpui-composition`, gated by `check:prototypes` with no selector
+  change. It confirmed the `Critical:` prefix on a real surface, which no test
+  could, and found its own date bug on the first run.
+
+Batch 2 closes the milestone's composition half: a guide, an example that
+compiles, and the two readable against each other.
 
 ### Batch 3. Live evidence for the last two ceilings
 
@@ -104,11 +108,11 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 174 — the guide's assembly as a seventh prototype, picked up by
-`check:prototypes` with no selector change. Both its blockers are closed.
+Card 175 — a real drag across two real GPUI windows. `prototypes/gpui-composition`
+is the application to do it in, so both Batch 3 cards are unblocked.
 
-Batch 3 follows it directly: 175 and 176 need an application to drag in and
-tear down.
+175 before 176: cross-window transfer is the claim contract 020 still states as
+a ceiling, and teardown has the stronger in-memory proof behind it already.
 
 ## Planning Checkpoint
 

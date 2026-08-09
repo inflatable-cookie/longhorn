@@ -1,6 +1,6 @@
 # 176 Live Teardown Under Load
 
-Status: blocked
+Status: ready
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -28,9 +28,10 @@ closes stages its final capture and permits the close with no flush in that
 pass. Contract 020 records it as a coordinator question rather than an adapter
 bug. A real run is what decides whether it is a defect.
 
-## Blocked on
+## Ready
 
-Card 174. A live teardown needs a real store and a real window.
+`prototypes/gpui-composition` is the application. What it still needs is a real
+placement sink with real latency, which is this card's first step.
 
 ## Scope
 

@@ -1,0 +1,33 @@
+[package]
+name = "longhorn-gpui-composition-example"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "composition"
+path = "src/main.rs"
+
+[dependencies]
+gpui = "0.2.2"
+longhorn-core = { path = "../../crates/longhorn-core" }
+longhorn-notifications = { path = "../../crates/longhorn-notifications" }
+longhorn-poodle = { path = "../../crates/longhorn-poodle" }
+# The window binding itself is the neighbouring prototype's, not restated here.
+# This example is about the *composition*; how a `GpuiWindowBackend` is written
+# over `gpui::PlatformWindow` is that prototype's subject.
+longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
+poodle-adapter = { path = "../../../poodle/packages/contracts/adapter" }
+poodle-gpui = { path = "../../../poodle/packages/gpui/adapter" }
+poodle-gpui-node-backend = { path = "../../../poodle/packages/gpui/node-backend" }
+poodle-render = { path = "../../../poodle/packages/render" }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "deny"
