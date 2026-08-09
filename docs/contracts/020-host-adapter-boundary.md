@@ -257,17 +257,66 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Windows: create, destroy, observe | proved | proved, in-memory **and against real windows, including two at once** |
 | Placement application | proved | origin proved at creation, on a real window at the exact requested origin; size proved on existing windows; moving an existing window is refused and named |
 | Lifecycle events | proved | proved for every event in the list, in-memory only |
-| Close handling | proved | proved in-memory; the real close path ran in the smoke binary |
-| Quiescence participation | proved | proved, in-memory |
+| Close handling | proved | proved in-memory, **including thirteen windows torn down out of order with a failing sink**; the real close path ran in the smoke binary |
+| Quiescence participation | proved | proved, in-memory, **and that it returns to quiet after a teardown** |
 | Display facts with scale factors | proved | **not obtainable from the gpui API alone** — scale, work area and position come from a per-platform reader over the id gpui exposes; a macOS reader exists and was measured against two real displays |
 | Platform directories | proved | not exercised |
 
-What no backend has proved: multi-window placement, cross-window transfer,
-and lifecycle teardown under load. The first GPUI target is a small
-audio-conversion application that exercises config, settings, operations,
-notifications, licence and update, and none of those three. They are where a
-single-host contract is most likely to have leaked, and this contract must
-not be declared complete until a target exercises them.
+What no backend has proved: **cross-window transfer**. The first GPUI target
+is a small audio-conversion application that exercises config, settings,
+operations, notifications, licence and update, and not that. It is where a
+single-host contract is most likely to have leaked, and this contract must not
+be declared complete until a target exercises it.
+
+Two of the three claims this paragraph used to carry are now discharged.
+Multi-window placement was proved against two real windows across two displays
+by `prototypes/gpui-windowing`'s multiwindow binary, and the table above has
+said so since; this prose was stale.
+
+### Teardown under load found three defects — 2026-08-09
+
+Lifecycle teardown under load is now proved in-memory for the GPUI host:
+thirteen windows, each with a pending capture and a staged resize, closed out
+of order, with a sink that fails on demand. It went red three times before it
+went green, and every failure was in the adapter rather than the test.
+
+**One window's unsaved state blocked every other window's close.** The close
+decision read the host's total outstanding work, which is the right number for
+the restart interlock — a restart takes every window with it — and the wrong
+number for "may *this* window close". A window with nothing to save was
+refused because a different window had been moved. Outstanding work is now
+tracked per window and the two questions read different numbers.
+
+**A dragged window could never be closed at all.** The capture counter counted
+*scheduled deadlines*, and the coordinator debounces by rescheduling the same
+pending capture with a fresh deadline. Five move events left five outstanding
+captures where only one would ever settle, so the count never returned to zero:
+the window could not close and the restart interlock could not read quiet.
+Captures and flushes are now pending flags, because a window has at most one of
+each in flight.
+
+**A flush that failed to schedule decremented the capture counter.** One
+rollback path served both, so a failed flush schedule left its own count raised
+and took an unrelated capture down with it. The rollback now names which
+counter it raised.
+
+None of the three is visible with one window, and every lifecycle test before
+this one used one window. That is the same lesson the display-origin and
+readback divergences taught: the evidence found something the moment it got
+closer to how the thing is actually used.
+
+### One behaviour recorded rather than changed
+
+A window moved just before it is closed takes its final capture during the
+close, stages it, reports the user close, and permits the close — with no
+flush in that pass and none scheduled. The placement reaches the sink's
+staging and its durability then depends on whatever flushes next.
+
+This belongs to the shared coordinator, not to either adapter, so **both
+backends have it**. Whether a per-window close should force its own flush is a
+contract question and not an adapter bug, so it is written down here and
+asserted as-is in `teardown.rs` rather than quietly changed. If it should
+change, it changes for both hosts at once.
 
 Most of the GPUI adapter's behavioural evidence comes from an in-memory host
 implementing exactly `gpui::PlatformWindow`'s surface. That the surface is the
@@ -281,9 +330,9 @@ again with a second screen attached, it found the discarded display origin,
 which one display could not have. Both are now regression tests.
 
 That is the pattern worth noting: each time the evidence got one step closer
-to a real machine, it found something no fake would have. This contract's
-remaining unproven claims — multi-window placement, cross-window transfer,
-lifecycle teardown under load — should be read in that light.
+to a real machine, it found something no fake would have. This contract's one
+remaining unproven claim — cross-window transfer — should be read in that
+light.
 
 ## Non-goals
 

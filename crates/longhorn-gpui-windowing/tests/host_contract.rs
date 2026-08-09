@@ -8,5 +8,6 @@ mod host_contract {
     mod lifecycle;
     mod placement;
     mod support;
+    mod teardown;
     mod windows;
 }

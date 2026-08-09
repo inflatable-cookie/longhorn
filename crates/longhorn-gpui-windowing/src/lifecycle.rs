@@ -109,6 +109,34 @@ fn translation_error(detail: impl ToString) -> GpuiWindowLifecycleError {
     }
 }
 
+/// Which counter one scheduling attempt raised, so a failure rolls back the
+/// right one.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ScheduledKind {
+    Capture,
+    Flush,
+}
+
+/// Whether one window has a capture or a flush still to settle.
+///
+/// Flags rather than counters. The coordinator debounces, so every move
+/// reschedules the *same* pending capture with a fresh deadline — counting
+/// scheduled deadlines made a dragged window accumulate one per event while
+/// only one ever settled. The window then could never close and the restart
+/// interlock never read quiet. A window has at most one capture and one flush
+/// in flight, and that is what this records.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct OutstandingWindowWork {
+    capture_pending: bool,
+    flush_pending: bool,
+}
+
+impl OutstandingWindowWork {
+    const fn total(&self) -> usize {
+        self.capture_pending as usize + self.flush_pending as usize
+    }
+}
+
 /// The answer GPUI's `on_should_close` needs, synchronously.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GpuiCloseDecision {
@@ -285,8 +313,15 @@ pub struct GpuiWindowLifecycleHost<C, S, B, U> {
     coordinator: WindowLifecycleCoordinator,
     windows: BTreeMap<WindowId, InstalledWindow>,
     services: GpuiWindowLifecycleServices<C, S, B, U>,
-    outstanding_captures: usize,
-    outstanding_flushes: usize,
+    /// Outstanding captures and flushes, per window.
+    ///
+    /// Per window rather than two totals. A total answers the restart
+    /// interlock, which is an application-wide question, and cannot answer
+    /// "may *this* window close" — with two totals, a window with nothing to
+    /// save was refused its close because a different window had been moved.
+    /// Only a multi-window teardown shows it; every earlier lifecycle test
+    /// used one window.
+    outstanding: BTreeMap<WindowId, OutstandingWindowWork>,
 }
 
 impl<C, S, B, U> GpuiWindowLifecycleHost<C, S, B, U>
@@ -306,8 +341,7 @@ where
             coordinator: WindowLifecycleCoordinator::new(policy),
             windows: BTreeMap::new(),
             services,
-            outstanding_captures: 0,
-            outstanding_flushes: 0,
+            outstanding: BTreeMap::new(),
         }
     }
 
@@ -380,7 +414,7 @@ where
         let receipt = self.handle_lifecycle_event(WindowLifecycleEvent::CloseRequested {
             window_id: window_id.clone(),
         })?;
-        let decision = if close_is_safe(&receipt) && self.outstanding() == 0 {
+        let decision = if close_is_safe(&receipt) && self.outstanding_for(window_id) == 0 {
             GpuiCloseDecision::Close
         } else {
             GpuiCloseDecision::Defer
@@ -425,9 +459,55 @@ where
     }
 
     /// Returns the host's own outstanding work for the restart interlock.
+    ///
+    /// Application-wide on purpose: a restart takes every window with it, so
+    /// the interlock wants the total. Closing one window does not, which is
+    /// what [`Self::outstanding_for`] is for.
     #[must_use]
-    pub const fn outstanding(&self) -> usize {
-        self.outstanding_captures + self.outstanding_flushes
+    pub fn outstanding(&self) -> usize {
+        self.outstanding
+            .values()
+            .map(OutstandingWindowWork::total)
+            .sum()
+    }
+
+    /// Returns one window's own outstanding work.
+    ///
+    /// The number a close decision reads. A window with nothing pending may
+    /// close while another window still has state to save; the two questions
+    /// are not the same and were answered by the same counter until a
+    /// multi-window teardown said otherwise.
+    #[must_use]
+    pub fn outstanding_for(&self, window_id: &WindowId) -> usize {
+        self.outstanding
+            .get(window_id)
+            .map_or(0, OutstandingWindowWork::total)
+    }
+
+    fn note_capture(&mut self, window_id: &WindowId) {
+        self.outstanding
+            .entry(window_id.clone())
+            .or_default()
+            .capture_pending = true;
+    }
+
+    fn note_flush(&mut self, window_id: &WindowId) {
+        self.outstanding
+            .entry(window_id.clone())
+            .or_default()
+            .flush_pending = true;
+    }
+
+    fn settle_capture(&mut self, window_id: &WindowId) {
+        if let Some(work) = self.outstanding.get_mut(window_id) {
+            work.capture_pending = false;
+        }
+    }
+
+    fn settle_flush(&mut self, window_id: &WindowId) {
+        if let Some(work) = self.outstanding.get_mut(window_id) {
+            work.flush_pending = false;
+        }
     }
 
     fn execute(&mut self, directive: WindowLifecycleDirective) -> GpuiLifecycleAction {
@@ -440,28 +520,38 @@ where
                 generation,
                 due_at,
             } => {
-                self.outstanding_captures += 1;
-                self.schedule(ScheduledWindowLifecycleWake::new(
-                    due_at,
-                    WindowLifecycleEvent::CaptureDeadline {
-                        window_id,
-                        generation,
-                    },
-                ))
+                self.note_capture(&window_id);
+                let rollback = window_id.clone();
+                self.schedule(
+                    ScheduledWindowLifecycleWake::new(
+                        due_at,
+                        WindowLifecycleEvent::CaptureDeadline {
+                            window_id,
+                            generation,
+                        },
+                    ),
+                    &rollback,
+                    ScheduledKind::Capture,
+                )
             }
             WindowLifecycleDirective::ScheduleFlush {
                 window_id,
                 generation,
                 due_at,
             } => {
-                self.outstanding_flushes += 1;
-                self.schedule(ScheduledWindowLifecycleWake::new(
-                    due_at,
-                    WindowLifecycleEvent::FlushDeadline {
-                        window_id,
-                        generation,
-                    },
-                ))
+                self.note_flush(&window_id);
+                let rollback = window_id.clone();
+                self.schedule(
+                    ScheduledWindowLifecycleWake::new(
+                        due_at,
+                        WindowLifecycleEvent::FlushDeadline {
+                            window_id,
+                            generation,
+                        },
+                    ),
+                    &rollback,
+                    ScheduledKind::Flush,
+                )
             }
             WindowLifecycleDirective::CaptureNow {
                 window_id,
@@ -474,13 +564,14 @@ where
                 timeout,
                 reason,
             } => {
+                let settled = window_id.clone();
                 let request = WindowFlushRequest::new(
                     vec![WindowFlushTarget::new(window_id, generation)],
                     timeout,
                     WindowFlushScope::Window { reason },
                 );
                 let outcome = self.flush(&request);
-                self.outstanding_flushes = self.outstanding_flushes.saturating_sub(1);
+                self.settle_flush(&settled);
                 GpuiLifecycleAction::Flushed {
                     request: Box::new(request),
                     outcome,
@@ -494,19 +585,35 @@ where
             }
             WindowLifecycleDirective::Forget { window_id } => {
                 self.windows.remove(&window_id);
+                // A forgotten window's counters go with it. Leaving them would
+                // hold the restart interlock open forever on work that has no
+                // window to complete against.
+                self.outstanding.remove(&window_id);
                 self.coordinator.release(&window_id);
                 GpuiLifecycleAction::Forgotten
             }
         }
     }
 
-    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> GpuiLifecycleAction {
+    fn schedule(
+        &mut self,
+        wake: ScheduledWindowLifecycleWake,
+        window_id: &WindowId,
+        kind: ScheduledKind,
+    ) -> GpuiLifecycleAction {
         match self.services.scheduler.schedule(wake.clone()) {
             Ok(()) => GpuiLifecycleAction::Scheduled {
                 wake: Box::new(wake),
             },
             Err(detail) => {
-                self.outstanding_captures = self.outstanding_captures.saturating_sub(1);
+                // Roll back the counter this call incremented. It always
+                // decremented the capture counter, so a flush that failed to
+                // schedule left its own count raised and took a capture down
+                // with it.
+                match kind {
+                    ScheduledKind::Capture => self.settle_capture(window_id),
+                    ScheduledKind::Flush => self.settle_flush(window_id),
+                }
                 GpuiLifecycleAction::ScheduleFailed { detail }
             }
         }
@@ -517,7 +624,7 @@ where
         window_id: &WindowId,
         generation: CaptureGeneration,
     ) -> GpuiLifecycleAction {
-        self.outstanding_captures = self.outstanding_captures.saturating_sub(1);
+        self.settle_capture(window_id);
         let Some(installed) = self.windows.get(window_id) else {
             return GpuiLifecycleAction::CaptureFailed {
                 detail: format!("window {window_id} is not installed"),
