@@ -12,7 +12,7 @@ use std::{
 
 use flate2::{Compression, write::GzEncoder};
 use longhorn_update::{ConformanceFixtures, InstallFailure, UpdateInstaller, run_conformance};
-use longhorn_update_native::{NativeInstaller, NoPrivilegedReplace, PrivilegedReplace};
+use longhorn_update_install::{NativeInstaller, NoPrivilegedReplace, PrivilegedReplace};
 use minisign::KeyPair;
 use minisign_verify::PublicKey;
 use semver::Version;

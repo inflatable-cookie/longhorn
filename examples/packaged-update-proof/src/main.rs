@@ -24,7 +24,7 @@ use std::{
 
 use flate2::{Compression, write::GzEncoder};
 use longhorn_update::{InstallFailure, UpdateInstaller};
-use longhorn_update_native::NativeInstaller;
+use longhorn_update_install::NativeInstaller;
 use minisign::KeyPair;
 use minisign_verify::PublicKey;
 use semver::Version;
@@ -142,7 +142,7 @@ fn run(app: &Path) -> Result<Value, String> {
             "after": executables_after,
         },
         // Relaunch is the host's, by design: macOS separates replacement from
-        // relaunch and `longhorn-update-native` keeps that separation rather
+        // relaunch and `longhorn-update-install` keeps that separation rather
         // than hiding it. So this proof does not claim it.
         "relaunched": applied.relaunched,
         "relaunchClaim": "unmet by design - relaunch is the host's, see contract 018",

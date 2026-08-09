@@ -35,7 +35,8 @@ adapters, with private GitHub documented as needing a consumer proxy.
 
 [Card 153](g02/batch-cards/153-restart-interlock-and-tauri-install.md) has
 its findings recorded, its quiescence contract landed, and
-`longhorn-tauri-update` carrying the concrete probes and the install gate.
+`longhorn-update` carrying the probes and the install gate (they lived in a
+`longhorn-tauri-update` crate until 2026-08-09, which had no Tauri code).
 Only the concrete `tauri-plugin-updater` installer remains, behind an
 injected port, and it lands with Card 159.
 [Card 154](g02/batch-cards/154-update-client-surface.md) follows it.
@@ -58,7 +59,7 @@ completed its headless batch and then stopped on an operator decision
 (2026-08-08): the packaged proof application is deprioritized, and Longhorn
 does not implement an installer — Tauri's updater plugin installs. The
 card's landed value is the authorize-only interlock
-(`UpdateGate::authorize` in `longhorn-tauri-update`, pure, no tauri
+(`UpdateGate::authorize` in `longhorn-update`, pure, no tauri
 dependency) plus the headless regression harness. The machine-bound claims
 stay recorded as unmet. The card resumes when a consumer needs the packaged
 evidence.

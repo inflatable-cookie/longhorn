@@ -1,4 +1,5 @@
-//! Longhorn's update installer. One implementation, every host.
+//! Longhorn's update installer: verification, extraction, and atomic bundle
+//! replacement. One implementation, every host.
 //!
 //! Contract 018 was amended on 2026-08-09 to make update execution
 //! host-independent: Tauri and GPUI applications both install through this

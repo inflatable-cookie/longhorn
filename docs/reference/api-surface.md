@@ -46,11 +46,10 @@
 | `longhorn-tauri-operation` | library | none | [source](../../crates/longhorn-tauri-operation/README.md) |
 | `longhorn-tauri-settings` | library | none | [source](../../crates/longhorn-tauri-settings/README.md) |
 | `longhorn-tauri-transfer` | library | `surface-transfer` | [source](../../crates/longhorn-tauri-transfer/src/lib.rs) |
-| `longhorn-tauri-update` | library | none | [source](../../crates/longhorn-tauri-update/src/lib.rs) |
 | `longhorn-tauri-windowing` | library | none | [source](../../crates/longhorn-tauri-windowing/src/lib.rs) |
 | `longhorn-transfer` | library | `bindings` | [source](../../crates/longhorn-transfer/src/lib.rs) |
 | `longhorn-update` | library | `bindings` | [source](../../crates/longhorn-update/src/lib.rs) |
-| `longhorn-update-native` | library | none | [source](../../crates/longhorn-update-native/src/lib.rs) |
+| `longhorn-update-install` | library | none | [source](../../crates/longhorn-update-install/src/lib.rs) |
 | `longhorn-windowing` | library | none | [source](../../crates/longhorn-windowing/src/lib.rs) |
 | `longhorn-windowing-config` | library | none | [source](../../crates/longhorn-windowing-config/src/lib.rs) |
 

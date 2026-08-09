@@ -13,14 +13,12 @@ use longhorn_licence::{
     SignedLicence, Span, Timestamp, TokenRedemptionSource, TrustBasis, Usability,
     asserted_remotely, usability, verify,
 };
-use longhorn_tauri_update::{
-    CountingProbe, InstallAuthorization, UpdateGate, transfer_session_probe,
-};
 use longhorn_update::{
     Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, DeferralCause, EndpointUrl,
     InstallId, QuiescenceKind, Rollout, RolloutFraction, StaticJsonSource, TargetTriple,
     UpdateAvailability, UpdateSource, evaluate,
 };
+use longhorn_update::{CountingProbe, InstallAuthorization, UpdateGate, transfer_session_probe};
 use semver::Version;
 use serde_json::{Value, json};
 
@@ -107,7 +105,7 @@ pub fn update_evidence() -> Value {
 
     let flushes = CountingProbe::new(QuiescenceKind::PendingFlush, || 2);
     let sessions = transfer_session_probe(|| 1);
-    let operations = longhorn_tauri_update::operation_probe(|| 3);
+    let operations = longhorn_update::operation_probe(|| 3);
     let probes: Vec<&dyn longhorn_update::QuiescenceProbe> = vec![&flushes, &sessions, &operations];
     let receipt = UpdateGate::new(probes).quiescence();
     assert_eq!(

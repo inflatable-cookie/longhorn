@@ -93,7 +93,8 @@ classification to explain a channel rejoin.
 
 ## Consumer Guardrail Exception
 
-This milestone adds two crates (`longhorn-update`, `longhorn-tauri-update`)
+This milestone adds two crates (`longhorn-update`, `longhorn-tauri-update`
+— the latter absorbed back into `longhorn-update` on 2026-08-09)
 and one package (`packages/update`). The g02 remediation guardrail against
 crate and package additions was scoped to remediation and does not bind new
 capability work. Consumers pick the additions up when they adopt the

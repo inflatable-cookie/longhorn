@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-07
+Updated: 2026-08-09
 Architecture: `../architecture/system-architecture.md`
 Research: `../research/translation-memos/019-application-update-and-release-channels.md`
 
@@ -14,7 +14,7 @@ artifact hosting or signing. Consuming applications own their release
 cadence, their signing identity, and where their artifacts live.
 
 **Amended 2026-08-09 — execution is host-independent.** Longhorn owns update
-execution on every host. One implementation, `longhorn-update-native`, serves
+execution on every host. One implementation, `longhorn-update-install`, serves
 Tauri and GPUI alike.
 
 This supersedes the 2026-08-08 amendment, which made execution host-dependent
@@ -48,7 +48,7 @@ install path defines the artifact shape — a gzip tar whose single top-level
 entry is the application — and Longhorn matches it exactly, so one signed
 release serves both hosts. Longhorn diverges only where the plugin's approach
 is unsafe to copy: no shell interpolation, classified failures, and bounded
-extraction. See `longhorn-update-native`.
+extraction. See `longhorn-update-install`.
 
 Authorization is unchanged and remains host-agnostic: `UpdateGate::authorize`
 answers whether an install may proceed, whoever performs it.
@@ -155,7 +155,4 @@ terms as the macOS path.
   consumer-owned.
 - Delta updates, rollback, and server-side rollout orchestration are out of
   scope for the compiled boundary.
-- Reimplementing installation for hosts that already provide it. Longhorn's
-  native installer exists for hosts with no equivalent, not to replace a
-  working one.
 - Longhorn publishes no update server.

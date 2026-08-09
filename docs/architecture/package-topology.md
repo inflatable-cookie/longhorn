@@ -51,10 +51,9 @@ discovery and validation entry points.
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
 | `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
-| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, and deferral | core, semver, sha2 |
-| `longhorn-update-native` | native update installer for hosts with no plugin: minisign verification, bounded extraction, atomic replacement, injected escalation | update, minisign-verify, tar, flate2 |
+| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, and the restart interlock (gate plus quiescence probes) | core, semver, sha2 |
+| `longhorn-update-install` | Longhorn's update installer, one implementation for every host: minisign verification, bounded extraction, atomic replacement, injected escalation | update, minisign-verify, tar, flate2 |
 | `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | serde |
-| `longhorn-tauri-update` | restart-interlock authorization: concrete quiescence probes over Longhorn host counts, install authorization. Named `tauri-*` by role, not dependency — it takes no Tauri dependency because authorization needs none | core, update, semver |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
 | `longhorn-tauri-windowing` | checked Tauri observation, managed identity, native mutation, lifecycle, capture, reveal, and flush | core, display, windowing, Tauri |
@@ -69,6 +68,13 @@ discovery and validation entry points.
 
 The bindings tool is development-only. Additional adapter crates stay narrow;
 there is no all-capabilities `longhorn-tauri` crate.
+
+A `tauri-*` prefix means a Tauri dependency, not a role. `longhorn-tauri-update`
+carried the prefix without the dependency and was absorbed into
+`longhorn-update` on 2026-08-09: its restart interlock is pure policy and
+belonged with the rest of it. `longhorn-update-native` became
+`longhorn-update-install` in the same pass, because `-native` implied a
+fallback to a plugin path that contract 018 no longer has.
 
 Host adapters are per-backend and an application composes exactly one.
 `longhorn-gpui-windowing` deliberately has no `gpui` dependency: `gpui` pulls

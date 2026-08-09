@@ -5,7 +5,7 @@ use semver::Version;
 
 /// Applies a downloaded update.
 ///
-/// One implementation serves every host: `longhorn-update-native`. Contract
+/// One implementation serves every host: `longhorn-update-install`. Contract
 /// 018 was amended on 2026-08-09 to make execution host-independent, after
 /// Card 162 established that the Tauri updater plugin cannot satisfy this
 /// trait at all — its verification lives inside its own downloader, and its

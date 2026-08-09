@@ -1,11 +1,11 @@
 # Packaged Update Proof
 
-Replaces a **real** macOS application bundle with `longhorn-update-native`.
+Replaces a **real** macOS application bundle with `longhorn-update-install`.
 Card 162 evidence.
 
 ## Why it exists
 
-`longhorn-update-native`'s own tests build synthetic archives — flat files at
+`longhorn-update-install`'s own tests build synthetic archives — flat files at
 mode `0644` under a fake `Example.app`. They prove the verification and the
 traversal bounds, and they cannot prove that a real bundle survives the round
 trip, because a real bundle has executable bits and, in general, symlinks.
@@ -35,7 +35,7 @@ and the update are copies in a temporary directory.
 | executable bits survive the round trip | the thing synthetic `0644` fixtures cannot show |
 
 Relaunch is **not** claimed. macOS separates replacement from relaunch and
-`longhorn-update-native` keeps that separation rather than hiding it, so
+`longhorn-update-install` keeps that separation rather than hiding it, so
 relaunch belongs to the host. See contract 018.
 
 ## Recorded run

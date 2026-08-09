@@ -2641,7 +2641,7 @@ version = "0.1.0"
 dependencies = [
  "flate2",
  "longhorn-update",
- "longhorn-update-native",
+ "longhorn-update-install",
  "minisign",
  "minisign-verify",
  "semver",
@@ -2860,16 +2860,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-tauri-update"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "longhorn-update",
- "semver",
- "serde_json",
-]
-
-[[package]]
 name = "longhorn-tauri-windowing"
 version = "0.1.0"
 dependencies = [
@@ -2924,19 +2914,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-update-licence-proof"
-version = "0.1.0"
-dependencies = [
- "ed25519-dalek",
- "longhorn-licence",
- "longhorn-tauri-update",
- "longhorn-update",
- "semver",
- "serde_json",
-]
-
-[[package]]
-name = "longhorn-update-native"
+name = "longhorn-update-install"
 version = "0.1.0"
 dependencies = [
  "flate2",
@@ -2946,6 +2924,17 @@ dependencies = [
  "semver",
  "tar",
  "tempfile",
+]
+
+[[package]]
+name = "longhorn-update-licence-proof"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "longhorn-licence",
+ "longhorn-update",
+ "semver",
+ "serde_json",
 ]
 
 [[package]]

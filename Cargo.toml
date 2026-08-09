@@ -37,10 +37,9 @@ members = [
   "crates/longhorn-surfaces-config",
   "crates/longhorn-transfer",
   "crates/longhorn-update",
-  "crates/longhorn-update-native",
+  "crates/longhorn-update-install",
   "crates/longhorn-tauri-config",
   "crates/longhorn-tauri-transfer",
-  "crates/longhorn-tauri-update",
   "crates/longhorn-tauri-windowing",
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
@@ -110,9 +109,8 @@ longhorn-surfaces = { path = "crates/longhorn-surfaces", version = "0.1.0" }
 longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config", version = "0.1.0" }
 longhorn-transfer = { path = "crates/longhorn-transfer", version = "0.1.0" }
 longhorn-update = { path = "crates/longhorn-update", version = "0.1.0" }
-longhorn-update-native = { path = "crates/longhorn-update-native", version = "0.1.0" }
+longhorn-update-install = { path = "crates/longhorn-update-install", version = "0.1.0" }
 longhorn-tauri-transfer = { path = "crates/longhorn-tauri-transfer", version = "0.1.0" }
-longhorn-tauri-update = { path = "crates/longhorn-tauri-update", version = "0.1.0" }
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version = "0.1.0" }
 longhorn-windowing = { path = "crates/longhorn-windowing", version = "0.1.0" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version = "0.1.0" }

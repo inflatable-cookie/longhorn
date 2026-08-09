@@ -6,10 +6,10 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use longhorn_tauri_update::{
-    CountingProbe, InstallAuthorization, UpdateGate, operation_probe, transfer_session_probe,
+use longhorn_update::{
+    CountingProbe, DeferralCause, InstallAuthorization, QuiescenceKind, QuiescenceProbe,
+    UpdateGate, operation_probe, transfer_session_probe,
 };
-use longhorn_update::{DeferralCause, QuiescenceKind, QuiescenceProbe};
 use semver::Version;
 
 fn version() -> Version {

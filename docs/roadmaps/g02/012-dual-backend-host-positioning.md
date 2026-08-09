@@ -85,7 +85,7 @@ Three follow-ups fell out of Card 163. Two are done; one waits on 162.
   with one axis and not the other can declare it. GPUI now resizes for real.
 - [x] Make post-apply readback host-aware, so an operation that succeeded but
   has not settled is not rescheduled forever.
-- [ ] Move `CountingProbe`, `transfer_session_probe` and `operation_probe`
-  out of `longhorn-tauri-update`. None reference Tauri — the same leak class
-  Card 161 closed for windowing. `longhorn-tauri-update` is Card 162's live
-  surface, so it waits for 162 to land rather than colliding with it.
+- [x] Move `CountingProbe`, `transfer_session_probe` and `operation_probe`
+  out of `longhorn-tauri-update`. Done 2026-08-09, and more thoroughly than
+  planned: the whole crate had no Tauri code, so it was absorbed into
+  `longhorn-update` rather than partially drained.

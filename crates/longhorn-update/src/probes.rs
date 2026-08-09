@@ -1,4 +1,4 @@
-use longhorn_update::{OutstandingWork, QuiescenceKind, QuiescenceProbe};
+use crate::{OutstandingWork, QuiescenceKind, QuiescenceProbe};
 
 /// A probe over any count a host can report.
 ///

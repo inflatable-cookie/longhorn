@@ -1,16 +1,17 @@
-use longhorn_update::{Deferral, QuiescenceProbe, QuiescenceReceipt};
+use crate::{Deferral, QuiescenceProbe, QuiescenceReceipt};
 use semver::Version;
 
 /// Gates installation on Longhorn-owned work being settled.
 ///
 /// This gate answers one question and no others — is it safe to install
-/// right now. Installation is `longhorn-update-native`'s, on every host. The
+/// right now. Installation is `longhorn-update-install`'s, on every host. The
 /// application calls [`UpdateGate::authorize`] immediately before handing the
 /// downloaded artifact to the installer.
 ///
 /// The separation survives the 2026-08-09 amendment that moved execution into
 /// Longhorn: authorization was always host-agnostic, and knowing what is in
-/// flight is a different question from knowing how to replace a bundle.
+/// flight is a different question from knowing how to replace a bundle. That
+/// is why this lives in the pure policy crate — it decides, it does not act.
 ///
 /// Reporting note: an install that reached disk but did not relaunch is not
 /// a failed update. Tell the user to reopen the application; telling them
