@@ -2,6 +2,7 @@
 members = [
   "crates/longhorn-bindings",
   "crates/longhorn-bridge",
+  "crates/longhorn-browser",
   "crates/longhorn-command",
   "crates/longhorn-command-config",
   "crates/longhorn-command-settings",
@@ -72,6 +73,7 @@ ed25519-dalek = { version = "2.2.0", default-features = false, features = ["std"
 flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
+longhorn-browser = { path = "crates/longhorn-browser", version = "0.1.0" }
 longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
 longhorn-command-config = { path = "crates/longhorn-command-config", version = "0.1.0" }
 longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "0.1.0" }

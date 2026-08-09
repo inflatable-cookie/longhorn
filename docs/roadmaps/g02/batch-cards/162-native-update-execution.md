@@ -143,13 +143,48 @@ the format it claims to accept. Beyond the conformance suite:
 Two bugs the tests caught: `tar`'s `unpack` does not create parent
 directories, and a nested file can precede its directory in the archive.
 
+## Step 6 Landed — 2026-08-09
+
+`longhorn-browser` supplies the system browser opener. Host-agnostic: neither
+backend has one, so both compose the same crate.
+
+It is two independent defences, because the capability hands a
+server-influenced string to an OS launcher:
+
+- **`BrowserUrl` is an allowlist**, not a denylist. HTTPS with a host, ASCII,
+  no control characters, no whitespace, no embedded credentials, bounded to
+  2048 bytes. `file://`, `javascript:` and custom schemes fail for not being
+  https rather than for being individually recognised, which is what stops the
+  list going stale.
+- **`NativeSystemBrowser` never uses a shell.** It spawns `/usr/bin/open` or
+  `xdg-open` with the URL as a single argument. The usual one-line version of
+  this capability interpolates a URL into `sh -c` and is a remote code
+  execution path.
+
+Neither defence relies on the other. A test asserts the launcher program name
+contains neither `sh` nor `cmd`, so relaxing it is a deliberate act.
+
+Windows is `UnsupportedPlatform`, recorded rather than guessed — the platform
+launchers there parse their arguments in ways this has not been tested
+against, and a launcher that might reach a command interpreter is worse than
+one that says it is missing. `DecliningSystemBrowser` is the honest default
+for a product with no account flow: declining is a policy, doing nothing
+silently is a bug that resembles one.
+
+10 tests.
+
+**Not wired into `longhorn-licence`.** `AccountFlow` yields the verifier,
+state and redirect URI but does not assemble the authorization URL, so each
+consumer concatenates it — which is exactly where escaping goes wrong. Giving
+`AccountFlow` an `authorization_url()` returning a `BrowserUrl` would close
+that, but it would make a pure policy crate depend on one that spawns
+processes. The clean answer is the `longhorn-update` / `longhorn-update-native`
+split applied here too. Left for a decision rather than taken mid-card.
+
 ## Outstanding
 
-- the native implementation: minisign verification, unpack, atomic
-  replacement, relaunch
 - the baseline conformance run against the Tauri plugin path, which needs a
   packaged application and therefore shares Card 159's blocker
-- the system browser opener
 
 ## Acceptance Criteria
 

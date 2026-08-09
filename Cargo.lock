@@ -2354,6 +2354,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-browser"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "longhorn-command"
 version = "0.1.0"
 dependencies = [

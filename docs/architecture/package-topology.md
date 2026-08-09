@@ -53,6 +53,7 @@ discovery and validation entry points.
 | `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
 | `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, and deferral | core, semver, sha2 |
 | `longhorn-update-native` | native update installer for hosts with no plugin: minisign verification, bounded extraction, atomic replacement, injected escalation | update, minisign-verify, tar, flate2 |
+| `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | serde |
 | `longhorn-tauri-update` | restart-interlock authorization: concrete quiescence probes over Longhorn host counts, install authorization. Named `tauri-*` by role, not dependency — it takes no Tauri dependency because authorization needs none | core, update, semver |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |

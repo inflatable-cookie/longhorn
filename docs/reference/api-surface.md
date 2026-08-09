@@ -11,6 +11,7 @@
 | --- | --- | --- | --- |
 | `longhorn-bindings` | development tool | none | [source](../../crates/longhorn-bindings/Cargo.toml) |
 | `longhorn-bridge` | library | `bindings`, `supervision` | [source](../../crates/longhorn-bridge/README.md) |
+| `longhorn-browser` | library | none | [source](../../crates/longhorn-browser/src/lib.rs) |
 | `longhorn-command` | library | `bindings` | [source](../../crates/longhorn-command/README.md) |
 | `longhorn-command-config` | library | `bindings` | [source](../../crates/longhorn-command-config/README.md) |
 | `longhorn-command-settings` | library | none | [source](../../crates/longhorn-command-settings/README.md) |

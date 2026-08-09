@@ -96,6 +96,18 @@ where none exists, Longhorn provides one.
   Longhorn's native implementation. Both satisfy one behavioural contract
   and one conformance suite; see contract 018.
 - **System browser launch** — required by contract 019's RFC 8252 flow.
+  Neither backend supplies it: Tauri has a plugin Longhorn does not take, GPUI
+  has nothing. So Longhorn implements it once, host-agnostically, in
+  `longhorn-browser`, and both hosts compose the same crate.
+
+  This capability hands a server-influenced string to an operating system
+  launcher, so it carries two independent defences. `BrowserUrl` is an
+  allowlist — HTTPS with a host, ASCII, no control characters, no whitespace,
+  no embedded credentials, bounded length. `NativeSystemBrowser` spawns a
+  program directly with the URL as a single argument and never involves a
+  shell. The usual one-line implementation of this capability, interpolating a
+  URL into `sh -c`, is a remote code execution path; neither defence here
+  depends on the other holding.
 - **OS notification delivery** — unimplemented on both hosts; recorded, not
   promised.
 
