@@ -3,7 +3,7 @@
 //!
 //! This crate decides *whether* to offer an update. It never fetches, never
 //! verifies a signature, and never installs — those belong to the source
-//! adapters and to the Tauri updater plugin respectively. Keeping
+//! adapters and to `longhorn-update-native` respectively. Keeping
 //! verification out of here is deliberate: it is what allows the artifact
 //! host to be untrusted infrastructure.
 //!

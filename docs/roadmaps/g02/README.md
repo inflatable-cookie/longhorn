@@ -15,7 +15,7 @@
 | [g02.009](009-application-update-and-release-channels.md) | in progress | in-app update: channels, client-side rollout, source adapters, restart safety |
 | [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
 | [g02.011](011-ipc-boundary-validation.md) | ready | IPC boundary validation derived from the Rust authority |
-| [g02.012](012-dual-backend-host-positioning.md) | ready | two first-class hosts: Tauri and GPUI, one host-agnostic core |
+| [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
 | [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
 
@@ -93,18 +93,23 @@ Research memo 021 repositions the framework: Tauri and GPUI become two
 first-class, permanent hosts. Measurement found the separation largely
 already exists — 12.5% of the Rust is Tauri-bound, with exactly one
 pure-to-host dependency edge and one webview-shaped concept in core.
-Contract 020 compiles the host-adapter boundary, contract 018 is amended so
-update execution is host-dependent, and the register is tiered into core,
-host, and webview edge. Cards 161-163 (g02.012) execute it. Cards 161 and
-163 are complete: the second backend exists, and contract 020 is amended from
-what building it found — eleven bends, seven GPUI's shape and four Tauri
-assumptions the contract had absorbed. The contract now carries a divergence
-register and says in its own Evidence section that it is not complete, because
-neither backend has proved multi-window placement, cross-window transfer, or
-lifecycle teardown under load. Three bends the release freeze had deferred are
-fixed: capabilities name one operation each, so a host with resize and no move
-can say so; and readback is host-aware, so an operation that succeeded but has
-not settled is not rescheduled forever.
+Contract 020 compiles the host-adapter boundary and the register is tiered
+into core, host, and webview edge. **g02.012 is complete.**
+
+The second backend exists, and contract 020 is amended from what building it
+found — thirteen bends, eight GPUI's shape and four Tauri assumptions the
+contract had absorbed, plus one found only by attaching a second monitor.
+The contract carries a divergence register and says in its own Evidence
+section that it is still not complete, because no backend has proved
+multi-window placement, cross-window transfer, or lifecycle teardown under
+load.
+
+Contract 018 was amended twice. On 2026-08-08 update execution became
+host-dependent; on 2026-08-09 it became **host-independent**, after Card 162
+established that the Tauri updater plugin cannot implement the shared
+conformance suite at all — its verification is welded to its own downloader,
+and its `install` takes caller-supplied bytes unverified. One installer now
+serves both hosts, proved against a real packaged application bundle.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Native update installer for Longhorn hosts with no updater plugin"
+description = "Longhorn's host-independent update installer: minisign verification, bounded extraction, atomic bundle replacement"
 publish = false
 
 [dependencies]

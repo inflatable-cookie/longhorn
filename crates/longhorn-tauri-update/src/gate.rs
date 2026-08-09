@@ -3,11 +3,14 @@ use semver::Version;
 
 /// Gates installation on Longhorn-owned work being settled.
 ///
-/// Longhorn does not install. The Tauri updater plugin performs check,
-/// download, verification, and bundle replacement; this gate answers the one
-/// question Longhorn is entitled to answer — is it safe to install right
-/// now. The application calls [`UpdateGate::authorize`] immediately before
-/// handing the downloaded artifact to the plugin.
+/// This gate answers one question and no others — is it safe to install
+/// right now. Installation is `longhorn-update-native`'s, on every host. The
+/// application calls [`UpdateGate::authorize`] immediately before handing the
+/// downloaded artifact to the installer.
+///
+/// The separation survives the 2026-08-09 amendment that moved execution into
+/// Longhorn: authorization was always host-agnostic, and knowing what is in
+/// flight is a different question from knowing how to replace a bundle.
 ///
 /// Reporting note: an install that reached disk but did not relaunch is not
 /// a failed update. Tell the user to reopen the application; telling them

@@ -5,10 +5,13 @@
 //! transfer sessions, running operations — and an install that relaunches
 //! mid-commit is data loss.
 //!
-//! Installation itself is the Tauri updater plugin's job: check, download,
-//! signature verification, and bundle replacement all stay inside the
-//! plugin. This crate only decides whether an install may proceed, and
-//! carries the reason when it may not.
+//! Installation itself is `longhorn-update-native`'s job on every host,
+//! including this one — contract 018 was amended on 2026-08-09 to make
+//! execution host-independent. This crate only decides whether an install
+//! may proceed, and carries the reason when it may not.
+//!
+//! Named `tauri-*` by role rather than dependency: it takes no Tauri
+//! dependency, because authorization needs none.
 
 mod gate;
 mod probes;

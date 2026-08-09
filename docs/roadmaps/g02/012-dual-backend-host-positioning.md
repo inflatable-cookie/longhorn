@@ -1,8 +1,9 @@
 # g02.012 Dual-backend Host Positioning
 
-Status: ready
+Status: complete
+Completed: 2026-08-09
 Owner: Tom
-Updated: 2026-08-08
+Updated: 2026-08-09
 Governing refs: contract 020; contracts 018 and 012; research memo 021
 Depends on: none
 
@@ -27,8 +28,8 @@ finishing a separation that mostly exists rather than creating one.
 
 ### Batch 2. Delegated capability
 
-- [ ] [Card 162](batch-cards/162-native-update-execution.md) builds the
-  native update installer for hosts with no plugin, under one shared
+- [x] [Card 162](batch-cards/162-native-update-execution.md) builds the
+  update installer — for every host, as it turned out — under one
   conformance suite
 
 ### Batch 3. Second backend
@@ -51,7 +52,7 @@ memo 021 dual-backend positioning
 - [x] no pure crate depends on a host adapter
 - [x] no host-shaped concept sits unqualified in `longhorn-core`
 - [x] contract tiers are stated, and webview-edge contracts are optional
-- [ ] update installs on a host with no plugin, under the same contract
+- [x] update installs on a host with no plugin, under the same contract
 - [x] one host-contract claim is proved against both backends
 
 ## Acceptance Criteria
@@ -59,8 +60,9 @@ memo 021 dual-backend positioning
 - [x] `longhorn-windowing-config` compiles with no `longhorn-tauri-*`
   dependency
 - [x] every host-contract requirement is stated without naming a backend
-- [ ] the native installer and the Tauri plugin path share one conformance
-  suite
+- [x] ~~the native installer and the Tauri plugin path share one conformance
+  suite~~ — superseded 2026-08-09. The plugin cannot implement the suite at
+  all, so execution became host-independent and there is one path.
 - [x] the GPUI adapter's unproven claims are recorded as unproven
 
 ## Explicit Non-goals
@@ -75,7 +77,7 @@ memo 021 dual-backend positioning
 
 ## Next Task
 
-Card 162 finishes the milestone. Cards 161 and 163 are complete.
+The milestone is closed. One follow-up remains, and it is not blocking:
 
 Three follow-ups fell out of Card 163. Two are done; one waits on 162.
 

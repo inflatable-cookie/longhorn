@@ -1,6 +1,7 @@
 # 162 Native Update Execution
 
-Status: in progress — native path landed; plugin-path baseline outstanding
+Status: complete
+Completed: 2026-08-09
 Owner: Tom
 Roadmap: g02.012 batch 2
 Governing refs: contracts 018 and 020; research memo 021
@@ -24,7 +25,8 @@ framework exists to prevent.
 
 ## Scope
 
-- native installer for hosts with no plugin
+- native installer for hosts with no plugin — which turned out to mean every
+  host, see the 2026-08-09 decision below
 - one shared conformance suite both paths satisfy
 - the system browser opener contract 019's RFC 8252 flow needs
 
@@ -267,25 +269,56 @@ test is one a user would actually receive. It needed no changes — the proof
 consumes a build output. Operator authorised work in that repository on
 2026-08-09; none turned out to be necessary.
 
-## Outstanding
+## Decision — 2026-08-09: execution is host-independent
 
-- **A decision on contract 018**: keep the plugin path and say what it is
-  for, or make update execution host-independent and delete the distinction.
-  This is the last thing between Card 162 and closing g02.012.
+Operator decision. Contract 018 is amended: Longhorn owns update execution on
+every host, and `longhorn-update-native` is the single implementation.
+
+The reasoning is the direction of the guarantee. The host with no plugin has
+to work solidly no matter what, and an implementation that satisfies GPUI
+necessarily satisfies Tauri, because nothing in it is host-specific. Building
+for the weaker host and letting the stronger inherit is the only ordering
+that leaves neither under-served. The reverse — build for the plugin, bolt on
+a fallback — leaves the fallback under-tested, which is exactly where an
+unverified artifact would eventually get through.
+
+**Tauri's updater stays the specification, not the mechanism.** Its artifact
+shape — a gzip tar whose single top-level entry is the application — is what
+Longhorn matches, so one signed release still serves both hosts. Longhorn
+diverges only where copying would be unsafe: no shell interpolation,
+classified failures, bounded extraction.
+
+Windows NSIS and MSI remain unimplemented, and the plugin is the obvious
+donor specification when they are wanted — on the same terms.
+
+### What changed in code
+
+Nothing structural. `longhorn-update-native` already existed and is now
+proved against a real bundle. Five doc comments asserted the plugin story and
+were corrected, one of which — `longhorn-tauri-update`'s "installation is the
+Tauri updater plugin's job" — had become actively false.
 
 ## Acceptance Criteria
 
-- both paths satisfy one conformance suite
-- an unverified artifact is refused on every host, under every configuration
-- policy is untouched: no channel, rollout, or floor logic is duplicated
-- the non-writable-installation case is classified, not surfaced as failure
-- macOS bundle replacement and relaunch are proved or recorded as unproven
+- [x] ~~both paths satisfy one conformance suite~~ — **superseded**. There is
+  one path, and it satisfies the suite. The criterion was written when two
+  were expected; the plugin cannot satisfy the suite at all, which is the
+  finding rather than a shortfall.
+- [x] an unverified artifact is refused on every host, under every
+  configuration
+- [x] policy is untouched: no channel, rollout, or floor logic is duplicated
+- [x] the non-writable-installation case is classified, not surfaced as
+  failure
+- [x] macOS bundle replacement proved against a real packaged application;
+  relaunch recorded as the host's, by design
 
 ## Evidence Required
 
-- the conformance suite, and both paths passing it
-- a tamper test refused by the native path
-- the recorded baseline of plugin behaviour the suite does not capture
+- [x] the conformance suite, and the native path passing it
+- [x] a tamper test refused by the native path — and, on a real bundle, shown
+  to leave the installation untouched
+- [x] the recorded baseline of plugin behaviour: it cannot implement the
+  contract, with the source citations
 
 ## Stop Conditions
 
@@ -294,4 +327,4 @@ consumes a build output. Operator authorised work in that repository on
 
 ## Next Task
 
-Card 163, if not already underway.
+Close g02.012. Cards 161, 162 and 163 are complete.

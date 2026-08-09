@@ -1,7 +1,9 @@
-//! Native update installer for hosts with no updater plugin.
+//! Longhorn's update installer. One implementation, every host.
 //!
-//! Satisfies the same `UpdateInstaller` contract and conformance suite as
-//! the Tauri plugin path, so one release serves both hosts.
+//! Contract 018 was amended on 2026-08-09 to make update execution
+//! host-independent: Tauri and GPUI applications both install through this
+//! crate. Building for the host with no plugin and letting the other inherit
+//! is the only ordering that leaves neither under-served.
 //!
 //! # Why minisign
 //!

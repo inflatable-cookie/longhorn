@@ -13,30 +13,56 @@ rollout eligibility, deferral, and restart readiness. Longhorn does not own
 artifact hosting or signing. Consuming applications own their release
 cadence, their signing identity, and where their artifacts live.
 
-**Amended 2026-08-08 — execution is host-dependent.** This contract
-previously stated that Longhorn does not own the installation mechanism, and
-`longhorn-tauri-update` was reduced to authorization-only on that basis.
-That was correct while Tauri was the only host: a mature, notarization-aware
-plugin existed. It became wrong when GPUI became a first-class host, because
-no plugin exists there and the alternative is every product implementing
-minisign verification and macOS bundle replacement itself — security-
-sensitive code, duplicated per application, which is precisely what a
-framework exists to prevent.
+**Amended 2026-08-09 — execution is host-independent.** Longhorn owns update
+execution on every host. One implementation, `longhorn-update-native`, serves
+Tauri and GPUI alike.
 
-- **Tauri hosts** use the updater plugin. Longhorn authorizes; the plugin
-  installs.
-- **Non-Tauri hosts** use Longhorn's native implementation.
-- **Both satisfy one behavioural contract and one conformance suite.** Two
-  implementations without a shared suite is a fork, not an adapter.
+This supersedes the 2026-08-08 amendment, which made execution host-dependent
+— Tauri hosts using the updater plugin, non-Tauri hosts using Longhorn's
+native implementation, both satisfying one conformance suite. That decision
+assumed the plugin could verify an artifact Longhorn hands it. Card 162
+established, from `tauri-plugin-updater` 2.10.1, that it cannot:
+
+- `verify_signature` is called in exactly one place, at the end of
+  `Update::download`.
+- `Update::install(bytes)` reaches the platform installer with no
+  verification of any kind.
+- `Update`'s fields are private and only a network `check()` constructs one,
+  so no adapter can wrap bytes it already holds in one.
+
+So an adapter must either surrender the artifact to the plugin's own
+downloader, or hand the plugin unverified bytes. The second violates this
+contract absolutely. The first is a different contract. **There is no
+implementation of the shared suite over the plugin**, which makes the
+"two implementations, one suite" claim unsatisfiable rather than merely
+unproven.
+
+The deciding argument is the direction of the guarantee: the host with no
+plugin must work solidly, and an implementation that satisfies GPUI
+necessarily satisfies Tauri, since nothing in it is host-specific. Building
+for the weaker host and letting the stronger one inherit is the only ordering
+that leaves no host under-served.
+
+**Tauri's updater remains the specification, not the mechanism.** Its macOS
+install path defines the artifact shape — a gzip tar whose single top-level
+entry is the application — and Longhorn matches it exactly, so one signed
+release serves both hosts. Longhorn diverges only where the plugin's approach
+is unsafe to copy: no shell interpolation, classified failures, and bounded
+extraction. See `longhorn-update-native`.
 
 Authorization is unchanged and remains host-agnostic: `UpdateGate::authorize`
 answers whether an install may proceed, whoever performs it.
 
+**Windows is the open edge.** Longhorn's installer covers macOS bundle
+replacement. NSIS and MSI are unimplemented, and the plugin is the obvious
+donor specification when they are needed — as a specification, on the same
+terms as the macOS path.
+
 ## Verification And Trust
 
-- Artifact signature verification belongs to whichever component installs.
-  On Tauri that is the updater plugin, which Longhorn never wraps or
-  bypasses. On hosts with no plugin, Longhorn's native installer performs it.
+- Artifact signature verification belongs to whichever component installs,
+  and on every host that is Longhorn. One verifier, one key, one signed
+  release, both hosts.
 - An installer that does not verify is not an installer. There is no
   configuration, host, or build profile under which an unverified artifact
   may be applied.

@@ -5,14 +5,20 @@ use semver::Version;
 
 /// Applies a downloaded update.
 ///
-/// Two implementations exist and always will: the Tauri updater plugin, and
-/// Longhorn's native installer for hosts that have none. They share this
-/// contract and the conformance suite below, because two implementations
-/// without a shared suite is a fork rather than an adapter.
+/// One implementation serves every host: `longhorn-update-native`. Contract
+/// 018 was amended on 2026-08-09 to make execution host-independent, after
+/// Card 162 established that the Tauri updater plugin cannot satisfy this
+/// trait at all — its verification lives inside its own downloader, and its
+/// `install` accepts caller-supplied bytes without verifying them.
 ///
-/// The contract is deliberately coarse. Tauri's plugin performs download,
-/// verification, and replacement as one opaque call, so a contract demanding
-/// separable steps could not be satisfied by it. What both can promise is
+/// The conformance suite below therefore has one implementation rather than
+/// two. It stays, because it is what makes "verify before anything reaches
+/// disk" a checked claim rather than a comment, and because a second
+/// implementation for Windows installers would have to meet it.
+///
+/// The contract is deliberately coarse: it names observable outcomes rather
+/// than separable steps, so a platform whose install is one opaque operation
+/// can still satisfy it. What an implementation must promise is
 /// the *observable* behaviour: what reaches disk, and what is reported.
 pub trait UpdateInstaller {
     /// Applies `artifact`, whose detached signature is `signature`.
