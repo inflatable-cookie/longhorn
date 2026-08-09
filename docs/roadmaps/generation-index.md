@@ -120,3 +120,22 @@ deferred options. Package-manager publication remains deferred.
 
 Next live pointer: the g02 planning checkpoint — characterize the next
 shared gap from consumer evidence, or extend the runway.
+
+[g02.015](g02/015-gpui-composition-and-live-evidence.md) is compiled and ready.
+g02.012 established two first-class hosts; cards 169-171 built the projection
+tier, generated its labels from the Rust enums that own them, and put both
+tiers under one parity fixture. Contract 020 now holds no unproven claim — only
+one stated ceiling: no real drag has crossed a real window on either backend,
+and no real teardown has run with a real flush in flight.
+
+Both need an application to run in, and Longhorn does not own the first product
+target — the authority map puts Soundcheck's workflows in Soundcheck. So this
+milestone owns the composition surface and the in-repo evidence, not the
+consumer conversion.
+
+[Card 172](g02/batch-cards/172-gpui-build-cadence.md) is the live next step and
+blocks three of the milestone's five cards. `prototypes/gpui-windowing` is the
+only artefact proving Longhorn's host seam matches the real SDK and the one
+thing CI never builds; siting an example before deciding where a `gpui` build
+runs is how that happened in the first place.
+

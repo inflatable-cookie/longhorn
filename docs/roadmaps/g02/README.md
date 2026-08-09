@@ -18,6 +18,7 @@
 | [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
 | [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
+| [g02.015](015-gpui-composition-and-live-evidence.md) | ready | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -56,6 +57,15 @@ memo 020 licensing
 ```text
 P2-10 audit finding -> Card 160 inventory
  └─ 011 IPC boundary validation
+```
+
+```text
+contract 020 ceilings + memo 022
+ └─ 015 GPUI composition and live evidence
+     ├─ 172 build cadence            (blocks 174-176)
+     ├─ 173 composition guide        (independent)
+     └─ 174 worked example ─┬─ 175 live cross-window drag
+                            └─ 176 live teardown under load
 ```
 
 ```text
