@@ -94,14 +94,14 @@ fn drive(cx: &mut App) -> String {
         "\"desired_state_reached\":{}",
         bundle.desired_state_reached()
     ));
-    lines.push(format!(
-        "\"dispositions\":{}",
-        bundle.dispositions().len()
-    ));
+    lines.push(format!("\"dispositions\":{}", bundle.dispositions().len()));
 
     let registry = bundle.into_parts().0;
     let Some(managed) = registry.managed_windows().into_iter().next() else {
-        return format!("{{\"ok\":false,\"stage\":\"registry\",{}}}", lines.join(","));
+        return format!(
+            "{{\"ok\":false,\"stage\":\"registry\",{}}}",
+            lines.join(",")
+        );
     };
     let key = managed.key();
 
@@ -118,8 +118,16 @@ fn drive(cx: &mut App) -> String {
     lines.push(format!("\"observed_scale\":{}", facts.scale()));
     lines.push(format!(
         "\"observed_origin\":[{},{}]",
-        facts.bounds().to_screen_origin().map(|p| p.x().get()).unwrap_or(i32::MIN),
-        facts.bounds().to_screen_origin().map(|p| p.y().get()).unwrap_or(i32::MIN)
+        facts
+            .bounds()
+            .to_screen_origin()
+            .map(|p| p.x().get())
+            .unwrap_or(i32::MIN),
+        facts
+            .bounds()
+            .to_screen_origin()
+            .map(|p| p.y().get())
+            .unwrap_or(i32::MIN)
     ));
 
     // 3. Display facts: refused before the scale is known, resolved after.

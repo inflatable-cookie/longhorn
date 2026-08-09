@@ -127,8 +127,8 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Maximize | absolute `maximize`/`unmaximize` | toggle `zoom_window` + `is_maximized` | GPUI; reachable by read-then-toggle, not atomically |
 | Maximize is readable after the call | yes | **no**, not in the same turn | GPUI on macOS animates the zoom; observed directly, see below |
 | Normal geometry while maximized | **no**, caller retains it | yes, `WindowBounds` carries restore bounds | Tauri; `retained_normal` in the Tauri capture seam is a Tauri workaround, not contract |
-| Display position in the global plane | yes | **no**, every display reports `(0, 0)` | GPUI's macOS backend reads `CGDisplayBounds` and discards the origin; observed with two screens attached |
-| Per-display scale factor | yes | **no**, per-window only | GPUI's `PlatformDisplay` has id, uuid and bounds |
+| Display position in the global plane | yes | **not via gpui** — every display reports `(0, 0)`; recoverable from the platform with the id gpui exposes | GPUI's macOS backend reads `CGDisplayBounds` and discards the origin |
+| Per-display scale factor | yes | **not via gpui** — per-window only; recoverable from the platform with the id gpui exposes | GPUI's `PlatformDisplay` has id, uuid and bounds |
 | Display work area | yes | **no** | as above |
 | Built-in display status | unknown in practice | **no** | as above |
 | Stable cross-restart display identity | **no**, correlates by name and geometry | yes, `PlatformDisplay::uuid` | Tauri; this is the one place the second backend is stronger |
@@ -185,27 +185,45 @@ neither could any fake — which is why the contract's coverage table says what
 has and has not been exercised rather than assuming a single-display result
 generalises.
 
-### A display's scale is only knowable where a window already is
+### A thin host API is not the same as an absent fact
 
-GPUI reports scale per *window*, never per *display*. So the obvious
-implementation of a display-facts source — read the scale from a live window
-once, hand it back for every display — is wrong the moment a desk is mixed
-DPI, and it fails silently because both answers are plausible numbers.
+Two claims in earlier drafts of this contract were wrong, in the same way, and
+the correction matters more than either finding.
 
-Measured on two attached displays: an external panel reported window scale 1
-and the built-in panel reported 2, from windows opened on each. A single
-answer would have been wrong for one of them, and every window placed on that
-display would have been sized by a factor of two out.
+GPUI's `PlatformDisplay` reports an id, a UUID and a size. No scale, no
+origin, no work area. From that it looked as though a GPUI application could
+not know a display's scale until it had put a window there, and could not know
+where a display sits at all. Both were overstatements: **the facts are absent
+from the host API, not from the platform**, and GPUI hands over the key to
+reach them. `MacDisplay` is a newtype over `CGDirectDisplayID`, and `DisplayId`
+exposes it through `impl From<DisplayId> for u32`.
 
-This is why `GpuiDisplayFactsSource::scale_factor` takes the display it is
-being asked about. The shape is right; the trap is in the implementation, and
-the first implementation written — in Longhorn's own smoke binary — fell into
-it.
+Measured on a two-display desk, with no window open:
 
-The constraint underneath is circular and cannot be engineered away: a GPUI
-application cannot learn a display's scale until it has put a window there.
-A display with no window on it has no knowable scale, which is an argument
-for treating scale as unobtainable rather than guessing a default.
+| Fact | GPUI reports | Platform reports, same id |
+| --- | --- | --- |
+| scale, external panel | — | 1 |
+| scale, built-in panel | — | 2 |
+| origin, external panel | `(0, 0)` | `(0, 0)` |
+| origin, built-in panel | `(0, 0)` | `(-1577, 1440)` |
+
+About ten safe lines of `core-graphics` each; see `prototypes/gpui-windowing`.
+
+So `GpuiDisplayFactsSource` is **the seam where a per-platform reader goes**,
+not a place to record an impossibility. Its `None` means "no reader supplied
+for this platform yet", and the adapter's refusal to invent facts stays right
+for exactly that case.
+
+The general rule, which is the part worth keeping: a host abstraction being
+thin is a statement about the abstraction. Before recording a fact as
+unobtainable, check whether the host has leaked enough identity to ask the
+platform directly — because a contract that says "impossible" when it means
+"not wired up yet" will stop someone building the thing that was always
+available.
+
+What remains genuinely per-window on GPUI is a window's *own* scale, which is
+correct: a window can straddle displays, and only the window server knows
+which one is driving it.
 
 ### Capabilities name one operation each
 
@@ -241,7 +259,7 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Lifecycle events | proved | proved for every event in the list, in-memory only |
 | Close handling | proved | proved in-memory; the real close path ran in the smoke binary |
 | Quiescence participation | proved | proved, in-memory |
-| Display facts with scale factors | proved | **unsatisfiable from the host alone** — scale, work area and *position* must all be supplied; refusal and resolution ran against two real displays |
+| Display facts with scale factors | proved | **not obtainable from the gpui API alone** — scale, work area and position come from a per-platform reader over the id gpui exposes; a macOS reader exists and was measured against two real displays |
 | Platform directories | proved | not exercised |
 
 What no backend has proved: multi-window placement, cross-window transfer,

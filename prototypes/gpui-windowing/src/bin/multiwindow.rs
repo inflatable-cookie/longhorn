@@ -62,11 +62,37 @@ fn drive(cx: &mut App) -> String {
 
     let displays = match backend.displays() {
         Ok(displays) => displays,
-        Err(error) => return format!("{{\"ok\":false,\"stage\":\"displays\",\"error\":\"{error}\"}}"),
+        Err(error) => {
+            return format!("{{\"ok\":false,\"stage\":\"displays\",\"error\":\"{error}\"}}");
+        }
     };
     lines.push(format!("\"displayCount\":{}", displays.len()));
+
+    // Scale per display, read from CoreGraphics before any window exists.
+    // gpui's `PlatformDisplay` reports no scale, which looks like it makes
+    // this unknowable until something is placed there. It does not: gpui's
+    // `DisplayId` is the `CGDirectDisplayID`, so the id it already hands over
+    // is the key the platform wants.
+    let windowless: Vec<String> = displays
+        .iter()
+        .map(|display| {
+            format!(
+                "{{\"displayId\":{},\"scaleWithoutAWindow\":{},\"gpuiOrigin\":[{},{}],\"realOrigin\":[{},{}]}}",
+                display.display_id(),
+                longhorn_gpui_windowing_prototype::display_scale_factor(display.display_id())
+                    .map_or("null".to_owned(), |scale| scale.to_string()),
+                display.bounds().to_screen_origin().map(|p| p.x().get()).unwrap_or(-1),
+                display.bounds().to_screen_origin().map(|p| p.y().get()).unwrap_or(-1),
+                longhorn_gpui_windowing_prototype::display_origin(display.display_id()).0,
+                longhorn_gpui_windowing_prototype::display_origin(display.display_id()).1
+            )
+        })
+        .collect();
+    lines.push(format!("\"windowlessScales\":[{}]", windowless.join(",")));
     if displays.len() < 2 {
-        lines.push("\"note\":\"only one display attached; the interesting claims are skipped\"".to_owned());
+        lines.push(
+            "\"note\":\"only one display attached; the interesting claims are skipped\"".to_owned(),
+        );
     }
 
     // 1. Two windows, one plan. The planner has never produced a multi-window
@@ -192,10 +218,7 @@ fn drive(cx: &mut App) -> String {
         sorted.len()
     };
     lines.push(format!("\"distinctWindowScales\":{distinct}"));
-    lines.push(format!(
-        "\"oneScalePerDisplayHolds\":{}",
-        distinct <= 1
-    ));
+    lines.push(format!("\"oneScalePerDisplayHolds\":{}", distinct <= 1));
 
     for key in opened {
         let _ = backend.close(key);

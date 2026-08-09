@@ -81,7 +81,7 @@ Recorded 2026-08-09, macOS 25.5, an external panel plus the built-in one:
  "distinctWindowScales":2,"oneScalePerDisplayHolds":false}
 ```
 
-Three things came out of it. **Multi-window placement works** — both windows
+Four things came out of it. **Multi-window placement works** — both windows
 landed at exactly the planned origins, from a single `plan_window_diff` pass;
 contract 020 had this recorded as unproven on either backend.
 **`GpuiWindowCreateRequest::on_display` works**, and this is the first time
@@ -90,6 +90,14 @@ panel, 2 on the built-in. Any implementation that learns a single scale from
 a live window and reuses it is wrong by a factor of two on a mixed-DPI desk —
 including the one in `smoke.rs`, which is why that binary supplies its scale
 to one display only.
+
+And the correction that came out of questioning the third: **none of this
+needs a window.** `display_scale_factor` and `display_origin` read both facts
+from CoreGraphics using the id GPUI already exposes — `DisplayId` is the
+`CGDirectDisplayID`. The run reports `windowlessScales` alongside the
+per-window figures, and they match: 1 and 2. The origins do not match, which
+is the point — GPUI says `(0, 0)` for the built-in panel and the platform says
+`(-1577, 1440)`.
 
 ## What it is not
 

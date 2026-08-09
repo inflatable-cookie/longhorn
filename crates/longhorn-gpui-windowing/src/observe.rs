@@ -29,9 +29,16 @@ pub const GPUI_DISPLAY_NAMESPACE: &str = "gpui";
 pub trait GpuiDisplayFactsSource {
     /// Returns the scale factor for one display, if the caller knows it.
     ///
-    /// The practical source is a live window on that display:
-    /// `Window::scale_factor` is GPUI's only scale query. A display with no
-    /// window on it has no scale a GPUI application can read.
+    /// GPUI has no per-display scale query — `Window::scale_factor` needs a
+    /// window. That does **not** make a display's scale unknowable: GPUI's
+    /// `DisplayId` is the platform's own display id, so a caller reads the
+    /// scale straight from the platform with no window open. On macOS that is
+    /// `CGDisplayMode`'s pixel width over its point width, about ten safe
+    /// lines; see `prototypes/gpui-windowing`.
+    ///
+    /// So this is where a per-platform reader belongs, not a record of an
+    /// impossibility. Returning `None` remains correct for a platform with no
+    /// reader written yet.
     fn scale_factor(&mut self, facts: &GpuiDisplayFacts) -> Option<ScaleFactor>;
 
     /// Returns the usable work area for one display, if the caller knows it.
@@ -49,6 +56,10 @@ pub trait GpuiDisplayFactsSource {
     /// size. So two attached displays both report `(0, 0)`, and a caller that
     /// took that at face value would place every window on the primary and
     /// would collide two displays in any arrangement signature.
+    ///
+    /// The value is not lost, only dropped: `CGDisplayBounds` on the same id
+    /// GPUI exposes returns it. Measured on a two-display desk, the built-in
+    /// panel sits at `(-1577, 1440)` while GPUI reported `(0, 0)`.
     fn position(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScreenPoint> {
         None
     }

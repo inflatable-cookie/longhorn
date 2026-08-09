@@ -90,8 +90,8 @@ card.
 | 10 | The capture seam threads `retained_normal` through every call | Tauri — it cannot report a maximized window's normal geometry; GPUI can |
 | 11 | Display correlation is built on name plus geometry, with an ambiguity error | Tauri — GPUI has a UUID stable across restarts |
 | 12 | Post-apply readback re-plans unconditionally, assuming the platform has settled | GPUI — `set_maximized(true)` succeeds and the next `is_maximized()` still reports false, because macOS animates the zoom |
-| 13 | Display facts assume a display knows where it is | GPUI — its macOS backend reads `CGDisplayBounds` and discards the origin, so every display reports `(0, 0)`. Found by attaching a second screen |
-| 14 | A display's scale is knowable only where a window already is | GPUI — scale is per-window, never per-display, so a caller cannot learn a display's scale until it has put a window there. Measured at 1 and 2 on one desk |
+| 13 | Display facts assume a display knows where it is | GPUI's *API* — its macOS backend reads `CGDisplayBounds` and discards the origin, so every display reports `(0, 0)`. Recoverable from the platform; see the correction below |
+| 14 | Per-display scale is absent from the GPUI API | GPUI's *API* — scale is per-window only. Also recoverable from the platform; see the correction below. Measured at 1 and 2 on one desk |
 
 Two more, recorded but not contract changes:
 
@@ -199,6 +199,33 @@ GPUI at all. And no backend has proved multi-window placement, cross-window
 transfer, or lifecycle teardown under load — the first GPUI target is a small
 audio-conversion application that exercises none of the three, and those are
 exactly where a single-host contract is most likely to have leaked.
+
+### Correction — 2026-08-09: bends 13 and 14 were overstated
+
+Both were first written as absolute: the origin is "gone", and a display's
+scale is "unknowable until a window is placed there". Neither is true, and the
+operator pushed back on the second, which exposed the first.
+
+`MacDisplay` is a newtype over `CGDirectDisplayID`, and `DisplayId` exposes it
+through `impl From<DisplayId> for u32`. So the id GPUI already hands over is
+the key CoreGraphics wants, and both facts read back with no window open, in
+about ten safe lines each:
+
+| Fact | GPUI | Platform, same id |
+| --- | --- | --- |
+| scale, external / built-in | — | 1 / 2 |
+| origin, external / built-in | `(0, 0)` / `(0, 0)` | `(0, 0)` / `(-1577, 1440)` |
+
+The adapter design survives unchanged and reads better for it:
+`GpuiDisplayFactsSource` is the seam where a per-platform reader belongs, and
+`None` means "no reader for this platform yet" rather than "impossible".
+`prototypes/gpui-windowing` now carries the macOS reader.
+
+**The lesson is the finding.** A thin host abstraction is a statement about
+the abstraction, not about the platform. Before recording a fact as
+unobtainable, check whether the host leaked enough identity to ask the
+platform directly — a contract that says "impossible" when it means "not
+wired up yet" stops someone building what was always available.
 
 ## Acceptance Criteria
 

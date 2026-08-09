@@ -116,9 +116,7 @@ impl GpuiWindowBackend for GpuiAppBackend<'_> {
                     .iter()
                     .map(|display| display.id())
                     .find(|id| u32::from(*id) == wanted)
-                    .ok_or_else(|| {
-                        GpuiWindowError::new(format!("gpui has no display {wanted}"))
-                    })?,
+                    .ok_or_else(|| GpuiWindowError::new(format!("gpui has no display {wanted}")))?,
             ),
             None => None,
         };
@@ -212,9 +210,7 @@ fn bounds_state(window: &Window) -> GpuiWindowBoundsState {
     // itself, so there is nothing for the caller to retain. The Tauri capture
     // backend fails without a `retained_normal` placement threaded back in.
     match window.window_bounds() {
-        WindowBounds::Windowed(bounds) => {
-            GpuiWindowBoundsState::Windowed(from_gpui_bounds(bounds))
-        }
+        WindowBounds::Windowed(bounds) => GpuiWindowBoundsState::Windowed(from_gpui_bounds(bounds)),
         WindowBounds::Maximized(bounds) => {
             GpuiWindowBoundsState::Maximized(from_gpui_bounds(bounds))
         }
@@ -224,7 +220,10 @@ fn bounds_state(window: &Window) -> GpuiWindowBoundsState {
     }
 }
 
-fn display_facts(display: &Rc<dyn PlatformDisplay>, primary: Option<DisplayId>) -> GpuiDisplayFacts {
+fn display_facts(
+    display: &Rc<dyn PlatformDisplay>,
+    primary: Option<DisplayId>,
+) -> GpuiDisplayFacts {
     // Three facts, and that is all `PlatformDisplay` has. No scale factor, no
     // work area, no built-in flag — the adapter reports their absence rather
     // than inventing them.
@@ -256,4 +255,43 @@ fn from_gpui_bounds(bounds: Bounds<Pixels>) -> GpuiLogicalRect {
         f32::from(bounds.size.width),
         f32::from(bounds.size.height),
     )
+}
+
+/// Reads a display's backing scale factor without opening a window on it.
+///
+/// GPUI's `PlatformDisplay` reports no scale, and `Window::scale_factor` needs
+/// a window — which looks like it makes a display's scale unknowable until
+/// something has been placed there. It does not. `MacDisplay` is a newtype
+/// over `CGDirectDisplayID`, and `DisplayId` exposes it through
+/// `impl From<DisplayId> for u32`, so the id GPUI already hands over is
+/// exactly the key CoreGraphics wants.
+///
+/// The scale is the ratio of the current mode's pixel width to its point
+/// width: a 2× panel reports twice as many pixels as points. Safe bindings,
+/// so this holds under the crate's `unsafe_code = "forbid"`.
+///
+/// Returns `None` when the display has no current mode — asleep, or
+/// disconnected between the enumeration and this call.
+#[must_use]
+pub fn display_scale_factor(display_id: u32) -> Option<f32> {
+    let mode = core_graphics::display::CGDisplay::new(display_id).display_mode()?;
+    let points = mode.width();
+    if points == 0 {
+        return None;
+    }
+    Some(mode.pixel_width() as f32 / points as f32)
+}
+
+/// Reads a display's origin in the global plane, which GPUI discards.
+///
+/// `MacDisplay::bounds` reads `CGDisplayBounds` — documented in gpui's own
+/// source as global coordinates — and then substitutes `Default::default()`
+/// for the origin, so every display reports `(0, 0)`. The same
+/// `CGDirectDisplayID` gpui exposes reads the real value straight back.
+///
+/// Returns `(x, y)` in points, top-left origin, as CoreGraphics reports it.
+#[must_use]
+pub fn display_origin(display_id: u32) -> (f64, f64) {
+    let bounds = core_graphics::display::CGDisplay::new(display_id).bounds();
+    (bounds.origin.x, bounds.origin.y)
 }

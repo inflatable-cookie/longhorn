@@ -39,7 +39,11 @@ impl Error for GpuiScaleFactorError {}
 /// typed refusal rather than a fabricated number.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnobtainableDisplayFact {
-    /// Per-display scale. GPUI reports scale only from a live window.
+    /// Per-display scale.
+    ///
+    /// GPUI reports scale only from a live window, but the platform reports
+    /// it per display and GPUI's `DisplayId` is the platform's id — so this
+    /// means "no reader supplied", not "unknowable".
     ScaleFactor,
     /// The area left after system chrome. GPUI reports full bounds only.
     WorkArea,
@@ -52,6 +56,9 @@ pub enum UnobtainableDisplayFact {
     /// every display is reported at `(0, 0)`. Size survives; position does
     /// not. Two attached displays therefore claim the same origin, which is
     /// not a coordinate system Longhorn can place windows in.
+    ///
+    /// Dropped rather than lost: the same call on the same id returns the
+    /// real value. This variant means "no reader supplied".
     Position,
     /// Whether the display is the machine's built-in panel.
     BuiltinStatus,

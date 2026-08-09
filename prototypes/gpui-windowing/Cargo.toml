@@ -8,6 +8,7 @@ publish = false
 [workspace]
 
 [dependencies]
+core-graphics = "0.25.0"
 gpui = "0.2.2"
 longhorn-core = { path = "../../crates/longhorn-core" }
 longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
