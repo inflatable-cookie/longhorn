@@ -1,4 +1,6 @@
-use longhorn_windowing::{HostCapabilities, HostCapability};
+use longhorn_windowing::{
+    DeferredSettlement, HostCapabilities, HostCapability, WindowOperationKind,
+};
 
 /// Why a GPUI host withholds a capability Tauri declares.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,9 +21,9 @@ pub struct WithheldCapability {
 /// cannot meet.
 pub const WITHHELD_CAPABILITIES: [WithheldCapability; 3] = [
     WithheldCapability {
-        capability: HostCapability::MoveResize,
-        reason: "gpui's PlatformWindow has resize but no move; the capability is \
-                 a compound and cannot be declared for half of it",
+        capability: HostCapability::Move,
+        reason: "gpui's PlatformWindow has no position setter; bounds are a \
+                 creation-time option and cannot be changed afterwards",
     },
     WithheldCapability {
         capability: HostCapability::Show,
@@ -36,13 +38,20 @@ pub const WITHHELD_CAPABILITIES: [WithheldCapability; 3] = [
 
 /// Derives the exact capability set a GPUI host can honestly declare.
 ///
-/// A host declares only what it can do. `MoveResize`, `Show` and `Hide` are
-/// absent for the reasons in [`WITHHELD_CAPABILITIES`]; declaring them would
-/// make the planner emit operations the adapter would have to fail or fake.
+/// A host declares only what it can do. `Move`, `Show` and `Hide` are absent
+/// for the reasons in [`WITHHELD_CAPABILITIES`]; declaring them would make the
+/// planner emit operations the adapter would have to fail or fake.
+///
+/// `Resize` is present. It was not, while the capability vocabulary carried a
+/// compound `MoveResize`: GPUI has `Window::resize` and no position setter, so
+/// declaring the compound would have been a lie and withholding it left a GPUI
+/// window unresizable from a plan. Splitting the capability is what made the
+/// honest answer expressible.
 #[must_use]
 pub fn gpui_host_capabilities(can_create: bool) -> HostCapabilities {
     let mut capabilities = vec![
         HostCapability::Retag,
+        HostCapability::Resize,
         HostCapability::Maximize,
         HostCapability::Unmaximize,
         HostCapability::Focus,
@@ -52,6 +61,25 @@ pub fn gpui_host_capabilities(can_create: bool) -> HostCapabilities {
         capabilities.push(HostCapability::Create);
     }
     HostCapabilities::from_capabilities(capabilities)
+}
+
+/// The operations a GPUI host cannot observe settling in the same turn.
+///
+/// Measured, not reasoned about. `prototypes/gpui-windowing`'s smoke binary
+/// called `set_maximized(true)` against a real window on macOS 25.5, got
+/// success, and the next `is_maximized()` still reported `false` — the window
+/// server animates the zoom. A convergence diff taken immediately after apply
+/// therefore reports an unconverged maximize that in fact succeeded, and a
+/// caller that trusted it would reschedule the operation forever.
+///
+/// Move and resize are not here: the same smoke run observed a created window
+/// at exactly the origin the plan asked for.
+#[must_use]
+pub fn gpui_deferred_settlement() -> DeferredSettlement {
+    DeferredSettlement::from_operations([
+        WindowOperationKind::Maximize,
+        WindowOperationKind::Unmaximize,
+    ])
 }
 
 #[cfg(test)]
@@ -65,6 +93,7 @@ mod tests {
         for supported in [
             HostCapability::Create,
             HostCapability::Retag,
+            HostCapability::Resize,
             HostCapability::Maximize,
             HostCapability::Unmaximize,
             HostCapability::Focus,

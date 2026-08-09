@@ -75,13 +75,17 @@ fn every_native_operation_executes_and_fresh_readback_converges() {
     )
     .unwrap();
 
+    // Operations sort by kind, so placement now batches per axis across
+    // windows rather than per window across axes: every origin, then every
+    // size. Independent windows do not care, and a host that has one axis and
+    // not the other gets a clean split instead of a half-executed compound.
     assert_eq!(
         inspection.calls(),
         vec![
             NativeWindowCall::Unmaximize,
             NativeWindowCall::SetOuterPosition,
-            NativeWindowCall::SetInnerSize,
             NativeWindowCall::SetOuterPosition,
+            NativeWindowCall::SetInnerSize,
             NativeWindowCall::SetInnerSize,
             NativeWindowCall::Maximize,
             NativeWindowCall::Show,
@@ -146,7 +150,7 @@ fn matching_fresh_state_repeats_as_an_empty_apply() {
 }
 
 #[test]
-fn partial_move_resize_failure_skips_dependents_but_not_other_windows() {
+fn a_failed_resize_skips_dependents_but_not_other_windows() {
     let target = placement(50, 60, 800, 600);
     let other = placement(0, 0, 300, 200);
     let desired_windows = vec![
@@ -171,18 +175,33 @@ fn partial_move_resize_failure_skips_dependents_but_not_other_windows() {
     )
     .unwrap();
 
-    let move_attempt = outcome
+    // The axes are separate operations now, so the move succeeds on its own
+    // and only the resize fails. Before the split both lived in one attempt
+    // and a successful move was reported inside a failure.
+    let moved = outcome
         .receipt()
         .attempts()
         .iter()
-        .find(|attempt| attempt.operation() == WindowOperationKind::MoveResize)
+        .find(|attempt| attempt.operation() == WindowOperationKind::Move)
         .unwrap();
     assert!(matches!(
-        move_attempt.outcome(),
+        moved.outcome(),
+        WindowApplyOutcome::Succeeded { completed_calls }
+            if completed_calls == &[NativeWindowCall::SetOuterPosition]
+    ));
+
+    let resized = outcome
+        .receipt()
+        .attempts()
+        .iter()
+        .find(|attempt| attempt.operation() == WindowOperationKind::Resize)
+        .unwrap();
+    assert!(matches!(
+        resized.outcome(),
         WindowApplyOutcome::Failed {
             completed_calls,
             failure,
-        } if completed_calls == &[NativeWindowCall::SetOuterPosition]
+        } if completed_calls.is_empty()
             && failure.call() == NativeWindowCall::SetInnerSize
     ));
     assert!(outcome.receipt().attempts().iter().any(|attempt| {
@@ -190,7 +209,7 @@ fn partial_move_resize_failure_skips_dependents_but_not_other_windows() {
             && matches!(
                 attempt.outcome(),
                 WindowApplyOutcome::DependencySkipped {
-                    blocked_by: WindowOperationKind::MoveResize
+                    blocked_by: WindowOperationKind::Resize
                 }
             )
     }));

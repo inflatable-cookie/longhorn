@@ -172,4 +172,58 @@ impl WindowDiffReceipt {
     pub fn is_empty(&self) -> bool {
         self.operations.is_empty() && self.diagnostics.is_empty()
     }
+
+    /// Drops operations a host has declared it cannot observe settling.
+    ///
+    /// A post-apply readback re-plans from fresh evidence, which assumes the
+    /// platform finished before it was read. Not every platform has: on GPUI
+    /// under macOS, `zoom_window` returns and the next `is_maximized` still
+    /// reports the old state, because the window server animates the zoom.
+    /// Re-planning against that reading schedules an operation that already
+    /// succeeded, and a caller that trusts convergence retries forever.
+    ///
+    /// So readback is evidence, not a verdict. A host names its deferred
+    /// operations and convergence stops counting them. Diagnostics are kept:
+    /// an unsupported operation is a fact about the host, not a timing
+    /// artefact, and it does not become true later.
+    #[must_use]
+    pub fn without_deferred(mut self, deferred: &DeferredSettlement) -> Self {
+        self.operations
+            .retain(|planned| !deferred.contains(planned.operation().kind()));
+        self
+    }
+}
+
+/// The operations whose effect a host cannot observe in the same turn.
+///
+/// Empty for a host that settles synchronously, which is the common case and
+/// the default.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct DeferredSettlement(std::collections::BTreeSet<WindowOperationKind>);
+
+impl DeferredSettlement {
+    /// Declares that every operation settles before the host reads it back.
+    #[must_use]
+    pub const fn immediate() -> Self {
+        Self(std::collections::BTreeSet::new())
+    }
+
+    /// Declares an exact set of deferred operations.
+    #[must_use]
+    pub fn from_operations(kinds: impl IntoIterator<Item = WindowOperationKind>) -> Self {
+        Self(kinds.into_iter().collect())
+    }
+
+    /// Returns whether the host declared this operation deferred.
+    #[must_use]
+    pub fn contains(&self, kind: WindowOperationKind) -> bool {
+        self.0.contains(&kind)
+    }
+
+    /// Returns whether every operation settles synchronously.
+    #[must_use]
+    pub fn is_immediate(&self) -> bool {
+        self.0.is_empty()
+    }
 }

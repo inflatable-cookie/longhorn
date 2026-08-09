@@ -63,7 +63,8 @@ impl TauriWindowFactory<MockRuntime> for TestFactory {
 fn capability_derivation_tracks_factory_availability() {
     assert!(tauri_host_capabilities(true).supports(HostCapability::Create));
     assert!(!tauri_host_capabilities(false).supports(HostCapability::Create));
-    assert!(tauri_host_capabilities(false).supports(HostCapability::MoveResize));
+    assert!(tauri_host_capabilities(false).supports(HostCapability::Move));
+    assert!(tauri_host_capabilities(false).supports(HostCapability::Resize));
 }
 
 #[test]

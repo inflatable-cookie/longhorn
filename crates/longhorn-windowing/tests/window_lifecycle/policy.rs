@@ -3,7 +3,7 @@ use longhorn_windowing::{
     WindowLifecycleEventKind, WindowLifecyclePolicy,
 };
 
-use super::support::{at, donor_policy, duration, id, move_resize, moved};
+use super::support::{at, donor_policy, duration, id, move_to, moved};
 
 #[test]
 fn recommended_policy_is_explicit_and_stable() {
@@ -61,7 +61,7 @@ fn deadline_overflow_fails_typed_instead_of_wrapping() {
             .register_apply(
                 at(u64::MAX),
                 longhorn_windowing::ApplyGeneration::new(1),
-                &move_resize(1, 2, 3, 4),
+                &move_to(1, 2),
             )
             .unwrap_err(),
         WindowLifecycleError::DeadlineOverflow {

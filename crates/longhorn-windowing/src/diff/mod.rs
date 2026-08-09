@@ -11,5 +11,6 @@ pub use model::{DesiredWindow, FocusPolicy, LiveWindow, ProtectedPrimaryPolicy, 
 pub use operation::{HostCapabilities, HostCapability, WindowOperation, WindowOperationKind};
 pub use planner::plan_window_diff;
 pub use receipt::{
-    ApplyFeedbackEvidence, PlannedWindowOperation, WindowDiffDiagnostic, WindowDiffReceipt,
+    ApplyFeedbackEvidence, DeferredSettlement, PlannedWindowOperation, WindowDiffDiagnostic,
+    WindowDiffReceipt,
 };

@@ -16,12 +16,31 @@ use crate::lifecycle::{
 
 pub(crate) struct InstalledWindow<R: Runtime> {
     pub(crate) window: WebviewWindow<R>,
-    pub(crate) retained_normal: Option<WindowPlacement>,
+    // Retained per axis, because placement is applied per axis now. A pure
+    // move leaves the size untouched, and composing a normal placement from a
+    // half-applied one would invent the other half.
+    pub(crate) retained_origin: Option<longhorn_core::ScreenPoint>,
+    pub(crate) retained_size: Option<longhorn_core::ScreenSize>,
     pub(crate) page_ready: bool,
     pub(crate) placement_ready: bool,
     pub(crate) reveal_started: bool,
     pub(crate) reveal_retry: bool,
     pub(crate) revealed: bool,
+}
+
+impl<R: Runtime> InstalledWindow<R> {
+    /// Returns retained normal geometry only when both axes are known.
+    pub(crate) fn retained_normal(&self) -> Option<WindowPlacement> {
+        Some(WindowPlacement::new(
+            self.retained_origin?,
+            self.retained_size?,
+        ))
+    }
+
+    pub(crate) fn set_retained_normal(&mut self, placement: Option<WindowPlacement>) {
+        self.retained_origin = placement.map(|p| p.outer_origin());
+        self.retained_size = placement.map(|p| p.inner_size());
+    }
 }
 
 pub(crate) struct PendingFlush {

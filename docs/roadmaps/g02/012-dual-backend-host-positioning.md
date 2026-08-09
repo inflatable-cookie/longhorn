@@ -77,25 +77,13 @@ memo 021 dual-backend positioning
 
 Card 162 finishes the milestone. Cards 161 and 163 are complete.
 
-Three follow-ups fell out of Card 163. None blocks 162.
+Three follow-ups fell out of Card 163. Two are done; one waits on 162.
 
-- Make post-apply readback host-aware. A host declares which of its
-  operations settle synchronously; convergence excludes the rest. Today the
-  apply engine re-plans unconditionally, so GPUI reports an unconverged
-  maximize that succeeded, and a caller trusting convergence would retry
-  forever. Blocked with the item below: `longhorn-windowing` is inside the
-  greenfield source freeze.
-
-- Split `HostCapability::MoveResize` into `Move` and `Resize`. GPUI has
-  resize and no move, so the compound forces it to withhold both and a GPUI
-  window can never be resized from a plan. Touches the pure planner,
-  `WindowOperation`, and both adapters. **Blocked:** `longhorn-windowing` and
-  `longhorn-tauri-windowing` are both inside the source set the greenfield
-  receipt freezes at `b7c719c0`, so any edit turns `proof:artifacts` red until
-  the release runway regenerates it.
-
-- Move `CountingProbe`, `transfer_session_probe` and `operation_probe` out of
-  `longhorn-tauri-update`. None reference Tauri — the same leak class Card
-  161 closed for windowing. Not frozen, but `longhorn-tauri-update` is Card
-  162's live surface, so it waits for 162 to land rather than colliding
-  with it.
+- [x] Split `HostCapability::MoveResize` into `Move` and `Resize`, so a host
+  with one axis and not the other can declare it. GPUI now resizes for real.
+- [x] Make post-apply readback host-aware, so an operation that succeeded but
+  has not settled is not rescheduled forever.
+- [ ] Move `CountingProbe`, `transfer_session_probe` and `operation_probe`
+  out of `longhorn-tauri-update`. None reference Tauri — the same leak class
+  Card 161 closed for windowing. `longhorn-tauri-update` is Card 162's live
+  surface, so it waits for 162 to land rather than colliding with it.

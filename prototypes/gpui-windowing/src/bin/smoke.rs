@@ -75,7 +75,6 @@ fn drive(cx: &mut App) -> String {
     // 1. Create from the shared plan, with no display facts to hand.
     let bundle = match execute_gpui_window_apply(
         input,
-        &desired,
         GpuiWindowRegistry::default(),
         &mut backend,
         &mut displays,

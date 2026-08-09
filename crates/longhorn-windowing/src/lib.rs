@@ -10,10 +10,10 @@ mod settled;
 
 pub use config::{PlacementPolicy, WindowPlacementConfig, WindowRole};
 pub use diff::{
-    ApplyFeedbackEvidence, ApplyGeneration, DesiredWindow, FocusPolicy, HostCapabilities,
-    HostCapability, HostWindowHandle, HostWindowHandleError, LiveWindow, PlannedWindowOperation,
-    ProtectedPrimaryPolicy, WindowDiffDiagnostic, WindowDiffError, WindowDiffInput,
-    WindowDiffReceipt, WindowOperation, WindowOperationKind, plan_window_diff,
+    ApplyFeedbackEvidence, ApplyGeneration, DeferredSettlement, DesiredWindow, FocusPolicy,
+    HostCapabilities, HostCapability, HostWindowHandle, HostWindowHandleError, LiveWindow,
+    PlannedWindowOperation, ProtectedPrimaryPolicy, WindowDiffDiagnostic, WindowDiffError,
+    WindowDiffInput, WindowDiffReceipt, WindowOperation, WindowOperationKind, plan_window_diff,
 };
 pub use lifecycle::{
     ApplyRegistrationOutcome, CaptureGeneration, CaptureReason, CapturedDisplayAssociation,

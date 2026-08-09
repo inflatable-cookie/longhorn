@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, error::Error, fmt};
 
 use longhorn_core::WindowId;
 use longhorn_windowing::{
-    HostCapabilities, HostCapability, WindowDiffError, WindowDiffInput, WindowOperationKind,
-    plan_window_diff,
+    DeferredSettlement, HostCapabilities, HostCapability, WindowDiffError, WindowDiffInput,
+    WindowOperationKind, plan_window_diff,
 };
 use tauri::{AppHandle, Runtime};
 
@@ -19,7 +19,8 @@ use crate::{
 pub fn tauri_host_capabilities(can_create: bool) -> HostCapabilities {
     let mut capabilities = vec![
         HostCapability::Retag,
-        HostCapability::MoveResize,
+        HostCapability::Move,
+        HostCapability::Resize,
         HostCapability::Maximize,
         HostCapability::Unmaximize,
         HostCapability::Show,
@@ -31,6 +32,17 @@ pub fn tauri_host_capabilities(can_create: bool) -> HostCapabilities {
         capabilities.push(HostCapability::Create);
     }
     HostCapabilities::from_capabilities(capabilities)
+}
+
+/// Tauri settles every window operation before it can be read back.
+///
+/// `maximize`, `set_position` and `set_size` are observable on the next probe,
+/// so a convergence diff over fresh evidence is a verdict here rather than
+/// merely evidence. GPUI is not like this — see contract 020's divergence
+/// register.
+#[must_use]
+pub fn tauri_deferred_settlement() -> DeferredSettlement {
+    DeferredSettlement::immediate()
 }
 
 /// Registry plus complete native execution receipt.
@@ -149,7 +161,9 @@ where
         Ok(observation) => {
             let convergence_input = input.with_live_windows(observation.windows().iter().cloned());
             let convergence = match plan_window_diff(&convergence_input) {
-                Ok(receipt) => ApplyConvergence::Planned(receipt),
+                Ok(receipt) => ApplyConvergence::Planned(
+                    receipt.without_deferred(&tauri_deferred_settlement()),
+                ),
                 Err(error) => ApplyConvergence::Invalid(error),
             };
             ApplyReadback::Complete {

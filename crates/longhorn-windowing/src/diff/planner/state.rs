@@ -48,13 +48,7 @@ pub(super) fn plan_desired_state(
         };
         match binding {
             Binding::Created => {
-                push_supported(
-                    move_resize(desired, None),
-                    HostCapability::MoveResize,
-                    capabilities,
-                    operations,
-                    diagnostics,
-                );
+                push_placement(desired, None, capabilities, operations, diagnostics);
                 if desired.is_maximized() {
                     push_supported(
                         maximize(window_id, None),
@@ -102,9 +96,11 @@ fn plan_existing_state(
             diagnostics,
         );
         if unmaximized {
-            push_supported(
-                move_resize(desired, handle.clone()),
-                HostCapability::MoveResize,
+            // Live metrics describe the maximized frame, so normal geometry is
+            // reapplied on both axes rather than diffed against them.
+            push_placement(
+                desired,
+                handle.clone(),
                 capabilities,
                 operations,
                 diagnostics,
@@ -113,12 +109,21 @@ fn plan_existing_state(
     } else if !live.is_maximized() {
         let metrics = live.metrics();
         let placement = desired.placement();
-        if metrics.outer_bounds().origin() != placement.outer_origin()
-            || metrics.inner_size() != placement.inner_size()
-        {
+        // Diffed per axis. A window that only drifted sideways is no longer
+        // resized back to a size it already has.
+        if metrics.outer_bounds().origin() != placement.outer_origin() {
             push_supported(
-                move_resize(desired, handle.clone()),
-                HostCapability::MoveResize,
+                move_to(desired, handle.clone()),
+                HostCapability::Move,
+                capabilities,
+                operations,
+                diagnostics,
+            );
+        }
+        if metrics.inner_size() != placement.inner_size() {
+            push_supported(
+                resize_to(desired, handle.clone()),
+                HostCapability::Resize,
                 capabilities,
                 operations,
                 diagnostics,
@@ -191,11 +196,46 @@ pub(super) fn plan_focus(
     );
 }
 
-fn move_resize(desired: &DesiredWindow, handle: Option<HostWindowHandle>) -> WindowOperation {
-    WindowOperation::MoveResize {
+/// Schedules both placement axes, each gated on its own capability.
+///
+/// A host that has one and not the other gets the half it can do plus a named
+/// diagnostic for the half it cannot, instead of neither.
+fn push_placement(
+    desired: &DesiredWindow,
+    handle: Option<HostWindowHandle>,
+    capabilities: &HostCapabilities,
+    operations: &mut Vec<WindowOperation>,
+    diagnostics: &mut Vec<WindowDiffDiagnostic>,
+) {
+    push_supported(
+        move_to(desired, handle.clone()),
+        HostCapability::Move,
+        capabilities,
+        operations,
+        diagnostics,
+    );
+    push_supported(
+        resize_to(desired, handle),
+        HostCapability::Resize,
+        capabilities,
+        operations,
+        diagnostics,
+    );
+}
+
+fn move_to(desired: &DesiredWindow, handle: Option<HostWindowHandle>) -> WindowOperation {
+    WindowOperation::Move {
         window_id: desired.window_id().clone(),
         transport_handle: handle,
-        placement: desired.placement(),
+        outer_origin: desired.placement().outer_origin(),
+    }
+}
+
+fn resize_to(desired: &DesiredWindow, handle: Option<HostWindowHandle>) -> WindowOperation {
+    WindowOperation::Resize {
+        window_id: desired.window_id().clone(),
+        transport_handle: handle,
+        inner_size: desired.placement().inner_size(),
     }
 }
 

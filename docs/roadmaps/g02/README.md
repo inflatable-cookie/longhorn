@@ -101,7 +101,10 @@ what building it found — eleven bends, seven GPUI's shape and four Tauri
 assumptions the contract had absorbed. The contract now carries a divergence
 register and says in its own Evidence section that it is not complete, because
 neither backend has proved multi-window placement, cross-window transfer, or
-lifecycle teardown under load.
+lifecycle teardown under load. Three bends the release freeze had deferred are
+fixed: capabilities name one operation each, so a host with resize and no move
+can say so; and readback is host-aware, so an operation that succeeded but has
+not settled is not rescheduled forever.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

@@ -28,41 +28,18 @@ pub(super) fn desired(
     DesiredWindow::new(id(window_id), placement, maximized, visible)
 }
 
-/// A diff input paired with the desired state a GPUI host also needs.
-///
-/// The pair exists because `WindowDiffInput` shows desired state only to the
-/// planner, and a host that places a window at creation has to read it too.
-pub(super) struct Plan {
-    pub(super) input: WindowDiffInput,
-    pub(super) desired: Vec<DesiredWindow>,
-}
-
-impl Plan {
-    pub(super) fn with_live_windows(
-        mut self,
-        live: impl IntoIterator<Item = longhorn_windowing::LiveWindow>,
-    ) -> Self {
-        self.input = self.input.with_live_windows(live);
-        self
-    }
-}
-
 pub(super) fn plan(
     desired_windows: impl IntoIterator<Item = DesiredWindow>,
     generation: u64,
-) -> Plan {
-    let desired: Vec<DesiredWindow> = desired_windows.into_iter().collect();
-    Plan {
-        // Capabilities here are a placeholder: the apply engine replaces them
-        // with what the backend can actually do, which is the whole point.
-        input: WindowDiffInput::new(
-            desired.clone(),
-            Vec::new(),
-            HostCapabilities::all(),
-            ApplyGeneration::new(generation),
-        ),
-        desired,
-    }
+) -> WindowDiffInput {
+    // Capabilities here are a placeholder: the apply engine replaces them with
+    // what the backend can actually do, which is the whole point.
+    WindowDiffInput::new(
+        desired_windows,
+        Vec::new(),
+        HostCapabilities::all(),
+        ApplyGeneration::new(generation),
+    )
 }
 
 pub(super) fn scale(thousandths: u32) -> ScaleFactor {
@@ -99,6 +76,7 @@ pub(super) struct FakeGpuiHost {
     can_create: bool,
     pub(super) calls: Vec<Call>,
     pub(super) fail_next_create: bool,
+    lagging_maximize: bool,
 }
 
 impl FakeGpuiHost {
@@ -115,11 +93,19 @@ impl FakeGpuiHost {
             can_create: true,
             calls: Vec::new(),
             fail_next_create: false,
+            lagging_maximize: false,
         }
     }
 
     pub(super) fn without_create(mut self) -> Self {
         self.can_create = false;
+        self
+    }
+
+    /// Accepts a maximize and keeps reporting the old state, as macOS does
+    /// while it animates the zoom.
+    pub(super) fn with_lagging_maximize(mut self) -> Self {
+        self.lagging_maximize = true;
         self
     }
 
@@ -202,10 +188,15 @@ impl GpuiWindowBackend for FakeGpuiHost {
         maximized: bool,
     ) -> Result<(), GpuiWindowError> {
         self.calls.push(Call::SetMaximized(key, maximized));
+        let lagging = self.lagging_maximize;
         let window = self
             .windows
             .get_mut(&key.slot())
             .ok_or_else(|| GpuiWindowError::new("no such window"))?;
+        if lagging {
+            // The call is accepted; the state is not observable yet.
+            return Ok(());
+        }
         // Mirrors the real implementation: gpui only has a toggle, so an
         // absolute request reads first and acts only on disagreement.
         if window.maximized != maximized {

@@ -45,9 +45,12 @@ impl ExpectedEffect {
                 Self::ResizeTransition(operation.kind()),
                 Self::ScaleTransition(operation.kind()),
             ],
-            WindowOperation::MoveResize { placement, .. } => vec![
-                Self::MoveExact(placement.outer_origin(), operation.kind()),
-                Self::ResizeExact(placement.inner_size(), operation.kind()),
+            WindowOperation::Move { outer_origin, .. } => vec![
+                Self::MoveExact(*outer_origin, operation.kind()),
+                Self::ScaleTransition(operation.kind()),
+            ],
+            WindowOperation::Resize { inner_size, .. } => vec![
+                Self::ResizeExact(*inner_size, operation.kind()),
                 Self::ScaleTransition(operation.kind()),
             ],
             WindowOperation::Maximize { .. } | WindowOperation::Unmaximize { .. } => vec![

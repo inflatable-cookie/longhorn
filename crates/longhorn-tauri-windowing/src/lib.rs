@@ -17,7 +17,8 @@ pub use apply::{
     TauriDesktopReadback, TauriDispatchError, TauriWindowFactory, TauriWindowMutationBackend,
     WindowApplyAttempt, WindowApplyFailure, WindowApplyFailureKind, WindowApplyOutcome,
     WindowFactoryError, WindowMutationBackend, dispatch_tauri_window_apply,
-    execute_tauri_window_apply, execute_tauri_window_apply_in_place, tauri_host_capabilities,
+    execute_tauri_window_apply, execute_tauri_window_apply_in_place, tauri_deferred_settlement,
+    tauri_host_capabilities,
 };
 pub use composition::{
     PredeclaredTauriWindow, TauriWindowHost, TauriWindowHostApplyReceipt, TauriWindowHostError,

@@ -63,12 +63,24 @@ impl<R: Runtime> ProgrammaticApplyObserver for TauriWindowLifecycleHost<R> {
                 latest.get()
             )),
         }?;
-        if let WindowOperation::MoveResize {
-            window_id,
-            placement,
-            ..
-        } = operation
-        {
+        // Each axis is retained as it is applied. A window that is only moved
+        // keeps whatever size was retained before, and a window that has never
+        // had a size applied has no complete normal placement to offer — which
+        // is the honest answer, not a gap to paper over.
+        let axis = match operation {
+            WindowOperation::Move {
+                window_id,
+                outer_origin,
+                ..
+            } => Some((window_id, Some(*outer_origin), None)),
+            WindowOperation::Resize {
+                window_id,
+                inner_size,
+                ..
+            } => Some((window_id, None, Some(*inner_size))),
+            _ => None,
+        };
+        if let Some((window_id, origin, size)) = axis {
             let mut windows = self
                 .windows
                 .lock()
@@ -76,7 +88,12 @@ impl<R: Runtime> ProgrammaticApplyObserver for TauriWindowLifecycleHost<R> {
             let installed = windows
                 .get_mut(window_id)
                 .ok_or_else(|| format!("unknown installed window {window_id}"))?;
-            installed.retained_normal = Some(*placement);
+            if let Some(origin) = origin {
+                installed.retained_origin = Some(origin);
+            }
+            if let Some(size) = size {
+                installed.retained_size = Some(size);
+            }
         }
         Ok(())
     }

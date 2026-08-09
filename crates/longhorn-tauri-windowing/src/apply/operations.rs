@@ -254,18 +254,16 @@ where
             NativeWindowCall::Unmaximize,
             &mut completed,
         ),
-        WindowOperation::MoveResize { placement, .. } => native_call(
-            backend.set_outer_position(&window, placement.outer_origin()),
+        WindowOperation::Move { outer_origin, .. } => native_call(
+            backend.set_outer_position(&window, *outer_origin),
             NativeWindowCall::SetOuterPosition,
             &mut completed,
-        )
-        .and_then(|()| {
-            native_call(
-                backend.set_inner_size(&window, placement.inner_size()),
-                NativeWindowCall::SetInnerSize,
-                &mut completed,
-            )
-        }),
+        ),
+        WindowOperation::Resize { inner_size, .. } => native_call(
+            backend.set_inner_size(&window, *inner_size),
+            NativeWindowCall::SetInnerSize,
+            &mut completed,
+        ),
         WindowOperation::Maximize { .. } => native_call(
             backend.maximize(&window),
             NativeWindowCall::Maximize,

@@ -22,8 +22,7 @@ fn a_window_is_created_placed_from_a_shared_plan_and_observed() {
     );
 
     let bundle = execute_gpui_window_apply(
-        plan.input,
-        &plan.desired,
+        plan,
         GpuiWindowRegistry::default(),
         &mut host,
         &mut displays,
@@ -45,7 +44,16 @@ fn a_window_is_created_placed_from_a_shared_plan_and_observed() {
                 GpuiWindowCall::RegistryInsert,
             ]
     ));
-    assert_eq!(host.calls, vec![Call::Create(id("main"))]);
+    // The origin arrives with the window because GPUI takes bounds at
+    // creation; the size is then applied as its own operation, which a GPUI
+    // host can do.
+    assert_eq!(
+        host.calls,
+        vec![
+            Call::Create(id("main")),
+            Call::Resize(GpuiWindowKey::new(1))
+        ]
+    );
 
     // Observed: the readback found the window it just opened, at the placement
     // the shared plan asked for.
@@ -104,14 +112,7 @@ fn a_stale_window_is_destroyed_when_it_leaves_desired_state() {
     );
 
     let plan = plan([], 1).with_live_windows([live]);
-    let bundle = execute_gpui_window_apply(
-        plan.input,
-        &plan.desired,
-        registry,
-        &mut host,
-        &mut displays,
-    )
-    .unwrap();
+    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
 
     assert_eq!(host.calls, vec![Call::Close(key)]);
     assert!(!host.is_open(key));
@@ -125,8 +126,7 @@ fn a_host_that_cannot_create_says_so_rather_than_failing_the_apply() {
 
     let plan = plan([desired("main", placement(0, 0, 800, 600), false, true)], 1);
     let bundle = execute_gpui_window_apply(
-        plan.input,
-        &plan.desired,
+        plan,
         GpuiWindowRegistry::default(),
         &mut host,
         &mut displays,

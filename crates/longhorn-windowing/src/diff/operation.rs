@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use longhorn_core::{WindowId, WindowPlacement};
+use longhorn_core::{ScreenPoint, ScreenSize, WindowId};
 use serde::{Deserialize, Serialize};
 
 use super::HostWindowHandle;
@@ -13,8 +13,15 @@ pub enum HostCapability {
     Create,
     /// Change host bookkeeping from a transport handle to a logical id.
     Retag,
-    /// Apply outer origin plus inner content size.
-    MoveResize,
+    /// Apply the outer-frame origin.
+    ///
+    /// Separate from [`Self::Resize`] because a host may have one and not the
+    /// other. GPUI's `PlatformWindow` has `resize` and no position setter, so
+    /// a compound capability would force it to withhold both and leave a GPUI
+    /// window unresizable from a plan.
+    Move,
+    /// Apply the inner content size.
+    Resize,
     /// Enter maximized state.
     Maximize,
     /// Leave maximized state.
@@ -47,7 +54,8 @@ impl HostCapabilities {
         Self(BTreeSet::from([
             HostCapability::Create,
             HostCapability::Retag,
-            HostCapability::MoveResize,
+            HostCapability::Move,
+            HostCapability::Resize,
             HostCapability::Maximize,
             HostCapability::Unmaximize,
             HostCapability::Show,
@@ -80,8 +88,10 @@ pub enum WindowOperationKind {
     Create,
     /// Leave maximized state.
     Unmaximize,
-    /// Apply placement.
-    MoveResize,
+    /// Apply the outer-frame origin.
+    Move,
+    /// Apply the inner content size.
+    Resize,
     /// Enter maximized state.
     Maximize,
     /// Show a window.
@@ -117,14 +127,23 @@ pub enum WindowOperation {
         /// Existing handle, absent only for a newly created slot.
         transport_handle: Option<HostWindowHandle>,
     },
-    /// Apply desired outer origin and inner content size.
-    MoveResize {
+    /// Apply the desired outer-frame origin.
+    Move {
         /// Logical identity.
         window_id: WindowId,
         /// Existing handle, absent only for a newly created slot.
         transport_handle: Option<HostWindowHandle>,
-        /// Desired frame-distinct placement.
-        placement: WindowPlacement,
+        /// Desired outer-frame origin.
+        outer_origin: ScreenPoint,
+    },
+    /// Apply the desired inner content size.
+    Resize {
+        /// Logical identity.
+        window_id: WindowId,
+        /// Existing handle, absent only for a newly created slot.
+        transport_handle: Option<HostWindowHandle>,
+        /// Desired inner content size.
+        inner_size: ScreenSize,
     },
     /// Enter maximized state after normal geometry is honest.
     Maximize {
@@ -171,7 +190,8 @@ impl WindowOperation {
             Self::Retag { .. } => WindowOperationKind::Retag,
             Self::Create { .. } => WindowOperationKind::Create,
             Self::Unmaximize { .. } => WindowOperationKind::Unmaximize,
-            Self::MoveResize { .. } => WindowOperationKind::MoveResize,
+            Self::Move { .. } => WindowOperationKind::Move,
+            Self::Resize { .. } => WindowOperationKind::Resize,
             Self::Maximize { .. } => WindowOperationKind::Maximize,
             Self::Show { .. } => WindowOperationKind::Show,
             Self::Hide { .. } => WindowOperationKind::Hide,
@@ -187,7 +207,8 @@ impl WindowOperation {
             Self::Retag { window_id, .. }
             | Self::Create { window_id }
             | Self::Unmaximize { window_id, .. }
-            | Self::MoveResize { window_id, .. }
+            | Self::Move { window_id, .. }
+            | Self::Resize { window_id, .. }
             | Self::Maximize { window_id, .. }
             | Self::Show { window_id, .. }
             | Self::Hide { window_id, .. }
@@ -209,7 +230,10 @@ impl WindowOperation {
             Self::Unmaximize {
                 transport_handle, ..
             }
-            | Self::MoveResize {
+            | Self::Move {
+                transport_handle, ..
+            }
+            | Self::Resize {
                 transport_handle, ..
             }
             | Self::Maximize {

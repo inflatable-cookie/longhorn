@@ -1,4 +1,4 @@
-use longhorn_core::{ScreenPoint, ScreenSize, WindowId, WindowPlacement};
+use longhorn_core::{ScreenPoint, ScreenSize, WindowId};
 use longhorn_windowing::{
     ApplyGeneration, HostWindowHandle, MonotonicMillis, WindowLifecycleCoordinator,
     WindowLifecycleDirective, WindowLifecycleDuration, WindowLifecycleEvent, WindowLifecyclePolicy,
@@ -35,15 +35,19 @@ pub(super) fn coordinator() -> WindowLifecycleCoordinator {
     WindowLifecycleCoordinator::new(donor_policy())
 }
 
-pub(super) fn placement(x: i32, y: i32, width: u32, height: u32) -> WindowPlacement {
-    WindowPlacement::new(ScreenPoint::new(x, y), ScreenSize::new(width, height))
-}
-
-pub(super) fn move_resize(x: i32, y: i32, width: u32, height: u32) -> WindowOperation {
-    WindowOperation::MoveResize {
+pub(super) fn move_to(x: i32, y: i32) -> WindowOperation {
+    WindowOperation::Move {
         window_id: id(),
         transport_handle: None,
-        placement: placement(x, y, width, height),
+        outer_origin: ScreenPoint::new(x, y),
+    }
+}
+
+pub(super) fn resize_to(width: u32, height: u32) -> WindowOperation {
+    WindowOperation::Resize {
+        window_id: id(),
+        transport_handle: None,
+        inner_size: ScreenSize::new(width, height),
     }
 }
 

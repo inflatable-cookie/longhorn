@@ -15,7 +15,8 @@ fn creation_precedes_geometry_maximize_visibility_and_focus() {
         kinds(&receipt),
         [
             WindowOperationKind::Create,
-            WindowOperationKind::MoveResize,
+            WindowOperationKind::Move,
+            WindowOperationKind::Resize,
             WindowOperationKind::Maximize,
             WindowOperationKind::Show,
             WindowOperationKind::Focus,
@@ -30,7 +31,7 @@ fn creation_precedes_geometry_maximize_visibility_and_focus() {
 }
 
 #[test]
-fn move_resize_compares_outer_origin_and_inner_size_not_outer_extent() {
+fn placement_compares_outer_origin_and_inner_size_not_outer_extent() {
     let wanted = desired("window:main", 10, 20, 800, 600, false, true);
     let frame_extent_only = live(
         Some("window:main"),
@@ -60,12 +61,36 @@ fn move_resize_compares_outer_origin_and_inner_size_not_outer_extent() {
         true,
         false,
     );
-    let receipt = plan(&input([wanted], [wrong_inner_size]));
-    assert_eq!(kinds(&receipt), [WindowOperationKind::MoveResize]);
+    // Only the size is wrong, so only the size is corrected. Before the axes
+    // were split this emitted a compound that also reapplied an origin the
+    // window already had.
+    let receipt = plan(&input([wanted.clone()], [wrong_inner_size]));
+    assert_eq!(kinds(&receipt), [WindowOperationKind::Resize]);
     assert!(matches!(
         receipt.operations()[0].operation(),
-        WindowOperation::MoveResize { placement: value, .. }
-            if *value == placement(10, 20, 800, 600)
+        WindowOperation::Resize { inner_size: value, .. }
+            if *value == placement(10, 20, 800, 600).inner_size()
+    ));
+
+    let wrong_origin = live(
+        Some("window:main"),
+        "native-main",
+        11,
+        20,
+        800,
+        600,
+        800,
+        600,
+        false,
+        true,
+        false,
+    );
+    let receipt = plan(&input([wanted], [wrong_origin]));
+    assert_eq!(kinds(&receipt), [WindowOperationKind::Move]);
+    assert!(matches!(
+        receipt.operations()[0].operation(),
+        WindowOperation::Move { outer_origin: value, .. }
+            if *value == placement(10, 20, 800, 600).outer_origin()
     ));
 }
 
@@ -109,7 +134,8 @@ fn maximize_and_unmaximize_are_explicit_and_normal_geometry_is_retained() {
         kinds(&unmaximize_receipt),
         [
             WindowOperationKind::Unmaximize,
-            WindowOperationKind::MoveResize,
+            WindowOperationKind::Move,
+            WindowOperationKind::Resize,
         ]
     );
 }
@@ -220,12 +246,13 @@ fn closes_are_last_sorted_by_stable_id_and_protected_slots_survive() {
         kinds(&receipt),
         [
             WindowOperationKind::Create,
-            WindowOperationKind::MoveResize,
+            WindowOperationKind::Move,
+            WindowOperationKind::Resize,
             WindowOperationKind::Close,
             WindowOperationKind::Close,
         ]
     );
-    let closed: Vec<_> = receipt.operations()[2..]
+    let closed: Vec<_> = receipt.operations()[3..]
         .iter()
         .map(|op| op.operation().window_id().as_str())
         .collect();

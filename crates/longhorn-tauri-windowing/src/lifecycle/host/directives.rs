@@ -49,7 +49,7 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                                 window_id: window_id.clone(),
                             }
                         })?;
-                        (installed.window.clone(), installed.retained_normal)
+                        (installed.window.clone(), installed.retained_normal())
                     };
                     match self
                         .services
@@ -64,9 +64,10 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                                     // before the unlocked capture; a newer
                                     // retained normal installed concurrently
                                     // by register_apply wins.
-                                    if installed.retained_normal == retained_normal {
-                                        installed.retained_normal =
-                                            Some(placement.normal_placement());
+                                    if installed.retained_normal() == retained_normal {
+                                        installed.set_retained_normal(Some(
+                                            placement.normal_placement(),
+                                        ));
                                     }
                                 }
                             }

@@ -108,7 +108,8 @@ Stated, not erased. Each row names the backend whose shape caused it.
 
 | Divergence | Tauri | GPUI | Cause |
 | --- | --- | --- | --- |
-| Move an existing window | yes | **no** | GPUI's `PlatformWindow` has `resize` and no position setter |
+| Move an existing window | yes | **no** | GPUI's `PlatformWindow` has no position setter; bounds are a creation-time option |
+| Resize an existing window | yes | yes | both |
 | Runtime show / hide | yes | **no** | GPUI windows are on screen from creation until removed |
 | Observe visibility | yes | **no** | GPUI has no visibility query |
 | Maximize | absolute `maximize`/`unmaximize` | toggle `zoom_window` + `is_maximized` | GPUI; reachable by read-then-toggle, not atomically |
@@ -123,36 +124,36 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Close resumption | host prevents; product policy closes later | refusal returns `false`; the user retries | both, differently |
 | Host seam threading | `Send + Sync`, `Arc` + `Mutex`, flushes on a blocking pool | main thread only, `&mut`, no interior mutability | both, differently |
 
-### Post-apply readback is not universally meaningful
+### Readback is evidence, not a verdict
 
 A host adapter that re-observes immediately after applying, and re-plans from
 what it sees, assumes the platform has finished. On GPUI/macOS it has not:
 `set_maximized(true)` returns success and the next `is_maximized()` still
 reports `false`, because the window server animates the zoom. A convergence
 readback taken in the same turn therefore disagrees with an operation that
-succeeded, and would schedule it again.
-
-**Readback is evidence, not a verdict.** A host states which of its
-operations settle synchronously; a convergence diff over an operation that
-does not is a false negative, not a reason to retry. Longhorn's Tauri adapter
-reads back and re-plans unconditionally today, which is correct for Tauri and
-would be a retry loop on GPUI.
+succeeded, and a caller that trusted it would reschedule that operation
+forever.
 
 Observed directly rather than reasoned about — `prototypes/gpui-windowing`'s
 smoke binary, macOS 25.5, gpui 0.2.2.
 
-### The compound capability
+**So a host declares which of its operations settle before it can read them
+back**, and convergence stops counting the rest. `DeferredSettlement` carries
+the declaration; Tauri's is empty and GPUI's names maximize and unmaximize.
+Diagnostics are never dropped: an unsupported operation is a fact about the
+host, not a timing artefact, and it does not become true later.
 
-`HostCapability::MoveResize` names two operations. GPUI has one of them. A
-host that can resize but not move must withhold the whole capability, so a
-GPUI window can never be resized from a plan even though `Window::resize`
-exists.
+### Capabilities name one operation each
 
-**The capability set should separate `Move` from `Resize`.** That is a change
-to the pure planner's vocabulary and to both adapters, so it is scheduled
-rather than taken here. Tauri declares both today and would declare both
-after, so the split is additive for it. Until then, GPUI's adapter reaches
-placement only at creation, and says so per window.
+A capability that names two operations cannot describe a host that has one of
+them. `MoveResize` was such a capability, and GPUI has resize and no move —
+so it withheld both, and a GPUI window could not be resized from a plan even
+though `Window::resize` exists.
+
+`Move` and `Resize` are now separate, and the planner diffs the axes
+independently. A host that has one declares one. Tauri declares both, so
+nothing about it changed except that a window which only drifted sideways is
+no longer resized back to a size it already had.
 
 ## Evidence
 
@@ -172,7 +173,7 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Requirement | Tauri | GPUI |
 | --- | --- | --- |
 | Windows: create, destroy, observe | proved | proved, in-memory **and against a real window** |
-| Placement application | proved | proved for creation, on a real window at the exact requested origin; refused and named for existing windows |
+| Placement application | proved | origin proved at creation, on a real window at the exact requested origin; size proved on existing windows; moving an existing window is refused and named |
 | Lifecycle events | proved | proved for every event in the list, in-memory only |
 | Close handling | proved | proved in-memory; the real close path ran in the smoke binary |
 | Quiescence participation | proved | proved, in-memory |

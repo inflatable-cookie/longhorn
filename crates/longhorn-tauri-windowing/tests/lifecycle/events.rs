@@ -83,10 +83,10 @@ fn loophole_programmatic_geometry_is_suppressed_before_sink_mutation() {
     ProgrammaticApplyObserver::register_apply(
         test.host.as_ref(),
         ApplyGeneration::new(7),
-        &WindowOperation::MoveResize {
+        &WindowOperation::Move {
             window_id: test.window_id.clone(),
             transport_handle: None,
-            placement: target,
+            outer_origin: target.outer_origin(),
         },
     )
     .unwrap();

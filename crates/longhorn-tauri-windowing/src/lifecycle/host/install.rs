@@ -34,7 +34,8 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                 window_id.clone(),
                 InstalledWindow {
                     window: window.clone(),
-                    retained_normal: initial_normal,
+                    retained_origin: initial_normal.map(|placement| placement.outer_origin()),
+                    retained_size: initial_normal.map(|placement| placement.inner_size()),
                     page_ready: false,
                     placement_ready: false,
                     reveal_started: false,

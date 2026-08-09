@@ -5,29 +5,40 @@ use longhorn_windowing::{
 };
 
 use super::support::{
-    at, coordinator, duration, generation, id, move_resize, moved, only, resized,
+    at, coordinator, duration, generation, id, move_to, moved, only, resize_to, resized,
 };
 
 #[test]
 fn exact_apply_effects_are_attributed_but_mismatches_are_user_input() {
+    // Placement is two operations now, so a caller that applies both registers
+    // both into one generation. Each native event is attributed to the axis
+    // that asked for it rather than to a compound neither operation names.
     let mut coordinator = coordinator();
-    let operation = move_resize(40, 50, 800, 600);
     assert_eq!(
         coordinator
-            .register_apply(at(100), generation(7), &operation)
+            .register_apply(at(100), generation(7), &move_to(40, 50))
             .unwrap(),
         ApplyRegistrationOutcome::Registered
     );
+    assert_eq!(
+        coordinator
+            .register_apply(at(100), generation(7), &resize_to(800, 600))
+            .unwrap(),
+        ApplyRegistrationOutcome::Extended
+    );
 
-    for (time, event) in [
-        (110, moved(40, 50)),
-        (120, resized(800, 600)),
+    for (time, event, expected) in [
+        (110, moved(40, 50), WindowOperationKind::Move),
+        (120, resized(800, 600), WindowOperationKind::Resize),
         (
             130,
             WindowLifecycleEvent::ScaleChanged {
                 window_id: id(),
                 scale: ScaleFactor::from_thousandths(2_000).unwrap(),
             },
+            // A scale change follows whichever axis moved first; both
+            // operations expect one, and the earlier expectation matches.
+            WindowOperationKind::Move,
         ),
     ] {
         assert_eq!(
@@ -36,7 +47,7 @@ fn exact_apply_effects_are_attributed_but_mismatches_are_user_input() {
                 window_id: id(),
                 reason: IgnoreReason::ProgrammaticApply {
                     generation: generation(7),
-                    operation: WindowOperationKind::MoveResize,
+                    operation: expected,
                 },
             }
         );
@@ -63,11 +74,11 @@ fn user_precedence_outlives_and_outranks_later_apply_evidence() {
     );
     let mut coordinator = WindowLifecycleCoordinator::new(policy);
     coordinator
-        .register_apply(at(0), generation(1), &move_resize(10, 20, 800, 600))
+        .register_apply(at(0), generation(1), &move_to(10, 20))
         .unwrap();
     coordinator.handle(at(100), moved(11, 20)).unwrap();
     coordinator
-        .register_apply(at(200), generation(2), &move_resize(10, 20, 800, 600))
+        .register_apply(at(200), generation(2), &move_to(10, 20))
         .unwrap();
 
     assert!(matches!(
@@ -91,7 +102,7 @@ fn nucleus_and_soundcheck_can_select_no_suppression_restore_policy() {
     );
     let mut coordinator = WindowLifecycleCoordinator::new(policy);
     coordinator
-        .register_apply(at(10), generation(1), &move_resize(40, 50, 800, 600))
+        .register_apply(at(10), generation(1), &move_to(40, 50))
         .unwrap();
 
     assert!(matches!(
@@ -104,7 +115,7 @@ fn nucleus_and_soundcheck_can_select_no_suppression_restore_policy() {
 fn one_apply_generation_accumulates_transition_evidence() {
     let mut coordinator = coordinator();
     coordinator
-        .register_apply(at(10), generation(4), &move_resize(40, 50, 800, 600))
+        .register_apply(at(10), generation(4), &move_to(40, 50))
         .unwrap();
     assert_eq!(
         coordinator
@@ -136,12 +147,12 @@ fn one_apply_generation_accumulates_transition_evidence() {
 fn stale_apply_generations_and_timestamps_do_not_replace_current_evidence() {
     let mut coordinator = coordinator();
     coordinator
-        .register_apply(at(100), generation(5), &move_resize(40, 50, 800, 600))
+        .register_apply(at(100), generation(5), &move_to(40, 50))
         .unwrap();
 
     assert_eq!(
         coordinator
-            .register_apply(at(101), generation(4), &move_resize(1, 2, 3, 4))
+            .register_apply(at(101), generation(4), &move_to(1, 2))
             .unwrap(),
         ApplyRegistrationOutcome::StaleGeneration {
             current: generation(5),
@@ -149,7 +160,7 @@ fn stale_apply_generations_and_timestamps_do_not_replace_current_evidence() {
     );
     assert_eq!(
         coordinator
-            .register_apply(at(99), generation(6), &move_resize(1, 2, 3, 4))
+            .register_apply(at(99), generation(6), &move_to(1, 2))
             .unwrap(),
         ApplyRegistrationOutcome::StaleTimestamp { latest: at(100) }
     );

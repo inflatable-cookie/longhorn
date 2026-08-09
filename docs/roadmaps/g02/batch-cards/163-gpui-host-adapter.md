@@ -100,6 +100,37 @@ Two more, recorded but not contract changes:
   **both** hosts round. That is Longhorn's own choice, not a host's, and it
   should not be mistaken for a bend.
 
+### Follow-up — 2026-08-09, after the greenfield freeze lifted
+
+Three of the four deferred bends were deferred only by the freeze. With it
+gone they are fixed.
+
+**Bend 1 — `MoveResize` is now `Move` and `Resize`.** The planner diffs the
+axes independently, and each is gated on its own capability. GPUI declares
+`Resize` and withholds `Move`, so a GPUI window is now placed at its origin
+on creation *and resized for real afterwards* — previously the compound
+forced it to withhold both and the window kept a size nothing had asked for.
+Tauri declares both; the only change it sees is that a window which drifted
+sideways is no longer resized back to a size it already had.
+
+Two consequential shifts, both recorded in tests rather than left to be
+discovered: a failed resize no longer reports a successful move inside its
+failure, and operations sorting by kind means placement batches per axis
+across windows rather than per window across axes.
+
+**Bend 8 — `WindowDiffInput::desired_windows` is public.** The duplicated
+parameter is gone from `execute_gpui_window_apply`.
+
+**Bend 12 — readback is host-aware.** `DeferredSettlement` lets a host name
+the operations it cannot observe settling. Tauri's is empty; GPUI's names
+maximize and unmaximize. Convergence drops those operations and keeps every
+diagnostic. Covered by a regression test whose fake reproduces exactly what
+the real window did: accept the call, keep reporting the old state.
+
+Still deferred: moving the pure quiescence probes out of
+`longhorn-tauri-update`. That one was never about the freeze — it is Card
+162's live surface.
+
 ### What was fixed here, and what was not
 
 Not fixed: bend 8. Making `WindowDiffInput::desired_windows` public is the

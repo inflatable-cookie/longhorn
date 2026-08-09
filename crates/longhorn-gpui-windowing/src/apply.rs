@@ -10,7 +10,8 @@ use crate::{
     GpuiApplyAttempt, GpuiApplyConvergence, GpuiApplyError, GpuiApplyFailure, GpuiApplyFailureKind,
     GpuiApplyOutcome, GpuiApplyReadback, GpuiApplyReceipt, GpuiDisplayFactsSource, GpuiLogicalRect,
     GpuiLogicalSize, GpuiWindowBackend, GpuiWindowCall, GpuiWindowCreateRequest,
-    GpuiWindowRegistry, GpuiWindowRegistryError, gpui_host_capabilities, observe_gpui_desktop,
+    GpuiWindowRegistry, GpuiWindowRegistryError, gpui_deferred_settlement, gpui_host_capabilities,
+    observe_gpui_desktop,
 };
 
 /// What became of one plan diagnostic a GPUI host produced.
@@ -124,24 +125,20 @@ impl GpuiApplyOutcomeBundle {
 /// leaves the registry with the caller across a suspension point: on this host
 /// there is no suspension point to leave it across.
 ///
-/// `desired_windows` repeats what the caller already put in `input`. That is
-/// not a convenience — GPUI takes a window's bounds, maximized state, focus
-/// and display as creation-time options and cannot change the first two
-/// afterwards, so the adapter must know a window's final placement before the
-/// window exists. `WindowDiffInput` exposes desired state only to the planner,
-/// because Tauri can mutate after creating and never had to ask. Making it
-/// readable is the right fix and is recorded against contract 020; it is a
-/// change to a crate the current release candidate has frozen, so the
-/// parameter carries it until that freeze lifts.
+/// The adapter reads desired state out of `input` because GPUI takes a
+/// window's bounds, maximized state, focus and display as creation-time
+/// options and cannot change the first two afterwards — it must know a
+/// window's final placement before the window exists. Tauri can mutate after
+/// creating and never had to ask, which is why `WindowDiffInput` showed
+/// desired state only to the planner until a second host needed it.
 pub fn execute_gpui_window_apply(
     input: WindowDiffInput,
-    desired_windows: &[DesiredWindow],
     mut registry: GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
     displays: &mut impl GpuiDisplayFactsSource,
 ) -> Result<GpuiApplyOutcomeBundle, GpuiApplyError> {
     let input = input.with_capabilities(gpui_host_capabilities(backend.can_create()));
-    let desired = desired_state(desired_windows);
+    let desired = desired_state(input.desired_windows());
     let plan = plan_window_diff(&input).map_err(GpuiApplyError::Planning)?;
     registry
         .begin_generation(plan.generation())
@@ -195,7 +192,9 @@ pub fn execute_gpui_window_apply(
         Ok(observation) => {
             let convergence_input = input.with_live_windows(observation.windows().iter().cloned());
             let convergence = match plan_window_diff(&convergence_input) {
-                Ok(receipt) => GpuiApplyConvergence::Planned(receipt),
+                Ok(receipt) => GpuiApplyConvergence::Planned(
+                    receipt.without_deferred(&gpui_deferred_settlement()),
+                ),
                 Err(error) => GpuiApplyConvergence::Invalid(error),
             };
             GpuiApplyReadback::Complete {
@@ -251,7 +250,7 @@ fn classify(
         return None;
     };
     let disposition = match required_capability {
-        HostCapability::MoveResize if created.contains(window_id) => {
+        HostCapability::Move if created.contains(window_id) => {
             GpuiDiagnosticDisposition::SatisfiedAtCreate {
                 window_id: window_id.clone(),
                 operation: *operation,
@@ -460,6 +459,11 @@ fn execute_existing(
             GpuiWindowCall::SetMaximized,
             &mut completed,
         ),
+        WindowOperation::Resize { inner_size, .. } => native_call(
+            backend.resize(key, GpuiLogicalSize::from(*inner_size)),
+            GpuiWindowCall::Resize,
+            &mut completed,
+        ),
         WindowOperation::Focus { .. } => native_call(
             backend.activate(key),
             GpuiWindowCall::Activate,
@@ -468,10 +472,10 @@ fn execute_existing(
         WindowOperation::Close { .. } => {
             native_call(backend.close(key), GpuiWindowCall::Close, &mut completed)
         }
-        // A GPUI host withholds MoveResize, Show and Hide, so the planner never
+        // A GPUI host withholds Move, Show and Hide, so the planner never
         // schedules them. Reaching this arm means the capability set and the
         // execution table disagreed.
-        WindowOperation::MoveResize { .. }
+        WindowOperation::Move { .. }
         | WindowOperation::Show { .. }
         | WindowOperation::Hide { .. }
         | WindowOperation::Retag { .. }
