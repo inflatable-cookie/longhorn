@@ -185,6 +185,28 @@ neither could any fake — which is why the contract's coverage table says what
 has and has not been exercised rather than assuming a single-display result
 generalises.
 
+### A display's scale is only knowable where a window already is
+
+GPUI reports scale per *window*, never per *display*. So the obvious
+implementation of a display-facts source — read the scale from a live window
+once, hand it back for every display — is wrong the moment a desk is mixed
+DPI, and it fails silently because both answers are plausible numbers.
+
+Measured on two attached displays: an external panel reported window scale 1
+and the built-in panel reported 2, from windows opened on each. A single
+answer would have been wrong for one of them, and every window placed on that
+display would have been sized by a factor of two out.
+
+This is why `GpuiDisplayFactsSource::scale_factor` takes the display it is
+being asked about. The shape is right; the trap is in the implementation, and
+the first implementation written — in Longhorn's own smoke binary — fell into
+it.
+
+The constraint underneath is circular and cannot be engineered away: a GPUI
+application cannot learn a display's scale until it has put a window there.
+A display with no window on it has no knowable scale, which is an argument
+for treating scale as unobtainable rather than guessing a default.
+
 ### Capabilities name one operation each
 
 A capability that names two operations cannot describe a host that has one of
@@ -214,7 +236,7 @@ amendments above came from it, but the evidence has a stated ceiling.
 
 | Requirement | Tauri | GPUI |
 | --- | --- | --- |
-| Windows: create, destroy, observe | proved | proved, in-memory **and against a real window** |
+| Windows: create, destroy, observe | proved | proved, in-memory **and against real windows, including two at once** |
 | Placement application | proved | origin proved at creation, on a real window at the exact requested origin; size proved on existing windows; moving an existing window is refused and named |
 | Lifecycle events | proved | proved for every event in the list, in-memory only |
 | Close handling | proved | proved in-memory; the real close path ran in the smoke binary |

@@ -91,6 +91,7 @@ card.
 | 11 | Display correlation is built on name plus geometry, with an ambiguity error | Tauri — GPUI has a UUID stable across restarts |
 | 12 | Post-apply readback re-plans unconditionally, assuming the platform has settled | GPUI — `set_maximized(true)` succeeds and the next `is_maximized()` still reports false, because macOS animates the zoom |
 | 13 | Display facts assume a display knows where it is | GPUI — its macOS backend reads `CGDisplayBounds` and discards the origin, so every display reports `(0, 0)`. Found by attaching a second screen |
+| 14 | A display's scale is knowable only where a window already is | GPUI — scale is per-window, never per-display, so a caller cannot learn a display's scale until it has put a window there. Measured at 1 and 2 on one desk |
 
 Two more, recorded but not contract changes:
 

@@ -60,13 +60,45 @@ caller supplies the scale it learned from a live window; and
 finding — macOS animates the zoom, so GPUI's maximized state is not readable
 in the same turn as the call.
 
+## The multi-window probe
+
+`src/bin/multiwindow.rs` places two windows from one shared plan across two
+displays, and asks whether one scale answer per display holds.
+
+```sh
+cargo run --bin multiwindow
+```
+
+Recorded 2026-08-09, macOS 25.5, an external panel plus the built-in one:
+
+```json
+{"ok":true,"displayCount":2,"windowsCreated":2,
+ "multiWindowDesiredStateReached":true,
+ "placed":[{"id":"left","origin":[120,140],"scale":1},
+           {"id":"right","origin":[900,200],"scale":1}],
+ "perDisplay":[{"displayId":2,"primary":true,"windowScale":1},
+               {"displayId":1,"primary":false,"windowScale":2}],
+ "distinctWindowScales":2,"oneScalePerDisplayHolds":false}
+```
+
+Three things came out of it. **Multi-window placement works** — both windows
+landed at exactly the planned origins, from a single `plan_window_diff` pass;
+contract 020 had this recorded as unproven on either backend.
+**`GpuiWindowCreateRequest::on_display` works**, and this is the first time
+that path has run. And **one scale per display is false**: 1 on the external
+panel, 2 on the built-in. Any implementation that learns a single scale from
+a live window and reuses it is wrong by a factor of two on a mixed-DPI desk —
+including the one in `smoke.rs`, which is why that binary supplies its scale
+to one display only.
+
 ## What it is not
 
 Not a proof application. It runs one scripted pass and exits; it renders
 nothing and handles no input. The behavioural tests live in the workspace
 crate, against a fake that implements this exact list.
 
-It cannot join `effigy qa`: it needs a window server.
+Neither binary can join `effigy qa`: they need a window server, and
+`multiwindow` needs two displays to say anything interesting.
 
 ## Checking it
 
