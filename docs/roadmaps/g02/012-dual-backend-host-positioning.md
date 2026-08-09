@@ -82,10 +82,13 @@ The milestone is closed. Two follow-up cards came out of it:
 - [Card 168](batch-cards/168-installation-provenance.md) — complete. Fixed a
   live defect: a Homebrew-managed application self-updated and desynced
   `brew` silently.
-- [Card 169](batch-cards/169-gpui-projection-tier.md) — ready, and the
+- [Card 169](batch-cards/169-poodle-projection-tier.md) — ready, and the
   largest remaining GPUI piece. The host boundary is done; a GPUI application
-  can open and place a window and has nothing to draw in it. Memo 021 named
-  the projection tier and no card had scheduled it.
+  can open and place a window and has nothing to draw in it. Its two
+  structural questions are answered: the crate is `longhorn-poodle`, not
+  `longhorn-poodle-gpui`, because `poodle-specs` already carries two Rust
+  renderers; and no `gpui` dependency arises, because the projection emits
+  specs.
 
 Earlier follow-ups, all now done:
 
