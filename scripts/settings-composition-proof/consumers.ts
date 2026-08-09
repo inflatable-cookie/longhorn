@@ -19,7 +19,7 @@ import type {
 } from "./types.ts";
 
 const shapes: Record<string, ShapePolicy> = {
-  split-shell: {
+  "split-shell": {
     longhorn: ["@inflatable-cookie/longhorn"],
     forbiddenImports: [
       "@inflatable-cookie/longhorn/config",

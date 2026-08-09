@@ -7,6 +7,19 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Concurrent threads in one repository undo each other — 2026-08-09
+- Friction: three agents were working across Longhorn and Poodle at once. One
+  committed mid-way through another's file moves and restored paths that were
+  staged for deletion; only a gitignored directory survived untouched. The
+  loss was silent — `git grep` searches the index, so a check that looked like
+  confirmation reported success against stale state.
+- Impact: work redone twice, and a real risk of one thread committing
+  another's half-finished changes when staging with `git add -A`.
+- Possible fix: give each thread a branch, or stagger them. Failing that,
+  stage by explicit path and never `git add -A` in a shared checkout, and
+  verify file moves against the working tree rather than the index.
+- Surface: multi-thread working practice.
+
 ### [x] Greenfield proof froze the tree it was meant to describe — 2026-08-09
 - Friction: `verify-greenfield-card125.ts` asserted `git diff --quiet
   <frozen-commit>` across every TypeScript package and every Rust crate, so any

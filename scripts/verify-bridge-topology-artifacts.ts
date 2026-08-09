@@ -35,7 +35,7 @@ try {
     artifacts: typescript.paths,
     declarations,
   });
-  const split-shell = consumers.find(({ shape }) => shape === "split-shell")!;
+  const splitShell = consumers.find(({ shape }) => shape === "split-shell")!;
   const loophole = consumers.find(({ shape }) => shape === "loophole")!;
   console.log(
     JSON.stringify(
@@ -46,7 +46,7 @@ try {
         rustCompileGraphs: rust.compileGraphs,
         typescriptArtifacts: typescript.identities,
         consumers,
-        protocol: split-shell.trace.protocol,
+        protocol: splitShell.trace.protocol,
         lifecycle: loophole.trace.lifecycle,
         audits: {
           generatedBindingsDrift: false,

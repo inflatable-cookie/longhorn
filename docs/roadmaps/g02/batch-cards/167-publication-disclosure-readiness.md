@@ -1,6 +1,6 @@
 # 167 Publication Disclosure Readiness
 
-Status: ready
+Status: complete — landed 2026-08-09
 Owner: Tom
 Roadmap: g02.014 batch 2
 Governing refs: contract 012; Card 166
@@ -134,10 +134,39 @@ choose the fresh-repository route.
 - the `private/` overlay is documented as existing, without naming what is in
   it
 
-## Notes
+## Outcome — 2026-08-09
 
-The scrub is 146 files rather than the ~560 an all-names pseudonymisation
-would have taken, because the operator's own products stay named. It is also
-almost entirely documentation: the published TypeScript source has zero
-occurrences of any consumer name, and the eleven crate-source hits are all
-inside `#[cfg(test)]` modules.
+177 files in Longhorn and 8 in Poodle. The 146 estimate above was measured
+from a walk that missed repository-root files and some crate tests; the real
+figure is recorded here rather than the estimate being quietly corrected.
+
+Both trees scan clean for every client token, the developer home path and the
+stray organisation identifier. `proof:artifacts` is green across all twelve
+proofs, alongside `check:ts`, `test:ts`, `check:bindings`,
+`check:api-reference`, `held-surface` and the docs gates.
+
+### A blanket rename was the wrong instrument
+
+Replacing the product name across code as well as prose produced
+`runSplit-shellTrace`, unquoted `split-shell:` object keys, `.split-shell`
+property access and a bare `const split-shell =`. None of that is valid
+TypeScript, and four proofs stopped parsing.
+
+All of it was repaired — camelCase identifiers, snake_case in Rust tests,
+quoted keys, bracketed access — but the lesson is that prose and identifiers
+need separating before the first pass, not after. A hyphenated replacement is
+safe in Markdown and in string literals and unsafe everywhere else.
+
+The detector that found the last case is worth keeping: strip quoted strings
+from each line, then look for the token in what remains. `bun build` is not a
+syntax check, because it resolves imports and fails on missing modules.
+
+### Two threads, one repository
+
+A concurrent thread committed to Longhorn mid-scrub and restored files that
+were staged for deletion; only the gitignored overlay survived untouched. The
+removals were redone and committed immediately, staging by path so none of the
+other thread's work was swept in.
+
+Three agents across two shared repositories will keep colliding. Branches, or
+staggering, would remove the class.

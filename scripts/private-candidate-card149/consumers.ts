@@ -56,7 +56,7 @@ const forbiddenRust: Record<string, string[]> = {
   nucleus: ["longhorn-surfaces", "longhorn-surfaces-config", "longhorn-transfer", "longhorn-surface-transfer", "longhorn-surface-windowing"],
   loophole: ["longhorn-bridge", "longhorn-operation", "longhorn-notifications", "longhorn-native-content"],
   soundcheck: ["longhorn-layout", "longhorn-surfaces", "longhorn-transfer", "longhorn-bridge", "longhorn-history"],
-  split-shell: ["longhorn-windowing", "longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
+  "split-shell": ["longhorn-windowing", "longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
   jetstream: ["longhorn-config", "longhorn-settings", "longhorn-layout", "longhorn-surfaces", "longhorn-history", "longhorn-operation"],
   "optional-server": ["longhorn-layout", "longhorn-surfaces", "longhorn-history", "longhorn-native-content"],
 };

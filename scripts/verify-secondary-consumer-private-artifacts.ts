@@ -27,7 +27,7 @@ type FreezeFixture = {
     soundcheck_commit: string;
     soundcheck_library_commit: string;
     signal_commit: string;
-    split-shell_commit: string;
+    split_shell_commit: string;
     jetstream_commit: string;
     poodle_commit: string;
     poodle_prior_artifact_set: string;
@@ -48,7 +48,7 @@ type AdmissionFixture = {
     longhorn_selected_tree_sha256: string;
     poodle_commit: string;
     soundcheck_commit?: string;
-    split-shell_commit?: string;
+    split_shell_commit?: string;
   };
   artifact_sets: {
     poodle: string;
@@ -133,7 +133,7 @@ const consumerRepositories = {
       resolve(repoRoot, "../soundcheck-library"),
   ),
   signal: resolve(process.env.SIGNAL_REPO ?? resolve(repoRoot, "../signal")),
-  split-shell: resolve(
+  "split-shell": resolve(
     process.env.SPLIT_SHELL_REPO ??
       resolve(repoRoot, "../<private-consumer>"),
   ),
@@ -292,7 +292,7 @@ async function verifySources() {
       admission.sources.soundcheck_commit ?? fixture.sources.soundcheck_commit,
     soundcheck_library: fixture.sources.soundcheck_library_commit,
     signal: fixture.sources.signal_commit,
-    split-shell: admission.sources.split-shell_commit ?? fixture.sources.split-shell_commit,
+    "split-shell": admission.sources.split_shell_commit ?? fixture.sources.split_shell_commit,
     jetstream: fixture.sources.jetstream_commit,
   } as const;
   for (const [name, root] of Object.entries(consumerRepositories)) {
@@ -899,9 +899,9 @@ function verifyAdmissionEvidence(
   );
   assertEqual(admission.audits.tags, false, "tags");
   assertEqual(admission.audits.hosted_releases, false, "hosted releases");
-  const refreshedSplit-shellAdmission = admission.sources.split-shell_commit !== undefined;
+  const refreshedSplitShellAdmission = admission.sources.split_shell_commit !== undefined;
   const refreshedSoundcheckAdmission = admission.sources.soundcheck_commit !== undefined;
-  const admittedScopes = refreshedSplit-shellAdmission
+  const admittedScopes = refreshedSplitShellAdmission
     ? new Map([
         [121, "split-shell-minimal-composition-conformance-closeout"],
         [122, "jetstream-bridge-command-keyboard-cutover"],

@@ -29,13 +29,13 @@ type FreezeFixture = {
     soundcheck_commit: string;
     soundcheck_library_commit: string;
     signal_commit: string;
-    split-shell_commit: string;
+    split_shell_commit: string;
     jetstream_commit: string;
     poodle_commit: string;
     poodle_prior_artifact_set: string;
   };
   branches: Record<RepositoryName, string>;
-  split-shell_unrelated_dirty_paths: string[];
+  split_shell_unrelated_dirty_paths: string[];
   consumers: Record<ConsumerName, ConsumerFixture>;
   authority: Record<string, string[]>;
   rollback: {
@@ -81,7 +81,7 @@ const repositories: Record<RepositoryName, string> = {
   signal: resolve(
     process.env.SIGNAL_REPO ?? resolve(longhornRoot, "../signal"),
   ),
-  split-shell: resolve(
+  "split-shell": resolve(
     process.env.SPLIT_SHELL_REPO ??
       resolve(longhornRoot, "../<private-consumer>"),
   ),
@@ -97,7 +97,7 @@ const commits: Record<RepositoryName, string> = {
   soundcheck: fixture.sources.soundcheck_commit,
   soundcheck_library: fixture.sources.soundcheck_library_commit,
   signal: fixture.sources.signal_commit,
-  split-shell: fixture.sources.split-shell_commit,
+  "split-shell": fixture.sources.split_shell_commit,
   jetstream: fixture.sources.jetstream_commit,
   poodle: fixture.sources.poodle_commit,
 };
@@ -126,7 +126,7 @@ console.log(
         soundcheck: commits.soundcheck,
         soundcheckLibrary: commits.soundcheck_library,
         signal: commits.signal,
-        split-shell: commits.split-shell,
+        "split-shell": commits["split-shell"],
         jetstream: commits.jetstream,
         poodle: commits.poodle,
         poodlePriorArtifactSet: fixture.sources.poodle_prior_artifact_set,
@@ -150,7 +150,7 @@ console.log(
         ]),
       ),
       overlap: {
-        split-shellUnrelatedDirtyPaths: fixture.split-shell_unrelated_dirty_paths.length,
+        splitShellUnrelatedDirtyPaths: fixture.split_shell_unrelated_dirty_paths.length,
         migrationOwnedDirtyPaths: 0,
       },
       rollback: fixture.rollback,
@@ -238,17 +238,17 @@ function verifyRepositoryReceipts(): void {
     );
   }
 
-  const split-shellDirtyPaths = porcelainPaths(
-    gitRaw(repositories.split-shell, ["status", "--porcelain=v1", "-z"]),
+  const splitShellDirtyPaths = porcelainPaths(
+    gitRaw(repositories["split-shell"], ["status", "--porcelain=v1", "-z"]),
   );
-  const expected = [...fixture.split-shell_unrelated_dirty_paths].sort();
+  const expected = [...fixture.split_shell_unrelated_dirty_paths].sort();
   assertEqual(
-    JSON.stringify(split-shellDirtyPaths),
+    JSON.stringify(splitShellDirtyPaths),
     JSON.stringify(expected),
     "Split-shell unrelated dirty paths",
   );
   assert(
-    split-shellDirtyPaths.every(
+    splitShellDirtyPaths.every(
       (path) => path === "CHANGELOG.md" || path.startsWith("docs/"),
     ),
     "Split-shell dirty work overlaps runtime or package metadata",
@@ -336,12 +336,12 @@ function verifyApplicationIdentityAndLanes(): void {
     "Soundcheck stable storage name",
   );
   assertEqual(
-    fixture.consumers.split-shell.storage_profile,
+    fixture.consumers["split-shell"].storage_profile,
     "native-platform-v1",
     "Split-shell storage profile",
   );
   assertEqual(
-    fixture.consumers.split-shell.stable_storage_name,
+    fixture.consumers["split-shell"].stable_storage_name,
     null,
     "Split-shell stable storage name",
   );

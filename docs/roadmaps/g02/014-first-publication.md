@@ -31,7 +31,7 @@ existed for exactly one release — eighteen from Longhorn, three from Poodle.
 
 ### Batch 2. Disclosure readiness
 
-- [ ] [Card 167](batch-cards/167-publication-disclosure-readiness.md) removes
+- [x] [Card 167](batch-cards/167-publication-disclosure-readiness.md) removes
   third-party identity so either repository can be made public. Independent of
   Batch 1 — publication does not require public repositories, but the operator
   intends them.
