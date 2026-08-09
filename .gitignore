@@ -8,3 +8,6 @@
 # JavaScript workspace installs
 /node_modules/
 **/node_modules/
+
+# Consumer-specific evidence for third-party products (Card 167).
+private/
