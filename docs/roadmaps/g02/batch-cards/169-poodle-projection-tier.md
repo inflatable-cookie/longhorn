@@ -1,6 +1,6 @@
 # 169 Poodle Projection Tier
 
-Status: blocked — no mechanism exists for Longhorn to depend on Poodle's Rust crates
+Status: in progress — first domain projected
 Owner: Tom
 Roadmap: g02.012 follow-up
 Governing refs: contract 020; contract 013; research memo 021
@@ -84,60 +84,37 @@ This is the same shape twice over: `longhorn-gpui-windowing` takes no `gpui`
 and pushes the binding to an excluded prototype; `poodle-gpui` takes no `gpui`
 and pushes it to a preview. Two repositories reached it independently.
 
-## Blocked — 2026-08-09: there is no Rust route from Longhorn to Poodle
+## Dependency mechanism — corrected 2026-08-09
 
-The name and the dependency shape are settled, and then the card stops. It
-cannot start, and the reason is mechanical rather than hard.
+This card was briefly recorded as blocked on the grounds that Longhorn had no
+sanctioned way to depend on Poodle's Rust crates. That was wrong, and the
+error was mine: I treated a cross-repo path dependency as disqualifying
+without checking that Longhorn already uses one.
 
-`longhorn-poodle` must depend on `poodle-specs`. There is no sanctioned way
-for it to do so.
+It does. `package.json` carries
+`"@inflatable-cookie/poodle-core": "file:../poodle/.artifacts/…"`. A sibling
+path reference is the established temporary shape on the npm side, and the
+Rust side takes the same one:
 
-| Route | State |
-| --- | --- |
-| crates.io | `poodle-specs` is not published |
-| private registry | none configured for either repository |
-| git dependency | not used anywhere in either repository |
-| cross-repo path | breaks CI, which checks out Longhorn alone |
-| pinned artifacts | **exists for npm only** |
+```toml
+poodle-specs = { version = "0.1.0", path = "../../../poodle/packages/contracts/components" }
+```
 
-Longhorn already consumes Poodle, and does it well: pinned tarballs from
-`~/Dev/projects/poodle/.artifacts/`, each with a recorded SHA-256, and a set
-id that is a membership hash over `name:sha256` pairs. Contract 012 records
-the pins; `scripts/poodle-evidence.ts` derives them from the root manifest so
-they cannot rot. That is a considered mechanism with an integrity claim.
+**The long-term mechanism is git refs, not crates.io.** Poodle is untagged, so
+path refs stand in until it carries a tag; at that point every consumer's path
+ref swaps to a git ref together — npm and Cargo alike. Publishing to crates.io
+was my recommendation and is not the plan.
 
-It is **entirely npm**. `grep -rn poodle --include=Cargo.toml` across Longhorn
-returns nothing, and Poodle's `.artifacts/` holds only `svelte-pack-install-*`
-sets. Poodle's Rust crates are path dependencies inside Poodle and reach no
-further.
+### The CI consequence, stated
 
-### Why not just add a path dependency
+`ci.yml` says it "exists to prove a clean clone with no sibling checkouts, no
+`[patch]` config, and no warm caches — the environment consumers of a tag are
+in". A path ref contradicts that by construction, and so does the `file:` pin
+that predates it: both jobs need a sibling Poodle to resolve.
 
-Because it would be the first thing in either repository to assume a fixed
-relative checkout, it would fail in CI, and it would carry no integrity claim
-at all — against a contract whose whole cross-repo model is pinned hashes.
-A one-line `path = "../poodle/…"` would work on this machine and nowhere else.
-
-### The options, for a decision
-
-1. **Publish Poodle's Rust contract crates to crates.io.** Simplest, and
-   already the direction of travel: g02.014 is "Poodle and Longhorn on public
-   npm". Publishing the Rust contract layer publicly is the consistent
-   parallel. Cost: `poodle-specs` becomes public API with a versioning
-   commitment, which it does not have today.
-2. **Extend the artifact-pinning model to Rust.** Most consistent with
-   contract 012 as written — vendored crate sources with recorded hashes, the
-   same integrity claim the npm side already makes. Cost: building a
-   mechanism that does not exist, for one consumer.
-3. **Wait.** The projection tier is not on the critical path for anything
-   shipping. Cost: GPUI applications stay unable to draw.
-
-Option 1 is the recommendation, on the grounds that the parallel already
-exists and the alternative is inventing distribution machinery for a single
-dependency edge.
-
-**This is a cross-repository distribution decision touching contract 012, so
-it is recorded rather than taken.**
+So this crate does not make CI worse, it joins an existing gap — and the tag
+that fixes it fixes both at once. Worth knowing rather than discovering during
+a release.
 
 ## Scope
 
@@ -173,14 +150,61 @@ it is recorded rather than taken.**
 5. Take the same dependency-direction discipline: this crate depends on
    `poodle-specs`, and Poodle keeps no reference to Longhorn.
 
+## First domain — notifications, 2026-08-09
+
+`longhorn-poodle` exists and projects `NotificationRecord` into Poodle's
+`Toast`. Two tests, and it compiled against `poodle-specs` first try, which is
+the useful signal: the two vocabularies mostly already agree.
+
+### What building one domain exposed
+
+**Longhorn has five severities; Poodle has four tones.** `Info`, `Success`,
+`Warning` and `Error` map cleanly. `Critical` has nowhere to go — `Danger` is
+as loud as Poodle gets — so it shares a tone with `Error`.
+
+This is a real gap rather than an oversight on either side. Poodle's tones are
+a *visual* vocabulary and four tints is a reasonable palette; Longhorn's
+severities are an *operational* ladder and five levels is a reasonable ladder.
+They simply do not line up, and no amount of care on either side would have
+made them.
+
+So `tone_for` returns a `ToneMapping` carrying `is_lossy`, true only for
+`Critical`. A projection that returned the tone alone would make `Critical`
+silently indistinguishable from `Error` at exactly the moment the distinction
+matters. A surface that wants it back restores it in text or in an action,
+because the tone cannot carry it.
+
+**A toast holds one action; a record may carry several.** The first is
+projected and the rest are reachable from the notification centre. That is a
+presentation choice, not a loss of record, and it is stated here so nobody
+reads it as a bug later.
+
+Neither of these needed a Poodle change, so the stop condition did not fire.
+
+### Parity against `longhorn-poodle-svelte`
+
+| Domain | Rust | Note |
+| --- | --- | --- |
+| notifications | projected | toasts; severity collapse recorded above |
+| config | not yet | |
+| settings | not yet | |
+| operations | not yet | |
+| licence | not yet | |
+| update | not yet | |
+| layout | **deliberately absent** | not in the first target's needs; memo 021 |
+| surfaces | **deliberately absent** | as above |
+| transfer | **deliberately absent** | as above |
+
+"Not yet" and "deliberately absent" are different claims and stay separated.
+
 ## Acceptance Criteria
 
 - [x] the crate name is a recorded decision, not an inherited assumption
-- one domain is projected end to end and renders through at least one adapter
-- parity is stated per domain, with "deliberately absent" distinguished from
-  "not yet"
-- no Poodle primitive is forked
-- Poodle contains no reference to Longhorn
+- [x] one domain is projected — notifications to `Toast`. Rendering through an adapter is the next step and needs an application to render into.
+- [x] parity is stated per domain, with "deliberately absent" distinguished
+  from "not yet"
+- [x] no Poodle primitive is forked
+- [x] Poodle contains no reference to Longhorn
 - [x] the `gpui` dependency's home is decided: it does not arise, because the
   projection emits specs
 

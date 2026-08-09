@@ -2651,6 +2651,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-poodle"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-notifications",
+ "poodle-specs",
+]
+
+[[package]]
 name = "longhorn-settings"
 version = "0.1.0"
 dependencies = [
@@ -3602,6 +3611,22 @@ dependencies = [
  "opaque-debug",
  "universal-hash",
 ]
+
+[[package]]
+name = "poodle-headless"
+version = "0.1.0"
+
+[[package]]
+name = "poodle-specs"
+version = "0.1.0"
+dependencies = [
+ "poodle-headless",
+ "poodle-tokens",
+]
+
+[[package]]
+name = "poodle-tokens"
+version = "0.1.0"
 
 [[package]]
 name = "potential_utf"

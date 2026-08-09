@@ -22,6 +22,7 @@ members = [
   "crates/longhorn-tauri-native-content-child-view",
   "crates/longhorn-notifications",
   "crates/longhorn-operation",
+  "crates/longhorn-poodle",
   "crates/longhorn-settings",
   "crates/longhorn-settings-config",
   "crates/longhorn-tauri-bridge",
@@ -93,6 +94,7 @@ longhorn-native-content-isolated-window = { path = "crates/longhorn-native-conte
 longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-native-content-child-view", version = "0.1.0" }
 longhorn-notifications = { path = "crates/longhorn-notifications", version = "0.1.0" }
 longhorn-operation = { path = "crates/longhorn-operation", version = "0.1.0" }
+longhorn-poodle = { path = "crates/longhorn-poodle", version = "0.1.0" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.1.0" }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "0.1.0" }

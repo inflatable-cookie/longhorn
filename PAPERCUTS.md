@@ -7,22 +7,24 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] Cross-repo dependency exists for npm only — 2026-08-09
-- Friction: Longhorn consumes Poodle through pinned npm tarballs with recorded
-  SHA-256s and a membership-hashed set id — a considered mechanism with a real
-  integrity claim, derived from the root manifest so it cannot rot. There is no
-  Rust equivalent. `grep -rn poodle --include=Cargo.toml` across Longhorn
-  returns nothing, and Poodle's Rust crates are path dependencies that reach no
-  further than Poodle.
-- Impact: blocks Card 169 outright. The projection tier's dependency direction
-  is correct and its shape is settled, and it still cannot be started, because
-  there is no route from a Longhorn crate to `poodle-specs` that survives CI.
-  Any future Rust-level sharing between the two repositories hits the same wall.
-- Possible fix: publish Poodle's Rust contract crates to crates.io, which is
-  the consistent parallel now that g02.014 is taking both repositories to
-  public npm. Otherwise extend the artifact-pinning model to Rust, which means
-  building distribution machinery for one dependency edge.
-- Surface: contract 012, `scripts/poodle-evidence.ts`, Poodle's Rust packages.
+### [ ] CI claims no sibling checkouts; two manifests need one — 2026-08-09
+- Friction: `ci.yml` states it "exists to prove a clean clone with no sibling
+  checkouts, no `[patch]` config, and no warm caches". Two manifests contradict
+  it. `package.json` pins
+  `"@inflatable-cookie/poodle-core": "file:../poodle/.artifacts/…"`, and
+  `crates/longhorn-poodle` now takes
+  `poodle-specs = { path = "../../../poodle/…" }`. Both are the sanctioned
+  temporary shape while Poodle is untagged, and both need a sibling Poodle to
+  resolve.
+- Impact: the stated contract and the manifests disagree, so anyone reading
+  `ci.yml` will believe a clean-clone build works when it cannot. It also means
+  the two lanes fail for a reason unrelated to whatever change triggered them.
+- Possible fix: none until Poodle is tagged — at which point every path ref
+  swaps to a git ref together, npm and Cargo alike, and the claim becomes true.
+  Until then the comment should say what is actually the case, so the gap is
+  known rather than discovered during a release.
+- Surface: `.github/workflows/ci.yml`, `package.json`,
+  `crates/longhorn-poodle/Cargo.toml`.
 
 ### [ ] Repo-wide renames need to be language-aware — 2026-08-09
 - Friction: the `bovine` -> `split-shell` rename was applied as a text
