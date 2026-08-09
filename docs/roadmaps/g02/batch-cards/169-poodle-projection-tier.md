@@ -411,6 +411,62 @@ Six domains, zero Poodle changes. The stop condition has not fired once, which
 is the strongest evidence so far that `poodle-specs` is a real contract layer
 rather than a Svelte extraction wearing Rust.
 
+## Adapter coverage — checked 2026-08-09
+
+The last open criterion is "renders through at least one adapter". Checking it
+before building a window found that for half the projections, it cannot be met
+today — and the reason is in Poodle, not here.
+
+`poodle-gpui` implements `RenderComponent` for 100 specs. `poodle-jetstream`
+covers a similar set. Against what the six domains emit:
+
+| Spec | `poodle-gpui` | `poodle-jetstream` | Emitted by |
+| --- | --- | --- | --- |
+| `ToastStackSpec` | yes | yes | notifications |
+| `ProgressSpec` | yes | yes | operation |
+| `StatusIndicatorSpec` | yes | yes | operation |
+| `RadioGroupSpec` | yes | yes | config |
+| `SidebarNavSpec` | **no** | yes | settings |
+| `BannerSpec` | **no** | **no** | licence, update |
+| `DetailItemSpec` | **no** | **no** | config |
+
+So notifications and operation render on both adapters. Settings renders on
+Jetstream only. Licence and update render on neither, and config renders its
+choices but not its evidence block.
+
+### What this is and is not
+
+It is not the stop condition. No Poodle *primitive* needs changing —
+`BannerSpec` and `DetailItemSpec` exist, are complete, and carry everything
+these projections need. What is missing is a renderer for them in the GPUI
+adapter, and for `BannerSpec` and `DetailItemSpec` in any adapter.
+
+It is also not something to work around. Swapping `BannerSpec` for
+`CallOutSpec` would make licence and update render today, and `CallOutSpec` is
+rendered by GPUI. It would also be choosing a spec for the renderer's
+convenience rather than for what the thing is, which is the failure mode this
+whole tier exists to avoid. A page-level licence failure is a banner. It stays
+a banner.
+
+`DetailSectionSpec` renders and `DetailItemSpec` does not, which is the same
+shape: the container is covered and its leaf is not.
+
+### One fix that was ours to make
+
+`project_notifications` returned `Vec<Toast>`, and no adapter renders a bare
+`Toast` — it is a leaf inside `ToastStackSpec`. Added
+`project_notification_stack`, which returns the unit that actually renders.
+That is a Longhorn defect found by asking the rendering question, not a Poodle
+gap.
+
+### What this blocks
+
+Three of six domains cannot satisfy the final criterion until Poodle adds the
+missing renderers. The gap is raised there rather than forked here, which is
+what the card's stop condition asks for even though this is not technically
+that condition. Notifications and operation can be drawn now, and are the
+right first proof.
+
 ## Parity against `longhorn-poodle-svelte`
 
 The earlier version of this table listed only the six domains from step 2 and

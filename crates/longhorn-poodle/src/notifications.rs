@@ -1,5 +1,5 @@
 use longhorn_notifications::{NotificationRecord, NotificationSeverity};
-use poodle_specs::{Toast, ToastTone};
+use poodle_specs::{Toast, ToastStackSpec, ToastTone};
 
 /// What a severity became, and whether anything was lost saying it.
 ///
@@ -86,6 +86,19 @@ pub fn project_notifications(records: &[NotificationRecord]) -> Vec<Toast> {
     records.iter().map(project_notification).collect()
 }
 
+/// Projects a page of records into the stack a renderer actually takes.
+///
+/// `Toast` is a leaf; no adapter renders one on its own. `ToastStackSpec` is
+/// the rendered unit, and both `poodle-gpui` and `poodle-jetstream` implement
+/// it — which makes this, and not [`project_notifications`], the function
+/// that closes the loop to a drawn surface.
+#[must_use]
+pub fn project_notification_stack(records: &[NotificationRecord]) -> ToastStackSpec {
+    ToastStackSpec::new()
+        .with_toasts(project_notifications(records))
+        .with_aria_label("Notifications")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,6 +115,15 @@ mod tests {
             assert_eq!(mapping.tone, tone, "{severity:?}");
             assert!(!mapping.is_lossy, "{severity:?}");
         }
+    }
+
+    #[test]
+    fn the_stack_carries_every_record_in_ledger_order() {
+        // The stack is the rendered unit; a bare `Toast` is not renderable by
+        // either adapter.
+        let stack = project_notification_stack(&[]);
+        assert!(stack.toasts.is_empty());
+        assert_eq!(stack.aria_label.as_deref(), Some("Notifications"));
     }
 
     #[test]

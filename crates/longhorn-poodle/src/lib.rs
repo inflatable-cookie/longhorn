@@ -30,4 +30,6 @@ pub mod operation;
 pub mod settings;
 pub mod update;
 
-pub use notifications::{ToneMapping, project_notification, project_notifications, tone_for};
+pub use notifications::{
+    ToneMapping, project_notification, project_notification_stack, project_notifications, tone_for,
+};
