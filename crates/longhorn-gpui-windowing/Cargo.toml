@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-gpui-windowing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-display.workspace = true
+longhorn-update.workspace = true
+longhorn-windowing.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

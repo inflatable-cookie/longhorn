@@ -4,7 +4,7 @@ Status: ready
 Owner: Tom
 Roadmap: g02.014 batch 1
 Governing refs: contract 012 (Workspace And Versions, Consumer Adoption)
-Depends on: Card 164 complete; Card 165 complete; Poodle Card 020 complete
+Depends on: Card 164 complete; Card 165 complete; Poodle Cards 020 and 021
 Auto-start next card: no
 
 ## Objective
@@ -158,6 +158,14 @@ pack, and a check that the tarball contains the icon tree rather than trusting
 that it does. This is the sharpest reason not to publish from a laptop: the
 laptop is the only place that currently produces a correct artifact, and for
 the wrong reason.
+
+**Poodle Card 021 mostly dissolves this.** It removes the vendored Lucide
+catalogue from `poodle-core` — measured at 84% of the tarball, of which the
+whole portfolio uses 8% — leaving twelve built-in icons and no generated
+catalogue for a release workflow to produce. Card 021 is sequenced before this
+one for that reason and because publishing 245 KB of unused icon data as
+`0.1.0` means carrying it forever or breaking immediately after. The token CSS
+generation still needs wiring; the icon half goes away.
 
 ## Steps
 
