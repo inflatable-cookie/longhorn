@@ -6,6 +6,10 @@ Governing contracts: [002-017](../contracts/contract-index.md)
 
 ## Why This Matters
 
+This guide is written for a Tauri host. For GPUI, read
+[Compose A GPUI Application](gpui-composition.md) — the domains are the same
+and the host gives you much less.
+
 Every Longhorn system draws the same line: Longhorn owns the mechanism, the
 app owns the product policy. Compose in the order below and that line stays
 clear — renderer state never becomes durable truth, and teardown never leaves

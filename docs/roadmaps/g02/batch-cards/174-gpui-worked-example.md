@@ -1,6 +1,6 @@
 # 174 GPUI Worked Example
 
-Status: blocked
+Status: ready
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020; contract 013
@@ -18,11 +18,11 @@ five proof applications that are workspace members precisely so a signature
 change breaks them loudly. GPUI has one prototype, outside every gate, and it
 was broken by a signature change in the same session that introduced it.
 
-## Blocked on
+## Ready
 
-**Card 173**, for what the example must show. Card 172 is done and settled
-where it lives: a sibling of the existing prototypes, covered by
-`effigy check:prototypes`, checked outside `qa` and built before a tag.
+Both blockers are closed. Card 172 settled where it lives — a sibling of the
+existing prototypes, covered by `effigy check:prototypes`. Card 173's guide
+says what it must show, and the two should be readable against each other.
 
 ## Scope
 

@@ -13,10 +13,11 @@ authority, receipt, and donor in precise ways.
 1. [Getting Started](getting-started.md) — zero to running, in one pass
 2. [Choose Packages](package-selection.md)
 3. [Storage, Configuration, Backup, And Recovery](storage-configuration-backup.md)
-4. [Compose Desktop Systems](system-composition.md)
-5. [Migrate And Roll Back](migration-and-rollback.md)
-6. [Compatibility And Upgrades](compatibility-and-upgrades.md)
-7. [Glossary](glossary.md)
+4. [Compose Desktop Systems](system-composition.md) — the Tauri host
+5. [Compose A GPUI Application](gpui-composition.md) — the other host
+6. [Migrate And Roll Back](migration-and-rollback.md)
+7. [Compatibility And Upgrades](compatibility-and-upgrades.md)
+8. [Glossary](glossary.md)
 
 Exact package names, features, entrypoints, dependencies, and peers are in the
 [generated API surface](../reference/api-surface.md). Symbol-level behavior

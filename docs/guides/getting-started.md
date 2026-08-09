@@ -130,6 +130,7 @@ What "it works" looks like:
 
 - More systems, one at a time: [Choose Packages](package-selection.md)
 - Composition order and boundaries: [Compose Desktop Systems](system-composition.md)
+- The same, for a native host: [Compose A GPUI Application](gpui-composition.md)
 - Migrating an existing app: [Migrate And Roll Back](migration-and-rollback.md)
 - What is claimed, and upgrades: [Compatibility And Upgrades](compatibility-and-upgrades.md)
 - Terms: [Glossary](glossary.md)

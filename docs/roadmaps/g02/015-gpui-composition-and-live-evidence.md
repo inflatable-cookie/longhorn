@@ -45,11 +45,13 @@ Named here rather than buried, because one of them governs the whole shape.
 
 ### Batch 2. Composition surface
 
-- [ ] Card 173: a composition guide with one worked assembly — host adapter,
-  projection tier, `HostServices`, and the seams a GPUI application must
-  supply that a Tauri one never had to think about.
-- [ ] Card 174: the guide's example as a compiling artifact rather than prose,
-  sited by Batch 1's decision.
+- [x] [Card 173](batch-cards/173-gpui-composition-guide.md) —
+  `docs/guides/gpui-composition.md`. Leads with the three platform facilities a
+  webview gives away and GPUI does not, then names all eight seams in one list.
+  Nothing invented; the stop condition did not fire.
+- [ ] [Card 174](batch-cards/174-gpui-worked-example.md): the guide's assembly
+  as a compiling artifact rather than prose. Now the live next step — both its
+  blockers are closed.
 
 ### Batch 3. Live evidence for the last two ceilings
 
@@ -76,8 +78,8 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Goals
 
-- [ ] a GPUI application can be assembled without reading adapter source
-- [ ] every seam a GPUI application must supply is named in one place
+- [x] a GPUI application can be assembled without reading adapter source
+- [x] every seam a GPUI application must supply is named in one place
 - [ ] contract 020 holds no claim proved only in memory
 - [ ] the GPUI binding is built by something other than a person remembering to
 
@@ -102,12 +104,11 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 173 — the composition guide. It is independent of everything left and is
-the only remaining card that needs no application to exist first.
+Card 174 — the guide's assembly as a seventh prototype, picked up by
+`check:prototypes` with no selector change. Both its blockers are closed.
 
-Card 174 is now unblocked in principle: Card 172 chose a cadence, so the
-example's home is decided. It stays `blocked` until 173 says what the example
-must show.
+Batch 3 follows it directly: 175 and 176 need an application to drag in and
+tear down.
 
 ## Planning Checkpoint
 
