@@ -38,8 +38,24 @@ hypothesis; this is the experiment.
 ## Progress — 2026-08-09
 
 `longhorn-gpui-windowing` exists: 29 tests, `effigy qa` green. It depends on
-no `gpui`. `prototypes/gpui-windowing` binds its seam to `gpui` 0.2.2 and
-compiles, which is what makes the seam's shape evidence rather than a guess.
+no `gpui`. `prototypes/gpui-windowing` binds its seam to `gpui` 0.2.2, and its
+smoke binary opens a real window and drives one apply pass through it.
+
+Receipt, macOS 25.5, gpui 0.2.2:
+
+```json
+{"ok":true,"created":true,"desired_state_reached":true,"dispositions":2,
+ "observed_scale":2,"observed_origin":[160,120],"gpui_display_count":1,
+ "displays_refused_without_scale":1,"displays_resolved_with_scale":1,
+ "maximize_call_ok":true,"maximized_observed":false,"closed":true}
+```
+
+The window opened at exactly the origin the shared plan asked for. The
+display-facts refusal fires against a real display and resolves once the
+caller supplies the scale it read from a live window. And
+`maximized_observed: false` after a successful `set_maximized(true)` is bend
+12 — a finding the in-memory host could not have produced, and the reason
+running it was worth doing.
 
 ### Where the crate lives, and why not in the gate
 
@@ -73,6 +89,7 @@ card.
 | 9 | The host seam is `Send + Sync` throughout, with `Arc` + `Mutex` and flushes on a blocking pool | Tauri — GPUI is main-thread-only and `!Send` |
 | 10 | The capture seam threads `retained_normal` through every call | Tauri — it cannot report a maximized window's normal geometry; GPUI can |
 | 11 | Display correlation is built on name plus geometry, with an ambiguity error | Tauri — GPUI has a UUID stable across restarts |
+| 12 | Post-apply readback re-plans unconditionally, assuming the platform has settled | GPUI — `set_maximized(true)` succeeds and the next `is_maximized()` still reports false, because macOS animates the zoom |
 
 Two more, recorded but not contract changes:
 
@@ -112,6 +129,13 @@ No amendment breaks the Tauri adapter. Every one is a loosening, a
 restatement, or an additive visibility change; `longhorn-tauri-windowing` is
 untouched and its suite passes unchanged. The one change that would break it
 is the `MoveResize` split, which is why it is scheduled rather than taken.
+
+Bend 12 is not fixed here either. `execute_gpui_window_apply` still reads back
+and re-plans unconditionally, which on GPUI reports an unconverged maximize
+that in fact succeeded. Fixing it means a host declaring which of its
+operations settle synchronously, so convergence can exclude the rest — a
+contract-level change to readback semantics, recorded in 020 and scheduled
+rather than taken mid-card.
 
 ### Contract 020 is not complete on this evidence
 

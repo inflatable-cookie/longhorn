@@ -112,6 +112,7 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Runtime show / hide | yes | **no** | GPUI windows are on screen from creation until removed |
 | Observe visibility | yes | **no** | GPUI has no visibility query |
 | Maximize | absolute `maximize`/`unmaximize` | toggle `zoom_window` + `is_maximized` | GPUI; reachable by read-then-toggle, not atomically |
+| Maximize is readable after the call | yes | **no**, not in the same turn | GPUI on macOS animates the zoom; observed directly, see below |
 | Normal geometry while maximized | **no**, caller retains it | yes, `WindowBounds` carries restore bounds | Tauri; `retained_normal` in the Tauri capture seam is a Tauri workaround, not contract |
 | Per-display scale factor | yes | **no**, per-window only | GPUI's `PlatformDisplay` has id, uuid and bounds |
 | Display work area | yes | **no** | as above |
@@ -121,6 +122,24 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Close decision timing | may defer and decide later | must answer inside the callback | GPUI |
 | Close resumption | host prevents; product policy closes later | refusal returns `false`; the user retries | both, differently |
 | Host seam threading | `Send + Sync`, `Arc` + `Mutex`, flushes on a blocking pool | main thread only, `&mut`, no interior mutability | both, differently |
+
+### Post-apply readback is not universally meaningful
+
+A host adapter that re-observes immediately after applying, and re-plans from
+what it sees, assumes the platform has finished. On GPUI/macOS it has not:
+`set_maximized(true)` returns success and the next `is_maximized()` still
+reports `false`, because the window server animates the zoom. A convergence
+readback taken in the same turn therefore disagrees with an operation that
+succeeded, and would schedule it again.
+
+**Readback is evidence, not a verdict.** A host states which of its
+operations settle synchronously; a convergence diff over an operation that
+does not is a false negative, not a reason to retry. Longhorn's Tauri adapter
+reads back and re-plans unconditionally today, which is correct for Tauri and
+would be a retry loop on GPUI.
+
+Observed directly rather than reasoned about — `prototypes/gpui-windowing`'s
+smoke binary, macOS 25.5, gpui 0.2.2.
 
 ### The compound capability
 
@@ -152,12 +171,12 @@ amendments above came from it, but the evidence has a stated ceiling.
 
 | Requirement | Tauri | GPUI |
 | --- | --- | --- |
-| Windows: create, destroy, observe | proved | proved, against an in-memory host |
-| Placement application | proved | proved for creation; refused and named for existing windows |
-| Lifecycle events | proved | proved for every event in the list |
-| Close handling | proved | proved |
-| Quiescence participation | proved | proved |
-| Display facts with scale factors | proved | **unsatisfiable from the host alone**; recorded, not faked |
+| Windows: create, destroy, observe | proved | proved, in-memory **and against a real window** |
+| Placement application | proved | proved for creation, on a real window at the exact requested origin; refused and named for existing windows |
+| Lifecycle events | proved | proved for every event in the list, in-memory only |
+| Close handling | proved | proved in-memory; the real close path ran in the smoke binary |
+| Quiescence participation | proved | proved, in-memory |
+| Display facts with scale factors | proved | **unsatisfiable from the host alone**; the refusal and its resolution both ran against a real display |
 | Platform directories | proved | not exercised |
 
 What no backend has proved: multi-window placement, cross-window transfer,
@@ -167,10 +186,16 @@ notifications, licence and update, and none of those three. They are where a
 single-host contract is most likely to have leaked, and this contract must
 not be declared complete until a target exercises them.
 
-The GPUI adapter's behavioural evidence comes from an in-memory host that
-implements exactly `gpui::PlatformWindow`'s surface. That the surface is the
+Most of the GPUI adapter's behavioural evidence comes from an in-memory host
+implementing exactly `gpui::PlatformWindow`'s surface. That the surface is the
 real one is proved by `prototypes/gpui-windowing`, which binds the seam to
-`gpui` 0.2.2 and compiles. No GPUI window has been opened by Longhorn.
+`gpui` 0.2.2.
+
+One real GPUI window has been opened by Longhorn, placed from a shared plan,
+observed, maximized and closed — the smoke binary in that prototype. It found
+the readback divergence above, which the in-memory host could not have. It is
+one scripted pass on one machine, not a proof application, and it is outside
+`effigy qa` because it needs a window server.
 
 ## Non-goals
 

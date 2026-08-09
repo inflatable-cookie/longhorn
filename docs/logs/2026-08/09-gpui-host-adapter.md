@@ -12,15 +12,18 @@ display facts. 29 tests. Contract 020 amended from what it found, and the
 Tauri adapter re-checked against the amended version: unchanged, suite green.
 
 The experiment was to write the adapter against contract 020 as written and
-see where it bends. It bends in eleven places. Seven are GPUI's shape and
-four are Tauri assumptions the contract had absorbed.
+see where it bends. It bends in twelve places. Eight are GPUI's shape and four
+are Tauri assumptions the contract had absorbed.
+
+The twelfth only appeared when a real window was opened.
 
 ## Shape
 
 - No `gpui` dependency. Every GPUI value crossing the boundary is a plain
   Rust type; `GpuiWindowBackend` is the seam.
-- `prototypes/gpui-windowing` binds that seam to `gpui` 0.2.2 and compiles.
-  Excluded from the workspace, own lock, like every other prototype.
+- `prototypes/gpui-windowing` binds that seam to `gpui` 0.2.2, and its smoke
+  binary opens a real window and drives an apply pass through it. Excluded
+  from the workspace, own lock, like every other prototype.
 - Behavioural tests run against an in-memory host implementing exactly
   `gpui::PlatformWindow`'s surface — no `set_position`, no `show`, because
   GPUI has neither.
@@ -81,11 +84,22 @@ so it is recorded in contract 020's divergence register with its consequence
 and left for its own card. That is the card's stop condition working as
 intended: state the divergence, do not force either backend to match.
 
+**Readback is evidence, not a verdict — and only a real window said so.**
+`set_maximized(true)` returns success and the next `is_maximized()` still
+reports `false`, because macOS animates the zoom. The apply engine reads back
+and re-plans unconditionally, so on GPUI it reports an unconverged maximize
+that in fact succeeded, and a caller that trusted convergence would retry
+forever. The in-memory host could not have found this: a fake that returns
+what it was just told is exactly the fake anyone would write. Recorded in
+contract 020 as a readback-semantics change and scheduled, not taken here.
+
 ## Evidence
 
 - `crates/longhorn-gpui-windowing` — 29 tests, one module per contract-020
   requirement, refusals asserted rather than skipped
-- `prototypes/gpui-windowing` — compiles against real `gpui` 0.2.2
+- `prototypes/gpui-windowing` — compiles against real `gpui` 0.2.2; its smoke
+  binary opened one window at the exact planned origin, resolved display facts
+  once a scale was supplied, and found bend 12
 - contract 020 — divergence register, "What A Host Owns", and a per-backend
   current-state table
 - `effigy qa` green, including all twelve artifact proofs
@@ -100,5 +114,6 @@ audio-conversion application — exercises none of the three. Those are where a
 contract compiled from one host is most likely to have leaked, and the
 contract says so in its own Evidence section.
 
-No GPUI window has been opened by Longhorn. The seam is proved satisfiable;
-it is not proved correct at runtime.
+One GPUI window has been opened by Longhorn, on one machine, in one scripted
+pass. That is enough to have found bend 12 and not enough to call the adapter
+proved at runtime.
