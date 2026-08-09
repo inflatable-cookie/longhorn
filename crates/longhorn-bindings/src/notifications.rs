@@ -13,19 +13,21 @@ use longhorn_notifications::{
     NotificationProtocolVersion, NotificationReadStateProjection, NotificationRecordProjection,
     NotificationRejection, NotificationRejectionCode, NotificationRemovalProjection,
     NotificationRemovalReasonProjection, NotificationRetentionClassProjection,
-    NotificationSeverityProjection, NotificationSnapshot, NotificationSnapshotQuery,
-    NotificationSnapshotResponse,
+    NotificationSeverity, NotificationSeverityProjection, NotificationSnapshot,
+    NotificationSnapshotQuery, NotificationSnapshotResponse,
 };
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+    Artifact, GenerationMode, LabelMap, apply, exported_declaration, label_module,
+    string_union_variants, tagged_variants,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/notifications/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/notifications/protocol-v1.json";
+const GENERATED_LABELS: &str = "packages/longhorn/src/notifications/generated/labels.ts";
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     apply(
@@ -41,7 +43,27 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
                 relative_path: GOLDEN_FIXTURE,
                 contents: fixture::render()?,
             },
+            Artifact {
+                relative_path: GENERATED_LABELS,
+                contents: render_labels(),
+            },
         ],
+    )
+}
+
+fn render_labels() -> String {
+    let entries: Vec<(&str, &str)> = NotificationSeverity::ALL
+        .iter()
+        .map(|severity| (severity.wire_name(), severity.label()))
+        .collect();
+    label_module(
+        "generate:notifications",
+        &[LabelMap {
+            constant: "NOTIFICATION_SEVERITY_LABELS",
+            import: "NotificationSeverityProjection",
+            key_type: "NotificationSeverityProjection",
+            entries: &entries,
+        }],
     )
 }
 

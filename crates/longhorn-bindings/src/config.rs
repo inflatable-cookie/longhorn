@@ -37,7 +37,8 @@ use longhorn_core::ConfigRequestId;
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+    Artifact, GenerationMode, LabelMap, apply, exported_declaration, label_module,
+    label_template_renderer, string_union_variants, tagged_variants,
 };
 
 mod fixture;
@@ -46,6 +47,51 @@ const GENERATED_PROTOCOL: &str = "packages/longhorn/src/config/generated/protoco
 const GENERATED_BASE_PROTOCOL: &str = "packages/longhorn/src/config/generated/base.ts";
 const GENERATED_RESTORE_PROTOCOL: &str = "packages/longhorn/src/config/generated/restore.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/config/protocol-v1.json";
+const GENERATED_LABELS: &str = "packages/longhorn/src/config/generated/labels.ts";
+const GENERATED_LABEL_TEMPLATE: &str = "packages/longhorn/src/config/generated/label-template.ts";
+
+/// Emits the three restore label maps.
+///
+/// Compatibility carries *templates* rather than finished strings, because six
+/// of its thirteen classifications interpolate their own fields — a table
+/// entry cannot say "Migration required (3 → 7)". Rust renders from the same
+/// templates, so one source still decides the wording. See Card 170.
+fn render_labels() -> String {
+    let integrity: Vec<(&str, &str)> = RestoreIntegrityProjection::ALL
+        .iter()
+        .map(|state| (state.wire_name(), state.label()))
+        .collect();
+    let authenticity: Vec<(&str, &str)> = RestoreAuthenticityProjection::ALL
+        .iter()
+        .map(|state| (state.wire_name(), state.label()))
+        .collect();
+
+    label_module(
+        "generate:config",
+        &[
+            LabelMap {
+                constant: "RESTORE_INTEGRITY_LABELS",
+                import: "RestoreIntegrityProjection",
+                key_type: "RestoreIntegrityProjection",
+                entries: &integrity,
+            },
+            LabelMap {
+                constant: "RESTORE_AUTHENTICITY_LABELS",
+                import: "RestoreAuthenticityProjection",
+                key_type: "RestoreAuthenticityProjection",
+                entries: &authenticity,
+            },
+            LabelMap {
+                constant: "RESTORE_COMPATIBILITY_LABEL_TEMPLATES",
+                import: "RestoreDomainCompatibilityProjection",
+                // A tagged union's discriminant is not importable on its own,
+                // so the record is keyed by indexing the union.
+                key_type: "RestoreDomainCompatibilityProjection[\"status\"]",
+                entries: &RestoreDomainCompatibilityProjection::TEMPLATES,
+            },
+        ],
+    )
+}
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let capability = ConfigOperationCapability::decl();
@@ -239,6 +285,14 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_RESTORE_PROTOCOL,
             contents: restore_contents,
+        },
+        Artifact {
+            relative_path: GENERATED_LABELS,
+            contents: render_labels(),
+        },
+        Artifact {
+            relative_path: GENERATED_LABEL_TEMPLATE,
+            contents: label_template_renderer("generate:config"),
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,

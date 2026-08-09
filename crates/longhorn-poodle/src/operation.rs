@@ -37,17 +37,13 @@ pub const fn state_tone(state: OperationStateProjection) -> StatusTone {
 }
 
 /// The operator-facing name of a lifecycle state.
+///
+/// Delegates to `longhorn-operation`, which is also what the generated
+/// TypeScript map is built from — so both backends say the same thing by
+/// construction. See Card 170.
 #[must_use]
 pub const fn state_label(state: OperationStateProjection) -> &'static str {
-    match state {
-        OperationStateProjection::Queued => "Queued",
-        OperationStateProjection::Running => "Running",
-        OperationStateProjection::Cancelling => "Cancelling",
-        OperationStateProjection::Succeeded => "Succeeded",
-        OperationStateProjection::Failed => "Failed",
-        OperationStateProjection::Cancelled => "Cancelled",
-        OperationStateProjection::Interrupted => "Interrupted",
-    }
+    state.label()
 }
 
 /// The status indicator for one operation's current state.

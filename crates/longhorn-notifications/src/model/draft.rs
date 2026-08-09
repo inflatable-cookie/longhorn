@@ -25,6 +25,50 @@ pub enum NotificationSeverity {
     Critical,
 }
 
+impl NotificationSeverity {
+    /// Every severity, in ascending order of loudness.
+    ///
+    /// Ordered rather than alphabetical, and exhaustive by construction: the
+    /// generated TypeScript label map is built from this, so a new severity
+    /// that is not added here fails the bindings gate rather than rendering
+    /// blank in a webview.
+    pub const ALL: [Self; 5] = [
+        Self::Info,
+        Self::Success,
+        Self::Warning,
+        Self::Error,
+        Self::Critical,
+    ];
+
+    /// The wire name, which is also the generated map's key.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Success => "success",
+            Self::Warning => "warning",
+            Self::Error => "error",
+            Self::Critical => "critical",
+        }
+    }
+
+    /// The operator-facing name.
+    ///
+    /// Lives here rather than in a projection because what a severity is
+    /// called is a property of the severity. Two surfaces that each invented
+    /// their own wording is exactly the drift memo 022 recorded.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Info => "Information",
+            Self::Success => "Success",
+            Self::Warning => "Warning",
+            Self::Error => "Error",
+            Self::Critical => "Critical",
+        }
+    }
+}
+
 /// Explicit read state independent from retention and presentation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NotificationReadState {

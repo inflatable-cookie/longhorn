@@ -1,6 +1,7 @@
 # Card 170 Generated Projection Labels
 
-Status: open
+Status: complete
+Completed: 2026-08-09
 Owner: Tom
 Updated: 2026-08-09
 Governing refs: memo 022 (D1, D2); contract 013; contract 010
@@ -41,7 +42,56 @@ one with the worst drift risk and the one generation helps least.
 Sizing this was worth doing before committing to a shape, and it means the
 card is two pieces rather than one.
 
-## Approach
+## What was built
+
+The format table worked, so the drift-test fallback was not needed.
+
+**Wording moved to the enums that own it.** `NotificationSeverity`,
+`OperationStateProjection`, `RestoreIntegrityProjection` and
+`RestoreAuthenticityProjection` each gained `ALL`, `wire_name` and `label`.
+`longhorn-poodle` now delegates rather than restating. This also dissolved the
+stop condition about `longhorn-bindings` needing `poodle-specs`: the generator
+already depends on the domain crates, and a label was always a property of the
+enum rather than of a Poodle projection. `InstallManager::label` was the
+existing precedent.
+
+**Templates, not strings, for the parameterised set.**
+`RestoreDomainCompatibilityProjection::TEMPLATES` holds thirteen
+`(wire name, template)` pairs. `render_label_template` fills `{name}`
+placeholders, and the generated `renderLabelTemplate` mirrors it in
+TypeScript. Both sides interpolate the *same* templates, so one source still
+decides the wording — which was the whole worry.
+
+One substitution rule, not a template language: a placeholder is a name in
+braces and everything else is literal. An unknown placeholder is left as
+written, so a mistake shows as `{typo}` on screen rather than a hole that
+reads like deliberate wording. A test asserts no rendered label contains a
+brace.
+
+**Three generated artifacts**, written by the existing bindings pipeline and
+checked by `check:bindings`:
+
+- `packages/longhorn/src/notifications/generated/labels.ts`
+- `packages/longhorn/src/operation/generated/labels.ts`
+- `packages/longhorn/src/config/generated/labels.ts` and `label-template.ts`
+
+Each map is typed `Record<Union, string>`, so a variant added to the union and
+missing from the map is a TypeScript error at the point of use. A tagged
+union's discriminant is not importable on its own, so the compatibility map is
+keyed by indexing the union — `RestoreDomainCompatibilityProjection["status"]`.
+
+**Three D1 sites fixed.** `RestoreSettingsPage.svelte` no longer renders
+`inspection.integrity`, `inspection.authenticity` or an identity `status`
+directly; `notificationStatusLabel` no longer returns
+`record.draft.severity`. No Svelte surface renders a serde `rename_all`
+output as UI text any more.
+
+`identityLabel` is the one label written twice on purpose. Its mismatch arm
+interpolates two fields into a sentence rather than a label, and a template
+table for two arms is more machinery than it saves. Recorded rather than
+hidden.
+
+## Original approach
 
 1. **Generate the constant maps.** Data-free enums get a generated
    `Record<Variant, string>` per domain, emitted as a `longhorn-bindings`
@@ -71,19 +121,22 @@ card is two pieces rather than one.
 
 ## Acceptance Criteria
 
-- adding a variant to any enum in scope fails a gate rather than rendering
-  blank in a webview
-- the wording has exactly one source, or the exception is written down with
-  its reason
-- no Svelte surface renders a serde `rename_all` output as UI text
+- [x] adding a variant to any enum in scope fails a gate rather than rendering
+  blank in a webview — the map is `Record<Union, string>` and `check:bindings`
+  compares the generated artifact
+- [x] the wording has exactly one source, or the exception is written down
+  with its reason — `identityLabel` is the one exception
+- [x] no Svelte surface renders a serde `rename_all` output as UI text
 
 ## Stop Conditions
 
-- the format-table approach needs placeholder semantics rich enough to be a
-  template language, in which case stop and take the drift test instead
-- generation would require `longhorn-bindings` to depend on `poodle-specs`,
-  which would drag a sibling-repository path dependency into the bindings
-  gate. The label functions can be split from the spec-emitting ones if so.
+Neither fired.
+
+- ~~the format-table approach needs placeholder semantics rich enough to be a
+  template language~~ — one substitution rule was enough for all thirteen.
+- ~~generation would require `longhorn-bindings` to depend on
+  `poodle-specs`~~ — moving the wording onto the domain enums removed the
+  question. The generator already depends on those crates.
 
 ## Notes
 

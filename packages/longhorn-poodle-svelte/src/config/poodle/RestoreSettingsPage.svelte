@@ -14,6 +14,8 @@
 
   import {
     CONFIG_OPERATIONS_PROTOCOL_VERSION,
+    RESTORE_AUTHENTICITY_LABELS,
+    RESTORE_INTEGRITY_LABELS,
     type ConfigOperationRejection,
     type ConfigOperationsSnapshot,
     type RestoreAdapterReceiptProjection,
@@ -28,6 +30,7 @@
   import {
     canUseArchive,
     compatibilityLabel,
+    identityLabel,
     type RestoreChoice,
   } from "./restore-model.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
@@ -343,10 +346,10 @@
         <div class="longhorn-config-details">
           <DetailItem label="Archive" value={inspection.archiveId} />
           <DetailItem label="Created" value={inspection.createdAt} />
-          <DetailItem label="Integrity" value={inspection.integrity} />
-          <DetailItem label="Authenticity" value={inspection.authenticity} />
-          <DetailItem label="Application identity" value={inspection.identity.application.status} />
-          <DetailItem label="Producer identity" value={inspection.identity.producer.status} />
+          <DetailItem label="Integrity" value={RESTORE_INTEGRITY_LABELS[inspection.integrity]} />
+          <DetailItem label="Authenticity" value={RESTORE_AUTHENTICITY_LABELS[inspection.authenticity]} />
+          <DetailItem label="Application identity" value={identityLabel(inspection.identity.application)} />
+          <DetailItem label="Producer identity" value={identityLabel(inspection.identity.producer)} />
           <DetailItem label="Archive digest" value={inspection.archiveSha256} truncateValue={true} />
         </div>
       </Surface>

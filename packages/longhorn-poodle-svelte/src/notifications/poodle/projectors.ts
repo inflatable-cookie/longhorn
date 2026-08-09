@@ -1,4 +1,8 @@
-import type { NotificationRecordProjection, NotificationSeverityProjection } from "@inflatable-cookie/longhorn/notifications/protocol";
+import {
+  NOTIFICATION_SEVERITY_LABELS,
+  type NotificationRecordProjection,
+  type NotificationSeverityProjection,
+} from "@inflatable-cookie/longhorn/notifications";
 
 export type NotificationStatusTone = "info" | "success" | "warning" | "danger";
 
@@ -6,6 +10,13 @@ export function notificationStatusTone(severity: NotificationSeverityProjection)
   return severity === "error" || severity === "critical" ? "danger" : severity;
 }
 
+/**
+ * The severity's operator-facing name, from the generated map.
+ *
+ * Previously this returned `record.draft.severity` — the serde wire form, so
+ * an operator read `critical` in lowercase. Memo 022, D1.
+ */
 export function notificationStatusLabel(record: NotificationRecordProjection): string {
-  return `${record.draft.severity}${record.readState === "unseen" ? ", unseen" : ""}`;
+  const label = NOTIFICATION_SEVERITY_LABELS[record.draft.severity];
+  return `${label}${record.readState === "unseen" ? ", unseen" : ""}`;
 }

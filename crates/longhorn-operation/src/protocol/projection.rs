@@ -65,6 +65,55 @@ pub enum OperationStateProjection {
     Interrupted,
 }
 
+impl OperationStateProjection {
+    /// Every lifecycle state, in the order an operation passes through them.
+    ///
+    /// Exhaustive by construction: the generated TypeScript label map is
+    /// built from this, so a new state that is not added here fails the
+    /// bindings gate rather than rendering blank.
+    pub const ALL: [Self; 7] = [
+        Self::Queued,
+        Self::Running,
+        Self::Cancelling,
+        Self::Succeeded,
+        Self::Failed,
+        Self::Cancelled,
+        Self::Interrupted,
+    ];
+
+    /// The wire name, which is also the generated map's key.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::Queued => "queued",
+            Self::Running => "running",
+            Self::Cancelling => "cancelling",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Cancelled => "cancelled",
+            Self::Interrupted => "interrupted",
+        }
+    }
+
+    /// The operator-facing name.
+    ///
+    /// Here rather than in a projection because what a state is called is a
+    /// property of the state, and two surfaces inventing their own wording is
+    /// the drift memo 022 recorded.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Queued => "Queued",
+            Self::Running => "Running",
+            Self::Cancelling => "Cancelling",
+            Self::Succeeded => "Succeeded",
+            Self::Failed => "Failed",
+            Self::Cancelled => "Cancelled",
+            Self::Interrupted => "Interrupted",
+        }
+    }
+}
+
 impl From<OperationState> for OperationStateProjection {
     fn from(value: OperationState) -> Self {
         match value {

@@ -20,13 +20,15 @@ use longhorn_operation::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+    Artifact, GenerationMode, LabelMap, apply, exported_declaration, label_module,
+    string_union_variants, tagged_variants,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/operation/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/operation/protocol-v1.json";
+const GENERATED_LABELS: &str = "packages/longhorn/src/operation/generated/labels.ts";
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let artifacts = [
@@ -38,8 +40,28 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             relative_path: GOLDEN_FIXTURE,
             contents: fixture::render()?,
         },
+        Artifact {
+            relative_path: GENERATED_LABELS,
+            contents: render_labels(),
+        },
     ];
     apply("operation", "generate:operation", mode, &artifacts)
+}
+
+fn render_labels() -> String {
+    let entries: Vec<(&str, &str)> = OperationStateProjection::ALL
+        .iter()
+        .map(|state| (state.wire_name(), state.label()))
+        .collect();
+    label_module(
+        "generate:operation",
+        &[LabelMap {
+            constant: "OPERATION_STATE_LABELS",
+            import: "OperationStateProjection",
+            key_type: "OperationStateProjection",
+            entries: &entries,
+        }],
+    )
 }
 
 fn render_protocol() -> Result<String, Box<dyn Error>> {

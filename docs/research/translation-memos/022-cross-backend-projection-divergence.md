@@ -1,6 +1,6 @@
 # 022 Cross-backend Projection Divergence
 
-Status: decided 2026-08-09 — four implemented, one carded, four open
+Status: decided 2026-08-09 — six implemented, three open
 Owner: Tom
 Updated: 2026-08-09
 Depends on: memo 021; contract 013; contract 020; Card 169
@@ -259,8 +259,8 @@ more, and is the obvious next piece of evidence.
 
 | | Divergence | Decision | State |
 | --- | --- | --- | --- |
-| D1 | serde wire form as UI text | fix Svelte | carded — 170 |
-| D2 | duplicated label maps | generate from Rust | carded — 170 |
+| D1 | serde wire form as UI text | fix Svelte | **done** — card 170 |
+| D2 | duplicated label maps | generate from Rust | **done** — card 170 |
 | D3 | settings rules in the client tier | port now, generate later | **done** |
 | D4 | search normalisation | host decides, via `HostServices` | **done** |
 | D5 | Critical vs Error collapse | carry in text | **done** |
@@ -301,13 +301,18 @@ If a second domain needs a fifth severity level, the Poodle-tone option
 becomes right on cost as well as on shape. This is the cheap correct answer
 for one caller, not the permanent one.
 
-## What is carded
+**D1 and D2 — Card 170, complete.** Sizing found that not every label can be a
+table entry: six of the thirteen restore compatibility arms interpolate their
+own fields. The answer was to carry *templates* rather than finished strings,
+with both sides filling `{name}` placeholders from the same table. The wording
+moved onto the domain enums that own it, which also dissolved the worry about
+`longhorn-bindings` depending on `poodle-specs` — a label was never a property
+of the Poodle projection.
 
-**D1 and D2 → Card 170.** Sizing the generation work found that not every
-label can be generated: six of the thirteen restore compatibility arms
-interpolate their own fields, so `"Migration required (3 → 7)"` is a function
-and not a table entry. The worst drift risk is the least generatable set. The
-card carries that complication and a fallback.
+Three generated artifacts now cross, checked by `check:bindings`, and no
+Svelte surface renders a serde `rename_all` output any more. One exception is
+written down: `identityLabel` interpolates two fields into a sentence and is
+still stated twice.
 
 ## What is still open
 

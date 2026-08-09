@@ -35,68 +35,28 @@ pub fn can_use_archive(domain: &RestoreDomainInspectionProjection) -> bool {
 
 /// Renders one compatibility classification as operator-facing text.
 ///
-/// Every arm is spelled out rather than derived from the variant name. The
-/// stable strings a classification carries — `reason`, `adapter`, `issue`,
-/// `detail` — are non-secret by construction, so they are safe to show.
+/// Delegates to `longhorn-config`. The wording is a property of the
+/// classification, not of this projection, and it is the source the generated
+/// TypeScript map is built from — so both backends say the same thing by
+/// construction rather than by review. See memo 022, D2, and Card 170.
 #[must_use]
 pub fn compatibility_label(compatibility: &RestoreDomainCompatibilityProjection) -> String {
-    match compatibility {
-        RestoreDomainCompatibilityProjection::Ready => "Ready".to_owned(),
-        RestoreDomainCompatibilityProjection::MigrationRequired { from, to } => {
-            format!("Migration required ({from} \u{2192} {to})")
-        }
-        RestoreDomainCompatibilityProjection::UnknownDomain => "Unknown domain".to_owned(),
-        RestoreDomainCompatibilityProjection::DescriptorMismatch => {
-            "Descriptor mismatch".to_owned()
-        }
-        RestoreDomainCompatibilityProjection::DomainCodeUnavailable => {
-            "Domain code unavailable".to_owned()
-        }
-        RestoreDomainCompatibilityProjection::PolicyExcluded { reason } => {
-            format!("Policy excluded: {reason}")
-        }
-        RestoreDomainCompatibilityProjection::CustomAdapterUnavailable { adapter } => {
-            format!("Adapter unavailable: {adapter}")
-        }
-        RestoreDomainCompatibilityProjection::CustomAdapterReady { adapter, .. } => {
-            format!("Custom adapter ready: {adapter}")
-        }
-        RestoreDomainCompatibilityProjection::CustomAdapterRejected { adapter, detail } => {
-            format!("Adapter rejected: {adapter} \u{2014} {detail}")
-        }
-        RestoreDomainCompatibilityProjection::TargetUnavailable { reason } => {
-            format!("Target unavailable: {reason}")
-        }
-        RestoreDomainCompatibilityProjection::SourcePreserved { issue } => {
-            format!("Source preserved: {issue}")
-        }
-        RestoreDomainCompatibilityProjection::SourceRejected { issue } => {
-            format!("Source rejected: {issue}")
-        }
-        RestoreDomainCompatibilityProjection::TargetPreparationFailed { detail } => {
-            format!("Target preparation failed: {detail}")
-        }
-    }
+    compatibility.label()
 }
 
 /// Renders byte-integrity state.
 ///
-/// One variant today, and named rather than printed, because the wire form is
-/// a serde encoding and not a sentence.
+/// Named rather than printed: the wire form is a serde encoding and not a
+/// sentence. The wording lives in `longhorn-config`.
 #[must_use]
 pub const fn integrity_label(integrity: RestoreIntegrityProjection) -> &'static str {
-    match integrity {
-        RestoreIntegrityProjection::Verified => "Verified",
-    }
+    integrity.label()
 }
 
 /// Renders authenticity state, which is deliberately not integrity.
 #[must_use]
 pub const fn authenticity_label(authenticity: RestoreAuthenticityProjection) -> &'static str {
-    match authenticity {
-        RestoreAuthenticityProjection::Unauthenticated => "Unauthenticated",
-        RestoreAuthenticityProjection::Authenticated => "Authenticated",
-    }
+    authenticity.label()
 }
 
 /// Renders one identity comparison, naming both sides when they differ.

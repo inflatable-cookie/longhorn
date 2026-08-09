@@ -1,8 +1,9 @@
-import type {
-  OperationEntryProjection,
-  OperationOverallProgressProjection,
-  OperationStateProjection,
-} from "@inflatable-cookie/longhorn/operation/protocol";
+import {
+  OPERATION_STATE_LABELS,
+  type OperationEntryProjection,
+  type OperationOverallProgressProjection,
+  type OperationStateProjection,
+} from "@inflatable-cookie/longhorn/operation";
 
 export type OperationStatusTone =
   | "neutral"
@@ -19,16 +20,6 @@ export interface OperationProgressView {
   readonly valueText: string | null;
 }
 
-const stateLabels: Record<OperationStateProjection, string> = {
-  queued: "Queued",
-  running: "Running",
-  cancelling: "Cancelling",
-  succeeded: "Succeeded",
-  failed: "Failed",
-  cancelled: "Cancelled",
-  interrupted: "Interrupted",
-};
-
 const stateTones: Record<OperationStateProjection, OperationStatusTone> = {
   queued: "pending",
   running: "info",
@@ -39,8 +30,13 @@ const stateTones: Record<OperationStateProjection, OperationStatusTone> = {
   interrupted: "warning",
 };
 
+/**
+ * Generated from Rust, where the wording lives on the enum that owns it.
+ * A label added to the union and missing from the map is a type error here
+ * rather than a blank on screen. See memo 022, D2.
+ */
 export function operationStateLabel(state: OperationStateProjection): string {
-  return stateLabels[state];
+  return OPERATION_STATE_LABELS[state];
 }
 
 export function operationStatusTone(
