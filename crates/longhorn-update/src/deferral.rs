@@ -1,6 +1,8 @@
 use core::fmt;
 
 use semver::Version;
+
+use crate::InstallManager;
 use serde::{Deserialize, Serialize};
 
 /// Why an install did not proceed.
@@ -24,11 +26,29 @@ pub enum DeferralCause {
     },
     /// The installed copy is not writable.
     ///
-    /// Homebrew casks and administrator-installed copies land here. The
-    /// remedy is a manual download, not a retry.
+    /// An administrator-installed copy this user cannot replace. The remedy
+    /// is a manual download, not a retry.
+    ///
+    /// Package-manager installations are **not** this — they are
+    /// [`Self::ExternallyManaged`], caught before an update is offered. This
+    /// variant claimed to cover Homebrew casks until 2026-08-09 and never
+    /// did: `/Applications` is group-writable by admin users, so a cask
+    /// passes the permission check and self-updates.
     InstallationNotWritable {
         /// What could not be written, for display.
         detail: String,
+    },
+    /// A package manager owns the installation.
+    ///
+    /// Not a failure and not retryable: the update is real and the user can
+    /// have it, through the tool that installed the application. Self-updating
+    /// here would leave the manager's database describing a version that is
+    /// no longer on disk.
+    ExternallyManaged {
+        /// Who owns it, for display.
+        manager: InstallManager,
+        /// What the user should run, when the answer is a command.
+        command: Option<String>,
     },
     /// The download or replacement failed.
     ///
@@ -44,12 +64,15 @@ pub enum DeferralCause {
 impl DeferralCause {
     /// Returns whether retrying later could succeed unattended.
     ///
-    /// A non-writable installation cannot resolve itself; the other causes
-    /// can. The client surface uses this to decide between "we will try
-    /// again" and "here is how to do it yourself".
+    /// A non-writable or externally managed installation cannot resolve
+    /// itself; the other causes can. The client surface uses this to decide
+    /// between "we will try again" and "here is how to do it yourself".
     #[must_use]
     pub const fn is_retryable(&self) -> bool {
-        !matches!(self, Self::InstallationNotWritable { .. })
+        !matches!(
+            self,
+            Self::InstallationNotWritable { .. } | Self::ExternallyManaged { .. }
+        )
     }
 }
 
@@ -64,6 +87,12 @@ impl fmt::Display for DeferralCause {
             Self::InstallFailed { detail } => {
                 write!(formatter, "update install failed: {detail}")
             }
+            Self::ExternallyManaged { manager, command } => match command {
+                Some(command) => {
+                    write!(formatter, "installed by {manager}; update with `{command}`")
+                }
+                None => write!(formatter, "installed by {manager}; update it there"),
+            },
         }
     }
 }

@@ -1,7 +1,7 @@
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-use crate::{BuildIdentity, ChannelManifest, InstallId};
+use crate::{BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallProvenance};
 
 /// Why an update check ran.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -90,6 +90,22 @@ pub enum UpdateAvailability {
         /// The version being staged.
         version: Version,
     },
+    /// A newer version exists, and a package manager owns this installation.
+    ///
+    /// Deliberately not `UpToDate`. There *is* an update and the user can
+    /// have it — through the tool that installed the application. Reporting
+    /// no update available would be false, and reporting an offer would
+    /// invite an install that corrupts the manager's database.
+    ///
+    /// The surface derives the command from
+    /// [`crate::InstallManager::upgrade_command`], because only the surface
+    /// knows the application's package name.
+    ManagedElsewhere {
+        /// The version available through the manager.
+        version: Version,
+        /// Who owns the installation.
+        manager: InstallManager,
+    },
 }
 
 /// Decides what one update check should surface.
@@ -103,6 +119,7 @@ pub fn evaluate(
     manifest: &ChannelManifest,
     install: &InstallId,
     check: CheckKind,
+    provenance: InstallProvenance,
 ) -> UpdateAvailability {
     if manifest.version == build.version {
         return UpdateAvailability::UpToDate;
@@ -112,6 +129,18 @@ pub fn evaluate(
         return UpdateAvailability::AheadOfChannel {
             installed: build.version.clone(),
             channel: manifest.version.clone(),
+        };
+    }
+
+    // Checked before every offer path, including the mandatory floor. A
+    // security release is never withheld from the *user* — they are told
+    // where to get it — but Longhorn cannot install it here whatever the
+    // urgency, and offering an install that would desync the package manager
+    // is not a way to make it more urgent.
+    if let InstallProvenance::ExternallyManaged { manager } = provenance {
+        return UpdateAvailability::ManagedElsewhere {
+            version: manifest.version.clone(),
+            manager,
         };
     }
 

@@ -16,6 +16,7 @@ mod gate;
 mod install;
 mod manifest;
 mod probes;
+mod provenance;
 mod restart;
 mod rollout;
 mod source;
@@ -30,6 +31,7 @@ pub use install::{
 };
 pub use manifest::{Artifact, ChannelManifest, TargetTriple, TargetTripleError};
 pub use probes::{CountingProbe, operation_probe, transfer_session_probe};
+pub use provenance::{InstallLocation, InstallManager, InstallProvenance, classify_install};
 pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
 pub use rollout::{InstallId, InstallIdError, Rollout, RolloutFraction, RolloutFractionError};
 pub use source::{

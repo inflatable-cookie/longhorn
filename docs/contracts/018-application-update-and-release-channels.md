@@ -72,6 +72,29 @@ terms as the macOS path.
 - An update whose signature does not verify is not an error to be reported
   and retried. It is discarded.
 
+## Installation Provenance
+
+- An application a package manager installed is **never offered a
+  self-update**. Replacing it leaves the manager describing a version that is
+  no longer on disk, and the next upgrade through that manager reverts or
+  fails.
+- Provenance is checked before an update is offered, not when an install is
+  attempted. Writability is the wrong signal: a Homebrew cask lands in
+  `/Applications`, which is group-writable by admin users, so a permission
+  check passes and the desync happens silently.
+- An externally managed installation is told **where** the update is, never
+  that there is none. `ManagedElsewhere` is a distinct availability from
+  `UpToDate`, because reporting no update when one exists is false.
+- This overrides the mandatory-version floor. A security release is still not
+  withheld — the user is told where to get it — but urgency does not make it
+  safe to desync a package database.
+- Detection that cannot reach a confident answer returns `Undetermined`, and
+  `Undetermined` updates normally. A false "externally managed" blocks a
+  legitimate update; a false "self-managed" corrupts a package database.
+  Neither is acceptable, and only one of them is the status quo.
+- Windows package managers are **unproven**. winget, Chocolatey and MSIX
+  identity are detectable in principle and are not detected today.
+
 ## Update Sources
 
 - A source adapter supplies a channel manifest and an artifact request. It

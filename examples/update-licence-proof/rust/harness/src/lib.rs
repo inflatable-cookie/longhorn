@@ -15,8 +15,8 @@ use longhorn_licence::{
 };
 use longhorn_update::{
     Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, DeferralCause, EndpointUrl,
-    InstallId, QuiescenceKind, Rollout, RolloutFraction, StaticJsonSource, TargetTriple,
-    UpdateAvailability, UpdateSource, evaluate,
+    InstallId, InstallProvenance, QuiescenceKind, Rollout, RolloutFraction, StaticJsonSource,
+    TargetTriple, UpdateAvailability, UpdateSource, evaluate,
 };
 use longhorn_update::{CountingProbe, InstallAuthorization, UpdateGate, transfer_session_probe};
 use semver::Version;
@@ -35,20 +35,38 @@ pub fn update_evidence() -> Value {
 
     let up_to_date = ChannelManifest::new(Channel::Production, version_1_0_0.clone());
     assert!(matches!(
-        evaluate(&build, &up_to_date, &install, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &up_to_date,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::UpToDate
     ));
 
     let ahead = ChannelManifest::new(Channel::Production, Version::new(0, 9, 0));
     assert!(matches!(
-        evaluate(&build, &ahead, &install, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &ahead,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::AheadOfChannel { .. }
     ));
 
     let below_minimum = ChannelManifest::new(Channel::Production, version_1_1_0.clone())
         .with_minimum_version(Version::new(1, 2, 0));
     assert!(matches!(
-        evaluate(&build, &below_minimum, &install, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &below_minimum,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::Offer(_)
     ));
 
@@ -56,11 +74,23 @@ pub fn update_evidence() -> Value {
         Rollout::new(RolloutFraction::new(0.0).unwrap(), "proof-seed"),
     );
     assert!(matches!(
-        evaluate(&build, &withheld, &install, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &withheld,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::WithheldByRollout { .. }
     ));
     assert!(matches!(
-        evaluate(&build, &withheld, &install, CheckKind::UserInitiated),
+        evaluate(
+            &build,
+            &withheld,
+            &install,
+            CheckKind::UserInitiated,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::Offer(_)
     ));
 
@@ -74,7 +104,13 @@ pub fn update_evidence() -> Value {
             Artifact::new("https://updates.example/1.1.0.tar.gz", "signature"),
         );
     assert!(matches!(
-        evaluate(&build, &full_rollout, &install, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &full_rollout,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::Offer(_)
     ));
 

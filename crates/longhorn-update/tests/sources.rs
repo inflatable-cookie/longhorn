@@ -1,9 +1,9 @@
 //! Source adapter acceptance evidence.
 
 use longhorn_update::{
-    Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, EndpointUrl, InstallId, Rollout,
-    RolloutFraction, SourceError, SourceRequest, StaticJsonSource, UpdateAvailability,
-    UpdateSource, evaluate,
+    Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, EndpointUrl, InstallId,
+    InstallProvenance, Rollout, RolloutFraction, SourceError, SourceRequest, StaticJsonSource,
+    UpdateAvailability, UpdateSource, evaluate,
 };
 use semver::Version;
 
@@ -73,7 +73,13 @@ fn a_consumer_adapter_inherits_policy_with_no_extra_wiring() {
     let build = BuildIdentity::new(Channel::Production, version("1.2.9"));
 
     assert_eq!(
-        evaluate(&build, &manifest, &excluded, CheckKind::Automatic),
+        evaluate(
+            &build,
+            &manifest,
+            &excluded,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged
+        ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")
         }

@@ -33,6 +33,10 @@
 //! by applications that opt into it, not by an ordinary file write, so
 //! extracted files do not carry it.
 
+mod provenance;
+
+pub use provenance::{detect_provenance, observe_install};
+
 use std::{
     fs,
     path::{Component, Path, PathBuf},

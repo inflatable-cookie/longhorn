@@ -2,7 +2,8 @@
 
 use longhorn_update::{
     BuildIdentity, Channel, ChannelManifest, CheckKind, Deferral, DeferralCause, InstallId,
-    OfferReason, Rollout, RolloutFraction, UpdateAvailability, evaluate,
+    InstallManager, InstallProvenance, OfferReason, Rollout, RolloutFraction, UpdateAvailability,
+    evaluate,
 };
 use semver::Version;
 
@@ -45,6 +46,7 @@ fn a_matching_version_is_up_to_date() {
         &ChannelManifest::new(Channel::Production, version("1.2.9")),
         &install("any"),
         CheckKind::Automatic,
+        InstallProvenance::SelfManaged,
     );
 
     assert_eq!(availability, UpdateAvailability::UpToDate);
@@ -60,6 +62,7 @@ fn a_newer_channel_version_is_offered() {
         &manifest,
         &install("any"),
         CheckKind::Automatic,
+        InstallProvenance::SelfManaged,
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -80,6 +83,7 @@ fn an_install_ahead_of_its_channel_is_distinct_from_up_to_date() {
         &ChannelManifest::new(Channel::Production, version("1.2.9")),
         &install("any"),
         CheckKind::Automatic,
+        InstallProvenance::SelfManaged,
     );
 
     assert_eq!(
@@ -101,6 +105,7 @@ fn a_prerelease_rejoins_its_channel_when_the_release_lands() {
         &ChannelManifest::new(Channel::Production, version("1.3.0")),
         &install("any"),
         CheckKind::Automatic,
+        InstallProvenance::SelfManaged,
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -122,6 +127,7 @@ fn rollout_withholds_from_installs_outside_the_stage() {
             &manifest,
             &excluded,
             CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
         ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")
@@ -135,6 +141,7 @@ fn rollout_withholds_from_installs_outside_the_stage() {
             &manifest,
             &included,
             CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
         ),
         UpdateAvailability::Offer(_)
     ));
@@ -152,6 +159,7 @@ fn a_user_initiated_check_bypasses_rollout() {
         &manifest,
         &excluded,
         CheckKind::UserInitiated,
+        InstallProvenance::SelfManaged,
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -175,6 +183,7 @@ fn the_minimum_version_floor_overrides_rollout() {
         &manifest,
         &excluded,
         CheckKind::Automatic,
+        InstallProvenance::SelfManaged,
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -198,6 +207,7 @@ fn an_install_at_the_floor_is_still_subject_to_rollout() {
             &manifest,
             &excluded,
             CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
         ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")
@@ -223,6 +233,7 @@ fn faster_channels_are_never_staged() {
                     &manifest,
                     &excluded,
                     CheckKind::Automatic,
+                    InstallProvenance::SelfManaged,
                 ),
                 UpdateAvailability::Offer(_)
             ),
@@ -240,8 +251,20 @@ fn evaluation_is_deterministic_for_the_same_inputs() {
 
     for index in 0..200 {
         let install = install(&format!("install-{index}"));
-        let first = evaluate(&build, &manifest, &install, CheckKind::Automatic);
-        let second = evaluate(&build, &manifest, &install, CheckKind::Automatic);
+        let first = evaluate(
+            &build,
+            &manifest,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
+        );
+        let second = evaluate(
+            &build,
+            &manifest,
+            &install,
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
+        );
         assert_eq!(first, second);
     }
 }
@@ -277,4 +300,83 @@ fn availability_round_trips_through_its_wire_form() {
             case
         );
     }
+}
+
+#[test]
+fn an_externally_managed_install_is_told_where_to_update_not_offered_one() {
+    // Card 168. Not `UpToDate` — that would be false, there *is* an update.
+    // Not an offer either, because installing it would leave the package
+    // manager's database describing a version no longer on disk.
+    let availability = evaluate(
+        &build(Channel::Production, "1.2.9"),
+        &ChannelManifest::new(Channel::Production, version("1.3.0")),
+        &install("any"),
+        CheckKind::Automatic,
+        InstallProvenance::ExternallyManaged {
+            manager: InstallManager::HomebrewCask,
+        },
+    );
+
+    assert_eq!(
+        availability,
+        UpdateAvailability::ManagedElsewhere {
+            version: version("1.3.0"),
+            manager: InstallManager::HomebrewCask,
+        }
+    );
+}
+
+#[test]
+fn even_a_mandatory_release_is_not_self_installed_over_a_package_manager() {
+    // The floor exists so a security release is never withheld. It still is
+    // not withheld — the user is told where to get it — but urgency does not
+    // make it safe to desync the manager, so the answer is not an offer.
+    let manifest = ChannelManifest::new(Channel::Production, version("1.3.0"))
+        .with_minimum_version(version("1.2.10"));
+
+    let availability = evaluate(
+        &build(Channel::Production, "1.2.9"),
+        &manifest,
+        &install("any"),
+        CheckKind::Automatic,
+        InstallProvenance::ExternallyManaged {
+            manager: InstallManager::LinuxDistribution,
+        },
+    );
+
+    assert!(matches!(
+        availability,
+        UpdateAvailability::ManagedElsewhere { .. }
+    ));
+}
+
+#[test]
+fn an_undetermined_provenance_still_offers_so_ordinary_installs_do_not_regress() {
+    // Every Windows layout today classifies as `Undetermined`. If that
+    // blocked updates, this card would have broken more than it fixed.
+    let availability = evaluate(
+        &build(Channel::Production, "1.2.9"),
+        &ChannelManifest::new(Channel::Production, version("1.3.0")),
+        &install("any"),
+        CheckKind::Automatic,
+        InstallProvenance::Undetermined,
+    );
+
+    assert!(matches!(availability, UpdateAvailability::Offer(_)));
+}
+
+#[test]
+fn an_external_deferral_is_not_retryable_and_names_the_command() {
+    // A client surface must not say "we will try again" here. It will never
+    // succeed, and the user has something to do instead.
+    let cause = DeferralCause::ExternallyManaged {
+        manager: InstallManager::HomebrewCask,
+        command: InstallManager::HomebrewCask.upgrade_command("soundcheck"),
+    };
+
+    assert!(!cause.is_retryable());
+    assert_eq!(
+        cause.to_string(),
+        "installed by Homebrew; update with `brew upgrade --cask soundcheck`"
+    );
 }

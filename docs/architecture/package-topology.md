@@ -51,8 +51,8 @@ discovery and validation entry points.
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
 | `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
-| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, and the restart interlock (gate plus quiescence probes) | core, semver, sha2 |
-| `longhorn-update-install` | Longhorn's update installer, one implementation for every host: minisign verification, bounded extraction, atomic replacement, injected escalation | update, minisign-verify, tar, flate2 |
+| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, the restart interlock (gate plus quiescence probes), and installation-provenance classification | core, semver, sha2 |
+| `longhorn-update-install` | Longhorn's update installer, one implementation for every host: minisign verification, bounded extraction, atomic replacement, injected escalation, and the installation-provenance probe | update, minisign-verify, tar, flate2 |
 | `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | serde |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
