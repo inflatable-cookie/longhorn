@@ -1,0 +1,158 @@
+name: Release
+
+# Publishes the three TypeScript packages to npm and is the tag's evidence run.
+#
+# No NPM_TOKEN. Publication uses npm trusted publishing: npmjs.com is
+# configured to accept publishes for each package only from this repository and
+# this workflow file, and npm authenticates with a short-lived OIDC token minted
+# per run. Nothing long-lived is stored in GitHub, so there is no secret for a
+# compromised dependency to exfiltrate and nothing to rotate. Provenance
+# attestation comes with it rather than being a separate step.
+#
+# Before the first run, each package needs its trusted publisher configured at
+# npmjs.com -> package -> Settings -> Trusted Publisher, naming this repository
+# and `release.yml`. Until that exists the publish step fails closed.
+#
+# Rust is not published here. Every crate sets `publish = false` and consumers
+# take them by git tag, so the Rust half of a release is the tag itself.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Pack and verify without publishing
+        type: boolean
+        default: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish to npm
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      # Mints the OIDC token npm exchanges for publish rights. This is the
+      # whole reason no secret is needed.
+      id-token: write
+    steps:
+      # TODO harden: pin these to commit SHAs rather than tags. Tags are
+      # mutable and a compromised action is the other half of the supply-chain
+      # problem trusted publishing solves for tokens.
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs a recent npm; the one bundled with Node is
+      # usually older than the OIDC support.
+      - name: Use an npm that supports trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - run: bun install --frozen-lockfile
+
+      # Publishing a package whose generated protocol has drifted from the Rust
+      # authority would ship a lie, so this runs before anything is packed
+      # rather than as part of the general gate.
+      - name: Generated bindings are current
+        run: |
+          for domain in bridge commands config history history-tree layout \
+            native-content notifications operation settings surfaces \
+            surface-transfer transfer; do
+            cargo run -q -p longhorn-bindings -- "$domain" check
+          done
+
+      # Inlined rather than `effigy qa`. Effigy is a local binary, not a
+      # devDependency, and `effigy` on npm is an unrelated package -- calling it
+      # through bunx in a release workflow would fetch and execute a stranger's
+      # code, which is the exact class of problem trusted publishing exists to
+      # avoid. ci.yml also runs on this tag and covers the full suite; these are
+      # the checks that must hold before anything is packed.
+      - name: Rust gate
+        run: |
+          set -euo pipefail
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test --workspace --locked
+
+      - name: TypeScript gate
+        run: |
+          set -euo pipefail
+          for config in packages/*/tsconfig.json; do
+            bun x tsc -p "$config"
+          done
+          bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json --threshold error
+          bash scripts/test-packages.sh
+          bun x vitest run --config packages/longhorn-poodle-svelte/vitest.config.ts
+
+      - name: Release gates
+        run: |
+          set -euo pipefail
+          bash scripts/check-release-floor.sh
+          bash scripts/verify-source-consumer.sh
+
+      # Contract 012 and the lockstep decision of 2026-08-09: every Rust crate
+      # and every TypeScript package across both repositories carries one
+      # version. On a tag push, that version is the tag.
+      - name: Versions agree with the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          status=0
+          for manifest in packages/*/package.json; do
+            version=$(node -p "require('./$manifest').version")
+            if [ "$version" != "$tag" ]; then
+              echo "$manifest is $version, tag is $tag"
+              status=1
+            fi
+          done
+          workspace=$(cargo metadata --no-deps --format-version 1 \
+            | node -e 'const m=JSON.parse(require("fs").readFileSync(0,"utf8"));
+                       const v=[...new Set(m.packages.map(p=>p.version))];
+                       console.log(v.join(" "))')
+          if [ "$workspace" != "$tag" ]; then
+            echo "crate versions are [$workspace], tag is $tag"
+            status=1
+          fi
+          exit "$status"
+
+      - name: Pack and inspect
+        run: |
+          set -euo pipefail
+          mkdir -p .release
+          for dir in packages/*/; do
+            (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/.release")
+          done
+          ls -l .release
+
+      - name: Publish
+        if: ${{ github.event_name == 'push' || !inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          for dir in packages/*/; do
+            (cd "$dir" && npm publish --access public)
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packed-tarballs
+          path: .release/*.tgz

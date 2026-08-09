@@ -7,6 +7,20 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] `bunx effigy` in CI would run a stranger's package — 2026-08-09
+- Friction: Effigy is a local binary at `~/.local/bin/effigy`, not a
+  devDependency. An unrelated package named `effigy` exists on npm at `0.0.2`,
+  so a workflow step written as `bunx effigy qa` fetches and executes that
+  instead. Caught while drafting `release.yml`, before it ran.
+- Impact: worst case in a release workflow, which holds publish rights. The
+  existing `ci.yml` avoids it only because it inlines every command by hand,
+  which is why the trap is not obvious — nothing documents that `bunx effigy`
+  is unsafe.
+- Possible fix: note it in the Effigy adoption guidance, or publish a stub
+  under the real name. Until then every workflow inlines its selectors and
+  says why.
+- Surface: `.github/workflows/release.yml` in both repositories, Effigy docs.
+
 ### [ ] A new crate silently staleness-fails an unrelated gate — 2026-08-09
 - Friction: adding `crates/longhorn-gpui-windowing` turned `check:api-reference`
   red, because `docs/reference/api-surface.md` enumerates every crate
