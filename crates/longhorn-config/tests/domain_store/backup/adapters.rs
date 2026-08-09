@@ -215,7 +215,7 @@ fn loophole_soundcheck_and_split_shell_fixtures_round_trip_without_library_schem
         "soundcheck/settings-window.json",
         &["agentReviewModel", "availabilityTargetId", "mainWindow"],
     );
-    let split-shell = OpaqueDomain::new(
+    let split_shell = OpaqueDomain::new(
         "split-shell.workspace-presentation",
         StorageClass::WorkspaceLocal,
         "split-shell/workspace-presentation.json",
@@ -244,7 +244,7 @@ fn loophole_soundcheck_and_split_shell_fixtures_round_trip_without_library_schem
             }),
         ),
         (
-            &split-shell,
+            &split_shell,
             json!({
                 "workspaceRoot": "/fixture/private-consumer",
                 "navigationRatio": 0.24,

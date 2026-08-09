@@ -37,9 +37,8 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
                 roots: vec![
                     StorageRootProjection {
                         kind: "config".into(),
-                        path:
-                            "/Users/example/Library/Application Support/audio.example.soundcheck"
-                                .into(),
+                        path: "/Users/example/Library/Application Support/audio.example.soundcheck"
+                            .into(),
                         provenance: "platform:config".into(),
                     },
                     StorageRootProjection {

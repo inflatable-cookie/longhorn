@@ -22,7 +22,7 @@ for (const row of rows) {
 const heldCrates = [
   "longhorn-config-age",
   "longhorn-update",
-  "longhorn-tauri-update",
+  "longhorn-update-install",
   "longhorn-licence",
   "longhorn-bridge",
   "longhorn-history-tree",

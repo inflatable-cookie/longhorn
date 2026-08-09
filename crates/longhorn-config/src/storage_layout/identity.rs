@@ -192,10 +192,7 @@ mod tests {
 
         let named = canonical.with_storage_name("Soundcheck").unwrap();
         assert_eq!(named.effective_leaf(), "Soundcheck");
-        assert_eq!(
-            named.canonical_application_id(),
-            "audio.example.soundcheck"
-        );
+        assert_eq!(named.canonical_application_id(), "audio.example.soundcheck");
     }
 
     #[test]
