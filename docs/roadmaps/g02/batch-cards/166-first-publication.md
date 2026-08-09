@@ -99,21 +99,72 @@ package. After that a name can be deprecated but not reclaimed or reused. This
 is the step the whole "working names" clause in contract 012 was protecting,
 so the naming should be treated as final at step 1.
 
-Worth settling before publishing:
+## Decisions Taken 2026-08-09
 
-- **Does `poodle-react` ship in the first release?** It has zero consumers
-  across the portfolio and no preview app depends on it. Publishing it claims
-  a name and starts a support surface for something unexercised; holding it
-  back costs nothing and the name stays available under the claimed scope.
-- **Provenance and 2FA.** npm can attest provenance from a CI workflow.
-  Publishing from a laptop cannot. If provenance is wanted it changes step 1
-  from a local command into a release workflow.
+**`poodle-react` is held back.** Zero consumers across the portfolio and no
+preview depends on it. The name stays reserved under the claimed scope, so
+holding costs nothing and publishing would start a support surface for
+something unexercised.
+
+**One version across everything.** Every Rust crate and every TypeScript
+package moves in lockstep, in both repositories — contract 012 already
+mandates this within Longhorn, and it now spans Poodle too. When
+`poodle-react` does ship, it ships at whatever the common version is, not at
+`0.1.0` from a standing start.
+
+## Publish Without A Stored Token
+
+The recent npm worms propagated through stolen long-lived automation tokens
+and install-time lifecycle scripts. Both are avoidable here rather than
+mitigated.
+
+**Use npm trusted publishing (OIDC), not an `NPM_TOKEN` secret.** npm can be
+configured to accept publishes for a package only from a named GitHub
+repository and workflow file, authenticating with a short-lived OIDC token
+minted per run. Nothing long-lived is stored in GitHub, so there is no secret
+for a compromised dependency to exfiltrate and no token to rotate. It needs
+`permissions: id-token: write` on the job, a recent npm CLI, and the trusted
+publisher configured on npmjs.com per package before the first publish.
+Provenance attestation comes with it rather than being a separate step.
+
+If a token is used instead, it should be granular, scoped to these packages
+only, and short-expiry — but the point of trusted publishing is that the
+question does not arise.
+
+**No lifecycle scripts, verified.** None of the six publish-intent packages
+declares `postinstall`, `prepare` or `prepack`; `poodle-core`'s `test` and
+`check` are not install hooks. That is the other half of the worm vector and
+it is already closed. It should stay closed — a `prepack` added later for
+convenience would reintroduce it.
+
+Consumers should keep installing with `--ignore-scripts` where their tooling
+allows, which the artifact proofs already do.
+
+## A Clean Clone Does Not Currently Publish Correctly
+
+`poodle-core`'s 1,703 icon modules and 25 generated token files are
+`.gitignore`d and produced by `packages/core/src/icons/generate.mjs` and the
+token build. They are in the packed tarball today only because they exist on
+the machine that packed it.
+
+**A fresh checkout has neither.** Publishing from CI — which is what trusted
+publishing means — would ship `poodle-core` with an empty `icons/` directory
+and no token CSS, and nothing in the current setup would fail. `bun pm pack`
+does not run a generate step, and the pack-install proof passes because it
+runs on a warm working tree.
+
+So step 1 needs the generation wired into the release workflow before the
+pack, and a check that the tarball contains the icon tree rather than trusting
+that it does. This is the sharpest reason not to publish from a laptop: the
+laptop is the only place that currently produces a correct artifact, and for
+the wrong reason.
 
 ## Steps
 
 1. **Poodle publishes.** Drop `private`, add `publishConfig.access: "public"`,
-   confirm `files` covers the generated icon tree, tag, publish `poodle-core`
-   and `poodle-svelte`.
+   wire icon and token generation into the release workflow ahead of the pack,
+   assert the tarball carries both, configure trusted publishing per package,
+   tag, publish `poodle-core` and `poodle-svelte`. `poodle-react` is held.
 2. **Decide the proof model** per the section above, then repoint Longhorn's
    root manifest and overrides from `file:` packs to `^0.1.0`.
 3. **Longhorn CI.** The clients lane has never completed — `bun install
@@ -138,6 +189,9 @@ Worth settling before publishing:
 - v0.1.0 tagged, with Rust by tag and TypeScript by version
 - contract 012's "working names" and "publication is deferred" clauses updated
   to describe what actually happened
+- no `NPM_TOKEN` secret exists in either repository
+- a tarball built from a clean checkout contains the generated icon and token
+  trees
 
 ## Evidence Required
 

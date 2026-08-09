@@ -79,9 +79,10 @@ jobs:
           done
       - name: Package test suites
         run: |
-          bun test packages
-          bun x vitest run --config packages/svelte/vitest.config.ts
-          bun x vitest run --config packages/poodle/vitest.config.ts
+          bash scripts/test-packages.sh
+          bun x vitest run --config packages/longhorn-poodle-svelte/vitest.config.ts
+      - name: Svelte type gate
+        run: bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json --threshold error
       - name: Generated bindings are current
         run: |
           for domain in bridge commands config history history-tree layout \
