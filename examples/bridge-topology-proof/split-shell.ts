@@ -1,6 +1,6 @@
 import { queryParity, sameValues } from "./common.ts";
 
-export async function runSplit-shellTrace() {
+export async function runSplitShellTrace() {
   const query = await queryParity("split-shell");
   return {
     topology: "tauriLocal",

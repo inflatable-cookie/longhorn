@@ -82,7 +82,7 @@ fn nucleus_style_geometry_is_bounded_last_value_replacement() {
 }
 
 #[test]
-fn split-shell_style_presentation_replacement_preserves_other_projections() {
+fn split_shell_style_presentation_replacement_preserves_other_projections() {
     let fixture = Fixture::new();
     let mut store = fixture.store();
     let domain = DesktopDomain::new();

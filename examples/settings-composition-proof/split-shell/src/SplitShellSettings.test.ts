@@ -6,14 +6,14 @@ import {
   SETTINGS_RESET_COMMAND,
 } from "@inflatable-cookie/longhorn/settings";
 
-import Split-shellSettings from "./Split-shellSettings.svelte";
+import SplitShellSettings from "./SplitShellSettings.svelte";
 import { SettingsProofTransport } from "./settings-proof.ts";
 
 test("mounts one staged modal after authoritative load", async () => {
   const transport = new SettingsProofTransport("split-shell");
   const session = transport.session();
   const reveal = vi.fn(async () => undefined);
-  const mounted = render(Split-shellSettings, { props: { session, reveal } });
+  const mounted = render(SplitShellSettings, { props: { session, reveal } });
 
   await mounted.findByTestId("split-shell-preferences");
   await waitFor(() => expect(reveal).toHaveBeenCalledOnce());
@@ -56,7 +56,7 @@ test.each([
       transport.mutationMode = mode;
     }
     const session = transport.session();
-    const mounted = render(Split-shellSettings, {
+    const mounted = render(SplitShellSettings, {
       props: { session, reveal: async () => undefined },
     });
     await fireEvent.click(

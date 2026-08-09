@@ -33,7 +33,7 @@ remain later cards.
 | Loophole queued render | queued registration and start transition | queue order, pause, executor, polling |
 | Loophole terminal render | sticky generic outcome | report, artifact, cleanup, export policy |
 | Nucleus agent turn | generic cancellation and terminal shape only | approval, input, tool, token, provider, recovery workflow |
-| Bovine and Jetstream busy state | future small projection fit | Git and engine task meaning |
+| Split-shell and Jetstream busy state | future small projection fit | Git and engine task meaning |
 
 The crate contains no executor trait or arbitrary product payload. Bridge
 request ids do not identify catalogue operations.

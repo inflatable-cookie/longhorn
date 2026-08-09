@@ -201,7 +201,7 @@ fn sqlite_external_snapshot_captures_wal_state_and_restores_only_with_explicit_a
 }
 
 #[test]
-fn loophole_soundcheck_and_split-shell_fixtures_round_trip_without_library_schemas() {
+fn loophole_soundcheck_and_split_shell_fixtures_round_trip_without_library_schemas() {
     let source = Fixture::new();
     let loophole = OpaqueDomain::new(
         "loophole.machine-window-layout",
@@ -285,7 +285,7 @@ fn loophole_soundcheck_and_split-shell_fixtures_round_trip_without_library_schem
         "soundcheck/settings-window.json",
         &["agentReviewModel", "availabilityTargetId", "mainWindow"],
     );
-    let target_split-shell = OpaqueDomain::new(
+    let target_split_shell = OpaqueDomain::new(
         "split-shell.workspace-presentation",
         StorageClass::WorkspaceLocal,
         "split-shell/workspace-presentation.json",
@@ -296,7 +296,7 @@ fn loophole_soundcheck_and_split-shell_fixtures_round_trip_without_library_schem
             "selectedNodeId",
         ],
     );
-    let target_domains = [&target_loophole, &target_soundcheck, &target_split-shell];
+    let target_domains = [&target_loophole, &target_soundcheck, &target_split_shell];
     let mut target_store = target.store();
     let mut target_catalog = BackupCatalog::new();
     for domain in target_domains {

@@ -6,9 +6,9 @@ import {
   type ReactiveConnection,
 } from "@inflatable-cookie/longhorn-poodle-svelte";
 
-import Split-shellShell, {
-  type Split-shellAuthority,
-} from "./Split-shellShell.svelte";
+import SplitShell, {
+  type SplitShellAuthority,
+} from "./SplitShell.svelte";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -22,9 +22,9 @@ describe("Split-shell shell", () => {
   it("reveals only after authority and tears down its connection", async () => {
     const ready = deferred<void>();
     const events: string[] = [];
-    let current: Split-shellAuthority | undefined;
+    let current: SplitShellAuthority | undefined;
     let disposals = 0;
-    const state = new ReactiveClientState<Split-shellAuthority>({
+    const state = new ReactiveClientState<SplitShellAuthority>({
       capability: {
         kind: "supported",
         connect: () =>
@@ -34,10 +34,10 @@ describe("Split-shell shell", () => {
             async dispose() {
               disposals += 1;
             },
-          }) satisfies ReactiveConnection<Split-shellAuthority>,
+          }) satisfies ReactiveConnection<SplitShellAuthority>,
       },
     });
-    const screen = render(Split-shellShell, {
+    const screen = render(SplitShell, {
       props: {
         clientState: state,
         async reveal() {
@@ -67,13 +67,13 @@ describe("Split-shell shell", () => {
   });
 
   it("renders an unsupported host instead of a fallback document", async () => {
-    const state = new ReactiveClientState<Split-shellAuthority>({
+    const state = new ReactiveClientState<SplitShellAuthority>({
       capability: {
         kind: "unsupported",
         reason: "guarded reveal command is absent",
       },
     });
-    const screen = render(Split-shellShell, {
+    const screen = render(SplitShell, {
       props: { clientState: state, reveal: async () => undefined },
     });
 

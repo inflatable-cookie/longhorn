@@ -6,7 +6,7 @@ describe("five-shape bridge topology conformance", () => {
   test("preserves adapter semantics and explicit optional boundaries", async () => {
     const proof = await runBridgeTopologyProof();
 
-    expect(proof.traces.split-shell).toMatchObject({
+    expect(proof.traces["split-shell"]).toMatchObject({
       queryOnly: true,
       adapterParity: true,
       eventsResolved: false,
@@ -41,7 +41,7 @@ describe("five-shape bridge topology conformance", () => {
       remoteLifecycle: "attaching",
       queryParity: true,
     });
-    expect(proof.dependencyGraph.split-shell).toMatchObject({
+    expect(proof.dependencyGraph["split-shell"]).toMatchObject({
       events: false,
       service: false,
     });

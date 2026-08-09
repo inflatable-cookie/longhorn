@@ -39,7 +39,7 @@ fn absent_domains_remain_absent_and_extra_domains_are_rejected() {
 }
 
 #[test]
-fn query_only_split-shell_fixture_has_no_subscription_or_service_feature() {
+fn query_only_split_shell_fixture_has_no_subscription_or_service_feature() {
     let split-shell = receipt(
         host("host:split-shell-desktop", BridgeHostForm::TauriLocal),
         "session:split-shell",

@@ -1,7 +1,7 @@
-import { runSplit-shellTrace } from "../../split-shell.ts";
+import { runSplitShellTrace } from "../../split-shell.ts";
 import { protocolArtifactTrace } from "../../protocol-artifact.ts";
 
-const trace = await runSplit-shellTrace();
+const trace = await runSplitShellTrace();
 if (
   !trace.adapterParity ||
   trace.eventsResolved ||

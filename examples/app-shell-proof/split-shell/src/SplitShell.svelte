@@ -15,13 +15,13 @@
   } from "@inflatable-cookie/longhorn-poodle-svelte";
   import { untrack } from "svelte";
 
-  export interface Split-shellAuthority {
+  export interface SplitShellAuthority {
     readonly documentTitle: string;
     readonly sectionTitle: string;
   }
 
   interface Props {
-    clientState: ReactiveClientState<Split-shellAuthority>;
+    clientState: ReactiveClientState<SplitShellAuthority>;
     reveal: () => Promise<void>;
     reportError?: (error: unknown) => void;
   }
