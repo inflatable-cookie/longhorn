@@ -7,6 +7,22 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Repo-wide renames need to be language-aware — 2026-08-09
+- Friction: the `bovine` -> `split-shell` rename was applied as a text
+  substitution across the repository and hit Rust identifiers, which cannot
+  contain a hyphen. `let bovine = ...` became `let split-shell = ...` in five
+  places, so two crates stopped compiling and `effigy qa` was red for several
+  hours. The thread that ran it had already moved on and did not know.
+- Impact: a red gate that describes nobody's current change, and which every
+  other concurrent thread has to triage before it can trust its own results.
+  Twenty-one of the twenty-six hits were string literals and correct; only
+  five were wrong, so the noise ratio made it look worse than it was.
+- Possible fix: follow any repo-wide rename with `cargo check --workspace`
+  before committing, and prefer a hyphen-free identifier when the new name
+  will appear in code as well as in data. A rename that changes a token used
+  as both an identifier and a string needs two substitutions, not one.
+- Surface: multi-thread working practice, rename tooling.
+
 ### [ ] Concurrent threads in one repository undo each other — 2026-08-09
 - Friction: three agents were working across Longhorn and Poodle at once. One
   committed mid-way through another's file moves and restored paths that were
