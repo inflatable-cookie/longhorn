@@ -19,6 +19,7 @@ use gpui::{
     App, AppContext, Application, Bounds, Context, IntoElement, ParentElement, Render, Styled,
     Window, WindowBounds, WindowOptions, div, px, size,
 };
+use longhorn_core::HostServices;
 use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationSourceId};
 use longhorn_licence::{Timestamp, Usability};
 use longhorn_notifications::{
@@ -94,6 +95,25 @@ fn notifications() -> NotificationLedger {
     ledger
 }
 
+/// The host facilities a real application would supply. Stubbed here with
+/// fixed answers, because the claim being proved is that they reach the
+/// surface, not that any particular formatting is right.
+struct ProofHost;
+
+impl HostServices for ProofHost {
+    fn new_request_id(&self) -> String {
+        "render-proof:1".to_owned()
+    }
+
+    fn format_timestamp(&self, _unix_seconds: i64) -> String {
+        "9 August 2026".to_owned()
+    }
+
+    fn fold_case(&self, value: &str) -> String {
+        value.to_lowercase()
+    }
+}
+
 struct ProofRoot {
     theme: GpuiThemeProvider,
     ledger: NotificationLedger,
@@ -113,7 +133,7 @@ impl Render for ProofRoot {
             &Usability::LeaseLapsed {
                 at: Timestamp::from_unix_seconds(1_754_697_600),
             },
-            &|_: Timestamp| "9 August 2026".to_owned(),
+            &ProofHost,
         )
         .expect("a lapsed lease warrants a banner");
 

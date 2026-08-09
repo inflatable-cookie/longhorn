@@ -31,5 +31,6 @@ pub mod settings;
 pub mod update;
 
 pub use notifications::{
-    ToneMapping, project_notification, project_notification_stack, project_notifications, tone_for,
+    CRITICAL_PREFIX, ToneMapping, project_notification, project_notification_stack,
+    project_notifications, tone_for,
 };

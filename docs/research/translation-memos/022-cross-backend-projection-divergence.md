@@ -1,6 +1,6 @@
 # 022 Cross-backend Projection Divergence
 
-Status: open — every entry needs an operator decision
+Status: decided 2026-08-09 — four implemented, one carded, four open
 Owner: Tom
 Updated: 2026-08-09
 Depends on: memo 021; contract 013; contract 020; Card 169
@@ -257,17 +257,59 @@ more, and is the obvious next piece of evidence.
 
 ## Decisions required
 
-| | Divergence | Recommended | Blocks |
+| | Divergence | Decision | State |
 | --- | --- | --- | --- |
-| D1 | serde wire form as UI text | fix Svelte | nothing; cosmetic until it is not |
-| D2 | duplicated label maps | generate from Rust | D3 |
-| D3 | settings rules in the client tier | port now, generate later | GPUI settings search |
-| D4 | search normalisation | declare in contract | D3 |
-| D5 | Critical vs Error collapse | text now, Poodle tone if it recurs | nothing |
-| D6 | re-declared spec shapes | import or generate | Poodle-side |
-| D7 | read state on toasts | drop from Svelte | nothing |
-| D8 | platform services Rust must be handed | bundle as `HostServices` | first GPUI application |
-| D9 | toast actions | match Rust | nothing |
+| D1 | serde wire form as UI text | fix Svelte | carded — 170 |
+| D2 | duplicated label maps | generate from Rust | carded — 170 |
+| D3 | settings rules in the client tier | port now, generate later | **done** |
+| D4 | search normalisation | host decides, via `HostServices` | **done** |
+| D5 | Critical vs Error collapse | carry in text | **done** |
+| D6 | re-declared spec shapes | import or generate | open — Poodle-side |
+| D7 | read state on toasts | drop from Svelte | open |
+| D8 | platform services | bundle as `HostServices` | **done** |
+| D9 | toast actions | match Rust | open |
 
-D3 and D8 are the two that block a real GPUI application. The rest can be
-decided at leisure, and D5 is the one most likely to be argued about.
+## What was decided and built — 2026-08-09
+
+**D8 — `longhorn_core::HostServices`.** One trait carrying
+`new_request_id`, `format_timestamp` and `fold_case`, supplied once at
+composition. In `longhorn-core` rather than the projection crate because
+request ids belong to the command tier and dates to the projection tier, and
+both sit above core. `PlainHostServices` exists for tests and is named to
+discourage shipping it — an application that reaches for it is telling its
+users that dates look like integers.
+
+**D3 — settings search and deep-link resolution in Rust.**
+`longhorn-poodle::settings` gained `search`, `resolve_deep_link`,
+`SearchMatch`, `SearchResult`, `ResolvedDeepLink` and `DeepLinkError`. Page
+and anchor hits stay distinct destinations. An unknown anchor is an error
+rather than a silent fall back to the top of the page: a deep link that
+half-works sends someone to the wrong place believing it is right.
+
+**D4 — folded through `HostServices::fold_case`.** Neither tier's standard
+library decides any more; the host does. A test proves it by supplying a host
+that folds nothing, which makes search case-sensitive — a real answer some
+host could want, and proof the projection is not folding behind its back.
+
+**D5 — `CRITICAL_PREFIX`.** A `Critical` record's toast title is prefixed
+`"Critical: "`. A word rather than a symbol or a colour, because an icon or a
+tint lands in the same vocabulary that already cannot tell the two apart, and
+a screen reader announces the word. Marked on the title rather than the
+message because a toast is read at a glance and the message may truncate.
+
+If a second domain needs a fifth severity level, the Poodle-tone option
+becomes right on cost as well as on shape. This is the cheap correct answer
+for one caller, not the permanent one.
+
+## What is carded
+
+**D1 and D2 → Card 170.** Sizing the generation work found that not every
+label can be generated: six of the thirteen restore compatibility arms
+interpolate their own fields, so `"Migration required (3 → 7)"` is a function
+and not a table entry. The worst drift risk is the least generatable set. The
+card carries that complication and a fallback.
+
+## What is still open
+
+D6, D7 and D9 need no code until someone decides them, and none blocks a GPUI
+application. D6 is Poodle-side work in either form.

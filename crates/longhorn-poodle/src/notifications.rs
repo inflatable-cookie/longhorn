@@ -53,10 +53,20 @@ pub const fn tone_for(severity: NotificationSeverity) -> ToneMapping {
     }
 }
 
+/// Marks a title whose severity the tone cannot carry.
+///
+/// A word rather than a symbol: an icon or colour would land in the same
+/// vocabulary that already cannot tell the two apart, and a screen reader
+/// announces the word.
+pub const CRITICAL_PREFIX: &str = "Critical: ";
+
 /// Projects one notification record into a toast.
 ///
 /// The record's own id becomes the toast id, so a surface can correlate a
 /// dismissal back to the ledger without keeping a side table.
+///
+/// A `Critical` record's title is prefixed with [`CRITICAL_PREFIX`], because
+/// its tone is shared with `Error` and cannot say so. See memo 022, D5.
 ///
 /// The first action's label becomes the toast's single action, because a
 /// toast has room for one. Longhorn records may carry several; the rest are
@@ -67,8 +77,19 @@ pub fn project_notification(record: &NotificationRecord) -> Toast {
     let draft = record.draft();
     let mapping = tone_for(draft.severity());
 
-    let mut toast = Toast::new(record.notification_id().as_str(), draft.title().as_str())
-        .with_tone(mapping.tone);
+    // D5, memo 022: `Critical` and `Error` share `Danger`, and on screen they
+    // are indistinguishable — same tint, same weight. Poodle has no louder
+    // tone, so the distinction is carried in the title instead. Marking the
+    // title rather than the message because a toast may be read at a glance
+    // and the message may be truncated; the tone alone must never be the only
+    // thing separating "sync failed" from "the volume is read-only".
+    let title = if mapping.is_lossy {
+        format!("{CRITICAL_PREFIX}{}", draft.title().as_str())
+    } else {
+        draft.title().as_str().to_owned()
+    };
+
+    let mut toast = Toast::new(record.notification_id().as_str(), title).with_tone(mapping.tone);
 
     let summary = draft.summary().as_str();
     if !summary.is_empty() {
@@ -115,6 +136,50 @@ mod tests {
             assert_eq!(mapping.tone, tone, "{severity:?}");
             assert!(!mapping.is_lossy, "{severity:?}");
         }
+    }
+
+    fn record(severity: NotificationSeverity, title: &str) -> NotificationRecord {
+        use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationSourceId};
+        use longhorn_notifications::{
+            NotificationAdd, NotificationAuthorityEpoch, NotificationDraft, NotificationLedger,
+            NotificationLedgerLimits, NotificationSummary, NotificationTitle,
+        };
+
+        let mut ledger = NotificationLedger::new(
+            NotificationAuthorityId::new("notifications:test").expect("authority"),
+            NotificationAuthorityEpoch::new(1).expect("epoch"),
+            NotificationLedgerLimits::new(8, 1_024 * 1_024).expect("limits"),
+        );
+        let draft = NotificationDraft::new(
+            NotificationSourceId::new("test").expect("source"),
+            severity,
+            NotificationTitle::new(title).expect("title"),
+            NotificationSummary::new("summary").expect("summary"),
+        );
+        let add = NotificationAdd::new(
+            ledger.authority().clone(),
+            ledger.revision(),
+            NotificationId::new("test:1").expect("id"),
+            draft,
+        );
+        ledger.add(add).expect("add");
+        ledger.records().next().expect("record").clone()
+    }
+
+    #[test]
+    fn a_critical_toast_says_so_because_its_tone_cannot() {
+        // On screen the Error and Critical toasts are the same tint and the
+        // same weight. Without this the only difference is wording nobody
+        // chose deliberately.
+        let critical = project_notification(&record(
+            NotificationSeverity::Critical,
+            "Storage is read-only",
+        ));
+        let error = project_notification(&record(NotificationSeverity::Error, "Sync failed"));
+
+        assert_eq!(critical.title, "Critical: Storage is read-only");
+        assert_eq!(error.title, "Sync failed");
+        assert_eq!(critical.tone, error.tone);
     }
 
     #[test]

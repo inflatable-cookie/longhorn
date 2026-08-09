@@ -12,8 +12,10 @@
 //! It is a Longhorn rule about Longhorn's own registry, so it belongs in
 //! Rust; the TypeScript is the port, not the source.
 
+use longhorn_core::{HostServices, SettingsAnchorId, SettingsPageId};
 use longhorn_settings::{
-    SettingsModuleDefinition, SettingsPageDefinition, SettingsRegistry, SettingsSectionDefinition,
+    SettingsAnchorDefinition, SettingsModuleDefinition, SettingsPageDefinition, SettingsRegistry,
+    SettingsSectionDefinition,
 };
 use poodle_specs::{SidebarNavGroup, SidebarNavItem, SidebarNavSpec};
 
@@ -113,10 +115,143 @@ pub fn sidebar_nav(registry: &SettingsRegistry, selected: Option<&str>) -> Sideb
     spec
 }
 
+/// What one search hit matched on.
+///
+/// A page and one of its anchors can both match the same query, and they are
+/// different destinations — a page hit opens the page, an anchor hit scrolls
+/// to a target within it. Collapsing them would lose the deep link.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SearchMatch {
+    /// The page's own label or keywords matched.
+    Page,
+    /// One of the page's anchor labels matched.
+    Anchor,
+}
+
+/// One settings search result.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SearchResult<'a> {
+    /// What matched.
+    pub kind: SearchMatch,
+    /// The page to open.
+    pub page: &'a SettingsPageDefinition,
+    /// The anchor to scroll to, for an anchor match.
+    pub anchor: Option<&'a SettingsAnchorDefinition>,
+}
+
+/// Searches a sealed registry for pages and anchors matching `query`.
+///
+/// Case folding comes from `services` rather than from `str::to_lowercase`.
+/// The Svelte tier pins `en-US`; Rust's default is locale-free; the two
+/// disagree on Turkish dotless i and on any locale the product later ships
+/// in. Making it the host's answer is what keeps the backends from choosing
+/// independently — see memo 022, D4.
+///
+/// An empty or whitespace-only query returns nothing rather than everything.
+/// A search box that has not been typed into is not a request to list the
+/// whole registry.
+#[must_use]
+pub fn search<'a>(
+    registry: &'a SettingsRegistry,
+    query: &str,
+    services: &impl HostServices,
+) -> Vec<SearchResult<'a>> {
+    let needle = services.fold_case(query.trim());
+    if needle.is_empty() {
+        return Vec::new();
+    }
+
+    let mut results = Vec::new();
+    for page in registry.pages() {
+        let label_or_keyword = std::iter::once(page.label.as_str())
+            .chain(page.keywords.iter().map(String::as_str))
+            .any(|value| services.fold_case(value).contains(&needle));
+        if label_or_keyword {
+            results.push(SearchResult {
+                kind: SearchMatch::Page,
+                page,
+                anchor: None,
+            });
+        }
+
+        for anchor in &page.anchors {
+            let Some(label) = anchor.label.as_deref() else {
+                continue;
+            };
+            if services.fold_case(label).contains(&needle) {
+                results.push(SearchResult {
+                    kind: SearchMatch::Anchor,
+                    page,
+                    anchor: Some(anchor),
+                });
+            }
+        }
+    }
+    results
+}
+
+/// Why a deep link could not be resolved.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeepLinkError {
+    /// No page carries this id in the sealed registry.
+    UnknownPage(SettingsPageId),
+    /// The page exists and does not declare this anchor.
+    UnknownAnchor {
+        /// The page that was found.
+        page_id: SettingsPageId,
+        /// The anchor that was not.
+        anchor_id: SettingsAnchorId,
+    },
+}
+
+/// A resolved deep link.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedDeepLink<'a> {
+    /// The page to open.
+    pub page: &'a SettingsPageDefinition,
+    /// The anchor to scroll to, when the link named one.
+    pub anchor: Option<&'a SettingsAnchorDefinition>,
+}
+
+/// Resolves a page id, and optionally an anchor id, against a sealed registry.
+///
+/// An unknown anchor is an error rather than a silent fall back to the top of
+/// the page. A deep link that half-works is worse than one that says it is
+/// stale: the first sends someone to the wrong place believing it is right.
+pub fn resolve_deep_link<'a>(
+    registry: &'a SettingsRegistry,
+    page_id: &SettingsPageId,
+    anchor_id: Option<&SettingsAnchorId>,
+) -> Result<ResolvedDeepLink<'a>, DeepLinkError> {
+    let page = registry
+        .page(page_id)
+        .ok_or_else(|| DeepLinkError::UnknownPage(page_id.clone()))?;
+
+    let Some(anchor_id) = anchor_id else {
+        return Ok(ResolvedDeepLink { page, anchor: None });
+    };
+
+    let anchor = page
+        .anchors
+        .iter()
+        .find(|candidate| &candidate.id == anchor_id)
+        .ok_or_else(|| DeepLinkError::UnknownAnchor {
+            page_id: page_id.clone(),
+            anchor_id: anchor_id.clone(),
+        })?;
+
+    Ok(ResolvedDeepLink {
+        page,
+        anchor: Some(anchor),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use longhorn_core::{SettingsModuleId, SettingsPageId, SettingsRendererId, SettingsSectionId};
+    use longhorn_core::{
+        PlainHostServices, SettingsModuleId, SettingsRendererId, SettingsSectionId,
+    };
     use longhorn_settings::{
         SettingsLimits, SettingsPageFeatures, SettingsRegistryBuilder, SettingsRegistryGeneration,
         SettingsRendererDefinition,
@@ -163,6 +298,45 @@ mod tests {
                     order,
                 })
                 .expect("section");
+            self
+        }
+
+        fn page_with(
+            mut self,
+            id: &str,
+            module: &str,
+            section: &str,
+            label: &str,
+            keywords: &[&str],
+            anchors: &[(&str, Option<&str>)],
+        ) -> Self {
+            self.builder
+                .register_page(SettingsPageDefinition {
+                    id: SettingsPageId::new(id).expect("page id"),
+                    module_id: SettingsModuleId::new(module).expect("module id"),
+                    section_id: SettingsSectionId::new(section).expect("section id"),
+                    renderer_id: SettingsRendererId::new(format!("{module}:renderer"))
+                        .expect("renderer id"),
+                    label: label.to_owned(),
+                    keywords: keywords.iter().map(|k| (*k).to_owned()).collect(),
+                    order: 0,
+                    anchors: anchors
+                        .iter()
+                        .enumerate()
+                        .map(
+                            |(index, (anchor_id, anchor_label))| SettingsAnchorDefinition {
+                                id: SettingsAnchorId::new(*anchor_id).expect("anchor id"),
+                                label: anchor_label.map(ToOwned::to_owned),
+                                order: i32::try_from(index).expect("order"),
+                            },
+                        )
+                        .collect(),
+                    required_capabilities: Vec::new(),
+                    readable_scope_ids: Vec::new(),
+                    writable_apply_unit_ids: Vec::new(),
+                    features: SettingsPageFeatures::default(),
+                })
+                .expect("page");
             self
         }
 
@@ -269,5 +443,139 @@ mod tests {
     fn the_selected_page_is_carried_onto_the_spec() {
         let spec = sidebar_nav(&one_module(), Some("appearance"));
         assert_eq!(spec.value.as_deref(), Some("appearance"));
+    }
+    fn searchable() -> SettingsRegistry {
+        Fixture::new()
+            .module("core", "Core", 0)
+            .section("general", "core", "General", 0)
+            .page_with(
+                "appearance",
+                "core",
+                "general",
+                "Appearance",
+                &["theme", "colour"],
+                &[
+                    ("appearance:contrast", Some("Contrast")),
+                    ("appearance:hidden", None),
+                ],
+            )
+            .seal()
+    }
+
+    #[test]
+    fn an_empty_query_returns_nothing_rather_than_everything() {
+        // A search box nobody has typed into is not a request for the whole
+        // registry.
+        let registry = searchable();
+        for query in ["", "   ", "\t"] {
+            assert!(
+                search(&registry, query, &PlainHostServices::default()).is_empty(),
+                "{query:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_page_matches_on_its_label_and_on_its_keywords() {
+        let registry = searchable();
+        let services = PlainHostServices::default();
+
+        for query in ["appear", "THEME", "colour"] {
+            let hits = search(&registry, query, &services);
+            assert_eq!(hits.len(), 1, "{query}");
+            assert_eq!(hits[0].kind, SearchMatch::Page, "{query}");
+            assert!(hits[0].anchor.is_none(), "{query}");
+        }
+    }
+
+    #[test]
+    fn an_anchor_match_is_a_separate_destination() {
+        // Page and anchor hits open different places, so they stay distinct.
+        let registry = searchable();
+        let hits = search(&registry, "contrast", &PlainHostServices::default());
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].kind, SearchMatch::Anchor);
+        assert_eq!(
+            hits[0].anchor.expect("anchor").id.as_str(),
+            "appearance:contrast"
+        );
+    }
+
+    #[test]
+    fn an_unlabelled_anchor_never_matches() {
+        // It has no text to match against, and matching it on its id would
+        // expose an identifier as though it were a name.
+        let registry = searchable();
+        let hits = search(&registry, "hidden", &PlainHostServices::default());
+        assert!(hits.is_empty());
+    }
+
+    #[test]
+    fn case_folding_comes_from_the_host() {
+        // The whole point of taking `HostServices`: a host with locale rules
+        // supplies them and the projection does not guess. A host that folds
+        // nothing makes search case-sensitive, which is a real answer some
+        // host could want — and proves the projection is not folding behind
+        // its back.
+        struct FoldsNothing;
+
+        impl HostServices for FoldsNothing {
+            fn new_request_id(&self) -> String {
+                "test".to_owned()
+            }
+
+            fn format_timestamp(&self, unix_seconds: i64) -> String {
+                unix_seconds.to_string()
+            }
+
+            fn fold_case(&self, value: &str) -> String {
+                value.to_owned()
+            }
+        }
+
+        let registry = searchable();
+        assert!(search(&registry, "appear", &FoldsNothing).is_empty());
+        assert_eq!(search(&registry, "Appear", &FoldsNothing).len(), 1);
+        // The default host folds, so the lowercase query matches there.
+        assert_eq!(
+            search(&registry, "appear", &PlainHostServices::default()).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn a_deep_link_to_a_page_alone_resolves() {
+        let registry = searchable();
+        let page = SettingsPageId::new("appearance").expect("page id");
+
+        let resolved = resolve_deep_link(&registry, &page, None).expect("resolved");
+        assert_eq!(resolved.page.id, page);
+        assert!(resolved.anchor.is_none());
+    }
+
+    #[test]
+    fn an_unknown_anchor_is_an_error_rather_than_the_top_of_the_page() {
+        // A deep link that half-works sends someone to the wrong place
+        // believing it is right.
+        let registry = searchable();
+        let page = SettingsPageId::new("appearance").expect("page id");
+        let anchor = SettingsAnchorId::new("appearance:gone").expect("anchor id");
+
+        let error = resolve_deep_link(&registry, &page, Some(&anchor)).expect_err("stale link");
+        assert_eq!(
+            error,
+            DeepLinkError::UnknownAnchor {
+                page_id: page,
+                anchor_id: anchor
+            }
+        );
+    }
+
+    #[test]
+    fn an_unknown_page_names_the_page_it_could_not_find() {
+        let missing = SettingsPageId::new("nope").expect("page id");
+        let error = resolve_deep_link(&searchable(), &missing, None).expect_err("unknown");
+        assert_eq!(error, DeepLinkError::UnknownPage(missing));
     }
 }

@@ -5,6 +5,7 @@ mod command_id;
 mod diagnostics;
 mod domain_id;
 mod geometry;
+mod host_services;
 mod opaque_id;
 mod revision;
 mod scale;
@@ -30,6 +31,7 @@ pub use geometry::{
     PhysicalSpace, PhysicalVector, Point, Rect, ScreenDip, ScreenPoint, ScreenRect, ScreenSize,
     ScreenSpace, ScreenVector, Size, Vector,
 };
+pub use host_services::{HostServices, PlainHostServices};
 pub use opaque_id::MAX_OPAQUE_ID_BYTES;
 pub use opaque_id::{
     AuthorityScopeId, BridgeCapabilityId, BridgeCredentialRef, BridgeDiagnosticId, BridgeErrorCode,

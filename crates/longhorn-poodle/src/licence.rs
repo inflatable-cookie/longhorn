@@ -5,30 +5,9 @@
 //! carries no port-versus-source finding. It is the first statement of the
 //! rule, not the second.
 
-use longhorn_licence::{Timestamp, Usability};
+use longhorn_core::HostServices;
+use longhorn_licence::Usability;
 use poodle_specs::{BannerSpec, StatusTone};
-
-/// Renders one licence timestamp as a date a person can read.
-///
-/// Injected rather than implemented. `Timestamp` is Unix seconds and its
-/// `Display` prints the integer, which is correct for a log and useless in a
-/// banner. A webview gets `toLocaleString` from the platform for free; Rust
-/// has no equivalent without a date library and a locale, and neither belongs
-/// in a projection crate. So the caller supplies it, the same way the host
-/// adapter supplies a window backend.
-pub trait TimestampFormat {
-    /// Formats one point in time for display.
-    fn format(&self, at: Timestamp) -> String;
-}
-
-impl<F> TimestampFormat for F
-where
-    F: Fn(Timestamp) -> String,
-{
-    fn format(&self, at: Timestamp) -> String {
-        self(at)
-    }
-}
 
 /// Projects usability into the banner a surface should show, if any.
 ///
@@ -39,11 +18,14 @@ where
 /// mirrors [`Usability::warrants_attention`] rather than deciding again — the
 /// rule belongs to the licence domain and this only renders it.
 ///
+/// Dates come from `services`. `Timestamp` is Unix seconds and its `Display`
+/// prints the integer, which is right for a log and a defect in a banner.
+///
 /// The remaining states are all `Danger`. None is a warning: in each the
 /// software has stopped being usable, and a gentler tone would misreport the
 /// state the application is actually in.
 #[must_use]
-pub fn usability_banner(usability: &Usability, dates: &impl TimestampFormat) -> Option<BannerSpec> {
+pub fn usability_banner(usability: &Usability, services: &impl HostServices) -> Option<BannerSpec> {
     if !usability.warrants_attention() {
         return None;
     }
@@ -55,13 +37,16 @@ pub fn usability_banner(usability: &Usability, dates: &impl TimestampFormat) -> 
         Usability::Active | Usability::InGrace { .. } => return None,
         Usability::UseWindowExpired { at } => (
             "Licence expired",
-            format!("The use window passed on {}.", dates.format(*at)),
+            format!(
+                "The use window passed on {}.",
+                services.format_timestamp(at.as_unix_seconds())
+            ),
         ),
         Usability::LeaseLapsed { at } => (
             "Licence could not be renewed",
             format!(
                 "Renewal did not succeed and grace ran out on {}.",
-                dates.format(*at)
+                services.format_timestamp(at.as_unix_seconds())
             ),
         ),
         Usability::ClockRefused => (
@@ -84,12 +69,32 @@ pub fn usability_banner(usability: &Usability, dates: &impl TimestampFormat) -> 
 mod tests {
     use super::*;
 
+    use longhorn_licence::Timestamp;
+
     fn at() -> Timestamp {
         Timestamp::from_unix_seconds(1_700_000_000)
     }
 
-    fn dates() -> impl TimestampFormat {
-        |value: Timestamp| format!("<{}>", value.as_unix_seconds())
+    /// A host that formats dates unmistakably, so a test can tell whether the
+    /// banner used it or reached for `Display`.
+    struct MarkingHost;
+
+    impl HostServices for MarkingHost {
+        fn new_request_id(&self) -> String {
+            "test".to_owned()
+        }
+
+        fn format_timestamp(&self, unix_seconds: i64) -> String {
+            format!("<{unix_seconds}>")
+        }
+
+        fn fold_case(&self, value: &str) -> String {
+            value.to_lowercase()
+        }
+    }
+
+    const fn dates() -> MarkingHost {
+        MarkingHost
     }
 
     #[test]
