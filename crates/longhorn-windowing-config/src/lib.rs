@@ -1,4 +1,9 @@
-//! Configuration-backed persistence for captured Tauri window placements.
+//! Configuration-backed persistence for captured window placements.
+//!
+//! Host-neutral, despite what this comment used to say. The crate takes
+//! `longhorn-config` and `longhorn-windowing` and no host adapter, so a GPUI
+//! application uses it unchanged — which the composition example does. The
+//! word "Tauri" here was a leftover from when there was only one host.
 //!
 //! Consumers retain authority over their domain schema. This crate owns the
 //! repeated stage, coalesce, coordinated mutation, and synchronous flush

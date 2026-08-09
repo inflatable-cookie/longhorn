@@ -727,13 +727,30 @@ pub fn capture_from_gpui_facts(
 ) -> Result<CapturedWindowPlacement, String> {
     let state = facts.bounds_state();
     let restore = state.restore_bounds();
+
+    // Longhorn's normal placement wants an *inner* size, and gpui's bounds are
+    // outer. For a window that is not maximized the two are both available and
+    // `content_size` is the right one; taking the outer extent instead
+    // recorded a 560pt window as 592 on macOS, and applying that back grew it
+    // by the titlebar every save-and-restore cycle. Measured, not reasoned:
+    // the composition example persisted two real windows and the numbers
+    // disagreed by exactly the frame.
+    //
+    // Maximized is the case that has no clean answer. `content_size` then
+    // describes the *maximized* window while the restore bounds describe where
+    // it will return to, so the restore extent stays the closest honest value
+    // and the frame difference is accepted rather than hidden.
+    let inner_size = if state.is_maximized() {
+        restore.to_screen_size().map_err(|e| e.to_string())?
+    } else {
+        facts
+            .content_size()
+            .to_screen_size()
+            .map_err(|e| e.to_string())?
+    };
     let normal_placement = WindowPlacement::new(
         restore.to_screen_origin().map_err(|e| e.to_string())?,
-        // A maximized window's restore bounds are outer bounds, and Longhorn's
-        // normal placement wants an inner size. GPUI reports content size only
-        // for the live window, so the restore extent is the closest honest
-        // value and the difference is the frame.
-        restore.to_screen_size().map_err(|e| e.to_string())?,
+        inner_size,
     );
     Ok(CapturedWindowPlacement::new(
         window_id.clone(),

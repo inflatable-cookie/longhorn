@@ -13,6 +13,7 @@
 //! ```
 
 mod drag;
+mod store;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -238,6 +239,7 @@ impl Render for CompositionRoot {
                     }),
             )
             .child(outcome)
+            .child(drag::TransferState::persistence(_cx))
             .child(format!(
                 "withheld by gpui: {}",
                 WITHHELD_CAPABILITIES

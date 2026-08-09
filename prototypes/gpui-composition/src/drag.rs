@@ -26,7 +26,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use gpui::{AnyWindowHandle, App, Global, Pixels, Point, Window};
 use longhorn_core::{DomainId, LayoutContainerId, RegionId, ScreenPoint, ScreenRect, WindowId};
-use longhorn_gpui_windowing::{GpuiWindowKey, live_transfer_windows};
+use longhorn_gpui_windowing::{GpuiWindowBackend, GpuiWindowKey, live_transfer_windows};
 use longhorn_transfer::{
     ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
     DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector,
@@ -59,6 +59,7 @@ struct Inner {
     windows: Vec<ManagedWindow>,
     session: Option<DragSessionId>,
     outcome: String,
+    persistence: String,
     allocations: u64,
 }
 
@@ -146,12 +147,61 @@ impl TransferState {
                 .expect("lease publishes");
         }
 
+        // Card 176's first step, taken here because `install` is the one place
+        // that already has both a backend and the observed windows. Every
+        // teardown proof before this used a sink that answered synchronously;
+        // this is a real coordinated, atomically published write, and the
+        // elapsed time is what decides whether "the answer arrives after the
+        // window is gone" is a real risk.
+        let store = crate::store::sink();
+        let mut persistence = String::new();
+        {
+            let mut backend = longhorn_gpui_windowing_prototype::GpuiAppBackend::new(cx);
+            for window in &windows {
+                backend.adopt(window.handle);
+            }
+            for window in &windows {
+                // Every failure reported, none skipped. The first version of
+                // this loop used `let Ok(..) else { continue }` and wrote an
+                // empty document while claiming success — the same silent-skip
+                // mistake `live_transfer_windows` exists to refuse.
+                let key = GpuiWindowKey::new(window.handle.window_id().as_u64());
+                persistence = match backend.observe(key) {
+                    Err(error) => format!("observe failed: {error}"),
+                    Ok(facts) => {
+                        eprintln!(
+                            "[facts] {} bounds={:?} content={:?}",
+                            window.window_id,
+                            facts.bounds(),
+                            facts.content_size()
+                        );
+                        match longhorn_gpui_windowing::capture_from_gpui_facts(
+                            &window.window_id,
+                            &facts,
+                        ) {
+                            Err(error) => format!("capture failed: {error}"),
+                            Ok(placement) => match crate::store::persist_now(&store, &placement) {
+                                Ok(elapsed) => format!("placement written in {elapsed:?}"),
+                                Err(error) => format!("write failed: {error}"),
+                            },
+                        }
+                    }
+                };
+            }
+        }
+
+        let restored = crate::store::persisted().placements.len();
+        // Also to stderr, so a run that nobody is watching still says what the
+        // store did. A window is a poor place to report a durability result.
+        eprintln!("[store] {persistence}; {restored} placement(s) read back");
+
         cx.set_global(Self {
             inner: Rc::new(RefCell::new(Inner {
                 coordinator,
                 windows,
                 session: None,
                 outcome: "press in one window, release over the other".to_owned(),
+                persistence: format!("{persistence}; {restored} placement(s) read back"),
                 allocations: 0,
             })),
         });
@@ -250,6 +300,16 @@ impl TransferState {
             ),
             Err(error) => format!("no target: {error}"),
         };
+    }
+
+    /// What the real store did, for both windows to draw.
+    ///
+    /// Separate from `outcome` because they answer different cards: this one
+    /// is teardown durability, that one is cross-window transfer.
+    pub fn persistence(cx: &App) -> String {
+        cx.try_global::<Self>().map_or_else(String::new, |state| {
+            state.inner.borrow().persistence.clone()
+        })
     }
 
     /// The last thing that happened, for both windows to draw.

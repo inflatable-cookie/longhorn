@@ -290,3 +290,48 @@ fn an_event_for_an_uninstalled_window_is_refused() {
         .is_err()
     );
 }
+
+#[test]
+fn a_windowed_capture_records_the_content_size_not_the_frame() {
+    // Found by persisting two real windows: gpui reported bounds 560x592 and
+    // content 560x560 for a window asked for 560x560, and the capture stored
+    // 592 in a field that means *inner* size. Applying that back grows the
+    // window by the titlebar, and it compounds every save-and-restore cycle.
+    let facts = longhorn_gpui_windowing::GpuiWindowFacts::new(
+        longhorn_gpui_windowing::GpuiLogicalRect::new(120.0, 120.0, 560.0, 592.0),
+        GpuiLogicalSize::new(560.0, 560.0),
+        longhorn_gpui_windowing::GpuiWindowBoundsState::Windowed(
+            longhorn_gpui_windowing::GpuiLogicalRect::new(120.0, 120.0, 560.0, 592.0),
+        ),
+        2.0,
+        false,
+    );
+
+    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts)
+        .expect("a windowed capture");
+
+    assert_eq!(capture.normal_placement().inner_size().height(), 560);
+    assert_eq!(capture.normal_placement().outer_origin().y().get(), 120);
+}
+
+#[test]
+fn a_maximized_capture_keeps_the_restore_extent() {
+    // The case with no clean answer: `content_size` describes the maximized
+    // window, and the restore bounds describe where it returns to. The frame
+    // difference is accepted rather than hidden, and this pins that choice.
+    let facts = longhorn_gpui_windowing::GpuiWindowFacts::new(
+        longhorn_gpui_windowing::GpuiLogicalRect::new(0.0, 0.0, 1920.0, 1080.0),
+        GpuiLogicalSize::new(1920.0, 1048.0),
+        longhorn_gpui_windowing::GpuiWindowBoundsState::Maximized(
+            longhorn_gpui_windowing::GpuiLogicalRect::new(120.0, 120.0, 560.0, 592.0),
+        ),
+        2.0,
+        false,
+    );
+
+    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts)
+        .expect("a maximized capture");
+
+    assert!(capture.is_maximized());
+    assert_eq!(capture.normal_placement().inner_size().height(), 592);
+}

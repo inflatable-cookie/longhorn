@@ -1,6 +1,6 @@
 # 176 Live Teardown Under Load
 
-Status: ready
+Status: in progress — real store landed, teardown observation outstanding
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -28,10 +28,58 @@ closes stages its final capture and permits the close with no flush in that
 pass. Contract 020 records it as a coordinator question rather than an adapter
 bug. A real run is what decides whether it is a defect.
 
-## Ready
+## State — 2026-08-10
 
-`prototypes/gpui-composition` is the application. What it still needs is a real
-placement sink with real latency, which is this card's first step.
+**Step 1 is done and it already found a defect.** The rest needs a person at
+the machine.
+
+### The real store
+
+`prototypes/gpui-composition/src/store.rs` is `ConfigWindowPlacementSink` over
+a real `ConfigStore`: coordinated mutation, atomic publish, a file under the
+example's own target directory rather than a temporary one — a store that
+evaporates on drop cannot answer a question about restarts.
+
+A real write costs **18-20ms**. That is the number this card wanted, and it is
+large enough that "the answer arrives after the window is gone" is a real
+risk rather than a theoretical one.
+
+`longhorn-windowing-config` needed no change to serve a GPUI application. Its
+doc comment claimed it was for Tauri window placements; it takes no host
+adapter and never did, and that is now corrected.
+
+### What it found
+
+A window that grew by its titlebar every save-and-restore cycle. gpui reports
+`bounds` 560x592 and `content_size` 560x560 for a window asked for 560x560,
+and `capture_from_gpui_facts` recorded the outer height into a field meaning
+inner size. Recorded in contract 020, fixed, and pinned by tests for both the
+windowed and maximized arms.
+
+No in-memory sink could have found it, because the defect was in the number
+rather than in the flow.
+
+### Two harness mistakes worth recording
+
+The first version of the persistence loop used `let Ok(..) else { continue }`
+and wrote an empty document while reporting success — the same silent-skip
+failure `live_transfer_windows` exists to refuse, made by the person who wrote
+that refusal. Every failure is now reported.
+
+The store result also goes to stderr, not only to the window. A durability
+result nobody can read unless they are looking at a screen is a poor result.
+
+### Remaining
+
+1. Wire `GpuiWindowLifecycleHost` into the example with a real clock and a
+   scheduler over gpui's foreground executor, and bind `on_should_close`.
+2. Move a window, close it immediately, restart, and see whether the final
+   placement survived.
+3. Close while a flush is genuinely outstanding; record whether the close is
+   refused, deferred, or permitted with the write incomplete.
+4. Answer the per-window flush question with that evidence.
+
+Steps 2 and 3 need a real window closed by a person.
 
 ## Scope
 

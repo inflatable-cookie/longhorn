@@ -333,6 +333,35 @@ this one used one window. That is the same lesson the display-origin and
 readback divergences taught: the evidence found something the moment it got
 closer to how the thing is actually used.
 
+### A real store found a window that grew every restart — 2026-08-10
+
+Card 176's first step is a real placement store, so a flush takes real time.
+Persisting two real GPUI windows through `ConfigWindowPlacementSink` — a
+coordinated, atomically published write, 18-20ms — found a defect that no
+in-memory sink could have.
+
+gpui reported `bounds` 560x**592** and `content_size` 560x**560** for a window
+asked for 560x560: the 32pt difference is the macOS titlebar.
+`capture_from_gpui_facts` recorded the *restore bounds* extent — the outer
+height — into `WindowPlacement::inner_size`, which means the inner size.
+
+Applying that placement back makes the window 592 tall inside its frame, so
+the next capture records 624, and so on. **A window grew by its titlebar every
+save-and-restore cycle.** The function's own comment had described the
+approximation and stopped short of its consequence.
+
+Fixed: a window that is not maximized records `content_size`, which gpui
+reports and which is the thing the field means. Maximized keeps the restore
+extent, because there `content_size` describes the maximized window while the
+restore bounds describe where it returns to — that case has no clean answer
+and the frame difference is now accepted explicitly rather than by accident.
+
+Both arms are pinned by tests, and re-running the example persisted 560.
+
+This is the pattern again, and the cheapest instance of it yet: the fake sink
+was correct about everything except the number, and only a real write to a
+real file showed the number was wrong.
+
 ### One behaviour recorded rather than changed
 
 A window moved just before it is closed takes its final capture during the

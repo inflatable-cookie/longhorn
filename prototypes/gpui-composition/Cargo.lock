@@ -3165,16 +3165,21 @@ name = "longhorn-gpui-composition-example"
 version = "0.0.0"
 dependencies = [
  "gpui",
+ "longhorn-config",
  "longhorn-core",
  "longhorn-gpui-windowing",
  "longhorn-gpui-windowing-prototype",
  "longhorn-notifications",
  "longhorn-poodle",
  "longhorn-transfer",
+ "longhorn-windowing",
+ "longhorn-windowing-config",
  "poodle-adapter",
  "poodle-gpui",
  "poodle-gpui-node-backend",
  "poodle-render",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3310,6 +3315,15 @@ dependencies = [
  "longhorn-core",
  "longhorn-display",
  "serde",
+]
+
+[[package]]
+name = "longhorn-windowing-config"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-windowing",
 ]
 
 [[package]]
