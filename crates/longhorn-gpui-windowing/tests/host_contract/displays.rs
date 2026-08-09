@@ -24,6 +24,7 @@ fn gpui_alone_cannot_supply_the_display_facts_the_contract_requires() {
     assert_eq!(
         displays[0].missing(),
         [
+            UnobtainableDisplayFact::Position,
             UnobtainableDisplayFact::ScaleFactor,
             UnobtainableDisplayFact::WorkArea
         ]
@@ -87,13 +88,50 @@ fn an_unobtainable_display_still_reports_the_bounds_and_identity_gpui_does_have(
     let displays = observe_gpui_displays(&mut host, &mut BareDisplayFacts).unwrap();
 
     let GpuiDisplayObservation::Unobtainable {
-        full_bounds,
+        full_size,
         evidence,
         ..
     } = &displays[0]
     else {
         panic!("expected an unobtainable observation");
     };
-    assert_eq!(full_bounds.size().width(), 1920);
+    assert_eq!(full_size.width(), 1920);
     assert_eq!(evidence.strong_keys().len(), 1);
+}
+
+#[test]
+fn gpui_discards_every_display_origin_so_two_displays_collide_at_zero() {
+    // Measured with a real second screen attached: gpui's macOS backend reads
+    // `CGDisplayBounds` — documented in its own source as global coordinates —
+    // and then substitutes `Default::default()` for the origin. Sizes are
+    // right; positions are gone. Both attached displays reported (0, 0).
+    //
+    // Taken at face value that is not a desktop plane: every window would be
+    // placed on the primary, and two displays would produce the same
+    // arrangement signature. So position joins scale and work area as a fact
+    // the caller must supply.
+    let mut host = FakeGpuiHost::new().with_second_display();
+
+    let displays = observe_gpui_displays(&mut host, &mut BareDisplayFacts).unwrap();
+
+    assert_eq!(displays.len(), 2);
+    for display in &displays {
+        assert!(display.resolved().is_none());
+        assert!(
+            display
+                .missing()
+                .contains(&UnobtainableDisplayFact::Position)
+        );
+    }
+
+    // The sizes are real and distinct, and the UUIDs still tell them apart.
+    // Only the arrangement is missing.
+    let sizes: Vec<u32> = displays
+        .iter()
+        .map(|display| match display {
+            GpuiDisplayObservation::Unobtainable { full_size, .. } => full_size.width(),
+            GpuiDisplayObservation::Resolved(_) => unreachable!(),
+        })
+        .collect();
+    assert_eq!(sizes, [1920, 3440]);
 }

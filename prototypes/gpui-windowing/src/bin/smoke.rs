@@ -131,6 +131,30 @@ fn drive(cx: &mut App) -> String {
         "\"gpui_display_count\":{}",
         backend.displays().map(|d| d.len() as i64).unwrap_or(-1)
     ));
+    // Per display, what gpui actually reports. With more than one attached
+    // this is where a second scale factor would show up if gpui had one to
+    // give — it does not, which is the point.
+    if let Ok(facts) = backend.displays() {
+        let rendered: Vec<String> = facts
+            .iter()
+            .map(|display| {
+                let bounds = display.bounds();
+                format!(
+                    "{{\"id\":{},\"primary\":{},\"uuid\":{},\"bounds\":[{},{},{},{}]}}",
+                    display.display_id(),
+                    display.is_primary(),
+                    display
+                        .stable_uuid()
+                        .map_or_else(|| "null".to_owned(), |uuid| format!("\"{uuid}\"")),
+                    bounds.to_screen_origin().map(|p| p.x().get()).unwrap_or(0),
+                    bounds.to_screen_origin().map(|p| p.y().get()).unwrap_or(0),
+                    bounds.to_screen_size().map(|s| s.width()).unwrap_or(0),
+                    bounds.to_screen_size().map(|s| s.height()).unwrap_or(0),
+                )
+            })
+            .collect();
+        lines.push(format!("\"displays\":[{}]", rendered.join(",")));
+    }
     match longhorn_gpui_windowing::observe_gpui_displays(&mut backend, &mut displays) {
         Ok(observed) => lines.push(format!(
             "\"displays_refused_without_scale\":{}",

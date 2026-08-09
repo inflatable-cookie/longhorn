@@ -83,6 +83,7 @@ impl FakeGpuiHost {
     pub(super) fn new() -> Self {
         Self {
             windows: BTreeMap::new(),
+            // One display, at the zeroed origin gpui actually reports.
             displays: vec![GpuiDisplayFacts::new(
                 1,
                 Some("6d2f0e5c-0000-4000-8000-000000000001".to_owned()),
@@ -95,6 +96,18 @@ impl FakeGpuiHost {
             fail_next_create: false,
             lagging_maximize: false,
         }
+    }
+
+    /// Attaches a second display, reported the way gpui reports one: correct
+    /// size, origin discarded. Both therefore claim `(0, 0)`.
+    pub(super) fn with_second_display(mut self) -> Self {
+        self.displays.push(GpuiDisplayFacts::new(
+            2,
+            Some("817fc161-2581-4167-83c8-732427e5ac07".to_owned()),
+            GpuiLogicalRect::new(0.0, 0.0, 3440.0, 1440.0),
+            false,
+        ));
+        self
     }
 
     pub(super) fn without_create(mut self) -> Self {
@@ -276,6 +289,10 @@ impl SuppliedDisplayFacts {
 impl GpuiDisplayFactsSource for SuppliedDisplayFacts {
     fn scale_factor(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScaleFactor> {
         Some(self.scale)
+    }
+
+    fn position(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScreenPoint> {
+        Some(ScreenPoint::new(0, 0))
     }
 
     fn work_area(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScreenRect> {

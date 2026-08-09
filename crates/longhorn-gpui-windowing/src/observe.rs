@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use longhorn_core::{ScaleFactor, ScreenRect};
+use longhorn_core::{ScaleFactor, ScreenPoint, ScreenRect, ScreenSize};
 use longhorn_display::{
     AdapterDisplayKey, DisplayBuiltinStatus, DisplayEvidence, DisplayFacts, ObservationId,
     ObservedDisplay, StrongDisplayKey,
@@ -41,6 +41,18 @@ pub trait GpuiDisplayFactsSource {
     /// from its own configuration.
     fn work_area(&mut self, facts: &GpuiDisplayFacts) -> Option<ScreenRect>;
 
+    /// Returns where the display sits in the global plane, if the caller
+    /// knows.
+    ///
+    /// GPUI's macOS backend zeroes every display origin — it reads
+    /// `CGDisplayBounds`, which is documented as global, and keeps only the
+    /// size. So two attached displays both report `(0, 0)`, and a caller that
+    /// took that at face value would place every window on the primary and
+    /// would collide two displays in any arrangement signature.
+    fn position(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScreenPoint> {
+        None
+    }
+
     /// Returns built-in status, when the caller has platform evidence for it.
     fn builtin_status(&mut self, _facts: &GpuiDisplayFacts) -> DisplayBuiltinStatus {
         DisplayBuiltinStatus::Unknown
@@ -60,8 +72,11 @@ pub enum GpuiDisplayObservation {
         observation_id: ObservationId,
         /// Correlation evidence, which GPUI reports well.
         evidence: DisplayEvidence,
-        /// Full logical bounds, the one geometric fact GPUI does report.
-        full_bounds: ScreenRect,
+        /// Full logical extent — the geometric fact GPUI does report.
+        ///
+        /// Deliberately a size and not a rectangle. GPUI discards the display
+        /// origin, so there is no honest rectangle to offer here.
+        full_size: ScreenSize,
         /// Every fact the caller could not supply.
         missing: Vec<UnobtainableDisplayFact>,
     },
@@ -125,10 +140,10 @@ pub fn project_gpui_display(
             detail: error.to_string(),
         }
     })?;
-    let full_bounds =
+    let full_size =
         facts
             .bounds()
-            .to_screen_rect()
+            .to_screen_size()
             .map_err(|error| GpuiDisplayError::InvalidBounds {
                 ordinal,
                 detail: error.to_string(),
@@ -157,22 +172,27 @@ pub fn project_gpui_display(
 
     let scale = source.scale_factor(facts);
     let work_area = source.work_area(facts);
+    let position = source.position(facts);
     let mut missing = Vec::new();
+    if position.is_none() {
+        missing.push(UnobtainableDisplayFact::Position);
+    }
     if scale.is_none() {
         missing.push(UnobtainableDisplayFact::ScaleFactor);
     }
     if work_area.is_none() {
         missing.push(UnobtainableDisplayFact::WorkArea);
     }
-    let (Some(scale), Some(work_area)) = (scale, work_area) else {
+    let (Some(position), Some(scale), Some(work_area)) = (position, scale, work_area) else {
         return Ok(GpuiDisplayObservation::Unobtainable {
             ordinal,
             observation_id,
             evidence,
-            full_bounds,
+            full_size,
             missing,
         });
     };
+    let full_bounds = ScreenRect::new(position, full_size);
 
     Ok(GpuiDisplayObservation::Resolved(Box::new(
         ObservedDisplay::new(

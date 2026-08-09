@@ -115,6 +115,7 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Maximize | absolute `maximize`/`unmaximize` | toggle `zoom_window` + `is_maximized` | GPUI; reachable by read-then-toggle, not atomically |
 | Maximize is readable after the call | yes | **no**, not in the same turn | GPUI on macOS animates the zoom; observed directly, see below |
 | Normal geometry while maximized | **no**, caller retains it | yes, `WindowBounds` carries restore bounds | Tauri; `retained_normal` in the Tauri capture seam is a Tauri workaround, not contract |
+| Display position in the global plane | yes | **no**, every display reports `(0, 0)` | GPUI's macOS backend reads `CGDisplayBounds` and discards the origin; observed with two screens attached |
 | Per-display scale factor | yes | **no**, per-window only | GPUI's `PlatformDisplay` has id, uuid and bounds |
 | Display work area | yes | **no** | as above |
 | Built-in display status | unknown in practice | **no** | as above |
@@ -142,6 +143,35 @@ back**, and convergence stops counting the rest. `DeferredSettlement` carries
 the declaration; Tauri's is empty and GPUI's names maximize and unmaximize.
 Diagnostics are never dropped: an unsupported operation is a fact about the
 host, not a timing artefact, and it does not become true later.
+
+### A display inventory is not automatically a desktop plane
+
+GPUI's macOS backend implements `PlatformDisplay::bounds` as:
+
+```rust
+// CGDisplayBounds is in "global display" coordinates, where 0 is
+// the top left of the primary display.
+let bounds = CGDisplayBounds(self.0);
+Bounds { origin: Default::default(), size: /* real */ }
+```
+
+It reads the global position and throws it away. Sizes are right; every
+display reports an origin of `(0, 0)`.
+
+With one display that is harmless and invisible. With two it is not a
+coordinate system: every window would be placed on the primary, and two
+displays would produce identical arrangement evidence. Contract 009's
+correlation and arrangement machinery assumes displays have positions
+relative to one another, and on this host they do not.
+
+So **display position is a fact a host may lack**, alongside scale factor and
+work area. A GPUI application supplies it or the adapter records it absent;
+it is never inferred from a zeroed origin.
+
+Found by attaching a second screen. One display could not have shown it, and
+neither could any fake — which is why the contract's coverage table says what
+has and has not been exercised rather than assuming a single-display result
+generalises.
 
 ### Capabilities name one operation each
 
@@ -177,7 +207,7 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Lifecycle events | proved | proved for every event in the list, in-memory only |
 | Close handling | proved | proved in-memory; the real close path ran in the smoke binary |
 | Quiescence participation | proved | proved, in-memory |
-| Display facts with scale factors | proved | **unsatisfiable from the host alone**; the refusal and its resolution both ran against a real display |
+| Display facts with scale factors | proved | **unsatisfiable from the host alone** — scale, work area and *position* must all be supplied; refusal and resolution ran against two real displays |
 | Platform directories | proved | not exercised |
 
 What no backend has proved: multi-window placement, cross-window transfer,
@@ -194,9 +224,14 @@ real one is proved by `prototypes/gpui-windowing`, which binds the seam to
 
 One real GPUI window has been opened by Longhorn, placed from a shared plan,
 observed, maximized and closed — the smoke binary in that prototype. It found
-the readback divergence above, which the in-memory host could not have. It is
-one scripted pass on one machine, not a proof application, and it is outside
-`effigy qa` because it needs a window server.
+the readback divergence above, which the in-memory host could not have. Run
+again with a second screen attached, it found the discarded display origin,
+which one display could not have. Both are now regression tests.
+
+That is the pattern worth noting: each time the evidence got one step closer
+to a real machine, it found something no fake would have. This contract's
+remaining unproven claims — multi-window placement, cross-window transfer,
+lifecycle teardown under load — should be read in that light.
 
 ## Non-goals
 

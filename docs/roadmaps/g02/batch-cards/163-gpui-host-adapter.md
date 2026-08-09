@@ -90,6 +90,7 @@ card.
 | 10 | The capture seam threads `retained_normal` through every call | Tauri — it cannot report a maximized window's normal geometry; GPUI can |
 | 11 | Display correlation is built on name plus geometry, with an ambiguity error | Tauri — GPUI has a UUID stable across restarts |
 | 12 | Post-apply readback re-plans unconditionally, assuming the platform has settled | GPUI — `set_maximized(true)` succeeds and the next `is_maximized()` still reports false, because macOS animates the zoom |
+| 13 | Display facts assume a display knows where it is | GPUI — its macOS backend reads `CGDisplayBounds` and discards the origin, so every display reports `(0, 0)`. Found by attaching a second screen |
 
 Two more, recorded but not contract changes:
 
@@ -130,6 +131,26 @@ the real window did: accept the call, keep reporting the old state.
 Still deferred: moving the pure quiescence probes out of
 `longhorn-tauri-update`. That one was never about the freeze — it is Card
 162's live surface.
+
+### Bend 13 — found by plugging in a second screen
+
+The smoke binary was re-run on a two-display desk. GPUI reported both
+displays at origin `(0, 0)`, because its macOS backend reads
+`CGDisplayBounds` — global coordinates, per its own comment — and substitutes
+`Default::default()` for the origin. Sizes and UUIDs are correct; positions
+are gone.
+
+With one display that is invisible. With two it is not a desktop plane: every
+window would land on the primary, and both displays would produce the same
+arrangement evidence. `UnobtainableDisplayFact::Position` now exists,
+`GpuiDisplayFactsSource::position` supplies it, and the unobtainable
+observation carries a `full_size` rather than a rectangle with a fabricated
+origin. Regression test attached.
+
+Three times now the evidence moved closer to a real machine and found
+something no fake would have produced: compiling against real gpui, opening a
+real window, attaching a real second screen. That is the argument for the
+proof application the contract still lists as missing.
 
 ### What was fixed here, and what was not
 

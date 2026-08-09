@@ -45,6 +45,14 @@ pub enum UnobtainableDisplayFact {
     WorkArea,
     /// Physical pixel bounds. GPUI reports logical bounds only.
     PhysicalBounds,
+    /// Where the display sits in the global desktop plane.
+    ///
+    /// GPUI's macOS backend reads `CGDisplayBounds`, whose own comment says it
+    /// is "in global display coordinates", and then discards the origin —
+    /// every display is reported at `(0, 0)`. Size survives; position does
+    /// not. Two attached displays therefore claim the same origin, which is
+    /// not a coordinate system Longhorn can place windows in.
+    Position,
     /// Whether the display is the machine's built-in panel.
     BuiltinStatus,
 }
@@ -56,6 +64,7 @@ impl fmt::Display for UnobtainableDisplayFact {
             Self::WorkArea => "display work area",
             Self::PhysicalBounds => "physical display bounds",
             Self::BuiltinStatus => "built-in display status",
+            Self::Position => "display position in the global plane",
         })
     }
 }
