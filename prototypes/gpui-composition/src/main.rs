@@ -12,19 +12,24 @@
 //! cd prototypes/gpui-composition && cargo run
 //! ```
 
+mod drag;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use gpui::{
-    App, AppContext, Application, Bounds, Context, IntoElement, ParentElement, Render, Styled,
-    Window, WindowBounds, WindowOptions, div, px, size,
+    App, AppContext, Application, Bounds, Context, InteractiveElement, IntoElement, MouseButton,
+    ParentElement, Render, Styled, Window, WindowBounds, WindowOptions, div, point, px, size,
 };
-use longhorn_core::{HostServices, NotificationAuthorityId, NotificationId, NotificationSourceId};
+use longhorn_core::{
+    HostServices, NotificationAuthorityId, NotificationId, NotificationSourceId, WindowId,
+};
 use longhorn_gpui_windowing::WITHHELD_CAPABILITIES;
 use longhorn_notifications::{
     NotificationAdd, NotificationAuthorityEpoch, NotificationDraft, NotificationLedger,
     NotificationLedgerLimits, NotificationSeverity, NotificationSummary, NotificationTitle,
 };
 use longhorn_poodle::project_notification_stack;
+use longhorn_transfer::TransferClientId;
 use poodle_adapter::ThemeProvider;
 use poodle_gpui::GpuiThemeProvider;
 use poodle_render::toast_stack::{self, ToastStackHandlers};
@@ -176,6 +181,8 @@ struct CompositionRoot {
     theme: GpuiThemeProvider,
     ledger: NotificationLedger,
     services: ExampleHost,
+    /// Which window this root is, so a press knows where it came from.
+    window_id: WindowId,
 }
 
 impl Render for CompositionRoot {
@@ -192,30 +199,50 @@ impl Render for CompositionRoot {
             poodle_gpui_node_backend::color(theme.resolve_color("color.background.canvas"));
         let text = poodle_gpui_node_backend::color(theme.resolve_color("color.text.primary"));
 
+        let source = self.window_id.clone();
+        let outcome = drag::TransferState::outcome(_cx);
+
         div()
             .size_full()
             .flex()
             .flex_col()
-            .gap(px(16.0))
-            .p(px(24.0))
+            .gap(px(12.0))
+            .p(px(20.0))
             .bg(canvas)
             .text_color(text)
-            // Proof the injected services reach the surface: this date is
-            // `ExampleHost::format_timestamp`, not `Timestamp`'s `Display`.
+            // Step 3's proof: this date is `ExampleHost::format_timestamp`,
+            // not `Timestamp`'s own `Display`.
             .child(format!(
-                "assembled {} — request {}",
-                self.services.format_timestamp(1_786_320_000),
-                self.services.new_request_id()
+                "{} — assembled {}",
+                self.window_id,
+                self.services.format_timestamp(1_786_320_000)
             ))
-            // Step 4's half that needs no backend: what this host declares
-            // and what it withholds. Both come from the adapter rather than a
-            // list an application maintains — `execute_gpui_window_apply` sets
-            // the capabilities itself from `backend.can_create()`.
+            // Contract 020's last ceiling, live. Press here and release over
+            // the other window; `on_mouse_up` fires on *this* window even when
+            // the cursor is elsewhere, because macOS routes a drag's events to
+            // the window that received the press.
+            .child(
+                div()
+                    .id("transfer-source")
+                    .p(px(12.0))
+                    .border_1()
+                    .border_color(text)
+                    .child("drag me to the other window")
+                    .on_mouse_down(MouseButton::Left, {
+                        let source = source.clone();
+                        move |_event, _window, cx| drag::TransferState::press(cx, &source)
+                    })
+                    .on_mouse_up(MouseButton::Left, move |event, window, cx| {
+                        let released = drag::screen_point_of(window, event.position);
+                        drag::TransferState::release(cx, released);
+                    }),
+            )
+            .child(outcome)
             .child(format!(
                 "withheld by gpui: {}",
                 WITHHELD_CAPABILITIES
                     .iter()
-                    .map(|withheld| format!("{withheld:?}"))
+                    .map(|withheld| format!("{:?}", withheld.capability))
                     .collect::<Vec<_>>()
                     .join(", ")
             ))
@@ -227,26 +254,48 @@ impl Render for CompositionRoot {
 
 fn main() {
     Application::new().run(|cx: &mut App| {
-        // Step 4 and 5 — the window backend and the lifecycle host — are the
-        // neighbouring `gpui-windowing` prototype's subject, and this example
-        // opens its window through gpui directly rather than restating them.
-        // The guide's order is followed; the parts it shares with that
-        // prototype are not duplicated here.
-        let bounds = Bounds::centered(None, size(px(560.0), px(520.0)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| {
-                cx.new(|_| CompositionRoot {
-                    theme: GpuiThemeProvider::new(),
-                    ledger: ledger(),
-                    services: ExampleHost::new(),
-                })
-            },
-        )
-        .expect("window");
+        // Two windows, side by side, because one window cannot prove a
+        // cross-window drag. Step 4 and 5 — the window backend and lifecycle
+        // host — are the neighbouring `gpui-windowing` prototype's subject;
+        // this example opens through gpui directly and borrows that
+        // prototype's backend only at release, to observe.
+        let mut managed = Vec::new();
+
+        for (index, origin) in [point(px(120.0), px(120.0)), point(px(760.0), px(120.0))]
+            .into_iter()
+            .enumerate()
+        {
+            let window_id = WindowId::new(format!("window:{index}")).expect("window id");
+            let bounds = Bounds {
+                origin,
+                size: size(px(560.0), px(560.0)),
+            };
+            let root_id = window_id.clone();
+            let handle = cx
+                .open_window(
+                    WindowOptions {
+                        window_bounds: Some(WindowBounds::Windowed(bounds)),
+                        ..Default::default()
+                    },
+                    |_, cx| {
+                        cx.new(|_| CompositionRoot {
+                            theme: GpuiThemeProvider::new(),
+                            ledger: ledger(),
+                            services: ExampleHost::new(),
+                            window_id: root_id,
+                        })
+                    },
+                )
+                .expect("window");
+
+            managed.push(drag::ManagedWindow {
+                window_id,
+                client_id: TransferClientId::new(format!("client:{index}")).expect("client id"),
+                handle: handle.into(),
+            });
+        }
+
+        drag::TransferState::install(managed, cx);
         cx.activate(true);
     });
 }

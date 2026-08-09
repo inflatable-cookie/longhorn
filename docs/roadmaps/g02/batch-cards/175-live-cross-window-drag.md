@@ -1,6 +1,6 @@
 # 175 Live Cross-window Drag
 
-Status: ready
+Status: in progress — harness built, run not yet performed
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -25,10 +25,59 @@ generation established is that each step closer to a real machine found
 something no fake would: the readback divergence, the discarded display origin,
 three teardown defects. There is no reason to expect this step to be different.
 
-## Ready
+## State — 2026-08-10
 
-`prototypes/gpui-composition` is the application to drag in. It currently opens
-one window; this card gives it a second.
+**The harness is built and the drag has not been performed.** Said plainly
+because the difference is the whole point of this card: everything below
+compiles and runs, and nobody has yet pressed in one window and released over
+the other.
+
+### What exists
+
+`prototypes/gpui-composition` now opens two windows and `src/drag.rs` binds
+them:
+
+- `on_mouse_down` starts a `TransferCoordinator` session sourced from the
+  window that was pressed
+- `on_mouse_up` converts `MouseUpEvent::position` — window-relative — to a
+  screen point by adding the window's own origin, then resolves
+- windows are observed **at release**, through `live_transfer_windows` over
+  the neighbouring prototype's `GpuiAppBackend`, so a window moved mid-drag
+  changes where the release lands
+- both windows draw the outcome, so either can be watched
+
+Leases are published from **observed** bounds rather than requested ones. The
+two agree on this platform, but a lease published from a request is wrong the
+first time a window manager disagrees.
+
+### What it already found
+
+Three defects, all mine, all in the harness rather than in Longhorn:
+
+- the windows paint before `install` runs — they must exist before their
+  bounds can be observed — so `cx.global` panicked on the first frame.
+  `try_global` and a placeholder string.
+- a lease lifetime of 900 against a `maximum_lease_lifetime` of 500. The
+  coordinator refused it with `InvalidLifetime` and named both numbers, which
+  is the error doing its job.
+- `screen_rect_of` written and then unnecessary once bounds came from
+  observation instead of assumption.
+
+None of these is evidence about contract 020. They are recorded because the
+card asks what the real path found, and "the harness was wrong three times
+first" is part of an honest answer.
+
+### Remaining
+
+1. Run it with the machine free. Press in one window, release over the other,
+   and read the outcome line.
+2. Release on bare desktop between the windows.
+3. Move one window mid-drag and release into its new position.
+4. Record what happened in contract 020, whether or not it agrees with the
+   in-memory proof.
+
+Steps 1-3 need a person at the machine: the card's own `Do Not` forbids
+synthesising the events, and the point of this card is the real path.
 
 ## Scope
 

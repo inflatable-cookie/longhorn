@@ -1086,6 +1086,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-graphics"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "064badf302c3194842cf2c5d61f56cc88e54a759313879cdf03abdd27d0c3b97"
+dependencies = [
+ "bitflags 2.13.1",
+ "core-foundation 0.10.0",
+ "core-graphics-types 0.2.0",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
 name = "core-graphics-helmer-fork"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3154,8 +3167,10 @@ dependencies = [
  "gpui",
  "longhorn-core",
  "longhorn-gpui-windowing",
+ "longhorn-gpui-windowing-prototype",
  "longhorn-notifications",
  "longhorn-poodle",
+ "longhorn-transfer",
  "poodle-adapter",
  "poodle-gpui",
  "poodle-gpui-node-backend",
@@ -3172,6 +3187,27 @@ dependencies = [
  "longhorn-update",
  "longhorn-windowing",
  "serde",
+]
+
+[[package]]
+name = "longhorn-gpui-windowing-prototype"
+version = "0.0.0"
+dependencies = [
+ "core-graphics 0.25.0",
+ "gpui",
+ "longhorn-core",
+ "longhorn-gpui-windowing",
+ "longhorn-licence",
+ "longhorn-notifications",
+ "longhorn-operation",
+ "longhorn-poodle",
+ "longhorn-update",
+ "longhorn-windowing",
+ "poodle-adapter",
+ "poodle-gpui",
+ "poodle-gpui-node-backend",
+ "poodle-render",
+ "semver",
 ]
 
 [[package]]

@@ -20,6 +20,8 @@ longhorn-poodle = { path = "../../crates/longhorn-poodle" }
 # This example is about the *composition*; how a `GpuiWindowBackend` is written
 # over `gpui::PlatformWindow` is that prototype's subject.
 longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
+longhorn-gpui-windowing-prototype = { path = "../gpui-windowing" }
+longhorn-transfer = { path = "../../crates/longhorn-transfer" }
 poodle-adapter = { path = "../../../poodle/packages/contracts/adapter" }
 poodle-gpui = { path = "../../../poodle/packages/gpui/adapter" }
 poodle-gpui-node-backend = { path = "../../../poodle/packages/gpui/node-backend" }

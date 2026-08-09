@@ -59,9 +59,11 @@ compiles, and the two readable against each other.
 
 ### Batch 3. Live evidence for the last two ceilings
 
-- [ ] Card 175: a real drag across two real GPUI windows — mouse events bound
-  to a session, released over another window — closing contract 020's last
-  stated ceiling.
+- [ ] [Card 175](batch-cards/175-live-cross-window-drag.md): a real drag across
+  two real GPUI windows. **Harness built, run not yet performed** — the example
+  opens two windows and binds press and release to a transfer session, and
+  nobody has yet done the drag. It needs a person at the machine, because
+  synthesising the events would defeat the card.
 - [ ] Card 176: a real teardown with a real flush in flight, which the
   thirteen-window in-memory proof deliberately does not cover.
 
@@ -108,11 +110,12 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 175 — a real drag across two real GPUI windows. `prototypes/gpui-composition`
-is the application to do it in, so both Batch 3 cards are unblocked.
+Card 175's remaining steps are a human at the machine: press in one window,
+release over the other, release on bare desktop, and move a window mid-drag.
+The harness is committed and waiting.
 
-175 before 176: cross-window transfer is the claim contract 020 still states as
-a ceiling, and teardown has the stronger in-memory proof behind it already.
+Card 176 can proceed in parallel — its first step is a real placement sink with
+real latency, which needs no screen.
 
 ## Planning Checkpoint
 
