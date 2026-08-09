@@ -3166,6 +3166,7 @@ version = "0.1.0"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
+ "longhorn-transfer",
  "longhorn-update",
  "longhorn-windowing",
  "serde",
@@ -3190,6 +3191,25 @@ dependencies = [
  "poodle-gpui-node-backend",
  "poodle-render",
  "semver",
+]
+
+[[package]]
+name = "longhorn-layout"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+]
+
+[[package]]
+name = "longhorn-layout-config"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-layout",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3243,6 +3263,17 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
+]
+
+[[package]]
+name = "longhorn-transfer"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-layout",
+ "longhorn-layout-config",
+ "serde",
 ]
 
 [[package]]
