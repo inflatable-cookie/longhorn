@@ -261,17 +261,45 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Quiescence participation | proved | proved, in-memory, **and that it returns to quiet after a teardown** |
 | Display facts with scale factors | proved | **not obtainable from the gpui API alone** — scale, work area and position come from a per-platform reader over the id gpui exposes; a macOS reader exists and was measured against two real displays |
 | Platform directories | proved | not exercised |
+| Cross-window transfer | proved | **proved for the decision** — windows observed, a drop resolved to the other window, a bare-desktop point resolved to an empty display; no real drag on either backend |
 
-What no backend has proved: **cross-window transfer**. The first GPUI target
-is a small audio-conversion application that exercises config, settings,
-operations, notifications, licence and update, and not that. It is where a
-single-host contract is most likely to have leaked, and this contract must not
-be declared complete until a target exercises it.
+All three claims this paragraph used to carry are now discharged in-memory,
+and one ceiling remains: **no real drag has crossed a real window on either
+backend**. A GPUI application binding mouse events to a session, dragging under
+the cursor and releasing over another window is still the evidence nobody has,
+and this contract is not complete until a target produces it.
 
-Two of the three claims this paragraph used to carry are now discharged.
+The three claims themselves:
 Multi-window placement was proved against two real windows across two displays
 by `prototypes/gpui-windowing`'s multiwindow binary, and the table above has
 said so since; this prose was stale.
+
+### Cross-window transfer, proved for the decision — 2026-08-09
+
+The host's whole contribution to a cross-window drag turned out to be one
+thing: where every managed window currently is.
+`TransferCoordinator::attempt_target_resolution` takes `&[LiveTransferWindow]`
+and decides the rest, so a backend that can observe its windows can
+participate.
+
+`longhorn_gpui_windowing::live_transfer_windows` is fifty lines. A point inside
+the target window resolves to that window's zone rather than to the source; a
+point on bare desktop between two windows resolves to an empty display. Both
+run against geometry the GPUI host observed, through the same coordinator the
+Tauri host uses.
+
+Two things worth stating from building it.
+
+**The Tauri transfer adapter is 2,600 lines and almost none of it is the
+transfer decision.** It is the webview command surface — invoke handlers,
+projections, caller authority. A GPUI application calls Longhorn directly and
+has no IPC boundary to police, so it needs none of that. The size difference
+between the two adapters is not a gap in the GPUI one.
+
+**A window that cannot be observed fails the whole list.** A silently short
+list resolves a drop against a desktop missing a window, which reads as "no
+target" and loses the transfer with no diagnostic. That is a decision, not an
+oversight, and it is asserted.
 
 ### Teardown under load found three defects — 2026-08-09
 
@@ -331,8 +359,8 @@ which one display could not have. Both are now regression tests.
 
 That is the pattern worth noting: each time the evidence got one step closer
 to a real machine, it found something no fake would have. This contract's one
-remaining unproven claim — cross-window transfer — should be read in that
-light.
+remaining ceiling — that no real drag has crossed a real window on either
+backend — should be read in that light.
 
 ## Non-goals
 

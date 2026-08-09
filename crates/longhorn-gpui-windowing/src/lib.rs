@@ -24,6 +24,7 @@ mod observe;
 mod receipt;
 mod registry;
 mod scale;
+mod transfer;
 
 pub use apply::{GpuiApplyOutcomeBundle, GpuiDiagnosticDisposition, execute_gpui_window_apply};
 pub use backend::{GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowError};
@@ -57,3 +58,4 @@ pub use registry::{
     GpuiApplyEvidence, GpuiWindowRegistry, GpuiWindowRegistryError, ManagedGpuiWindow,
 };
 pub use scale::scale_factor_from_gpui;
+pub use transfer::live_transfer_windows;

@@ -9,5 +9,6 @@ mod host_contract {
     mod placement;
     mod support;
     mod teardown;
+    mod transfer;
     mod windows;
 }

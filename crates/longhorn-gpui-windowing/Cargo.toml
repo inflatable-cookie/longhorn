@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 longhorn-core.workspace = true
 longhorn-display.workspace = true
+longhorn-transfer.workspace = true
 longhorn-update.workspace = true
 longhorn-windowing.workspace = true
 serde.workspace = true
