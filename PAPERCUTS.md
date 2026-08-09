@@ -169,18 +169,23 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   poodle `packages/svelte/components/src/index.ts`.
 
 ### [ ] SSR vitest suites flake under machine load — 2026-08-08
-- Friction: `packages/commands/tests-svelte/ssr.test.ts` and
-  `packages/config/tests-svelte/ssr.test.ts` carry 20s and 15s timeouts. Both
-  spend nearly all of it in transform/collect, so they fail when the machine
-  is busy — e.g. `effigy test:vitest` run alongside a workspace clippy.
-- Impact: `effigy test:vitest` fails intermittently with no real defect. It
-  cost two misdiagnoses in one session: once read as caused by the
-  `@inflatable-cookie` rename (it was a stale `node_modules`), once as a
-  regression from the bindings change (it was load).
-- Possible fix: raise the two timeouts, or mark the SSR suites as a serial
-  lane so they do not compete with a parallel Rust build.
-- Surface: `packages/commands/tests-svelte/ssr.test.ts`,
-  `packages/config/tests-svelte/ssr.test.ts`.
+- Friction: the SSR suites under `packages/longhorn-poodle-svelte/tests/`
+  carry 15s and 20s timeouts and spend nearly all of it in transform, so they
+  fail whenever the machine is busy — including inside `effigy qa` itself,
+  where the Rust lanes are the competing load. Measured 2026-08-09:
+  `config-svelte/ssr.test.ts` takes 6.8s alone and times out at 15s in a full
+  gate run. The margin is roughly 2x and the gate routinely eats it.
+- Impact: `effigy qa` fails intermittently with no real defect, and the
+  failure names an SSR import check, which reads like a genuine regression.
+  Three misdiagnoses so far: once read as the `@inflatable-cookie` rename (it
+  was a stale `node_modules`), once as the bindings change, once as the new
+  `longhorn-poodle` crate. Each cost a full re-run to disprove.
+- Possible fix: raise the timeouts to a multiple of the measured cost rather
+  than a round number, or give the SSR suites a serial lane so they do not
+  compete with a parallel Rust build. Not done here: `packages/*` is outside
+  this thread's remit.
+- Surface: `packages/longhorn-poodle-svelte/tests/config-svelte/ssr.test.ts`,
+  `packages/longhorn-poodle-svelte/tests/commands-svelte/ssr.test.ts`.
 
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
