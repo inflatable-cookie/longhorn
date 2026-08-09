@@ -250,10 +250,16 @@ missing mounted GPUI preview app. Nothing here should be duplicated into
 Longhorn. This memo is only about **the facts Longhorn projects** and whether
 the two backends show them the same way.
 
-The four domains drawn in GPUI have not been drawn in Svelte from the same
-inputs, so this register is derived from reading both implementations rather
-than from comparing two rendered surfaces. A side-by-side would likely find
-more, and is the obvious next piece of evidence.
+This register was derived from reading both implementations rather than from
+comparing two rendered surfaces. **Card 171 closed that gap for behaviour**:
+`fixtures/parity/projection-v1.json` states thirty-nine cases as data, and
+both tiers check against it. Everything the "genuinely settled" section above
+claimed by reading now holds by test, and both sides passed first try.
+
+What remains unproven is *rendering*. The two tiers now provably decide the
+same things; nobody has looked at a Svelte surface and a GPUI surface showing
+the same facts side by side. That is a smaller claim than it was, and still an
+open one.
 
 ## Decisions required
 

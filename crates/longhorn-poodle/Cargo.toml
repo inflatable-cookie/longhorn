@@ -21,5 +21,8 @@ semver.workspace = true
 # already has queued for its `file:../poodle/.artifacts/...` pins.
 poodle-specs = { version = "0.1.0", path = "../../../poodle/packages/contracts/components" }
 
+[dev-dependencies]
+serde_json.workspace = true
+
 [lints]
 workspace = true
