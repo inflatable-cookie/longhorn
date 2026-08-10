@@ -75,11 +75,16 @@ that it is not the whole record.
 
 **The candidate receipt lists need the path parameterised.**
 `private-candidate-card149/consumers.ts` resolved a sibling path into the
-client's repository. Card 149 is live and operator-held. Read the consumer set from a gitignored
-`config/private-consumers.json`, defaulting to the public consumers when it is
-absent, so the receipt can still be produced publicly with a smaller consumer
-set and privately with the full one. Card 127's copy is superseded and can
-move to the overlay with the rest.
+client's repository. Card 149 is live and operator-held, so the path has to
+come from outside the tree, defaulting to the public consumer set when it is
+absent — the receipt is then producible publicly over the public set and
+privately over the full one. Card 127's copy is superseded.
+
+**Superseded 2026-08-10.** This card first did that with a gitignored
+`config/private-consumers.json`. A later thread replaced it with the
+`LONGHORN_PRIVATE_CONSUMER` environment variable, which records an unset value
+as a named omission. That is the live mechanism; the config file does not
+exist.
 
 **The proof shape is renamed, not anonymised.** The client also lent its name
 to a proof consumer shape — a small split composition, a content workspace
@@ -99,8 +104,8 @@ substitution — a note that says "this used to be called X" discloses X.
 
 1. Create the `private/` overlay, gitignore it, and move the two dormant
    verifiers and their fixtures into it.
-2. Parameterise the Card 149 consumer set behind
-   `config/private-consumers.json`; move Card 127's copy to the overlay.
+2. Take the Card 149 consumer path from outside the tree; move Card 127's copy
+   to the overlay.
 3. Rename the shape to `split-shell` across examples, scripts, fixtures, docs
    and crate tests. Remove every path into the client's repository and the
    reverse-DNS application id.
@@ -158,6 +163,29 @@ Rewritten to describe the change without naming what was removed, which is
 what it should have said in the first place — the same reason the rename
 carries no explanatory note. Any future scrub card should be written that way
 from the start.
+
+### The sweep broke two things, found by other threads
+
+Both were the same error: one text substitution across prose *and* code,
+verified by grep rather than by a compiler.
+
+**It disabled a release gate.** The sweep wrote the literal
+`../<private-consumer>` into `scripts/private-candidate-card149/consumers.ts`,
+which is executable code. The candidate verifier could not resolve it
+afterwards, and g02.008 stayed recorded as "operator-held on consumer
+quiescence" while the real blocker was that the gate could not run — a
+plausible recorded reason is worse than none, because nobody re-runs to check
+it. Fixed by another thread with `LONGHORN_PRIVATE_CONSUMER`.
+
+A redaction sweep must not treat `scripts/` as prose. A placeholder that reads
+correctly in a document is a runtime failure in code.
+
+**It broke two crates.** The rename hit Rust identifiers, which cannot contain
+a hyphen, in five `let` bindings. `effigy qa` was red for hours while other
+threads triaged a failure that described none of their work. The repairs in
+this card caught the TypeScript and the Rust *test* names and stopped there,
+on the assumption the grep had found everything. `cargo check --workspace`
+would have said otherwise in seconds.
 
 ### A blanket rename was the wrong instrument
 
