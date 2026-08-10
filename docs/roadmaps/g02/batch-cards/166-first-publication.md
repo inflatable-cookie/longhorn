@@ -290,11 +290,19 @@ tarball repacked on a laptop: the artifact is what the gates ran against.
 
 ```sh
 cd ~/Dev/projects/poodle
-gh run download <run-id> -n packed-tarballs -D /tmp/poodle-release
+gh run download 31388087919 -n packed-tarballs -D /tmp/poodle-release
 ls -l /tmp/poodle-release
 ```
 
-Sizes must match the run's own report. They are printed by the pack step.
+Verified 2026-08-10 against run 31388087919:
+
+| Tarball | Bytes | Entries | SHA-256 |
+| --- | --- | --- | --- |
+| `inflatable-cookie-poodle-core-0.1.0.tgz` | 180,217 | 340 | `4934f660…02afd820` |
+| `inflatable-cookie-poodle-svelte-0.1.0.tgz` | 192,552 | 175 | `15208b85…2d8a5cb8` |
+
+Sizes match the pack step's own report, and both carry a LICENSE. The artifact
+expires 2026-11-08; after that, re-run the dry run rather than packing locally.
 
 **2. Authenticate.** Enable 2FA on the npm account first if it is not already
 on — the whole point of trusted publishing is that no long-lived credential
