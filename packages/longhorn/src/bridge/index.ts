@@ -1,5 +1,5 @@
 export * from "./generated/protocol.ts";
-export * from "./compatibility.ts";
+export * from "./validation.ts";
 export * from "./session.ts";
 export * from "./operation.ts";
 export * from "./runtime.ts";

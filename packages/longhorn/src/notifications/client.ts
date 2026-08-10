@@ -5,7 +5,7 @@ import {
   assertCompatibleNotificationMutationCommand,
   assertCompatibleNotificationMutationResult,
   assertCompatibleNotificationSnapshotResponse,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   NOTIFICATION_PROTOCOL_VERSION,
   type NotificationChangedEvent,

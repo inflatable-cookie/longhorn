@@ -55,7 +55,7 @@ import {
   assertCompatibleStorageTransitionExecuteOutcome,
   assertCompatibleStorageTransitionInspectCommand,
   assertCompatibleStorageTransitionInspectOutcome,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   CONFIG_BACKUP_CREATE_COMMAND,
   CONFIG_BACKUP_EXPORT_COMMAND,

@@ -11,11 +11,11 @@ import type {
   DomainId,
   BridgeSessionId,
 } from "../generated/protocol.ts";
-import type { BridgeCodec } from "../compatibility/base.ts";
+import type { BridgeCodec } from "../validation/base.ts";
 import {
   parseBridgeEventEnvelope,
   parseBridgeSnapshotEnvelope,
-} from "../compatibility/streams.ts";
+} from "../validation/streams.ts";
 import { BridgeStreamTracker, newer } from "./tracker.ts";
 import type { BridgeStreamSource } from "./source.ts";
 

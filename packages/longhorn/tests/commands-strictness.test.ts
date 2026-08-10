@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleCommandCatalogueChangedEvent } from "../src/commands/compatibility.ts";
+import { assertCompatibleCommandCatalogueChangedEvent } from "../src/commands/validation.ts";
 import { COMMANDS_FIELDS } from "../src/commands/generated/fields.ts";
 
 /**

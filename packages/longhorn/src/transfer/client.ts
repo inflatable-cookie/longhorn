@@ -24,7 +24,7 @@ import {
   assertCompatibleTransferSessionResponse,
   assertCompatibleTransferTargetBinding,
   assertTransferProtocolVersion,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   TransferClientConnection,
   type TransferClientSnapshotListener,

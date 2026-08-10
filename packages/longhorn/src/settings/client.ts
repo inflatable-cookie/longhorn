@@ -19,7 +19,7 @@ import {
   assertCompatibleSettingsMutationResult,
   assertCompatibleSettingsRegistrySnapshot,
   assertCompatibleSettingsResetCommand,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   connectSettingsRegistry,
   connectSettingsScope,

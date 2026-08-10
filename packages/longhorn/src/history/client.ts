@@ -5,7 +5,7 @@ import {
   assertCompatibleHistoryPageCommand,
   assertCompatibleHistoryPageSnapshot,
   assertCompatibleHistorySnapshot,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import type {
   HistoryChangedEvent,
   HistoryNavigationCommand,

@@ -16,7 +16,7 @@ import {
   assertCompatibleSurfaceMutationCommand,
   assertCompatibleSurfaceMutationResponse,
   assertCompatibleSurfaceSnapshot,
-} from "./compatibility.ts";
+} from "./validation.ts";
 
 export const SURFACE_SNAPSHOT_COMMAND = "longhorn_surfaces_snapshot";
 export const SURFACE_MUTATE_COMMAND = "longhorn_surfaces_mutate";

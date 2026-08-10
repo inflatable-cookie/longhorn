@@ -558,20 +558,43 @@ all. Both fixtures now carry the payload, generated from Rust as the rest
 are. An empty array in a fixture is not coverage of the thing that would have
 been in it.
 
-### Remaining
+## Step 6 — modules renamed 2026-08-10, symbols outstanding
 
-Nothing in steps 1-5. Step 6 — renaming the surface — is the last, and it is
-**deferred rather than ready**.
+*An earlier note here deferred step 6 on the belief that Longhorn was
+mid-publication. It is not — Card 166 published Poodle; Longhorn's packages
+are prepared but unpublished. That reason was wrong and is withdrawn.*
 
-Step 6 renames a consumer-visible export surface across 13 packages. Card 166
-is publishing those same packages to npm right now, and changing the public
-API of a package mid-publication is a worse problem than the untidy name.
-It waits for Card 166 to finish.
+The step splits in two, and only one half is safe to take alone.
 
-`effigy qa` is also red on `check:api-reference`, from
-`686d84a6 feat(release): make the three packages publishable` removing
-`private: true` while `scripts/generate-api-reference-card126.ts:68` still
-asserts it. Unrelated to this card and not touched here.
+**Modules — done.** Seventeen `compatibility.ts` files and four
+`compatibility/` directories are now `validation.ts` and `validation/`, with
+45 files' import paths rewritten. No `exports` subpath in any package manifest
+names `compatibility`, so this is internal: the modules are reached through
+each domain's `index.ts` and no consumer import changes.
+
+**Symbols — not done, and deliberately.** `assertCompatibleX` and
+`XProtocolIncompatibilityError` carry the same misnomer, and they *are*
+consumer-visible. Nucleus uses 78 of them across 3 files; Loophole uses one.
+Renaming them is a breaking change to a repository this session cannot edit,
+so it needs either a coordinated consumer migration or a deprecation window
+with both names exported — and the card's own rule, that carrying two of a
+thing is worse than either, argues against the second. That decision is the
+operator's, not this card's to assume.
+
+### A proof that was already broken
+
+`scripts/verify-soundcheck-card117.ts` read
+`packages/longhorn/src/operation/compatibility.ts` from pinned commit
+`0dd3c890`. That path does not exist there — at `0dd3c890` the eighteen
+packages had not yet collapsed into three, so it was
+`packages/operation/src/compatibility.ts`. The proof has therefore been
+failing since the collapse, and nothing noticed because it is wired into
+neither `effigy.toml` nor any workflow.
+
+The path is corrected here with a note about which parts move when the pin
+moves. It still fails, for a separate and Soundcheck-side reason: it expects a
+`@inflatable-cookie/longhorn-operation` dependency that the collapse replaced.
+That is out of this card's scope and out of this repository.
 
 ## Scope
 

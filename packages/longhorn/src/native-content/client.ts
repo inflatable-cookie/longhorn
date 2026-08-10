@@ -13,7 +13,7 @@ import {
   assertCompatibleNativeContentDesiredUpdateResult,
   assertCompatibleNativeContentSnapshotRequest,
   assertCompatibleNativeContentSnapshotResult,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   NATIVE_CONTENT_PROTOCOL_VERSION,
   type ContentSizeDecision,

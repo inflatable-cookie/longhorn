@@ -17,7 +17,7 @@ import {
   parseBridgeHelloRequest,
   parseBridgeNegotiationReceipt,
   parseBridgeStreamCursor,
-} from "../compatibility.ts";
+} from "../validation.ts";
 import { BridgeSession } from "../session.ts";
 import {
   checkedDeadline,

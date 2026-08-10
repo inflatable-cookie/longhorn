@@ -20,7 +20,7 @@ import {
   assertCompatibleSettingsRegistrySnapshot,
   assertCompatibleSettingsScopeChangedEvent,
   assertCompatibleSettingsScopeSnapshot,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   SETTINGS_REGISTRY_CHANGED_EVENT,
   SETTINGS_SCOPE_CHANGED_EVENT,

@@ -9,7 +9,7 @@ import type {
   BridgeServiceTransitionReceipt,
 } from "./generated/protocol.ts";
 import { BRIDGE_SERVICE_OWNERSHIPS } from "./generated/protocol.ts";
-import { opaqueId } from "./compatibility/base.ts";
+import { opaqueId } from "./validation/base.ts";
 
 export interface BridgeServiceSupervisorPort {
   perform(

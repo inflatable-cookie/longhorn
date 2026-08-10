@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleConfigOperationsSnapshot } from "../src/config/compatibility.ts";
+import { assertCompatibleConfigOperationsSnapshot } from "../src/config/validation.ts";
 import { CONFIG_FIELDS } from "../src/config/generated/fields.ts";
 
 /**

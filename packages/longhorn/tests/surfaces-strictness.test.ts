@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assertCompatibleSurfaceSnapshot,
   SurfaceProtocolIncompatibilityError,
-} from "../src/surfaces/compatibility.ts";
+} from "../src/surfaces/validation.ts";
 import { SURFACE_PROTOCOL_VERSION } from "../src/surfaces/generated/protocol.ts";
 
 /**

@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assertCompatibleTransferClientSnapshot,
   TransferProtocolIncompatibilityError,
-} from "../src/transfer/compatibility.ts";
+} from "../src/transfer/validation.ts";
 import { TRANSFER_FIELDS } from "../src/transfer/generated/fields.ts";
 import { SURFACE_TRANSFER_FIELDS } from "../src/surface-transfer/generated/fields.ts";
 

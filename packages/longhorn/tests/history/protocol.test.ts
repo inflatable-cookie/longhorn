@@ -8,7 +8,7 @@ import {
   assertCompatibleHistoryPageCommand,
   assertCompatibleHistoryPageSnapshot,
   assertCompatibleHistorySnapshot,
-} from "../../src/history/compatibility.ts";
+} from "../../src/history/validation.ts";
 import { clone, fixture } from "./support.ts";
 
 describe("Rust-generated history protocol", () => {

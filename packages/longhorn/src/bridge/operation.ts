@@ -8,7 +8,7 @@ import type {
   BridgeRetryClass,
   DomainId,
 } from "./generated/protocol.ts";
-import type { BridgeCodec } from "./compatibility.ts";
+import type { BridgeCodec } from "./validation.ts";
 import { BridgeSession } from "./session.ts";
 
 export type BridgeOperationKind = "query" | "command" | "cancellation";

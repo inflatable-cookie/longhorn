@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleSettingsLoadCommand } from "../src/settings/compatibility.ts";
+import { assertCompatibleSettingsLoadCommand } from "../src/settings/validation.ts";
 import { SETTINGS_FIELDS } from "../src/settings/generated/fields.ts";
 import fixture from "../../../fixtures/settings/protocol-v1.json";
 

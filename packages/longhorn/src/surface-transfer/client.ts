@@ -13,7 +13,7 @@ import type {
 import {
   assertCompatibleSurfaceSessionResponse,
   assertCompatibleSurfaceTransferResponse,
-} from "./compatibility.ts";
+} from "./validation.ts";
 
 export const TRANSFER_START_SURFACE_COMMAND =
   "longhorn_transfer_start_surface";

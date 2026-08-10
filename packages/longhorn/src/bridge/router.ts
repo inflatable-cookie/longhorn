@@ -5,7 +5,7 @@ import type {
 import {
   parseBridgeHelloRequest,
   parseBridgeNegotiationReceipt,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import type { BridgeOperationDescriptor } from "./operation.ts";
 
 type BridgeOperationHandler<Request, Reply> = (

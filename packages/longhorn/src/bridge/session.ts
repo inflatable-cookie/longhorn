@@ -8,7 +8,7 @@ import type {
 import {
   parseBridgeHelloRequest,
   parseBridgeNegotiationReceipt,
-} from "./compatibility.ts";
+} from "./validation.ts";
 
 export interface BridgeNegotiationAdapter {
   negotiate(request: BridgeHelloRequest): Promise<unknown>;

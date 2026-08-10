@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleHistoryChangedEvent } from "../src/history/compatibility.ts";
+import { assertCompatibleHistoryChangedEvent } from "../src/history/validation.ts";
 import { HISTORY_FIELDS } from "../src/history/generated/fields.ts";
-import { assertForkChangedEvent } from "../src/history-tree/compatibility.ts";
+import { assertForkChangedEvent } from "../src/history-tree/validation.ts";
 import { HISTORY_TREE_FIELDS } from "../src/history-tree/generated/fields.ts";
 
 /**

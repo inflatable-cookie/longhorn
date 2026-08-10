@@ -11,7 +11,7 @@ import {
   assertCompatibleOperationMutationCommand,
   assertCompatibleOperationMutationResult,
   assertCompatibleOperationSnapshotResponse,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import {
   OPERATION_PROTOCOL_VERSION,
   type OperationCancellationCommand,

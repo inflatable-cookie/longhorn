@@ -1,4 +1,4 @@
-import { assertForkBranchCommand, assertForkBranchPage, assertForkChangedEvent, assertForkNavigationCommand, assertForkNavigationResult, assertForkPathCommand, assertForkPathPage, assertForkSnapshot } from "./compatibility.ts";
+import { assertForkBranchCommand, assertForkBranchPage, assertForkChangedEvent, assertForkNavigationCommand, assertForkNavigationResult, assertForkPathCommand, assertForkPathPage, assertForkSnapshot } from "./validation.ts";
 import type { ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedEvent, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkSnapshot } from "./generated/protocol.ts";
 import type { CheckedForkHistoryPort, ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 

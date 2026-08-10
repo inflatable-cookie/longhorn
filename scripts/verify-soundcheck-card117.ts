@@ -120,7 +120,12 @@ function verifyLonghornBoundary(): void {
     "Consumers own admission, scheduling, execution,",
     "product progress, outcomes, artifacts, persistence, and recovery",
   ]) assertContains(library, token, "Longhorn operation authority boundary");
-  const compatibility = longhornRead("packages/longhorn/src/operation/compatibility.ts");
+  // Read from the pinned source commit, not the working tree. At 0dd3c890 the
+  // eighteen packages had not yet collapsed into three, so the path is
+  // `packages/operation/`, not `packages/longhorn/src/operation/` — and the
+  // file is `compatibility.ts`, which Card 160 step 6 later renamed to
+  // `validation.ts`. Both move only when the pin moves.
+  const compatibility = longhornRead("packages/operation/src/compatibility.ts");
   for (const token of ['"payload"', '"result"', '"artifact"', '"report"', '"log"']) {
     assertContains(compatibility, token, "payload-free protocol guard");
   }

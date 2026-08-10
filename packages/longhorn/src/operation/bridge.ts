@@ -22,7 +22,7 @@ import {
   assertCompatibleOperationMutationResult,
   assertCompatibleOperationSnapshotQuery,
   assertCompatibleOperationSnapshotResponse,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import type {
   OperationCancellationCommand,
   OperationCancellationResult,

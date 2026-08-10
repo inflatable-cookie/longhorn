@@ -7,7 +7,7 @@ import {
   assertCompatibleCommandKeymapPreview,
   assertCompatibleCommandKeymapPreviewResult,
   assertCompatibleCommandKeymapReset,
-} from "./compatibility.ts";
+} from "./validation.ts";
 import type {
   CommandAvailabilitySnapshot,
   CommandCatalogueSnapshot,

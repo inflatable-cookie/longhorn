@@ -6,7 +6,7 @@ import {
 } from "@inflatable-cookie/longhorn/core";
 
 import type { TransferClientSnapshot } from "./generated/protocol.ts";
-import { assertCompatibleTransferClientSnapshot } from "./compatibility.ts";
+import { assertCompatibleTransferClientSnapshot } from "./validation.ts";
 
 export const TRANSFER_CLIENT_CHANGED_EVENT =
   "longhorn://transfer/client-changed";
