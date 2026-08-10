@@ -9,8 +9,11 @@
 //!
 //! ```sh
 //! cargo run -p longhorn-packaged-update-proof -- \
-//!   --app ~/Dev/projects/soundcheck/target/debug/bundle/macos/Soundcheck.app
+//!   --app /path/to/YourApp.app
 //! ```
+//!
+//! Any packaged macOS application will do; the path is the operator's, and
+//! Longhorn keeps no knowledge of which application it is.
 //!
 //! Not in `effigy qa`: it needs a packaged application, which the gate does
 //! not build.

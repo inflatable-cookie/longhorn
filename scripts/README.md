@@ -53,8 +53,20 @@ repository's working tree. A proof that reads a second repository can only be
 green when both are simultaneously in one state, which is not a property this
 repository can hold.
 
-`verify-greenfield-card125.ts` enforces the absence of donor vocabulary inside
-the greenfield example root.
+`check:consumer-isolation`, a member of `qa`, enforces this. It names no
+consumer — it detects the mechanism, so a consumer arriving or leaving never
+requires editing it. Three things fail it:
+
+- a `*_REPO` environment override
+- an absolute path into another checkout
+- `resolve(repoRoot, "../name")` onto a sibling
+
+Poodle and poodle-specs are admitted by name in `DEPENDENCIES`, because
+Longhorn projects into them rather than the other way round. A fourth entry
+should be argued for.
+
+`verify-greenfield-card125.ts` separately enforces the absence of donor
+vocabulary inside the greenfield example root.
 
 ## Escape hatches
 
