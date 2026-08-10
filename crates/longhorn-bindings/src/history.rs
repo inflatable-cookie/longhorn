@@ -12,7 +12,7 @@ use longhorn_history::{
     HistoryNavigationRejectionProjection, HistoryNavigationResult,
     HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
     HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistorySnapshot,
-    HistorySummaryProjection,
+    HistorySummaryProjection, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
@@ -94,6 +94,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          // Rust serde types are the wire authority. Product payloads are intentionally absent.\n\n\
          export const HISTORY_PROTOCOL_VERSION = {HISTORY_PROTOCOL_VERSION} as const;\n\
          export const HISTORY_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
+         export const HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE = {MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE} as const;\n\
          export const HISTORY_MODES = {} as const;\n\
          export const HISTORY_ENTRY_POSITIONS = {} as const;\n\
          export const HISTORY_NAVIGATION_TARGETS = {} as const;\n\

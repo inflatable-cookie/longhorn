@@ -2,6 +2,8 @@
 // Rust serde types are the wire authority.
 
 export const SETTINGS_PROTOCOL_VERSION = 1 as const;
+export const SETTINGS_HARD_MAXIMUM_TEXT_BYTES = 16384 as const;
+export const SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES = 1048576 as const;
 export const SETTINGS_DURABILITY_KINDS = ["notApplicable","confirmed"] as const;
 export const SETTINGS_MUTATION_RESULT_STATUSES = ["applied","conflict","rejected"] as const;
 export const SETTINGS_LOAD_OUTCOME_STATUSES = ["loaded","rejected"] as const;

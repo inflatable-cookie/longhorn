@@ -1,4 +1,6 @@
 import {
+  BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES,
+  BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES,
   BRIDGE_MAXIMUM_OPAQUE_ID_BYTES,
   BRIDGE_FAILURE_PHASES,
   BRIDGE_RETRY_CLASSES,
@@ -92,7 +94,8 @@ export function parseBridgeFailure<D>(
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||
-    new TextEncoder().encode(source.message).length > 4096
+    new TextEncoder().encode(source.message).length >
+      BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES
   ) {
     incompatible("invalid_message", source.message);
   }
@@ -130,7 +133,7 @@ export function parseBridgeDeduplicationSupport(
   }
   const source = value as { finite: unknown };
   const capacity = integer(source.finite, 1);
-  if (capacity > 65_536) {
+  if (capacity > BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES) {
     incompatible("unknown_deduplication_support", value);
   }
   return { finite: capacity };

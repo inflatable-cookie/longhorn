@@ -3,6 +3,7 @@
 
 export const HISTORY_PROTOCOL_VERSION = 1 as const;
 export const HISTORY_MAXIMUM_OPAQUE_ID_BYTES = 128 as const;
+export const HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE = 4096 as const;
 export const HISTORY_MODES = ["linear"] as const;
 export const HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
 export const HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout"] as const;

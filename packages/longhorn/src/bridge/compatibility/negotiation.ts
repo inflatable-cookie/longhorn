@@ -2,6 +2,7 @@ import {
   BRIDGE_MAXIMUM_AUTHORITY_DOMAINS,
   BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN,
   BRIDGE_MAXIMUM_CAPABILITY_DOMAINS,
+  BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES,
   BRIDGE_MAXIMUM_DIAGNOSTICS,
   BRIDGE_MAXIMUM_REQUESTED_DOMAINS,
   BRIDGE_MAXIMUM_TRANSPORT_FEATURES,
@@ -251,7 +252,8 @@ function parseDiagnostic(value: unknown): BridgeDiagnostic {
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||
-    new TextEncoder().encode(source.message).length > 4096
+    new TextEncoder().encode(source.message).length >
+      BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES
   ) {
     incompatible("invalid_message", source.message);
   }

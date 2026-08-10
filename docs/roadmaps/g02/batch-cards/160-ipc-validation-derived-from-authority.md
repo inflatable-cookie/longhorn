@@ -435,6 +435,58 @@ discriminants — none of which a field map covers.
 Giving it a `record` would be building a boundary the package does not own.
 It is removed from step 4's scope rather than left open.
 
+## Step 2 Landed — 2026-08-10
+
+Every wire-visible bound now comes from a named Rust constant.
+
+Five literals were still hardcoded in TypeScript, and the interesting part is
+that two of them had a generated constant sitting unused in the same package:
+`BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES` and
+`BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES` were both emitted, both correct, and
+both ignored in favour of `4096` written out twice. Emitting a constant is not
+the same as using it, and nothing had been checking the difference.
+
+| literal | now | source |
+| --- | --- | --- |
+| `4096` ×2 (bridge) | `BRIDGE_MAXIMUM_{DIAGNOSTIC,FAILURE}_MESSAGE_BYTES` | already emitted, unused |
+| `65_536` (bridge) | `BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES` | newly emitted |
+| `4_096` (history) | `HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE` | newly emitted |
+| `64` (commands) | `COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES` | newly emitted |
+| `16_384` (settings) | `SETTINGS_HARD_MAXIMUM_TEXT_BYTES` | newly emitted |
+| `1_048_576` (settings) | `SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES` | newly emitted |
+
+Five Rust constants had to widen visibility to be emitted — four
+`SettingsLimits::HARD_MAXIMUM_*` from `pub(crate)`, and
+`MAXIMUM_PHYSICAL_CODE_BYTES` from private. That is not a concession: each was
+already reflected in TypeScript, so each was public API in fact before it was
+public in visibility.
+
+`settings`' `HARD_MAXIMUM_OPAQUE_VALUE_BYTES` keeps its name, so its twenty
+call sites do not churn; only its value moved to the generated source. It
+needed an explicit `: number`, because the generated constants are `as const`
+and the literal type `1048576` is not assignable to a `number` parameter. The
+type checker caught that immediately.
+
+### The drift gate, demonstrated
+
+The card asks for the gate failing on a deliberate Rust-side change, so:
+`HARD_MAXIMUM_TEXT_BYTES` changed from `16_384` to `8_192` in Rust only.
+
+```
+$ effigy check:bindings
+longhorn-bindings: generated settings artifacts drifted:
+  packages/longhorn/src/settings/generated/protocol.ts; run `effigy generate:settings`
+exit 1
+```
+
+Named the file and named the fix. Reverted; the gate returned to zero.
+
+One thing this does *not* catch: a bound that exists in Rust and is enforced
+nowhere in TypeScript. The gate compares generated output against generated
+output, so a constant nothing imports drifts silently — which is exactly how
+bridge's two message-byte constants sat unused. Emission is gated; *use* is
+not.
+
 ### Remaining
 
 The nested call sites in `config` and `settings` — the fragments below each
@@ -455,9 +507,9 @@ an unknown and a missing field at its top level.
    **Boundary Validation Target**: the boundary matches the Rust authority's
    strictness and derives it. Unknown fields rejected, missing fields
    rejected, every bound from a named constant.
-2. Emit the `MAXIMUM_*` constants from the Rust authority into the generated
-   protocol modules. Independently useful and shippable alone: it gives the
-   29 existing magic numbers a source, and a diff gate.
+2. ~~Emit the `MAXIMUM_*` constants from the Rust authority into the generated
+   protocol modules.~~ Landed 2026-08-10. Six literals replaced across four
+   packages; two of them already had an emitted constant that nothing used.
 3. ~~Extract bridge's state/reason matrix into a hand-owned module.~~ Landed
    2026-08-10 as generation instead — the premise that it could not be derived
    was wrong.
@@ -469,13 +521,14 @@ an unknown and a missing field at its top level.
 
 ## Acceptance Criteria
 
-- every package rejects unknown and missing fields at the boundary
-- every Rust `MAXIMUM_*` that bounds a wire-visible collection is enforced
+- [x] every package rejects unknown and missing fields at the boundary — at
+  the top level; nested fragments in `config` and `settings` remain
+- [x] every Rust `MAXIMUM_*` that bounds a wire-visible collection is enforced
   in TypeScript from a generated constant, never a literal
 - no package carries both generated and hand-written validators
 - [x] the state/reason matrix has one source — generated from
   `BridgeConnectionStatus::ADMITTED_REASONS`, not hand-owned as planned
-- `check:bindings` fails when a bound changes in Rust and not in TypeScript
+- [x] `check:bindings` fails when a bound changes in Rust and not in TypeScript
 - 187 call sites keep working; the 12 client modules are unchanged
 
 ## Evidence Required

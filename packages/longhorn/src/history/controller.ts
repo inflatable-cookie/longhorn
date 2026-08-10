@@ -10,6 +10,7 @@ import {
   type HistoryPageSnapshot,
   type HistorySnapshot,
 } from "./generated/protocol.ts";
+import { HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE } from "./generated/protocol.ts";
 import type { HistoryPort, HistoryUnlisten } from "./ports.ts";
 
 export type HistoryControllerStatus =
@@ -359,8 +360,14 @@ function checkedPage(value: number): number {
 }
 
 function checkedPageSize(value: number): number {
-  if (!Number.isSafeInteger(value) || value < 1 || value > 4_096) {
-    throw new RangeError("history page size must be between 1 and 4096");
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE
+  ) {
+    throw new RangeError(
+      `history page size must be between 1 and ${HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE}`,
+    );
   }
   return value;
 }

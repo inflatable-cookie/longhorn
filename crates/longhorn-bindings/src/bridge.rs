@@ -19,8 +19,9 @@ use longhorn_bridge::{
     BridgeStreamCursor, BridgeStreamDecision, BridgeStreamSequence, BridgeTransitionSequence,
     DomainAuthorityDescriptor, DomainAvailability, DomainCapabilityDescriptor, ExecutionAuthority,
     MAXIMUM_AUTHORITY_DOMAINS, MAXIMUM_CAPABILITIES_PER_DOMAIN, MAXIMUM_CAPABILITY_DOMAINS,
-    MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES, MAXIMUM_DIAGNOSTICS, MAXIMUM_FAILURE_MESSAGE_BYTES,
-    MAXIMUM_REQUESTED_DOMAINS, MAXIMUM_TRANSPORT_FEATURES, ReadAuthority, WriteAuthority,
+    MAXIMUM_DEDUPLICATION_ENTRIES, MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES, MAXIMUM_DIAGNOSTICS,
+    MAXIMUM_FAILURE_MESSAGE_BYTES, MAXIMUM_REQUESTED_DOMAINS, MAXIMUM_TRANSPORT_FEATURES,
+    ReadAuthority, WriteAuthority,
 };
 use longhorn_core::{
     AuthorityScopeId, BridgeCapabilityId, BridgeCredentialRef, BridgeDiagnosticId, BridgeErrorCode,
@@ -207,6 +208,7 @@ fn render_protocol() -> Result<String, Box<dyn Error>> {
          export const BRIDGE_MAXIMUM_DIAGNOSTICS = {MAXIMUM_DIAGNOSTICS} as const;\n\
          export const BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES = {MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES} as const;\n\
          export const BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES = {MAXIMUM_FAILURE_MESSAGE_BYTES} as const;\n\
+         export const BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES = {MAXIMUM_DEDUPLICATION_ENTRIES} as const;\n\
          export const BRIDGE_HOST_FORMS = {} as const;\n\
          export const BRIDGE_CONNECTION_STATES = {} as const;\n\
          export const BRIDGE_CONNECTION_REASONS = {} as const;\n\

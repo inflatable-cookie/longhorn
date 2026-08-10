@@ -13,6 +13,7 @@ export const BRIDGE_MAXIMUM_TRANSPORT_FEATURES = 128 as const;
 export const BRIDGE_MAXIMUM_DIAGNOSTICS = 64 as const;
 export const BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES = 4096 as const;
 export const BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES = 4096 as const;
+export const BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES = 65536 as const;
 export const BRIDGE_HOST_FORMS = ["direct","tauriLocal","localService","remote","localFirst"] as const;
 export const BRIDGE_CONNECTION_STATES = ["idle","connecting","negotiating","ready","degraded","reconnecting","offline","incompatible","unauthorized","failed","closed"] as const;
 export const BRIDGE_CONNECTION_REASONS = ["connectRequested","transportReady","negotiationAccepted","capabilityChanged","transportLost","retryScheduled","versionMismatch","authorizationRejected","hostFailure","shutdown"] as const;

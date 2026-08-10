@@ -2,6 +2,7 @@
 // Rust serde types are the wire authority.
 
 export const COMMAND_KEYMAP_PROTOCOL_VERSION = 1 as const;
+export const COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES = 64 as const;
 export const COMMAND_KEYMAP_LOAD_STATUSES = ["loaded","recovery","unavailable"] as const;
 export const COMMAND_KEYMAP_PREVIEW_STATUSES = ["accepted","stale","rejected"] as const;
 export const COMMAND_KEYMAP_MUTATION_STATUSES = ["applied","stale","rejected"] as const;

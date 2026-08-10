@@ -47,7 +47,7 @@ pub use keyboard::{
     CommandKeyChord, CommandKeyTrigger, CommandKeyboardInput, CommandKeyboardMode,
     CommandModifierError, CommandModifiers, CommandNativeModifier, CommandPhysicalCode,
     CommandPhysicalCodeError, CommandPlatform, CommandPlatformScope, CommandReservedChordPolicy,
-    CommandTriggerModifiers, NoReservedCommandChords,
+    CommandTriggerModifiers, MAXIMUM_PHYSICAL_CODE_BYTES, NoReservedCommandChords,
 };
 pub use keymap::{
     CommandBindingCandidate, CommandBindingDefinition, CommandBindingReplacement,

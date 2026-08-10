@@ -2,7 +2,8 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-const MAXIMUM_PHYSICAL_CODE_BYTES: usize = 64;
+/// Maximum bytes in a physical key code.
+pub const MAXIMUM_PHYSICAL_CODE_BYTES: usize = 64;
 
 /// Desktop platform used to resolve semantic modifiers and platform bindings.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

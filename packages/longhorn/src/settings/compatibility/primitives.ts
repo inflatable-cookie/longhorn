@@ -1,4 +1,5 @@
 import {
+  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   SETTINGS_PROTOCOL_VERSION,
   type SettingsOpaqueValue,
 } from "../generated/protocol.ts";
@@ -7,7 +8,13 @@ import {
   type SettingsProtocolIncompatibilityCode,
 } from "./error.ts";
 
-export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES = 1_048_576;
+/**
+ * Kept under its original name so the twenty call sites do not churn, but the
+ * value is now the Rust `SettingsLimits::HARD_MAXIMUM_OPAQUE_VALUE_BYTES`
+ * rather than a literal that happened to match it.
+ */
+export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: number =
+  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES;
 const OPAQUE_ID = /^[a-z0-9][a-z0-9._:/-]{0,254}$/;
 
 export function authority(value: unknown): void {

@@ -1,3 +1,4 @@
+import { COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES } from "./generated/protocol.ts";
 import type {
   CommandBindingCandidate,
   CommandDiscoveryRecord,
@@ -354,7 +355,7 @@ function validPhysicalCode(code: string): boolean {
   return (
     code !== "Unidentified" &&
     code.length > 0 &&
-    code.length <= 64 &&
+    code.length <= COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES &&
     /^[A-Z][A-Za-z0-9]*$/u.test(code)
   );
 }

@@ -3,6 +3,7 @@ import {
   SETTINGS_ACTIVATION_STATES,
   SETTINGS_EDITABILITIES,
   SETTINGS_EFFECTIVE_SOURCES,
+  SETTINGS_HARD_MAXIMUM_TEXT_BYTES,
   SETTINGS_POLICY_EFFECTS,
   SETTINGS_RECOVERY_CODES,
   type SettingsScopeSnapshot,
@@ -50,7 +51,7 @@ export function assertCompatibleSettingsScopeSnapshot(
     }
     array(projection.sourceDiagnostics).forEach((value) => {
       const diagnostic = record(value);
-      text(diagnostic.code, 16_384);
+      text(diagnostic.code, SETTINGS_HARD_MAXIMUM_TEXT_BYTES);
       optionalOpaque(diagnostic.detail, maximumOpaqueValueBytes);
     });
   });

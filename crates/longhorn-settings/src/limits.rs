@@ -32,10 +32,14 @@ pub struct SettingsLimits {
 }
 
 impl SettingsLimits {
-    pub(crate) const HARD_MAXIMUM_REGISTRATIONS: usize = 65_536;
-    pub(crate) const HARD_MAXIMUM_PAGE_ITEMS: usize = 4_096;
-    pub(crate) const HARD_MAXIMUM_TEXT_BYTES: usize = 16_384;
-    pub(crate) const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: usize = 1_048_576;
+    /// Defensive ceiling on any one registration count.
+    pub const HARD_MAXIMUM_REGISTRATIONS: usize = 65_536;
+    /// Defensive ceiling on items in one page.
+    pub const HARD_MAXIMUM_PAGE_ITEMS: usize = 4_096;
+    /// Defensive ceiling on bytes in any bounded text field.
+    pub const HARD_MAXIMUM_TEXT_BYTES: usize = 16_384;
+    /// Defensive ceiling on one opaque value envelope.
+    pub const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: usize = 1_048_576;
 
     /// Returns whether every limit is nonzero and below the defensive ceiling.
     #[must_use]
