@@ -192,13 +192,52 @@ runtime dependencies.
    --frozen-lockfile` has failed on the machine-local Poodle path since
    2026-08-06. This is the first honest run of the TypeScript lane.
 4. **Longhorn publishes** the three packages, same flag changes.
-5. **Tag v0.1.0.** Rust consumers take crates by git tag; TypeScript consumers
-   take packages by version. `effigy release:gates` runs the floor and
-   source-consumer checks.
+5. **Tag v0.1.0**, then dispatch each release workflow against the tag ref.
+   Rust consumers take crates by git tag; TypeScript consumers take packages
+   by version. `effigy release:gates` runs the floor and source-consumer
+   checks.
 6. **Consumers repoint.** 18 repositories off Poodle paths, 6 off Longhorn
    paths, then their own checks. The `overrides` blocks that exist purely to
    satisfy peers under `file:` references can be deleted at the same time —
    that papercut closes on publication.
+
+## Actions Are Dispatch-Only — 2026-08-10
+
+Actions were disabled org-wide after the allowance ran out, and they are
+re-enabled per repository once its workflows are known safe. Every workflow in
+both repositories now has `workflow_dispatch` as its only trigger: no push, no
+pull_request, no schedule.
+
+The cost was concentrated in macOS. Poodle ran a nightly `ci-native` job behind
+a "did the default branch move in the last 24h" guard, which is true every day
+during active development, so it was a daily macOS run at ten times the Linux
+rate. Longhorn runs *all four* CI jobs on macOS, because `effigy qa` builds
+`longhorn-gpui-windowing` and gpui pulls metal.
+
+The failure mode is worth recording because it does not look like a budget
+problem. Dispatched runs sat queued indefinitely, and both `cancel` and
+`force-cancel` returned HTTP 500 while githubstatus.com reported all systems
+operational. That reads like a GitHub incident.
+
+This changes step 5. `release.yml` no longer has a `push: tags` trigger in
+either repository; dispatch it against the tag ref instead, which
+`workflow_dispatch` accepts, so `github.ref` is `refs/tags/v0.1.0` and the
+version-agrees-with-the-tag check still fires:
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+gh workflow run release.yml --ref v0.1.0 -f dry-run=false
+```
+
+That ordering matters here specifically. The bootstrap below publishes by hand
+*before* trusted publishers exist, so a tag push would fire a run attempting to
+republish versions already on the registry — a red run at the exact moment the
+release needs to look trustworthy.
+
+Poodle's release job also moved from `macos-latest` to `ubuntu-latest`.
+`effigy ci` is `ci:web` plus `ci:rust`; `ci:native` is the only macOS-bound
+lane and is deliberately not part of it. Longhorn's stays on macOS, where the
+gpui dependency makes it genuine.
 
 ## Acceptance Criteria
 
@@ -211,6 +250,7 @@ runtime dependencies.
 - contract 012's "working names" and "publication is deferred" clauses updated
   to describe what actually happened
 - no `NPM_TOKEN` secret exists in either repository, at any point
+- every workflow in both repositories triggers only on `workflow_dispatch`
 - trusted publishing is configured for all five published packages
 - a tarball built from a clean checkout contains the generated icon and token
   trees
