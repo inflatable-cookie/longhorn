@@ -342,6 +342,12 @@
     },
     "status": "committed"
   },
+  "hostDestroy": {
+    "current_observed_revision": 1,
+    "generation": 1,
+    "outcome": "invalidated",
+    "previous_observed_revision": 0
+  },
   "incompatibility": {
     "futureProtocolVersion": 2,
     "unknownChangeKind": "product_payload",

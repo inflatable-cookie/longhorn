@@ -303,7 +303,13 @@ fn plain_object(declaration: &str) -> Option<(String, String)> {
     if body.contains('{') || body.contains('}') {
         return None;
     }
-    Some((name.trim().to_owned(), body.to_owned()))
+    // A generic type carries its parameters in the declared name —
+    // `BridgeProgressEvent<P>`. The allowed keys do not depend on them, and a
+    // key with angle brackets is not a usable property name on the generated
+    // record, so the parameters come off.
+    let name = name.trim();
+    let name = name.split_once('<').map_or(name, |(base, _)| base);
+    Some((name.to_owned(), body.to_owned()))
 }
 
 /// Removes `/** .. */` blocks, which `ts-rs` emits from Rust doc comments.

@@ -1,3 +1,4 @@
+import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import {
   BRIDGE_MAXIMUM_AUTHORITY_DOMAINS,
   BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN,
@@ -45,11 +46,7 @@ export function assertBridgeProtocolVersion(value: unknown): asserts value is 1 
 }
 
 export function parseBridgeHelloRequest(value: unknown): BridgeHelloRequest {
-  const source = record(value, [
-    "protocolVersion",
-    "bridgeId",
-    "requestedDomains",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeHelloRequest);
   assertBridgeProtocolVersion(source.protocolVersion);
   const requestedDomains = array(source.requestedDomains, BRIDGE_MAXIMUM_REQUESTED_DOMAINS).map(domainId);
   unique(requestedDomains, String);
@@ -64,17 +61,7 @@ export function parseBridgeNegotiationReceipt(
   value: unknown,
   request?: BridgeHelloRequest,
 ): BridgeNegotiationReceipt {
-  const source = record(value, [
-    "protocolVersion",
-    "host",
-    "sessionId",
-    "connection",
-    "authentication",
-    "transportFeatures",
-    "domainCapabilities",
-    "domainAuthorities",
-    "diagnostics",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeNegotiationReceipt);
   assertBridgeProtocolVersion(source.protocolVersion);
   const capabilities = array(source.domainCapabilities, BRIDGE_MAXIMUM_CAPABILITY_DOMAINS).map(
     parseDomainCapability,
@@ -135,7 +122,7 @@ export function parseBridgeNegotiationReceipt(
 }
 
 function parseHost(value: unknown): BridgeHostDescriptor {
-  const source = record(value, ["hostInstanceId", "form"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeHostDescriptor);
   return {
     hostInstanceId: opaqueId(source.hostInstanceId),
     form: oneOf(source.form, BRIDGE_HOST_FORMS, "unknown_host_form"),
@@ -143,7 +130,7 @@ function parseHost(value: unknown): BridgeHostDescriptor {
 }
 
 function parseConnectionStatus(value: unknown): BridgeConnectionStatus {
-  const source = record(value, ["state", "reason"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeConnectionStatus);
   const state = oneOf(
     source.state,
     BRIDGE_CONNECTION_STATES,
@@ -176,7 +163,7 @@ function validConnectionReason(
 }
 
 function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {
-  const source = record(value, ["domainId", "capabilities"]);
+  const source = record(value, BRIDGE_FIELDS.DomainCapabilityDescriptor);
   const capabilities = array(source.capabilities, BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN).map(opaqueId);
   if (capabilities.length === 0) {
     incompatible("invalid_array", value);
@@ -189,16 +176,7 @@ function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {
 }
 
 function parseDomainAuthority(value: unknown): DomainAuthorityDescriptor {
-  const source = record(value, [
-    "domainId",
-    "scopeId",
-    "availability",
-    "readAuthority",
-    "writeAuthority",
-    "executionAuthority",
-    "authorityEpoch",
-    "authoritativeRevision",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.DomainAuthorityDescriptor);
   const availability = oneOf(
     source.availability,
     BRIDGE_DOMAIN_AVAILABILITIES,
@@ -248,7 +226,7 @@ function parseDomainAuthority(value: unknown): DomainAuthorityDescriptor {
 }
 
 function parseDiagnostic(value: unknown): BridgeDiagnostic {
-  const source = record(value, ["diagnosticId", "message"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeDiagnostic);
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||

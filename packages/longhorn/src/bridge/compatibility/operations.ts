@@ -1,3 +1,4 @@
+import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import {
   BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES,
   BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES,
@@ -26,7 +27,7 @@ import {
 export function parseBridgeRequestContext(
   value: unknown,
 ): BridgeRequestContext {
-  const source = record(value, ["requestId", "sessionId", "domainId"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeRequestContext);
   return {
     requestId: opaqueId(source.requestId),
     sessionId: opaqueId(source.sessionId),
@@ -38,7 +39,7 @@ export function parseBridgeQueryEnvelope<P>(
   value: unknown,
   payload: BridgeCodec<P>,
 ): BridgeQueryEnvelope<P> {
-  const source = record(value, ["context", "payload"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeQueryEnvelope);
   return {
     context: parseBridgeRequestContext(source.context),
     payload: payload.parse(source.payload),
@@ -49,13 +50,7 @@ export function parseBridgeCommandEnvelope<P>(
   value: unknown,
   payload: BridgeCodec<P>,
 ): BridgeCommandEnvelope<P> {
-  const source = record(value, [
-    "context",
-    "authorityEpoch",
-    "expectedRevision",
-    "idempotencyKey",
-    "payload",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeCommandEnvelope);
   return {
     context: parseBridgeRequestContext(source.context),
     authorityEpoch: integer(source.authorityEpoch, 1),
@@ -68,11 +63,7 @@ export function parseBridgeCommandEnvelope<P>(
 export function parseBridgeCancellationRequest(
   value: unknown,
 ): BridgeCancellationRequest {
-  const source = record(value, [
-    "context",
-    "targetRequestId",
-    "jobId",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeCancellationRequest);
   return {
     context: parseBridgeRequestContext(source.context),
     targetRequestId: opaqueId(source.targetRequestId),
@@ -84,13 +75,7 @@ export function parseBridgeFailure<D>(
   value: unknown,
   details: BridgeCodec<D>,
 ): BridgeFailure<D> {
-  const source = record(value, [
-    "code",
-    "message",
-    "retryClass",
-    "phase",
-    "details",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeFailure);
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||
@@ -144,7 +129,7 @@ export function parseBridgeQueryReply<S, D>(
   success: BridgeCodec<S>,
   details: BridgeCodec<D>,
 ): BridgeQueryReply<S, D> {
-  const source = record(value, ["requestId", "outcome"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeQueryReply);
   return {
     requestId: opaqueId(source.requestId),
     outcome: parseQueryOutcome(source.outcome, success, details),
@@ -156,11 +141,7 @@ export function parseBridgeCommandReply<S, D>(
   success: BridgeCodec<S>,
   details: BridgeCodec<D>,
 ): BridgeCommandReply<S, D> {
-  const source = record(value, [
-    "requestId",
-    "authoritativeRevision",
-    "outcome",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeCommandReply);
   return {
     requestId: opaqueId(source.requestId),
     authoritativeRevision: nullable(

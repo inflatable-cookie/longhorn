@@ -1,3 +1,4 @@
+import { NATIVE_CONTENT_FIELDS } from "../generated/fields.ts";
 import {
   NATIVE_CONTENT_CONNECT_STATUSES,
   NATIVE_CONTENT_DECISION_STATUSES,
@@ -41,23 +42,14 @@ import {
 export function assertCompatibleNativeContentConnectRequest(
   value: unknown,
 ): asserts value is NativeContentConnectRequest {
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "request_id",
-    "island_id",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentConnectRequest);
   requestEnvelope(object);
 }
 
 export function assertCompatibleNativeContentSnapshotRequest(
   value: unknown,
 ): asserts value is NativeContentSnapshotRequest {
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "request_id",
-    "island_id",
-    "client_epoch",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshotRequest);
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
 }
@@ -66,14 +58,7 @@ export function assertCompatibleNativeContentDesiredUpdateRequest(
   value: unknown,
 ): asserts value is NativeContentDesiredUpdateRequest {
   assertProductPayloadFree(value);
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "request_id",
-    "island_id",
-    "client_epoch",
-    "expected_desired_revision",
-    "update",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentDesiredUpdateRequest);
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
   natural(object.expected_desired_revision, "$.expected_desired_revision");
@@ -84,14 +69,7 @@ export function assertCompatibleNativeContentDecisionRequest(
   value: unknown,
 ): asserts value is NativeContentContentSizeDecisionRequest {
   assertProductPayloadFree(value);
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "request_id",
-    "island_id",
-    "client_epoch",
-    "proposal",
-    "decision",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentContentSizeDecisionRequest);
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
   assertCompatibleContentSizeProposal(object.proposal);
@@ -205,7 +183,7 @@ function responseCorrelation(object: Record<string, unknown>): void {
 }
 
 function rejection(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["code", "message", "phase", "retry"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.NativeContentProtocolRejection);
   member(object.code, NATIVE_CONTENT_REJECTION_CODES, `${path}.code`);
   text(object.message, `${path}.message`);
   member(object.phase, NATIVE_CONTENT_FAILURE_PHASES, `${path}.phase`);

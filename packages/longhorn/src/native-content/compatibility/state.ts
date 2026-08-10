@@ -1,3 +1,4 @@
+import { NATIVE_CONTENT_FIELDS } from "../generated/fields.ts";
 import {
   NATIVE_CONTENT_ATTACHMENT_LIFECYCLES,
   NATIVE_CONTENT_CHANGE_KINDS,
@@ -43,13 +44,7 @@ export function assertCompatibleNativeContentSnapshot(
   value: unknown,
 ): asserts value is NativeContentSnapshot {
   assertProductPayloadFree(value);
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "cursor",
-    "desired",
-    "observed",
-    "invalidated_generation",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshot);
   assertNativeContentProtocolVersion(object.protocol_version);
   cursor(object.cursor, "$.cursor");
   desiredState(object.desired, "$.desired");
@@ -72,11 +67,7 @@ export function assertCompatibleNativeContentChangedEvent(
   value: unknown,
 ): asserts value is NativeContentChangedEvent {
   assertProductPayloadFree(value);
-  const object = exactObject(value, "$", [
-    "protocol_version",
-    "cursor",
-    "change",
-  ]);
+  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentChangedEvent);
   assertNativeContentProtocolVersion(object.protocol_version);
   cursor(object.cursor, "$.cursor");
   change(object.change, "$.change");
@@ -101,14 +92,7 @@ export function assertCompatibleContentSizeDecision(
 }
 
 export function cursor(value: unknown, path: string): asserts value is NativeContentCursor {
-  const object = exactObject(value, path, [
-    "authority_epoch",
-    "client_epoch",
-    "island_id",
-    "attach_generation",
-    "desired_revision",
-    "observed_revision",
-  ]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.NativeContentCursor);
   positive(object.authority_epoch, `${path}.authority_epoch`);
   positive(object.client_epoch, `${path}.client_epoch`);
   opaqueId(object.island_id, `${path}.island_id`);
@@ -121,11 +105,7 @@ export function proposal(
   value: unknown,
   path: string,
 ): asserts value is ContentSizeProposal {
-  const object = exactObject(value, path, [
-    "generation",
-    "desired_revision",
-    "size",
-  ]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ContentSizeProposal);
   positive(object.generation, `${path}.generation`);
   natural(object.desired_revision, `${path}.desired_revision`);
   clientSize(object.size, `${path}.size`);
@@ -188,14 +168,7 @@ function desiredState(value: unknown, path: string): void {
 }
 
 function capabilities(value: unknown, path: string): void {
-  const object = exactObject(value, path, [
-    "mechanism",
-    "active_input_routing",
-    "accepts_content_size_requests",
-    "detach_policy",
-    "observes_visibility",
-    "observes_focus",
-  ]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.MechanismCapabilities);
   member(object.mechanism, NATIVE_CONTENT_MECHANISMS, `${path}.mechanism`);
   member(object.active_input_routing, NATIVE_CONTENT_INPUT_ROUTING_MODES, `${path}.active_input_routing`);
   boolean(object.accepts_content_size_requests, `${path}.accepts_content_size_requests`);
@@ -216,16 +189,7 @@ function desiredVisibility(value: unknown, path: string): void {
 }
 
 function observedState(value: unknown, path: string): void {
-  const object = exactObject(value, path, [
-    "revision",
-    "generation",
-    "lifecycle",
-    "readiness",
-    "visibility",
-    "focus",
-    "geometry",
-    "input_routing",
-  ]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ObservedState);
   natural(object.revision, `${path}.revision`);
   positive(object.generation, `${path}.generation`);
   member(object.lifecycle, NATIVE_CONTENT_ATTACHMENT_LIFECYCLES, `${path}.lifecycle`);
@@ -299,21 +263,21 @@ function change(value: unknown, path: string): void {
 }
 
 export function desiredReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["previous_revision", "current_revision", "generation"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.DesiredUpdateReceipt);
   natural(object.previous_revision, `${path}.previous_revision`);
   natural(object.current_revision, `${path}.current_revision`);
   positive(object.generation, `${path}.generation`);
 }
 
 export function proposalReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["proposal", "decision", "accepted_size"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ContentSizeProposalReceipt);
   proposal(object.proposal, `${path}.proposal`);
   decision(object.decision, `${path}.decision`);
   nullable(object.accepted_size, `${path}.accepted_size`, clientSize);
 }
 
 function observationReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["previous_revision", "current_revision", "generation", "lifecycle"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ObservationReceipt);
   natural(object.previous_revision, `${path}.previous_revision`);
   natural(object.current_revision, `${path}.current_revision`);
   positive(object.generation, `${path}.generation`);
@@ -321,7 +285,7 @@ function observationReceipt(value: unknown, path: string): void {
 }
 
 function hostDestroyReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["previous_observed_revision", "current_observed_revision", "generation", "outcome"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.HostDestroyReceipt);
   natural(object.previous_observed_revision, `${path}.previous_observed_revision`);
   natural(object.current_observed_revision, `${path}.current_observed_revision`);
   positive(object.generation, `${path}.generation`);
@@ -329,7 +293,7 @@ function hostDestroyReceipt(value: unknown, path: string): void {
 }
 
 function applyReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["island_id", "desired_revision", "observed_revision", "generation", "steps"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ApplyReceipt);
   opaqueId(object.island_id, `${path}.island_id`);
   natural(object.desired_revision, `${path}.desired_revision`);
   natural(object.observed_revision, `${path}.observed_revision`);
@@ -340,7 +304,7 @@ function applyReceipt(value: unknown, path: string): void {
 }
 
 function stepReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["step", "operation", "outcome"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.StepReceipt);
   positive(object.step, `${path}.step`);
   operation(object.operation, `${path}.operation`);
   outcome(object.outcome, `${path}.outcome`);
@@ -402,15 +366,15 @@ function outcome(value: unknown, path: string): void {
 }
 
 function clientRect(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["origin", "size"]);
-  const origin = exactObject(object.origin, `${path}.origin`, ["x", "y"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ClientRect);
+  const origin = exactObject(object.origin, `${path}.origin`, NATIVE_CONTENT_FIELDS.ClientPoint);
   finite(origin.x, `${path}.origin.x`);
   finite(origin.y, `${path}.origin.y`);
   clientSize(object.size, `${path}.size`);
 }
 
 function clientSize(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["width", "height"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ClientSize);
   finite(object.width, `${path}.width`);
   finite(object.height, `${path}.height`);
   if ((object.width as number) < 0 || (object.height as number) < 0) {
@@ -419,15 +383,15 @@ function clientSize(value: unknown, path: string): void {
 }
 
 function physicalRect(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["origin", "size"]);
-  const origin = exactObject(object.origin, `${path}.origin`, ["x", "y"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ClientRect);
+  const origin = exactObject(object.origin, `${path}.origin`, NATIVE_CONTENT_FIELDS.ClientPoint);
   integer(origin.x, `${path}.origin.x`);
   integer(origin.y, `${path}.origin.y`);
   physicalSize(object.size, `${path}.size`);
 }
 
 function physicalSize(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["width", "height"]);
+  const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ClientSize);
   natural(object.width, `${path}.width`);
   natural(object.height, `${path}.height`);
 }

@@ -5,17 +5,19 @@ use longhorn_bridge::{
     BridgeCancellationReceipt, BridgeCancellationRequest, BridgeCommandDelivery,
     BridgeCommandEnvelope, BridgeCommandOutcome, BridgeCommandReply, BridgeConnectionReason,
     BridgeConnectionState, BridgeConnectionStatus, BridgeDeduplicationCapacity,
-    BridgeDeduplicationSupport, BridgeEventEnvelope, BridgeFailure, BridgeFailureMessage,
-    BridgeFailurePhase, BridgeHelloRequest, BridgeHostDescriptor, BridgeHostForm,
-    BridgeJobTerminalEvent, BridgeJobTerminalOutcome, BridgeJobTracker, BridgeNegotiationReceipt,
-    BridgeProgressEvent, BridgeQueryEnvelope, BridgeQueryOutcome, BridgeQueryReply,
-    BridgeRequestContext, BridgeRetryClass, BridgeSnapshotEnvelope, BridgeStreamCursor,
-    BridgeStreamSequence, BridgeStreamTracker, DomainAuthorityDescriptor, DomainAvailability,
-    DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority, WriteAuthority,
+    BridgeDeduplicationSupport, BridgeDiagnostic, BridgeEventEnvelope, BridgeFailure,
+    BridgeFailureMessage, BridgeFailurePhase, BridgeHelloRequest, BridgeHostDescriptor,
+    BridgeHostForm, BridgeJobTerminalEvent, BridgeJobTerminalOutcome, BridgeJobTracker,
+    BridgeNegotiationReceipt, BridgeProgressEvent, BridgeQueryEnvelope, BridgeQueryOutcome,
+    BridgeQueryReply, BridgeRequestContext, BridgeRetryClass, BridgeSnapshotEnvelope,
+    BridgeStreamCursor, BridgeStreamSequence, BridgeStreamTracker, DomainAuthorityDescriptor,
+    DomainAvailability, DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority,
+    WriteAuthority,
 };
 use longhorn_core::{
-    AuthorityScopeId, BridgeCapabilityId, BridgeErrorCode, BridgeId, BridgeIdempotencyKey,
-    BridgeJobId, BridgeRequestId, BridgeSessionId, DomainId, HostInstanceId, TransportFeatureId,
+    AuthorityScopeId, BridgeCapabilityId, BridgeDiagnosticId, BridgeErrorCode, BridgeId,
+    BridgeIdempotencyKey, BridgeJobId, BridgeRequestId, BridgeSessionId, DomainId, HostInstanceId,
+    TransportFeatureId,
 };
 use serde::Serialize;
 use serde_json::{Value, json, to_value};
@@ -210,7 +212,13 @@ fn negotiation() -> Result<BridgeNegotiationReceipt, Box<dyn Error>> {
             AuthorityEpoch::new(3)?,
             Some(AuthorityRevision::new(8)),
         )?],
-        Vec::new(),
+        // A negotiation that carries no diagnostic never exercises
+        // `parseDiagnostic`, so the fixture published an empty array and the
+        // element validator was proved by nothing.
+        vec![BridgeDiagnostic::new(
+            BridgeDiagnosticId::new("diagnostic:fixture")?,
+            "fixture diagnostic",
+        )?],
     )?)
 }
 

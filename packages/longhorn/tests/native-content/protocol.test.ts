@@ -24,6 +24,18 @@ describe("Rust fixture parity", () => {
     assertCompatibleNativeContentDesiredUpdateResult(fixture.staleRevision);
     assertCompatibleNativeContentConnectResult(fixture.remount);
     assertCompatibleNativeContentSnapshotResult(fixture.staleSession);
+    // The destroy receipt reaches its validator only inside a `host_destroyed`
+    // event. The receipt is Rust-produced; the three envelope keys are checked
+    // against a literal list in the validator itself, so assembling them here
+    // does not weaken what the fixture proves.
+    assertCompatibleNativeContentChangedEvent({
+      ...clone(fixture.applyEvent),
+      change: {
+        kind: "host_destroyed",
+        request_id: "request:destroy",
+        receipt: fixture.hostDestroy,
+      },
+    });
     assertCompatibleNativeContentConnectResult(fixture.incompatible);
   });
 

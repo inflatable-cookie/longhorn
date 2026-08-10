@@ -135,7 +135,12 @@
       "reason": "negotiationAccepted",
       "state": "ready"
     },
-    "diagnostics": [],
+    "diagnostics": [
+      {
+        "diagnosticId": "diagnostic:fixture",
+        "message": "fixture diagnostic"
+      }
+    ],
     "domainAuthorities": [
       {
         "authoritativeRevision": 8,

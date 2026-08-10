@@ -1,3 +1,4 @@
+import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import type {
   BridgeCancellationReceipt,
   BridgeJobTerminalEvent,
@@ -15,7 +16,7 @@ export function parseBridgeProgressEvent<P>(
   value: unknown,
   progress: BridgeCodec<P>,
 ): BridgeProgressEvent<P> {
-  const source = record(value, ["requestId", "jobId", "progress"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeProgressEvent);
   return {
     requestId: opaqueId(source.requestId),
     jobId: opaqueId(source.jobId),
@@ -28,7 +29,7 @@ export function parseBridgeJobTerminalEvent<S, D>(
   success: BridgeCodec<S>,
   details: BridgeCodec<D>,
 ): BridgeJobTerminalEvent<S, D> {
-  const source = record(value, ["requestId", "jobId", "outcome"]);
+  const source = record(value, BRIDGE_FIELDS.BridgeJobTerminalEvent);
   return {
     requestId: opaqueId(source.requestId),
     jobId: opaqueId(source.jobId),
@@ -40,12 +41,7 @@ export function parseBridgeCancellationReceipt<D>(
   value: unknown,
   details: BridgeCodec<D>,
 ): BridgeCancellationReceipt<D> {
-  const source = record(value, [
-    "requestId",
-    "targetRequestId",
-    "jobId",
-    "outcome",
-  ]);
+  const source = record(value, BRIDGE_FIELDS.BridgeCancellationReceipt);
   return {
     requestId: opaqueId(source.requestId),
     targetRequestId: opaqueId(source.targetRequestId),

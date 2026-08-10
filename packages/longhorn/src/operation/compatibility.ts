@@ -1,3 +1,4 @@
+import { OPERATION_FIELDS } from "./generated/fields.ts";
 import {
   OPERATION_CANCELLATION_OUTCOMES,
   OPERATION_CANCELLATION_STATUSES,
@@ -39,7 +40,7 @@ export class OperationProtocolCompatibilityError extends Error {
 export function assertCompatibleOperationSnapshotQuery(
   value: unknown,
 ): asserts value is OperationSnapshotQuery {
-  const object = exactObject(value, "$", ["protocolVersion", "requestId"]);
+  const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotQuery);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
 }
@@ -48,7 +49,7 @@ export function assertCompatibleOperationSnapshotResponse(
   value: unknown,
 ): asserts value is OperationSnapshotResponse {
   assertPayloadFree(value);
-  const object = exactObject(value, "$", ["requestId", "snapshot"]);
+  const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotResponse);
   text(object.requestId, "$.requestId");
   assertCompatibleOperationSnapshot(object.snapshot);
 }
@@ -57,26 +58,12 @@ export function assertCompatibleOperationSnapshot(
   value: unknown,
 ): asserts value is OperationSnapshot {
   assertPayloadFree(value);
-  const object = exactObject(value, "$", [
-    "protocolVersion",
-    "authority",
-    "catalogueRevision",
-    "closed",
-    "limits",
-    "terminalEvictionCount",
-    "retainedTerminalEncodedWeight",
-    "active",
-    "recent",
-  ]);
+  const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshot);
   protocol(object.protocolVersion, "$.protocolVersion");
   authority(object.authority, "$.authority");
   natural(object.catalogueRevision, "$.catalogueRevision");
   boolean(object.closed, "$.closed");
-  const limits = exactObject(object.limits, "$.limits", [
-    "maximumActiveOperations",
-    "maximumTerminalOperations",
-    "maximumTerminalEncodedWeight",
-  ]);
+  const limits = exactObject(object.limits, "$.limits", OPERATION_FIELDS.OperationCatalogueLimitsProjection);
   natural(limits.maximumActiveOperations, "$.limits.maximumActiveOperations");
   natural(limits.maximumTerminalOperations, "$.limits.maximumTerminalOperations");
   natural(limits.maximumTerminalEncodedWeight, "$.limits.maximumTerminalEncodedWeight");
@@ -147,7 +134,7 @@ export function assertCompatibleOperationCancellationCommand(
   value: unknown,
 ): asserts value is OperationCancellationCommand {
   assertPayloadFree(value);
-  const object = exactObject(value, "$", ["requestId", "protocolVersion", "authority", "operationId", "expectedOperationRevision"]);
+  const object = exactObject(value, "$", OPERATION_FIELDS.OperationCancellationCommand);
   text(object.requestId, "$.requestId");
   protocol(object.protocolVersion, "$.protocolVersion");
   authority(object.authority, "$.authority");
@@ -187,7 +174,7 @@ export function assertCompatibleOperationChangedEvent(
   value: unknown,
 ): asserts value is OperationChangedEvent {
   assertPayloadFree(value);
-  const object = exactObject(value, "$", ["protocolVersion", "requestId", "authority", "previousCatalogueRevision", "committedCatalogueRevision", "operationId", "kind"]);
+  const object = exactObject(value, "$", OPERATION_FIELDS.OperationChangedEvent);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
   authority(object.authority, "$.authority");
@@ -210,7 +197,7 @@ function resultBase(value: unknown, statuses: readonly string[]): void {
 }
 
 function operationEntry(value: unknown, path: string): asserts value is OperationEntryProjection {
-  const object = exactObject(value, path, ["authority", "operationId", "kindId", "scopeId", "label", "cancellationSupport", "retryOf", "sequence", "revision", "lastChangedCatalogueRevision", "state", "progress", "encodedMetadataWeight"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationEntryProjection);
   authority(object.authority, `${path}.authority`);
   text(object.operationId, `${path}.operationId`);
   text(object.kindId, `${path}.kindId`);
@@ -222,7 +209,7 @@ function operationEntry(value: unknown, path: string): asserts value is Operatio
   natural(object.revision, `${path}.revision`);
   natural(object.lastChangedCatalogueRevision, `${path}.lastChangedCatalogueRevision`);
   member(object.state, OPERATION_STATES, `${path}.state`);
-  const progress = exactObject(object.progress, `${path}.progress`, ["sequence", "overall", "phase"]);
+  const progress = exactObject(object.progress, `${path}.progress`, OPERATION_FIELDS.OperationProgressProjection);
   natural(progress.sequence, `${path}.progress.sequence`);
   progressOverall(progress.overall, `${path}.progress.overall`);
   if (progress.phase !== null) phase(progress.phase, `${path}.progress.phase`);
@@ -245,7 +232,7 @@ function progressOverall(value: unknown, path: string): void {
 }
 
 function phase(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["phaseId", "label", "completed", "total"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationPhaseProgressProjection);
   text(object.phaseId, `${path}.phaseId`);
   text(object.label, `${path}.label`);
   finite(object.completed, `${path}.completed`);
@@ -267,7 +254,7 @@ function teardownResolution(value: unknown, path: string): void {
 }
 
 function rejection(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["code", "detail", "refreshRequired"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationRejection);
   member(object.code, OPERATION_REJECTION_CODES, `${path}.code`);
   text(object.detail, `${path}.detail`);
   boolean(object.refreshRequired, `${path}.refreshRequired`);
@@ -286,7 +273,7 @@ function mutationReceipt(value: unknown, path: string): void {
       exactKeys(object, path, ["kind", "operationId", "previousOperationRevision", "committedOperationRevision", "previousProgressSequence", "committedProgress", "previousCatalogueRevision", "committedCatalogueRevision"]);
       operationRevisionPair(object, path);
       natural(object.previousProgressSequence, `${path}.previousProgressSequence`);
-      const progress = exactObject(object.committedProgress, `${path}.committedProgress`, ["sequence", "overall", "phase"]);
+      const progress = exactObject(object.committedProgress, `${path}.committedProgress`, OPERATION_FIELDS.OperationProgressProjection);
       natural(progress.sequence, `${path}.committedProgress.sequence`);
       progressOverall(progress.overall, `${path}.committedProgress.overall`);
       if (progress.phase !== null) phase(progress.phase, `${path}.committedProgress.phase`);
@@ -323,7 +310,7 @@ function mutationReceipt(value: unknown, path: string): void {
 }
 
 function cancellationReceipt(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["operationId", "outcome", "previousState", "committedState", "previousOperationRevision", "committedOperationRevision", "previousCatalogueRevision", "committedCatalogueRevision", "evicted"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationCancellationReceiptProjection);
   text(object.operationId, `${path}.operationId`);
   member(object.outcome, OPERATION_CANCELLATION_OUTCOMES, `${path}.outcome`);
   member(object.previousState, OPERATION_STATES, `${path}.previousState`);
@@ -347,7 +334,7 @@ function executorDispatch(value: unknown, path: string): void {
 }
 
 function removal(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["operationId", "sequence", "encodedWeight", "reason"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationRemovalProjection);
   text(object.operationId, `${path}.operationId`);
   natural(object.sequence, `${path}.sequence`);
   natural(object.encodedWeight, `${path}.encodedWeight`);
@@ -374,7 +361,7 @@ function teardownOutcome(value: unknown, path: string): void {
 }
 
 function limits(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["maximumActiveOperations", "maximumTerminalOperations", "maximumTerminalEncodedWeight"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationCatalogueLimitsProjection);
   natural(object.maximumActiveOperations, `${path}.maximumActiveOperations`);
   natural(object.maximumTerminalOperations, `${path}.maximumTerminalOperations`);
   natural(object.maximumTerminalEncodedWeight, `${path}.maximumTerminalEncodedWeight`);
@@ -397,7 +384,7 @@ function operationTarget(object: Record<string, unknown>): void {
 }
 
 function authority(value: unknown, path: string): void {
-  const object = exactObject(value, path, ["authorityId", "authorityEpoch"]);
+  const object = exactObject(value, path, OPERATION_FIELDS.OperationAuthorityProjection);
   text(object.authorityId, `${path}.authorityId`);
   natural(object.authorityEpoch, `${path}.authorityEpoch`);
   if (object.authorityEpoch === 0) fail(`${path}.authorityEpoch`, "must be nonzero");

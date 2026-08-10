@@ -1,3 +1,4 @@
+import { NOTIFICATIONS_FIELDS } from "./generated/fields.ts";
 import {
   NOTIFICATION_CHANGED_KINDS,
   NOTIFICATION_MUTATION_KINDS,
@@ -24,7 +25,7 @@ export class NotificationProtocolCompatibilityError extends Error {
 }
 
 export function assertCompatibleNotificationSnapshotQuery(value: unknown): asserts value is NotificationSnapshotQuery {
-  const object = exact(value, "$", ["protocolVersion", "requestId", "offset", "limit"]);
+  const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshotQuery);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
   natural(object.offset, "$.offset");
@@ -32,13 +33,13 @@ export function assertCompatibleNotificationSnapshotQuery(value: unknown): asser
 }
 
 export function assertCompatibleNotificationSnapshotResponse(value: unknown): asserts value is NotificationSnapshotResponse {
-  const object = exact(value, "$", ["requestId", "snapshot"]);
+  const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshotResponse);
   text(object.requestId, "$.requestId");
   assertCompatibleNotificationSnapshot(object.snapshot);
 }
 
 export function assertCompatibleNotificationSnapshot(value: unknown): asserts value is NotificationSnapshot {
-  const object = exact(value, "$", ["protocolVersion", "authority", "ledgerRevision", "limits", "retainedCount", "unseenCount", "retainedEncodedWeight", "prunedCount", "page"]);
+  const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshot);
   protocol(object.protocolVersion, "$.protocolVersion");
   authority(object.authority, "$.authority");
   natural(object.ledgerRevision, "$.ledgerRevision");
@@ -47,7 +48,7 @@ export function assertCompatibleNotificationSnapshot(value: unknown): asserts va
   natural(object.unseenCount, "$.unseenCount");
   natural(object.retainedEncodedWeight, "$.retainedEncodedWeight");
   natural(object.prunedCount, "$.prunedCount");
-  const page = exact(object.page, "$.page", ["offset", "totalCount", "hasMore", "records"]);
+  const page = exact(object.page, "$.page", NOTIFICATIONS_FIELDS.NotificationPageProjection);
   natural(page.offset, "$.page.offset");
   natural(page.totalCount, "$.page.totalCount");
   boolean(page.hasMore, "$.page.hasMore");
@@ -102,7 +103,7 @@ export function assertCompatibleNotificationMutationResult(value: unknown): asse
     receipt(object.receipt, "$.receipt");
   } else {
     exactKeys(object, "$", ["status", "requestId", "snapshot", "rejection"]);
-    const rejection = exact(object.rejection, "$.rejection", ["code", "detail", "refreshRequired"]);
+    const rejection = exact(object.rejection, "$.rejection", NOTIFICATIONS_FIELDS.NotificationRejection);
     member(rejection.code, NOTIFICATION_REJECTION_CODES, "$.rejection.code");
     text(rejection.detail, "$.rejection.detail");
     boolean(rejection.refreshRequired, "$.rejection.refreshRequired");
@@ -110,7 +111,7 @@ export function assertCompatibleNotificationMutationResult(value: unknown): asse
 }
 
 export function assertCompatibleNotificationChangedEvent(value: unknown): asserts value is NotificationChangedEvent {
-  const object = exact(value, "$", ["protocolVersion", "requestId", "authority", "previousLedgerRevision", "committedLedgerRevision", "affectedNotificationIds", "kind"]);
+  const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationChangedEvent);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
   authority(object.authority, "$.authority");
@@ -121,26 +122,26 @@ export function assertCompatibleNotificationChangedEvent(value: unknown): assert
 }
 
 function authority(value: unknown, path: string): void {
-  const object = exact(value, path, ["authorityId", "authorityEpoch"]);
+  const object = exact(value, path, NOTIFICATIONS_FIELDS.NotificationAuthorityProjection);
   text(object.authorityId, `${path}.authorityId`);
   positive(object.authorityEpoch, `${path}.authorityEpoch`);
 }
 
 function limits(value: unknown, path: string): void {
-  const object = exact(value, path, ["maximumNotifications", "maximumEncodedWeight"]);
+  const object = exact(value, path, NOTIFICATIONS_FIELDS.NotificationLedgerLimitsProjection);
   natural(object.maximumNotifications, `${path}.maximumNotifications`);
   natural(object.maximumEncodedWeight, `${path}.maximumEncodedWeight`);
 }
 
 function draft(value: unknown, path: string): void {
-  const object = exact(value, path, ["sourceId", "severity", "title", "summary", "causeId", "actions", "replacementKey", "producerToken", "retentionClass", "presentationTimeUnixMs"]);
+  const object = exact(value, path, NOTIFICATIONS_FIELDS.NotificationDraftProjection);
   text(object.sourceId, `${path}.sourceId`);
   member(object.severity, NOTIFICATION_SEVERITIES, `${path}.severity`);
   text(object.title, `${path}.title`);
   text(object.summary, `${path}.summary`);
   nullableText(object.causeId, `${path}.causeId`);
   array(object.actions, `${path}.actions`).forEach((action, index) => {
-    const item = exact(action, `${path}.actions[${index}]`, ["referenceId", "label"]);
+    const item = exact(action, `${path}.actions[${index}]`, NOTIFICATIONS_FIELDS.NotificationActionProjection);
     text(item.referenceId, `${path}.actions[${index}].referenceId`);
     text(item.label, `${path}.actions[${index}].label`);
   });
@@ -151,7 +152,7 @@ function draft(value: unknown, path: string): void {
 }
 
 function recordProjection(value: unknown, path: string): asserts value is NotificationRecordProjection {
-  const object = exact(value, path, ["notificationId", "draft", "sequence", "lastChangedLedgerRevision", "readState", "encodedMetadataWeight"]);
+  const object = exact(value, path, NOTIFICATIONS_FIELDS.NotificationRecordProjection);
   text(object.notificationId, `${path}.notificationId`);
   draft(object.draft, `${path}.draft`);
   positive(object.sequence, `${path}.sequence`);
@@ -185,7 +186,7 @@ function receipt(value: unknown, path: string): void {
 
 function removals(value: unknown, path: string): void {
   array(value, path).forEach((removal, index) => {
-    const item = exact(removal, `${path}[${index}]`, ["record", "reason"]);
+    const item = exact(removal, `${path}[${index}]`, NOTIFICATIONS_FIELDS.NotificationRemovalProjection);
     recordProjection(item.record, `${path}[${index}].record`);
     member(item.reason, ["dismissed", "cleared", "pruned"] as const, `${path}[${index}].reason`);
   });

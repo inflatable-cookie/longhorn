@@ -108,6 +108,15 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         island_id: id("island:fixture"),
     });
 
+    // No fixture category exercised the destroy receipt, so its validator was
+    // proved by nothing. A standalone coordinator is enough — the protocol host
+    // does not expose the call.
+    let mut destroying = NativeContentCoordinator::new(desired_state()?);
+    let host_destroy = destroying.host_destroyed(
+        &WindowId::new("window:main")?,
+        NativeContentRevision::INITIAL,
+    )?;
+
     let fixture = json!({
         "protocolVersion": 1,
         "connect": to_value(connect)?,
@@ -121,6 +130,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         "remount": to_value(remount)?,
         "staleSession": to_value(stale_session)?,
         "incompatible": to_value(incompatible)?,
+        "hostDestroy": to_value(host_destroy)?,
         "incompatibility": {
             "futureProtocolVersion": 2,
             "unknownMechanism": "browser_plugin",
@@ -133,6 +143,13 @@ pub fn render() -> Result<String, Box<dyn Error>> {
 }
 
 fn host() -> Result<NativeContentProtocolHost, Box<dyn Error>> {
+    Ok(NativeContentProtocolHost::new(
+        NativeContentAuthorityEpoch::new(9)?,
+        NativeContentCoordinator::new(desired_state()?),
+    ))
+}
+
+fn desired_state() -> Result<DesiredState, Box<dyn Error>> {
     let desired = DesiredState::new(
         id::<NativeContentIslandId>("island:fixture"),
         id::<NativeContentKindId>("fixture:isolated"),
@@ -146,10 +163,7 @@ fn host() -> Result<NativeContentProtocolHost, Box<dyn Error>> {
         ),
         desired_update(1, 12.0)?,
     )?;
-    Ok(NativeContentProtocolHost::new(
-        NativeContentAuthorityEpoch::new(9)?,
-        NativeContentCoordinator::new(desired),
-    ))
+    Ok(desired)
 }
 
 fn desired_update(generation: u64, x: f64) -> Result<DesiredUpdate, Box<dyn Error>> {

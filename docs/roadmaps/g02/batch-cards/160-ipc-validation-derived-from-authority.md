@@ -524,9 +524,43 @@ something that looked like its target and was not. The pattern is now
 explicit: **script the edit, but verify by execution, not by re-reading the
 script.**
 
+## The Inventory Re-run — 2026-08-10
+
+The card asks for a re-run showing uniform columns. It was not uniform, and
+the reason is the more useful result.
+
+| source of the key list | packages | sites |
+| --- | --- | ---: |
+| generated from Rust | config, settings, commands, history, history-tree, transfer, surface-transfer, surfaces | 105 |
+| hand-written literals | bridge, native-content, operation, notifications | 70 |
+| no boundary | layout | 0 |
+
+Those four were exactly the four the original inventory identified as
+*already strict*, so the card never scoped them: its objective was packages
+that never validate keys. But strict-and-hand-maintained is the same drift
+this card exists to remove — the lists just happen to be right today. All 70
+are now generated, and the columns are uniform.
+
+Two generator defects surfaced, both silent:
+
+**Generic types kept their parameters in the key.** `field_map` used the
+declared name verbatim, so bridge emitted `"BridgeProgressEvent<P>"` — not a
+usable property name. Nine call sites were written against keys that could
+never resolve, and the failure arrived as
+`Spread syntax requires ...iterable not be null or undefined` rather than
+anything about field maps. Parameters are now stripped; the allowed keys do
+not depend on them.
+
+**Two fixtures proved nothing.** Probing found `BridgeDiagnostic` and
+`HostDestroyReceipt` unreachable: bridge published `diagnostics: []`, so the
+element validator never ran, and native-content had no destroy category at
+all. Both fixtures now carry the payload, generated from Rust as the rest
+are. An empty array in a fixture is not coverage of the thing that would have
+been in it.
+
 ### Remaining
 
-`settings`' nested fragments.
+Nothing in steps 1-5. Step 6 — renaming the surface — is the last.
 
 ## Scope
 

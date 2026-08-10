@@ -277,6 +277,114 @@ Longhorn's own dry run is deliberately not attempted yet. Its
 which is step 3 of this card, and every Longhorn CI job runs on macOS at ten
 times the Linux rate. It runs after the repoint.
 
+## Bootstrap Sequence — Poodle
+
+Trusted publishing can only be configured on a package that already exists, so
+the first publish is manual and every publish after it is OIDC. This is the
+only time credentials touch the process, and they stay on the operator's
+machine — `npm login` is browser-based and writes a token to `~/.npmrc`, not to
+GitHub.
+
+**1. Take the verified bytes from the green run.** Publish the artifact, not a
+tarball repacked on a laptop: the artifact is what the gates ran against.
+
+```sh
+cd ~/Dev/projects/poodle
+gh run download <run-id> -n packed-tarballs -D /tmp/poodle-release
+ls -l /tmp/poodle-release
+```
+
+Sizes must match the run's own report. They are printed by the pack step.
+
+**2. Authenticate.** Enable 2FA on the npm account first if it is not already
+on — the whole point of trusted publishing is that no long-lived credential
+exists, and for the one window where one does, it should be second-factor
+protected.
+
+```sh
+npm login          # opens a browser; no token is stored in GitHub
+npm whoami         # confirm before publishing anything
+```
+
+**3. Publish core, then svelte.** Order matters only for tidiness: svelte peer-
+depends on core, and npm does not enforce peers at publish time.
+
+```sh
+npm publish /tmp/poodle-release/inflatable-cookie-poodle-core-0.1.0.tgz --access public
+npm publish /tmp/poodle-release/inflatable-cookie-poodle-svelte-0.1.0.tgz --access public
+```
+
+`--access public` is explicit even though the manifests carry
+`publishConfig.access`. A scoped package defaults to restricted, and a scoped
+package published restricted on a free account fails rather than silently
+going private — but being explicit costs nothing at the one irreversible step.
+
+Add `--otp=<code>` if 2FA prompts non-interactively.
+
+**4. Verify before touching anything else.**
+
+```sh
+npm view @inflatable-cookie/poodle-core version
+npm view @inflatable-cookie/poodle-svelte version
+```
+
+Unpublish is available for 72 hours and only while nothing depends on the
+package. After that a name can be deprecated but never reclaimed. If a tarball
+is wrong, this is the window.
+
+**5. Configure trusted publishers.** Web UI only; there is no CLI for it. For
+each package: npmjs.com → the package → Settings → Trusted Publisher → GitHub
+Actions, then
+
+| Field | Value |
+| --- | --- |
+| Organisation | `inflatable-cookie` |
+| Repository | `poodle` |
+| Workflow filename | `release.yml` |
+| Environment | leave blank |
+
+**6. Drop the credential.**
+
+```sh
+npm logout
+npm whoami   # must now fail
+```
+
+**7. Tag.**
+
+```sh
+git tag -a v0.1.0 -m "First publication"
+git push origin v0.1.0
+```
+
+**8. Exercise the tag path without publishing.** The version-agrees-with-tag
+check is skipped on a branch dispatch, so it has never run. Dispatch against
+the tag with `dry-run=true` to fire it:
+
+```sh
+gh workflow run release.yml --ref v0.1.0 -f dry-run=true
+```
+
+**Do not dispatch v0.1.0 with `dry-run=false`.** Those versions are already on
+the registry and the publish step would fail. The workflow's publish path first
+runs for real at the next version.
+
+**9. Clean up.**
+
+```sh
+git push origin --delete release-dryrun
+```
+
+Keep it if the three uncancellable runs still hold the `main` concurrency
+group; it is the only lane that dispatches immediately.
+
+### Provenance Waits For Public
+
+Trusted publishing works on a private repository, but npm provenance
+attestation does not — it requires the source repository to be public. The
+first release therefore ships without provenance whichever way it is published.
+Attestation starts at the first CI publish after visibility flips.
+
 ## Acceptance Criteria
 
 - `@inflatable-cookie/poodle-core`, `-svelte`, `@inflatable-cookie/longhorn`,
