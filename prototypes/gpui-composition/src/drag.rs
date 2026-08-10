@@ -239,8 +239,25 @@ impl TransferState {
         }
     }
 
-    /// Resolves the release point against windows observed *now*.
-    pub fn release(cx: &mut App, screen_point: ScreenPoint) {
+    /// Resolves the release point against windows observed *now* — except the
+    /// source, which cannot be.
+    ///
+    /// gpui takes a window out of the application's window map for the
+    /// duration of its own event dispatch, so observing the window whose
+    /// handler is running fails with "window not found". The handler holds
+    /// `&mut Window` for exactly that window, so its bounds come from there
+    /// and every other window is observed live.
+    ///
+    /// Found by dragging. `live_transfer_windows` fails the whole list when
+    /// any window fails — correctly, since a short list loses a transfer
+    /// silently — so a release handler that observed everything observed
+    /// nothing.
+    pub fn release(
+        cx: &mut App,
+        screen_point: ScreenPoint,
+        source_id: &WindowId,
+        source_bounds: ScreenRect,
+    ) {
         let Some(state) = cx.try_global::<Self>().map(|state| state.inner.clone()) else {
             return;
         };
@@ -252,6 +269,7 @@ impl TransferState {
         let managed: Vec<(WindowId, GpuiWindowKey, AnyWindowHandle)> = inner
             .windows
             .iter()
+            .filter(|window| &window.window_id != source_id)
             .map(|window| {
                 (
                     window.window_id.clone(),
@@ -272,8 +290,16 @@ impl TransferState {
             &mut backend,
             managed.iter().map(|(id, key, _)| (id, *key)),
         ) {
-            Ok(live) => live,
+            Ok(mut live) => {
+                // The source's own bounds, from the handler that has them.
+                live.push(longhorn_transfer::LiveTransferWindow::new(
+                    source_id.clone(),
+                    source_bounds,
+                ));
+                live
+            }
             Err(error) => {
+                eprintln!("[transfer] observation failed at release: {error}");
                 inner.outcome = format!("observation failed: {error}");
                 return;
             }
@@ -286,6 +312,12 @@ impl TransferState {
             &live,
         ) {
             Ok(TerminalTransferResolution::Target(attempt)) => {
+                eprintln!(
+                    "[transfer] released at {},{} -> {}",
+                    screen_point.x().get(),
+                    screen_point.y().get(),
+                    attempt.target().window_id()
+                );
                 format!(
                     "released at {},{} -> {}",
                     screen_point.x().get(),
@@ -293,12 +325,22 @@ impl TransferState {
                     attempt.target().window_id()
                 )
             }
-            Ok(TerminalTransferResolution::EmptyDisplay(_)) => format!(
-                "released at {},{} -> bare desktop",
-                screen_point.x().get(),
-                screen_point.y().get()
-            ),
-            Err(error) => format!("no target: {error}"),
+            Ok(TerminalTransferResolution::EmptyDisplay(_)) => {
+                eprintln!(
+                    "[transfer] released at {},{} -> bare desktop",
+                    screen_point.x().get(),
+                    screen_point.y().get()
+                );
+                format!(
+                    "released at {},{} -> bare desktop",
+                    screen_point.x().get(),
+                    screen_point.y().get()
+                )
+            }
+            Err(error) => {
+                eprintln!("[transfer] no target: {error}");
+                format!("no target: {error}")
+            }
         };
     }
 
@@ -377,4 +419,23 @@ fn panel_source(window: &ManagedWindow) -> TransferSourceAuthority {
         container_id: LayoutContainerId::new("container:example").expect("container"),
         region_id: RegionId::new("region:tools").expect("region"),
     }
+}
+
+/// A window's screen rect from the `Window` a handler already holds.
+///
+/// The source window cannot be observed through the backend during its own
+/// event dispatch, and this is the geometry that replaces that reading.
+#[must_use]
+pub fn screen_rect_of(window: &Window) -> ScreenRect {
+    let bounds = window.bounds();
+    ScreenRect::new(
+        ScreenPoint::new(
+            f32::from(bounds.origin.x).round() as i32,
+            f32::from(bounds.origin.y).round() as i32,
+        ),
+        longhorn_core::ScreenSize::new(
+            f32::from(bounds.size.width).round().max(0.0) as u32,
+            f32::from(bounds.size.height).round().max(0.0) as u32,
+        ),
+    )
 }

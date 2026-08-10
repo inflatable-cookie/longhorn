@@ -11,7 +11,12 @@ publish = false
 name = "composition"
 path = "src/main.rs"
 
+[[bin]]
+name = "drive"
+path = "src/bin/drive.rs"
+
 [dependencies]
+core-graphics = "0.25.0"
 gpui = "0.2.2"
 longhorn-core = { path = "../../crates/longhorn-core" }
 longhorn-notifications = { path = "../../crates/longhorn-notifications" }

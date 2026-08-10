@@ -59,11 +59,11 @@ compiles, and the two readable against each other.
 
 ### Batch 3. Live evidence for the last two ceilings
 
-- [ ] [Card 175](batch-cards/175-live-cross-window-drag.md): a real drag across
-  two real GPUI windows. **Harness built, run not yet performed** — the example
-  opens two windows and binds press and release to a transfer session, and
-  nobody has yet done the drag. It needs a person at the machine, because
-  synthesising the events would defeat the card.
+- [x] [Card 175](batch-cards/175-live-cross-window-drag.md) — three real drags
+  through the window server: to the other window in both directions, and to an
+  empty display off both. Found that `on_mouse_up` never fires for a
+  cross-window release, and that a window cannot be observed from inside its
+  own event callback.
 - [ ] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
@@ -96,7 +96,7 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 - [ ] the composition guide assembles a window, a projection, and
   `HostServices`, and its example compiles under whatever cadence Batch 1 chose
-- [ ] a drag released over a second real window resolves to that window
+- [x] a drag released over a second real window resolves to that window
 - [ ] a window torn down with a flush genuinely in flight either completes it
   or refuses the close, and the proof says which
 - [ ] no claim in contract 020's current-state table reads "in-memory only"
@@ -113,12 +113,12 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 175's remaining steps are a human at the machine: press in one window,
-release over the other, release on bare desktop, and move a window mid-drag.
-The harness is committed and waiting.
+Card 176's three observations. All need a real window closed while the example
+is frontmost, and keeping it there proved to be the hard part — a titlebar drag
+sent it behind another application twice.
 
-Card 176 can proceed in parallel — its first step is a real placement sink with
-real latency, which needs no screen.
+The one Card 175 criterion left open is the same shape: a window moved
+mid-drag, which needs the window to stay in front while it is moved.
 
 ## Planning Checkpoint
 

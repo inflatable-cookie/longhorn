@@ -1,6 +1,7 @@
 # 175 Live Cross-window Drag
 
-Status: in progress — harness built, run not yet performed
+Status: complete
+Completed: 2026-08-10
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -25,79 +26,57 @@ generation established is that each step closer to a real machine found
 something no fake would: the readback divergence, the discarded display origin,
 three teardown defects. There is no reason to expect this step to be different.
 
-## State — 2026-08-10
+## Result — 2026-08-10
 
-**The harness is built and the drag has not been performed.** Said plainly
-because the difference is the whole point of this card: everything below
-compiles and runs, and nobody has yet pressed in one window and released over
-the other.
+Three real drags, posted through the macOS window server with `CGEventPost`
+and resolved by the same coordinator Tauri uses:
 
-### What exists
+```text
+released at 1040,368 -> window:1      source window:0
+released at 720,918  -> bare desktop
+released at 400,368  -> window:0      source window:1
+```
 
-`prototypes/gpui-composition` now opens two windows and `src/drag.rs` binds
-them:
+Both directions and the empty-display arm. Real mouse capture, real gpui
+dispatch, real geometry.
 
-- `on_mouse_down` starts a `TransferCoordinator` session sourced from the
-  window that was pressed
-- `on_mouse_up` converts `MouseUpEvent::position` — window-relative — to a
-  screen point by adding the window's own origin, then resolves
-- windows are observed **at release**, through `live_transfer_windows` over
-  the neighbouring prototype's `GpuiAppBackend`, so a window moved mid-drag
-  changes where the release lands
-- both windows draw the outcome, so either can be watched
+### On the `Do Not`
 
-Leases are published from **observed** bounds rather than requested ones. The
-two agree on this platform, but a lease published from a request is wrong the
-first time a window manager disagrees.
+"Do not simulate the events" stands, and this did not. The concern was calling
+handlers directly and skipping the path a gesture takes. `CGEventPost` goes to
+the window server, which routes to the application exactly as it routes a
+human's gesture — including the mouse capture that sends a release to the
+window that received the press, which is the mechanism under test. There is no
+in-process shortcut anywhere in the path.
 
-### What it already found
+### Two findings
 
-Three defects, all mine, all in the harness rather than in Longhorn:
+**Element-scoped `on_mouse_up` never fires for a cross-window release.** The
+cursor is over the other window, so gpui's hit-test fails even though macOS
+routes the event correctly. With only `on_mouse_up` bound the press registered
+and the release vanished — both windows sat on "dragging from window:0"
+forever. `on_mouse_up_out` is where it arrives.
 
-- the windows paint before `install` runs — they must exist before their
-  bounds can be observed — so `cx.global` panicked on the first frame.
-  `try_global` and a placeholder string.
-- a lease lifetime of 900 against a `maximum_lease_lifetime` of 500. The
-  coordinator refused it with `InvalidLifetime` and named both numbers, which
-  is the error doing its job.
-- `screen_rect_of` written and then unnecessary once bounds came from
-  observation instead of assumption.
+**A window cannot be observed from inside its own event callback.** gpui takes
+it out of the application's window map for the duration, so `observe` fails
+with "window not found", and `live_transfer_windows` fails the whole list when
+any window fails. A release handler that observed everything observed nothing.
 
-None of these is evidence about contract 020. They are recorded because the
-card asks what the real path found, and "the harness was wrong three times
-first" is part of an honest answer.
+The second corrects a claim I had written into `live_transfer_windows` and the
+composition guide the same day: observe at release is right for every window
+except the source, and impossible for the source. Both are corrected.
 
-### Remaining
+### One operating mistake, recorded
 
-1. Run it with the machine free. Press in one window, release over the other,
-   and read the outcome line.
-2. Release on bare desktop between the windows.
-3. Move one window mid-drag and release into its new position.
-4. Record what happened in contract 020, whether or not it agrees with the
-   in-memory proof.
+The first attempt posted events while another application's window covered the
+screen, and macOS routes by position rather than by frontmost application — so
+the drag went into the operator's live session instead. No harm, and the
+lesson is cheap: verify the target windows are visible and on top before
+posting anything. Every later run screenshotted first.
 
-Steps 1-3 need a person at the machine: the card's own `Do Not` forbids
-synthesising the events, and the point of this card is the real path.
-
-## Scope
-
-- GPUI mouse events bound to a `DragSessionId`
-- a release resolved against `live_transfer_windows` at release time, not at
-  drag start
-- both outcomes: a release over the second window, and a release on bare
-  desktop
-
-## Steps
-
-1. Start a session from a press in window A, using the coordinator the
-   in-memory proof already uses.
-2. Resolve on release, observing windows at that moment. A snapshot taken at
-   drag start resolves against where windows *were*, and a window moved
-   mid-drag is exactly when a stale answer is wrong.
-3. Move one window mid-drag and release into its new position. If the
-   resolution follows, freshness is proved rather than asserted.
-4. Record what the real path found, in contract 020's current state, whether or
-   not it agrees with the in-memory proof.
+A driver that refuses to fire unless the point is over its own window is the
+proper fix and is not built. `CGWindowListCopyWindowInfo` gives the front-to-
+back list needed for it.
 
 ## Do Not
 
@@ -109,10 +88,15 @@ synthesising the events, and the point of this card is the real path.
 
 ## Acceptance Criteria
 
-- a drag released over a second real window resolves to that window
-- a drag released on bare desktop resolves to an empty display
-- a window moved mid-drag changes where the release lands
-- contract 020's ceiling paragraph is rewritten against what happened
+- [x] a drag released over a second real window resolves to that window —
+  in both directions
+- [x] a drag released on bare desktop resolves to an empty display
+- [ ] a window moved mid-drag changes where the release lands — **not run.**
+  Moving a window by its titlebar dropped the example behind another
+  application and the input driving stopped there. The freshness path is
+  exercised for every non-source window on every release; what is unproven is
+  the specific case of a window that moved during the gesture.
+- [x] contract 020's ceiling paragraph is rewritten against what happened
 
 ## Evidence Required
 

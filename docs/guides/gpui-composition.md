@@ -179,9 +179,18 @@ renders.
 produces the `Vec<LiveTransferWindow>` that `TransferCoordinator` resolves a
 drop against. That is the host's whole contribution.
 
-Observe at release, not at drag start. A snapshot taken when the drag began
-resolves against where windows *were*, and a window moved mid-drag is exactly
-when a stale answer is wrong.
+Observe at release, not at drag start — for every window except the one whose
+handler is running. gpui takes a window out of the application's window map
+during its own dispatch, so observing the source fails with "window not
+found", and because `live_transfer_windows` fails the whole list on any
+failure, passing every window yields nothing. The handler holds `&mut Window`
+for the source; take its bounds from there.
+
+Bind **`on_mouse_up_out`**, not just `on_mouse_up`. A cross-window release
+happens with the cursor over the other window, so the element hit-test fails
+and `on_mouse_up` never fires — even though macOS routes the event to the
+window that captured the press. An application that binds only `on_mouse_up`
+has a drag that never completes and says nothing.
 
 A window that cannot be observed fails the whole call. A short list resolves a
 drop against a desktop missing a window, which reads as "no target" and loses

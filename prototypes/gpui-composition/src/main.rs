@@ -234,9 +234,32 @@ impl Render for CompositionRoot {
                         let source = source.clone();
                         move |_event, _window, cx| drag::TransferState::press(cx, &source)
                     })
-                    .on_mouse_up(MouseButton::Left, move |event, window, cx| {
-                        let released = drag::screen_point_of(window, event.position);
-                        drag::TransferState::release(cx, released);
+                    // Both, and the second is the one that matters. A
+                    // cross-window drag releases outside this element — the
+                    // cursor is over the *other* window — and gpui's
+                    // element-scoped `on_mouse_up` hit-tests the position, so
+                    // it never fires. macOS still routes the event here,
+                    // because the press was captured here, and
+                    // `on_mouse_up_out` is where it arrives.
+                    //
+                    // Found by dragging: with only `on_mouse_up` bound, the
+                    // press registered, the release vanished, and both windows
+                    // sat on "dragging from window:0" forever.
+                    .on_mouse_up(MouseButton::Left, {
+                        let source = source.clone();
+                        move |event, window, cx| {
+                            let released = drag::screen_point_of(window, event.position);
+                            let bounds = drag::screen_rect_of(window);
+                            drag::TransferState::release(cx, released, &source, bounds);
+                        }
+                    })
+                    .on_mouse_up_out(MouseButton::Left, {
+                        let source = source.clone();
+                        move |event, window, cx| {
+                            let released = drag::screen_point_of(window, event.position);
+                            let bounds = drag::screen_rect_of(window);
+                            drag::TransferState::release(cx, released, &source, bounds);
+                        }
                     }),
             )
             .child(outcome)

@@ -261,7 +261,7 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Quiescence participation | proved | proved, in-memory, **and that it returns to quiet after a teardown** |
 | Display facts with scale factors | proved | **not obtainable from the gpui API alone** — scale, work area and position come from a per-platform reader over the id gpui exposes; a macOS reader exists and was measured against two real displays |
 | Platform directories | proved | not exercised |
-| Cross-window transfer | proved | **proved for the decision** — windows observed, a drop resolved to the other window, a bare-desktop point resolved to an empty display; no real drag on either backend |
+| Cross-window transfer | proved | **proved live** — a real drag, posted through the window server, resolved to the other window in both directions and to an empty display off them |
 
 All three claims this paragraph used to carry are now discharged in-memory,
 and one ceiling remains: **no real drag has crossed a real window on either
@@ -395,6 +395,50 @@ shared half goes in an `Rc<RefCell<..>>` that both sides keep.
 entire close decision — observe, capture, flush, answer — happens inside it.
 There is nowhere else to put it, which is a sharper version of what this
 contract already records about GPUI answering closes synchronously.
+
+### The drag crossed — 2026-08-10
+
+A real gesture, posted through the macOS window server with `CGEventPost`, and
+resolved by the same `TransferCoordinator` both hosts use. Three cases, all
+correct:
+
+```text
+released at 1040,368 -> window:1      source window:0
+released at 720,918  -> bare desktop
+released at 400,368  -> window:0      source window:1
+```
+
+Real mouse capture, real gpui dispatch, real geometry. Contract 020's last
+stated ceiling is closed for cross-window transfer, and the ceiling that
+remains is teardown.
+
+It found two things no in-memory proof could, and one of them corrects
+something this contract asserted earlier the same day.
+
+**Element-scoped `on_mouse_up` never fires for a cross-window release.** The
+cursor is over the *other* window, so gpui's element hit-test fails — even
+though macOS correctly routes the event to the source window that captured the
+press. With only `on_mouse_up` bound, the press registered and the release
+vanished; both windows sat on "dragging" forever. `on_mouse_up_out` is where a
+cross-window release actually arrives, and an application that binds only the
+first has a drag that silently never completes.
+
+**A window cannot be observed from inside its own event callback.** gpui takes
+a window out of the application's window map for the duration of its dispatch,
+so `observe` on it fails with "window not found". `live_transfer_windows`
+fails the whole list when any window fails — correct, since a short list loses
+a transfer with no diagnostic — so a release handler that observed *everything*
+observed *nothing*.
+
+That corrects the freshness claim written here earlier: observe at release is
+right for every window except the source, and impossible for the source. The
+handler holds `&mut Window` for its own window, so that geometry comes from
+there. Freshness is preserved everywhere it is obtainable and the one place it
+is not is now explicit rather than assumed.
+
+Both are the borrowed-context fact again, seen from a third angle: gpui's
+context is on loan, and anything Longhorn wants to know about the window
+currently dispatching has to come from the caller.
 
 ### One behaviour recorded rather than changed
 

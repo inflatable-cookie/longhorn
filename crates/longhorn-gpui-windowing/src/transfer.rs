@@ -12,11 +12,22 @@
 //! None of that is the transfer decision, and none of it is needed here: a
 //! GPUI application calls Longhorn directly and has no IPC boundary to police.
 //!
-//! # Freshness
+//! # Freshness, and the one window it cannot have
 //!
-//! Every window is observed at the moment of the call. A snapshot taken when
-//! the drag started would resolve a drop against where windows *were*, and a
-//! window moved mid-drag is exactly when a stale answer is wrong.
+//! Every window supplied here is observed at the moment of the call. A
+//! snapshot taken when the drag started would resolve a drop against where
+//! windows *were*, and a window moved mid-drag is exactly when a stale answer
+//! is wrong.
+//!
+//! **The source window cannot be among them.** gpui takes a window out of the
+//! application's window map for the duration of its own event dispatch, so
+//! observing the window whose handler is running fails with "window not
+//! found" — and because this call fails the whole list when any window fails,
+//! a release handler that passed every window observed nothing at all.
+//!
+//! A handler holds `&mut Window` for its own window, so the source's bounds
+//! come from there and every other window comes from here. Found by dragging;
+//! see contract 020.
 
 use longhorn_core::WindowId;
 use longhorn_transfer::LiveTransferWindow;
