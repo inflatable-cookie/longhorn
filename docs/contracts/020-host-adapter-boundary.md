@@ -481,18 +481,16 @@ This answers the per-window flush question this contract has carried since the
 teardown work: a per-window close *does* force its own flush, and forcing it is
 not sufficient. What matters is whether anything was staged for it to write.
 
-### The staged-without-flushing path loses data — 2026-08-10
+### A moved window's placement is lost at close — 2026-08-10
 
 This contract has carried a question since the teardown work: a window moved
 just before it closes stages its final capture and permits the close with no
 flush in that pass, and *whether a per-window close should force its own flush*
 was left for a real run to decide.
 
-It is decided. **The placement is lost.**
-
-Measured, with a real store and a real close. A window was moved from y=120 to
-y=324 — confirmed independently through the accessibility tree — its close
-button was clicked, and:
+**The placement is lost.** Measured with a real store and a real close. A
+window was moved from y=120 to y=324 — confirmed through the accessibility
+tree — its close button was clicked, and:
 
 ```text
 [lifecycle] close window:0 -> Close in 18.625µs: [Captured { generation: 4 }, UserCloseReported]
@@ -500,53 +498,34 @@ button was clicked, and:
 [lifecycle] window:0 outstanding after drain: 0
 ```
 
-The capture ran and staged. The close was permitted. The outstanding count
-went to zero. **No flush ever reached the store, and the file still held
-y=120.**
+Captured, permitted, outstanding back to zero. No flush reached the store and
+the file still held y=120. Nothing in the receipt is wrong on its own terms,
+which is what makes it dangerous: `close_is_safe` sees a capture that succeeded
+and a user close that was reported, and there is no failed action to notice.
 
-Nothing in the receipt is wrong on its own terms. `close_is_safe` sees a
-capture that succeeded and a user close that was reported, both true. There is
-no failed action to notice, because nothing failed — the write simply never
-happened before the window went away.
+#### Correction: this is not the shared coordinator, and Tauri does not have it
 
-### This is the shared coordinator, so Tauri has it too
+An earlier version of this section said the sequence belonged to
+`longhorn-windowing` and that a Tauri application had been carrying the same
+loss. **Both claims were wrong**, and reading the Tauri host rather than
+reasoning about it is what showed that.
 
-The capture-then-schedule-a-flush sequence is `longhorn-windowing`'s, not
-either adapter's. Nothing about the loss depends on GPUI: the same move, the
-same close, the same staged placement, the same missing write. GPUI only made
-it visible, because its close decision is synchronous and its log says what
-happened.
+`longhorn-tauri-windowing` has `shutdown_flush`: it asks every managed window
+for a capture, collects the pending flushes, and writes them as one aggregate
+under `WindowFlushScope::ApplicationShutdown`. It also calls
+`api.prevent_close()` on **every** user close, so the window does not go away
+when the user clicks — product policy closes it later, after that flush has had
+its chance.
 
-That makes this the first defect in this generation that a Tauri application
-has been carrying the whole time and nobody had a reason to look for.
+`longhorn-gpui-windowing` has neither. There is no shutdown path in the crate
+at all, and GPUI's close is answered synchronously so the window is gone the
+moment the decision returns. The staged placement has no later opportunity.
 
-### What the evidence says the fix is
-
-A per-window close must force its own flush and wait for it, rather than
-staging and scheduling one. The alternative — permit the close and flush
-afterwards — is what happens now, and "afterwards" can be after the process
-has gone.
-
-Not changed here. It changes behaviour for both hosts and this contract's own
-rule is that such a change is made on evidence and deliberately. The evidence
-now exists; the change is an operator decision.
-
-### Two causes, and only one was the adapter's
-
-The loss needed both:
-
-1. **A capture that could not run.** Fixed: facts are recorded from each
-   window's own render rather than observed at close, because
-   `on_window_should_close` runs inside the closing window's dispatch and
-   observing it there fails. Before this fix the close produced no capture at
-   all.
-2. **A capture that ran and was never written.** Not fixed, and the subject of
-   this section.
-
-The first fix is what made the second visible. With the capture failing, the
-close produced an empty flush that reported success; with it working, the close
-produces a real staged placement that nothing writes. Both end with the same
-file on disk and the same clean receipt.
+So the defect is an **adapter gap**, not a coordinator flaw: the GPUI host is
+missing the shutdown flush its Tauri counterpart has. That is a smaller and
+much more actionable finding than the one first recorded here, and it is only
+visible because the two hosts were compared rather than one being generalised
+from.
 
 ### One behaviour recorded rather than changed
 

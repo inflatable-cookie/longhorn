@@ -1,6 +1,6 @@
 # 176 Live Teardown Under Load
 
-Status: complete — the loss is demonstrated; the coordinator fix is an operator decision
+Status: complete — the loss is demonstrated and traced to a missing GPUI shutdown flush
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -173,14 +173,25 @@ dangerous: `close_is_safe` sees a successful capture and a reported close, and
 there is no failed action to notice. The write simply never happened before the
 window went away.
 
-**It is the shared coordinator, so Tauri has it too.** Nothing about the loss
-depends on GPUI. GPUI only made it visible, because its close decision is
-synchronous and its log says what happened.
+**Correction: it is not the shared coordinator, and Tauri does not have it.**
+This card first recorded the loss as belonging to `longhorn-windowing` and
+therefore to both hosts. Reading `longhorn-tauri-windowing` rather than
+reasoning about it showed otherwise.
 
-The per-window flush question this card was set to answer is answered: a close
-must force its own flush and wait for it. Not changed here — it changes
-behaviour for both hosts, and contract 020's rule is that such a change is made
-on evidence and deliberately. The evidence now exists.
+Tauri has `shutdown_flush`, which asks every managed window for a capture and
+writes the collected pending flushes as one `ApplicationShutdown` aggregate. It
+also calls `api.prevent_close()` on every user close, so the window survives
+the click and product policy closes it later — after that flush has had its
+chance.
+
+`longhorn-gpui-windowing` has no shutdown path at all, and GPUI answers the
+close synchronously, so the window is gone the moment the decision returns. The
+staged placement never gets a second chance.
+
+The defect is an adapter gap: **the GPUI host is missing the shutdown flush its
+Tauri counterpart has.** Smaller and far more actionable than the coordinator
+change first written here, and visible only because the two hosts were compared
+rather than one generalised from.
 
 ### Getting here needed two fixes and a guard
 

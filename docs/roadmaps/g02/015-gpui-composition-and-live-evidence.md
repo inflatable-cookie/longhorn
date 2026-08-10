@@ -68,9 +68,10 @@ compiles, and the two readable against each other.
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
   **Answered.** A window moved just before it closes loses its placement: the
-  capture stages, the close is permitted, no flush reaches the store. It is the
-  shared coordinator, so Tauri carries it too. The fix — a close that forces
-  its own flush and waits — changes both hosts and is an operator decision.
+  capture stages, the close is permitted, no flush reaches the store. Traced to
+  an adapter gap — the GPUI host has no shutdown flush, where Tauri has
+  `shutdown_flush` and also prevents every user close so the window survives to
+  be flushed later.
 
 ## Dependency Shape
 
