@@ -147,6 +147,18 @@ stray organisation identifier. `proof:artifacts` is green across all twelve
 proofs, alongside `check:ts`, `test:ts`, `check:bindings`,
 `check:api-reference`, `held-surface` and the docs gates.
 
+### The card scrubbed itself
+
+The rename pass ran over `docs/`, which includes this card. A document that
+names the tokens it is removing cannot survive its own scrub: the decision
+section came out reading "that is `private-consumer`, `split-shell`,
+`split-shell`", and step 3 as "rename `split-shell` to `split-shell`".
+
+Rewritten to describe the change without naming what was removed, which is
+what it should have said in the first place — the same reason the rename
+carries no explanatory note. Any future scrub card should be written that way
+from the start.
+
 ### A blanket rename was the wrong instrument
 
 Replacing the product name across code as well as prose produced
