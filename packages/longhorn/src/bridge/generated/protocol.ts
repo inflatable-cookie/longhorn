@@ -198,3 +198,20 @@ export type BridgeServiceRequest = { action: BridgeServiceAction, credentialRef:
 export type BridgeServiceGeneration = number;
 
 export type BridgeServiceTransitionReceipt = { generation: BridgeServiceGeneration, ownership: BridgeServiceOwnership, action: BridgeServiceAction, previous: BridgeServiceState, current: BridgeServiceState, outcome: BridgeServiceOutcome, };
+export const BRIDGE_ADMITTED_CONNECTION_REASONS: Record<
+  BridgeConnectionState,
+  readonly (BridgeConnectionReason | null)[]
+> = {
+  "idle": [null],
+  "connecting": ["connectRequested"],
+  "negotiating": ["transportReady"],
+  "ready": ["negotiationAccepted", "capabilityChanged"],
+  "degraded": ["capabilityChanged", "transportLost", "hostFailure"],
+  "reconnecting": ["retryScheduled", "transportLost"],
+  "offline": ["transportLost"],
+  "incompatible": ["versionMismatch"],
+  "unauthorized": ["authorizationRejected"],
+  "failed": ["hostFailure"],
+  "closed": ["shutdown"],
+};
+

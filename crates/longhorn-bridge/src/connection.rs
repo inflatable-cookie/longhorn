@@ -97,65 +97,82 @@ pub struct BridgeConnectionStatus {
 }
 
 impl BridgeConnectionStatus {
+    /// Which reasons each connection state admits.
+    ///
+    /// Declared rather than pattern-matched, because this rule is needed in
+    /// two languages. It used to live only in a `matches!` arm below, which
+    /// `ts-rs` cannot see — it carries types, and this is a relation between
+    /// two of them — so the TypeScript boundary kept a hand-written copy.
+    /// The two agreed, arm for arm, by maintenance rather than by
+    /// construction. This is the source both now read.
+    ///
+    /// `None` is a reason: `Idle` admits it and nothing else does.
+    pub const ADMITTED_REASONS: [(
+        BridgeConnectionState,
+        &'static [Option<BridgeConnectionReason>],
+    ); 11] = [
+        (BridgeConnectionState::Idle, &[None]),
+        (
+            BridgeConnectionState::Connecting,
+            &[Some(BridgeConnectionReason::ConnectRequested)],
+        ),
+        (
+            BridgeConnectionState::Negotiating,
+            &[Some(BridgeConnectionReason::TransportReady)],
+        ),
+        (
+            BridgeConnectionState::Ready,
+            &[
+                Some(BridgeConnectionReason::NegotiationAccepted),
+                Some(BridgeConnectionReason::CapabilityChanged),
+            ],
+        ),
+        (
+            BridgeConnectionState::Degraded,
+            &[
+                Some(BridgeConnectionReason::CapabilityChanged),
+                Some(BridgeConnectionReason::TransportLost),
+                Some(BridgeConnectionReason::HostFailure),
+            ],
+        ),
+        (
+            BridgeConnectionState::Reconnecting,
+            &[
+                Some(BridgeConnectionReason::RetryScheduled),
+                Some(BridgeConnectionReason::TransportLost),
+            ],
+        ),
+        (
+            BridgeConnectionState::Offline,
+            &[Some(BridgeConnectionReason::TransportLost)],
+        ),
+        (
+            BridgeConnectionState::Incompatible,
+            &[Some(BridgeConnectionReason::VersionMismatch)],
+        ),
+        (
+            BridgeConnectionState::Unauthorized,
+            &[Some(BridgeConnectionReason::AuthorizationRejected)],
+        ),
+        (
+            BridgeConnectionState::Failed,
+            &[Some(BridgeConnectionReason::HostFailure)],
+        ),
+        (
+            BridgeConnectionState::Closed,
+            &[Some(BridgeConnectionReason::Shutdown)],
+        ),
+    ];
+
     /// Validates and constructs a connection status.
     pub fn new(
         state: BridgeConnectionState,
         reason: Option<BridgeConnectionReason>,
     ) -> Result<Self, BridgeNegotiationError> {
-        let valid = matches!(
-            (state, reason),
-            (BridgeConnectionState::Idle, None)
-                | (
-                    BridgeConnectionState::Connecting,
-                    Some(BridgeConnectionReason::ConnectRequested)
-                )
-                | (
-                    BridgeConnectionState::Negotiating,
-                    Some(BridgeConnectionReason::TransportReady)
-                )
-                | (
-                    BridgeConnectionState::Ready,
-                    Some(
-                        BridgeConnectionReason::NegotiationAccepted
-                            | BridgeConnectionReason::CapabilityChanged
-                    )
-                )
-                | (
-                    BridgeConnectionState::Degraded,
-                    Some(
-                        BridgeConnectionReason::CapabilityChanged
-                            | BridgeConnectionReason::TransportLost
-                            | BridgeConnectionReason::HostFailure
-                    )
-                )
-                | (
-                    BridgeConnectionState::Reconnecting,
-                    Some(
-                        BridgeConnectionReason::RetryScheduled
-                            | BridgeConnectionReason::TransportLost
-                    )
-                )
-                | (
-                    BridgeConnectionState::Offline,
-                    Some(BridgeConnectionReason::TransportLost)
-                )
-                | (
-                    BridgeConnectionState::Incompatible,
-                    Some(BridgeConnectionReason::VersionMismatch)
-                )
-                | (
-                    BridgeConnectionState::Unauthorized,
-                    Some(BridgeConnectionReason::AuthorizationRejected)
-                )
-                | (
-                    BridgeConnectionState::Failed,
-                    Some(BridgeConnectionReason::HostFailure)
-                )
-                | (
-                    BridgeConnectionState::Closed,
-                    Some(BridgeConnectionReason::Shutdown)
-                )
-        );
+        let valid = Self::ADMITTED_REASONS
+            .iter()
+            .find(|(admitted_state, _)| *admitted_state == state)
+            .is_some_and(|(_, reasons)| reasons.contains(&reason));
 
         if !valid {
             return Err(BridgeNegotiationError::new(

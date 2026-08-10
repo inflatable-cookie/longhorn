@@ -6,6 +6,7 @@ import {
   BRIDGE_MAXIMUM_REQUESTED_DOMAINS,
   BRIDGE_MAXIMUM_TRANSPORT_FEATURES,
   BRIDGE_AUTHENTICATION_POSTURES,
+  BRIDGE_ADMITTED_CONNECTION_REASONS,
   BRIDGE_CONNECTION_REASONS,
   BRIDGE_CONNECTION_STATES,
   BRIDGE_DOMAIN_AVAILABILITIES,
@@ -164,23 +165,13 @@ function validConnectionReason(
   state: BridgeConnectionState,
   reason: BridgeConnectionReason | null,
 ): boolean {
-  const valid: Record<
-    BridgeConnectionState,
-    readonly (BridgeConnectionReason | null)[]
-  > = {
-    idle: [null],
-    connecting: ["connectRequested"],
-    negotiating: ["transportReady"],
-    ready: ["negotiationAccepted", "capabilityChanged"],
-    degraded: ["capabilityChanged", "transportLost", "hostFailure"],
-    reconnecting: ["retryScheduled", "transportLost"],
-    offline: ["transportLost"],
-    incompatible: ["versionMismatch"],
-    unauthorized: ["authorizationRejected"],
-    failed: ["hostFailure"],
-    closed: ["shutdown"],
-  };
-  return valid[state].includes(reason);
+  // Generated from `BridgeConnectionStatus::ADMITTED_REASONS`. This used to be
+  // an eleven-arm literal here, and Card 160 recorded it as the one rule that
+  // could not be derived because the pairing exists in no type. That was
+  // wrong: it exists in Rust, in a `matches!` arm, which `ts-rs` cannot carry
+  // because it is a relation between two enums rather than a type. The two
+  // copies agreed arm for arm — by maintenance, not by construction.
+  return BRIDGE_ADMITTED_CONNECTION_REASONS[state].includes(reason);
 }
 
 function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {

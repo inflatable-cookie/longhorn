@@ -53,6 +53,38 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     apply("bridge", "generate:bridge", mode, &artifacts)
 }
 
+/// Emits the state/reason matrix from `BridgeConnectionStatus::ADMITTED_REASONS`.
+///
+/// The rule is a relation between two enums, not a type, so `ts-rs` cannot
+/// carry it — which is why the TypeScript boundary kept a hand-written copy
+/// that agreed with Rust by maintenance rather than by construction. Both
+/// sides now read the same table.
+///
+/// Wire names come from serde rather than from the variant identifiers, so a
+/// `rename_all` change moves both sides together.
+fn render_admitted_reasons() -> Result<String, Box<dyn Error>> {
+    let mut rendered = String::from(
+        "export const BRIDGE_ADMITTED_CONNECTION_REASONS: Record<\n\
+         \u{20} BridgeConnectionState,\n\
+         \u{20} readonly (BridgeConnectionReason | null)[]\n\
+         > = {\n",
+    );
+    for (state, reasons) in BridgeConnectionStatus::ADMITTED_REASONS {
+        let state_name = serde_json::to_string(&state)?;
+        let listed = reasons
+            .iter()
+            .map(|reason| match reason {
+                Some(reason) => serde_json::to_string(reason),
+                None => Ok("null".to_owned()),
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .join(", ");
+        rendered.push_str(&format!("  {state_name}: [{listed}],\n"));
+    }
+    rendered.push_str("};\n");
+    Ok(rendered)
+}
+
 fn render_protocol() -> Result<String, Box<dyn Error>> {
     let host_form = BridgeHostForm::decl();
     let connection_state = BridgeConnectionState::decl();
@@ -198,6 +230,7 @@ fn render_protocol() -> Result<String, Box<dyn Error>> {
          export const BRIDGE_STREAM_DECISIONS = {} as const;\n\
          export const BRIDGE_PROGRESS_DECISIONS = {} as const;\n\
          export const BRIDGE_TERMINAL_DECISIONS = {} as const;\n\n\
+         {}\n\
          {}\n",
         serde_json::to_string(&string_union_variants(&BridgeHostForm::decl())?)?,
         serde_json::to_string(&string_union_variants(&BridgeConnectionState::decl())?)?,
@@ -224,6 +257,7 @@ fn render_protocol() -> Result<String, Box<dyn Error>> {
         serde_json::to_string(&string_union_variants(&BridgeStreamDecision::decl())?)?,
         serde_json::to_string(&string_union_variants(&BridgeProgressDecision::decl())?)?,
         serde_json::to_string(&string_union_variants(&BridgeJobTerminalDecision::decl())?)?,
-        declarations.join("\n\n")
+        declarations.join("\n\n"),
+        render_admitted_reasons()?
     ))
 }

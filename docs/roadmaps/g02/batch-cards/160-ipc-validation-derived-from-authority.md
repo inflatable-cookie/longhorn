@@ -1,6 +1,6 @@
 # 160 IPC Validation Derived From The Authority
 
-Status: in progress — step 2 proven on bridge
+Status: in progress — steps 2 and 3 landed on bridge
 Owner: Tom
 Roadmap: g02.011 batch 1
 Governing refs: contracts 010 and 012; the P2-10 audit finding
@@ -87,10 +87,15 @@ extends an existing capability rather than adding one.
 
 ### Finding 5 — one thing is genuinely not derivable
 
-`bridge/compatibility/negotiation.ts` carries a connection-state/reason
-validity matrix (`ready: ["negotiationAccepted", "capabilityChanged"]`, and
-so on). Both sides are plain string unions; the *pairing* rule exists in no
-type. It stays hand-written and must be moved somewhere that says so.
+~~`bridge/compatibility/negotiation.ts` carries a connection-state/reason
+validity matrix. Both sides are plain string unions; the *pairing* rule exists
+in no type. It stays hand-written and must be moved somewhere that says so.~~
+
+**Wrong, and corrected 2026-08-10 — see step 3.** The rule does exist in Rust.
+It was in a `matches!` arm in `BridgeConnectionStatus::new`, which is not a
+type, which is why `ts-rs` could not carry it — and why the conclusion "exists
+in no type" slid into "cannot be derived". Those are different claims. It is
+generated now.
 
 ## Step 2 Landed — 2026-08-08 (`37b49a0a`)
 
@@ -166,6 +171,41 @@ the adjacent charset guard — worth remembering, because the same shape
 (a bound plus a charset restriction that makes the bound's unit moot)
 recurs across these validators.
 
+## Step 3 Landed — 2026-08-10
+
+The state/reason matrix is generated, not extracted.
+
+Card 160 planned to move it into a hand-owned module with a comment saying why
+it could not be generated. Reading `longhorn-bridge` first showed the premise
+was false: `BridgeConnectionStatus::new` carried the same eleven arms in a
+`matches!`, and the two copies **agreed exactly** — by maintenance rather than
+by construction.
+
+So Rust declares the table instead of pattern-matching it.
+`BridgeConnectionStatus::ADMITTED_REASONS` is a `pub const` that `new()`
+consults, `longhorn-bindings` emits as
+`BRIDGE_ADMITTED_CONNECTION_REASONS`, and the TypeScript validator reads. The
+eleven-arm literal is gone.
+
+Wire names come from serde rather than variant identifiers, so a `rename_all`
+change moves both sides together rather than silently desynchronising them.
+
+**The drift gate was tested in both directions**, as step 2's was: adding
+`HostFailure` to `Offline` in Rust made `check:bindings` fail and name the
+artifact; restoring made it pass. All 23 bridge tests pass against the declared
+table, so `new()`'s behaviour is unchanged.
+
+### What this says about the inventory's findings
+
+Finding 5 was the only one asserting something could not be done, and it was
+the one that turned out to be wrong. The mistake was reading "exists in no
+type" — true, `ts-rs` carries types — and concluding "cannot be derived", which
+does not follow. A generator can emit anything Rust can declare; the question
+is whether Rust declares it, not whether it is a type.
+
+Worth carrying into step 4: the remaining "not derivable" judgements in this
+card deserve the same check before they are trusted.
+
 ## Scope
 
 - an agreed target for what boundary validation checks, applied uniformly
@@ -183,8 +223,9 @@ recurs across these validators.
 2. Emit the `MAXIMUM_*` constants from the Rust authority into the generated
    protocol modules. Independently useful and shippable alone: it gives the
    29 existing magic numbers a source, and a diff gate.
-3. Extract bridge's state/reason matrix into a hand-owned module with a
-   comment saying why it is not generated.
+3. ~~Extract bridge's state/reason matrix into a hand-owned module.~~ Landed
+   2026-08-10 as generation instead — the premise that it could not be derived
+   was wrong.
 4. Emit structural validators from the same authority as the types.
 5. Migrate package by package, deleting the hand-written original in the
    same commit. A package carrying both generated and hand-written
@@ -197,7 +238,8 @@ recurs across these validators.
 - every Rust `MAXIMUM_*` that bounds a wire-visible collection is enforced
   in TypeScript from a generated constant, never a literal
 - no package carries both generated and hand-written validators
-- the state/reason matrix is hand-owned and labelled
+- [x] the state/reason matrix has one source — generated from
+  `BridgeConnectionStatus::ADMITTED_REASONS`, not hand-owned as planned
 - `check:bindings` fails when a bound changes in Rust and not in TypeScript
 - 187 call sites keep working; the 12 client modules are unchanged
 

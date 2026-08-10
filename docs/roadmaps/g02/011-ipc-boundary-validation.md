@@ -48,6 +48,19 @@ uniformly implemented at all.
 - validation in `svelte` and `poodle`, which sit downstream of the boundary
   and correctly carry none.
 
+## Progress
+
+Steps 2 and 3 have landed on bridge. Bounds come from the Rust authority, and
+so does the connection state/reason matrix — which this milestone's card had
+recorded as the one rule that could not be derived. It could; the rule lived in
+a `matches!` arm rather than a type, and `ts-rs` carrying only types was
+mistaken for the rule being underivable.
+
+Step 1 — deciding the target and recording it in contract 010 — still gates
+steps 4 through 6, and is an operator decision: nine packages would gain key
+validation and five would gain bounds, so there is no "current behaviour" to
+preserve.
+
 ## Next Task
 
 Card 160 step 2 is separable and worth taking first: emitting the bound
