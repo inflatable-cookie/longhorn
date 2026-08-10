@@ -1,3 +1,4 @@
+import { CONFIG_FIELDS } from "../generated/fields.ts";
 import {
   BACKUP_ENCRYPTION_STATES,
   BACKUP_PENDING_STATES,
@@ -33,7 +34,7 @@ const STORAGE_PROFILES = [
 export function assertCompatibleConfigOperationsSnapshot(
   value: unknown,
 ): asserts value is ConfigOperationsSnapshot {
-  const snapshot = record(value, "$");
+  const snapshot = record(value, "$", CONFIG_FIELDS.ConfigOperationsSnapshot);
   protocol(snapshot.protocolVersion, "$.protocolVersion");
   finiteNumber(snapshot.generation, "$.generation");
   array(snapshot.capabilities, "$.capabilities").forEach((capability, index) =>
@@ -49,7 +50,7 @@ export function assertCompatibleConfigOperationsSnapshot(
 }
 
 export function assertRestoreInspection(value: unknown, path: string): void {
-  const inspection = record(value, path);
+  const inspection = record(value, path, CONFIG_FIELDS.RestoreInspectionProjection);
   digest(inspection.archiveSha256, `${path}.archiveSha256`);
   [
     "archiveId",
@@ -96,7 +97,7 @@ export function assertRestoreInspection(value: unknown, path: string): void {
 }
 
 export function assertRestorePlan(value: unknown, path: string): void {
-  const plan = record(value, path);
+  const plan = record(value, path, CONFIG_FIELDS.RestorePlanProjection);
   digest(plan.archiveSha256, `${path}.archiveSha256`);
   digest(plan.confirmationDigest, `${path}.confirmationDigest`);
   array(plan.entries, `${path}.entries`).forEach((value, index) => {
@@ -126,7 +127,7 @@ export function assertRestoreExecutionReceipt(
   value: unknown,
   path: string,
 ): void {
-  const receipt = record(value, path);
+  const receipt = record(value, path, CONFIG_FIELDS.RestoreExecutionReceiptProjection);
   digest(receipt.confirmationDigest, `${path}.confirmationDigest`);
   countReceipt(receipt.staging, `${path}.staging`, [
     "selected",

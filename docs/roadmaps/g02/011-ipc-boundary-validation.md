@@ -68,14 +68,13 @@ commit, and rename the surface.
 
 ## Next Task
 
-Step 4 across the remaining six packages: `config`, `settings`, `commands`,
-`history`, `history-tree`, `layout`. `surfaces`, `transfer` and
-`surface-transfer` are migrated.
+Step 4. `surfaces`, `transfer` and `surface-transfer` are migrated; `config`
+is partially migrated — its four top-level entry points are strict, its nested
+fragments are not.
 
-Those three shared one shape and took the same two edits. The six do not —
-`config` and `settings` carry a differently-signed `record` in `primitives.ts`,
-`layout` has no object validation at all, and the rest inline theirs. Each
-needs reading before editing.
+`settings` shares `config`'s shape and should follow directly. `layout` has no
+object validation at all, so it needs a `record` before it needs a field list.
+`history`, `history-tree` and `commands` inline theirs.
 
 Tagged unions stay on the lenient path until a per-variant field map exists —
 their allowed keys depend on the discriminant, so one flat list is wrong.

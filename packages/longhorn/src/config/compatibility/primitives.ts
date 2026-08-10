@@ -42,14 +42,41 @@ export function protocol(value: unknown, path: string): void {
   }
 }
 
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys accepted are the
+ * Rust struct's and nothing else — contract 010's Boundary Validation Target.
+ * `path` is kept ahead of it because every existing caller passes one and it
+ * is what makes a rejection locatable in a nested document.
+ *
+ * Called without a list, this keeps shape-only behaviour. That is correct for
+ * a tagged union, whose allowed keys depend on its discriminant, and it is a
+ * gap anywhere else — the remaining untyped call sites are the work left.
+ */
 export function record(
   value: unknown,
   path: string,
+  allowed?: readonly string[],
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     fail("invalid_payload", path, "expected object");
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  if (allowed === undefined) return result;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(result)) {
+    if (!permitted.has(key)) {
+      fail("invalid_payload", `${path}.${key}`, "unknown field");
+    }
+  }
+  for (const key of allowed) {
+    if (!(key in result)) {
+      fail("invalid_payload", `${path}.${key}`, "missing field");
+    }
+  }
+  return result;
 }
 
 export function array(value: unknown, path: string): unknown[] {

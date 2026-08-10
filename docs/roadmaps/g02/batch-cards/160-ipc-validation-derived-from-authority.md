@@ -332,18 +332,38 @@ The strictness also found a stale test fixture: `transfer`'s snapshot fixture
 carried `windows` and `zones`, which the type has not had. It never failed,
 because nothing checked.
 
+### config — 2026-08-10
+
+The package the inventory named first: 858 lines of validation, zero key
+checks. Forty-seven object types now have field lists, emitted from both
+`base` and `restore` declaration sets into one `CONFIG_FIELDS` map — the
+validators import from `protocol.ts`, which re-exports both, so splitting the
+map would only make callers guess which half a type lives in.
+
+`record(value, path, allowed?)` keeps `path` ahead of the list because every
+existing caller passes one and it is what makes a rejection locatable in a
+nested document. A rejection now reports `$.field` rather than the parent.
+
+**Four validators typed, and the rest deliberately not yet.**
+`ConfigOperationsSnapshot`, `RestoreInspectionProjection`,
+`RestorePlanProjection` and `RestoreExecutionReceiptProjection` are the ones
+whose asserted type is stated in their own signature. The remaining call sites
+take a `path` and validate a nested fragment whose type has to be traced;
+after the `SurfaceTransferTarget` mistake, tracing them is the work rather
+than a formality.
+
+So `config` is partially migrated, and that is stated rather than implied: its
+top-level entry points are strict and its nested fragments are not.
+
 ### Remaining
 
-Six packages: `config`, `settings`, `commands`, `history`, `history-tree`,
-`layout`.
+Five packages: `settings`, `commands`, `history`, `history-tree`, `layout` —
+plus `config`'s nested call sites.
 
-They do not share `surfaces`' shape, so the two-edit template does not apply
-directly. `config` and `settings` keep a `record(value, path)` in a
-`primitives.ts` whose signature differs; `layout` has no object validation at
-all, only kind checks and a version assert; `history`, `history-tree` and
-`commands` inline their object handling. Each needs reading before editing.
-
-`config` is the largest at 42 call sites.
+`settings` shares `config`'s `primitives.ts` shape and should follow directly.
+`layout` has no object validation at all, only kind checks and a version
+assert, so it needs a `record` before it needs a field list. `history`,
+`history-tree` and `commands` inline their object handling.
 
 ## Scope
 
