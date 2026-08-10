@@ -1,6 +1,6 @@
 # 179 Surfaces Absorb Containers
 
-Status: ready
+Status: complete — landed 2026-08-11
 Owner: Tom
 Roadmap: g02 planning checkpoint
 Governing refs: contract 002; contract 014
@@ -136,6 +136,50 @@ merge and the `LayoutContainerId` retirement are one atomic change: the moment
 `LayoutDocument` stops existing, the dependent crates stop compiling and stay
 that way until the sweep completes. There is no half-landed state worth
 committing, so this needs one uninterrupted pass rather than staged commits.
+
+## Outcome — 2026-08-11
+
+Landed across three commits: `dfa72456` absorbed the crate, `a4dda1f7` merged
+the documents and retired `LayoutContainerId`, and this one adds the stored-state
+transform and folds contract 014.
+
+`effigy qa` green: fmt, clippy with `--all-features`, 30 Rust suites, 194
+package tests, 104 Svelte tests, `check:bindings`, and all twelve artifact
+proofs.
+
+Three invariants stopped being expressible and were removed rather than
+weakened. `DuplicateLayoutContainerBinding` rejected two Surfaces sharing a
+container, and a schema is shared by design. `UnknownLayoutContainer` and
+`LayoutContainerAlreadyBound` became one check that the named schema is
+registered. And `CloseSurface` no longer returns a cleanup intent, because the
+container it told the caller to clean up was the Surface — the leak Card 178
+described cannot happen now.
+
+Two test policies loosened deliberately, both commented where they live. The
+no-Surface app-shell shape may import `longhorn/surfaces`, since the document
+type it needs lives there. And the layout conformance fixture no longer forbids
+`surface_id` in protocol state: layout state is Surface state, so a Surface id
+in the document is the subject of the protocol rather than host authority
+leaking into it. `window_id` stays forbidden.
+
+`merge_pre_card179_state` in `longhorn-surfaces-config` is the transform. It is
+not a `SurfaceMigration` implementation, because the hook is handed one raw
+document and this needs both; a consumer calls it from inside its own
+`migrate_one`. Every container becomes a Surface, a bound one keeping its
+Surface identity, label and hosting policy. Two cases refuse rather than guess:
+a Surface naming a container the layout document does not hold, and two
+Surfaces sharing one container. Both mean the files were not saved together,
+and guessing would silently lose a panel arrangement.
+
+### The blanket substitution bit twice more
+
+The card warned against it for prose. It needed to warn against it for code and
+for type names. A regex meant to delete two structs from `model.rs` matched
+across the three state primitives between them and left a six-line file. And
+`PersistedLayoutDocument` was silently renamed because it contains the
+substring `LayoutDocument`. The compiler caught both within a minute, which is
+the argument for driving this kind of sweep from `cargo check` rather than from
+grep.
 
 ## Progress
 

@@ -181,6 +181,210 @@ The composed host may:
 
 Provisioning a window is not an implicit side effect of panel transfer.
 
+## Layout, Absorbed From Contract 014 — 2026-08-11
+
+Card 179 removed the layout container, so a Surface *is* a layout: it carries
+the schema it instantiates, its regions, its sizing slots and the panel
+instances placed in them. Contract 014 governed a separate document that no
+longer exists, and its substance moves here rather than being restated in two
+places. 014 is a superseded stub.
+
+What did not move is 014's Composition section. Its two binding chains were the
+container abstraction written down, and they collapse to one:
+
+```text
+WindowId -> SurfaceId -> RegionId -> PanelInstanceId
+```
+
+## Layout Definition Registry
+
+A consumer registers immutable definitions before resolving or mutating a
+document.
+
+### Layout schema
+
+A layout schema declares:
+
+- stable schema id
+- complete ordered region definitions
+- complete ordered sizing-slot definitions
+
+Region definitions declare:
+
+- region id and family id
+- stable order
+- empty-region policy: `keep-visible` or `hide-when-empty`
+- whether collapse state is supported
+
+Sizing slots declare:
+
+- sizing-slot id
+- default, minimum, and maximum ratio
+
+Ratios serialize as integer millionths. The registry rejects inverted bounds,
+out-of-range defaults, duplicate ids, duplicate order, empty schemas, and
+unbounded counts. A sizing slot is a named consumer seam, not a split-tree
+node. The consumer maps it to one or more public Poodle split controls.
+
+### Panel definition
+
+A panel definition declares:
+
+- stable definition id
+- ordered default placement selectors
+- explicit allowed region ids and/or region families
+- explicit instance policy
+- movable and closeable policy
+
+Instance policy is an explicit tagged value:
+
+- singleton across the document
+- one per Surface
+- bounded per document and per Surface
+- explicitly multiple within document limits
+
+Missing policy fails registration. Empty allowed placement rejects every
+placement. It never means unrestricted.
+
+Definitions contain no title, icon, product attachment, serialized body, or
+runtime handle.
+
+## Layout State
+
+A layout document contains:
+
+- revision
+- ordered Surfaces
+- schema id per Surface
+- ordered panel-instance ids per region
+- active panel-instance id per region
+- collapse state only on supported regions
+- current value per registered sizing slot
+- panel instance id to definition id
+
+Every panel instance appears in exactly one region of exactly one Surface.
+Every referenced schema, region, sizing slot, definition, and instance must
+exist. Durable state contains no derived visibility and no product payload.
+
+## Layout Normalization
+
+Current-schema commands operate only on valid input. Corrupt or future state
+enters the configuration recovery path instead of being silently repaired.
+Explicit migrations may translate older documents before validation.
+
+Successful mutation normalizes:
+
+- Surfaces in stable id order
+- regions and sizing slots in registry order
+- panel order exactly as committed
+- active panel to the requested member, otherwise the first remaining member
+- empty regions to no active panel
+
+Closing or moving the active panel selects the panel now occupying its former
+index. If the removed panel was last, the previous final panel becomes active.
+An empty region has no active panel.
+
+Unknown ids, duplicates, incomplete reorder permutations, invalid sizing
+values, and policy violations reject the entire request.
+
+## Region Visibility
+
+Visibility is a projection:
+
+- `keep-visible` regions remain visible when empty
+- `hide-when-empty` regions are hidden when empty
+- occupied regions are visible
+- an optional transient reveal query may expose empty eligible regions during
+  a drag
+
+Transient reveal never changes the document or revision. g01.005 does not own
+DOM drop zones or cross-window leases.
+
+## Layout Mutation Protocol
+
+Every mutation request carries:
+
+- bounded `LayoutRequestId`
+- expected layout revision
+- one command
+
+Commands cover:
+
+- create panel instance at a Surface, region, and insertion point
+- close panel instance
+- activate panel instance
+- reorder one region using a complete permutation
+- move panel instance across regions or Surfaces
+- set one collapsible region state
+- set one sizing-slot ratio
+
+Creation uses a consumer-supplied panel instance id. Longhorn never derives
+instance identity from time, order, or a panel definition.
+
+Structural commands validate the complete current document and registry,
+apply to a private candidate, normalize, revalidate, and then return:
+
+- request id
+- previous and committed revision
+- authoritative snapshot
+- command-specific receipt
+
+A stale revision, rejected policy, invalid command, or failed persistence
+returns typed evidence and leaves durable state unchanged. A duplicate request
+id is not silently replayed unless the host injects an explicit bounded
+idempotency store.
+
+## Layout Persistence
+
+`longhorn-layout-config` is the narrow adapter between `longhorn-layout` and
+`longhorn-config`.
+
+The consumer injects:
+
+- exact `DomainDescriptor`
+- storage class and relative path
+- default document
+- definition registry
+- backup participation
+- any explicit old-schema migration
+
+Longhorn does not infer project ids, user ids, workspace paths, or one
+universal layout scope. A consumer may register one aggregate document or
+multiple scoped documents.
+
+The adapter:
+
+- loads and validates through the registered configuration domain
+- rechecks expected revision against fresh state under store coordination
+- publishes one complete document with the existing atomic mutation path
+- exposes bounded debounce only for sizing/collapse traffic
+- exposes explicit flush
+- preserves failed pending intent under the configuration debounce contract
+
+Window geometry uses its own descriptor. Layout mutation cannot replace a
+window document or copy renderer-supplied geometry into one.
+
+A changed definition-registry digest requires an explicit compatible
+migration. The generic configuration envelope owns schema version. The raw
+layout value owns the registry digest and complete document. A current-schema
+digest mismatch enters recovery. The consumer must bump the domain schema and
+provide the ordered migration hook before Longhorn can reinterpret stored ids
+or policy.
+
+## Layout Rust And TypeScript
+
+Rust serde types are authoritative. Contract 010 applies:
+
+- snapshots, commands, receipts, and errors generate checked TypeScript
+- generated files live in `@inflatable-cookie/longhorn/layout`
+- regeneration must be zero-diff
+- unknown future variants fail explicit compatibility checks
+- TypeScript cannot invent normalization, placement fallback, or active state
+
+g01.005 supplies protocol types and framework-neutral helpers only. Tauri
+transport, subscriptions, Svelte stores, and Poodle adapters remain later
+packages.
+
 ## Authority
 
 - Rust owns durable Surface resolution and mutation.

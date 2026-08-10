@@ -2,6 +2,8 @@
 
 #[path = "surface_config/backup.rs"]
 mod backup;
+#[path = "surface_config/card179.rs"]
+mod card179;
 #[path = "surface_config/independence.rs"]
 mod independence;
 #[path = "surface_config/loading.rs"]

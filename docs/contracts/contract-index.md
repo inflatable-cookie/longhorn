@@ -43,7 +43,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only sessions, leased targets, authoritative move | active compiled boundary |
 | [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
 | [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
-| [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | registered layout policy, state, mutation, and persistence | active first pass |
+| [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | superseded by 002; layout is Surface state since Card 179 | superseded |
 | [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active; lifecycle foundation implemented |
 | [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active; pure ledger implemented |
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |

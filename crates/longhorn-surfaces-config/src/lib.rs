@@ -1,5 +1,6 @@
 //! Registered configuration persistence for authoritative Surface documents.
 
+mod card179;
 mod domain;
 mod layout_debounce;
 mod layout_digest;
@@ -33,3 +34,5 @@ pub use layout_migration::{LayoutMigration, LayoutMigrationTarget, NoLayoutMigra
 pub use layout_mutation::{
     LayoutConfigMutationError, LayoutConfigPublicationReceipt, publish_layout_mutation,
 };
+
+pub use card179::merge_pre_card179_state;
