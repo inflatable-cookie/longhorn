@@ -560,7 +560,18 @@ been in it.
 
 ### Remaining
 
-Nothing in steps 1-5. Step 6 — renaming the surface — is the last.
+Nothing in steps 1-5. Step 6 — renaming the surface — is the last, and it is
+**deferred rather than ready**.
+
+Step 6 renames a consumer-visible export surface across 13 packages. Card 166
+is publishing those same packages to npm right now, and changing the public
+API of a package mid-publication is a worse problem than the untidy name.
+It waits for Card 166 to finish.
+
+`effigy qa` is also red on `check:api-reference`, from
+`686d84a6 feat(release): make the three packages publishable` removing
+`private: true` while `scripts/generate-api-reference-card126.ts:68` still
+asserts it. Unrelated to this card and not touched here.
 
 ## Scope
 
@@ -590,21 +601,25 @@ Nothing in steps 1-5. Step 6 — renaming the surface — is the last.
 
 ## Acceptance Criteria
 
-- [x] every package rejects unknown and missing fields at the boundary — at
-  the top level; nested fragments in `config` and `settings` remain
+- [x] every package rejects unknown and missing fields at the boundary
 - [x] every Rust `MAXIMUM_*` that bounds a wire-visible collection is enforced
   in TypeScript from a generated constant, never a literal
-- no package carries both generated and hand-written validators
+- [x] no package carries both generated and hand-written validators — the
+  field list replaced each hand-written list rather than sitting beside it
 - [x] the state/reason matrix has one source — generated from
   `BridgeConnectionStatus::ADMITTED_REASONS`, not hand-owned as planned
 - [x] `check:bindings` fails when a bound changes in Rust and not in TypeScript
-- 187 call sites keep working; the 12 client modules are unchanged
+- [x] the call sites keep working and the client modules are unchanged —
+  `git diff` from `13bdb373` to HEAD over every `client.ts` and
+  `connection.ts` is empty
 
 ## Evidence Required
 
-- a re-run of this inventory showing uniform columns
-- the bound-drift gate failing on a deliberate Rust-side change
-- per-package deletion diffs
+- [x] a re-run of this inventory showing uniform columns
+- [x] the bound-drift gate failing on a deliberate Rust-side change
+- [x] per-package diffs — recorded per package above rather than as deletions,
+  because the field list is a change to each hand-written validator and there
+  was nothing left to delete
 
 ## Stop Conditions
 
