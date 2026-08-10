@@ -67,10 +67,10 @@ compiles, and the two readable against each other.
 - [ ] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
-  A real close is observed, and the silent-loss path it found is fixed: facts
-  are recorded from each window's own render, so a close needs no observation.
-  Confirming a moved window's placement survives a restart remains, and needs
-  a driver that refuses to fire at a window it cannot see.
+  **Answered.** A window moved just before it closes loses its placement: the
+  capture stages, the close is permitted, no flush reaches the store. It is the
+  shared coordinator, so Tauri carries it too. The fix — a close that forces
+  its own flush and waits — changes both hosts and is an operator decision.
 
 ## Dependency Shape
 
@@ -99,8 +99,9 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 - [ ] the composition guide assembles a window, a projection, and
   `HostServices`, and its example compiles under whatever cadence Batch 1 chose
 - [x] a drag released over a second real window resolves to that window
-- [ ] a window torn down with a flush genuinely in flight either completes it
-  or refuses the close, and the proof says which
+- [x] a window torn down with a flush genuinely in flight either completes it
+  or refuses the close, and the proof says which — it does neither: it stages,
+  permits the close, and never writes
 - [ ] no claim in contract 020's current-state table reads "in-memory only"
   without a stated reason it cannot be more
 

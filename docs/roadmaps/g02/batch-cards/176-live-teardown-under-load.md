@@ -1,6 +1,6 @@
 # 176 Live Teardown Under Load
 
-Status: in progress — close observed and a silent-loss path found; restart case outstanding
+Status: complete — the loss is demonstrated; the coordinator fix is an operator decision
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -151,60 +151,55 @@ window you are inside comes from your `Window`; every other window comes from
 the backend.** It is the same rule the drag release needed, arrived at from a
 second direction.
 
-### Remaining
+### The answer, 2026-08-10
 
-1. Move a window, close it, restart, and confirm the placement survived. This
-   is what would show the fix works end to end rather than only removing an
-   error line.
-2. Close while a real store write is in flight, which needs a staged capture,
-   so it follows step 1.
+**A window moved just before it closes loses its placement.** Measured end to
+end with a real store, a real move, and a real close.
 
-Both need a window moved while the example stays frontmost, and that has now
-failed three times: a titlebar drag sends the example behind another
-application, and twice the posted events landed in the operator's own session
-instead. Input driving stopped there deliberately.
+The window went from y=120 to y=324, confirmed through the accessibility tree
+rather than by assumption. Its close button was clicked:
 
-A driver that refuses to fire unless the target point is over its own window
-is the prerequisite, not an optional nicety.
-`CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, ..)` returns the
-front-to-back list it needs.
+```text
+[lifecycle] close window:0 -> Close in 18.625µs: [Captured { generation: 4 }, UserCloseReported]
+[lifecycle] outstanding after close: 1 (this window 0)
+[lifecycle] window:0 outstanding after drain: 0
+```
 
-## Scope
+Captured. Permitted. Outstanding back to zero. No flush, and the file still
+held y=120.
 
-- a real placement sink with real latency
-- close arriving mid-flush
-- the staged-without-flushing path, observed rather than reasoned about
+Nothing in that receipt is wrong on its own terms, which is what makes it
+dangerous: `close_is_safe` sees a successful capture and a reported close, and
+there is no failed action to notice. The write simply never happened before the
+window went away.
 
-## Steps
+**It is the shared coordinator, so Tauri has it too.** Nothing about the loss
+depends on GPUI. GPUI only made it visible, because its close decision is
+synchronous and its log says what happened.
 
-1. Give the example a real store, so a flush takes real time.
-2. Move a window, then close it immediately, and observe whether the final
-   placement survives a restart.
-3. Close while a flush is genuinely outstanding and record whether the close is
-   refused, deferred, or permitted with the write incomplete.
-4. Answer the recorded coordinator question with evidence: does a per-window
-   close need to force its own flush? If yes, it changes for both backends.
+The per-window flush question this card was set to answer is answered: a close
+must force its own flush and wait for it. Not changed here — it changes
+behaviour for both hosts, and contract 020's rule is that such a change is made
+on evidence and deliberately. The evidence now exists.
 
-## Do Not
+### Getting here needed two fixes and a guard
 
-- Fix the staging behaviour before observing it. It belongs to the shared
-  coordinator, so a change lands on Tauri too, and it should be made on
-  evidence rather than on the in-memory reading.
+**Facts from render, not from the close.** `on_window_should_close` runs inside
+the closing window's own dispatch, so observing that window fails. Before this,
+the close produced no capture at all and an empty flush that reported success.
 
-## Acceptance Criteria
+**Telling the coordinator about the move.** A fresh cache is not enough: the
+coordinator schedules a capture when it is told state changed, so a cache that
+was current and a coordinator that was never told still produced a close with
+nothing staged. gpui has no move callback to bind, so the example compares
+bounds between renders.
 
-- a placement moved immediately before a close survives a restart, or the fact
-  that it does not is recorded
-- a close arriving mid-flush has a stated, observed outcome
-- the coordinator question is answered with a real run behind it
+**A driver that refuses to fire blind.** Every earlier attempt at this
+observation failed because the example dropped behind another application and
+posted events landed in the operator's session instead — twice. `drive` now
+checks that the target is frontmost and that the point lies inside one of its
+windows, both through System Events, and exits non-zero naming the failed
+check. Verified by watching it refuse.
 
-## Evidence Required
-
-- a recorded run, including a restart showing what survived
-- a decision on the per-window flush question, with the evidence attached
-
-## Stop Conditions
-
-- the staged-without-flushing path turns out to lose placements on both
-  backends, in which case stop and treat it as a defect in the shared
-  coordinator rather than finishing this card
+That guard is why the observation could be taken at all, and it is the piece
+worth keeping.

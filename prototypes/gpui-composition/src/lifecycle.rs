@@ -39,7 +39,8 @@ use longhorn_gpui_windowing::{
     GpuiWindowKey, NoopGpuiUserCloseHandler, capture_from_gpui_facts,
 };
 use longhorn_windowing::{
-    CapturedWindowPlacement, MonotonicMillis, ScheduledWindowLifecycleWake, WindowLifecyclePolicy,
+    CapturedWindowPlacement, MonotonicMillis, ScheduledWindowLifecycleWake, WindowLifecycleEvent,
+    WindowLifecyclePolicy,
 };
 
 use crate::store::sink;
@@ -131,6 +132,8 @@ pub struct LifecycleHost {
     inner: Rc<RefCell<Host>>,
     capture: CachedCapture,
     scheduler: DrainingScheduler,
+    /// The last bounds each window rendered at, so a move can be noticed.
+    last_bounds: RefCell<BTreeMap<WindowId, longhorn_gpui_windowing::GpuiLogicalRect>>,
 }
 
 impl LifecycleHost {
@@ -163,17 +166,34 @@ impl LifecycleHost {
             inner: Rc::new(RefCell::new(host)),
             capture,
             scheduler,
+            last_bounds: RefCell::new(BTreeMap::new()),
         }
     }
 
-    /// Records one window's facts from its own render.
+    /// Records one window's facts from its own render, and tells the
+    /// coordinator when they changed.
     ///
-    /// Called from `Render::render`, which is where a window has `&mut Window`
-    /// for itself and where gpui puts it after every move and resize. This is
-    /// what makes a close survivable: by the time the close callback runs, the
-    /// facts are already here and no observation is needed.
+    /// Both halves are load-bearing, and the second was missing for a while.
+    ///
+    /// Feeding the cache makes a capture *possible*: a window has `&mut Window`
+    /// for itself here, and observing it at close is impossible.
+    ///
+    /// Reporting the move makes a capture *happen*. The coordinator schedules
+    /// a capture when it is told state changed and not otherwise, so a cache
+    /// that is fresh and a coordinator that was never told produce a close
+    /// with no capture, nothing staged, and a flush that succeeds by writing
+    /// nothing. Measured: a window moved from y=120 to y=324, closed, and the
+    /// store still held y=120.
     pub fn record_from_render(&self, window_id: &WindowId, window: &Window) {
         let facts = longhorn_gpui_windowing_prototype::facts_from_window(window);
+        let bounds = facts.bounds();
+
+        let changed = self
+            .last_bounds
+            .borrow()
+            .get(window_id)
+            .is_none_or(|previous| *previous != bounds);
+
         if let Ok(scale) = facts.scale_factor() {
             self.inner.borrow_mut().record_scale(window_id, scale);
         }
@@ -181,6 +201,31 @@ impl LifecycleHost {
             .facts
             .borrow_mut()
             .insert(window_id.clone(), facts);
+
+        if !changed {
+            return;
+        }
+        self.last_bounds
+            .borrow_mut()
+            .insert(window_id.clone(), bounds);
+
+        // gpui has no "window moved" callback an application can bind, so the
+        // move is noticed by comparing renders. A product with a real event
+        // source uses that instead; what matters is that the coordinator hears
+        // about it at all.
+        let moved = WindowLifecycleEvent::Moved {
+            window_id: window_id.clone(),
+            outer_origin: match bounds.to_screen_origin() {
+                Ok(origin) => origin,
+                Err(error) => {
+                    eprintln!("[lifecycle] {window_id} has unusable bounds: {error}");
+                    return;
+                }
+            },
+        };
+        if let Err(error) = self.inner.borrow_mut().handle_lifecycle_event(moved) {
+            eprintln!("[lifecycle] {window_id} move refused: {error}");
+        }
     }
 
     /// Answers gpui's synchronous close question.
