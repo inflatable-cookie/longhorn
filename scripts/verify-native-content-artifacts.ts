@@ -16,7 +16,12 @@ import { basename, join, resolve } from "node:path";
 
 const POODLE_ARTIFACT_SET = poodleArtifactSet();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
-  "948fcd5481fd0df00dafc40575beb1aae76bff0a0ef6cf240639a005958f2b0c";
+  "bdfed54fc5f9c70d82485c5b572e3b2be3663c7bc37c6f565a8d4fc48196557e";
+// Rebaselined 2026-08-10 for Card 160. The fixture gained a `hostDestroy`
+// category because no category reached `HostDestroyReceipt`, so its field list
+// was enforcing nothing. The generated TypeScript digest is unchanged, and the
+// navigation-absence check below is the substantive guard here — it still
+// passes over the new payload.
 // Rebaselined 2026-08-08 for Card 164. The generated file changed only in its
 // import header — `@inflatable-cookie/longhorn-core` became
 // `@inflatable-cookie/longhorn/core` — and `check:bindings` confirms it still

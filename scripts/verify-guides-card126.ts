@@ -76,7 +76,10 @@ if (rustCount !== crateDirectories || typescriptCount !== packageDirectories) {
       `the workspace has ${crateDirectories} and ${packageDirectories}. Run \`effigy generate:api-reference\`.`,
   );
 }
-if (!api.includes("not available from npm or crates.io") || !api.includes("private: true") || !api.includes("publish = false")) {
+// Card 166 made the three TypeScript packages publishable, so the posture the
+// reference must state is no longer "private everywhere". The Rust half is
+// unchanged: `publish = false`, nothing on crates.io.
+if (!api.includes("not on crates.io") || !api.includes("publishConfig.access: public") || !api.includes("publish = false")) {
   throw new Error("API reference publication posture missing");
 }
 
