@@ -150,6 +150,35 @@ and sizing slots onto the Surface, and carry panel instances across. A consumer
 with a layout document and no Surface document gets one Surface per container,
 unlabelled.
 
+## Contract 014 Folds Into 002 — Decided 2026-08-10
+
+Contract 014 is titled "Layout Container Region And Panel Core" and its Identity
+section leads with `LayoutContainerId`. With containers gone and the crate
+absorbed, it governs nothing 002 does not already own: 002 governs the Surface
+document, and after this card that document holds the schema, regions, sizing
+slots and panel instances 014 describes.
+
+So 014's substance moves into 002 and 014 stops being a live contract.
+
+**It becomes a superseded stub rather than a deletion.** Twelve files reference
+it, including two research translation memos and a completed g01 card. Those are
+historical records of what governed the work at the time, and rewriting them to
+point at 002 would falsify that. A stub also keeps `effigy docs check links`
+green and leaves the `qa:northstar:spine` path list in `effigy.toml` unchanged,
+so no gate moves.
+
+This is the first retired contract in a set of twenty, so the shape is a
+precedent: keep the file, replace the body with a pointer and a one-paragraph
+statement of what absorbed it and when, and leave every inbound link working.
+It matches how Card 178 was superseded by this card.
+
+**What moves into 002.** The identity set minus `LayoutContainerId`, the
+definition registry, durable state, normalization, visibility, the mutation
+protocol and the persistence clauses. What does not move: 014's Composition
+section, whose two binding chains are the container abstraction stated
+outright, and which collapses to one chain — `WindowId -> SurfaceId -> RegionId
+-> PanelInstanceId`.
+
 ## Steps
 
 1. Move `schema_id`, `regions` and `sizing_slots` onto `SurfaceRecord`; move
@@ -165,7 +194,8 @@ unlabelled.
 7. Rewrite the fixtures, including the no-Surface conformance shape as a
    single unlabelled Surface.
 8. Provide the stored-state transform and test it both ways.
-9. Sweep examples and proofs; update contracts 002 and 014.
+9. Sweep examples and proofs. Fold contract 014 into 002 and leave 014 as a
+   superseded stub.
 
 ## Sweep Order
 
@@ -195,6 +225,7 @@ and the two mutation engines.
 - the no-Surface conformance shape is one unlabelled Surface and still passes
 - a focused Surface's single-panel invariant is enforced by the engine
 - a stored layout-plus-Surface pair transforms into one Surface document
+- contract 014 is a superseded stub and every inbound link still resolves
 - `effigy qa` green, including `check:bindings` and all twelve artifact proofs
 
 ## Why Before The Tag
