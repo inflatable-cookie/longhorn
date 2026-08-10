@@ -9,6 +9,7 @@ import {
   type SurfaceTransferResponse,
   type SurfaceTransferTarget,
 } from "./generated/protocol.ts";
+import { SURFACE_TRANSFER_FIELDS } from "./generated/fields.ts";
 import {
   TRANSFER_ERROR_CODES,
   assertCompatibleTransferTargetBinding,
@@ -23,7 +24,10 @@ export type SurfaceTransferProtocolIncompatibilityCode =
   | "unknown_abort_domain"
   | "unknown_surface_transfer_error_code"
   | "unknown_transfer_error_code"
-  | "unknown_response_status";
+  | "unknown_response_status"
+  | "invalid_object"
+  | "unknown_field"
+  | "missing_field";
 
 export class SurfaceTransferProtocolIncompatibilityError extends Error {
   readonly code: SurfaceTransferProtocolIncompatibilityCode;
@@ -43,6 +47,10 @@ export class SurfaceTransferProtocolIncompatibilityError extends Error {
 export function assertCompatibleSurfaceTransferTarget(
   value: unknown,
 ): asserts value is SurfaceTransferTarget {
+  // No field list: `SurfaceTransferTarget` is a tagged union, so its allowed
+  // keys depend on `kind` and one flat list is wrong. The generator skips it
+  // for that reason; handing it another type's list here rejected `kind`
+  // itself.
   const target = record(value);
   assertKnown(
     target.kind,
@@ -59,7 +67,7 @@ export function assertCompatibleSurfaceTransferTarget(
 export function assertCompatibleSurfaceTransferAbort(
   value: unknown,
 ): asserts value is SurfaceTransferAbort {
-  const abort = record(value);
+  const abort = record(value, SURFACE_TRANSFER_FIELDS.SurfaceTransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
   const source = record(abort.source);
   assertKnown(
@@ -109,7 +117,7 @@ export function assertCompatibleSurfaceTransferResponse(
     SURFACE_TRANSFER_RESPONSE_STATUSES,
   );
   if (response.status === "committed") {
-    const completion = record(response.completion);
+    const completion = record(response.completion, SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
     assertCompatibleSurfaceTransferTarget(completion.target);
   } else {
@@ -136,12 +144,34 @@ function assertKnown(
   }
 }
 
-function record(value: unknown): Record<string, unknown> {
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys accepted are the
+ * Rust struct's and nothing else — contract 010's Boundary Validation Target.
+ * Passing no list keeps shape-only behaviour for the tagged unions, whose
+ * allowed keys depend on their discriminant and so are not one flat set.
+ */
+function record(
+  value: unknown,
+  allowed?: readonly string[],
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new SurfaceTransferProtocolIncompatibilityError(
-      "unknown_response_status",
-      value,
-    );
+    throw new SurfaceTransferProtocolIncompatibilityError("invalid_object", value);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  if (allowed === undefined) return result;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(result)) {
+    if (!permitted.has(key)) {
+      throw new SurfaceTransferProtocolIncompatibilityError("unknown_field", { key, value });
+    }
+  }
+  for (const key of allowed) {
+    if (!(key in result)) {
+      throw new SurfaceTransferProtocolIncompatibilityError("missing_field", { key, value });
+    }
+  }
+  return result;
 }

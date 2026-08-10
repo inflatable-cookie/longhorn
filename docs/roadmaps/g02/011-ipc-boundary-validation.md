@@ -68,9 +68,14 @@ commit, and rename the surface.
 
 ## Next Task
 
-Step 4 across the remaining eight packages. `surfaces` is migrated and is the
-template: emit `<DOMAIN>_FIELDS` from the domain's generator, then give its
-`record()` the list. `config` is the largest at 42 call sites.
+Step 4 across the remaining six packages: `config`, `settings`, `commands`,
+`history`, `history-tree`, `layout`. `surfaces`, `transfer` and
+`surface-transfer` are migrated.
+
+Those three shared one shape and took the same two edits. The six do not —
+`config` and `settings` carry a differently-signed `record` in `primitives.ts`,
+`layout` has no object validation at all, and the rest inline theirs. Each
+needs reading before editing.
 
 Tagged unions stay on the lenient path until a per-variant field map exists —
 their allowed keys depend on the discriminant, so one flat list is wrong.

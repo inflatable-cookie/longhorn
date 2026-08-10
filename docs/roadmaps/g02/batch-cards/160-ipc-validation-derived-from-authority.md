@@ -310,14 +310,40 @@ here.
 `unknown_response_status` for a non-object because its union had no code for
 one. It now has `invalid_object`, `unknown_field` and `missing_field`.
 
+### transfer and surface-transfer — 2026-08-10
+
+Both had `surfaces`' exact shape, and both took the same two edits. Strictness
+tests on each, and `TransferClientSnapshot`'s list is asserted against the
+fixture's own keys so the two cannot drift apart quietly.
+
+**Typing a call site by name-matching is how this goes wrong.**
+`assertCompatibleSurfaceTransferTarget` got `SurfaceTransferCommand`'s list
+because the names looked adjacent; it validates a `SurfaceTransferTarget`,
+which is a tagged union the generator had already refused to emit a list for.
+The result rejected `kind` — the discriminant — and two existing tests failed
+immediately.
+
+That is the system working twice over: the generator declined to guess, and
+the strictness caught the guess made on its behalf. The rule for the remaining
+packages is to read what the function asserts, not what the constant is
+called.
+
+The strictness also found a stale test fixture: `transfer`'s snapshot fixture
+carried `windows` and `zones`, which the type has not had. It never failed,
+because nothing checked.
+
 ### Remaining
 
-Eight packages: `config`, `settings`, `commands`, `history`, `history-tree`,
-`transfer`, `surface-transfer`, `layout`. Each needs the field map emitted
-from its generator and its `record()` given the list — the same two edits, and
-`config`'s 42 call sites make it the largest.
+Six packages: `config`, `settings`, `commands`, `history`, `history-tree`,
+`layout`.
 
-`surfaces` is the template.
+They do not share `surfaces`' shape, so the two-edit template does not apply
+directly. `config` and `settings` keep a `record(value, path)` in a
+`primitives.ts` whose signature differs; `layout` has no object validation at
+all, only kind checks and a version assert; `history`, `history-tree` and
+`commands` inline their object handling. Each needs reading before editing.
+
+`config` is the largest at 42 call sites.
 
 ## Scope
 

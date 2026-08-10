@@ -18,6 +18,7 @@ import {
   type TransferSessionResponse,
   type TransferTargetBinding,
 } from "./generated/protocol.ts";
+import { TRANSFER_FIELDS } from "./generated/fields.ts";
 
 export type TransferProtocolIncompatibilityCode =
   | "unsupported_protocol_version"
@@ -27,7 +28,10 @@ export type TransferProtocolIncompatibilityCode =
   | "unknown_transfer_error_code"
   | "unknown_panel_error_code"
   | "unknown_response_status"
-  | "invalid_client_snapshot";
+  | "invalid_client_snapshot"
+  | "invalid_object"
+  | "unknown_field"
+  | "missing_field";
 
 export class TransferProtocolIncompatibilityError extends Error {
   readonly code: TransferProtocolIncompatibilityCode;
@@ -65,7 +69,7 @@ export function assertCompatibleTransferTargetBinding(
 export function assertCompatibleTransferClientSnapshot(
   value: unknown,
 ): asserts value is TransferClientSnapshot {
-  const snapshot = record(value);
+  const snapshot = record(value, TRANSFER_FIELDS.TransferClientSnapshot);
   assertTransferProtocolVersion(snapshot.protocol_version);
   if (
     typeof snapshot.client_id !== "string" ||
@@ -93,7 +97,7 @@ export function assertCompatibleTransferCommitSelector(
 export function assertCompatibleTransferAbort(
   value: unknown,
 ): asserts value is TransferAbort {
-  const abort = record(value);
+  const abort = record(value, TRANSFER_FIELDS.TransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
   const source = record(abort.source);
   assertKnown(
@@ -124,7 +128,7 @@ export function assertCompatibleTransferSessionResponse(
     TRANSFER_SESSION_RESPONSE_STATUSES,
   );
   if (response.status === "started") {
-    const session = record(response.session);
+    const session = record(response.session, TRANSFER_FIELDS.TransferSessionStarted);
     assertTransferProtocolVersion(session.protocol_version);
     assertTransferProtocolVersion(record(session.payload).protocol_version);
   } else {
@@ -170,7 +174,7 @@ export function assertCompatiblePanelTransferResponse(
     PANEL_TRANSFER_RESPONSE_STATUSES,
   );
   if (response.status === "committed") {
-    const completion = record(response.completion);
+    const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
     assertCompatibleTransferTargetBinding(
       record(record(completion.target).binding),
@@ -199,14 +203,36 @@ function assertKnown(
   }
 }
 
-function record(value: unknown): Record<string, unknown> {
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys accepted are the
+ * Rust struct's and nothing else — contract 010's Boundary Validation Target.
+ * Passing no list keeps shape-only behaviour for the tagged unions, whose
+ * allowed keys depend on their discriminant and so are not one flat set.
+ */
+function record(
+  value: unknown,
+  allowed?: readonly string[],
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TransferProtocolIncompatibilityError(
-      "unknown_response_status",
-      value,
-    );
+    throw new TransferProtocolIncompatibilityError("invalid_object", value);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  if (allowed === undefined) return result;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(result)) {
+    if (!permitted.has(key)) {
+      throw new TransferProtocolIncompatibilityError("unknown_field", { key, value });
+    }
+  }
+  for (const key of allowed) {
+    if (!(key in result)) {
+      throw new TransferProtocolIncompatibilityError("missing_field", { key, value });
+    }
+  }
+  return result;
 }
 
 function unsignedInteger(value: unknown): value is number {
