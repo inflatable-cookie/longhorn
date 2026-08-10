@@ -91,6 +91,53 @@ durable delivery. Query-only domains do not require an event transport.
 - v1 uses exact-version negotiation. Version ranges wait for a real
   rolling-upgrade requirement.
 
+## Boundary Validation Target
+
+Decided 2026-08-10, after measuring what the boundary does today rather than
+what it was assumed to do.
+
+**The TypeScript boundary validates to the same strictness as the Rust
+authority, and derives that strictness from it.** Concretely:
+
+- **Unknown fields are rejected.** Rust declares `deny_unknown_fields` on 332
+  types. Nine of thirteen TypeScript packages accepted them, so a payload
+  TypeScript waved through was one Rust would refuse. That asymmetry was
+  accidental — it is the shape of who wrote which validator, not a decision
+  anyone took.
+- **Missing fields are rejected.** `ts-rs` emits `Option<T>` as
+  always-present-and-nullable, so there is no absent-versus-null ambiguity to
+  navigate: zero optional fields across the generated protocol, 88 explicit
+  `| null`. A derived validator can be exactly as strict as a hand-written one
+  without guessing.
+- **Every bound comes from a named constant, never a literal.** A `MAXIMUM_*`
+  that bounds a wire-visible collection is enforced from a generated constant,
+  and `check:bindings` fails when Rust changes and TypeScript does not.
+- **A rule Rust declares is generated, not copied.** Including rules that are
+  not types: the connection state/reason matrix lived in a `matches!` arm, was
+  hand-copied into TypeScript, and agreed by maintenance rather than by
+  construction until it was declared and emitted.
+
+### What this costs, stated plainly
+
+Nine packages become stricter than they were. A consumer sending a field the
+protocol does not declare starts failing where it was previously ignored.
+Every consumer is on a `file:` install, so this surfaces during a coordinated
+change rather than in the field — which is the argument for doing it now
+rather than after publication.
+
+### What it is not
+
+Not forward compatibility. Ignoring unknown fields would let a newer host add
+one without breaking an older client, and that is a real posture with real
+advantages. It is rejected here because it diverges from the authority, and a
+boundary that is deliberately less strict than the thing it defends needs its
+own written rule and its own drift gate. Longhorn has one authority; the
+boundary derives from it.
+
+If rolling upgrades ever require it, that is a version-negotiation change and
+belongs beside the exact-version rule above — not a per-package validator
+loosening.
+
 ## v1 Adapter Proof
 
 - direct/in-process execution

@@ -56,13 +56,17 @@ recorded as the one rule that could not be derived. It could; the rule lived in
 a `matches!` arm rather than a type, and `ts-rs` carrying only types was
 mistaken for the rule being underivable.
 
-Step 1 — deciding the target and recording it in contract 010 — still gates
-steps 4 through 6, and is an operator decision: nine packages would gain key
-validation and five would gain bounds, so there is no "current behaviour" to
-preserve.
+Step 1 is decided and recorded in contract 010: the boundary matches the Rust
+authority's strictness and derives it. The measurement that settled it —
+`deny_unknown_fields` on 332 Rust types against nine TypeScript packages that
+accept them — showed the boundary had been asymmetric by accident rather than
+by choice.
+
+Steps 4 through 6 are now unblocked and mechanical: emit structural validators,
+migrate package by package deleting each hand-written original in the same
+commit, and rename the surface.
 
 ## Next Task
 
-Card 160 step 2 is separable and worth taking first: emitting the bound
-constants closes the only finding with a live drift mechanism, and does not
-depend on agreeing the wider target.
+Card 160 step 4: emit structural validators from the same authority as the
+types. The target is decided, so this no longer waits on anything.

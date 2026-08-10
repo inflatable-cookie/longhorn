@@ -1,6 +1,6 @@
 # 160 IPC Validation Derived From The Authority
 
-Status: in progress — steps 2 and 3 landed on bridge
+Status: in progress — target decided; steps 2 and 3 landed on bridge
 Owner: Tom
 Roadmap: g02.011 batch 1
 Governing refs: contracts 010 and 012; the P2-10 audit finding
@@ -206,6 +206,34 @@ is whether Rust declares it, not whether it is a type.
 Worth carrying into step 4: the remaining "not derivable" judgements in this
 card deserve the same check before they are trusted.
 
+## Step 1 Decided — 2026-08-10
+
+The target is in contract 010. The decision was less open than this card
+assumed, because the measurement that settles it had not been taken.
+
+**Rust declares `deny_unknown_fields` on 332 types** — config 64, bridge 29,
+settings 26, operation 21, notifications 16. Nine TypeScript packages accept
+unknown fields. The boundary has therefore been asymmetric all along: a payload
+TypeScript waves through is one Rust refuses. That is not a posture anyone
+chose; it is the shape of who wrote which validator.
+
+Matching the authority is the only option that leaves the boundary describable
+in one sentence, and "derived from the authority" is what this card is called.
+
+The inventory's other load-bearing findings were re-measured before betting a
+contract amendment on them, since Finding 5 had already proved wrong:
+
+- **Finding 1 holds.** Four packages check keys — bridge, native-content,
+  operation, notifications. Nine do not.
+- **Finding 4 holds.** Zero optional fields across 4,682 lines of generated
+  protocol, 88 explicit `| null`. The count has drifted from the card's 105 as
+  protocols changed; the claim it supports has not.
+
+The cost is stated in the contract rather than left implicit: nine packages
+become stricter, and a consumer sending an undeclared field starts failing.
+Every consumer is on a `file:` install, so it surfaces during a coordinated
+change rather than in the field.
+
 ## Scope
 
 - an agreed target for what boundary validation checks, applied uniformly
@@ -216,10 +244,10 @@ card deserve the same check before they are trusted.
 
 ## Steps
 
-1. Decide the target. Today's inconsistency means there is no "current
-   behaviour" to preserve — nine packages would gain key validation and five
-   would gain bounds. Record the target in contract 010 before generating
-   anything.
+1. ~~Decide the target.~~ Decided 2026-08-10 and recorded in contract 010's
+   **Boundary Validation Target**: the boundary matches the Rust authority's
+   strictness and derives it. Unknown fields rejected, missing fields
+   rejected, every bound from a named constant.
 2. Emit the `MAXIMUM_*` constants from the Rust authority into the generated
    protocol modules. Independently useful and shippable alone: it gives the
    29 existing magic numbers a source, and a diff gate.
