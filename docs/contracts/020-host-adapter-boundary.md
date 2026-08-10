@@ -440,6 +440,47 @@ Both are the borrowed-context fact again, seen from a third angle: gpui's
 context is on loan, and anything Longhorn wants to know about the window
 currently dispatching has to come from the caller.
 
+### A real close, and a flush that succeeded by having nothing to do — 2026-08-10
+
+A real click on a real close button, answered by Longhorn inside
+`on_window_should_close`:
+
+```text
+[lifecycle] observe window:0 failed: window not found
+[lifecycle] close window:0 -> Close in 42.791µs:
+            [Flushed { .. reason: UserClose, outcome: Succeeded }, UserCloseReported]
+[lifecycle] outstanding after close: 0 (this window 0)
+```
+
+Three things in four lines.
+
+**The borrowed-context constraint reaches the close path too.**
+`on_window_should_close` runs inside the closing window's own dispatch, so
+observing *that* window fails exactly as it does during a drag release. The
+same fact, now seen in the place it matters most.
+
+**The flush succeeded in 42.8µs, and a real store write costs 15-22ms.** It was
+fast because it did nothing: the capture failed, so nothing was staged, and a
+flush with nothing staged returns `completed()` without touching the store.
+
+**That is a silent-loss path.** In this run the window had not moved, so the
+placement already on disk was correct and nothing was lost. Had it moved, the
+sequence would be identical — capture fails, nothing stages, the flush reports
+success, the close is permitted — and the final placement would be gone with
+no diagnostic anywhere. `close_is_safe` would say yes, because a succeeded
+flush is a succeeded flush.
+
+The defect is not in the flush. It is that **an application cannot observe a
+window at the moment it closes**, so a capture fed at close time is a capture
+that fails. The shape that works is to cache facts continuously, on move and
+resize, and let the close read what was already there. The composition example
+observes at close and is therefore wrong; it is left that way deliberately,
+because the failing log line is the evidence.
+
+This answers the per-window flush question this contract has carried since the
+teardown work: a per-window close *does* force its own flush, and forcing it is
+not sufficient. What matters is whether anything was staged for it to write.
+
 ### One behaviour recorded rather than changed
 
 A window moved just before it is closed takes its final capture during the

@@ -1,6 +1,6 @@
 # 176 Live Teardown Under Load
 
-Status: in progress — real store landed, teardown observation outstanding
+Status: in progress — close observed and a silent-loss path found; restart case outstanding
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -86,18 +86,51 @@ handles onto state the application also keeps.
 Two pieces of scaffolding were written and deleted rather than left: a
 `SLOW_FLUSH` threshold and a domain alias, neither of which anything used.
 
+### A real close, 2026-08-10
+
+Clicked, and answered by Longhorn:
+
+```text
+[lifecycle] observe window:0 failed: window not found
+[lifecycle] close window:0 -> Close in 42.791µs:
+            [Flushed { .. reason: UserClose, outcome: Succeeded }, UserCloseReported]
+[lifecycle] outstanding after close: 0 (this window 0)
+```
+
+**A flush that succeeded by having nothing to do.** 42.8µs against the 15-22ms
+a real store write costs. The capture failed, so nothing was staged, and a
+flush with nothing staged returns `completed()` without touching the store.
+
+Nothing was lost here — the window had not moved and the placement on disk was
+already right. Had it moved, the sequence would be identical and the final
+placement would be gone with no diagnostic. `close_is_safe` would say yes,
+because a succeeded flush is a succeeded flush.
+
+**The root cause is the borrowed context, again.**
+`on_window_should_close` runs inside the closing window's own dispatch, so
+observing that window fails — the same constraint Card 175 found at a drag
+release. A capture *fed at close time* is a capture that fails. The shape that
+works is to cache facts continuously, on move and resize, and let the close
+read what is already there.
+
+The example still observes at close and is therefore wrong. Left that way on
+purpose: the failing log line is the evidence, and a card that hides its own
+finding is worth nothing.
+
+**The per-window flush question is answered.** A per-window close does force
+its own flush, and forcing it is not sufficient. What matters is whether
+anything was staged for it to write.
+
 ### Remaining
 
-1. Move a window, close it, restart, and see whether the final placement
-   survived.
-2. Close while a flush is genuinely outstanding; record whether the close is
-   refused, deferred, or permitted with the write incomplete.
-3. Answer the per-window flush question with that evidence.
+1. Move a window, close it, restart, and confirm the loss the analysis above
+   predicts — or find it does not happen and learn why.
+2. Close while a real store write is genuinely in flight. That needs a staged
+   capture, which needs the caching fix, so it follows step 1.
 
-All three need a real window closed by a person: `on_should_close` fires for a
-user-initiated close, so there is no headless route. Run
-`cd prototypes/gpui-composition && cargo run` and watch stderr — every close
-prints its decision, its receipt, and what remained outstanding.
+Both need the example frontmost while a window is moved, which is the part
+that has repeatedly failed: a titlebar drag sends it behind another
+application.
 
 ## Scope
 
