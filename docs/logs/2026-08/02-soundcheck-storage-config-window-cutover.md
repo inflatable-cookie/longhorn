@@ -40,7 +40,7 @@ the transition preview.
 - Soundcheck cutover: `c2351a9f7f8de3a5a16ca633f4172ddb10f4665e`
 - Soundcheck lock SHA-256:
   `ca50d24dba1355320820f90b7d2a5d798e5b058b7ab17ceeab2b93a0b984a178`
-- fixture: `fixtures/migration/soundcheck-card115/storage-config-window-cutover-v1.json`
+- fixture: the migration receipt (retired 2026-08-10; in git history)
 - verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 
 ## Validation

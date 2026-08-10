@@ -84,7 +84,7 @@ inventory when source and target layout digests match.
 
 - Soundcheck cutover: `c2351a9f7f8de3a5a16ca633f4172ddb10f4665e`
 - Longhorn same-layout fix: `ab9cb31a70611a0714b02296016a22f0ae58a615`
-- `fixtures/migration/soundcheck-card115/storage-config-window-cutover-v1.json`
+- the migration receipt (retired 2026-08-10; in git history)
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - `effigy qa:northstar:g01-soundcheck-card115`
 

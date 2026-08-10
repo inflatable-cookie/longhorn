@@ -76,7 +76,7 @@ fallback.
 
 ## Evidence
 
-- `fixtures/migration/loophole-card112/conformance-closeout-v1.json`
+- the migration receipt (retired 2026-08-10; in git history)
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - private artifact proof: passed
 - Card 112 conformance verifier: passed

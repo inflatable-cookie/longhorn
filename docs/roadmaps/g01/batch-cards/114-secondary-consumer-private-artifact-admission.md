@@ -73,7 +73,7 @@ Split-shell, and Jetstream before admitting consumer writes. Do not publish.
 - toolchain: Bun 1.3.14, TypeScript 6.0.3, Svelte 5.56.8, Tauri API
   2.11.1, Rust 1.85.0, and locked/offline Tauri 2.11.5
 - fixture:
-  `../../../../fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - proof: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - no consumer write, package publication, tag, or hosted release
 

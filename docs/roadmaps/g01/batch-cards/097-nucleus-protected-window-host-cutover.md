@@ -83,7 +83,7 @@ application exit performs aggregate teardown.
 
 Evidence:
 
-- fixture: `../../../../fixtures/migration/nucleus-card097/window-cutover-v1.json`
+- fixture: the migration receipt (retired 2026-08-10; in git history)
 - proof: `effigy proof:nucleus-window-cutover`
 - Nucleus: 71 Rust tests, 40 renderer tests, workspace and Northstar checks
 - Longhorn: all 44 `longhorn-tauri-windowing` tests and strict Clippy

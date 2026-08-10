@@ -73,7 +73,7 @@ legacy `.nucleus` store without losing state or leaving two authorities.
   `973c89f260804a777747ead3218b50d146d16118`
 - Nucleus lock SHA-256:
   `608ebcfad93e417fb3c25a4b907a76c61678f47cdc58d6f5d4c97f26c819ea51`
-- fixture: `../../../../fixtures/migration/nucleus-card096/storage-cutover-v1.json`
+- fixture: the migration receipt (retired 2026-08-10; in git history)
 - proof: `effigy proof:nucleus-storage-cutover`
 - Nucleus: 70 Rust tests and 40 renderer tests pass
 - platform matrix: macOS, Windows, and Linux pass

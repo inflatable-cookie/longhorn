@@ -190,6 +190,10 @@ asserting against them still record the old eighteen names, deliberately —
 they are evidence of what consumers looked like at those cards' dates, not
 live inventory.
 
+*Superseded 2026-08-10: Longhorn keeps no code with direct knowledge of a
+consuming app. Those verifiers and the fixtures they asserted against are
+deleted; the receipts remain in git history.*
+
 ## Consumer Migration
 
 Five consumers, not the four this card listed: **figmatic** also imports

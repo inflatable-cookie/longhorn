@@ -30,9 +30,9 @@ failure found during conformance.
 - Split-shell closeout: `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28`
 - previous authority: `b713644e08be384d20879b0ac31f7899589c8a9b`
 - closeout fixture:
-  `fixtures/migration/split-shell-card121/conformance-closeout-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - private artifact fixture:
-  `fixtures/migration/split-shell-card121/private-artifact-admission-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - verifier: `effigy proof:split-shell-card121`
 
 Native GUI control could not attach deterministically because installed and

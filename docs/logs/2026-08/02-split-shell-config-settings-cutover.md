@@ -33,9 +33,9 @@ product-owned presentation, not a Longhorn layout document.
 - Split-shell cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
 - Longhorn selected source: `b25a46f6ab5d06fa1cc06867f2cae61712b7c162`
 - config/settings fixture:
-  `fixtures/migration/split-shell-card120/config-settings-cutover-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - private artifact fixture:
-  `fixtures/migration/split-shell-card120/private-artifact-admission-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - verifier: `effigy proof:split-shell-card120`
 
 The Split-shell commit changes exactly 19 runtime, manifest, lock, and renderer

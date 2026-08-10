@@ -23,7 +23,7 @@ graph. No consumer or Poodle file changed.
 - prior exact Poodle artifact-set receipt retained for Card 114 comparison
 
 The fixture is
-`fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`.
+the migration receipt (retired 2026-08-10; in git history).
 The verifier was removed 2026-08-10 — Longhorn no longer keeps consumer-aware
 proofs — so the fixture above is the retained evidence.
 

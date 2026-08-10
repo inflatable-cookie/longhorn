@@ -69,7 +69,7 @@ ownership, and rollback baseline before any migration write.
 
 ## Completion Evidence
 
-- `../../../../fixtures/migration/loophole-card102/behavior-freeze-v1.json`
+- the migration receipt (retired 2026-08-10; in git history)
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - `../../../logs/2026-08/01-loophole-full-hosting-migration-compilation.md`
 - `effigy qa:northstar:g01-loophole-card102-freeze`

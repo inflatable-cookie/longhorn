@@ -32,7 +32,7 @@ instead of bypassing the protocol.
 - selected Longhorn source: `3032545b3284d3af7f976a88827bb8c8f5c94513`
 - prior Jetstream authority: `2a8afbb749965cdfe295b8b6be77de4ba9e00256`
 - Jetstream cutover: `e9a54daacdec1f5c6573687a5543e9ffb2dae2b0`
-- fixture: `fixtures/migration/jetstream-card123/backing-surface-coordination-cutover-v1.json`
+- fixture: the migration receipt (retired 2026-08-10; in git history)
 - verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - canonical app id: `com.inflatablecookie.jetstream.editor`
 

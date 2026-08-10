@@ -81,9 +81,9 @@ native content remain absent.
 ## Evidence
 
 - Split-shell cutover: `6afc8da9f4ccc2989541312560eaeb4a154057d2`
-- fixture: `fixtures/migration/split-shell-card120/config-settings-cutover-v1.json`
+- fixture: the migration receipt (retired 2026-08-10; in git history)
 - refreshed artifacts:
-  `fixtures/migration/split-shell-card120/private-artifact-admission-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - verifier: `effigy proof:split-shell-card120`
 
 All 19 pre-existing dirty paths remain confined to `docs/` and

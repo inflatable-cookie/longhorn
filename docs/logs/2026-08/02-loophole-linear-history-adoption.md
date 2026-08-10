@@ -38,7 +38,7 @@ project lineage, journal, autosave, and recovery decisions.
 
 ## Evidence
 
-- `fixtures/migration/loophole-card111/linear-history-cutover-v1.json`
+- the migration receipt (retired 2026-08-10; in git history)
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - Coverage derives 83 enum variants and proves inverse and apply parity for
   every variant.

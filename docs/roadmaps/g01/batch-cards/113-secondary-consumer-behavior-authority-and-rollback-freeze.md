@@ -70,7 +70,7 @@ package shape, and rollback inputs before any consumer migration write.
 ## Completion Evidence
 
 - fixture:
-  `../../../../fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - exact clean receipts: Soundcheck, soundcheck-library, Signal, Jetstream, and
   Poodle; exact 19-path docs-only overlap in Split-shell

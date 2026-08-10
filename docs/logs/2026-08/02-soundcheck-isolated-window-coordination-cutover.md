@@ -55,7 +55,7 @@ enters Longhorn's public protocol or Soundcheck coordination state.
 - Soundcheck Bun lock SHA-256:
   `b64817c5db0f296859b350eb228f950669c119eddaf5adc4fcf78a9c225c6d47`
 - fixture:
-  `fixtures/migration/soundcheck-card118/isolated-window-coordination-cutover-v1.json`
+  the migration receipt (retired 2026-08-10; in git history)
 - verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 
 ## Validation

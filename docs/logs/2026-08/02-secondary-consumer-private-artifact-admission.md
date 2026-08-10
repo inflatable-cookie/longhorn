@@ -40,7 +40,7 @@ Rust 1.85.0, Tauri 2.11.5, `--locked`, and `--offline`.
 
 ## Evidence
 
-- `fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json`
+- the migration receipt (retired 2026-08-10; in git history)
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 

@@ -84,3 +84,7 @@ on consumer manifest quiescence. The frozen migration fixtures under
 `fixtures/migration/` and the verifiers that assert against them keep the old
 eighteen names deliberately — they record what consumers looked like on those
 cards' dates.
+
+*Superseded 2026-08-10: Longhorn keeps no code with direct knowledge of a
+consuming app. Those verifiers and the fixtures they asserted against are
+deleted; the receipts remain in git history.*
