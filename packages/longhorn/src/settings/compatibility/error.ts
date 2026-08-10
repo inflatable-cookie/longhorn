@@ -6,7 +6,9 @@ export type SettingsProtocolIncompatibilityCode =
   | "invalid_registry"
   | "invalid_opaque_value"
   | "opaque_value_too_large"
-  | "unknown_discriminant";
+  | "unknown_discriminant"
+  | "unknown_field"
+  | "missing_field";
 
 export class SettingsProtocolIncompatibilityError extends Error {
   readonly code: SettingsProtocolIncompatibilityCode;

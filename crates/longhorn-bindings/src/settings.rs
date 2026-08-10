@@ -24,16 +24,19 @@ use longhorn_settings::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
+    tagged_variants,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/settings/generated/protocol.ts";
+const GENERATED_FIELDS: &str = "packages/longhorn/src/settings/generated/fields.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/settings/protocol-v1.json";
 
 struct RenderedProtocol {
     contents: String,
+    fields: String,
     rejection_codes: Vec<String>,
 }
 
@@ -43,6 +46,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_PROTOCOL,
             contents: protocol.contents,
+        },
+        Artifact {
+            relative_path: GENERATED_FIELDS,
+            contents: protocol.fields,
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,
@@ -165,8 +172,17 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&mutation_outcomes)?,
         declarations.join("\n\n")
     );
+    let (fields, skipped) = field_map("generate:settings", "SETTINGS_FIELDS", &declarations);
+    if !skipped.is_empty() {
+        eprintln!(
+            "[settings] tagged unions not in the field map: {}",
+            skipped.join(", ")
+        );
+    }
+
     Ok(RenderedProtocol {
         contents,
+        fields,
         rejection_codes,
     })
 }

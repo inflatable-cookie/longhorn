@@ -136,9 +136,34 @@ export function array(value: unknown): unknown[] {
   return value;
 }
 
-export function record(value: unknown): Record<string, unknown> {
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys accepted are the
+ * Rust struct's and nothing else — contract 010's Boundary Validation Target.
+ * Called without a list, this keeps shape-only behaviour, which is correct
+ * for a tagged union and a gap anywhere else.
+ */
+export function record(
+  value: unknown,
+  allowed?: readonly string[],
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     incompatible("invalid_shape", value);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  if (allowed === undefined) return result;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(result)) {
+    if (!permitted.has(key)) {
+      incompatible("unknown_field", { key, value });
+    }
+  }
+  for (const key of allowed) {
+    if (!(key in result)) {
+      incompatible("missing_field", { key, value });
+    }
+  }
+  return result;
 }

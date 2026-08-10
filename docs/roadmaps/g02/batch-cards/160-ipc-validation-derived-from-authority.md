@@ -355,12 +355,28 @@ than a formality.
 So `config` is partially migrated, and that is stated rather than implied: its
 top-level entry points are strict and its nested fragments are not.
 
+### settings — 2026-08-10
+
+619 lines of validation and zero key checks before this. Twenty-seven object
+types mapped; `SettingsScopeSnapshot` and `SettingsLoadCommand` typed, and the
+code union gained `unknown_field` and `missing_field`.
+
+Same partial shape as `config`, and stated the same way: the entry points
+whose asserted type is in their own signature are strict, and the nested
+fragments are not.
+
+**One mistake, and it is the second of its kind.** The import guard checked
+whether `SETTINGS_FIELDS` appeared in the file *after* the replacement had
+already inserted it, so it decided the import was present and skipped it. Five
+tests failed on an undefined name. The same ordering error as the earlier
+`observe_into_cache` bug — a condition evaluated against state the preceding
+statement had already changed.
+
 ### Remaining
 
-Five packages: `settings`, `commands`, `history`, `history-tree`, `layout` —
-plus `config`'s nested call sites.
+Four packages: `commands`, `history`, `history-tree`, `layout` — plus the
+nested call sites in `config` and `settings`.
 
-`settings` shares `config`'s `primitives.ts` shape and should follow directly.
 `layout` has no object validation at all, only kind checks and a version
 assert, so it needs a `record` before it needs a field list. `history`,
 `history-tree` and `commands` inline their object handling.

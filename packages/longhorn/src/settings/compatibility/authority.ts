@@ -1,3 +1,4 @@
+import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_ACTIVATION_STATES,
   SETTINGS_EDITABILITIES,
@@ -28,7 +29,7 @@ export function assertCompatibleSettingsScopeSnapshot(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsScopeSnapshot {
-  const snapshot = record(value);
+  const snapshot = record(value, SETTINGS_FIELDS.SettingsScopeSnapshot);
   protocolVersion(snapshot.protocolVersion);
   identity(snapshot.scopeId);
   authority(snapshot.authority);

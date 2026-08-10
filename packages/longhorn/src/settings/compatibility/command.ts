@@ -1,3 +1,4 @@
+import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_ACTIVATION_STATES,
   SETTINGS_DURABILITY_KINDS,
@@ -31,7 +32,7 @@ import {
 export function assertCompatibleSettingsLoadCommand(
   value: unknown,
 ): asserts value is SettingsLoadCommand {
-  const command = record(value);
+  const command = record(value, SETTINGS_FIELDS.SettingsLoadCommand);
   protocolVersion(command.protocolVersion);
   identity(command.requestId);
   unsigned(command.registryGeneration, "invalid_revision");

@@ -68,11 +68,11 @@ commit, and rename the surface.
 
 ## Next Task
 
-Step 4. `surfaces`, `transfer` and `surface-transfer` are migrated; `config`
-is partially migrated — its four top-level entry points are strict, its nested
-fragments are not.
+Step 4. `surfaces`, `transfer` and `surface-transfer` are fully migrated;
+`config` and `settings` are partially — their top-level entry points are
+strict, their nested fragments are not.
 
-`settings` shares `config`'s shape and should follow directly. `layout` has no
+`settings` is migrated on the same partial terms as `config`. `layout` has no
 object validation at all, so it needs a `record` before it needs a field list.
 `history`, `history-tree` and `commands` inline theirs.
 
