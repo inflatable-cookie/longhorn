@@ -7,6 +7,38 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] A public-readiness redaction disabled a release gate — 2026-08-10
+- Friction: `6a84574c docs: remove third-party identity so the repo can be made
+  public` replaced a consumer's real path with the literal placeholder
+  `../<private-consumer>` in `scripts/private-candidate-card149/consumers.ts` —
+  executable code, not prose. The candidate verifier has been unable to resolve
+  it ever since.
+- Impact: g02.008 spent weeks recorded as "operator-held on nucleus quiescence"
+  while the actual blocker was that the gate could not run at all. Nobody
+  noticed because the recorded reason was plausible and nobody re-ran it.
+- Possible fix: the path now comes from `LONGHORN_PRIVATE_CONSUMER`, with an
+  unset value recorded as a named omission. The general lesson is that a
+  redaction sweep over a repository should not treat `scripts/` as prose — a
+  placeholder that reads fine in a document is a runtime failure in code.
+- Surface: `scripts/private-candidate-card149/consumers.ts`, any future
+  redaction sweep.
+
+### [ ] A receipt pinning five repositories goes stale silently — 2026-08-10
+- Friction: Card 149's candidate receipt pins five external consumer graphs and
+  Poodle's artifact set. Between one attempt to generate it and the next, four
+  independent things had drifted: the TypeScript package count (18 to 3 via
+  g02.013), Loophole's entire structure (restarted greenfield, old app moved to
+  `loophole-legacy`), the redacted consumer path above, and Poodle's package
+  set. Each failure surfaced one at a time, only when the previous one was
+  fixed.
+- Impact: the receipt describes a world that no longer exists, and the only way
+  to discover that is to run it — which nobody does, because it is held for a
+  reason that stopped being true.
+- Possible fix: run it often enough to fail early, or pin fewer things. A
+  compatibility claim over five moving repositories has the staleness rate of
+  the fastest one.
+- Surface: `scripts/private-candidate-card149/`, g02.008.
+
 ### [x] `cargo fmt --all` reformats sibling repositories — 2026-08-09
 - Friction: `--all` is not workspace-scoped the way `--workspace` is. It walks
   every *local* package in the graph, so the moment `crates/longhorn-poodle`

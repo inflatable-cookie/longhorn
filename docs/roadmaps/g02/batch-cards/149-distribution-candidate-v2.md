@@ -1,6 +1,6 @@
 # 149 Distribution Candidate V2
 
-Status: active
+Status: blocked — stop condition fired; needs a coordinated re-freeze with Poodle
 Owner: Tom
 Roadmap: g02.008 batch 1
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt
@@ -49,11 +49,61 @@ and clear the two deferrals parked behind the Card 127 receipt.
 
 ## Blocker
 
-Receipt generation requires clean consumer graph sources; nucleus has a
-dirty `apps/desktop/src-tauri/Cargo.toml` from its in-flight integration
-thread. Consumer repos are read-only from Longhorn. Resume:
-`effigy generate:private-candidate-card149` once the nucleus tree is clean,
-then the proof, docs, and closeout steps.
+**The stop condition fired.** This card names "Poodle artifact set drift forces
+a coordinated re-freeze", and that is where it now stands.
+
+The earlier blocker — consumer trees dirty — cleared. Every consumer manifest
+is clean. Running the verifier then found the receipt describing a world that
+had moved on in four independent ways, three of which are now fixed.
+
+### What had gone stale
+
+**TypeScript package count.** The verifier pinned 18; g02.013 consolidated the
+tier to 3, so it refused to run against the repository it describes. Fixed: the
+counts are derived, because the receipt already enumerates every package and is
+compared whole. A literal froze the graph twice and failed on the wrong one —
+the same defect `verify-guides-card126.ts` had, recorded in `PAPERCUTS.md`.
+
+**The private consumer's path was a placeholder in executable code.** Commit
+`6a84574c docs: remove third-party identity so the repo can be made public`
+replaced a real path with `../<private-consumer>` in `consumers.ts`, not in
+prose. The verifier has been unable to resolve it ever since, so this card has
+been recorded as held on consumer threads while the real reason was that the
+gate could not run at all. Fixed: the path comes from
+`LONGHORN_PRIVATE_CONSUMER`, and an unset value records a **named omission** in
+the receipt rather than silently covering one graph fewer.
+
+**Loophole was restarted greenfield.** The application this candidate has
+always described is now `loophole-legacy` — stabilised, and still a real
+consumer. The `loophole` directory holds a days-old greenfield app that is mid
+architecture. Fixed: the entry points at `loophole-legacy`. The greenfield app
+is a known consumer deliberately not yet pinned, because freezing a
+compatibility claim about something being actively designed produces a claim
+that is wrong tomorrow.
+
+**Poodle's artifact set changed, and is changing now.** `packages/styles` and
+`packages/svelte/icons-lucide` no longer exist; the vendored Lucide catalogue
+is being removed as this is written. This is the one that is not fixed, and not
+fixable from here.
+
+### Resume
+
+A coordinated re-freeze, in this order:
+
+1. Poodle settles its package set and says what it is.
+2. Update the artifact family list in
+   `scripts/private-candidate-card149/artifacts.ts` to match.
+3. `LONGHORN_PRIVATE_CONSUMER=<path> bun scripts/verify-private-candidate-card149.ts --write`
+4. Wire the card149 generate/proof/docs-check tasks into `effigy.toml`.
+5. Supersede the Card 127 receipt with a pointer — archived, not rewritten.
+6. Refresh the candidate reference doc and CHANGELOG, then full QA.
+
+### What this says about the shape
+
+A receipt that pins five external repositories goes stale at the rate of the
+fastest-moving one, and nothing tells you until you run it. Four sources of
+drift accumulated silently between one attempt and the next. Whatever replaces
+this should either run often enough to fail early, or pin fewer things.
 
 ## Progress
 
@@ -80,5 +130,5 @@ and run full QA.
 
 ## Next Task
 
-Operator gate: regenerate the candidate v2 receipt when the nucleus
-integration thread settles its manifests.
+Poodle's package set. Everything else is ready and the verifier reaches the
+artifact stage on the first run now.

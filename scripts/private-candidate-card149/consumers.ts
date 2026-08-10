@@ -21,8 +21,14 @@ const externalGraphs = [
     rust: ["apps/desktop/src-tauri/Cargo.toml"],
   },
   {
-    name: "loophole",
-    repository: resolve(repoRoot, "../loophole"),
+    // Loophole was restarted greenfield. The application this candidate has
+    // always described now lives at `loophole-legacy`, stabilised and still a
+    // real consumer; the greenfield `loophole` is days old and mid
+    // architecture, so pinning it would freeze a compatibility claim that is
+    // wrong tomorrow. It is a known consumer, deliberately not yet covered,
+    // and the receipt says so rather than implying the set is complete.
+    name: "loophole-legacy",
+    repository: resolve(repoRoot, "../loophole-legacy"),
     typescript: ["aura/package.json"],
     rust: [
       "aura/src-tauri/Cargo.toml",
@@ -39,7 +45,16 @@ const externalGraphs = [
   },
   {
     name: "split-shell",
-    repository: resolve(repoRoot, "../<private-consumer>"),
+    // Path from the environment, because this consumer's name is deliberately
+    // absent from a repository that is going public. `6a84574c` redacted it by
+    // replacing the path with the placeholder *in executable code*, so the
+    // verifier has been unable to resolve it ever since — and the roadmap went
+    // on attributing the hold to consumer threads settling.
+    //
+    // Unset is not a failure. The receipt records the omission by name, so a
+    // clone without this repository still runs the gate and still says what it
+    // did not cover.
+    repository: privateConsumerRoot(),
     typescript: ["package.json"],
     rust: ["src-tauri/Cargo.toml"],
   },
@@ -51,10 +66,19 @@ const externalGraphs = [
   },
 ] as const;
 
+/// Where the unnamed consumer lives, from `LONGHORN_PRIVATE_CONSUMER`.
+///
+/// Returns an empty string when unset, which `graphDefinitions` reads as
+/// "skip and record".
+function privateConsumerRoot(): string {
+  const configured = process.env.LONGHORN_PRIVATE_CONSUMER;
+  return configured === undefined || configured.length === 0 ? "" : resolve(configured);
+}
+
 const forbiddenRust: Record<string, string[]> = {
   minimal: ["longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
   nucleus: ["longhorn-surfaces", "longhorn-surfaces-config", "longhorn-transfer", "longhorn-surface-transfer", "longhorn-surface-windowing"],
-  loophole: ["longhorn-bridge", "longhorn-operation", "longhorn-notifications", "longhorn-native-content"],
+  "loophole-legacy": ["longhorn-bridge", "longhorn-operation", "longhorn-notifications", "longhorn-native-content"],
   soundcheck: ["longhorn-layout", "longhorn-surfaces", "longhorn-transfer", "longhorn-bridge", "longhorn-history"],
   "split-shell": ["longhorn-windowing", "longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
   jetstream: ["longhorn-config", "longhorn-settings", "longhorn-layout", "longhorn-surfaces", "longhorn-history", "longhorn-operation"],
@@ -75,7 +99,16 @@ export async function graphDefinitions(): Promise<GraphDefinition[]> {
       rust: greenfield.shapes.minimal!.rust,
     },
   ];
+  const omitted: string[] = [];
   for (const graph of externalGraphs) {
+    // A consumer whose repository is not on this machine is recorded as
+    // omitted rather than guessed at or silently dropped. A receipt that
+    // quietly covers fewer graphs than it says is worse than one that names
+    // the gap.
+    if (graph.repository.length === 0) {
+      omitted.push(graph.name);
+      continue;
+    }
     const sourceManifests = [...graph.typescript, ...graph.rust];
     const typescript = new Set<string>();
     for (const path of graph.typescript) {
@@ -99,6 +132,9 @@ export async function graphDefinitions(): Promise<GraphDefinition[]> {
       typescript: [...typescript].sort(),
       rust: [...rust].sort(),
     });
+  }
+  if (omitted.length > 0) {
+    console.error(`[card149] consumer graphs omitted (repository not present): ${omitted.join(", ")}`);
   }
   definitions.push({
     name: "optional-server",

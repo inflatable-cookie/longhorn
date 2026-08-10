@@ -1,6 +1,6 @@
 # g02.008 Distribution Candidate V2
 
-Status: operator-held
+Status: blocked — awaiting a coordinated Poodle re-freeze
 Owner: Tom
 Updated: 2026-08-04
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt; g02
@@ -51,4 +51,12 @@ Eighth g02 milestone, closes the Tier A lane.
 
 ## Next Task
 
-g02 planning checkpoint after the Tier A lane closes.
+A coordinated re-freeze with Poodle, once its package set settles. Card 149
+carries the sequence.
+
+The hold recorded here as "operator-held on nucleus quiescence" was wrong for
+most of its life: consumer trees cleared, and the verifier then failed on four
+kinds of staleness it could not previously reach — including a redaction sweep
+that replaced a consumer path with a placeholder in executable code. Three are
+fixed. The fourth is Poodle's artifact set, which is the stop condition this
+card always named.

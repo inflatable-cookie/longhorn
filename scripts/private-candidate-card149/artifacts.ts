@@ -44,7 +44,16 @@ export async function longhornPackageManifests(): Promise<Map<string, { director
     equal(manifest.private, true, `${manifest.name} private posture`);
     result.set(manifest.name, { directory, manifest });
   }
-  equal(result.size, 18, "TypeScript package count");
+  // Not a pinned count. The receipt in `fixtures/release/card149` enumerates
+  // every package and is compared whole on a non-write run, so it already
+  // catches any change to this set — and it catches it by *naming* what
+  // changed rather than by reporting a number that moved.
+  //
+  // A literal here freezes the graph twice and fails on the wrong one. It said
+  // 18 and g02.013 consolidated the TypeScript tier to 3, so the verifier
+  // refused to run against the repository it describes. Same defect the
+  // guides proof had, recorded in PAPERCUTS.md.
+  assert(result.size > 0, "no Longhorn TypeScript packages were found");
   return result;
 }
 
@@ -56,7 +65,8 @@ export async function rustPackages(): Promise<CargoPackage[]> {
   const packages = metadata.packages
     .filter((pkg) => pkg.manifest_path.startsWith(crateRoot) && pkg.name.startsWith("longhorn-"))
     .sort((left, right) => left.name.localeCompare(right.name));
-  equal(packages.length, 38, "Rust package count");
+  // Derived, for the reason above: the receipt enumerates these too.
+  assert(packages.length > 0, "no Longhorn crates were found");
   for (const pkg of packages) {
     equal(pkg.version, candidateVersion, `${pkg.name} version`);
     equal(pkg.publish, [], `${pkg.name} private posture`);
