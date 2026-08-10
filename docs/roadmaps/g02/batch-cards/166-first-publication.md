@@ -239,6 +239,44 @@ Poodle's release job also moved from `macos-latest` to `ubuntu-latest`.
 lane and is deliberately not part of it. Longhorn's stays on macOS, where the
 gpui dependency makes it genuine.
 
+## Poodle Dry Run Green — 2026-08-10
+
+Run 31387416789. `setup-effigy` installs 0.9.1, `effigy ci` passes in CI,
+`effigy test:web-pack-install` passes, the tarballs build and the publish step
+correctly skips.
+
+| | core | svelte |
+| --- | --- | --- |
+| bytes | 180,217 | 192,552 |
+| entries | 340 | 175 |
+| icon modules | 100 | — |
+| token stylesheets | 22 | — |
+
+That table is the answer to this card's clean-clone hazard. The worry was a
+release workflow packing an empty `icons/` because the generator had not run;
+the icons and tokens are committed, `effigy ci` proves they are not stale, and
+these counts prove `files` carried them into a tarball built from a clean
+checkout. Nothing regenerates during the release.
+
+Two defects the dry run found, both mine:
+
+**`tar -tzf | head -20` failed on ubuntu.** GNU tar treats the EPIPE as an
+error and `set -o pipefail` fails the step; BSD tar does not, so it passed on
+macOS and broke on the move to ubuntu. The step now asserts contents rather
+than printing a listing, which is what it should have done — twenty
+alphabetical CSS filenames are not evidence.
+
+**Longhorn's three packages were never flipped.** All still carried
+`private: true`, no `publishConfig`, no `license` and `files: ["src"]`. Poodle's
+were flipped on 2026-08-09 and these were missed because Longhorn publishes at
+step 4, after Poodle. `npm publish` would have refused outright; the quieter
+failure was that the tarballs shipped no LICENSE.
+
+Longhorn's own dry run is deliberately not attempted yet. Its
+`bun install --frozen-lockfile` still fails on the machine-local Poodle path,
+which is step 3 of this card, and every Longhorn CI job runs on macOS at ten
+times the Linux rate. It runs after the repoint.
+
 ## Acceptance Criteria
 
 - `@inflatable-cookie/poodle-core`, `-svelte`, `@inflatable-cookie/longhorn`,
