@@ -33,7 +33,7 @@ notification, or native-content edge.
 - prior Jetstream authority: `4df74e756c222a3b207391c44775e5b3148c46dd`
 - Jetstream cutover: `2a8afbb749965cdfe295b8b6be77de4ba9e00256`
 - fixture: `fixtures/migration/jetstream-card122/bridge-command-keyboard-cutover-v1.json`
-- verifier: `effigy proof:jetstream-card122`
+- verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - canonical app id: `com.inflatablecookie.jetstream.editor`
 
 No package was published.

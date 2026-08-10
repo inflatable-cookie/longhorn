@@ -591,20 +591,28 @@ had no symlink for — the papercut recorded earlier, arriving on schedule.
 Nucleus was reinstalled and typechecks clean apart from five pre-existing
 `implicit any` errors in its own vitest file.
 
-### A proof that was already broken
+### A proof that was already broken, and then removed
 
 `scripts/verify-soundcheck-card117.ts` read
 `packages/longhorn/src/operation/compatibility.ts` from pinned commit
 `0dd3c890`. That path does not exist there — at `0dd3c890` the eighteen
 packages had not yet collapsed into three, so it was
 `packages/operation/src/compatibility.ts`. The proof has therefore been
-failing since the collapse, and nothing noticed because it is wired into
+failing since the collapse, and nothing noticed because it was wired into
 neither `effigy.toml` nor any workflow.
 
-The path is corrected here with a note about which parts move when the pin
-moves. It still fails, for a separate and Soundcheck-side reason: it expects a
-`@inflatable-cookie/longhorn-operation` dependency that the collapse replaced.
-That is out of this card's scope and out of this repository.
+Chasing it turned up 23 such scripts, and then a standing rule that settles
+them: **Longhorn does not keep code with direct knowledge of a consuming app.**
+All 23 are deleted, and the 24 documentation references that named them now say
+so. The recorded fixtures stay — static JSON does not rot, and it is the
+evidence the migration logs actually cite.
+
+Its second failure was Soundcheck-side anyway — it expected a
+`@inflatable-cookie/longhorn-operation` dependency that the collapse replaced,
+which Soundcheck had already migrated away from correctly. A proof that reads
+another repository's working tree can only be green when two repositories are
+simultaneously in one particular state, which is the coupling PAPERCUTS
+already records. That is the case for the rule, not just for this file.
 
 ## Scope
 

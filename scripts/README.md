@@ -158,9 +158,8 @@ Card 114 freshly packs the exact selected Longhorn and Poodle artifacts,
 installs three isolated renderer graphs, checks generated bindings, and proves
 three locked/offline Rust 1.95 and Tauri 2.11.5 graphs:
 
-```sh
-effigy proof:secondary-consumer-private-artifacts
-```
+This verifier was removed 2026-08-10; Longhorn no longer keeps consumer-aware
+proofs, and the recorded fixtures are the retained evidence.
 
 The default receipt is the Card 119 refresh. Card 120 supplies a Split-shell-refreshed
 receipt through its focused verifier. Set
@@ -341,9 +340,8 @@ Soundcheck Card 119 refreshes the full private artifact graph, replays Cards
 capabilities, checks the storage/window/settings/scan/helper matrices, and
 verifies the recorded previous-build readback:
 
-```sh
-effigy proof:soundcheck-card119
-```
+This verifier was removed 2026-08-10; Longhorn no longer keeps consumer-aware
+proofs, and the recorded fixtures are the retained evidence.
 
 The visible plugin-GUI click path is recorded as environment-unmet when macOS
 computer control cannot enumerate applications. The proof does not widen

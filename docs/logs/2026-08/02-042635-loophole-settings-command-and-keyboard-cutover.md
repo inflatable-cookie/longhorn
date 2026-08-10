@@ -49,7 +49,7 @@ transition diagnostics remain visible.
 ## Evidence
 
 - `fixtures/migration/loophole-card110/settings-command-cutover-v1.json`
-- `scripts/verify-loophole-card110.ts`
+- verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - Registry test proves the exact six admitted pages, immediate/staged units,
   reset features, and backup/restore exclusion.
 - Command tests prove every built-in keyboard command exists in the sealed

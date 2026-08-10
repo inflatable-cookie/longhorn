@@ -45,7 +45,7 @@ soundcheck-library.
   `fdf9a4f0b439f7dfa4db9a30f8cce70092d2865d65542a2fcae17e7c2c231f1b`
 - fixture:
   `fixtures/migration/soundcheck-card117/plugin-scan-operation-cutover-v1.json`
-- verifier: `effigy proof:soundcheck-card117`
+- verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 
 ## Validation
 

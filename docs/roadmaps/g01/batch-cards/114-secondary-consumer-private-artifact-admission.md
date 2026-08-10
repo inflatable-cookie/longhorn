@@ -74,7 +74,7 @@ Split-shell, and Jetstream before admitting consumer writes. Do not publish.
   2.11.1, Rust 1.85.0, and locked/offline Tauri 2.11.5
 - fixture:
   `../../../../fixtures/migration/secondary-consumer-card114/private-artifact-admission-v1.json`
-- proof: `effigy proof:secondary-consumer-private-artifacts`
+- proof: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - no consumer write, package publication, tag, or hosted release
 
 ## Next Task

@@ -46,7 +46,7 @@ library state. No renderer filesystem command remains.
   `2460e9db82353ff302bae5bf7b9572c3a283b9e26bae836ba832cc7ebd78c13f`
 - fixture:
   `fixtures/migration/soundcheck-card116/settings-backup-recovery-cutover-v1.json`
-- verifier: `effigy proof:soundcheck-card116`
+- verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 
 ## Validation
 

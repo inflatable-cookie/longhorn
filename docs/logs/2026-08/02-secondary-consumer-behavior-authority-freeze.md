@@ -24,7 +24,8 @@ graph. No consumer or Poodle file changed.
 
 The fixture is
 `fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`.
-The verifier is `scripts/verify-secondary-consumer-card113.ts`.
+The verifier was removed 2026-08-10 — Longhorn no longer keeps consumer-aware
+proofs — so the fixture above is the retained evidence.
 
 ## Authority
 

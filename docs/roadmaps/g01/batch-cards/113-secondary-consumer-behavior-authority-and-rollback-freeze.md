@@ -71,7 +71,7 @@ package shape, and rollback inputs before any consumer migration write.
 
 - fixture:
   `../../../../fixtures/migration/secondary-consumer-card113/behavior-authority-freeze-v1.json`
-- verifier: `../../../../scripts/verify-secondary-consumer-card113.ts`
+- verifier: removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - exact clean receipts: Soundcheck, soundcheck-library, Signal, Jetstream, and
   Poodle; exact 19-path docs-only overlap in Split-shell
 - checked graph: 23 source matrices, 27 selected Longhorn package paths, and

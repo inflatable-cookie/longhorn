@@ -39,7 +39,7 @@ project lineage, journal, autosave, and recovery decisions.
 ## Evidence
 
 - `fixtures/migration/loophole-card111/linear-history-cutover-v1.json`
-- `scripts/verify-loophole-card111.ts`
+- verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - Coverage derives 83 enum variants and proves inverse and apply parity for
   every variant.
 - Persistence tests cover complete applied/future ordering, canonical and

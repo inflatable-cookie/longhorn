@@ -101,8 +101,9 @@ explicit baseline dependency reconciliation after Card 103 completes.
 
 ## Validation
 
-`bun scripts/verify-loophole-card102.ts` passes with
-`pass_with_admission_gates`. It verifies 14 frozen source seams, exact commits,
+The verifier passed with `pass_with_admission_gates` when this was written. It
+was removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs — and
+the fixture is the retained evidence. It verified 14 frozen source seams, exact commits,
 the Tauri identity/capability posture, five-level hierarchy, eight regions,
 both habitats, 83 history variants, and the compatible Longhorn Surface shape.
 

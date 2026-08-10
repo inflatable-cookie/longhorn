@@ -79,7 +79,7 @@ acceptance before promoting Card 095. Do not publish or modify either donor.
 ## Completion Evidence
 
 - `../../../../fixtures/migration/nucleus-card094/behavior-freeze-v1.json`
-- `../../../../scripts/verify-nucleus-card094.ts`
+- verifier removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs; the recorded fixture is the retained evidence
 - `../../../logs/2026-08/01-nucleus-behavior-authority-and-rollback-freeze.md`
 - `effigy qa:northstar:g01-nucleus-card094-freeze`
 

@@ -21,8 +21,9 @@ publication.
 
 ## Matrices
 
-`effigy proof:soundcheck-card119` replays Cards 115-118 and checks 22 named
-product and Longhorn cases:
+The Card 119 verifier replayed Cards 115-118 and checked 22 named product and
+Longhorn cases. It was removed 2026-08-10 — Longhorn no longer keeps
+consumer-aware proofs — and the fixture is the retained evidence:
 
 - fresh, legacy, interrupted, conflicting, restart, and locator-last storage
 - protected restore, capture, flush, timeout, and two-second close policy

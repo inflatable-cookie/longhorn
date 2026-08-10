@@ -86,8 +86,9 @@ removed. The main capability drops raw Webview permissions and still matches
 only `main`. An isolated macOS release bundle proves attach, physical bounds,
 show, hide on tab switch, generation-1 reuse without reattach, close, overlay
 precedence, URL policy, and Example Domain rendering. The exact fixture and
-static proof live under `fixtures/migration/nucleus-card100` and
-`scripts/verify-nucleus-card100.ts`.
+static proof live under `fixtures/migration/nucleus-card100`. The verifier was
+removed 2026-08-10 — Longhorn no longer keeps consumer-aware proofs — so the
+fixture is the retained evidence.
 
 ## Stop Conditions
 
