@@ -1,11 +1,22 @@
 # 178 Layout Container Provisioning
 
-Status: ready
+Status: superseded by [Card 179](179-surfaces-absorb-containers.md) — 2026-08-10
 Owner: Tom
 Roadmap: g02 planning checkpoint
 Governing refs: contract 014; contract 002
 Depends on: none
 Auto-start next card: no
+
+## Superseded
+
+Card 179 removes the container concept rather than giving it a lifecycle. Both
+halves of the gap below dissolve: creating a Surface creates its layout from a
+schema, and closing one removes it, so there is nothing left to provision and
+no cleanup intent to execute.
+
+The findings stay recorded because they are what made the case for 179 — in
+particular that `CloseSurface` instructed a consumer to perform cleanup the
+protocol could not perform.
 
 ## Objective
 
