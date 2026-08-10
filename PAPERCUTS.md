@@ -20,9 +20,16 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   consumer until it reinstalls, and the symptom points at the new file rather
   than at the install. Vite's optimized-dep cache holds the bad resolution
   too, so a plain reinstall is not always enough.
-- Possible fix: a note in the consumer-integration guide is the cheap half;
-  the real fix is either a consumer-side `postinstall` that relinks, or
-  publishing to the registry rather than depending by path.
+- Reproduced minimally 2026-08-10. With `file:../dep`, `node_modules/dep` is a
+  real directory holding one symlink per file, so a file added to the source
+  afterwards is invisible while edits to existing files are live. With
+  `bun link`, `node_modules/dep` is a single symlink to the directory and a
+  new file appears with no reinstall.
+- Possible fix: `bun link` rather than `file:`. **Not** a `postinstall` hook —
+  that fires during install, which is exactly when the symlinks are already
+  correct; the breakage happens later, in Longhorn, with no install running in
+  the consumer for a hook to fire from. Publishing to the registry also closes
+  it, because a version bump forces a reinstall and the tarball is complete.
 - Surface: consumer `package.json` `file:` deps, `packages/longhorn/src`.
 
 ### [ ] A public-readiness redaction disabled a release gate — 2026-08-10
