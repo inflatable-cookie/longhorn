@@ -1,5 +1,5 @@
 {
-  "identifier": "nucleus-bridge-proof",
+  "identifier": "capability-authority-bridge-proof",
   "description": "Embedded and optional-host authority bridge proof.",
   "windows": ["main"],
   "permissions": [

@@ -1,5 +1,5 @@
 {
-  "name": "longhorn-nucleus-bridge-artifact-proof",
+  "name": "longhorn-jobs-and-service-failure-bridge-artifact-proof",
   "private": true,
   "type": "module",
   "dependencies": {

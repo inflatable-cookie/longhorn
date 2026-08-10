@@ -36,7 +36,7 @@ try {
     declarations,
   });
   const splitShell = consumers.find(({ shape }) => shape === "split-shell")!;
-  const loophole = consumers.find(({ shape }) => shape === "loophole")!;
+  const reconnectingLifecycle = consumers.find(({ shape }) => shape === "reconnecting-lifecycle")!;
   console.log(
     JSON.stringify(
       {
@@ -47,7 +47,7 @@ try {
         typescriptArtifacts: typescript.identities,
         consumers,
         protocol: splitShell.trace.protocol,
-        lifecycle: loophole.trace.lifecycle,
+        lifecycle: reconnectingLifecycle.trace.lifecycle,
         audits: {
           generatedBindingsDrift: false,
           adapterParity: ["direct", "tauri", "loopback"],

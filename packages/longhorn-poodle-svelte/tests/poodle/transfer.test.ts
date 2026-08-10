@@ -85,7 +85,7 @@ describe("public Poodle cross-window transfer seam", () => {
         terminal += 1;
       },
     });
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const sourceBinding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
@@ -177,7 +177,7 @@ describe("public Poodle cross-window transfer seam", () => {
     });
     await state.start();
     const errors: unknown[] = [];
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
@@ -229,7 +229,7 @@ describe("public Poodle cross-window transfer seam", () => {
       throw new Error(`unexpected command: ${command}`);
     });
     await state.start();
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),

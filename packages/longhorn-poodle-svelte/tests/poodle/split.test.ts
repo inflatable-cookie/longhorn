@@ -15,7 +15,7 @@ import {
 
 describe("LayoutSplitView", () => {
   it("projects an empty hidden pane without dispatching durable collapse", () => {
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const { binding } = mountedBinding(
       shape.definitions,
       shapeDocument(shape, {}),
@@ -46,7 +46,7 @@ describe("LayoutSplitView", () => {
     const requests: LayoutMutationRequest[] = [];
     const pendings: Array<ReturnType<typeof deferred<LayoutDispatchResult>>> =
       [];
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const document = shapeDocument(shape, {});
     const { binding, errors } = mountedBinding(
       shape.definitions,

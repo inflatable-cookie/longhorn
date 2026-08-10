@@ -1,5 +1,5 @@
 {
-  "identifier": "soundcheck-bridge-proof",
+  "identifier": "jobs-and-service-failure-bridge-proof",
   "description": "Correlated job and optional local-service bridge proof.",
   "windows": ["main", "settings"],
   "permissions": [

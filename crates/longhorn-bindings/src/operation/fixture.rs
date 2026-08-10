@@ -35,7 +35,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         authority: authority.clone(),
         expected_catalogue_revision: OperationCatalogueRevision::INITIAL,
         operation_id: id("operation:scan"),
-        kind_id: id("soundcheck.plugin-scan"),
+        kind_id: id("example.long-running-scan"),
         scope_id: None,
         label: "Scan plug-ins".into(),
         initial_state: OperationStateProjection::Running,

@@ -31,19 +31,19 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
             layout: StorageLayoutProjection {
                 profile: StorageProfileId::PlatformNativeV1,
                 platform: "macos".into(),
-                canonical_application_id: "audio.example.soundcheck".into(),
-                effective_leaf: "audio.example.soundcheck".into(),
+                canonical_application_id: "com.example.sample-app".into(),
+                effective_leaf: "com.example.sample-app".into(),
                 leaf_provenance: StorageLeafProvenanceProjection::CanonicalApplicationId,
                 roots: vec![
                     StorageRootProjection {
                         kind: "config".into(),
-                        path: "/Users/example/Library/Application Support/audio.example.soundcheck"
+                        path: "/Users/example/Library/Application Support/com.example.sample-app"
                             .into(),
                         provenance: "platform:config".into(),
                     },
                     StorageRootProjection {
                         kind: "cache".into(),
-                        path: "/Users/example/Library/Caches/audio.example.soundcheck".into(),
+                        path: "/Users/example/Library/Caches/com.example.sample-app".into(),
                         provenance: "platform:cache".into(),
                     },
                 ],

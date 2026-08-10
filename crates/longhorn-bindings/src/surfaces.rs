@@ -22,7 +22,7 @@ const GENERATED_FIELDS: &str = "packages/longhorn/src/surfaces/generated/fields.
 const GOLDEN_FIXTURE: &str = "fixtures/surfaces/protocol-v1.json";
 #[cfg(test)]
 const LOOPHOLE_REGISTERED_AUTHORITY: &str =
-    include_str!("../../../fixtures/surfaces/loophole-registered-authority-v1.json");
+    include_str!("../../../fixtures/surfaces/surface-bound-registered-authority-v1.json");
 
 struct RenderedProtocol {
     contents: String,
@@ -116,11 +116,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn loophole_registered_surface_fixture_records_the_habitat_boundary() {
+    fn surface_bound_registered_surface_fixture_records_the_habitat_boundary() {
         let fixture: serde_json::Value =
             serde_json::from_str(LOOPHOLE_REGISTERED_AUTHORITY).unwrap();
 
-        assert_eq!(fixture["domain"], "loophole.regional-surfaces");
+        assert_eq!(fixture["domain"], "regional-surfaces");
         assert_eq!(fixture["regionalSurface"]["registered"], true);
         assert_eq!(fixture["focusedPanelSurface"]["registered"], false);
         assert_eq!(fixture["lifecycle"].as_array().unwrap().len(), 7);

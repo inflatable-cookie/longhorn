@@ -24,8 +24,8 @@ interface StreamHarness {
   readonly secondLoad: Promise<void>;
 }
 
-export async function runJetstreamTrace() {
-  const query = await queryParity("jetstream");
+export async function runOrderedStreamsTrace() {
+  const query = await queryParity("ordered-streams");
   const streams = Object.fromEntries(
     await Promise.all(
       (["direct", "tauri", "loopback"] as const).map(async (adapter) => [
@@ -63,8 +63,8 @@ async function streamTrace(adapter: AdapterName) {
   const harness = streamHarness(adapter);
   const snapshots: number[] = [];
   const connection = connectBridgeStream({
-    sessionId: "session:fixture-jetstream",
-    domainId: declaration("jetstream").domains[0]!.domainId,
+    sessionId: "session:fixture-ordered-streams",
+    domainId: declaration("ordered-streams").domains[0]!.domainId,
     source: harness.source,
     snapshot: unknownCodec,
     event: unknownCodec,
@@ -120,8 +120,8 @@ function streamHarness(adapter: AdapterName): StreamHarness {
     };
     return {
       source: new TauriBridgeStreamSource(
-        "session:fixture-jetstream",
-        declaration("jetstream").domains[0]!.domainId,
+        "session:fixture-ordered-streams",
+        declaration("ordered-streams").domains[0]!.domainId,
         transport,
       ),
       emit: (value) => listeners.get(BRIDGE_DOMAIN_EVENT)?.(value),
@@ -159,8 +159,8 @@ function streamHarness(adapter: AdapterName): StreamHarness {
 function snapshot(sequence: number) {
   return {
     cursor: {
-      sessionId: "session:fixture-jetstream",
-      domainId: declaration("jetstream").domains[0]!.domainId,
+      sessionId: "session:fixture-ordered-streams",
+      domainId: declaration("ordered-streams").domains[0]!.domainId,
       authorityEpoch: 2,
       sequence,
     },
@@ -171,8 +171,8 @@ function snapshot(sequence: number) {
 function event(sequence: number) {
   return {
     cursor: {
-      sessionId: "session:fixture-jetstream",
-      domainId: declaration("jetstream").domains[0]!.domainId,
+      sessionId: "session:fixture-ordered-streams",
+      domainId: declaration("ordered-streams").domains[0]!.domainId,
       authorityEpoch: 2,
       sequence,
     },

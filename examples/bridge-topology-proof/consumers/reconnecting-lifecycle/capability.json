@@ -1,5 +1,5 @@
 {
-  "identifier": "loophole-bridge-proof",
+  "identifier": "reconnecting-lifecycle-bridge-proof",
   "description": "Local-first and remote-attach stable-authority bridge proof.",
   "windows": ["main", "workspace-*"],
   "permissions": [

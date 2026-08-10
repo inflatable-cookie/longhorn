@@ -10,18 +10,18 @@ import {
   type ShapeName,
 } from "./common.ts";
 import { runSplitShellTrace } from "./split-shell.ts";
-import { runJetstreamTrace } from "./jetstream.ts";
-import { runLoopholeTrace } from "./loophole.ts";
-import { runNucleusTrace } from "./nucleus.ts";
-import { runSoundcheckTrace } from "./soundcheck.ts";
+import { runOrderedStreamsTrace } from "./ordered-streams.ts";
+import { runReconnectingLifecycleTrace } from "./reconnecting-lifecycle.ts";
+import { runCapabilityAuthorityTrace } from "./capability-authority.ts";
+import { runJobsAndServiceFailureTrace } from "./jobs-and-service-failure.ts";
 
 export async function runBridgeTopologyProof() {
   const traces = {
     "split-shell": await runSplitShellTrace(),
-    jetstream: await runJetstreamTrace(),
-    soundcheck: await runSoundcheckTrace(),
-    nucleus: await runNucleusTrace(),
-    loophole: await runLoopholeTrace(),
+    "ordered-streams": await runOrderedStreamsTrace(),
+    "jobs-and-service-failure": await runJobsAndServiceFailureTrace(),
+    "capability-authority": await runCapabilityAuthorityTrace(),
+    "reconnecting-lifecycle": await runReconnectingLifecycleTrace(),
   };
   return {
     schema: "longhorn.bridge-topology-conformance.v1",
@@ -90,9 +90,9 @@ function retryAudit() {
 function shapeNames(): ShapeName[] {
   return [
     "split-shell",
-    "jetstream",
-    "soundcheck",
-    "nucleus",
-    "loophole",
+    "ordered-streams",
+    "jobs-and-service-failure",
+    "capability-authority",
+    "reconnecting-lifecycle",
   ];
 }

@@ -38,10 +38,10 @@ import {
 
 export type ShapeName =
   | "split-shell"
-  | "jetstream"
-  | "soundcheck"
-  | "nucleus"
-  | "loophole";
+  | "ordered-streams"
+  | "jobs-and-service-failure"
+  | "capability-authority"
+  | "reconnecting-lifecycle";
 
 export interface DomainDeclaration {
   readonly domainId: DomainId;

@@ -1,6 +1,6 @@
 {
   "protocol_version": 1,
-  "name": "nucleus",
+  "name": "window-bound",
   "host_binding": {
     "kind": "window",
     "window_id": "window:primary",
@@ -18,7 +18,7 @@
       "maximum_panel_instances_per_region": 16
     },
     "schema": {
-      "id": "schema:nucleus",
+      "id": "schema:window-bound",
       "regions": [
         {
           "id": "left",
@@ -135,7 +135,7 @@
     "containers": [
       {
         "id": "container:primary",
-        "schema_id": "schema:nucleus",
+        "schema_id": "schema:window-bound",
         "regions": [
           {
             "region_id": "left",
@@ -193,7 +193,7 @@
   "steps": [
     {
       "request": {
-        "request_id": "request:nucleus:create-a",
+        "request_id": "request:window-bound:create-a",
         "expected_revision": 0,
         "command": {
           "kind": "create_panel",
@@ -205,7 +205,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:create-a",
+        "request_id": "request:window-bound:create-a",
         "previous_revision": 0,
         "committed_revision": 1,
         "outcome": {
@@ -220,7 +220,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -286,7 +286,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:create-b",
+        "request_id": "request:window-bound:create-b",
         "expected_revision": 1,
         "command": {
           "kind": "create_panel",
@@ -298,7 +298,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:create-b",
+        "request_id": "request:window-bound:create-b",
         "previous_revision": 1,
         "committed_revision": 2,
         "outcome": {
@@ -313,7 +313,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -384,7 +384,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:activate-a",
+        "request_id": "request:window-bound:activate-a",
         "expected_revision": 2,
         "command": {
           "kind": "activate_panel",
@@ -392,7 +392,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:activate-a",
+        "request_id": "request:window-bound:activate-a",
         "previous_revision": 2,
         "committed_revision": 3,
         "outcome": {
@@ -407,7 +407,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -478,7 +478,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:reorder",
+        "request_id": "request:window-bound:reorder",
         "expected_revision": 3,
         "command": {
           "kind": "reorder_region",
@@ -491,7 +491,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:reorder",
+        "request_id": "request:window-bound:reorder",
         "previous_revision": 3,
         "committed_revision": 4,
         "outcome": {
@@ -508,7 +508,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -579,7 +579,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:move-b",
+        "request_id": "request:window-bound:move-b",
         "expected_revision": 4,
         "command": {
           "kind": "move_panel",
@@ -590,7 +590,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:move-b",
+        "request_id": "request:window-bound:move-b",
         "previous_revision": 4,
         "committed_revision": 5,
         "outcome": {
@@ -608,7 +608,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -680,7 +680,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:size",
+        "request_id": "request:window-bound:size",
         "expected_revision": 5,
         "command": {
           "kind": "set_sizing_slot",
@@ -690,7 +690,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:size",
+        "request_id": "request:window-bound:size",
         "previous_revision": 5,
         "committed_revision": 6,
         "outcome": {
@@ -705,7 +705,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -777,7 +777,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:collapse",
+        "request_id": "request:window-bound:collapse",
         "expected_revision": 6,
         "command": {
           "kind": "set_region_collapsed",
@@ -787,7 +787,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:collapse",
+        "request_id": "request:window-bound:collapse",
         "previous_revision": 6,
         "committed_revision": 7,
         "outcome": {
@@ -802,7 +802,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -874,7 +874,7 @@
     },
     {
       "request": {
-        "request_id": "request:nucleus:close-a",
+        "request_id": "request:window-bound:close-a",
         "expected_revision": 7,
         "command": {
           "kind": "close_panel",
@@ -882,7 +882,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:nucleus:close-a",
+        "request_id": "request:window-bound:close-a",
         "previous_revision": 7,
         "committed_revision": 8,
         "outcome": {
@@ -897,7 +897,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:nucleus",
+              "schema_id": "schema:window-bound",
               "regions": [
                 {
                   "region_id": "left",
@@ -964,7 +964,7 @@
   ],
   "singleton_policy": {
     "first_receipt": {
-      "request_id": "request:nucleus:singleton-a",
+      "request_id": "request:window-bound:singleton-a",
       "previous_revision": 0,
       "committed_revision": 1,
       "outcome": {
@@ -979,7 +979,7 @@
         "containers": [
           {
             "id": "container:primary",
-            "schema_id": "schema:nucleus",
+            "schema_id": "schema:window-bound",
             "regions": [
               {
                 "region_id": "left",
@@ -1043,7 +1043,7 @@
       }
     },
     "second_rejection": {
-      "request_id": "request:nucleus:singleton-b",
+      "request_id": "request:window-bound:singleton-b",
       "current_revision": 1,
       "code": "instance_policy_exceeded",
       "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:tasks has 2 instances per container; maximum is 1",
@@ -1052,7 +1052,7 @@
         "containers": [
           {
             "id": "container:primary",
-            "schema_id": "schema:nucleus",
+            "schema_id": "schema:window-bound",
             "regions": [
               {
                 "region_id": "left",
@@ -1161,7 +1161,7 @@
     }
   ],
   "stale_rejection": {
-    "request_id": "request:nucleus:stale",
+    "request_id": "request:window-bound:stale",
     "current_revision": 8,
     "code": "stale_revision",
     "detail": "expected layout revision 0; current revision is 8",
@@ -1170,7 +1170,7 @@
       "containers": [
         {
           "id": "container:primary",
-          "schema_id": "schema:nucleus",
+          "schema_id": "schema:window-bound",
           "regions": [
             {
               "region_id": "left",
@@ -1234,7 +1234,7 @@
     }
   },
   "invalid_rejection": {
-    "request_id": "request:nucleus:unchanged-move",
+    "request_id": "request:window-bound:unchanged-move",
     "current_revision": 8,
     "code": "move_target_unchanged",
     "detail": "same-region position changes require a complete reorder command",
@@ -1243,7 +1243,7 @@
       "containers": [
         {
           "id": "container:primary",
-          "schema_id": "schema:nucleus",
+          "schema_id": "schema:window-bound",
           "regions": [
             {
               "region_id": "left",
@@ -1311,7 +1311,7 @@
     "containers": [
       {
         "id": "container:primary",
-        "schema_id": "schema:nucleus",
+        "schema_id": "schema:window-bound",
         "regions": [
           {
             "region_id": "left",

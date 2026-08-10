@@ -14,10 +14,10 @@ const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/bridge-topology-proof");
 const shapes: readonly ShapeName[] = [
   "split-shell",
-  "jetstream",
-  "soundcheck",
-  "nucleus",
-  "loophole",
+  "ordered-streams",
+  "jobs-and-service-failure",
+  "capability-authority",
+  "reconnecting-lifecycle",
 ];
 
 const importGraph = Object.fromEntries(
@@ -98,10 +98,10 @@ const proofSources = (
       "declarations.json",
       "common.ts",
       "split-shell.ts",
-      "jetstream.ts",
-      "soundcheck.ts",
-      "nucleus.ts",
-      "loophole.ts",
+      "ordered-streams.ts",
+      "jobs-and-service-failure.ts",
+      "capability-authority.ts",
+      "reconnecting-lifecycle.ts",
       "proof.ts",
       "proof.test.ts",
     ].map((path) => readFile(join(proofRoot, path), "utf8")),

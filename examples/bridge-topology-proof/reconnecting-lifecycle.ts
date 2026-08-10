@@ -7,19 +7,19 @@ import {
   sameValues,
 } from "./common.ts";
 
-export async function runLoopholeTrace() {
-  const embedded = receipt("loophole", "localFirst");
+export async function runReconnectingLifecycleTrace() {
+  const embedded = receipt("reconnecting-lifecycle", "localFirst");
   const remote = receipt(
-    "loophole",
+    "reconnecting-lifecycle",
     "remote",
-    "session:fixture-loophole-remote",
+    "session:fixture-reconnecting-lifecycle-remote",
   );
   const supervisor = new BridgeServiceRuntime("externalRemote");
   const attach = await supervisor.execute(
     { perform: () => "accepted" },
     "attach",
   );
-  const query = await queryParity("loophole");
+  const query = await queryParity("reconnecting-lifecycle");
 
   return {
     hostForms: [embedded.host.form, remote.host.form],

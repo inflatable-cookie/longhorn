@@ -1,7 +1,7 @@
 {
   "fixtureVersion": 1,
-  "consumer": "loophole",
-  "schemaId": "schema:loophole-regional-surface",
+  "shape": "surface-bound",
+  "schemaId": "schema:regional-surface",
   "externalBinding": {
     "hostKind": "surface",
     "identityRule": "container:sha256(surface-id)",

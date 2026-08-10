@@ -1,6 +1,6 @@
-import { runNucleusTrace } from "../../nucleus.ts";
+import { runCapabilityAuthorityTrace } from "../../capability-authority.ts";
 
-const trace = await runNucleusTrace();
+const trace = await runCapabilityAuthorityTrace();
 if (
   !trace.hostConnectionSeparate ||
   !trace.domainIdentityStable ||
@@ -9,6 +9,6 @@ if (
   !trace.executionParity ||
   !trace.queryParity
 ) {
-  throw new Error("Nucleus artifact trace violated authority policy");
+  throw new Error("Capability-authority artifact trace violated authority policy");
 }
 console.log(JSON.stringify({ trace }));

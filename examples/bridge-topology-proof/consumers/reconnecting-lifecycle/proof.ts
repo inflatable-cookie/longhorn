@@ -1,7 +1,7 @@
 import { lifecycleArtifactTrace } from "../../lifecycle.ts";
-import { runLoopholeTrace } from "../../loophole.ts";
+import { runReconnectingLifecycleTrace } from "../../reconnecting-lifecycle.ts";
 
-const trace = await runLoopholeTrace();
+const trace = await runReconnectingLifecycleTrace();
 const lifecycle = lifecycleArtifactTrace();
 if (
   !trace.authorityStable ||
@@ -10,6 +10,6 @@ if (
     "connecting,negotiating,ready,reconnecting,negotiating,ready,closed" ||
   !lifecycle.sessionInvalidated
 ) {
-  throw new Error("Loophole artifact trace violated topology policy");
+  throw new Error("Reconnecting-lifecycle artifact trace violated topology policy");
 }
 console.log(JSON.stringify({ trace, lifecycle }));

@@ -9,8 +9,8 @@ use longhorn_layout::{
 };
 use serde::Serialize;
 
-const LOOPHOLE_PATH: &str = "fixtures/layout/loophole-conformance-v1.json";
-const NUCLEUS_PATH: &str = "fixtures/layout/nucleus-conformance-v1.json";
+const SURFACE_BOUND_PATH: &str = "fixtures/layout/surface-bound-conformance-v1.json";
+const WINDOW_BOUND_PATH: &str = "fixtures/layout/window-bound-conformance-v1.json";
 
 #[derive(Clone, Copy)]
 struct RegionSpec {
@@ -130,7 +130,7 @@ pub(super) fn limits() -> LayoutLimits {
     LayoutLimits::new(4, 16, 8, 8, 4, 32, 16).expect("conformance limits are valid")
 }
 
-pub(super) fn loophole_spec() -> (&'static str, ShapeSpec) {
+pub(super) fn surface_bound_spec() -> (&'static str, ShapeSpec) {
     const REGIONS: &[RegionSpec] = &[
         region("navigation", "edge", true, false),
         region("activity", "edge", true, false),
@@ -147,10 +147,10 @@ pub(super) fn loophole_spec() -> (&'static str, ShapeSpec) {
         sizing("utility-height", 100_000, 250_000, 900_000),
     ];
     (
-        LOOPHOLE_PATH,
+        SURFACE_BOUND_PATH,
         ShapeSpec {
-            name: "loophole",
-            schema_id: "schema:loophole",
+            name: "surface-bound",
+            schema_id: "schema:surface-bound",
             regions: REGIONS,
             sizing_slots: SIZING,
             source_region: "primary",
@@ -167,7 +167,7 @@ pub(super) fn loophole_spec() -> (&'static str, ShapeSpec) {
     )
 }
 
-pub(super) fn nucleus_spec() -> (&'static str, ShapeSpec) {
+pub(super) fn window_bound_spec() -> (&'static str, ShapeSpec) {
     const REGIONS: &[RegionSpec] = &[
         region("left", "activity", false, false),
         region("center_top", "workspace", false, false),
@@ -182,10 +182,10 @@ pub(super) fn nucleus_spec() -> (&'static str, ShapeSpec) {
         sizing("right-stack", 200_000, 740_000, 900_000),
     ];
     (
-        NUCLEUS_PATH,
+        WINDOW_BOUND_PATH,
         ShapeSpec {
-            name: "nucleus",
-            schema_id: "schema:nucleus",
+            name: "window-bound",
+            schema_id: "schema:window-bound",
             regions: REGIONS,
             sizing_slots: SIZING,
             source_region: "center_top",

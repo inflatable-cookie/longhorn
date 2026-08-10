@@ -20,18 +20,18 @@
       "layout": {
         "profile": "platform-native-v1",
         "platform": "macos",
-        "canonicalApplicationId": "audio.example.soundcheck",
-        "effectiveLeaf": "audio.example.soundcheck",
+        "canonicalApplicationId": "com.example.sample-app",
+        "effectiveLeaf": "com.example.sample-app",
         "leafProvenance": "canonicalApplicationId",
         "roots": [
           {
             "kind": "config",
-            "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+            "path": "/Users/example/Library/Application Support/com.example.sample-app",
             "provenance": "platform:config"
           },
           {
             "kind": "cache",
-            "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+            "path": "/Users/example/Library/Caches/com.example.sample-app",
             "provenance": "platform:cache"
           }
         ],
@@ -340,18 +340,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -534,18 +534,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -729,18 +729,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -935,18 +935,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -1130,18 +1130,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -1321,18 +1321,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -1671,18 +1671,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -1869,18 +1869,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -2063,18 +2063,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -2491,18 +2491,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -2685,18 +2685,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],
@@ -2879,18 +2879,18 @@
           "layout": {
             "profile": "platform-native-v1",
             "platform": "macos",
-            "canonicalApplicationId": "audio.example.soundcheck",
-            "effectiveLeaf": "audio.example.soundcheck",
+            "canonicalApplicationId": "com.example.sample-app",
+            "effectiveLeaf": "com.example.sample-app",
             "leafProvenance": "canonicalApplicationId",
             "roots": [
               {
                 "kind": "config",
-                "path": "/Users/example/Library/Application Support/audio.example.soundcheck",
+                "path": "/Users/example/Library/Application Support/com.example.sample-app",
                 "provenance": "platform:config"
               },
               {
                 "kind": "cache",
-                "path": "/Users/example/Library/Caches/audio.example.soundcheck",
+                "path": "/Users/example/Library/Caches/com.example.sample-app",
                 "provenance": "platform:cache"
               }
             ],

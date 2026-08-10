@@ -1,6 +1,6 @@
 {
   "protocol_version": 1,
-  "name": "loophole",
+  "name": "surface-bound",
   "host_binding": {
     "kind": "surface",
     "surface_id": "surface:mix",
@@ -18,7 +18,7 @@
       "maximum_panel_instances_per_region": 16
     },
     "schema": {
-      "id": "schema:loophole",
+      "id": "schema:surface-bound",
       "regions": [
         {
           "id": "navigation",
@@ -149,7 +149,7 @@
     "containers": [
       {
         "id": "container:primary",
-        "schema_id": "schema:loophole",
+        "schema_id": "schema:surface-bound",
         "regions": [
           {
             "region_id": "navigation",
@@ -221,7 +221,7 @@
   "steps": [
     {
       "request": {
-        "request_id": "request:loophole:create-a",
+        "request_id": "request:surface-bound:create-a",
         "expected_revision": 0,
         "command": {
           "kind": "create_panel",
@@ -233,7 +233,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:create-a",
+        "request_id": "request:surface-bound:create-a",
         "previous_revision": 0,
         "committed_revision": 1,
         "outcome": {
@@ -248,7 +248,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -328,7 +328,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:create-b",
+        "request_id": "request:surface-bound:create-b",
         "expected_revision": 1,
         "command": {
           "kind": "create_panel",
@@ -340,7 +340,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:create-b",
+        "request_id": "request:surface-bound:create-b",
         "previous_revision": 1,
         "committed_revision": 2,
         "outcome": {
@@ -355,7 +355,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -440,7 +440,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:activate-a",
+        "request_id": "request:surface-bound:activate-a",
         "expected_revision": 2,
         "command": {
           "kind": "activate_panel",
@@ -448,7 +448,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:activate-a",
+        "request_id": "request:surface-bound:activate-a",
         "previous_revision": 2,
         "committed_revision": 3,
         "outcome": {
@@ -463,7 +463,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -548,7 +548,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:reorder",
+        "request_id": "request:surface-bound:reorder",
         "expected_revision": 3,
         "command": {
           "kind": "reorder_region",
@@ -561,7 +561,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:reorder",
+        "request_id": "request:surface-bound:reorder",
         "previous_revision": 3,
         "committed_revision": 4,
         "outcome": {
@@ -578,7 +578,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -663,7 +663,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:move-b",
+        "request_id": "request:surface-bound:move-b",
         "expected_revision": 4,
         "command": {
           "kind": "move_panel",
@@ -674,7 +674,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:move-b",
+        "request_id": "request:surface-bound:move-b",
         "previous_revision": 4,
         "committed_revision": 5,
         "outcome": {
@@ -692,7 +692,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -778,7 +778,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:size",
+        "request_id": "request:surface-bound:size",
         "expected_revision": 5,
         "command": {
           "kind": "set_sizing_slot",
@@ -788,7 +788,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:size",
+        "request_id": "request:surface-bound:size",
         "previous_revision": 5,
         "committed_revision": 6,
         "outcome": {
@@ -803,7 +803,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -889,7 +889,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:collapse",
+        "request_id": "request:surface-bound:collapse",
         "expected_revision": 6,
         "command": {
           "kind": "set_region_collapsed",
@@ -899,7 +899,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:collapse",
+        "request_id": "request:surface-bound:collapse",
         "previous_revision": 6,
         "committed_revision": 7,
         "outcome": {
@@ -914,7 +914,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -1000,7 +1000,7 @@
     },
     {
       "request": {
-        "request_id": "request:loophole:close-a",
+        "request_id": "request:surface-bound:close-a",
         "expected_revision": 7,
         "command": {
           "kind": "close_panel",
@@ -1008,7 +1008,7 @@
         }
       },
       "receipt": {
-        "request_id": "request:loophole:close-a",
+        "request_id": "request:surface-bound:close-a",
         "previous_revision": 7,
         "committed_revision": 8,
         "outcome": {
@@ -1023,7 +1023,7 @@
           "containers": [
             {
               "id": "container:primary",
-              "schema_id": "schema:loophole",
+              "schema_id": "schema:surface-bound",
               "regions": [
                 {
                   "region_id": "navigation",
@@ -1104,7 +1104,7 @@
   ],
   "singleton_policy": {
     "first_receipt": {
-      "request_id": "request:loophole:singleton-a",
+      "request_id": "request:surface-bound:singleton-a",
       "previous_revision": 0,
       "committed_revision": 1,
       "outcome": {
@@ -1119,7 +1119,7 @@
         "containers": [
           {
             "id": "container:primary",
-            "schema_id": "schema:loophole",
+            "schema_id": "schema:surface-bound",
             "regions": [
               {
                 "region_id": "navigation",
@@ -1197,7 +1197,7 @@
       }
     },
     "second_rejection": {
-      "request_id": "request:loophole:singleton-b",
+      "request_id": "request:surface-bound:singleton-b",
       "current_revision": 1,
       "code": "instance_policy_exceeded",
       "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:transport has 2 instances per document; maximum is 1",
@@ -1206,7 +1206,7 @@
         "containers": [
           {
             "id": "container:primary",
-            "schema_id": "schema:loophole",
+            "schema_id": "schema:surface-bound",
             "regions": [
               {
                 "region_id": "navigation",
@@ -1353,7 +1353,7 @@
     }
   ],
   "stale_rejection": {
-    "request_id": "request:loophole:stale",
+    "request_id": "request:surface-bound:stale",
     "current_revision": 8,
     "code": "stale_revision",
     "detail": "expected layout revision 0; current revision is 8",
@@ -1362,7 +1362,7 @@
       "containers": [
         {
           "id": "container:primary",
-          "schema_id": "schema:loophole",
+          "schema_id": "schema:surface-bound",
           "regions": [
             {
               "region_id": "navigation",
@@ -1440,7 +1440,7 @@
     }
   },
   "invalid_rejection": {
-    "request_id": "request:loophole:unchanged-move",
+    "request_id": "request:surface-bound:unchanged-move",
     "current_revision": 8,
     "code": "move_target_unchanged",
     "detail": "same-region position changes require a complete reorder command",
@@ -1449,7 +1449,7 @@
       "containers": [
         {
           "id": "container:primary",
-          "schema_id": "schema:loophole",
+          "schema_id": "schema:surface-bound",
           "regions": [
             {
               "region_id": "navigation",
@@ -1531,7 +1531,7 @@
     "containers": [
       {
         "id": "container:primary",
-        "schema_id": "schema:loophole",
+        "schema_id": "schema:surface-bound",
         "regions": [
           {
             "region_id": "navigation",

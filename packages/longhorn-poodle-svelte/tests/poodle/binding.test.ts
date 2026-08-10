@@ -20,7 +20,7 @@ import {
 
 describe("PoodleLayoutBinding", () => {
   it("makes missing consumer presentation explicit", () => {
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const document = shapeDocument(shape, {
       left: [instance("instance:a")],
     });
@@ -43,7 +43,7 @@ describe("PoodleLayoutBinding", () => {
   });
 
   it("rejects a non-collapsible split mapping before rendering", () => {
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const state: LayoutMutationState = {
       projected: shapeDocument(shape, {}),
       dispatch: async () => {
@@ -63,7 +63,7 @@ describe("PoodleLayoutBinding", () => {
   });
 
   it("transiently reveals only compatible hidden regions without mutation", () => {
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a")],
     });
@@ -106,7 +106,7 @@ describe("PoodleLayoutBinding", () => {
     const requests: LayoutMutationRequest[] = [];
     const pendings: Array<ReturnType<typeof deferred<LayoutDispatchResult>>> =
       [];
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const document = shapeDocument(shape, {
       center_bottom: [instance("instance:a"), instance("instance:b")],
     });

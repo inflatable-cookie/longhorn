@@ -1,5 +1,5 @@
 {
-  "name": "longhorn-jetstream-bridge-artifact-proof",
+  "name": "longhorn-reconnecting-lifecycle-bridge-artifact-proof",
   "private": true,
   "type": "module",
   "dependencies": {

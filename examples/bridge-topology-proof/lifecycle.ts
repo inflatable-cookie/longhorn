@@ -20,7 +20,7 @@ export function lifecycleArtifactTrace() {
   const states = [
     runtime.connect().current.state,
     runtime.transportReady().current.state,
-    runtime.acceptNegotiation(receipt("loophole", "localFirst"), []).current
+    runtime.acceptNegotiation(receipt("reconnecting-lifecycle", "localFirst"), []).current
       .state,
   ];
   const reconnect = runtime.reconnect("afterReconnect");
@@ -30,9 +30,9 @@ export function lifecycleArtifactTrace() {
   states.push(
     runtime.acceptNegotiation(
       receipt(
-        "loophole",
+        "reconnecting-lifecycle",
         "remote",
-        "session:fixture-loophole-reconnected",
+        "session:fixture-reconnecting-lifecycle-reconnected",
       ),
       [],
     ).current.state,

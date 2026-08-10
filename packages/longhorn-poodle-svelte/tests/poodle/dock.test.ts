@@ -16,7 +16,7 @@ import {
 
 describe("LayoutDockRegion", () => {
   it("keeps static panel rendering consumer-owned through a snippet", () => {
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a")],
     });
@@ -38,7 +38,7 @@ describe("LayoutDockRegion", () => {
   it("dispatches a complete same-region reorder", async () => {
     const requests: LayoutMutationRequest[] = [];
     const pending = deferred<LayoutDispatchResult>();
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a"), instance("instance:b")],
     });
@@ -76,7 +76,7 @@ describe("LayoutDockRegion", () => {
   it("uses Poodle's public panel-drop callback for an eligible move", async () => {
     const requests: LayoutMutationRequest[] = [];
     const pending = deferred<LayoutDispatchResult>();
-    const shape = loadShape("loophole");
+    const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a")],
       secondary: [instance("instance:b")],

@@ -1,7 +1,7 @@
 {
   "fixtureVersion": 1,
-  "consumer": "loophole",
-  "domain": "loophole.regional-surfaces",
+  "shape": "surface-bound",
+  "domain": "regional-surfaces",
   "regionalSurface": {
     "registered": true,
     "layoutBinding": "container:sha256(surface-id)",

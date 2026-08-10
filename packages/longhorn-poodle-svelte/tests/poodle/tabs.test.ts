@@ -17,7 +17,7 @@ import {
 
 describe("LayoutTabs", () => {
   it("projects selection immediately and restores rejection authority", async () => {
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const document = shapeDocument(shape, {
       left: [instance("instance:a"), instance("instance:b")],
     });
@@ -69,7 +69,7 @@ describe("LayoutTabs", () => {
   });
 
   it("projects close with the authoritative active-panel fallback", async () => {
-    const shape = loadShape("nucleus");
+    const shape = loadShape("window-bound");
     const document = shapeDocument(shape, {
       left: [instance("instance:a"), instance("instance:b")],
     });

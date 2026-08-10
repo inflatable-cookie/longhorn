@@ -19,10 +19,10 @@ const rustCrates = [
 
 const donorNames = [
   "split-shell",
-  "jetstream",
-  "soundcheck",
-  "nucleus",
-  "loophole",
+  "ordered-streams",
+  "jobs-and-service-failure",
+  "capability-authority",
+  "reconnecting-lifecycle",
 ] as const;
 
 const productionNetworkMarkers = [

@@ -22,10 +22,10 @@ import type {
 
 const shapes: readonly ShapeName[] = [
   "split-shell",
-  "jetstream",
-  "soundcheck",
-  "nucleus",
-  "loophole",
+  "ordered-streams",
+  "jobs-and-service-failure",
+  "capability-authority",
+  "reconnecting-lifecycle",
 ];
 
 export async function verifyConsumers(context: ProofContext) {
@@ -56,7 +56,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
       join(stage, "protocol-artifact.ts"),
     );
   }
-  if (shape === "loophole") {
+  if (shape === "reconnecting-lifecycle") {
     await cp(
       join(context.proofRoot, "lifecycle.ts"),
       join(stage, "lifecycle.ts"),

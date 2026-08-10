@@ -30,7 +30,7 @@ export function deferred<T>(): Deferred<T> {
   return { promise, resolve };
 }
 
-export function loadShape(name: "nucleus" | "loophole"): Shape {
+export function loadShape(name: "window-bound" | "surface-bound"): Shape {
   const path = resolve(
     process.cwd(),
     `fixtures/layout/${name}-conformance-v1.json`,

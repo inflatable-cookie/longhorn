@@ -15,7 +15,7 @@ use shape::*;
 
 #[cfg(test)]
 const LOOPHOLE_REGISTERED_AUTHORITY: &str =
-    include_str!("../../../../fixtures/layout/loophole-registered-authority-v1.json");
+    include_str!("../../../../fixtures/layout/surface-bound-registered-authority-v1.json");
 
 #[derive(Serialize)]
 struct ConformanceFixture {
@@ -54,7 +54,7 @@ struct SingletonPolicyFixture {
 }
 
 pub fn render() -> Result<Vec<(&'static str, String)>, Box<dyn Error>> {
-    [loophole_spec(), nucleus_spec()]
+    [surface_bound_spec(), window_bound_spec()]
         .into_iter()
         .map(|(path, spec)| {
             let fixture = build_fixture(spec)?;
@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     fn both_shapes_complete_the_same_public_matrix() {
-        let fixtures = [loophole_spec(), nucleus_spec()]
+        let fixtures = [surface_bound_spec(), window_bound_spec()]
             .into_iter()
             .map(|(_, spec)| build_fixture(spec).unwrap())
             .collect::<Vec<_>>();
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn loophole_registered_authority_fixture_is_literal_donor_evidence() {
+    fn surface_bound_registered_authority_fixture_is_literal_donor_evidence() {
         let fixture: serde_json::Value =
             serde_json::from_str(LOOPHOLE_REGISTERED_AUTHORITY).unwrap();
         let region_ids = fixture["regions"]

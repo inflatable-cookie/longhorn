@@ -33,8 +33,8 @@
             "authorityId": "authority:fixture"
           },
           "cancellationSupport": "supported",
-          "encodedMetadataWeight": 175,
-          "kindId": "soundcheck.plugin-scan",
+          "encodedMetadataWeight": 178,
+          "kindId": "example.long-running-scan",
           "label": "Scan plug-ins",
           "lastChangedCatalogueRevision": 3,
           "operationId": "operation:scan",
@@ -146,7 +146,7 @@
       "expectedCatalogueRevision": 0,
       "initialState": "running",
       "kind": "register",
-      "kindId": "soundcheck.plugin-scan",
+      "kindId": "example.long-running-scan",
       "label": "Scan plug-ins",
       "operationId": "operation:scan",
       "protocolVersion": 1,
@@ -212,8 +212,8 @@
             "authorityId": "authority:fixture"
           },
           "cancellationSupport": "supported",
-          "encodedMetadataWeight": 146,
-          "kindId": "soundcheck.plugin-scan",
+          "encodedMetadataWeight": 149,
+          "kindId": "example.long-running-scan",
           "label": "Scan plug-ins",
           "lastChangedCatalogueRevision": 1,
           "operationId": "operation:scan",
@@ -241,8 +241,8 @@
               "authorityId": "authority:fixture"
             },
             "cancellationSupport": "supported",
-            "encodedMetadataWeight": 146,
-            "kindId": "soundcheck.plugin-scan",
+            "encodedMetadataWeight": 149,
+            "kindId": "example.long-running-scan",
             "label": "Scan plug-ins",
             "lastChangedCatalogueRevision": 1,
             "operationId": "operation:scan",
@@ -311,8 +311,8 @@
               "authorityId": "authority:fixture"
             },
             "cancellationSupport": "supported",
-            "encodedMetadataWeight": 175,
-            "kindId": "soundcheck.plugin-scan",
+            "encodedMetadataWeight": 178,
+            "kindId": "example.long-running-scan",
             "label": "Scan plug-ins",
             "lastChangedCatalogueRevision": 2,
             "operationId": "operation:scan",
@@ -389,8 +389,8 @@
               "authorityId": "authority:fixture"
             },
             "cancellationSupport": "supported",
-            "encodedMetadataWeight": 175,
-            "kindId": "soundcheck.plugin-scan",
+            "encodedMetadataWeight": 178,
+            "kindId": "example.long-running-scan",
             "label": "Scan plug-ins",
             "lastChangedCatalogueRevision": 4,
             "operationId": "operation:scan",
@@ -415,7 +415,7 @@
             "state": "succeeded"
           }
         ],
-        "retainedTerminalEncodedWeight": 175,
+        "retainedTerminalEncodedWeight": 178,
         "terminalEvictionCount": 0
       },
       "status": "committed"
@@ -448,8 +448,8 @@
               "authorityId": "authority:fixture"
             },
             "cancellationSupport": "supported",
-            "encodedMetadataWeight": 175,
-            "kindId": "soundcheck.plugin-scan",
+            "encodedMetadataWeight": 178,
+            "kindId": "example.long-running-scan",
             "label": "Scan plug-ins",
             "lastChangedCatalogueRevision": 4,
             "operationId": "operation:scan",
@@ -474,7 +474,7 @@
             "state": "succeeded"
           }
         ],
-        "retainedTerminalEncodedWeight": 175,
+        "retainedTerminalEncodedWeight": 178,
         "terminalEvictionCount": 0
       },
       "status": "rejected"

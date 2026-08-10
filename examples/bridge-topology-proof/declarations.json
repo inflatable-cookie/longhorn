@@ -24,7 +24,7 @@
         }
       ]
     },
-    "jetstream": {
+    "ordered-streams": {
       "hostForms": ["direct", "tauriLocal"],
       "transportFeatures": ["request_reply", "ordered_streams"],
       "imports": [
@@ -56,7 +56,7 @@
         }
       ]
     },
-    "soundcheck": {
+    "jobs-and-service-failure": {
       "hostForms": ["tauriLocal", "localService"],
       "transportFeatures": [
         "request_reply",
@@ -132,7 +132,7 @@
         }
       ]
     },
-    "nucleus": {
+    "capability-authority": {
       "hostForms": ["direct", "localService"],
       "transportFeatures": ["request_reply", "job_execution"],
       "imports": [
@@ -175,7 +175,7 @@
         }
       ]
     },
-    "loophole": {
+    "reconnecting-lifecycle": {
       "hostForms": ["localFirst", "remote"],
       "transportFeatures": ["request_reply", "ordered_streams"],
       "imports": [

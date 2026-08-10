@@ -16,13 +16,13 @@ import {
   type AdapterName,
 } from "./common.ts";
 
-const requestId = "request:fixture-soundcheck-job";
-const jobId = "job:fixture-soundcheck";
+const requestId = "request:fixture-jobs-and-service-failure-job";
+const jobId = "job:fixture-jobs-and-service-failure";
 
-export async function runSoundcheckTrace() {
-  const fixture = declaration("soundcheck");
+export async function runJobsAndServiceFailureTrace() {
+  const fixture = declaration("jobs-and-service-failure");
   const jobDomain = fixture.domains.at(-1)!;
-  const cancellation = await cancellationParity("soundcheck", jobDomain);
+  const cancellation = await cancellationParity("jobs-and-service-failure", jobDomain);
   const jobs = {
     direct: directJobTrace(false),
     tauri: await tauriJobTrace(),
@@ -43,7 +43,7 @@ export async function runSoundcheckTrace() {
   > = {};
   for (const domain of localDomains) {
     localQueries[domain.domainId] = (
-      await queryParity("soundcheck", domain)
+      await queryParity("jobs-and-service-failure", domain)
     ).traces;
   }
 

@@ -12,19 +12,19 @@ describe("five-shape bridge topology conformance", () => {
       eventsResolved: false,
       serviceResolved: false,
     });
-    expect(proof.traces.jetstream).toMatchObject({
+    expect(proof.traces["ordered-streams"]).toMatchObject({
       listenerFirst: true,
       gapResync: true,
       adapterParity: true,
       queryParity: true,
     });
-    expect(proof.traces.soundcheck).toMatchObject({
+    expect(proof.traces["jobs-and-service-failure"]).toMatchObject({
       cancellationParity: true,
       jobParity: true,
       serviceState: "failed",
       localDomainsAvailableAfterServiceFailure: true,
     });
-    expect(proof.traces.nucleus).toMatchObject({
+    expect(proof.traces["capability-authority"]).toMatchObject({
       hostConnectionSeparate: true,
       optionalHostLifecycle: "attaching",
       domainIdentityStable: true,
@@ -33,7 +33,7 @@ describe("five-shape bridge topology conformance", () => {
       executionParity: true,
       queryParity: true,
     });
-    expect(proof.traces.loophole).toMatchObject({
+    expect(proof.traces["reconnecting-lifecycle"]).toMatchObject({
       hostForms: ["localFirst", "remote"],
       hostInstancesDiffer: true,
       sessionsDiffer: true,

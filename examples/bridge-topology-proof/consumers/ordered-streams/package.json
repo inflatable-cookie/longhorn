@@ -1,5 +1,5 @@
 {
-  "name": "longhorn-soundcheck-bridge-artifact-proof",
+  "name": "longhorn-ordered-streams-bridge-artifact-proof",
   "private": true,
   "type": "module",
   "dependencies": {

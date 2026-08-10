@@ -28,22 +28,22 @@ const emptyCodec = bridgeCodec<Record<string, never>>((value) => {
   return {};
 });
 
-export async function runNucleusTrace() {
-  const fixture = declaration("nucleus");
+export async function runCapabilityAuthorityTrace() {
+  const fixture = declaration("capability-authority");
   const local = fixture.domains[0]!;
   const executor = fixture.domains[1]!;
-  const embedded = receipt("nucleus", "direct");
+  const embedded = receipt("capability-authority", "direct");
   const optionalHost = receipt(
-    "nucleus",
+    "capability-authority",
     "localService",
-    "session:fixture-nucleus-service",
+    "session:fixture-capability-authority-service",
   );
   const optionalService = new BridgeServiceRuntime("externalLocal");
   const attach = await optionalService.execute(
     { perform: () => "accepted" },
     "attach",
   );
-  const current = session("nucleus");
+  const current = session("capability-authority");
   const inertAdapter = {
     invoke: () => Promise.reject(new Error("authority should reject first")),
   };
@@ -62,11 +62,11 @@ export async function runNucleusTrace() {
     client.execute(cancellation(local.domainId), {
       context: context(local.domainId),
       targetRequestId: "request:fixture-target",
-      jobId: "job:fixture-nucleus",
+      jobId: "job:fixture-capability-authority",
     }),
   );
-  const execution = await cancellationParity("nucleus", executor);
-  const query = await queryParity("nucleus");
+  const execution = await cancellationParity("capability-authority", executor);
+  const query = await queryParity("capability-authority");
 
   return {
     hostConnectionSeparate: embedded.host.form !== optionalHost.host.form,
@@ -89,8 +89,8 @@ export async function runNucleusTrace() {
 
 function context(domainId: string) {
   return {
-    requestId: "request:fixture-nucleus-authority",
-    sessionId: "session:fixture-nucleus",
+    requestId: "request:fixture-capability-authority-authority",
+    sessionId: "session:fixture-capability-authority",
     domainId,
   };
 }

@@ -9,8 +9,8 @@ import {
 } from "@inflatable-cookie/longhorn/layout";
 
 const fixtures = [
-  load("loophole-conformance-v1.json"),
-  load("nucleus-conformance-v1.json"),
+  load("surface-bound-conformance-v1.json"),
+  load("window-bound-conformance-v1.json"),
 ];
 
 const sharedCommandKinds = [
@@ -26,29 +26,29 @@ const sharedCommandKinds = [
 
 describe("two-shape layout conformance", () => {
   test("preserves each donor-shaped schema and external host binding", () => {
-    const loophole = fixtures[0];
-    const nucleus = fixtures[1];
+    const surfaceBound = fixtures[0];
+    const windowBound = fixtures[1];
 
-    expect(loophole.name).toBe("loophole");
-    expect(record(loophole.host_binding)).toMatchObject({
+    expect(surfaceBound.name).toBe("surface-bound");
+    expect(record(surfaceBound.host_binding)).toMatchObject({
       kind: "surface",
       surface_id: "surface:mix",
       container_id: "container:primary",
     });
-    expect(schemaRegions(loophole)).toHaveLength(8);
-    expect(schemaSizingSlots(loophole)).toHaveLength(3);
-    expect(loophole.resolved_default_region).toBe("primary");
+    expect(schemaRegions(surfaceBound)).toHaveLength(8);
+    expect(schemaSizingSlots(surfaceBound)).toHaveLength(3);
+    expect(surfaceBound.resolved_default_region).toBe("primary");
 
-    expect(nucleus.name).toBe("nucleus");
-    expect(record(nucleus.host_binding)).toMatchObject({
+    expect(windowBound.name).toBe("window-bound");
+    expect(record(windowBound.host_binding)).toMatchObject({
       kind: "window",
       window_id: "window:primary",
       container_id: "container:primary",
     });
-    expect(schemaRegions(nucleus)).toHaveLength(5);
-    expect(schemaSizingSlots(nucleus)).toHaveLength(4);
+    expect(schemaRegions(windowBound)).toHaveLength(5);
+    expect(schemaSizingSlots(windowBound)).toHaveLength(4);
     expect(
-      schemaRegions(nucleus).map((region) => record(region).id),
+      schemaRegions(windowBound).map((region) => record(region).id),
     ).toEqual([
       "left",
       "center_top",
@@ -57,14 +57,14 @@ describe("two-shape layout conformance", () => {
       "right_bottom",
     ]);
     expect(
-      schemaSizingSlots(nucleus).map((slot) => record(slot).id),
+      schemaSizingSlots(windowBound).map((slot) => record(slot).id),
     ).toEqual([
       "left-center",
       "center-right",
       "center-stack",
       "right-stack",
     ]);
-    expect(nucleus.resolved_default_region).toBe("center_top");
+    expect(windowBound.resolved_default_region).toBe("center_top");
   });
 
   test("keeps host and product authority outside layout protocol state", () => {

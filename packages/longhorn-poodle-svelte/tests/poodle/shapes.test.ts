@@ -14,8 +14,8 @@ import {
 
 describe("mounted layout shapes", () => {
   it.each([
-    ["nucleus", 5, "left"],
-    ["loophole", 8, "primary"],
+    ["window-bound", 5, "left"],
+    ["surface-bound", 8, "primary"],
   ] as const)("mounts the %s region shape without host types", (name, count, occupied) => {
     const shape = loadShape(name);
     const document = shapeDocument(shape, {
