@@ -120,7 +120,7 @@ fn stale_foreign_duplicate_unknown_and_full_attempts_preserve_exact_state() {
 #[test]
 fn identity_label_limit_and_epoch_bounds_fail_closed() {
     assert!(OperationId::new("operation:valid-1").is_ok());
-    assert!(OperationKindId::new("soundcheck.plugin-scan").is_ok());
+    assert!(OperationKindId::new("example.long-running-scan").is_ok());
     assert!(OperationId::new("Operation Invalid").is_err());
     assert!(OperationAuthorityEpoch::new(0).is_err());
     assert_eq!(OperationLabel::new(""), Err(OperationLabelError::Empty));

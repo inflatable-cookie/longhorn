@@ -9,7 +9,7 @@ use longhorn_history::{
 };
 
 use crate::{
-    loophole::{PulseFixtureMutation, PulseFixturePolicy, rename},
+    pulse_shaped::{PulseFixtureMutation, PulseFixturePolicy, rename},
     support::*,
 };
 

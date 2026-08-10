@@ -3,13 +3,13 @@ use longhorn_operation::OperationState;
 use super::support::*;
 
 #[test]
-fn soundcheck_scan_registers_running_and_preserves_cancellation_race_truth() {
-    let mut catalogue = catalogue("authority:soundcheck", 7);
+fn long_running_scan_registers_running_and_preserves_cancellation_race_truth() {
+    let mut catalogue = catalogue("authority:scan", 7);
     let registered = catalogue
         .register(scoped_registration(
             &catalogue,
             "scan:plugins-42",
-            "soundcheck.plugin-scan",
+            "example.long-running-scan",
             "library:default",
             "Scan plug-ins",
             OperationState::Running,
@@ -50,12 +50,12 @@ fn soundcheck_scan_registers_running_and_preserves_cancellation_race_truth() {
 
 #[test]
 fn renderer_remount_reads_current_scan_without_changing_host_state() {
-    let mut catalogue = catalogue("authority:soundcheck", 8);
+    let mut catalogue = catalogue("authority:scan", 8);
     catalogue
         .register(registration(
             &catalogue,
             "scan:plugins-43",
-            "soundcheck.plugin-scan",
+            "example.long-running-scan",
             "Scan plug-ins",
             OperationState::Running,
         ))

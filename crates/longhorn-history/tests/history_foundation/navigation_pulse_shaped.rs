@@ -9,7 +9,7 @@ use longhorn_history::{
 };
 
 use crate::{
-    loophole::{PulseFixtureMutation, PulseFixturePolicy, rename},
+    pulse_shaped::{PulseFixtureMutation, PulseFixturePolicy, rename},
     support::*,
 };
 
@@ -195,7 +195,7 @@ fn pulse_history() -> LinearHistory<PulseFixtureMutation> {
 }
 
 #[test]
-fn loophole_shaped_undo_redo_and_checkout_keep_exact_order() {
+fn pulse_shaped_undo_redo_and_checkout_keep_exact_order() {
     let policy = PulseFixturePolicy;
     let mut history = pulse_history();
     let initial_history = history.clone();
@@ -319,7 +319,7 @@ fn loophole_shaped_undo_redo_and_checkout_keep_exact_order() {
 }
 
 #[test]
-fn loophole_compound_failure_never_partially_commits_history() {
+fn pulse_shaped_compound_failure_never_partially_commits_history() {
     let policy = PulseFixturePolicy;
     let mut history = pulse_history();
     let before_history = history.clone();
@@ -365,7 +365,7 @@ fn loophole_compound_failure_never_partially_commits_history() {
 }
 
 #[test]
-fn loophole_owned_inverse_rejection_never_produces_a_plan() {
+fn pulse_shaped_owned_inverse_rejection_never_produces_a_plan() {
     let mut history = LinearHistory::new(history_id("history:pulse"), HistoryLimits::default());
     history
         .record_applied(

@@ -9,7 +9,7 @@ use longhorn_history::{
 };
 
 use crate::{
-    loophole::{PulseFixtureMutation, PulseFixturePolicy, rename},
+    pulse_shaped::{PulseFixtureMutation, PulseFixturePolicy, rename},
     support::*,
 };
 
@@ -23,7 +23,7 @@ fn timed(group: &str, key: &str, now_ms: u64, duration_ms: u64) -> HistoryTimedG
 }
 
 #[test]
-fn loophole_timed_group_uses_injected_750_ms_and_compound_policy() {
+fn pulse_shaped_timed_group_uses_injected_750_ms_and_compound_policy() {
     let mut history = LinearHistory::new(history_id("history:pulse"), HistoryLimits::default());
     let policy = PulseFixturePolicy;
     let first = history
@@ -105,7 +105,7 @@ fn loophole_timed_group_uses_injected_750_ms_and_compound_policy() {
 struct NonAtomicGroupPolicy;
 
 impl HistoryPolicy<PulseFixtureMutation> for NonAtomicGroupPolicy {
-    type Error = crate::loophole::PulseFixturePolicyError;
+    type Error = crate::pulse_shaped::PulseFixturePolicyError;
 
     fn inverse(&self, payload: &PulseFixtureMutation) -> Result<PulseFixtureMutation, Self::Error> {
         PulseFixturePolicy.inverse(payload)
@@ -321,7 +321,7 @@ fn navigation_closes_active_group_and_adjacent_coalescing_boundary() {
 }
 
 #[test]
-fn loophole_default_100_entry_limit_prunes_entry_101_exactly() {
+fn pulse_shaped_default_100_entry_limit_prunes_entry_101_exactly() {
     let mut history = LinearHistory::new(history_id("history:pulse-100"), HistoryLimits::default());
     for index in 0..=100_u64 {
         let result = history

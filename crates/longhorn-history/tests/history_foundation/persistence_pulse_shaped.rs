@@ -10,7 +10,7 @@ use longhorn_history::{
 };
 
 use crate::{
-    loophole::{PulseFixtureMutation, PulseFixturePolicy, PulseFixturePolicyError, rename},
+    pulse_shaped::{PulseFixtureMutation, PulseFixturePolicy, PulseFixturePolicyError, rename},
     support::*,
 };
 
@@ -53,7 +53,7 @@ struct PulseCodec {
 impl PulseCodec {
     fn new() -> Self {
         Self {
-            family: HistoryPayloadCodecFamily::new("loophole.pulse-fixture").unwrap(),
+            family: HistoryPayloadCodecFamily::new("pulse-fixture").unwrap(),
         }
     }
 }
@@ -121,7 +121,7 @@ impl HistoryNavigationTransaction<PulseFixtureMutation> for SuccessfulTransactio
 }
 
 #[test]
-fn loophole_snapshot_and_disposable_journal_keep_policy_and_durability_external() {
+fn pulse_shaped_snapshot_and_disposable_journal_keep_policy_and_durability_external() {
     let policy = PersistedPulsePolicy;
     let persistence = HistoryPersistence::without_structural_migration(
         PulseCodec::new(),

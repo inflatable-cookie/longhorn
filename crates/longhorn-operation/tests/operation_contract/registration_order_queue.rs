@@ -3,13 +3,13 @@ use longhorn_operation::OperationState;
 use super::support::*;
 
 #[test]
-fn loophole_queue_uses_registration_order_without_sharing_scheduler_policy() {
-    let mut catalogue = catalogue("authority:loophole", 11);
+fn registration_order_queue_uses_registration_order_without_sharing_scheduler_policy() {
+    let mut catalogue = catalogue("authority:queue", 11);
     catalogue
         .register(scoped_registration(
             &catalogue,
             "render:mix-a",
-            "loophole.render",
+            "example.render",
             "project:alpha",
             "Export Mix A",
             OperationState::Queued,
@@ -19,7 +19,7 @@ fn loophole_queue_uses_registration_order_without_sharing_scheduler_policy() {
         .register(scoped_registration(
             &catalogue,
             "render:mix-b",
-            "loophole.render",
+            "example.render",
             "project:alpha",
             "Export Mix B",
             OperationState::Queued,
