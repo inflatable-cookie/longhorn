@@ -35,7 +35,7 @@ export function assertCompatibleSettingsScopeSnapshot(
   identity(snapshot.scopeId);
   authority(snapshot.authority);
   array(snapshot.values).forEach((value) => {
-    const projection = record(value);
+    const projection = record(value, SETTINGS_FIELDS.SettingsValueProjection);
     identity(projection.entryId);
     optionalOpaque(projection.configured, maximumOpaqueValueBytes);
     opaque(projection.effective, maximumOpaqueValueBytes);
@@ -50,7 +50,7 @@ export function assertCompatibleSettingsScopeSnapshot(
       );
     }
     array(projection.sourceDiagnostics).forEach((value) => {
-      const diagnostic = record(value);
+      const diagnostic = record(value, SETTINGS_FIELDS.SettingsSourceDiagnostic);
       text(diagnostic.code, SETTINGS_HARD_MAXIMUM_TEXT_BYTES);
       optionalOpaque(diagnostic.detail, maximumOpaqueValueBytes);
     });

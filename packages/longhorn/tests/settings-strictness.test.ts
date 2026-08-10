@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { assertCompatibleSettingsLoadCommand } from "../src/settings/compatibility.ts";
 import { SETTINGS_FIELDS } from "../src/settings/generated/fields.ts";
+import fixture from "../../../fixtures/settings/protocol-v1.json";
 
 /**
  * Contract 010's Boundary Validation Target on `settings` — 619 lines of
@@ -37,5 +38,26 @@ describe("settings boundary strictness", () => {
 
   test("omits tagged unions rather than guessing their keys", () => {
     expect(SETTINGS_FIELDS.SettingsLoadOutcome).toBeUndefined();
+  });
+
+  /**
+   * `ts-rs` separates fields with a comma when it renders a type across lines
+   * and a semicolon when it renders one inline. The field-map generator split
+   * on commas only, so `SettingsOpaqueValue` — the one type in the repository
+   * emitted inline — came out as `["codecVersion"]` with `value` dropped.
+   *
+   * A short list is the dangerous direction: it rejects payloads that are
+   * valid, and it does so at the boundary rather than failing in the
+   * generator. Three fixture categories broke at once.
+   */
+  test("keeps both fields of an inline-rendered type", () => {
+    expect(SETTINGS_FIELDS.SettingsOpaqueValue).toEqual([
+      "codecVersion",
+      "value",
+    ]);
+    expect(Object.keys(fixture.recoveryStates[0]!.diagnostic).sort()).toEqual([
+      "codecVersion",
+      "value",
+    ]);
   });
 });

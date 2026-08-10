@@ -1,3 +1,4 @@
+import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   array,
   identity,
@@ -11,7 +12,7 @@ export function policy(
   maximum: number,
   effects: readonly string[],
 ): void {
-  const valueRecord = record(value);
+  const valueRecord = record(value, SETTINGS_FIELDS.SettingsPolicyProjection);
   identity(valueRecord.sourceId);
   known(valueRecord.effect, effects);
   optionalOpaque(valueRecord.constraints, maximum);
@@ -22,7 +23,7 @@ export function recovery(
   maximum: number,
   codes: readonly string[],
 ): void {
-  const valueRecord = record(value);
+  const valueRecord = record(value, SETTINGS_FIELDS.SettingsRecoveryState);
   known(valueRecord.code, codes);
   optionalOpaque(valueRecord.diagnostic, maximum);
 }
@@ -32,7 +33,7 @@ export function activation(
   states: readonly string[],
 ): void {
   array(value).forEach((value) => {
-    const requirement = record(value);
+    const requirement = record(value, SETTINGS_FIELDS.SettingsActivationRequirement);
     identity(requirement.targetId);
     known(requirement.state, states);
   });
@@ -43,7 +44,7 @@ export function rejection(
   maximum: number,
   codes: readonly string[],
 ): void {
-  const valueRecord = record(value);
+  const valueRecord = record(value, SETTINGS_FIELDS.SettingsRejection);
   known(valueRecord.code, codes);
   optionalOpaque(valueRecord.diagnostic, maximum);
 }

@@ -15,6 +15,25 @@ import {
 import { fixture } from "./support.ts";
 
 describe("generated settings protocol fixture", () => {
+  /**
+   * The fixture publishes `recoveryStates`, and nothing exercised them: every
+   * fixture snapshot carries `recovery: null`, so the recovery branch of
+   * `assertCompatibleSettingsScopeSnapshot` was never taken. Found by probing
+   * the generated field lists — a sentinel key injected into
+   * `SettingsRecoveryState` changed no test outcome, which meant that list was
+   * enforcing nothing.
+   */
+  test("validates the recovery states the fixture publishes", () => {
+    fixture.recoveryStates.forEach((state) => {
+      const snapshot = structuredClone(fixture.snapshots[0]!) as Record<
+        string,
+        unknown
+      >;
+      snapshot.recovery = state;
+      assertCompatibleSettingsScopeSnapshot(snapshot);
+    });
+  });
+
   test("validates every Rust-produced payload category", () => {
     assertCompatibleSettingsRegistrySnapshot(fixture.registry);
     fixture.snapshots.forEach((value) =>

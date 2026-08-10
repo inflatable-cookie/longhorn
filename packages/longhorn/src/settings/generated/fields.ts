@@ -5,7 +5,7 @@
 
 export const SETTINGS_FIELDS: Record<string, readonly string[]> = {
   "SettingsLimits": ["maximumModules", "maximumSections", "maximumPages", "maximumRenderers", "maximumScopes", "maximumApplyUnits", "maximumCapabilities", "maximumAnchorsPerPage", "maximumKeywordsPerPage", "maximumLabelBytes", "maximumKeywordBytes", "maximumOpaqueValueBytes"],
-  "SettingsOpaqueValue": ["codecVersion"],
+  "SettingsOpaqueValue": ["codecVersion", "value"],
   "SettingsModuleDefinition": ["id", "label", "order"],
   "SettingsSectionDefinition": ["id", "moduleId", "label", "order"],
   "SettingsRendererDefinition": ["id", "moduleId"],

@@ -7,6 +7,24 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] A `file:` install links files, so new files never reach consumers — 2026-08-10
+- Friction: `bun install` for a `file:` dependency builds real directories
+  containing one symlink per file, resolved at install time. Edits to an
+  existing file are live through the link, but a file *added* to Longhorn
+  afterwards has no link and simply does not exist in the consumer. Nucleus
+  failed to launch on `Failed to resolve import "../generated/fields.ts"`
+  while happily reading the edit that introduced that import — four of the
+  eight generated field maps resolved and four did not, split exactly on
+  whether they predated the install.
+- Impact: adding any file to `packages/longhorn/src` silently breaks every
+  consumer until it reinstalls, and the symptom points at the new file rather
+  than at the install. Vite's optimized-dep cache holds the bad resolution
+  too, so a plain reinstall is not always enough.
+- Possible fix: a note in the consumer-integration guide is the cheap half;
+  the real fix is either a consumer-side `postinstall` that relinks, or
+  publishing to the registry rather than depending by path.
+- Surface: consumer `package.json` `file:` deps, `packages/longhorn/src`.
+
 ### [ ] A public-readiness redaction disabled a release gate — 2026-08-10
 - Friction: `6a84574c docs: remove third-party identity so the repo can be made
   public` replaced a consumer's real path with the literal placeholder

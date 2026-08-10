@@ -46,14 +46,14 @@ export function assertCompatibleSettingsApplyCommand(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsApplyCommand {
-  const command = mutationCommand(value);
+  const command = mutationCommand(value, SETTINGS_FIELDS.SettingsApplyCommand);
   opaque(command.intent, maximumOpaqueValueBytes);
 }
 
 export function assertCompatibleSettingsResetCommand(
   value: unknown,
 ): asserts value is SettingsResetCommand {
-  const command = mutationCommand(value);
+  const command = mutationCommand(value, SETTINGS_FIELDS.SettingsResetCommand);
   array(command.entryIds).forEach(identity);
 }
 
@@ -90,7 +90,7 @@ export function assertCompatibleSettingsMutationResult(
     );
     receipt(result.receipt, maximumOpaqueValueBytes);
   } else if (result.status === "conflict") {
-    const conflict = record(result.conflict);
+    const conflict = record(result.conflict, SETTINGS_FIELDS.SettingsConflict);
     authority(conflict.expected);
     authority(conflict.actual);
     assertCompatibleSettingsScopeSnapshot(
@@ -115,7 +115,7 @@ export function assertCompatibleSettingsMutationResult(
 export function assertCompatibleSettingsRegistryChangedEvent(
   value: unknown,
 ): asserts value is SettingsRegistryChangedEvent {
-  const event = record(value);
+  const event = record(value, SETTINGS_FIELDS.SettingsRegistryChangedEvent);
   protocolVersion(event.protocolVersion);
   unsigned(event.registryGeneration, "invalid_revision");
 }
@@ -123,15 +123,18 @@ export function assertCompatibleSettingsRegistryChangedEvent(
 export function assertCompatibleSettingsScopeChangedEvent(
   value: unknown,
 ): asserts value is SettingsScopeChangedEvent {
-  const event = record(value);
+  const event = record(value, SETTINGS_FIELDS.SettingsScopeChangedEvent);
   protocolVersion(event.protocolVersion);
   unsigned(event.registryGeneration, "invalid_revision");
   identity(event.scopeId);
   unsigned(event.scopeRevision, "invalid_revision");
 }
 
-function mutationCommand(value: unknown): Record<string, unknown> {
-  const command = record(value);
+function mutationCommand(
+  value: unknown,
+  allowed?: readonly string[],
+): Record<string, unknown> {
+  const command = record(value, allowed);
   protocolVersion(command.protocolVersion);
   identity(command.requestId);
   identity(command.pageId);
@@ -142,7 +145,7 @@ function mutationCommand(value: unknown): Record<string, unknown> {
 }
 
 function receipt(value: unknown, maximum: number): void {
-  const receipt = record(value);
+  const receipt = record(value, SETTINGS_FIELDS.SettingsMutationReceipt);
   identity(receipt.requestId);
   identity(receipt.pageId);
   identity(receipt.applyUnitId);

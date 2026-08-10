@@ -1,3 +1,4 @@
+import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_MUTATION_TIMINGS,
   type SettingsRegistrySnapshot,
@@ -24,7 +25,7 @@ const DIGEST = /^[a-f0-9]{64}$/;
 export function assertCompatibleSettingsRegistrySnapshot(
   value: unknown,
 ): asserts value is SettingsRegistrySnapshot {
-  const registry = record(value);
+  const registry = record(value, SETTINGS_FIELDS.SettingsRegistrySnapshot);
   protocolVersion(registry.protocolVersion);
   unsigned(registry.generation, "invalid_revision");
   if (typeof registry.digest !== "string" || !DIGEST.test(registry.digest)) {
@@ -73,13 +74,13 @@ export function assertCompatibleSettingsRegistrySnapshot(
   ).forEach(identity);
 
   modules.forEach((value) => {
-    const module = record(value);
+    const module = record(value, SETTINGS_FIELDS.SettingsModuleDefinition);
     identity(module.id);
     text(module.label, limits.maximumLabelBytes);
     integer(module.order);
   });
   sections.forEach((value) => {
-    const section = record(value);
+    const section = record(value, SETTINGS_FIELDS.SettingsSectionDefinition);
     identity(section.id);
     identity(section.moduleId);
     text(section.label, limits.maximumLabelBytes);
@@ -89,7 +90,7 @@ export function assertCompatibleSettingsRegistrySnapshot(
   scopes.forEach(definition);
   capabilities.forEach(definition);
   applyUnits.forEach((value) => {
-    const unit = record(value);
+    const unit = record(value, SETTINGS_FIELDS.SettingsApplyUnitDefinition);
     identity(unit.id);
     identity(unit.moduleId);
     identity(unit.scopeId);
@@ -103,7 +104,7 @@ function validatePage(
   value: unknown,
   limits: Record<string, number>,
 ): void {
-  const page = record(value);
+  const page = record(value, SETTINGS_FIELDS.SettingsPageDefinition);
   identity(page.id);
   identity(page.moduleId);
   identity(page.sectionId);
@@ -120,7 +121,7 @@ function validatePage(
     limits.maximumAnchorsPerPage!,
     "invalid_registry",
   ).forEach((value) => {
-    const anchor = record(value);
+    const anchor = record(value, SETTINGS_FIELDS.SettingsAnchorDefinition);
     identity(anchor.id);
     if (anchor.label !== null) {
       text(anchor.label, limits.maximumLabelBytes!);
@@ -132,7 +133,7 @@ function validatePage(
     page.readableScopeIds,
     page.writableApplyUnitIds,
   );
-  const features = record(page.features);
+  const features = record(page.features, SETTINGS_FIELDS.SettingsPageFeatures);
   boolean(features.reset);
   boolean(features.import);
   boolean(features.backup);
@@ -141,7 +142,7 @@ function validatePage(
 }
 
 function settingsLimits(value: unknown): Record<string, number> {
-  const limits = record(value);
+  const limits = record(value, SETTINGS_FIELDS.SettingsLimits);
   const names = [
     "maximumModules",
     "maximumSections",

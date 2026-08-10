@@ -1,3 +1,4 @@
+import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   SETTINGS_PROTOCOL_VERSION,
@@ -18,7 +19,7 @@ export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: number =
 const OPAQUE_ID = /^[a-z0-9][a-z0-9._:/-]{0,254}$/;
 
 export function authority(value: unknown): void {
-  const valueRecord = record(value);
+  const valueRecord = record(value, SETTINGS_FIELDS.SettingsAuthorityExpectation);
   unsigned(valueRecord.registryGeneration, "invalid_revision");
   unsigned(valueRecord.scopeRevision, "invalid_revision");
   identity(valueRecord.authorityToken);
@@ -34,7 +35,7 @@ export function opaque(
   value: unknown,
   maximum: number,
 ): asserts value is SettingsOpaqueValue {
-  const envelope = record(value);
+  const envelope = record(value, SETTINGS_FIELDS.SettingsOpaqueValue);
   positive(envelope.codecVersion, "invalid_opaque_value");
   let encoded: string | undefined;
   try {

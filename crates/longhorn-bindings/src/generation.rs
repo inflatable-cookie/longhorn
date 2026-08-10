@@ -350,7 +350,12 @@ fn field_names(body: &str) -> Vec<String> {
                 depth -= 1;
                 current.push(character);
             }
-            ',' if depth == 0 => {
+            // `ts-rs` separates fields with a comma when it renders a type
+            // across lines and a semicolon when it renders one inline. Both
+            // appear in the same generated module, and splitting on only one
+            // silently yields a short field list — which then rejects valid
+            // payloads at the boundary rather than failing loudly here.
+            ',' | ';' if depth == 0 => {
                 if let Some(name) = leading_name(&current) {
                     fields.push(name);
                 }
