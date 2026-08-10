@@ -126,7 +126,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `scripts/verify-greenfield-card125.ts`,
   `fixtures/greenfield/card125/composition-matrix-v1.json`.
 
-### [ ] `bunx effigy` in CI would run a stranger's package — 2026-08-09
+### [x] `bunx effigy` in CI would run a stranger's package — 2026-08-09
 - Friction: Effigy is a local binary at `~/.local/bin/effigy`, not a
   devDependency. An unrelated package named `effigy` exists on npm at `0.0.2`,
   so a workflow step written as `bunx effigy qa` fetches and executes that
@@ -135,10 +135,16 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   existing `ci.yml` avoids it only because it inlines every command by hand,
   which is why the trap is not obvious — nothing documents that `bunx effigy`
   is unsafe.
-- Possible fix: note it in the Effigy adoption guidance, or publish a stub
-  under the real name. Until then every workflow inlines its selectors and
-  says why.
-- Surface: `.github/workflows/release.yml` in both repositories, Effigy docs.
+- Fixed 2026-08-09: `inflatable-cookie/setup-effigy@v1` already exists and
+  installs the real binary from an Effigy release; monkey has been using it
+  since 0.8.17. Both release workflows now use it and call `effigy ci` /
+  `effigy qa` directly, which also retires the hand-transcribed gate lists —
+  a copy of a selector can drift from the selector, and this session already
+  shipped one that pointed at a renamed proof.
+- Remaining: the trap itself is undocumented. Nothing tells a new workflow
+  author that `bunx effigy` resolves to someone else's package, and both
+  `ci.yml` files still inline their commands for the same original reason.
+- Surface: `.github/workflows/` in both repositories, Effigy adoption docs.
 
 ### [x] A new crate silently staleness-fails an unrelated gate — 2026-08-09
 - Friction: adding `crates/longhorn-gpui-windowing` turned `check:api-reference`

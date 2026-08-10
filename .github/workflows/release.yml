@@ -9,6 +9,12 @@ name: Release
 # compromised dependency to exfiltrate and nothing to rotate. Provenance
 # attestation comes with it rather than being a separate step.
 #
+# Gates run through Effigy via inflatable-cookie/setup-effigy, so this workflow
+# executes the same selectors as a local run rather than a hand-transcribed
+# copy of them that can drift. Do not reach for `bunx effigy` -- an unrelated
+# package of that name exists on npm, and fetching it inside a workflow holding
+# publish rights is the exact hazard trusted publishing exists to remove.
+#
 # Before the first run, each package needs its trusted publisher configured at
 # npmjs.com -> package -> Settings -> Trusted Publisher, naming this repository
 # and `release.yml`. Until that exists the publish step fails closed.
@@ -55,6 +61,10 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: inflatable-cookie/setup-effigy@v1
+        with:
+          version: '0.9.1'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -69,46 +79,13 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # Publishing a package whose generated protocol has drifted from the Rust
-      # authority would ship a lie, so this runs before anything is packed
-      # rather than as part of the general gate.
-      - name: Generated bindings are current
-        run: |
-          for domain in bridge commands config history history-tree layout \
-            native-content notifications operation settings surfaces \
-            surface-transfer transfer; do
-            cargo run -q -p longhorn-bindings -- "$domain" check
-          done
-
-      # Inlined rather than `effigy qa`. Effigy is a local binary, not a
-      # devDependency, and `effigy` on npm is an unrelated package -- calling it
-      # through bunx in a release workflow would fetch and execute a stranger's
-      # code, which is the exact class of problem trusted publishing exists to
-      # avoid. ci.yml also runs on this tag and covers the full suite; these are
-      # the checks that must hold before anything is packed.
-      - name: Rust gate
-        run: |
-          set -euo pipefail
-          # Members-only; see ci.yml for why `--all` is wrong here.
-          sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'
-          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-          cargo test --workspace --locked
-
-      - name: TypeScript gate
-        run: |
-          set -euo pipefail
-          for config in packages/*/tsconfig.json; do
-            bun x tsc -p "$config"
-          done
-          bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json --threshold error
-          bash scripts/test-packages.sh
-          bun x vitest run --config packages/longhorn-poodle-svelte/vitest.config.ts
+      # The full suite, including check:bindings -- publishing a package whose
+      # generated protocol has drifted from the Rust authority would ship a lie.
+      - name: Full QA gate
+        run: effigy qa
 
       - name: Release gates
-        run: |
-          set -euo pipefail
-          bash scripts/check-release-floor.sh
-          bash scripts/verify-source-consumer.sh
+        run: effigy release:gates
 
       # Contract 012 and the lockstep decision of 2026-08-09: every Rust crate
       # and every TypeScript package across both repositories carries one
