@@ -92,10 +92,9 @@ grained expected-revision check, not a second document.
 
 ## Crate Structure — One Crate, And Two Fewer
 
-An earlier revision of this card split the work: `longhorn-surfaces` would take
-everything stateful and `longhorn-layout` would keep the definition registry,
-ratios, limits and state primitives. That boundary was invented, and it earns
-nothing.
+An earlier revision of this card split the work: one crate would take the state
+and the other would keep the definition registry, ratios, limits and state
+primitives. That boundary was invented, and it earns nothing.
 
 A Surface *is* a layout. Regions, panels and sizing are what a Surface is, not
 a separate domain it references. Checked rather than asserted:
@@ -111,24 +110,26 @@ a separate domain it references. Checked rather than asserted:
   authoritative layout documents" and `longhorn-surfaces-config` is the same
   sentence for Surface documents. One document, one config crate.
 
-So the two pairs collapse into one crate each. **`longhorn-layout` and
-`longhorn-layout-config` are the survivors**; `longhorn-surfaces` and
-`longhorn-surfaces-config` are absorbed into them and cease to exist. The crate
-names the subject area and `Surface` names the entity within it, so
-`longhorn-layout` exporting `SurfaceDocument` and `SurfaceRecord` reads
-correctly. The change removes two crates rather than redistributing code
-between them.
+**`longhorn-surfaces` and `longhorn-surfaces-config` are the survivors.**
+`longhorn-layout` and `longhorn-layout-config` are absorbed into them and cease
+to exist.
 
-One wrinkle to accept knowingly: the merged crate also holds
-`ParticipatingWindow`, host preferences and the active-Surface selection, which
-are hosting policy rather than layout. That content exists under either name.
-`longhorn-surface-transfer` and `longhorn-surface-windowing` keep their names
-and take `SurfaceDocument` from `longhorn-layout`.
+The naming follows from what is left in the crate. Once containers are gone,
+everything it holds serves Surfaces: the records and their regions, panels and
+sizing; the schema registry that describes them; and the hosting policy —
+`ParticipatingWindow`, host preferences, the active-Surface selection — which is
+not layout under any reading. A crate called `longhorn-layout` would describe
+its largest module rather than its subject.
 
-That is also *less* risky than the split. A wholesale absorption is mechanical:
-every module moves, and no judgement is needed about where each one belongs.
-Module boundaries inside the surviving crate can still say where layout
-vocabulary ends, without a Cargo manifest to enforce it.
+The change removes two crates rather than redistributing code between them,
+and a wholesale absorption is *less* risky than the split it replaces: every
+module moves, and no judgement is needed about where each one belongs. Module
+boundaries inside the surviving crate can still say where layout vocabulary
+ends, without a Cargo manifest to enforce it.
+
+`longhorn-surface-transfer` and `longhorn-surface-windowing` keep their names.
+`longhorn-transfer` keeps its own, since moving panels between regions is a
+different protocol from moving a Surface between windows.
 
 **There is still no compiling intermediate.** The absorption, the document
 merge and the `LayoutContainerId` retirement are one atomic change: the moment
@@ -154,8 +155,8 @@ unlabelled.
 1. Move `schema_id`, `regions` and `sizing_slots` onto `SurfaceRecord`; move
    `panel_instances` onto `SurfaceDocument`. Delete `LayoutContainer`.
 2. Retarget the layout mutation commands and their rejections onto `SurfaceId`.
-3. Absorb `longhorn-surfaces` into `longhorn-layout` and
-   `longhorn-surfaces-config` into `longhorn-layout-config`; drop
+3. Absorb `longhorn-layout` into `longhorn-surfaces` and
+   `longhorn-layout-config` into `longhorn-surfaces-config`; drop
    `LayoutContainerInventory` and the container rejection codes.
 4. Move the Card 177 container invariant and the panel-drop guard into the
    engine as local checks, and delete contract 002's stated ceiling.
@@ -189,7 +190,7 @@ and the two mutation engines.
 ## Acceptance Criteria
 
 - no `LayoutContainerId` in any crate, package, fixture or example
-- `longhorn-surfaces` and `longhorn-surfaces-config` no longer exist
+- `longhorn-layout` and `longhorn-layout-config` no longer exist
 - a Surface carries its own schema, regions and sizing slots
 - the no-Surface conformance shape is one unlabelled Surface and still passes
 - a focused Surface's single-panel invariant is enforced by the engine
