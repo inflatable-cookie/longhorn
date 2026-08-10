@@ -68,13 +68,19 @@ commit, and rename the surface.
 
 ## Next Task
 
-Step 4. `surfaces`, `transfer` and `surface-transfer` are fully migrated;
-`config` and `settings` are partially — their top-level entry points are
-strict, their nested fragments are not.
+Step 4 is done at the top level. Every package that owns a boundary now
+rejects an unknown and a missing field there, and every field list is
+generated from the Rust structs rather than written by hand.
 
-`settings` is migrated on the same partial terms as `config`. `layout` has no
-object validation at all, so it needs a `record` before it needs a field list.
-`history`, `history-tree` and `commands` inline theirs.
+`surfaces`, `transfer`, `surface-transfer` and `commands` are fully migrated.
+`config` and `settings` are strict at their entry points and lenient at their
+nested fragments — that gap is what remains of step 4. `history` and
+`history-tree` were already strict; they moved from hand-written lists to
+generated ones. `layout` left scope: it has no client and receives no IPC
+payload.
 
 Tagged unions stay on the lenient path until a per-variant field map exists —
 their allowed keys depend on the discriminant, so one flat list is wrong.
+
+Step 5 next: delete each package's hand-written validators where the generated
+map has replaced them.
