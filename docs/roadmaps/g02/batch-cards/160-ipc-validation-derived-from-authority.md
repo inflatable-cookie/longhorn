@@ -234,6 +234,60 @@ become stricter, and a consumer sending an undeclared field starts failing.
 Every consumer is on a `file:` install, so it surfaces during a coordinated
 change rather than in the field.
 
+## Step 4 Design Notes — 2026-08-10
+
+Read `surfaces` (129 lines, the smallest of the nine) before writing a
+generator, and the shape of the work is narrower than "emit structural
+validators" suggests.
+
+### What the nine actually lack is a field list, not a validator
+
+`surfaces` already has the right skeleton: an incompatibility error type, a
+protocol-version assert, kind checks against generated `_KINDS` arrays, and a
+`record()` helper. What `record()` does not do is take the allowed keys —
+bridge's takes `(value, required, optional)` and rejects anything else, and
+that difference is the whole of Finding 1.
+
+So the minimum that satisfies the contract target is **emit the field lists**,
+not emit whole parsers:
+
+```ts
+export const SURFACE_FIELDS = {
+  SurfaceSnapshot: ["protocol_version", ...],
+  ...
+} as const;
+```
+
+Derivable from the same `ts-rs` declarations the generator already renders,
+and it makes every existing `record()` call strict by passing one argument.
+That is a much smaller generator than a parser-combinator emitter, and it
+closes the asymmetry the contract names.
+
+Whether to go further — generating the parsers themselves, so the hand-written
+skeletons go too — is a second decision. The field-list step is worth taking
+first because it is independently shippable and because step 5's
+package-by-package deletion is safer once every package is already strict.
+
+### Two things noticed in passing
+
+`surfaces` throws `"unknown_response_status"` when `record()` is handed a
+non-object, because its incompatibility union has no `invalid_object` code.
+The error is wrong and cheap to fix; every one of the nine should be checked
+for the same reuse.
+
+The order matters for step 5. A package made strict by field lists still
+carries its hand-written skeleton, and the card's own rule is that carrying
+both generated and hand-written validators is worse than either. The field
+list is a *change to* the hand-written validator, not a second one beside it,
+so it does not trip that rule — worth stating, because it looks like it might.
+
+### Not started
+
+The generator itself. This is a large, uniform migration across thirteen
+packages and roughly 5,330 lines, and it wants one package at a time with full
+attention rather than the tail of a long session. The design above is the
+starting point; nothing is half-built.
+
 ## Scope
 
 - an agreed target for what boundary validation checks, applied uniformly

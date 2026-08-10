@@ -68,5 +68,10 @@ commit, and rename the surface.
 
 ## Next Task
 
-Card 160 step 4: emit structural validators from the same authority as the
-types. The target is decided, so this no longer waits on anything.
+Card 160 step 4, starting from the design notes recorded there on 2026-08-10:
+emit per-domain **field lists** from the authority and make every `record()`
+strict, rather than emitting whole parsers first. Smaller, independently
+shippable, and it closes the asymmetry contract 010 now names.
+
+The generator is not started. Thirteen packages and ~5,330 lines is a uniform
+migration that wants one package at a time.
