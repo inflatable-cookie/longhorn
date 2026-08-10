@@ -1,6 +1,8 @@
-use longhorn_core::{DomainId, LayoutContainerId, WindowId};
-use longhorn_layout_config::{LayoutConfigMutationError, LayoutMigration, RegisteredLayoutDomain};
+use longhorn_core::{DomainId, SurfaceId, WindowId};
 use longhorn_surfaces::LayoutMutationRejectionCode;
+use longhorn_surfaces_config::{
+    LayoutConfigMutationError, LayoutMigration, RegisteredLayoutDomain,
+};
 
 use crate::panel::{PanelHostBinding, PanelTransferError, PanelTransferErrorCode};
 
@@ -32,11 +34,11 @@ pub(super) fn require_binding(
     binding: &PanelHostBinding,
     window_id: &WindowId,
     document_id: &DomainId,
-    container_id: &LayoutContainerId,
+    surface_id: &SurfaceId,
 ) -> Result<(), PanelTransferError> {
     if binding.window_id() != window_id
         || binding.document_id() != document_id
-        || binding.container_id() != container_id
+        || binding.surface_id() != surface_id
     {
         return Err(consumed(
             PanelTransferErrorCode::StaleHostBinding,
@@ -54,7 +56,7 @@ pub(super) fn map_mutation_error(error: LayoutConfigMutationError) -> PanelTrans
         LayoutConfigMutationError::Rejected(rejection) => {
             let code = match rejection.code() {
                 LayoutMutationRejectionCode::StaleRevision => {
-                    PanelTransferErrorCode::StaleLayoutRevision
+                    PanelTransferErrorCode::StaleSurfaceRevision
                 }
                 LayoutMutationRejectionCode::UnknownPanelInstance => {
                     PanelTransferErrorCode::UnknownPanel
@@ -62,7 +64,7 @@ pub(super) fn map_mutation_error(error: LayoutConfigMutationError) -> PanelTrans
                 LayoutMutationRejectionCode::PanelNotMovable => {
                     PanelTransferErrorCode::PanelNotMovable
                 }
-                LayoutMutationRejectionCode::UnknownContainer
+                LayoutMutationRejectionCode::UnknownSurface
                 | LayoutMutationRejectionCode::UnknownRegion => {
                     PanelTransferErrorCode::TargetChanged
                 }

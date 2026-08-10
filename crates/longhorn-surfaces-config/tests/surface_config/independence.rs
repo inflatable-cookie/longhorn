@@ -3,19 +3,17 @@ use longhorn_config::{
     StorageClass,
 };
 use longhorn_core::{DomainId, LayoutSchemaId, RegionFamilyId, RegionId, SchemaVersion};
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use longhorn_surfaces::EmptyWindowPolicy;
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
-    LayoutSchemaDefinition, RegionDefinition, RegionState,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
+    RegionDefinition, RegionState, SurfaceDocument, SurfaceRecord,
 };
 use longhorn_surfaces_config::publish_surface_mutation;
+use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::support::{
-    Fixture, container_id, document, domain, options, rename_request, surface_id,
-};
+use crate::support::{Fixture, document, domain, options, rename_request, surface_id};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -111,7 +109,7 @@ fn surface_layout_and_window_domains_publish_independently() {
         &store,
         &surfaces,
         options(),
-        &layout_document(),
+        &layout_registry(),
         EmptyWindowPolicy::Allow,
         &rename_request(7, "Independent"),
     )
@@ -151,7 +149,7 @@ fn layout_domain() -> RegisteredLayoutDomain<NoLayoutMigration> {
             Some(DomainFilePath::new("workspace/layout.json").unwrap()),
         )
         .unwrap(),
-        layout_document(),
+        seeded_document(),
         layout_registry(),
         NoLayoutMigration,
         LayoutBackupPolicy::Include,
@@ -178,15 +176,16 @@ fn layout_registry() -> LayoutDefinitionRegistry {
     .unwrap()
 }
 
-fn layout_document() -> LayoutDocument {
-    LayoutDocument::new(
-        longhorn_core::LayoutRevision::new(3),
+fn seeded_document() -> SurfaceDocument {
+    SurfaceDocument::new(
+        longhorn_core::SurfaceRevision::new(3),
         ["container:a", "container:b", "container:c"]
             .into_iter()
             .map(|id| {
-                LayoutContainer::new(
-                    container_id(id),
+                SurfaceRecord::new(
+                    surface_id(id),
                     LayoutSchemaId::new("schema:test").unwrap(),
+                    None,
                     [RegionState::new(
                         RegionId::new("region:main").unwrap(),
                         [],
@@ -194,8 +193,10 @@ fn layout_document() -> LayoutDocument {
                         None,
                     )],
                     [],
+                    [],
                 )
             }),
+        [],
         [],
     )
 }

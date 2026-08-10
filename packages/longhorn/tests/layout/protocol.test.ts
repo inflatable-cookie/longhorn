@@ -94,9 +94,9 @@ describe("Rust layout protocol fixture", () => {
     const definitions = record(fixture.definitions);
     const schema = record(array(definitions.schemas)[0]);
     const snapshot = record(array(fixture.snapshots)[0]);
-    const container = record(array(snapshot.containers)[0]);
+    const surface = record(array(snapshot.surfaces)[0]);
     const regions = array(schema.regions).map(record);
-    const states = array(container.regions).map(record);
+    const states = array(surface.regions).map(record);
 
     for (const definition of regions) {
       const state = states.find(

@@ -1,11 +1,11 @@
 use longhorn_core::{
-    LayoutContainerId, LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId,
-    RegionFamilyId, RegionId, SizingSlotId, WindowId,
+    LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
+    SizingSlotId, SurfaceId, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutContainer, LayoutDocument, LayoutLimits, LayoutRatio,
-    LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy, PlacementSelector,
-    RegionDefinition, RegionState, SizingSlotDefinition, SizingSlotState,
+    EmptyRegionPolicy, LayoutLimits, LayoutRatio, LayoutSchemaDefinition, PanelDefinition,
+    PanelInstancePolicy, PlacementSelector, RegionDefinition, RegionState, SizingSlotDefinition,
+    SizingSlotState, SurfaceDocument, SurfaceRecord,
 };
 use serde::Serialize;
 
@@ -47,11 +47,10 @@ pub(super) struct ShapeSpec {
 pub(super) enum HostBinding {
     Surface {
         surface_id: FixtureSurfaceId,
-        container_id: LayoutContainerId,
     },
     Window {
         window_id: WindowId,
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
     },
 }
 
@@ -104,12 +103,13 @@ pub(super) fn panels(spec: &ShapeSpec) -> Vec<PanelDefinition> {
     ]
 }
 
-pub(super) fn initial_document(spec: &ShapeSpec) -> LayoutDocument {
-    LayoutDocument::new(
-        longhorn_core::LayoutRevision::INITIAL,
-        [LayoutContainer::new(
-            container_id("container:primary"),
+pub(super) fn initial_document(spec: &ShapeSpec) -> SurfaceDocument {
+    SurfaceDocument::new(
+        longhorn_core::SurfaceRevision::INITIAL,
+        [SurfaceRecord::new(
+            surface_id("surface:primary"),
             schema_id(spec.schema_id),
+            None,
             spec.regions.iter().map(|region| {
                 RegionState::new(
                     region_id(region.id),
@@ -121,7 +121,9 @@ pub(super) fn initial_document(spec: &ShapeSpec) -> LayoutDocument {
             spec.sizing_slots
                 .iter()
                 .map(|slot| SizingSlotState::new(slot_id(slot.id), ratio(slot.default))),
+            [],
         )],
+        [],
         [],
     )
 }
@@ -161,7 +163,6 @@ pub(super) fn surface_bound_spec() -> (&'static str, ShapeSpec) {
             singleton_policy: PanelInstancePolicy::Singleton,
             host_binding: HostBinding::Surface {
                 surface_id: FixtureSurfaceId("surface:mix".into()),
-                container_id: container_id("container:primary"),
             },
         },
     )
@@ -196,7 +197,7 @@ pub(super) fn window_bound_spec() -> (&'static str, ShapeSpec) {
             singleton_policy: PanelInstancePolicy::OnePerContainer,
             host_binding: HostBinding::Window {
                 window_id: WindowId::new("window:primary").expect("fixture window id is valid"),
-                container_id: container_id("container:primary"),
+                surface_id: surface_id("surface:primary"),
             },
         },
     )
@@ -233,8 +234,8 @@ pub(super) fn schema_id(value: &str) -> LayoutSchemaId {
     LayoutSchemaId::new(value).expect("fixture schema id is valid")
 }
 
-pub(super) fn container_id(value: &str) -> LayoutContainerId {
-    LayoutContainerId::new(value).expect("fixture container id is valid")
+pub(super) fn surface_id(value: &str) -> SurfaceId {
+    SurfaceId::new(value).expect("fixture container id is valid")
 }
 
 pub(super) fn region_id(value: &str) -> RegionId {

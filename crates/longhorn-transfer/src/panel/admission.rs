@@ -1,7 +1,7 @@
 use longhorn_config::{ConfigStore, LoadOutcome};
-use longhorn_core::{LayoutContainerId, PanelInstanceId, RegionId, TransferSubjectId};
-use longhorn_layout_config::{LayoutMigration, RegisteredLayoutDomain};
-use longhorn_surfaces::LayoutDocument;
+use longhorn_core::{PanelInstanceId, RegionId, SurfaceId, TransferSubjectId};
+use longhorn_surfaces::SurfaceDocument;
+use longhorn_surfaces_config::{LayoutMigration, RegisteredLayoutDomain};
 
 use crate::{
     DragSessionIdAllocator, MonotonicClock, SessionCreationReceipt, TransferCoordinator,
@@ -53,7 +53,7 @@ where
             ),
         ));
     }
-    let (container_id, region_id) = panel_placement(&document, request.panel_instance_id())
+    let (surface_id, region_id) = panel_placement(&document, request.panel_instance_id())
         .ok_or_else(|| {
             PanelTransferError::new(
                 PanelTransferErrorCode::SourceChanged,
@@ -63,15 +63,15 @@ where
                 ),
             )
         })?;
-    if &container_id != binding.container_id() {
+    if &surface_id != binding.surface_id() {
         return Err(PanelTransferError::new(
             PanelTransferErrorCode::StaleHostBinding,
             format!(
                 "binding {} hosts {}, but panel {} occupies {}",
                 binding.id(),
-                binding.container_id(),
+                binding.surface_id(),
                 request.panel_instance_id(),
-                container_id
+                surface_id
             ),
         ));
     }
@@ -86,7 +86,7 @@ where
         host_binding_id: request.host_binding_id().clone(),
         document_id: domain.descriptor().id().clone(),
         revision: TransferRevision::new(document.revision().get()),
-        container_id,
+        surface_id,
         region_id,
     };
     coordinator
@@ -101,7 +101,7 @@ where
 pub(crate) fn load_layout<M>(
     store: &ConfigStore,
     domain: &RegisteredLayoutDomain<M>,
-) -> Result<LayoutDocument, PanelTransferError>
+) -> Result<SurfaceDocument, PanelTransferError>
 where
     M: LayoutMigration,
 {
@@ -123,10 +123,10 @@ where
 }
 
 pub(crate) fn panel_placement(
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
     panel_instance_id: &PanelInstanceId,
-) -> Option<(LayoutContainerId, RegionId)> {
-    document.containers().iter().find_map(|container| {
+) -> Option<(SurfaceId, RegionId)> {
+    document.surfaces().iter().find_map(|container| {
         container.regions().iter().find_map(|region| {
             region
                 .panel_instance_ids()

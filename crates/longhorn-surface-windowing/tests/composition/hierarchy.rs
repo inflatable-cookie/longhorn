@@ -1,12 +1,14 @@
-use longhorn_core::{LayoutRevision, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionId};
+use longhorn_core::{
+    LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionId, SurfaceRevision,
+};
 use longhorn_surface_windowing::compose_surface_window_plan;
-use longhorn_surfaces::{LayoutContainer, LayoutDocument, PanelInstance, RegionState};
+use longhorn_surfaces::{PanelInstance, RegionState, SurfaceDocument, SurfaceRecord};
 use longhorn_windowing::WindowRole;
 
-use crate::support::{container_id, display, document, inventory, limits, resolve, surface_id};
+use crate::support::{display, document, inventory, limits, resolve, surface_id};
 
 #[test]
-fn loophole_fixture_resolves_window_surface_container_region_and_panel() {
+fn loophole_fixture_resolves_window_surface_region_and_panel() {
     let displays = inventory(&[
         display("display:main", 0, 1600, true),
         display("display:right", 1600, 1200, false),
@@ -34,11 +36,9 @@ fn loophole_fixture_resolves_window_surface_container_region_and_panel() {
     .unwrap();
     let preferred = &plan.windows()[1];
     let resolved_surface = &preferred.surfaces().surfaces()[0];
-    let layout = layout_document();
-    let container = layout
-        .container(resolved_surface.layout_container_id())
-        .unwrap();
-    let region = &container.regions()[0];
+    let layout = registry();
+    let surface = layout.surface(resolved_surface.surface_id()).unwrap();
+    let region = &surface.regions()[0];
     let panel = layout
         .panel_instance(&region.panel_instance_ids()[0])
         .unwrap();
@@ -47,19 +47,23 @@ fn loophole_fixture_resolves_window_surface_container_region_and_panel() {
         preferred.surfaces().window_id().as_str(),
         "window:preferred"
     );
+    // Card 179: the chain is window -> Surface -> region -> panel. The
+    // container link that used to sit between Surface and region is gone,
+    // because the Surface is the container.
     assert_eq!(resolved_surface.surface_id().as_str(), "surface:mix");
-    assert_eq!(container.id().as_str(), "container:mix");
+    assert_eq!(surface.id().as_str(), "surface:mix");
     assert_eq!(region.region_id().as_str(), "region:main");
     assert_eq!(panel.id().as_str(), "panel-instance:mix");
 }
 
-fn layout_document() -> LayoutDocument {
+fn registry() -> SurfaceDocument {
     let panel_id = PanelInstanceId::new("panel-instance:mix").unwrap();
-    LayoutDocument::new(
-        LayoutRevision::new(8),
-        [LayoutContainer::new(
-            container_id("container:mix"),
+    SurfaceDocument::new(
+        SurfaceRevision::new(8),
+        [SurfaceRecord::new(
+            surface_id("surface:mix"),
             LayoutSchemaId::new("schema:loophole").unwrap(),
+            None,
             [RegionState::new(
                 RegionId::new("region:main").unwrap(),
                 [panel_id.clone()],
@@ -67,10 +71,12 @@ fn layout_document() -> LayoutDocument {
                 None,
             )],
             [],
+            [],
         )],
         [PanelInstance::new(
             panel_id,
             PanelDefinitionId::new("panel:mix").unwrap(),
         )],
+        [],
     )
 }

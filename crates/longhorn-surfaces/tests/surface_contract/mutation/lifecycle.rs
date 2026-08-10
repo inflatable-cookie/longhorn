@@ -5,8 +5,7 @@ use longhorn_surfaces::{
 };
 
 use crate::support::{
-    container_id, host, layout_containers, limits, loophole_document, request_id, surface_id,
-    window_id,
+    host, limits, loophole_document, registry, request_id, schema_id, surface_id, window_id,
 };
 
 fn apply(
@@ -15,7 +14,7 @@ fn apply(
     suffix: &str,
     command: SurfaceMutationCommand,
 ) -> longhorn_surfaces::SurfaceMutationReceipt {
-    SurfaceMutationEngine::new(limits(), &layout_containers(), EmptyWindowPolicy::Allow)
+    SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Allow)
         .apply(
             document,
             &SurfaceMutationRequest::new(
@@ -36,7 +35,7 @@ fn create_duplicate_rename_activate_and_reorder_commit_once() {
         "create",
         SurfaceMutationCommand::CreateSurface {
             surface_id: surface_id("surface:new"),
-            layout_container_id: container_id("container:new"),
+            schema_id: schema_id(),
             label: Some("New".to_owned()),
             host_preferences: vec![host("window:main", 2), host("window:tools", 3)],
         },
@@ -52,7 +51,6 @@ fn create_duplicate_rename_activate_and_reorder_commit_once() {
         SurfaceMutationCommand::DuplicateSurface {
             source_surface_id: surface_id("surface:mix"),
             surface_id: surface_id("surface:mix-copy"),
-            layout_container_id: container_id("container:duplicate"),
         },
     );
     let copy = duplicated
@@ -60,10 +58,7 @@ fn create_duplicate_rename_activate_and_reorder_commit_once() {
         .surface(&surface_id("surface:mix-copy"))
         .unwrap();
     assert_eq!(copy.label(), Some("Mix"));
-    assert_eq!(
-        copy.layout_container_id(),
-        &container_id("container:duplicate")
-    );
+    assert_eq!(copy.schema_id(), &schema_id());
     assert_eq!(
         copy.host_preferences()
             .iter()
@@ -71,7 +66,6 @@ fn create_duplicate_rename_activate_and_reorder_commit_once() {
             .collect::<Vec<_>>(),
         [1, 2]
     );
-    assert!(layout_containers().contains(&container_id("container:duplicate")));
 
     let renamed = apply(
         duplicated.authoritative_document(),

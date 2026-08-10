@@ -125,8 +125,8 @@ fn proof_bootstrap(state: State<'_, ProofState>) -> Result<Value, String> {
             "domain_id": LAYOUT_DOMAIN_ID,
             "revision": layout.revision().get(),
             "source_panel_id": SOURCE_PANEL_ID,
-            "source_container_id": SOURCE_CONTAINER_ID,
-            "target_container_id": TARGET_CONTAINER_ID,
+            "source_surface_id": SOURCE_CONTAINER_ID,
+            "target_surface_id": TARGET_CONTAINER_ID,
             "target_region_id": MAIN_REGION_ID,
             "source_binding_id": SOURCE_BINDING_ID,
             "target_binding_id": TARGET_BINDING_ID,
@@ -329,8 +329,8 @@ fn surface_closeout(
                 .expect("proof Surface id is valid"),
         )
         .ok_or_else(|| "second Surface disappeared".to_string())?;
-    let binding_retained = source.layout_container_id().as_str() == SOURCE_CONTAINER_ID
-        && second.layout_container_id().as_str() == TARGET_CONTAINER_ID;
+    let binding_retained =
+        source.id().as_str() == SOURCE_CONTAINER_ID && second.id().as_str() == TARGET_CONTAINER_ID;
     let provisioned_window = app
         .get_webview_window(surface::PROVISIONED_WINDOW_ID)
         .ok_or_else(|| "provisioned Tauri window disappeared before closeout".to_string())?;

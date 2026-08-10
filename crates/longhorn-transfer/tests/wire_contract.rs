@@ -1,7 +1,7 @@
 //! Renderer-safe transfer wire contract checks.
 
 use longhorn_core::{
-    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, LayoutContainerId, RegionId,
+    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, RegionId, SurfaceId,
     TransferClientId, TransferHostBindingId, TransferRequestId,
 };
 use longhorn_transfer::{
@@ -29,7 +29,7 @@ fn lease_wire_shape_cannot_supply_window_clock_or_screen_authority() {
                 host_binding_id: TransferHostBindingId::new("binding:target").unwrap(),
                 document_id: DomainId::new("app.layout").unwrap(),
                 revision: TransferRevision::new(6),
-                container_id: LayoutContainerId::new("container:target").unwrap(),
+                surface_id: SurfaceId::new("surface:target").unwrap(),
                 region_id: RegionId::new("center").unwrap(),
             },
         )],

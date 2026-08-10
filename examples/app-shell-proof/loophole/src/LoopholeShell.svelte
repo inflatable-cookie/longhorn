@@ -9,7 +9,9 @@
     createThemeController,
     type DockEdge,
   } from "@inflatable-cookie/poodle-svelte";
-  import type { LayoutDocument } from "@inflatable-cookie/longhorn/layout";
+  import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
   import {
     LayoutDockRegion,
     createPoodleLayoutBinding,
@@ -33,7 +35,7 @@
     surfaceState: SurfaceState;
     transferState: TransferState;
     surfaceTransferState: SurfaceTransferState;
-    loadLayoutAuthority: () => Promise<LayoutDocument>;
+    loadLayoutAuthority: () => Promise<SurfaceDocument>;
     reveal: () => Promise<void>;
   }
 
@@ -204,11 +206,11 @@
             data-surface-transfer-targets={SURFACE_TRANSFER_TARGET_KINDS.join(",")}
           >
             <header><h1>{surface.label ?? surface.id}</h1></header>
-            <div data-layout-container={surface.layout_container_id}>
+            <div data-layout-container={surface.id}>
               {#each schema.regions as region, index (region.id)}
                 <LayoutDockRegion
                   {binding}
-                  containerId={surface.layout_container_id}
+                  containerId={surface.id}
                   regionId={region.id}
                   edge={edges[index]}
                   {resolvePanel}

@@ -1,8 +1,6 @@
 use std::{cell::Cell, collections::VecDeque};
 
-use longhorn_core::{
-    DomainId, LayoutContainerId, RegionId, ScreenPoint, ScreenRect, ScreenSize, WindowId,
-};
+use longhorn_core::{DomainId, RegionId, ScreenPoint, ScreenRect, ScreenSize, SurfaceId, WindowId};
 use longhorn_transfer::{
     ClientEpoch, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId,
     InsertionPosition, LeaseGeneration, LeasePublication, LiveTransferWindow, MonotonicClock,
@@ -122,7 +120,7 @@ pub fn panel_source(window_id: &str, client_id: &str, epoch: u64) -> TransferSou
         host_binding_id: TransferHostBindingId::new("host:source").unwrap(),
         document_id: DomainId::new("layout.workspace").unwrap(),
         revision: TransferRevision::new(7),
-        container_id: LayoutContainerId::new("container:source").unwrap(),
+        surface_id: SurfaceId::new("surface:source").unwrap(),
         region_id: RegionId::new("region:tools").unwrap(),
     }
 }
@@ -149,7 +147,7 @@ pub fn panel_zone(id: &str, bounds: ScreenRect, insertion: Option<u32>) -> DropZ
             host_binding_id: TransferHostBindingId::new("host:target").unwrap(),
             document_id: DomainId::new("layout.workspace").unwrap(),
             revision: TransferRevision::new(9),
-            container_id: LayoutContainerId::new("container:target").unwrap(),
+            surface_id: SurfaceId::new("surface:target").unwrap(),
             region_id: RegionId::new("region:main").unwrap(),
         },
     )

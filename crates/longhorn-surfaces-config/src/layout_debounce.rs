@@ -2,11 +2,11 @@ use std::{error::Error, fmt};
 
 use longhorn_config::{DebounceStrategy, DomainIssue};
 use longhorn_surfaces::{
-    LayoutDefinitionRegistry, LayoutDocument, LayoutMutationCommand, LayoutMutationEngine,
-    LayoutMutationRequest,
+    LayoutDefinitionRegistry, LayoutMutationCommand, LayoutMutationEngine, LayoutMutationRequest,
+    SurfaceDocument,
 };
 
-use crate::mutation::rejection_issue;
+use crate::layout_mutation::rejection_issue;
 
 /// One or more ordered sizing/collapse requests staged for a single flush.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -63,7 +63,7 @@ impl<'registry> LayoutPresentationStrategy<'registry> {
 
 impl<D> DebounceStrategy<D> for LayoutPresentationStrategy<'_>
 where
-    D: longhorn_config::ConfigDomain<Value = LayoutDocument>,
+    D: longhorn_config::ConfigDomain<Value = SurfaceDocument>,
 {
     type Intent = LayoutPresentationIntent;
 

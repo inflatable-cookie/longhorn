@@ -1,3 +1,4 @@
+use longhorn_core::LayoutSchemaId;
 use longhorn_core::SurfaceRevision;
 use longhorn_surfaces::{
     EmptyWindowPolicy, ParticipatingWindow, SurfaceDocument, SurfaceMutationCommand,
@@ -5,8 +6,8 @@ use longhorn_surfaces::{
 };
 
 use crate::support::{
-    container_id, host, layout_containers, limits, loophole_document, request_id, surface,
-    surface_id, window_id,
+    host, limits, loophole_document, registry, request_id, schema_id, surface, surface_id,
+    window_id,
 };
 
 fn reject(
@@ -14,17 +15,16 @@ fn reject(
     expected: u64,
     command: SurfaceMutationCommand,
 ) -> SurfaceMutationRejectionCode {
-    let rejection =
-        SurfaceMutationEngine::new(limits(), &layout_containers(), EmptyWindowPolicy::Reject)
-            .apply(
-                source,
-                &SurfaceMutationRequest::new(
-                    request_id("request:rejected"),
-                    SurfaceRevision::new(expected),
-                    command,
-                ),
-            )
-            .unwrap_err();
+    let rejection = SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Reject)
+        .apply(
+            source,
+            &SurfaceMutationRequest::new(
+                request_id("request:rejected"),
+                SurfaceRevision::new(expected),
+                command,
+            ),
+        )
+        .unwrap_err();
     assert_eq!(rejection.authoritative_document(), source);
     rejection.code()
 }
@@ -47,6 +47,7 @@ fn stale_overflow_and_invalid_current_preserve_exact_source() {
     let overflow = SurfaceDocument::new(
         SurfaceRevision::new(u64::MAX),
         source.surfaces().iter().cloned(),
+        [],
         source.windows().iter().cloned(),
     );
     assert_eq!(
@@ -64,14 +65,10 @@ fn stale_overflow_and_invalid_current_preserve_exact_source() {
     let invalid = SurfaceDocument::new(
         SurfaceRevision::new(1),
         [
-            surface("surface:a", "container:mix", None, [host("window:main", 0)]),
-            surface(
-                "surface:a",
-                "container:edit",
-                None,
-                [host("window:main", 1)],
-            ),
+            surface("surface:a", None, [host("window:main", 0)]),
+            surface("surface:a", None, [host("window:main", 1)]),
         ],
+        [],
         [ParticipatingWindow::new(window_id("window:main"), None)],
     );
     assert_eq!(
@@ -94,29 +91,22 @@ fn identity_container_window_order_and_empty_policy_rejections_are_typed() {
         (
             SurfaceMutationCommand::CreateSurface {
                 surface_id: surface_id("surface:mix"),
-                layout_container_id: container_id("container:new"),
+                schema_id: schema_id(),
                 label: None,
                 host_preferences: vec![host("window:main", 2)],
             },
             SurfaceMutationRejectionCode::DuplicateSurface,
         ),
+        // Card 179 retired UnknownLayoutContainer and LayoutContainerAlreadyBound.
+        // What replaces them is a single check that the named schema exists.
         (
             SurfaceMutationCommand::CreateSurface {
                 surface_id: surface_id("surface:new"),
-                layout_container_id: container_id("container:missing"),
+                schema_id: LayoutSchemaId::new("schema:absent").unwrap(),
                 label: None,
                 host_preferences: vec![host("window:main", 2)],
             },
-            SurfaceMutationRejectionCode::UnknownLayoutContainer,
-        ),
-        (
-            SurfaceMutationCommand::CreateSurface {
-                surface_id: surface_id("surface:new"),
-                layout_container_id: container_id("container:mix"),
-                label: None,
-                host_preferences: vec![host("window:main", 2)],
-            },
-            SurfaceMutationRejectionCode::LayoutContainerAlreadyBound,
+            SurfaceMutationRejectionCode::UnknownLayoutSchema,
         ),
         (
             SurfaceMutationCommand::MoveSurface {
@@ -140,12 +130,8 @@ fn identity_container_window_order_and_empty_policy_rejections_are_typed() {
 
     let singleton = SurfaceDocument::new(
         SurfaceRevision::new(3),
-        [surface(
-            "surface:only",
-            "container:mix",
-            None,
-            [host("window:main", 0)],
-        )],
+        [surface("surface:only", None, [host("window:main", 0)])],
+        [],
         [ParticipatingWindow::new(
             window_id("window:main"),
             Some(surface_id("surface:only")),

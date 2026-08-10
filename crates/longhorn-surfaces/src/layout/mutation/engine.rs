@@ -1,5 +1,5 @@
 use crate::layout::validation::{normalize_document, validate_document};
-use crate::{LayoutDefinitionRegistry, LayoutDocument};
+use crate::{LayoutDefinitionRegistry, SurfaceDocument};
 
 use super::{
     BoundedLayoutReplayStore, LayoutMutationReceipt, LayoutMutationRejection,
@@ -21,9 +21,15 @@ impl<'a> LayoutMutationEngine<'a> {
     }
 
     /// Applies one request without any implicit replay authority.
+    // A rejection deliberately carries the exact unchanged authoritative
+    // document: that is the protocol's evidence that nothing moved, and Card
+    // 179 made the document bigger by folding layout state into it. Boxing the
+    // error would change the wire shape to save a stack move on a path that
+    // only runs when a mutation is refused.
+    #[allow(clippy::result_large_err)]
     pub fn apply(
         &self,
-        document: &LayoutDocument,
+        document: &SurfaceDocument,
         request: &LayoutMutationRequest,
     ) -> Result<LayoutMutationReceipt, LayoutMutationRejection> {
         if let Err(error) = validate_document(self.registry, document) {
@@ -87,9 +93,10 @@ impl<'a> LayoutMutationEngine<'a> {
     }
 
     /// Applies or exactly replays one request through explicit bounded authority.
+    #[allow(clippy::result_large_err)]
     pub fn apply_with_replay(
         &self,
-        document: &LayoutDocument,
+        document: &SurfaceDocument,
         request: &LayoutMutationRequest,
         replay_store: &mut BoundedLayoutReplayStore,
     ) -> Result<LayoutMutationReceipt, LayoutMutationRejection> {
@@ -114,7 +121,7 @@ impl<'a> LayoutMutationEngine<'a> {
 }
 
 fn rejection(
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
     request: &LayoutMutationRequest,
     code: LayoutMutationRejectionCode,
     detail: impl Into<String>,

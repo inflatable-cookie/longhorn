@@ -2,12 +2,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type {
-  LayoutDocument,
   LayoutMutationRequest,
   LayoutSchemaDefinition,
   PanelDefinition,
   PanelInstance,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 import { LayoutState, type LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import {
@@ -54,14 +56,16 @@ export function shapeDocument(
   shape: Shape,
   placements: Readonly<Record<string, readonly PanelInstance[]>>,
   revision = 1,
-): LayoutDocument {
+): SurfaceDocument {
   const panelInstances = Object.values(placements).flat();
   return {
     revision,
-    containers: [
+    surfaces: [
       {
-        id: "container:primary",
+        id: "surface:primary",
         schema_id: shape.schema.id,
+        label: null,
+        presentation: { kind: "regional" } as const,
         regions: shape.schema.regions.map((definition) => {
           const instances = placements[definition.id] ?? [];
           return {
@@ -75,9 +79,11 @@ export function shapeDocument(
           sizing_slot_id: definition.id,
           ratio: definition.default,
         })),
+        host_preferences: [],
       },
     ],
     panel_instances: panelInstances,
+    windows: [],
   };
 }
 
@@ -91,7 +97,7 @@ export const resolvePanel: PanelPresentationResolver = (panel) => ({
 
 export function mountedBinding(
   definitions: PoodleLayoutDefinitions,
-  document: LayoutDocument,
+  document: SurfaceDocument,
   dispatch: (request: LayoutMutationRequest) => Promise<LayoutDispatchResult>,
 ): {
   readonly binding: PoodleLayoutBinding;
@@ -117,7 +123,7 @@ export function mountedBinding(
 
 export function rejected(
   request: LayoutMutationRequest,
-  document: LayoutDocument,
+  document: SurfaceDocument,
 ): LayoutDispatchResult {
   return {
     status: "rejected",

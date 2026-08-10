@@ -4,11 +4,13 @@
 // contract 010's Boundary Validation Target.
 
 export const SURFACE_FIELDS: Record<string, readonly string[]> = {
+  "RegionState": ["region_id", "panel_instance_ids", "active_panel_instance_id", "collapsed"],
+  "SizingSlotState": ["sizing_slot_id", "ratio"],
+  "PanelInstance": ["id", "definition_id"],
   "SurfaceHostPreference": ["window_id", "order"],
-  "SurfaceRecord": ["id", "layout_container_id", "label", "presentation", "host_preferences"],
+  "SurfaceRecord": ["id", "schema_id", "label", "presentation", "regions", "sizing_slots", "host_preferences"],
   "ParticipatingWindow": ["id", "active_surface_id"],
-  "SurfaceDocument": ["revision", "surfaces", "windows"],
-  "LayoutContainerCleanupIntent": ["layout_container_id"],
+  "SurfaceDocument": ["revision", "surfaces", "panel_instances", "windows"],
   "SurfaceMutationRequest": ["request_id", "expected_revision", "command"],
   "SurfaceMutationReceipt": ["request_id", "previous_revision", "committed_revision", "outcome", "authoritative_document"],
   "SurfaceMutationRejection": ["request_id", "current_revision", "code", "detail", "authoritative_document"],

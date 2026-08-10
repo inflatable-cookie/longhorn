@@ -1,14 +1,16 @@
 import type {
-  LayoutContainerId,
-  LayoutDocument,
   PanelInstanceId,
   RegionId,
   SizingSlotId,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceId,
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 
 import { findPanelLocation, removePanel, updateRegion } from "./document.ts";
 
-export type LayoutProjector = (document: LayoutDocument) => LayoutDocument;
+export type LayoutProjector = (document: SurfaceDocument) => SurfaceDocument;
 
 export function projectActivate(
   panelInstanceId: PanelInstanceId,
@@ -47,7 +49,7 @@ export function projectClose(
 }
 
 export function projectReorder(
-  containerId: LayoutContainerId,
+  containerId: SurfaceId,
   regionId: RegionId,
   panelInstanceIds: readonly PanelInstanceId[],
 ): LayoutProjector {
@@ -61,7 +63,7 @@ export function projectReorder(
 
 export function projectMove(
   panelInstanceId: PanelInstanceId,
-  targetContainerId: LayoutContainerId,
+  targetContainerId: SurfaceId,
   targetRegionId: RegionId,
   insertionIndex: number,
 ): LayoutProjector {
@@ -91,7 +93,7 @@ export function projectMove(
 }
 
 export function projectCollapsed(
-  containerId: LayoutContainerId,
+  containerId: SurfaceId,
   regionId: RegionId,
   collapsed: boolean,
 ): LayoutProjector {
@@ -103,13 +105,13 @@ export function projectCollapsed(
 }
 
 export function projectSizingSlot(
-  containerId: LayoutContainerId,
+  containerId: SurfaceId,
   sizingSlotId: SizingSlotId,
   ratio: number,
 ): LayoutProjector {
   return (document) => ({
     ...document,
-    containers: document.containers.map((container) =>
+    surfaces: document.surfaces.map((container) =>
       container.id === containerId
         ? {
             ...container,

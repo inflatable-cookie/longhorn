@@ -11,7 +11,6 @@ longhorn-config.workspace = true
 longhorn-core.workspace = true
 longhorn-display.workspace = true
 longhorn-history.workspace = true
-longhorn-layout-config.workspace = true
 longhorn-settings.workspace = true
 longhorn-settings-config.workspace = true
 longhorn-surface-transfer.workspace = true

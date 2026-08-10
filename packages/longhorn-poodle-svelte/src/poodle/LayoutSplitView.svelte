@@ -9,7 +9,7 @@
   import {
     layoutRatioFromMillionths,
     layoutRatioToUnitInterval,
-    type LayoutContainerId,
+    type SurfaceId,
     type RegionId,
     type SizingSlotId,
   } from "@inflatable-cookie/longhorn/layout";
@@ -26,7 +26,7 @@
 
   interface Props {
     binding: PoodleLayoutBinding;
-    containerId: LayoutContainerId;
+    containerId: SurfaceId;
     sizingSlotId: SizingSlotId;
     orientation?: SplitOrientation;
     primaryRegionId?: RegionId | null;

@@ -201,6 +201,7 @@ function snapshot(epoch: number, revision: number): SurfaceSnapshot {
     document: {
       revision,
       surfaces: [],
+      panel_instances: [],
       windows: [],
     },
   };

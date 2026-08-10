@@ -41,10 +41,10 @@ fn direct_and_surface_container_shapes_commit_the_same_authoritative_move() {
             receipt.publication().layout().outcome(),
             &LayoutMutationOutcome::PanelMoved {
                 panel_instance_id: tool_panel(),
-                source_container_id: source_container(),
+                source_surface_id: source_container(),
                 source_region_id: main_region(),
                 former_index: 0,
-                target_container_id: target_container(),
+                target_surface_id: target_container(),
                 target_region_id: main_region(),
                 insertion_index: 0,
             }
@@ -80,11 +80,11 @@ fn direct_and_surface_container_shapes_commit_the_same_authoritative_move() {
     }
 }
 
-fn assert_committed_document(document: &longhorn_surfaces::LayoutDocument) {
+fn assert_committed_document(document: &longhorn_surfaces::SurfaceDocument) {
     assert_eq!(document.revision().get(), 8);
     assert!(
         document
-            .container(&source_container())
+            .surface(&source_container())
             .unwrap()
             .region(&main_region())
             .unwrap()
@@ -93,7 +93,7 @@ fn assert_committed_document(document: &longhorn_surfaces::LayoutDocument) {
     );
     assert_eq!(
         document
-            .container(&target_container())
+            .surface(&target_container())
             .unwrap()
             .region(&main_region())
             .unwrap()

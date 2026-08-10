@@ -1,4 +1,4 @@
-use longhorn_core::{DomainId, LayoutContainerId, RegionId, TransferHostBindingId, WindowId};
+use longhorn_core::{DomainId, RegionId, SurfaceId, TransferHostBindingId, WindowId};
 
 use crate::{TerminalTransferAttempt, TransferSourceAuthority, TransferTargetBinding};
 
@@ -10,7 +10,7 @@ pub(super) struct PanelSource<'a> {
     pub(super) host_binding_id: &'a TransferHostBindingId,
     pub(super) document_id: &'a DomainId,
     pub(super) revision: u64,
-    pub(super) container_id: &'a LayoutContainerId,
+    pub(super) surface_id: &'a SurfaceId,
     pub(super) region_id: &'a RegionId,
 }
 
@@ -19,7 +19,7 @@ pub(super) struct PanelTarget<'a> {
     pub(super) host_binding_id: &'a TransferHostBindingId,
     pub(super) document_id: &'a DomainId,
     pub(super) revision: u64,
-    pub(super) container_id: &'a LayoutContainerId,
+    pub(super) surface_id: &'a SurfaceId,
     pub(super) region_id: &'a RegionId,
 }
 
@@ -32,7 +32,7 @@ pub(super) fn panel_source(
         host_binding_id,
         document_id,
         revision,
-        container_id,
+        surface_id,
         region_id,
         ..
     } = attempt.source()
@@ -48,7 +48,7 @@ pub(super) fn panel_source(
         host_binding_id,
         document_id,
         revision: revision.get(),
-        container_id,
+        surface_id,
         region_id,
     })
 }
@@ -60,7 +60,7 @@ pub(super) fn panel_target(
         host_binding_id,
         document_id,
         revision,
-        container_id,
+        surface_id,
         region_id,
     } = attempt.target().zone().target()
     else {
@@ -74,7 +74,7 @@ pub(super) fn panel_target(
         host_binding_id,
         document_id,
         revision: revision.get(),
-        container_id,
+        surface_id,
         region_id,
     })
 }

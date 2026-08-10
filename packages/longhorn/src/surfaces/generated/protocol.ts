@@ -4,9 +4,15 @@
 export const SURFACE_PROTOCOL_VERSION = 1 as const;
 export const SURFACE_MUTATION_COMMAND_KINDS = ["create_surface","duplicate_surface","rename_surface","set_surface_presentation","activate_surface","reorder_window","move_surface","close_surface"] as const;
 export const SURFACE_MUTATION_OUTCOME_KINDS = ["surface_created","surface_duplicated","surface_renamed","surface_presentation_set","surface_activated","window_reordered","surface_moved","surface_closed"] as const;
-export const SURFACE_MUTATION_REJECTION_CODES = ["invalid_current_document","stale_revision","revision_overflow","unknown_surface","duplicate_surface","unknown_layout_container","layout_container_already_bound","unknown_window","duplicate_host_preference","undeclared_target_window","move_target_unchanged","invalid_insertion_index","incomplete_reorder","duplicate_reorder_member","foreign_reorder_member","empty_window_not_allowed","invalid_candidate"] as const;
+export const SURFACE_MUTATION_REJECTION_CODES = ["invalid_current_document","stale_revision","revision_overflow","unknown_surface","duplicate_surface","unknown_layout_schema","unknown_window","duplicate_host_preference","undeclared_target_window","move_target_unchanged","invalid_insertion_index","incomplete_reorder","duplicate_reorder_member","foreign_reorder_member","empty_window_not_allowed","invalid_candidate"] as const;
 
-export type LayoutContainerId = string;
+export type LayoutSchemaId = string;
+
+export type RegionId = string;
+
+export type SizingSlotId = string;
+
+export type PanelInstanceId = string;
 
 export type SurfaceId = string;
 
@@ -20,6 +26,14 @@ export type SurfaceProtocolEpoch = number;
 
 export type PanelDefinitionId = string;
 
+export type LayoutRatio = number;
+
+export type RegionState = { region_id: RegionId, panel_instance_ids: Array<PanelInstanceId>, active_panel_instance_id: PanelInstanceId | null, collapsed: boolean | null, };
+
+export type SizingSlotState = { sizing_slot_id: SizingSlotId, ratio: LayoutRatio, };
+
+export type PanelInstance = { id: PanelInstanceId, definition_id: PanelDefinitionId, };
+
 export type SurfaceHostPreference = { window_id: WindowId, order: number, };
 
 export type SurfacePresentation = { "kind": "regional" } | { "kind": "focused_panel", 
@@ -28,15 +42,13 @@ export type SurfacePresentation = { "kind": "regional" } | { "kind": "focused_pa
  */
 panel_definition_id: PanelDefinitionId, };
 
-export type SurfaceRecord = { id: SurfaceId, layout_container_id: LayoutContainerId, label: string | null, presentation: SurfacePresentation, host_preferences: Array<SurfaceHostPreference>, };
+export type SurfaceRecord = { id: SurfaceId, schema_id: LayoutSchemaId, label: string | null, presentation: SurfacePresentation, regions: Array<RegionState>, sizing_slots: Array<SizingSlotState>, host_preferences: Array<SurfaceHostPreference>, };
 
 export type ParticipatingWindow = { id: WindowId, active_surface_id: SurfaceId | null, };
 
-export type SurfaceDocument = { revision: SurfaceRevision, surfaces: Array<SurfaceRecord>, windows: Array<ParticipatingWindow>, };
+export type SurfaceDocument = { revision: SurfaceRevision, surfaces: Array<SurfaceRecord>, panel_instances: Array<PanelInstance>, windows: Array<ParticipatingWindow>, };
 
 export type EmptyWindowPolicy = "allow" | "reject";
-
-export type LayoutContainerCleanupIntent = { layout_container_id: LayoutContainerId, };
 
 export type SurfaceMutationCommand = { "kind": "create_surface", 
 /**
@@ -44,9 +56,9 @@ export type SurfaceMutationCommand = { "kind": "create_surface",
  */
 surface_id: SurfaceId, 
 /**
- * Existing unbound layout-container identity.
+ * Registered layout schema the new Surface instantiates.
  */
-layout_container_id: LayoutContainerId, 
+schema_id: LayoutSchemaId, 
 /**
  * Optional generic display label.
  */
@@ -62,11 +74,7 @@ source_surface_id: SurfaceId,
 /**
  * New durable Surface identity.
  */
-surface_id: SurfaceId, 
-/**
- * Existing unbound layout-container identity.
- */
-layout_container_id: LayoutContainerId, } | { "kind": "rename_surface", 
+surface_id: SurfaceId, } | { "kind": "rename_surface", 
 /**
  * Existing Surface identity.
  */
@@ -186,15 +194,11 @@ insertion_index: number, } | { "kind": "surface_closed",
 /**
  * Closed Surface identity.
  */
-surface_id: SurfaceId, 
-/**
- * Explicit unexecuted cross-domain cleanup work.
- */
-cleanup: LayoutContainerCleanupIntent, };
+surface_id: SurfaceId, };
 
 export type SurfaceMutationReceipt = { request_id: SurfaceRequestId, previous_revision: SurfaceRevision, committed_revision: SurfaceRevision, outcome: SurfaceMutationOutcome, authoritative_document: SurfaceDocument, };
 
-export type SurfaceMutationRejectionCode = "invalid_current_document" | "stale_revision" | "revision_overflow" | "unknown_surface" | "duplicate_surface" | "unknown_layout_container" | "layout_container_already_bound" | "unknown_window" | "duplicate_host_preference" | "undeclared_target_window" | "move_target_unchanged" | "invalid_insertion_index" | "incomplete_reorder" | "duplicate_reorder_member" | "foreign_reorder_member" | "empty_window_not_allowed" | "invalid_candidate";
+export type SurfaceMutationRejectionCode = "invalid_current_document" | "stale_revision" | "revision_overflow" | "unknown_surface" | "duplicate_surface" | "unknown_layout_schema" | "unknown_window" | "duplicate_host_preference" | "undeclared_target_window" | "move_target_unchanged" | "invalid_insertion_index" | "incomplete_reorder" | "duplicate_reorder_member" | "foreign_reorder_member" | "empty_window_not_allowed" | "invalid_candidate";
 
 export type SurfaceMutationRejection = { request_id: SurfaceRequestId, current_revision: SurfaceRevision, code: SurfaceMutationRejectionCode, detail: string, authoritative_document: SurfaceDocument, };
 

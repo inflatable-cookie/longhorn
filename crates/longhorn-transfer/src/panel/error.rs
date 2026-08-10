@@ -35,7 +35,7 @@ pub enum PanelTransferErrorCode {
     /// Copy is not implemented by the first panel-transfer line.
     CopyUnsupported,
     /// Recorded layout revision evidence was no longer current.
-    StaleLayoutRevision,
+    StaleSurfaceRevision,
     /// The target container or region no longer existed.
     TargetChanged,
     /// Current placement policy rejected the target.

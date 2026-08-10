@@ -1,7 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
+import type {
+  LayoutMutationRequest,
+} from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import LayoutTabsHarness from "./LayoutTabsHarness.svelte";
@@ -34,7 +36,7 @@ describe("LayoutTabs", () => {
     const screen = render(LayoutTabsHarness, {
       props: {
         binding,
-        containerId: "container:primary",
+        containerId: "surface:primary",
         regionId: "left",
         resolvePanel,
       },
@@ -86,7 +88,7 @@ describe("LayoutTabs", () => {
     const screen = render(LayoutTabsHarness, {
       props: {
         binding,
-        containerId: "container:primary",
+        containerId: "surface:primary",
         regionId: "left",
         resolvePanel,
       },

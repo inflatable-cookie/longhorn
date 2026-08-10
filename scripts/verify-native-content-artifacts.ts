@@ -485,7 +485,7 @@ async function verifyConsumer(
     "@inflatable-cookie/longhorn-commands",
     "@inflatable-cookie/longhorn-config",
     "@inflatable-cookie/longhorn-history",
-    "@inflatable-cookie/longhorn-layout",
+    "@inflatable-cookie/longhorn-surfaces",
     "@inflatable-cookie/longhorn-notifications",
     "@inflatable-cookie/longhorn-operation",
     "@inflatable-cookie/longhorn-settings",

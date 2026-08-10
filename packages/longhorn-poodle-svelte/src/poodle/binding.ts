@@ -1,7 +1,4 @@
 import type {
-  LayoutContainer,
-  LayoutContainerId,
-  LayoutDocument,
   LayoutMutationCommand,
   LayoutMutationRequest,
   LayoutSchemaDefinition,
@@ -13,6 +10,11 @@ import type {
   RegionState,
   SizingSlotId,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceRecord,
+  SurfaceId,
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 import { projectOrdinaryRegionVisibility } from "@inflatable-cookie/longhorn/layout";
 
 import {
@@ -32,7 +34,7 @@ import {
   type LayoutProjector,
 } from "./projectors.ts";
 import {
-  MissingLayoutDocumentError,
+  MissingSurfaceDocumentError,
   MissingLayoutMemberError,
   MissingPanelPresentationError,
   type PanelPresentationResolver,
@@ -56,16 +58,16 @@ export class PoodleLayoutBinding {
     this.#panels = uniqueMap(options.definitions.panels, "panel definition");
   }
 
-  get document(): LayoutDocument {
+  get document(): SurfaceDocument {
     const document = this.#options.state.projected;
     if (!document) {
-      throw new MissingLayoutDocumentError();
+      throw new MissingSurfaceDocumentError();
     }
     return document;
   }
 
   region(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
     resolvePresentation: PanelPresentationResolver,
   ): RegionProjection {
@@ -121,14 +123,14 @@ export class PoodleLayoutBinding {
   }
 
   regionState(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
   ): RegionState {
     return findRegion(findContainer(this.document, containerId), regionId);
   }
 
   regionDefinition(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
   ): RegionDefinition {
     const container = findContainer(this.document, containerId);
@@ -136,7 +138,7 @@ export class PoodleLayoutBinding {
   }
 
   collapsibleRegionState(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
   ): RegionState {
     const definition = this.regionDefinition(containerId, regionId);
@@ -148,7 +150,7 @@ export class PoodleLayoutBinding {
   }
 
   sizingSlot(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     sizingSlotId: SizingSlotId,
   ): SizingSlotProjection {
     const container = findContainer(this.document, containerId);
@@ -167,7 +169,7 @@ export class PoodleLayoutBinding {
 
   canMove(
     panelInstanceId: PanelInstanceId,
-    targetContainerId: LayoutContainerId,
+    targetContainerId: SurfaceId,
     targetRegionId: RegionId,
   ): boolean {
     const document = this.document;
@@ -215,7 +217,7 @@ export class PoodleLayoutBinding {
   }
 
   regionVisibilities(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     movingPanelInstanceId?: PanelInstanceId,
   ): readonly RegionVisibility[] {
     const document = this.document;
@@ -254,14 +256,14 @@ export class PoodleLayoutBinding {
   }
 
   reorder(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
     panelInstanceIds: readonly PanelInstanceId[],
   ): void {
     this.#submit(
       {
         kind: "reorder_region",
-        container_id: containerId,
+        surface_id: containerId,
         region_id: regionId,
         panel_instance_ids: [...panelInstanceIds],
       },
@@ -271,7 +273,7 @@ export class PoodleLayoutBinding {
 
   move(
     panelInstanceId: PanelInstanceId,
-    targetContainerId: LayoutContainerId,
+    targetContainerId: SurfaceId,
     targetRegionId: RegionId,
     insertionIndex: number,
   ): void {
@@ -279,7 +281,7 @@ export class PoodleLayoutBinding {
       {
         kind: "move_panel",
         panel_instance_id: panelInstanceId,
-        target_container_id: targetContainerId,
+        target_surface_id: targetContainerId,
         target_region_id: targetRegionId,
         insertion_index: insertionIndex,
       },
@@ -293,14 +295,14 @@ export class PoodleLayoutBinding {
   }
 
   setCollapsed(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     regionId: RegionId,
     collapsed: boolean,
   ): void {
     this.#submit(
       {
         kind: "set_region_collapsed",
-        container_id: containerId,
+        surface_id: containerId,
         region_id: regionId,
         collapsed,
       },
@@ -309,14 +311,14 @@ export class PoodleLayoutBinding {
   }
 
   setSizingSlot(
-    containerId: LayoutContainerId,
+    containerId: SurfaceId,
     sizingSlotId: SizingSlotId,
     ratio: number,
   ): void {
     this.#submit(
       {
         kind: "set_sizing_slot",
-        container_id: containerId,
+        surface_id: containerId,
         sizing_slot_id: sizingSlotId,
         ratio,
       },
@@ -354,7 +356,7 @@ export class PoodleLayoutBinding {
   }
 
   #regionDefinition(
-    container: LayoutContainer,
+    container: SurfaceRecord,
     regionId: RegionId,
   ): RegionDefinition {
     const definition = this.#schema(container.schema_id).regions.find(

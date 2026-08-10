@@ -1,3 +1,6 @@
+// A rejection carries the whole authoritative document by design; Card 179
+// made that document larger. These tests move rejections across threads.
+#![allow(clippy::result_large_err)]
 use std::{
     sync::{Arc, Barrier},
     thread,
@@ -7,7 +10,7 @@ use longhorn_config::LoadOutcome;
 use longhorn_surfaces::{EmptyWindowPolicy, SurfaceMutationRejectionCode};
 use longhorn_surfaces_config::{SurfaceConfigMutationError, publish_surface_mutation};
 
-use crate::support::{Fixture, domain, layout_document, options, rename_request, surface_id};
+use crate::support::{Fixture, domain, options, registry, rename_request, surface_id};
 
 #[test]
 fn immediate_publication_uses_fresh_complete_state() {
@@ -19,7 +22,7 @@ fn immediate_publication_uses_fresh_complete_state() {
         &store,
         &domain,
         options(),
-        &layout_document(),
+        &registry(),
         EmptyWindowPolicy::Allow,
         &rename_request(7, "Renamed"),
     )
@@ -46,7 +49,7 @@ fn immediate_publication_uses_fresh_complete_state() {
 fn two_same_revision_writers_admit_exactly_one() {
     let fixture = Fixture::new();
     let domain = Arc::new(domain());
-    let layout = Arc::new(layout_document());
+    let layout = Arc::new(registry());
     let barrier = Arc::new(Barrier::new(3));
     let mut handles = Vec::new();
     for request in [rename_request(7, "First"), rename_request(7, "Second")] {

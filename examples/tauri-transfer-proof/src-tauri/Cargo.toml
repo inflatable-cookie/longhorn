@@ -11,7 +11,6 @@ publish = false
 default = []
 surface-mode = [
   "dep:longhorn-surface-transfer",
-  "dep:longhorn-surfaces-config",
   "longhorn-tauri-transfer/surface-transfer",
 ]
 
@@ -22,9 +21,8 @@ tauri-build.workspace = true
 longhorn-config.workspace = true
 longhorn-core.workspace = true
 longhorn-surfaces.workspace = true
-longhorn-layout-config.workspace = true
 longhorn-surface-transfer = { workspace = true, optional = true }
-longhorn-surfaces-config = { workspace = true, optional = true }
+longhorn-surfaces-config.workspace = true
 longhorn-tauri-transfer.workspace = true
 longhorn-tauri-windowing.workspace = true
 longhorn-transfer.workspace = true

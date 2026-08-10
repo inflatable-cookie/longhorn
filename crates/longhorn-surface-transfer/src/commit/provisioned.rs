@@ -1,5 +1,5 @@
 use longhorn_config::{ConfigStore, MutationOptions};
-use longhorn_surfaces::LayoutDocument;
+use longhorn_surfaces::LayoutDefinitionRegistry;
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_surface_mutation,
 };
@@ -27,7 +27,7 @@ use crate::admission::load_surface;
 pub(super) fn commit_provisioned<M, P>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    layout_document: &LayoutDocument,
+    registry: &LayoutDefinitionRegistry,
     bindings: &SurfaceHostBindings,
     policy: &SurfaceTransferPolicy,
     provisioner: &mut P,
@@ -51,7 +51,7 @@ where
         .map_err(map_empty_target)?;
 
     let document = load_surface(store, domain).map_err(SurfaceTransferError::consumed)?;
-    let layout_container_id = require_fresh_source(&document, &source)?;
+    let surface_id = require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id())?;
     let insertion = insertion_index(
         &document,
@@ -106,7 +106,7 @@ where
         store,
         domain,
         options,
-        layout_document,
+        registry,
         policy.empty_window_policy(),
         &mutation,
     ) {
@@ -134,7 +134,7 @@ where
     // The document is durably committed and a native window is provisioned;
     // a binding drift is reconciliation evidence, never a release-profile
     // abort mid-reconciliation.
-    if committed.layout_container_id() != &layout_container_id {
+    if committed.id() != &surface_id {
         let failure = SurfaceWindowProvisionFailure::new(
             SurfaceWindowProvisionStage::Commit,
             "Surface moved but its retained external layout-container binding changed",

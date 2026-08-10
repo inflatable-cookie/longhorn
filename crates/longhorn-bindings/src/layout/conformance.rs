@@ -1,11 +1,11 @@
 use std::{error::Error, io};
 
-use longhorn_core::{LayoutRevision, RegionId};
+use longhorn_core::{RegionId, SurfaceRevision};
 use longhorn_surfaces::{
-    LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
-    LayoutMutationCommand, LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection,
+    LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutLimits, LayoutMutationCommand,
+    LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection,
     LayoutMutationRejectionCode, LayoutMutationRequest, LayoutSchemaDefinition, PanelDefinition,
-    RegionVisibility, project_region_visibility,
+    RegionVisibility, SurfaceDocument, project_region_visibility,
 };
 use serde::Serialize;
 
@@ -24,14 +24,14 @@ struct ConformanceFixture {
     host_binding: HostBinding,
     resolved_default_region: RegionId,
     definitions: FixtureDefinitions,
-    initial_document: LayoutDocument,
+    initial_document: SurfaceDocument,
     steps: Vec<ConformanceStep>,
     singleton_policy: SingletonPolicyFixture,
     ordinary_visibility: Vec<RegionVisibility>,
     transient_visibility: Vec<RegionVisibility>,
     stale_rejection: LayoutMutationRejection,
     invalid_rejection: LayoutMutationRejection,
-    expected_snapshot: LayoutDocument,
+    expected_snapshot: SurfaceDocument,
 }
 
 #[derive(Serialize)]
@@ -89,13 +89,13 @@ fn build_fixture(spec: ShapeSpec) -> Result<ConformanceFixture, Box<dyn Error>> 
     let ordinary_visibility = project_region_visibility(
         &registry,
         &expected_snapshot,
-        &container_id("container:primary"),
+        &surface_id("surface:primary"),
         None,
     )?;
     let transient_visibility = project_region_visibility(
         &registry,
         &expected_snapshot,
-        &container_id("container:primary"),
+        &surface_id("surface:primary"),
         Some(&definition_id("panel:workspace-tool")),
     )?;
     let stale_rejection = expect_rejection(
@@ -103,7 +103,7 @@ fn build_fixture(spec: ShapeSpec) -> Result<ConformanceFixture, Box<dyn Error>> 
         &expected_snapshot,
         LayoutMutationRequest::new(
             request_id(&format!("request:{}:stale", spec.name)),
-            LayoutRevision::INITIAL,
+            SurfaceRevision::INITIAL,
             LayoutMutationCommand::ActivatePanel {
                 panel_instance_id: instance_id("instance:b"),
             },
@@ -118,7 +118,7 @@ fn build_fixture(spec: ShapeSpec) -> Result<ConformanceFixture, Box<dyn Error>> 
             expected_snapshot.revision(),
             LayoutMutationCommand::MovePanel {
                 panel_instance_id: instance_id("instance:b"),
-                target_container_id: container_id("container:primary"),
+                target_surface_id: surface_id("surface:primary"),
                 target_region_id: region_id(spec.target_region),
                 insertion_index: 0,
             },
@@ -150,7 +150,7 @@ fn build_fixture(spec: ShapeSpec) -> Result<ConformanceFixture, Box<dyn Error>> 
 fn run_shared_sequence(
     spec: &ShapeSpec,
     registry: &LayoutDefinitionRegistry,
-    initial: &LayoutDocument,
+    initial: &SurfaceDocument,
 ) -> Result<Vec<ConformanceStep>, LayoutMutationRejection> {
     let engine = LayoutMutationEngine::new(registry);
     let mut current = initial.clone();
@@ -158,14 +158,14 @@ fn run_shared_sequence(
         LayoutMutationCommand::CreatePanel {
             panel_instance_id: instance_id("instance:a"),
             panel_definition_id: definition_id("panel:workspace-tool"),
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.source_region),
             insertion_index: 0,
         },
         LayoutMutationCommand::CreatePanel {
             panel_instance_id: instance_id("instance:b"),
             panel_definition_id: definition_id("panel:workspace-tool"),
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.source_region),
             insertion_index: 1,
         },
@@ -173,23 +173,23 @@ fn run_shared_sequence(
             panel_instance_id: instance_id("instance:a"),
         },
         LayoutMutationCommand::ReorderRegion {
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.source_region),
             panel_instance_ids: vec![instance_id("instance:b"), instance_id("instance:a")],
         },
         LayoutMutationCommand::MovePanel {
             panel_instance_id: instance_id("instance:b"),
-            target_container_id: container_id("container:primary"),
+            target_surface_id: surface_id("surface:primary"),
             target_region_id: region_id(spec.target_region),
             insertion_index: 0,
         },
         LayoutMutationCommand::SetSizingSlot {
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             sizing_slot_id: slot_id(spec.sizing_slots[0].id),
             ratio: ratio(300_000),
         },
         LayoutMutationCommand::SetRegionCollapsed {
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.target_region),
             collapsed: true,
         },
@@ -224,7 +224,7 @@ fn run_shared_sequence(
 fn singleton_policy(
     spec: &ShapeSpec,
     engine: &LayoutMutationEngine<'_>,
-    initial: &LayoutDocument,
+    initial: &SurfaceDocument,
 ) -> Result<SingletonPolicyFixture, Box<dyn Error>> {
     let first_request = LayoutMutationRequest::new(
         request_id(&format!("request:{}:singleton-a", spec.name)),
@@ -232,7 +232,7 @@ fn singleton_policy(
         LayoutMutationCommand::CreatePanel {
             panel_instance_id: instance_id("instance:singleton-a"),
             panel_definition_id: definition_id(spec.singleton_definition),
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.singleton_region),
             insertion_index: 0,
         },
@@ -244,7 +244,7 @@ fn singleton_policy(
         LayoutMutationCommand::CreatePanel {
             panel_instance_id: instance_id("instance:singleton-b"),
             panel_definition_id: definition_id(spec.singleton_definition),
-            container_id: container_id("container:primary"),
+            surface_id: surface_id("surface:primary"),
             region_id: region_id(spec.singleton_region),
             insertion_index: 1,
         },
@@ -263,7 +263,7 @@ fn singleton_policy(
 
 fn expect_rejection(
     engine: &LayoutMutationEngine<'_>,
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
     request: LayoutMutationRequest,
     expected: LayoutMutationRejectionCode,
 ) -> Result<LayoutMutationRejection, Box<dyn Error>> {
@@ -295,7 +295,10 @@ mod tests {
         assert_eq!(fixtures[1].definitions.schema.sizing_slots().len(), 4);
         for fixture in fixtures {
             assert_eq!(fixture.steps.len(), 8);
-            assert_eq!(fixture.expected_snapshot.revision(), LayoutRevision::new(8));
+            assert_eq!(
+                fixture.expected_snapshot.revision(),
+                SurfaceRevision::new(8)
+            );
             assert_eq!(
                 fixture.singleton_policy.second_rejection.code(),
                 LayoutMutationRejectionCode::InstancePolicyExceeded

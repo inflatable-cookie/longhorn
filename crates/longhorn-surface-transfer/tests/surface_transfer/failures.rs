@@ -8,8 +8,8 @@ use longhorn_surfaces::EmptyWindowPolicy;
 use longhorn_transfer::{DropZoneId, TargetSelector, TransferErrorCode};
 
 use super::support::{
-    Fixture, MockMode, MockProvisioner, RuntimeFixture, StalingProvisioner, domain,
-    layout_document, load_surface, options, policy, policy_with_provision, surface_id, window_id,
+    Fixture, MockMode, MockProvisioner, RuntimeFixture, StalingProvisioner, domain, load_surface,
+    options, policy, policy_with_provision, registry, surface_id, window_id,
 };
 
 #[test]
@@ -25,7 +25,7 @@ fn target_loss_and_current_policy_rejection_consume_without_publication() {
     let lost = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut lost_runtime.coordinator,
         &lost_runtime.clock,
         &lost_runtime.bindings,
@@ -53,7 +53,7 @@ fn target_loss_and_current_policy_rejection_consume_without_publication() {
     let denied = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut denied_runtime.coordinator,
         &denied_runtime.clock,
         &denied_runtime.bindings,
@@ -86,7 +86,7 @@ fn empty_display_disabled_and_provision_failure_leave_source_exact() {
     let disabled = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut disabled_runtime.coordinator,
         &disabled_runtime.clock,
         &disabled_runtime.bindings,
@@ -118,7 +118,7 @@ fn empty_display_disabled_and_provision_failure_leave_source_exact() {
     let failed = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut failed_runtime.coordinator,
         &failed_runtime.clock,
         &failed_runtime.bindings,
@@ -154,7 +154,7 @@ fn failed_publication_cleans_prepared_target_and_reports_cleanup_failure() {
         let error = commit_surface_transfer(
             &fixture.store,
             &domain,
-            &layout_document(),
+            &registry(),
             &mut runtime.coordinator,
             &runtime.clock,
             &runtime.bindings,
@@ -209,7 +209,7 @@ fn host_commit_failure_returns_authoritative_reconciliation_evidence() {
     let error = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut runtime.coordinator,
         &runtime.clock,
         &runtime.bindings,
@@ -256,7 +256,7 @@ fn consumed_binding_failure_reports_consumption_and_replay_is_terminal() {
     let error = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut runtime.coordinator,
         &runtime.clock,
         &stale_bindings,
@@ -280,7 +280,7 @@ fn consumed_binding_failure_reports_consumption_and_replay_is_terminal() {
     let replay = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout_document(),
+        &registry(),
         &mut runtime.coordinator,
         &runtime.clock,
         &runtime.bindings,

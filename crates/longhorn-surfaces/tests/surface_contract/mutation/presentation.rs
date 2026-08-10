@@ -1,3 +1,5 @@
+// A rejection carries the whole authoritative document by design.
+#![allow(clippy::result_large_err)]
 use longhorn_core::{PanelDefinitionId, SurfaceRevision};
 use longhorn_surfaces::{
     EmptyWindowPolicy, SurfaceDocument, SurfaceMutationCommand, SurfaceMutationEngine,
@@ -5,9 +7,7 @@ use longhorn_surfaces::{
     SurfacePresentation,
 };
 
-use crate::support::{
-    layout_containers, limits, loophole_document, request_id, surface_id, window_id,
-};
+use crate::support::{limits, loophole_document, registry, request_id, surface_id, window_id};
 
 fn panel(value: &str) -> PanelDefinitionId {
     PanelDefinitionId::new(value).unwrap()
@@ -22,7 +22,7 @@ fn attempt(
     command: SurfaceMutationCommand,
 ) -> Result<longhorn_surfaces::SurfaceMutationReceipt, longhorn_surfaces::SurfaceMutationRejection>
 {
-    SurfaceMutationEngine::new(limits(), &layout_containers(), EmptyWindowPolicy::Allow).apply(
+    SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Allow).apply(
         document,
         &SurfaceMutationRequest::new(
             request_id(&format!("request:{suffix}")),
@@ -179,10 +179,13 @@ fn a_document_without_presentation_loads_as_regional() {
         "revision": 7,
         "surfaces": [{
             "id": "surface:edit",
-            "layout_container_id": "container:edit",
+            "schema_id": "schema:loophole",
             "label": "Edit",
+            "regions": [],
+            "sizing_slots": [],
             "host_preferences": [{ "window_id": "window:main", "order": 0 }]
         }],
+        "panel_instances": [],
         "windows": [{ "id": "window:main", "active_surface_id": "surface:edit" }]
     });
 

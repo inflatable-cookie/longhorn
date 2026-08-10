@@ -40,7 +40,7 @@
             "host_binding_id": "binding:target",
             "document_id": "app.layout",
             "revision": 7,
-            "container_id": "container:target",
+            "surface_id": "surface:target",
             "region_id": "center"
           }
         },
@@ -167,8 +167,9 @@
         "committed_revision": 8,
         "authoritative_document": {
           "revision": 8,
-          "containers": [],
-          "panel_instances": []
+          "surfaces": [],
+          "panel_instances": [],
+          "windows": []
         },
         "target": {
           "path": "explicit_zone",
@@ -180,7 +181,7 @@
             "host_binding_id": "binding:target",
             "document_id": "app.layout",
             "revision": 7,
-            "container_id": "container:target",
+            "surface_id": "surface:target",
             "region_id": "center"
           }
         }
@@ -639,9 +640,9 @@
       "request_id": "request:panel-error-12",
       "source": {
         "domain": "panel",
-        "code": "stale_layout_revision"
+        "code": "stale_surface_revision"
       },
-      "message": "golden fixture for stale_layout_revision",
+      "message": "golden fixture for stale_surface_revision",
       "retryable": false,
       "session_consumed": true
     },

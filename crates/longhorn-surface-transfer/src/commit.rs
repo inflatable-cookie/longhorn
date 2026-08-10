@@ -4,7 +4,7 @@ mod provisioned;
 mod validation;
 
 use longhorn_config::ConfigStore;
-use longhorn_surfaces::LayoutDocument;
+use longhorn_surfaces::LayoutDefinitionRegistry;
 use longhorn_surfaces_config::{RegisteredSurfaceDomain, SurfaceMigration};
 use longhorn_transfer::{MonotonicClock, TerminalTransferResolution, TransferCoordinator};
 
@@ -20,7 +20,7 @@ use self::{existing::commit_existing, provisioned::commit_provisioned};
 pub fn commit_surface_transfer<M, P>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    layout_document: &LayoutDocument,
+    registry: &LayoutDefinitionRegistry,
     coordinator: &mut TransferCoordinator,
     clock: &impl MonotonicClock,
     bindings: &SurfaceHostBindings,
@@ -44,7 +44,7 @@ where
         TerminalTransferResolution::Target(attempt) => commit_existing(
             store,
             domain,
-            layout_document,
+            registry,
             bindings,
             policy,
             request.mutation_options(),
@@ -53,7 +53,7 @@ where
         TerminalTransferResolution::EmptyDisplay(attempt) => commit_provisioned(
             store,
             domain,
-            layout_document,
+            registry,
             bindings,
             policy,
             provisioner,

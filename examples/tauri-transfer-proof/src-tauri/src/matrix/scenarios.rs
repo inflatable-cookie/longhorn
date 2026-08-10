@@ -126,7 +126,7 @@ fn stale_revision(root: &Path) -> Result<Value, String> {
         TargetSelector::ExplicitZone(zone_id()),
         normal_windows(),
         None,
-        Some(PanelTransferErrorCode::StaleLayoutRevision),
+        Some(PanelTransferErrorCode::StaleSurfaceRevision),
     )
 }
 
@@ -235,10 +235,8 @@ impl Scenario {
                             document_id: longhorn_core::DomainId::new(LAYOUT_DOMAIN_ID)
                                 .expect("proof domain id is valid"),
                             revision: TransferRevision::new(revision),
-                            container_id: longhorn_core::LayoutContainerId::new(
-                                TARGET_CONTAINER_ID,
-                            )
-                            .expect("proof container id is valid"),
+                            surface_id: longhorn_core::SurfaceId::new(TARGET_CONTAINER_ID)
+                                .expect("proof container id is valid"),
                             region_id: longhorn_core::RegionId::new(MAIN_REGION_ID)
                                 .expect("proof region id is valid"),
                         },

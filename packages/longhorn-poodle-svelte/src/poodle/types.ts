@@ -1,6 +1,4 @@
 import type {
-  LayoutContainer,
-  LayoutDocument,
   LayoutMutationRequest,
   LayoutSchemaDefinition,
   PanelDefinition,
@@ -10,14 +8,18 @@ import type {
   RegionState,
   SizingSlotDefinition,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceRecord,
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 import type { IconProp, PanelTabItem } from "@inflatable-cookie/poodle-svelte";
 
 export interface LayoutMutationState {
-  readonly projected: LayoutDocument | undefined;
+  readonly projected: SurfaceDocument | undefined;
   dispatch(
     request: LayoutMutationRequest,
-    project: (document: LayoutDocument) => LayoutDocument,
+    project: (document: SurfaceDocument) => SurfaceDocument,
   ): Promise<LayoutDispatchResult>;
 }
 
@@ -42,7 +44,7 @@ export interface PanelRenderContext {
 }
 
 export interface RegionProjection {
-  readonly container: LayoutContainer;
+  readonly container: SurfaceRecord;
   readonly definition: RegionDefinition;
   readonly state: RegionState;
   readonly items: readonly PanelTabItem[];
@@ -63,10 +65,10 @@ export interface PoodleLayoutBindingOptions {
   readonly onResult?: (result: LayoutDispatchResult) => void;
 }
 
-export class MissingLayoutDocumentError extends Error {
+export class MissingSurfaceDocumentError extends Error {
   constructor() {
     super("Poodle layout binding requires a projected layout document");
-    this.name = "MissingLayoutDocumentError";
+    this.name = "MissingSurfaceDocumentError";
   }
 }
 

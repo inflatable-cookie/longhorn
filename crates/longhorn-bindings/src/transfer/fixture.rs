@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use longhorn_core::{
-    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, LayoutContainerId, PanelInstanceId,
-    RegionId, TransferClientId, TransferHostBindingId, TransferRequestId,
+    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, PanelInstanceId, RegionId,
+    SurfaceId, TransferClientId, TransferHostBindingId, TransferRequestId,
 };
 use longhorn_transfer::{
     ClientDropZone, ClientEpoch, DragSessionId, InsertionPosition, LeaseGeneration,
@@ -128,8 +128,9 @@ pub fn render(
                 "committed_revision": 8,
                 "authoritative_document": {
                     "revision": 8,
-                    "containers": [],
+                    "surfaces": [],
                     "panel_instances": [],
+                    "windows": [],
                 },
                 "target": {
                     "path": "explicit_zone",
@@ -141,7 +142,7 @@ pub fn render(
                         "host_binding_id": "binding:target",
                         "document_id": "app.layout",
                         "revision": 7,
-                        "container_id": "container:target",
+                        "surface_id": "surface:target",
                         "region_id": "center",
                     }
                 }
@@ -203,8 +204,7 @@ fn panel_zone() -> ClientDropZone {
                 .expect("fixture binding is valid"),
             document_id: DomainId::new("app.layout").expect("fixture domain is valid"),
             revision: longhorn_transfer::TransferRevision::new(7),
-            container_id: LayoutContainerId::new("container:target")
-                .expect("fixture container is valid"),
+            surface_id: SurfaceId::new("surface:target").expect("fixture container is valid"),
             region_id: RegionId::new("center").expect("fixture region is valid"),
         },
     )

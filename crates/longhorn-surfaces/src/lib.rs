@@ -16,10 +16,9 @@ pub use model::{
     ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
 };
 pub use mutation::{
-    EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory,
-    SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationOutcome, SurfaceMutationReceipt,
-    SurfaceMutationRejection, SurfaceMutationRejectionCode, SurfaceMutationRequest,
-    SurfaceMutationResponse,
+    EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationOutcome,
+    SurfaceMutationReceipt, SurfaceMutationRejection, SurfaceMutationRejectionCode,
+    SurfaceMutationRequest, SurfaceMutationResponse,
 };
 pub use resolution::{
     ResolvedSurface, ResolvedSurfaceWindow, SurfaceResolution, SurfaceResolutionError,
@@ -42,9 +41,7 @@ pub use layout::definition::{
     PlacementSelector, RegionDefinition, SizingSlotDefinition,
 };
 pub use layout::limits::{LayoutLimits, LayoutLimitsError};
-pub use layout::model::{
-    LayoutContainer, LayoutDocument, PanelInstance, RegionState, SizingSlotState,
-};
+pub use layout::model::{PanelInstance, RegionState, SizingSlotState};
 pub use layout::mutation::{
     BoundedLayoutReplayStore, LayoutMutationCommand, LayoutMutationEngine, LayoutMutationOutcome,
     LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRejectionCode,
@@ -52,9 +49,9 @@ pub use layout::mutation::{
 };
 pub use layout::ratio::{LayoutRatio, LayoutRatioError, RATIO_ONE_MILLIONTHS};
 pub use layout::validation::{
-    LayoutValidationCode, LayoutValidationError, normalize_document as normalize_layout_document,
-    validate_document as validate_layout_document,
-    validate_normalized_document as validate_normalized_layout_document,
+    LayoutValidationCode, LayoutValidationError, normalize_document as normalize_registry,
+    validate_document as validate_registry,
+    validate_normalized_document as validate_normalized_registry,
 };
 pub use layout::visibility::{
     RegionVisibility, RegionVisibilityState, VisibilityProjectionError, project_region_visibility,

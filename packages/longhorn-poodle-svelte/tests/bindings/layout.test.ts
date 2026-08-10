@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type {
-  LayoutDocument,
   LayoutMutationRejection,
   LayoutMutationRequest,
   LayoutMutationReceipt,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 
 import {
   LayoutState,
@@ -20,10 +22,11 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-const document = (revision: number): LayoutDocument => ({
+const document = (revision: number): SurfaceDocument => ({
   revision,
-  containers: [],
+  surfaces: [],
   panel_instances: [],
+  windows: [],
 });
 
 const request: LayoutMutationRequest = {
@@ -31,7 +34,7 @@ const request: LayoutMutationRequest = {
   expected_revision: 1,
   command: {
     kind: "set_region_collapsed",
-    container_id: "container:main",
+    surface_id: "container:main",
     region_id: "left",
     collapsed: true,
   },
@@ -46,7 +49,7 @@ function committed(revision: number): LayoutDispatchResult {
       committed_revision: revision,
       outcome: {
         kind: "region_collapsed_set",
-        container_id: "container:main",
+        surface_id: "container:main",
         region_id: "left",
         previous_collapsed: false,
         committed_collapsed: true,

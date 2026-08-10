@@ -52,6 +52,10 @@ impl Error for LayoutConfigMutationError {}
 ///
 /// Structural commands use this path. Presentation commands may also use it
 /// when the consumer does not opt into debounce.
+/// A rejection carries the exact unchanged authoritative document, which Card
+/// 179 made larger by folding layout state into it. Boxing would change the
+/// wire shape to save a stack move on the refusal path.
+#[allow(clippy::result_large_err)]
 pub fn publish_layout_mutation<M>(
     store: &ConfigStore,
     domain: &RegisteredLayoutDomain<M>,

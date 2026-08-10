@@ -1,6 +1,6 @@
 use longhorn_config::{DomainIssue, MigrationStep};
 use longhorn_core::SchemaVersion;
-use longhorn_surfaces::{LayoutDefinitionRegistry, LayoutDocument};
+use longhorn_surfaces::{LayoutDefinitionRegistry, SurfaceDocument};
 use serde_json::Value;
 
 use crate::{LayoutRegistryDigest, PersistedLayoutDocument};
@@ -45,7 +45,7 @@ impl<'target> LayoutMigrationTarget<'target> {
     }
 
     /// Encodes a migrated document with the current registry digest.
-    pub fn encode_current(self, document: LayoutDocument) -> Result<Value, DomainIssue> {
+    pub fn encode_current(self, document: SurfaceDocument) -> Result<Value, DomainIssue> {
         serde_json::to_value(PersistedLayoutDocument::new(
             self.registry_digest.clone(),
             document,

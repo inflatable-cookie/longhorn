@@ -6,8 +6,8 @@ use longhorn_config::{
 };
 use longhorn_core::SchemaVersion;
 use longhorn_surfaces::{
-    LayoutDefinitionRegistry, LayoutDocument, LayoutValidationCode,
-    normalize_layout_document as normalize_document, validate_layout_document as validate_document,
+    LayoutDefinitionRegistry, LayoutValidationCode, SurfaceDocument,
+    normalize_registry as normalize_document, validate_registry as validate_document,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -21,13 +21,13 @@ use crate::{
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistedLayoutDocument {
     registry_digest: LayoutRegistryDigest,
-    document: LayoutDocument,
+    document: SurfaceDocument,
 }
 
 impl PersistedLayoutDocument {
     /// Constructs a current raw layout value.
     #[must_use]
-    pub const fn new(registry_digest: LayoutRegistryDigest, document: LayoutDocument) -> Self {
+    pub const fn new(registry_digest: LayoutRegistryDigest, document: SurfaceDocument) -> Self {
         Self {
             registry_digest,
             document,
@@ -42,7 +42,7 @@ impl PersistedLayoutDocument {
 
     /// Returns the complete authoritative layout document.
     #[must_use]
-    pub const fn document(&self) -> &LayoutDocument {
+    pub const fn document(&self) -> &SurfaceDocument {
         &self.document
     }
 }
@@ -60,7 +60,7 @@ pub enum LayoutBackupPolicy {
 #[derive(Clone, Debug)]
 pub struct RegisteredLayoutDomain<M> {
     descriptor: DomainDescriptor,
-    default: LayoutDocument,
+    default: SurfaceDocument,
     registry: LayoutDefinitionRegistry,
     registry_digest: LayoutRegistryDigest,
     migration: M,
@@ -74,7 +74,7 @@ where
     /// Constructs a domain from complete consumer-supplied authority.
     pub fn new(
         descriptor: DomainDescriptor,
-        default: LayoutDocument,
+        default: SurfaceDocument,
         registry: LayoutDefinitionRegistry,
         migration: M,
         backup_policy: LayoutBackupPolicy,
@@ -163,7 +163,7 @@ impl<M> ConfigDomain for RegisteredLayoutDomain<M>
 where
     M: LayoutMigration,
 {
-    type Value = LayoutDocument;
+    type Value = SurfaceDocument;
 
     fn descriptor(&self) -> &DomainDescriptor {
         &self.descriptor

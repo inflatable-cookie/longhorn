@@ -58,9 +58,11 @@ describe("SurfaceState", () => {
         ...document.surfaces,
         {
           id: "surface:optimistic",
-          layout_container_id: "container:optimistic",
+          schema_id: "schema:optimistic",
           label: null,
           presentation: { kind: "regional" },
+          regions: [],
+          sizing_slots: [],
           host_preferences: [],
         },
       ],

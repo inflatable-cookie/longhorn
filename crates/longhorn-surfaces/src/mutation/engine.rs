@@ -1,7 +1,9 @@
-use crate::{SurfaceDocument, SurfaceLimits, normalize_document, validate_document};
+use crate::{
+    LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits, normalize_document, validate_document,
+};
 
 use super::{
-    EmptyWindowPolicy, LayoutContainerInventory, SurfaceMutationReceipt, SurfaceMutationRejection,
+    EmptyWindowPolicy, SurfaceMutationReceipt, SurfaceMutationRejection,
     SurfaceMutationRejectionCode, SurfaceMutationRequest,
     operation::{apply_command, map_candidate_validation},
 };
@@ -10,26 +12,32 @@ use super::{
 #[derive(Clone, Copy, Debug)]
 pub struct SurfaceMutationEngine<'a> {
     limits: SurfaceLimits,
-    layout_containers: &'a LayoutContainerInventory,
+    registry: &'a LayoutDefinitionRegistry,
     empty_window_policy: EmptyWindowPolicy,
 }
 
 impl<'a> SurfaceMutationEngine<'a> {
-    /// Binds mutation to explicit limits, layout evidence, and empty-window policy.
+    /// Binds mutation to explicit limits, the definition registry, and empty-window policy.
     #[must_use]
     pub const fn new(
         limits: SurfaceLimits,
-        layout_containers: &'a LayoutContainerInventory,
+        registry: &'a LayoutDefinitionRegistry,
         empty_window_policy: EmptyWindowPolicy,
     ) -> Self {
         Self {
             limits,
-            layout_containers,
+            registry,
             empty_window_policy,
         }
     }
 
     /// Applies one request to a private candidate or returns exact unchanged evidence.
+    // A rejection deliberately carries the exact unchanged authoritative
+    // document: that is the protocol's evidence that nothing moved, and Card
+    // 179 made the document bigger by folding layout state into it. Boxing the
+    // error would change the wire shape to save a stack move on a path that
+    // only runs when a mutation is refused.
+    #[allow(clippy::result_large_err)]
     pub fn apply(
         &self,
         document: &SurfaceDocument,
@@ -72,7 +80,7 @@ impl<'a> SurfaceMutationEngine<'a> {
         let outcome = apply_command(
             &mut candidate,
             request.command(),
-            self.layout_containers,
+            self.registry,
             self.empty_window_policy,
         )
         .map_err(|error| rejection(document, request, error.code, error.detail))?;

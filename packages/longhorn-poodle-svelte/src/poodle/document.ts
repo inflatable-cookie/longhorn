@@ -1,7 +1,4 @@
 import type {
-  LayoutContainer,
-  LayoutContainerId,
-  LayoutDocument,
   PanelInstance,
   PanelInstanceId,
   PlacementSelector,
@@ -9,14 +6,19 @@ import type {
   RegionId,
   RegionState,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceRecord,
+  SurfaceId,
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 
 import { MissingLayoutMemberError } from "./types.ts";
 
 export function findContainer(
-  document: LayoutDocument,
-  containerId: LayoutContainerId,
-): LayoutContainer {
-  const container = document.containers.find(({ id }) => id === containerId);
+  document: SurfaceDocument,
+  containerId: SurfaceId,
+): SurfaceRecord {
+  const container = document.surfaces.find(({ id }) => id === containerId);
   if (!container) {
     throw new MissingLayoutMemberError("layout container", containerId);
   }
@@ -24,7 +26,7 @@ export function findContainer(
 }
 
 export function findRegion(
-  container: LayoutContainer,
+  container: SurfaceRecord,
   regionId: RegionId,
 ): RegionState {
   const region = container.regions.find(
@@ -37,7 +39,7 @@ export function findRegion(
 }
 
 export function findPanelInstance(
-  document: LayoutDocument,
+  document: SurfaceDocument,
   panelInstanceId: PanelInstanceId,
 ): PanelInstance {
   const instance = document.panel_instances.find(
@@ -50,10 +52,10 @@ export function findPanelInstance(
 }
 
 export function findPanelLocation(
-  document: LayoutDocument,
+  document: SurfaceDocument,
   panelInstanceId: PanelInstanceId,
-): { container: LayoutContainer; region: RegionState } {
-  for (const container of document.containers) {
+): { container: SurfaceRecord; region: RegionState } {
+  for (const container of document.surfaces) {
     for (const region of container.regions) {
       if (region.panel_instance_ids.includes(panelInstanceId)) {
         return { container, region };
@@ -73,14 +75,14 @@ export function selectorMatches(
 }
 
 export function updateRegion(
-  document: LayoutDocument,
-  containerId: LayoutContainerId,
+  document: SurfaceDocument,
+  containerId: SurfaceId,
   regionId: RegionId,
   update: (region: RegionState) => RegionState,
-): LayoutDocument {
+): SurfaceDocument {
   return {
     ...document,
-    containers: document.containers.map((container) =>
+    surfaces: document.surfaces.map((container) =>
       container.id === containerId
         ? {
             ...container,

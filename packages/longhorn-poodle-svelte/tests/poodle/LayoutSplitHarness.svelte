@@ -14,7 +14,7 @@
 
 <LayoutSplitView
   {binding}
-  containerId="container:primary"
+  containerId="surface:primary"
   sizingSlotId="center-stack"
   primaryRegionId="center_bottom"
   secondaryRegionId="right_top"

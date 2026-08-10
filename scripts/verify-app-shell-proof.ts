@@ -30,12 +30,15 @@ const longhornPackages = [
 const shapes = {
   "split-shell": {
     longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
-    forbidden: ["@inflatable-cookie/longhorn/layout", "@inflatable-cookie/longhorn-poodle-svelte/poodle", "@inflatable-cookie/longhorn/surfaces", "@inflatable-cookie/longhorn/transfer", "@inflatable-cookie/longhorn/surface-transfer"],
+    forbidden: ["@inflatable-cookie/longhorn/layout", "@inflatable-cookie/longhorn-poodle-svelte/poodle", "@inflatable-cookie/longhorn/transfer", "@inflatable-cookie/longhorn/surface-transfer"],
     regions: 0,
   },
   nucleus: {
     longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
-    forbidden: ["@inflatable-cookie/longhorn/surfaces", "@inflatable-cookie/longhorn/surface-transfer"],
+    // Card 179: /surfaces is no longer forbidden here. A Surface is the layout,
+    // so the document type this shape needs lives there; what still holds is
+    // that it takes no part in Surface *transfer*.
+    forbidden: ["@inflatable-cookie/longhorn/surface-transfer"],
     regions: 5,
   },
   loophole: {

@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn snapshot_deserialization_rejects_future_and_mismatched_authority() {
-        let document = SurfaceDocument::new(SurfaceRevision::new(3), [], []);
+        let document = SurfaceDocument::new(SurfaceRevision::new(3), [], [], []);
         let snapshot = SurfaceSnapshot::new(SurfaceProtocolEpoch::new(2), document);
         let value = serde_json::to_value(snapshot).unwrap();
 

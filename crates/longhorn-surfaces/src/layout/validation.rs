@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{PanelDefinitionId, PanelInstanceId};
 
-use crate::{LayoutDefinitionRegistry, LayoutDocument, PanelInstancePolicy};
+use crate::{LayoutDefinitionRegistry, PanelInstancePolicy, SurfaceDocument};
 
 mod error;
 
@@ -12,15 +12,15 @@ pub use error::{LayoutValidationCode, LayoutValidationError};
 /// Validates all current-schema layout document invariants.
 pub fn validate_document(
     registry: &LayoutDefinitionRegistry,
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
 ) -> Result<(), LayoutValidationError> {
     let limits = registry.limits();
-    if document.containers().len() > limits.maximum_containers() {
+    if document.surfaces().len() > limits.maximum_containers() {
         return Err(validation_error(
             LayoutValidationCode::TooManyContainers,
             format!(
                 "{} containers exceed limit {}",
-                document.containers().len(),
+                document.surfaces().len(),
                 limits.maximum_containers()
             ),
         ));
@@ -63,12 +63,12 @@ pub fn validate_document(
             .or_default() += 1;
     }
 
-    let mut container_ids = BTreeSet::new();
+    let mut surface_ids = BTreeSet::new();
     let mut placed_instances = BTreeSet::<PanelInstanceId>::new();
     let mut counts_by_container = BTreeMap::<_, BTreeMap<PanelDefinitionId, usize>>::new();
 
-    for container in document.containers() {
-        if !container_ids.insert(container.id()) {
+    for container in document.surfaces() {
+        if !surface_ids.insert(container.id()) {
             return Err(validation_error(
                 LayoutValidationCode::DuplicateContainer,
                 format!("duplicate layout container {}", container.id()),
@@ -311,8 +311,8 @@ pub fn validate_document(
 /// Returns one canonical structural ordering for a valid current-schema document.
 pub fn normalize_document(
     registry: &LayoutDefinitionRegistry,
-    document: &LayoutDocument,
-) -> Result<LayoutDocument, LayoutValidationError> {
+    document: &SurfaceDocument,
+) -> Result<SurfaceDocument, LayoutValidationError> {
     validate_document(registry, document)?;
     let mut normalized = document.clone();
 
@@ -320,10 +320,10 @@ pub fn normalize_document(
         .panel_instances_mut()
         .sort_by(|left, right| left.id().cmp(right.id()));
     normalized
-        .containers_mut()
+        .surfaces_mut()
         .sort_by(|left, right| left.id().cmp(right.id()));
 
-    for container in normalized.containers_mut() {
+    for container in normalized.surfaces_mut() {
         let schema = registry
             .schema(container.schema_id())
             .expect("schema existence was validated");
@@ -362,7 +362,7 @@ pub fn normalize_document(
 /// Requires a valid document to already use canonical normalized form.
 pub fn validate_normalized_document(
     registry: &LayoutDefinitionRegistry,
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
 ) -> Result<(), LayoutValidationError> {
     let normalized = normalize_document(registry, document)?;
     if normalized == *document {

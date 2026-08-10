@@ -3,8 +3,8 @@ use longhorn_core::{SurfaceId, WindowId};
 use crate::SurfaceDocument;
 
 use super::{
-    EmptyWindowPolicy, LayoutContainerCleanupIntent, OperationRejection, SurfaceMutationOutcome,
-    SurfaceMutationRejectionCode, operation_rejection,
+    EmptyWindowPolicy, OperationRejection, SurfaceMutationOutcome, SurfaceMutationRejectionCode,
+    operation_rejection,
     ordering::{ordered_members, primary_members, set_window_order},
 };
 
@@ -110,7 +110,6 @@ pub(super) fn close_surface(
             format!("unknown Surface {surface_id}"),
         )
     })?;
-    let cleanup = LayoutContainerCleanupIntent::new(surface.layout_container_id().clone());
     let former_memberships = surface
         .host_preferences()
         .iter()
@@ -143,7 +142,6 @@ pub(super) fn close_surface(
 
     Ok(SurfaceMutationOutcome::SurfaceClosed {
         surface_id: surface_id.clone(),
-        cleanup,
     })
 }
 

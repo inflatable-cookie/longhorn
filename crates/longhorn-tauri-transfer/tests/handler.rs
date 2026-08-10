@@ -1,8 +1,8 @@
 //! Real handler-core behavior over deterministic managed-window readback.
 
 use longhorn_core::{
-    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, LayoutContainerId, RegionId,
-    ScreenPoint, ScreenRect, ScreenSize, TransferHostBindingId, TransferRequestId, WindowId,
+    ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, RegionId, ScreenPoint, ScreenRect,
+    ScreenSize, SurfaceId, TransferHostBindingId, TransferRequestId, WindowId,
 };
 use longhorn_tauri_transfer::{
     ManagedTransferSnapshot, ManagedTransferWindow, TransferHandlerAssembly, TransferHandlerError,
@@ -218,7 +218,7 @@ fn lease_request(
                 host_binding_id: TransferHostBindingId::new("binding:main").unwrap(),
                 document_id: DomainId::new("layout.main").unwrap(),
                 revision: TransferRevision::new(1),
-                container_id: LayoutContainerId::new("container:main").unwrap(),
+                surface_id: SurfaceId::new("container:main").unwrap(),
                 region_id: RegionId::new("region:main").unwrap(),
             },
         )],

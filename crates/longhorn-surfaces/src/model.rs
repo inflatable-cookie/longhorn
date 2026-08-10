@@ -1,4 +1,9 @@
-use longhorn_core::{LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRevision, WindowId};
+use longhorn_core::{
+    LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionId, SizingSlotId, SurfaceId,
+    SurfaceRevision, WindowId,
+};
+
+use crate::layout::model::{PanelInstance, RegionState, SizingSlotState};
 use serde::{Deserialize, Serialize};
 
 /// One candidate host and its declared tab order for a Surface.
@@ -84,13 +89,15 @@ impl SurfacePresentation {
 #[serde(deny_unknown_fields)]
 pub struct SurfaceRecord {
     id: SurfaceId,
-    layout_container_id: LayoutContainerId,
+    schema_id: LayoutSchemaId,
     label: Option<String>,
     // Defaulted so a document written before Card 177 loads unchanged. The
     // stored schema version belongs to the consumer's migration hook, so an
     // additive field with a default is what keeps NoSurfaceMigration correct.
     #[serde(default)]
     presentation: SurfacePresentation,
+    regions: Vec<RegionState>,
+    sizing_slots: Vec<SizingSlotState>,
     host_preferences: Vec<SurfaceHostPreference>,
 }
 
@@ -99,15 +106,19 @@ impl SurfaceRecord {
     #[must_use]
     pub fn new(
         id: SurfaceId,
-        layout_container_id: LayoutContainerId,
+        schema_id: LayoutSchemaId,
         label: Option<String>,
+        regions: impl IntoIterator<Item = RegionState>,
+        sizing_slots: impl IntoIterator<Item = SizingSlotState>,
         host_preferences: impl IntoIterator<Item = SurfaceHostPreference>,
     ) -> Self {
         Self {
             id,
-            layout_container_id,
+            schema_id,
             label,
             presentation: SurfacePresentation::Regional,
+            regions: regions.into_iter().collect(),
+            sizing_slots: sizing_slots.into_iter().collect(),
             host_preferences: host_preferences.into_iter().collect(),
         }
     }
@@ -116,16 +127,20 @@ impl SurfaceRecord {
     #[must_use]
     pub fn with_presentation(
         id: SurfaceId,
-        layout_container_id: LayoutContainerId,
+        schema_id: LayoutSchemaId,
         label: Option<String>,
         presentation: SurfacePresentation,
+        regions: impl IntoIterator<Item = RegionState>,
+        sizing_slots: impl IntoIterator<Item = SizingSlotState>,
         host_preferences: impl IntoIterator<Item = SurfaceHostPreference>,
     ) -> Self {
         Self {
             id,
-            layout_container_id,
+            schema_id,
             label,
             presentation,
+            regions: regions.into_iter().collect(),
+            sizing_slots: sizing_slots.into_iter().collect(),
             host_preferences: host_preferences.into_iter().collect(),
         }
     }
@@ -136,10 +151,56 @@ impl SurfaceRecord {
         &self.id
     }
 
-    /// Returns the distinct external layout-container binding.
+    /// Returns the registered layout schema this Surface is an instance of.
     #[must_use]
-    pub const fn layout_container_id(&self) -> &LayoutContainerId {
-        &self.layout_container_id
+    pub const fn schema_id(&self) -> &LayoutSchemaId {
+        &self.schema_id
+    }
+
+    /// Returns complete region state.
+    #[must_use]
+    pub fn regions(&self) -> &[RegionState] {
+        self.regions.as_slice()
+    }
+
+    /// Returns complete sizing-slot state.
+    #[must_use]
+    pub fn sizing_slots(&self) -> &[SizingSlotState] {
+        self.sizing_slots.as_slice()
+    }
+
+    /// Returns one region state.
+    #[must_use]
+    pub fn region(&self, id: &RegionId) -> Option<&RegionState> {
+        self.regions.iter().find(|region| region.region_id() == id)
+    }
+
+    /// Returns one sizing-slot state.
+    #[must_use]
+    pub fn sizing_slot(&self, id: &SizingSlotId) -> Option<&SizingSlotState> {
+        self.sizing_slots
+            .iter()
+            .find(|slot| slot.sizing_slot_id() == id)
+    }
+
+    pub(crate) fn regions_mut(&mut self) -> &mut Vec<RegionState> {
+        &mut self.regions
+    }
+
+    pub(crate) fn sizing_slots_mut(&mut self) -> &mut Vec<SizingSlotState> {
+        &mut self.sizing_slots
+    }
+
+    pub(crate) fn region_mut(&mut self, id: &RegionId) -> Option<&mut RegionState> {
+        self.regions
+            .iter_mut()
+            .find(|region| region.region_id() == id)
+    }
+
+    pub(crate) fn sizing_slot_mut(&mut self, id: &SizingSlotId) -> Option<&mut SizingSlotState> {
+        self.sizing_slots
+            .iter_mut()
+            .find(|slot| slot.sizing_slot_id() == id)
     }
 
     /// Returns the optional mutable display label.
@@ -216,6 +277,7 @@ impl ParticipatingWindow {
 pub struct SurfaceDocument {
     revision: SurfaceRevision,
     surfaces: Vec<SurfaceRecord>,
+    panel_instances: Vec<PanelInstance>,
     windows: Vec<ParticipatingWindow>,
 }
 
@@ -225,11 +287,13 @@ impl SurfaceDocument {
     pub fn new(
         revision: SurfaceRevision,
         surfaces: impl IntoIterator<Item = SurfaceRecord>,
+        panel_instances: impl IntoIterator<Item = PanelInstance>,
         windows: impl IntoIterator<Item = ParticipatingWindow>,
     ) -> Self {
         Self {
             revision,
             surfaces: surfaces.into_iter().collect(),
+            panel_instances: panel_instances.into_iter().collect(),
             windows: windows.into_iter().collect(),
         }
     }
@@ -244,6 +308,24 @@ impl SurfaceDocument {
     #[must_use]
     pub fn surfaces(&self) -> &[SurfaceRecord] {
         self.surfaces.as_slice()
+    }
+
+    /// Returns panel instances in canonical id order after normalization.
+    #[must_use]
+    pub fn panel_instances(&self) -> &[PanelInstance] {
+        self.panel_instances.as_slice()
+    }
+
+    /// Returns one panel instance.
+    #[must_use]
+    pub fn panel_instance(&self, id: &PanelInstanceId) -> Option<&PanelInstance> {
+        self.panel_instances
+            .iter()
+            .find(|instance| instance.id() == id)
+    }
+
+    pub(crate) fn panel_instances_mut(&mut self) -> &mut Vec<PanelInstance> {
+        &mut self.panel_instances
     }
 
     /// Returns participating windows in canonical id order after normalization.

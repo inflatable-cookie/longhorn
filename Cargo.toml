@@ -14,7 +14,6 @@ members = [
   "crates/longhorn-history",
   "crates/longhorn-history-tree",
   "crates/longhorn-licence",
-  "crates/longhorn-layout-config",
   "crates/longhorn-native-content",
   "crates/longhorn-native-content-backing-surface",
   "crates/longhorn-native-content-isolated-window",
@@ -85,7 +84,6 @@ longhorn-gpui-windowing = { path = "crates/longhorn-gpui-windowing", version = "
 longhorn-history = { path = "crates/longhorn-history", version = "0.1.0" }
 longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "0.1.0" }
 longhorn-licence = { path = "crates/longhorn-licence", version = "0.1.0" }
-longhorn-layout-config = { path = "crates/longhorn-layout-config", version = "0.1.0" }
 longhorn-native-content = { path = "crates/longhorn-native-content", version = "0.1.0" }
 longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "0.1.0" }
 longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "0.1.0" }

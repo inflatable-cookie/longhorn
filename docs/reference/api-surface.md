@@ -22,7 +22,6 @@
 | `longhorn-gpui-windowing` | library | none | [source](../../crates/longhorn-gpui-windowing/src/lib.rs) |
 | `longhorn-history` | library | `bindings` | [source](../../crates/longhorn-history/README.md) |
 | `longhorn-history-tree` | library | `bindings`, `default` | [source](../../crates/longhorn-history-tree/README.md) |
-| `longhorn-layout-config` | library | none | [source](../../crates/longhorn-layout-config/src/lib.rs) |
 | `longhorn-licence` | library | `bindings` | [source](../../crates/longhorn-licence/src/lib.rs) |
 | `longhorn-native-content` | library | `bindings`, `default` | [source](../../crates/longhorn-native-content/README.md) |
 | `longhorn-native-content-backing-surface` | library | none | [source](../../crates/longhorn-native-content-backing-surface/README.md) |

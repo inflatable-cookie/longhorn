@@ -99,7 +99,7 @@ pub fn resolve_surfaces(
         if !admitted_surface_ids.contains(surface.id()) {
             unresolved_surfaces.push(UnresolvedSurface {
                 surface_id: surface.id().clone(),
-                layout_container_id: surface.layout_container_id().clone(),
+                schema_id: surface.schema_id().clone(),
                 reason: SurfaceUnresolvedReason::NotAdmitted,
             });
             continue;
@@ -120,7 +120,7 @@ pub fn resolve_surfaces(
                     preference.order(),
                     ResolvedSurface {
                         surface_id: surface.id().clone(),
-                        layout_container_id: surface.layout_container_id().clone(),
+                        schema_id: surface.schema_id().clone(),
                         label: surface.label().map(ToOwned::to_owned),
                         host_preference_index,
                     },
@@ -128,7 +128,7 @@ pub fn resolve_surfaces(
         } else {
             unresolved_surfaces.push(UnresolvedSurface {
                 surface_id: surface.id().clone(),
-                layout_container_id: surface.layout_container_id().clone(),
+                schema_id: surface.schema_id().clone(),
                 reason: SurfaceUnresolvedReason::NoAvailableWindow,
             });
         }

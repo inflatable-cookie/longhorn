@@ -2,7 +2,7 @@ use std::{cell::Cell, collections::VecDeque};
 
 use longhorn_config::ConfigStore;
 use longhorn_core::{
-    DomainId, DropZoneId, LayoutContainerId, RegionId, ScreenPoint, ScreenRect, ScreenSize,
+    DomainId, DropZoneId, RegionId, ScreenPoint, ScreenRect, ScreenSize, SurfaceId,
     TransferHostBindingId, WindowId,
 };
 use longhorn_transfer::{
@@ -105,7 +105,7 @@ impl Runtime {
         &mut self,
         document_id: DomainId,
         revision: u64,
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         region_id: RegionId,
         insertion: Option<u32>,
     ) {
@@ -128,7 +128,7 @@ impl Runtime {
                             host_binding_id: binding_id(TARGET_BINDING),
                             document_id,
                             revision: TransferRevision::new(revision),
-                            container_id,
+                            surface_id,
                             region_id,
                         },
                     )],
@@ -184,12 +184,12 @@ pub fn coordinator(clock: &FakeClock) -> TransferCoordinator {
 }
 
 pub fn bindings(kind: PanelHostBindingKind, document_id: DomainId) -> PanelHostBindings {
-    let make = |id, window_id, container_id| match kind {
+    let make = |id, window_id, surface_id| match kind {
         PanelHostBindingKind::DirectWindow => {
-            PanelHostBinding::direct_window(id, window_id, document_id.clone(), container_id)
+            PanelHostBinding::direct_window(id, window_id, document_id.clone(), surface_id)
         }
         PanelHostBindingKind::SurfaceContainer => {
-            PanelHostBinding::surface_container(id, window_id, document_id.clone(), container_id)
+            PanelHostBinding::surface_container(id, window_id, document_id.clone(), surface_id)
         }
     };
     PanelHostBindings::new([

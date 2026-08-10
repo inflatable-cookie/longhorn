@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { DockEdge } from "@inflatable-cookie/poodle-svelte";
-  import type { RegionId } from "@inflatable-cookie/longhorn/layout";
+  import type {
+  RegionId,
+} from "@inflatable-cookie/longhorn/layout";
 
   import {
     LayoutDockRegion,
@@ -22,7 +24,7 @@
   {#each regions as regionId, index (regionId)}
     <LayoutDockRegion
       {binding}
-      containerId="container:primary"
+      containerId="surface:primary"
       {regionId}
       edge={edges[index % edges.length]}
       {resolvePanel}

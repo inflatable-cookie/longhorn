@@ -1,15 +1,16 @@
 use std::error::Error;
 
 use longhorn_core::{
-    LayoutContainerId, LayoutRequestId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
-    PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId,
+    LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
+    SizingSlotId, SurfaceId, SurfaceRevision, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutContainer, LayoutDocument, LayoutLimits,
-    LayoutMutationCommand, LayoutMutationOutcome, LayoutMutationReceipt, LayoutMutationRejection,
+    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutLimits, LayoutMutationCommand,
+    LayoutMutationOutcome, LayoutMutationReceipt, LayoutMutationRejection,
     LayoutMutationRejectionCode, LayoutMutationRequest, LayoutRatio, LayoutSchemaDefinition,
-    PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,
-    RegionState, RegionVisibility, RegionVisibilityState, SizingSlotDefinition, SizingSlotState,
+    PanelDefinition, PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector,
+    RegionDefinition, RegionState, RegionVisibility, RegionVisibilityState, SizingSlotDefinition,
+    SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
 };
 use ts_rs::TS;
 
@@ -18,7 +19,7 @@ use crate::generation::{
 };
 
 mod conformance;
-mod fixture;
+pub(crate) mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/layout/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/layout/protocol-v1.json";
@@ -61,14 +62,14 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let rejection_codes = string_union_variants(&rejection_declaration)?;
     let declarations = [
         LayoutSchemaId::decl(),
-        LayoutContainerId::decl(),
+        SurfaceId::decl(),
         RegionId::decl(),
         RegionFamilyId::decl(),
         SizingSlotId::decl(),
         PanelDefinitionId::decl(),
         PanelInstanceId::decl(),
         LayoutRequestId::decl(),
-        LayoutRevision::decl(),
+        SurfaceRevision::decl(),
         LayoutRatio::decl(),
         LayoutLimits::decl(),
         EmptyRegionPolicy::decl(),
@@ -79,10 +80,14 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         PanelInstancePolicy::decl(),
         PanelDefinition::decl(),
         PanelInstance::decl(),
+        WindowId::decl(),
         RegionState::decl(),
         SizingSlotState::decl(),
-        LayoutContainer::decl(),
-        LayoutDocument::decl(),
+        SurfaceHostPreference::decl(),
+        SurfacePresentation::decl(),
+        SurfaceRecord::decl(),
+        ParticipatingWindow::decl(),
+        SurfaceDocument::decl(),
         RegionVisibilityState::decl(),
         RegionVisibility::decl(),
         command_declaration,

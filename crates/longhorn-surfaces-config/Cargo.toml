@@ -15,7 +15,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-longhorn-layout-config.workspace = true
+longhorn-surfaces-config.workspace = true
 tempfile.workspace = true
 
 [lints]

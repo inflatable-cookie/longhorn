@@ -1,37 +1,40 @@
 use std::collections::BTreeSet;
 
-use longhorn_core::SurfaceId;
+use longhorn_core::{LayoutSchemaId, SurfaceId};
 
 use crate::{
-    SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
-    SurfaceValidationCode,
+    LayoutDefinitionRegistry, RegionState, SizingSlotState, SurfaceDocument, SurfaceHostPreference,
+    SurfacePresentation, SurfaceRecord, SurfaceValidationCode,
 };
 
 use super::{
-    EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory,
-    SurfaceMutationCommand, SurfaceMutationOutcome, SurfaceMutationRejectionCode,
+    EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationOutcome,
+    SurfaceMutationRejectionCode,
     error::{OperationRejection, operation_rejection},
 };
 
 pub(super) fn apply_command(
     document: &mut SurfaceDocument,
     command: &SurfaceMutationCommand,
-    layout_containers: &LayoutContainerInventory,
+    registry: &LayoutDefinitionRegistry,
     empty_policy: EmptyWindowPolicy,
 ) -> Result<SurfaceMutationOutcome, OperationRejection> {
     match command {
         SurfaceMutationCommand::CreateSurface {
             surface_id,
-            layout_container_id,
+            schema_id,
             label,
             host_preferences,
         } => {
-            require_fresh_ids(document, layout_containers, surface_id, layout_container_id)?;
+            require_fresh_surface(document, surface_id)?;
+            let (regions, sizing_slots) = materialize_schema(registry, schema_id)?;
             reject_repeated_preferences(host_preferences)?;
             document.surfaces_mut().push(SurfaceRecord::new(
                 surface_id.clone(),
-                layout_container_id.clone(),
+                schema_id.clone(),
                 label.clone(),
+                regions,
+                sizing_slots,
                 host_preferences.clone(),
             ));
             Ok(SurfaceMutationOutcome::SurfaceCreated {
@@ -41,14 +44,7 @@ pub(super) fn apply_command(
         SurfaceMutationCommand::DuplicateSurface {
             source_surface_id,
             surface_id,
-            layout_container_id,
-        } => duplicate_surface(
-            document,
-            layout_containers,
-            source_surface_id,
-            surface_id,
-            layout_container_id,
-        ),
+        } => duplicate_surface(document, registry, source_surface_id, surface_id),
         SurfaceMutationCommand::RenameSurface { surface_id, label } => {
             let surface = document.surface_mut(surface_id).ok_or_else(|| {
                 operation_rejection(
@@ -116,11 +112,9 @@ fn set_presentation(
     })
 }
 
-fn require_fresh_ids(
+pub(super) fn require_fresh_surface(
     document: &SurfaceDocument,
-    layout_containers: &LayoutContainerInventory,
     surface_id: &SurfaceId,
-    layout_container_id: &longhorn_core::LayoutContainerId,
 ) -> Result<(), OperationRejection> {
     if document.surface(surface_id).is_some() {
         return Err(operation_rejection(
@@ -128,23 +122,33 @@ fn require_fresh_ids(
             format!("Surface {surface_id} already exists"),
         ));
     }
-    if !layout_containers.contains(layout_container_id) {
-        return Err(operation_rejection(
-            SurfaceMutationRejectionCode::UnknownLayoutContainer,
-            format!("layout container {layout_container_id} does not exist"),
-        ));
-    }
-    if document
-        .surfaces()
-        .iter()
-        .any(|surface| surface.layout_container_id() == layout_container_id)
-    {
-        return Err(operation_rejection(
-            SurfaceMutationRejectionCode::LayoutContainerAlreadyBound,
-            format!("layout container {layout_container_id} is already bound"),
-        ));
-    }
     Ok(())
+}
+
+/// Builds a Surface's layout from its registered schema: every region empty,
+/// every sizing slot at its declared default. This is what replaced binding a
+/// container that something else had to create first.
+pub(super) fn materialize_schema(
+    registry: &LayoutDefinitionRegistry,
+    schema_id: &LayoutSchemaId,
+) -> Result<(Vec<RegionState>, Vec<SizingSlotState>), OperationRejection> {
+    let schema = registry.schema(schema_id).ok_or_else(|| {
+        operation_rejection(
+            SurfaceMutationRejectionCode::UnknownLayoutSchema,
+            format!("layout schema {schema_id} is not registered"),
+        )
+    })?;
+    let regions = schema
+        .regions()
+        .iter()
+        .map(|region| RegionState::new(region.id().clone(), [], None, None))
+        .collect();
+    let sizing_slots = schema
+        .sizing_slots()
+        .iter()
+        .map(|slot| SizingSlotState::new(slot.id().clone(), slot.default()))
+        .collect();
+    Ok((regions, sizing_slots))
 }
 
 fn reject_repeated_preferences(

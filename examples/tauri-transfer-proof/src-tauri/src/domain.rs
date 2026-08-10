@@ -12,15 +12,15 @@ use longhorn_config::{
     LoadOutcome, MutationOptions, StorageClass, StorageRoots,
 };
 use longhorn_core::{
-    DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
-    PanelInstanceId, RegionFamilyId, RegionId, SchemaVersion, TransferHostBindingId,
+    DomainId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
+    SchemaVersion, SurfaceId, SurfaceRevision, TransferHostBindingId, WindowId,
 };
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
-    LayoutSchemaDefinition, PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector,
-    RegionDefinition, RegionState,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
+    PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,
+    RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceRecord,
 };
+use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use longhorn_tauri_transfer::{PanelTransferAdapter, TransferCallerAuthority};
 use longhorn_transfer::{
     DragSessionIdAllocationError, DragSessionIdAllocator, MonotonicClock, PanelHostBinding,
@@ -97,7 +97,7 @@ impl ProofDomains {
         &self.panel_bindings
     }
 
-    pub(crate) fn layout_snapshot(&self) -> Result<LayoutDocument, String> {
+    pub(crate) fn layout_snapshot(&self) -> Result<SurfaceDocument, String> {
         match self
             .store
             .load(&self.layout)
@@ -283,13 +283,13 @@ fn panel_bindings(
             TransferHostBindingId::new(id).expect("proof binding id is valid"),
             longhorn_core::WindowId::new(window).expect("proof window id is valid"),
             document_id.clone(),
-            LayoutContainerId::new(container).expect("proof container id is valid"),
+            SurfaceId::new(container).expect("proof container id is valid"),
         ),
         PanelHostBindingKind::SurfaceContainer => PanelHostBinding::surface_container(
             TransferHostBindingId::new(id).expect("proof binding id is valid"),
             longhorn_core::WindowId::new(window).expect("proof window id is valid"),
             document_id.clone(),
-            LayoutContainerId::new(container).expect("proof container id is valid"),
+            SurfaceId::new(container).expect("proof container id is valid"),
         ),
     };
     PanelHostBindings::new([
@@ -346,15 +346,16 @@ fn layout_registry() -> Result<LayoutDefinitionRegistry, String> {
     .map_err(|error| error.to_string())
 }
 
-fn layout_document() -> LayoutDocument {
+fn layout_document() -> SurfaceDocument {
     let first = PanelInstanceId::new(SOURCE_PANEL_ID).expect("proof panel id is valid");
     let second = PanelInstanceId::new(SECOND_PANEL_ID).expect("proof panel id is valid");
-    LayoutDocument::new(
-        LayoutRevision::new(7),
+    SurfaceDocument::new(
+        SurfaceRevision::new(7),
         [
-            LayoutContainer::new(
-                LayoutContainerId::new(SOURCE_CONTAINER_ID).expect("proof container id is valid"),
+            SurfaceRecord::new(
+                SurfaceId::new(SOURCE_CONTAINER_ID).expect("proof surface id is valid"),
                 LayoutSchemaId::new("schema:proof").expect("proof schema id is valid"),
+                None,
                 [RegionState::new(
                     RegionId::new(MAIN_REGION_ID).expect("proof region id is valid"),
                     [first.clone(), second.clone()],
@@ -362,10 +363,15 @@ fn layout_document() -> LayoutDocument {
                     None,
                 )],
                 [],
+                [SurfaceHostPreference::new(
+                    WindowId::new(SOURCE_WINDOW_ID).expect("proof window id is valid"),
+                    0,
+                )],
             ),
-            LayoutContainer::new(
-                LayoutContainerId::new(TARGET_CONTAINER_ID).expect("proof container id is valid"),
+            SurfaceRecord::new(
+                SurfaceId::new(TARGET_CONTAINER_ID).expect("proof surface id is valid"),
                 LayoutSchemaId::new("schema:proof").expect("proof schema id is valid"),
+                None,
                 [RegionState::new(
                     RegionId::new(MAIN_REGION_ID).expect("proof region id is valid"),
                     [],
@@ -373,6 +379,10 @@ fn layout_document() -> LayoutDocument {
                     None,
                 )],
                 [],
+                [SurfaceHostPreference::new(
+                    WindowId::new(TARGET_WINDOW_ID).expect("proof window id is valid"),
+                    0,
+                )],
             ),
         ],
         [
@@ -385,6 +395,7 @@ fn layout_document() -> LayoutDocument {
                 PanelDefinitionId::new("panel:tool").expect("proof panel definition id is valid"),
             ),
         ],
+        [],
     )
 }
 

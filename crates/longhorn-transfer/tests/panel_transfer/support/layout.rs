@@ -5,15 +5,15 @@ use longhorn_config::{
     DurabilityRequirement, MutationOptions, StorageClass, StorageRoots,
 };
 use longhorn_core::{
-    DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
-    PanelInstanceId, RegionFamilyId, RegionId, SchemaVersion,
+    DomainId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
+    SchemaVersion, SurfaceId, SurfaceRevision,
 };
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
-    LayoutSchemaDefinition, PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector,
-    RegionDefinition, RegionState,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
+    PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,
+    RegionState, SurfaceDocument, SurfaceRecord,
 };
+use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use tempfile::TempDir;
 
 pub type TestDomain = RegisteredLayoutDomain<NoLayoutMigration>;
@@ -130,15 +130,16 @@ pub fn registry() -> LayoutDefinitionRegistry {
     .unwrap()
 }
 
-pub fn document() -> LayoutDocument {
+pub fn document() -> SurfaceDocument {
     let tool = tool_panel();
     let fixed = fixed_panel();
-    LayoutDocument::new(
-        LayoutRevision::new(7),
+    SurfaceDocument::new(
+        SurfaceRevision::new(7),
         [
-            LayoutContainer::new(
+            SurfaceRecord::new(
                 source_container(),
                 schema_id(),
+                None,
                 [
                     RegionState::new(main_region(), [tool.clone()], Some(tool.clone()), None),
                     RegionState::new(
@@ -149,14 +150,17 @@ pub fn document() -> LayoutDocument {
                     ),
                 ],
                 [],
+                [],
             ),
-            LayoutContainer::new(
+            SurfaceRecord::new(
                 target_container(),
                 schema_id(),
+                None,
                 [
                     RegionState::new(main_region(), [], None, None),
                     RegionState::new(side_region(), [], None, Some(false)),
                 ],
+                [],
                 [],
             ),
         ],
@@ -164,6 +168,7 @@ pub fn document() -> LayoutDocument {
             PanelInstance::new(tool, tool_definition()),
             PanelInstance::new(fixed, fixed_definition()),
         ],
+        [],
     )
 }
 
@@ -175,12 +180,12 @@ pub fn domain_id() -> DomainId {
     DomainId::new("layout.workspace").unwrap()
 }
 
-pub fn source_container() -> LayoutContainerId {
-    LayoutContainerId::new("container:source").unwrap()
+pub fn source_container() -> SurfaceId {
+    SurfaceId::new("surface:source").unwrap()
 }
 
-pub fn target_container() -> LayoutContainerId {
-    LayoutContainerId::new("container:target").unwrap()
+pub fn target_container() -> SurfaceId {
+    SurfaceId::new("surface:target").unwrap()
 }
 
 pub fn main_region() -> RegionId {

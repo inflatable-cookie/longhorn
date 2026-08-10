@@ -2476,18 +2476,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-layout-config"
-version = "0.1.0"
-dependencies = [
- "longhorn-config",
- "longhorn-core",
- "longhorn-surfaces",
- "serde",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
 name = "longhorn-licence"
 version = "0.1.0"
 dependencies = [
@@ -2722,8 +2710,8 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout-config",
  "longhorn-surfaces",
+ "longhorn-surfaces-config",
  "serde",
  "serde_json",
  "tempfile",
@@ -2847,7 +2835,6 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout-config",
  "longhorn-surface-transfer",
  "longhorn-surfaces",
  "longhorn-surfaces-config",
@@ -2895,8 +2882,8 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout-config",
  "longhorn-surfaces",
+ "longhorn-surfaces-config",
  "serde",
  "serde_json",
  "tempfile",

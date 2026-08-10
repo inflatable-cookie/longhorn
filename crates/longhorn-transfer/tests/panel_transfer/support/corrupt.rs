@@ -1,6 +1,6 @@
 use std::fs;
 
-use longhorn_layout_config::PersistedLayoutDocument;
+use longhorn_surfaces_config::PersistedLayoutDocument;
 use serde_json::json;
 
 use super::{Fixture, TestDomain, document};
@@ -18,10 +18,10 @@ pub fn write_instance_policy_violation(fixture: &Fixture, domain: &TestDomain) {
             "id": "panel:fixed:two",
             "definition_id": "panel:fixed",
         }));
-    let containers = value["document"]["containers"].as_array_mut().unwrap();
-    let target = containers
+    let surfaces = value["document"]["surfaces"].as_array_mut().unwrap();
+    let target = surfaces
         .iter_mut()
-        .find(|container| container["id"] == "container:target")
+        .find(|surface| surface["id"] == "surface:target")
         .unwrap();
     let side = target["regions"]
         .as_array_mut()

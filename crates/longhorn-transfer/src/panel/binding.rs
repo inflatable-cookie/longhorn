@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use longhorn_core::{DomainId, LayoutContainerId, TransferHostBindingId, WindowId};
+use longhorn_core::{DomainId, SurfaceId, TransferHostBindingId, WindowId};
 use serde::{Deserialize, Serialize};
 
 use super::{PanelTransferError, PanelTransferErrorCode};
@@ -23,7 +23,7 @@ pub struct PanelHostBinding {
     id: TransferHostBindingId,
     window_id: WindowId,
     document_id: DomainId,
-    container_id: LayoutContainerId,
+    surface_id: SurfaceId,
 }
 
 impl PanelHostBinding {
@@ -33,14 +33,14 @@ impl PanelHostBinding {
         id: TransferHostBindingId,
         window_id: WindowId,
         document_id: DomainId,
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
     ) -> Self {
         Self::new(
             PanelHostBindingKind::DirectWindow,
             id,
             window_id,
             document_id,
-            container_id,
+            surface_id,
         )
     }
 
@@ -50,14 +50,14 @@ impl PanelHostBinding {
         id: TransferHostBindingId,
         window_id: WindowId,
         document_id: DomainId,
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
     ) -> Self {
         Self::new(
             PanelHostBindingKind::SurfaceContainer,
             id,
             window_id,
             document_id,
-            container_id,
+            surface_id,
         )
     }
 
@@ -66,14 +66,14 @@ impl PanelHostBinding {
         id: TransferHostBindingId,
         window_id: WindowId,
         document_id: DomainId,
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
     ) -> Self {
         Self {
             kind,
             id,
             window_id,
             document_id,
-            container_id,
+            surface_id,
         }
     }
 
@@ -103,8 +103,8 @@ impl PanelHostBinding {
 
     /// Returns the currently hosted layout container.
     #[must_use]
-    pub const fn container_id(&self) -> &LayoutContainerId {
-        &self.container_id
+    pub const fn surface_id(&self) -> &SurfaceId {
+        &self.surface_id
     }
 }
 

@@ -29,7 +29,7 @@
 <div>
   <LayoutDockRegion
     {binding}
-    containerId="container:primary"
+    containerId="surface:primary"
     regionId="primary"
     edge="left"
     sizing={staticPrimary ? "static" : "flexible"}
@@ -46,7 +46,7 @@
   </LayoutDockRegion>
   <LayoutDockRegion
     {binding}
-    containerId="container:primary"
+    containerId="surface:primary"
     regionId="secondary"
     edge="right"
     {resolvePanel}

@@ -21,8 +21,8 @@
         "crates/longhorn-core",
         "crates/longhorn-display",
         "crates/longhorn-history",
-        "crates/longhorn-layout",
-        "crates/longhorn-layout-config",
+        "crates/longhorn-surfaces",
+        "crates/longhorn-surfaces-config",
         "crates/longhorn-native-content",
         "crates/longhorn-native-content-backing-surface",
         "crates/longhorn-native-content-isolated-window",
@@ -32,8 +32,6 @@
         "crates/longhorn-settings-config",
         "crates/longhorn-surface-transfer",
         "crates/longhorn-surface-windowing",
-        "crates/longhorn-surfaces",
-        "crates/longhorn-surfaces-config",
         "crates/longhorn-tauri-bridge",
         "crates/longhorn-tauri-command",
         "crates/longhorn-tauri-config",
@@ -175,9 +173,9 @@
           "sha256": "5ad45167851b6caedd78d15d1c5589504218cae4b0bc3727b8def55261c07df3"
         },
         {
-          "name": "@inflatable-cookie/longhorn-layout",
+          "name": "@inflatable-cookie/longhorn-surfaces",
           "version": "0.1.0",
-          "filename": "longhorn-layout-0.1.0.tgz",
+          "filename": "longhorn-surfaces-0.1.0.tgz",
           "sha256": "f3ebecc3f6abab4404be23eb73a64c6db8185421754e7c5644754f997d8f1fa5"
         },
         {
@@ -377,22 +375,22 @@
           "sourcePath": "crates/longhorn-history"
         },
         {
-          "name": "longhorn-layout",
+          "name": "longhorn-surfaces",
           "version": "0.1.0",
-          "filename": "longhorn-layout-0.1.0.private.tar.gz",
+          "filename": "longhorn-surfaces-0.1.0.private.tar.gz",
           "sha256": "354b63a30cae10b20a9f4e6482f9f6bc85c0f86a04554d4e1ef66e782f88446e",
           "inventoryFiles": 36,
           "inventorySha256": "460b8e79d8d9a8a5b9f22b36755b21ca7263a8760086fa405fd75728c3d4822a",
-          "sourcePath": "crates/longhorn-layout"
+          "sourcePath": "crates/longhorn-surfaces"
         },
         {
-          "name": "longhorn-layout-config",
+          "name": "longhorn-surfaces-config",
           "version": "0.1.0",
-          "filename": "longhorn-layout-config-0.1.0.private.tar.gz",
+          "filename": "longhorn-surfaces-config-0.1.0.private.tar.gz",
           "sha256": "c4e9b51b8993eeda28c4adaa8fef3ecb1019d5207a62d2e69db677cef41a3494",
           "inventoryFiles": 16,
           "inventorySha256": "c37227acb480bc34a63b35aa8620edde3340ea19012d06be38e8a030915d2628",
-          "sourcePath": "crates/longhorn-layout-config"
+          "sourcePath": "crates/longhorn-surfaces-config"
         },
         {
           "name": "longhorn-native-content",
@@ -661,7 +659,7 @@
         ]
       },
       {
-        "package": "@inflatable-cookie/longhorn-layout",
+        "package": "@inflatable-cookie/longhorn-surfaces",
         "peers": {},
         "optionalPeers": []
       },
@@ -743,9 +741,8 @@
           "svelte": ">=5.38.6 <=5.56.8"
         },
         "optionalPeers": [
-          "@inflatable-cookie/longhorn-layout",
-          "@inflatable-cookie/longhorn-surface-transfer",
           "@inflatable-cookie/longhorn-surfaces",
+          "@inflatable-cookie/longhorn-surface-transfer",
           "@inflatable-cookie/longhorn-transfer"
         ]
       },
@@ -894,7 +891,7 @@
         "@inflatable-cookie/longhorn-commands",
         "@inflatable-cookie/longhorn-config",
         "@inflatable-cookie/longhorn-core",
-        "@inflatable-cookie/longhorn-layout",
+        "@inflatable-cookie/longhorn-surfaces",
         "@inflatable-cookie/longhorn-native-content",
         "@inflatable-cookie/longhorn-native-content-svelte",
         "@inflatable-cookie/longhorn-notifications",
@@ -911,8 +908,8 @@
         "longhorn-config",
         "longhorn-core",
         "longhorn-display",
-        "longhorn-layout",
-        "longhorn-layout-config",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-native-content",
         "longhorn-notifications",
         "longhorn-operation",
@@ -937,8 +934,8 @@
         "longhorn-config",
         "longhorn-core",
         "longhorn-display",
-        "longhorn-layout",
-        "longhorn-layout-config",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-native-content",
         "longhorn-notifications",
         "longhorn-operation",
@@ -975,11 +972,10 @@
         "@inflatable-cookie/longhorn-config",
         "@inflatable-cookie/longhorn-core",
         "@inflatable-cookie/longhorn-history",
-        "@inflatable-cookie/longhorn-layout",
+        "@inflatable-cookie/longhorn-surfaces",
         "@inflatable-cookie/longhorn-poodle",
         "@inflatable-cookie/longhorn-settings",
         "@inflatable-cookie/longhorn-surface-transfer",
-        "@inflatable-cookie/longhorn-surfaces",
         "@inflatable-cookie/longhorn-svelte",
         "@inflatable-cookie/longhorn-tauri",
         "@inflatable-cookie/longhorn-transfer"
@@ -992,13 +988,11 @@
         "longhorn-core",
         "longhorn-display",
         "longhorn-history",
-        "longhorn-layout",
-        "longhorn-layout-config",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-settings",
         "longhorn-settings-config",
         "longhorn-surface-transfer",
-        "longhorn-surfaces",
-        "longhorn-surfaces-config",
         "longhorn-tauri-command",
         "longhorn-tauri-config",
         "longhorn-tauri-history",
@@ -1017,13 +1011,11 @@
         "longhorn-core",
         "longhorn-display",
         "longhorn-history",
-        "longhorn-layout",
-        "longhorn-layout-config",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-settings",
         "longhorn-settings-config",
         "longhorn-surface-transfer",
-        "longhorn-surfaces",
-        "longhorn-surfaces-config",
         "longhorn-tauri-command",
         "longhorn-tauri-config",
         "longhorn-tauri-history",

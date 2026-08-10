@@ -1,6 +1,6 @@
 use longhorn_core::{
-    DomainId, LayoutContainerId, RegionId, TransferClientId, TransferHostBindingId,
-    TransferSubjectId, WindowId,
+    DomainId, RegionId, SurfaceId, TransferClientId, TransferHostBindingId, TransferSubjectId,
+    WindowId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -49,7 +49,7 @@ pub enum TransferSourceAuthority {
         /// Layout revision recorded at session creation.
         revision: TransferRevision,
         /// Current source layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Current source region.
         region_id: RegionId,
     },
@@ -159,13 +159,13 @@ impl TransferSourceAuthority {
 
     /// Returns panel source placement when the subject is a panel.
     #[must_use]
-    pub const fn panel_placement(&self) -> Option<(&LayoutContainerId, &RegionId)> {
+    pub const fn panel_placement(&self) -> Option<(&SurfaceId, &RegionId)> {
         match self {
             Self::Panel {
-                container_id,
+                surface_id,
                 region_id,
                 ..
-            } => Some((container_id, region_id)),
+            } => Some((surface_id, region_id)),
             Self::Surface { .. } => None,
         }
     }

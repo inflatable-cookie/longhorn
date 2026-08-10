@@ -1,7 +1,6 @@
 use longhorn_config::{ConfigStore, MutationOptions};
 use longhorn_core::{SurfaceRequestId, SurfaceRevision};
-use longhorn_surfaces::LayoutDocument;
-use longhorn_surfaces::{SurfaceMutationCommand, SurfaceMutationRequest};
+use longhorn_surfaces::{LayoutDefinitionRegistry, SurfaceMutationCommand, SurfaceMutationRequest};
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_surface_mutation,
 };
@@ -25,7 +24,7 @@ use crate::admission::load_surface;
 pub(super) fn commit_existing<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    layout_document: &LayoutDocument,
+    registry: &LayoutDefinitionRegistry,
     bindings: &SurfaceHostBindings,
     policy: &SurfaceTransferPolicy,
     options: MutationOptions,
@@ -58,7 +57,7 @@ where
     let document = load_surface(store, domain)
         .map_err(SurfaceTransferError::consumed)?
         .clone();
-    let layout_container_id = require_fresh_source(&document, &source)?;
+    let surface_id = require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id)?;
     let insertion = insertion_index(
         &document,
@@ -77,7 +76,7 @@ where
         store,
         domain,
         options,
-        layout_document,
+        registry,
         policy.empty_window_policy(),
         &mutation,
     )
@@ -89,7 +88,7 @@ where
         .expect("successful move retains the Surface");
     // The document is durably committed at this point; a binding drift is
     // reconciliation evidence, never a release-profile abort.
-    if committed.layout_container_id() != &layout_container_id {
+    if committed.id() != &surface_id {
         return Err(super::evidence::consumed(
             crate::SurfaceTransferErrorCode::HostReconciliationRequired,
             "Surface moved but its retained external layout-container binding changed",

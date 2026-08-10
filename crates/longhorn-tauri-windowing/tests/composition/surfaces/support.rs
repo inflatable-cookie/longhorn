@@ -74,17 +74,22 @@ pub(super) fn surface_document() -> SurfaceDocument {
         [
             SurfaceRecord::new(
                 surface_id("surface:main"),
-                longhorn_core::LayoutContainerId::new("container:main").unwrap(),
+                longhorn_core::LayoutSchemaId::new("schema:composition").unwrap(),
                 None,
+                [],
+                [],
                 [SurfaceHostPreference::new(id("window:main"), 0)],
             ),
             SurfaceRecord::new(
                 surface_id("surface:workspace"),
-                longhorn_core::LayoutContainerId::new("container:workspace").unwrap(),
+                longhorn_core::LayoutSchemaId::new("schema:composition").unwrap(),
                 None,
+                [],
+                [],
                 [SurfaceHostPreference::new(id("window:workspace"), 0)],
             ),
         ],
+        [],
         [
             ParticipatingWindow::new(id("window:main"), Some(surface_id("surface:main"))),
             ParticipatingWindow::new(

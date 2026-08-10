@@ -18,7 +18,7 @@ bindings = [
 longhorn-config.workspace = true
 longhorn-core.workspace = true
 longhorn-surfaces.workspace = true
-longhorn-layout-config.workspace = true
+longhorn-surfaces-config.workspace = true
 serde.workspace = true
 ts-rs = { workspace = true, optional = true }
 

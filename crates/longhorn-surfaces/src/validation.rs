@@ -4,7 +4,7 @@ use std::{
     fmt,
 };
 
-use longhorn_core::{LayoutContainerId, SurfaceId, WindowId};
+use longhorn_core::{SurfaceId, WindowId};
 
 use crate::{SurfaceDocument, SurfaceLimits};
 
@@ -25,8 +25,6 @@ pub enum SurfaceValidationCode {
     DuplicateSurface,
     /// A participating-window id appeared more than once.
     DuplicateWindow,
-    /// One layout container was bound to more than one Surface.
-    DuplicateLayoutContainerBinding,
     /// A host preference referenced a non-participating window.
     UnknownHostWindow,
     /// A Surface repeated one candidate window.
@@ -107,7 +105,6 @@ pub fn validate_document(
     }
 
     let mut surface_ids = BTreeSet::<&SurfaceId>::new();
-    let mut container_ids = BTreeSet::<&LayoutContainerId>::new();
     let mut orders_by_window = BTreeMap::<&WindowId, BTreeSet<u32>>::new();
     let mut members_by_window = BTreeMap::<&WindowId, BTreeSet<&SurfaceId>>::new();
 
@@ -116,15 +113,6 @@ pub fn validate_document(
             return Err(validation_error(
                 SurfaceValidationCode::DuplicateSurface,
                 format!("duplicate Surface {}", surface.id()),
-            ));
-        }
-        if !container_ids.insert(surface.layout_container_id()) {
-            return Err(validation_error(
-                SurfaceValidationCode::DuplicateLayoutContainerBinding,
-                format!(
-                    "layout container {} is bound to more than one Surface",
-                    surface.layout_container_id()
-                ),
             ));
         }
         if let Some(label) = surface.label()

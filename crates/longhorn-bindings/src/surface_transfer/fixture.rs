@@ -144,6 +144,7 @@ fn completion(session_id: DragSessionId, request_id: &str, target: Value) -> Val
         "authoritative_document": {
             "revision": 12,
             "surfaces": [],
+            "panel_instances": [],
             "windows": [],
         },
         "target": target,

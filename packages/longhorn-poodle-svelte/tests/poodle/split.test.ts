@@ -1,7 +1,9 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
+import type {
+  LayoutMutationRequest,
+} from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import LayoutSplitHarness from "./LayoutSplitHarness.svelte";
@@ -67,7 +69,7 @@ describe("LayoutSplitView", () => {
     );
     expect(requests[0].command).toEqual({
       kind: "set_region_collapsed",
-      container_id: "container:primary",
+      surface_id: "surface:primary",
       region_id: "center_bottom",
       collapsed: true,
     });

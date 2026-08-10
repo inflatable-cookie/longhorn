@@ -1,4 +1,4 @@
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRevision, WindowId};
+use longhorn_core::{LayoutSchemaId, SurfaceId, SurfaceRevision, WindowId};
 use serde::{Deserialize, Serialize};
 
 /// Current consumer-resolved presence and participating-window availability.
@@ -40,7 +40,7 @@ impl SurfaceResolutionInput {
 #[serde(deny_unknown_fields)]
 pub struct ResolvedSurface {
     pub(super) surface_id: SurfaceId,
-    pub(super) layout_container_id: LayoutContainerId,
+    pub(super) schema_id: LayoutSchemaId,
     pub(super) label: Option<String>,
     pub(super) host_preference_index: u32,
 }
@@ -54,8 +54,8 @@ impl ResolvedSurface {
 
     /// Returns the external Surface-to-layout binding.
     #[must_use]
-    pub const fn layout_container_id(&self) -> &LayoutContainerId {
-        &self.layout_container_id
+    pub const fn schema_id(&self) -> &LayoutSchemaId {
+        &self.schema_id
     }
 
     /// Returns the optional display label.
@@ -115,7 +115,7 @@ pub enum SurfaceUnresolvedReason {
 #[serde(deny_unknown_fields)]
 pub struct UnresolvedSurface {
     pub(super) surface_id: SurfaceId,
-    pub(super) layout_container_id: LayoutContainerId,
+    pub(super) schema_id: LayoutSchemaId,
     pub(super) reason: SurfaceUnresolvedReason,
 }
 
@@ -128,8 +128,8 @@ impl UnresolvedSurface {
 
     /// Returns the unchanged external layout-container binding.
     #[must_use]
-    pub const fn layout_container_id(&self) -> &LayoutContainerId {
-        &self.layout_container_id
+    pub const fn schema_id(&self) -> &LayoutSchemaId {
+        &self.schema_id
     }
 
     /// Returns why no current host was selected.

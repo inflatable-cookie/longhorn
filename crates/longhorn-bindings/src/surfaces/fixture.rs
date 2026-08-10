@@ -1,14 +1,12 @@
 use std::error::Error;
 
-use longhorn_core::{
-    LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId,
-};
+use longhorn_core::{PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
 use longhorn_surfaces::{
-    EmptyWindowPolicy, LayoutContainerInventory, ParticipatingWindow, SURFACE_PROTOCOL_VERSION,
-    SurfaceChangedEvent, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
-    SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationReceipt,
-    SurfaceMutationRejection, SurfaceMutationRequest, SurfaceMutationResponse, SurfacePresentation,
-    SurfaceProtocolEpoch, SurfaceRecord, SurfaceSnapshot,
+    EmptyWindowPolicy, ParticipatingWindow, SURFACE_PROTOCOL_VERSION, SurfaceChangedEvent,
+    SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceMutationCommand,
+    SurfaceMutationEngine, SurfaceMutationReceipt, SurfaceMutationRejection,
+    SurfaceMutationRequest, SurfaceMutationResponse, SurfacePresentation, SurfaceProtocolEpoch,
+    SurfaceRecord, SurfaceSnapshot,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -36,20 +34,10 @@ struct IncompatibilityFixture {
 pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
     let source = document();
     let requests = requests(source.revision());
-    let containers = LayoutContainerInventory::new(
-        [
-            "container:mix",
-            "container:edit",
-            "container:plugins",
-            "container:new",
-            "container:duplicate",
-        ]
-        .into_iter()
-        .map(container_id),
-    );
+    let registry = crate::layout::fixture::registry()?;
     let engine = SurfaceMutationEngine::new(
         SurfaceLimits::new(8, 4, 4, 64)?,
-        &containers,
+        &registry,
         EmptyWindowPolicy::Allow,
     );
     let receipts: Vec<_> = requests
@@ -141,7 +129,7 @@ fn requests(revision: SurfaceRevision) -> Vec<SurfaceMutationRequest> {
             revision,
             SurfaceMutationCommand::CreateSurface {
                 surface_id: surface_id("surface:new"),
-                layout_container_id: container_id("container:new"),
+                schema_id: schema_id(),
                 label: Some("New".to_owned()),
                 host_preferences: vec![host("window:main", 2), host("window:tools", 3)],
             },
@@ -152,7 +140,6 @@ fn requests(revision: SurfaceRevision) -> Vec<SurfaceMutationRequest> {
             SurfaceMutationCommand::DuplicateSurface {
                 source_surface_id: surface_id("surface:mix"),
                 surface_id: surface_id("surface:copy"),
-                layout_container_id: container_id("container:duplicate"),
             },
         ),
         request(
@@ -223,23 +210,17 @@ fn document() -> SurfaceDocument {
         [
             surface(
                 "surface:mix",
-                "container:mix",
                 Some("Mix"),
                 [host("window:main", 0), host("window:tools", 1)],
             ),
             surface(
                 "surface:edit",
-                "container:edit",
                 Some("Edit"),
                 [host("window:main", 1), host("window:tools", 0)],
             ),
-            surface(
-                "surface:plugins",
-                "container:plugins",
-                None,
-                [host("window:tools", 2)],
-            ),
+            surface("surface:plugins", None, [host("window:tools", 2)]),
         ],
+        [],
         [
             ParticipatingWindow::new(window_id("window:main"), Some(surface_id("surface:edit"))),
             ParticipatingWindow::new(
@@ -252,14 +233,15 @@ fn document() -> SurfaceDocument {
 
 fn surface(
     id: &str,
-    container: &str,
     label: Option<&str>,
     preferences: impl IntoIterator<Item = SurfaceHostPreference>,
 ) -> SurfaceRecord {
     SurfaceRecord::new(
         surface_id(id),
-        container_id(container),
+        schema_id(),
         label.map(ToOwned::to_owned),
+        [],
+        [],
         preferences,
     )
 }
@@ -272,8 +254,8 @@ fn surface_id(value: &str) -> SurfaceId {
     SurfaceId::new(value).expect("fixture Surface id is valid")
 }
 
-fn container_id(value: &str) -> LayoutContainerId {
-    LayoutContainerId::new(value).expect("fixture container id is valid")
+fn schema_id() -> longhorn_core::LayoutSchemaId {
+    crate::layout::fixture::schema().id().clone()
 }
 
 fn window_id(value: &str) -> WindowId {

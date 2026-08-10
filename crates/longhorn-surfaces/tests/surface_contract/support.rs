@@ -1,7 +1,8 @@
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
+use longhorn_core::{LayoutSchemaId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
 use longhorn_surfaces::{
-    LayoutContainerInventory, ParticipatingWindow, SurfaceDocument, SurfaceHostPreference,
-    SurfaceLimits, SurfaceRecord, SurfaceValidationCode, validate_document,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
+    ParticipatingWindow, RegionDefinition, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+    SurfaceRecord, SurfaceValidationCode, validate_document,
 };
 
 pub fn limits() -> SurfaceLimits {
@@ -10,10 +11,6 @@ pub fn limits() -> SurfaceLimits {
 
 pub fn surface_id(value: &str) -> SurfaceId {
     SurfaceId::new(value).unwrap()
-}
-
-pub fn container_id(value: &str) -> LayoutContainerId {
-    LayoutContainerId::new(value).unwrap()
 }
 
 pub fn window_id(value: &str) -> WindowId {
@@ -28,16 +25,21 @@ pub fn host(window: &str, order: u32) -> SurfaceHostPreference {
     SurfaceHostPreference::new(window_id(window), order)
 }
 
+pub fn schema_id() -> LayoutSchemaId {
+    LayoutSchemaId::new("schema:loophole").expect("schema id is valid")
+}
+
 pub fn surface(
     id: &str,
-    container: &str,
     label: Option<&str>,
     preferences: impl IntoIterator<Item = SurfaceHostPreference>,
 ) -> SurfaceRecord {
     SurfaceRecord::new(
         surface_id(id),
-        container_id(container),
+        schema_id(),
         label.map(ToOwned::to_owned),
+        [],
+        [],
         preferences,
     )
 }
@@ -48,23 +50,17 @@ pub fn loophole_document() -> SurfaceDocument {
         [
             surface(
                 "surface:mix",
-                "container:mix",
                 Some("Mix"),
                 [host("window:main", 0), host("window:tools", 1)],
             ),
             surface(
                 "surface:edit",
-                "container:edit",
                 Some("Edit"),
                 [host("window:main", 1), host("window:tools", 0)],
             ),
-            surface(
-                "surface:plugins",
-                "container:plugins",
-                None,
-                [host("window:tools", 2)],
-            ),
+            surface("surface:plugins", None, [host("window:tools", 2)]),
         ],
+        [],
         [
             ParticipatingWindow::new(window_id("window:main"), Some(surface_id("surface:edit"))),
             ParticipatingWindow::new(
@@ -75,18 +71,23 @@ pub fn loophole_document() -> SurfaceDocument {
     )
 }
 
-pub fn layout_containers() -> LayoutContainerInventory {
-    LayoutContainerInventory::new(
-        [
-            "container:mix",
-            "container:edit",
-            "container:plugins",
-            "container:new",
-            "container:duplicate",
-        ]
-        .into_iter()
-        .map(container_id),
+pub fn registry() -> LayoutDefinitionRegistry {
+    LayoutDefinitionRegistry::new(
+        LayoutLimits::new(8, 8, 8, 64, 8, 64, 16).expect("layout limits are valid"),
+        [LayoutSchemaDefinition::new(
+            schema_id(),
+            [RegionDefinition::new(
+                longhorn_core::RegionId::new("region:main").expect("region id is valid"),
+                longhorn_core::RegionFamilyId::new("family:main").expect("family id is valid"),
+                0,
+                EmptyRegionPolicy::KeepVisible,
+                false,
+            )],
+            [],
+        )],
+        [],
     )
+    .expect("registry is valid")
 }
 
 pub fn assert_code(document: SurfaceDocument, expected: SurfaceValidationCode) {

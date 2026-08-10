@@ -51,8 +51,6 @@ const allRustCrates = [
   "longhorn-core",
   "longhorn-display",
   "longhorn-history",
-  "longhorn-layout",
-  "longhorn-layout-config",
   "longhorn-settings",
   "longhorn-settings-config",
   "longhorn-surface-transfer",
@@ -72,21 +70,21 @@ const allRustCrates = [
 ] as const;
 
 const baseRust = [
-  "longhorn-config", "longhorn-core", "longhorn-settings", "longhorn-settings-config",
-  "longhorn-tauri-config", "longhorn-tauri-settings",
+  "longhorn-config", "longhorn-core", "longhorn-settings",
+  "longhorn-settings-config", "longhorn-tauri-config", "longhorn-tauri-settings",
 ] as const;
 const workspaceRust = [
   "longhorn-command", "longhorn-command-config", "longhorn-command-settings",
-  "longhorn-config", "longhorn-core", "longhorn-display", "longhorn-layout",
-  "longhorn-layout-config", "longhorn-settings", "longhorn-settings-config",
-  "longhorn-tauri-command", "longhorn-tauri-config", "longhorn-tauri-settings",
-  "longhorn-tauri-windowing", "longhorn-windowing", "longhorn-windowing-config",
+  "longhorn-config", "longhorn-core", "longhorn-display",
+  "longhorn-surfaces", "longhorn-surfaces-config", "longhorn-settings",
+  "longhorn-settings-config", "longhorn-tauri-command", "longhorn-tauri-config",
+  "longhorn-tauri-settings", "longhorn-tauri-windowing", "longhorn-windowing",
+  "longhorn-windowing-config",
 ] as const;
 const fullRust = [
   ...workspaceRust,
   "longhorn-history", "longhorn-surface-transfer", "longhorn-surface-windowing",
-  "longhorn-surfaces", "longhorn-surfaces-config", "longhorn-tauri-history",
-  "longhorn-tauri-transfer", "longhorn-transfer",
+  "longhorn-tauri-history", "longhorn-tauri-transfer", "longhorn-transfer",
 ] as const;
 
 const policies: Record<ShapeName, ShapePolicy> = {
@@ -95,7 +93,7 @@ const policies: Record<ShapeName, ShapePolicy> = {
     typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
     rust: baseRust,
     forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
-    forbiddenRust: ["longhorn-layout", "longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
+    forbiddenRust: ["longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-config-read", "core:event:allow-listen", "core:event:allow-unlisten"],
   },
   workspace: {
@@ -103,7 +101,10 @@ const policies: Record<ShapeName, ShapePolicy> = {
     typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri"],
     rust: workspaceRust,
     forbiddenTypescript: [],
-    forbiddenRust: ["longhorn-surfaces", "longhorn-transfer", "longhorn-surface-transfer", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
+    // Card 179 folded longhorn-layout into longhorn-surfaces, so a composition
+    // that uses layout necessarily depends on longhorn-surfaces. What these
+    // shapes still exclude is Surface *transfer*, and the domains above.
+    forbiddenRust: ["longhorn-transfer", "longhorn-surface-transfer", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-command-read", "allow-longhorn-command-mutate", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-start-dragging"],
   },
   "full-hosting": {
@@ -119,7 +120,7 @@ const policies: Record<ShapeName, ShapePolicy> = {
     typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
     rust: [...baseRust, "longhorn-bridge", "longhorn-tauri-bridge"],
     forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
-    forbiddenRust: ["longhorn-layout", "longhorn-surfaces", "longhorn-history", "longhorn-native-content"],
+    forbiddenRust: ["longhorn-surfaces", "longhorn-history", "longhorn-native-content"],
     permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-bridge-query", "core:event:allow-listen", "core:event:allow-unlisten"],
   },
 };

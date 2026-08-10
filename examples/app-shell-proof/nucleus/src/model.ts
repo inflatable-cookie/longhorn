@@ -1,8 +1,10 @@
 import type {
-  LayoutDocument,
   LayoutSchemaDefinition,
   PanelDefinition,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 import type {
   PanelPresentationResolver,
   PoodleLayoutDefinitions,
@@ -44,12 +46,15 @@ export const definitions: PoodleLayoutDefinitions = {
   panels: [panel],
 };
 
-export const document: LayoutDocument = {
+export const document: SurfaceDocument = {
   revision: 4,
-  containers: [
+  surfaces: [
     {
-      id: "container:nucleus",
+      id: "surface:nucleus",
       schema_id: schema.id,
+      label: null,
+      presentation: { kind: "regional" },
+      host_preferences: [],
       regions: schema.regions.map(({ id, collapsible }) => ({
         region_id: id,
         panel_instance_ids: id === "main" ? ["panel-instance:project"] : [],
@@ -71,6 +76,7 @@ export const document: LayoutDocument = {
       definition_id: panel.id,
     },
   ],
+  windows: [],
 };
 
 export const resolvePanel: PanelPresentationResolver = () => ({

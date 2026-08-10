@@ -1,6 +1,6 @@
-use longhorn_core::{LayoutContainerId, PanelInstanceId, RegionId};
+use longhorn_core::{PanelInstanceId, RegionId, SurfaceId};
 
-use crate::{LayoutDefinitionRegistry, LayoutDocument, LayoutValidationCode, RegionState};
+use crate::{LayoutDefinitionRegistry, LayoutValidationCode, RegionState, SurfaceDocument};
 
 use super::{
     LayoutMutationCommand, LayoutMutationOutcome, LayoutMutationRejectionCode,
@@ -14,21 +14,21 @@ mod reorder_move;
 /// Existing location of one globally unique panel instance.
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct PanelLocation {
-    container_id: LayoutContainerId,
+    surface_id: SurfaceId,
     region_id: RegionId,
     index: usize,
 }
 
 pub(super) fn apply_command(
     registry: &LayoutDefinitionRegistry,
-    document: &mut LayoutDocument,
+    document: &mut SurfaceDocument,
     command: &LayoutMutationCommand,
 ) -> Result<LayoutMutationOutcome, OperationRejection> {
     match command {
         LayoutMutationCommand::CreatePanel {
             panel_instance_id,
             panel_definition_id,
-            container_id,
+            surface_id,
             region_id,
             insertion_index,
         } => create_close::create_panel(
@@ -36,7 +36,7 @@ pub(super) fn apply_command(
             document,
             panel_instance_id,
             panel_definition_id,
-            container_id,
+            surface_id,
             region_id,
             *insertion_index,
         ),
@@ -47,35 +47,33 @@ pub(super) fn apply_command(
             property::activate_panel(document, panel_instance_id)
         }
         LayoutMutationCommand::ReorderRegion {
-            container_id,
+            surface_id,
             region_id,
             panel_instance_ids,
-        } => reorder_move::reorder_region(document, container_id, region_id, panel_instance_ids),
+        } => reorder_move::reorder_region(document, surface_id, region_id, panel_instance_ids),
         LayoutMutationCommand::MovePanel {
             panel_instance_id,
-            target_container_id,
+            target_surface_id,
             target_region_id,
             insertion_index,
         } => reorder_move::move_panel(
             registry,
             document,
             panel_instance_id,
-            target_container_id,
+            target_surface_id,
             target_region_id,
             *insertion_index,
         ),
         LayoutMutationCommand::SetSizingSlot {
-            container_id,
+            surface_id,
             sizing_slot_id,
             ratio,
-        } => property::set_sizing_slot(registry, document, container_id, sizing_slot_id, *ratio),
+        } => property::set_sizing_slot(registry, document, surface_id, sizing_slot_id, *ratio),
         LayoutMutationCommand::SetRegionCollapsed {
-            container_id,
+            surface_id,
             region_id,
             collapsed,
-        } => {
-            property::set_region_collapsed(registry, document, container_id, region_id, *collapsed)
-        }
+        } => property::set_region_collapsed(registry, document, surface_id, region_id, *collapsed),
     }
 }
 
@@ -98,10 +96,10 @@ pub(super) fn map_candidate_validation(code: LayoutValidationCode) -> LayoutMuta
 }
 
 fn panel_location(
-    document: &LayoutDocument,
+    document: &SurfaceDocument,
     panel_instance_id: &PanelInstanceId,
 ) -> Result<PanelLocation, OperationRejection> {
-    for container in document.containers() {
+    for container in document.surfaces() {
         for region in container.regions() {
             if let Some(index) = region
                 .panel_instance_ids()
@@ -109,7 +107,7 @@ fn panel_location(
                 .position(|id| id == panel_instance_id)
             {
                 return Ok(PanelLocation {
-                    container_id: container.id().clone(),
+                    surface_id: container.id().clone(),
                     region_id: region.region_id().clone(),
                     index,
                 });
@@ -123,20 +121,20 @@ fn panel_location(
 }
 
 fn region_mut<'a>(
-    document: &'a mut LayoutDocument,
-    container_id: &LayoutContainerId,
+    document: &'a mut SurfaceDocument,
+    surface_id: &SurfaceId,
     region_id: &RegionId,
 ) -> Result<&'a mut RegionState, OperationRejection> {
-    let container = document.container_mut(container_id).ok_or_else(|| {
+    let container = document.surface_mut(surface_id).ok_or_else(|| {
         operation_rejection(
-            LayoutMutationRejectionCode::UnknownContainer,
-            format!("unknown layout container {container_id}"),
+            LayoutMutationRejectionCode::UnknownSurface,
+            format!("unknown layout container {surface_id}"),
         )
     })?;
     container.region_mut(region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {container_id} has no region {region_id}"),
+            format!("container {surface_id} has no region {region_id}"),
         )
     })
 }

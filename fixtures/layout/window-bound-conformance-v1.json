@@ -4,7 +4,7 @@
   "host_binding": {
     "kind": "window",
     "window_id": "window:primary",
-    "container_id": "container:primary"
+    "surface_id": "surface:primary"
   },
   "resolved_default_region": "center_top",
   "definitions": {
@@ -132,10 +132,14 @@
   },
   "initial_document": {
     "revision": 0,
-    "containers": [
+    "surfaces": [
       {
-        "id": "container:primary",
+        "id": "surface:primary",
         "schema_id": "schema:window-bound",
+        "label": null,
+        "presentation": {
+          "kind": "regional"
+        },
         "regions": [
           {
             "region_id": "left",
@@ -185,10 +189,12 @@
             "sizing_slot_id": "right-stack",
             "ratio": 740000
           }
-        ]
+        ],
+        "host_preferences": []
       }
     ],
-    "panel_instances": []
+    "panel_instances": [],
+    "windows": []
   },
   "steps": [
     {
@@ -199,7 +205,7 @@
           "kind": "create_panel",
           "panel_instance_id": "instance:a",
           "panel_definition_id": "panel:workspace-tool",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "insertion_index": 0
         }
@@ -211,16 +217,20 @@
         "outcome": {
           "kind": "panel_created",
           "panel_instance_id": "instance:a",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "insertion_index": 0
         },
         "authoritative_document": {
           "revision": 1,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -272,7 +282,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -280,7 +291,8 @@
               "id": "instance:a",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -292,7 +304,7 @@
           "kind": "create_panel",
           "panel_instance_id": "instance:b",
           "panel_definition_id": "panel:workspace-tool",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "insertion_index": 1
         }
@@ -304,16 +316,20 @@
         "outcome": {
           "kind": "panel_created",
           "panel_instance_id": "instance:b",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "insertion_index": 1
         },
         "authoritative_document": {
           "revision": 2,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -366,7 +382,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -378,7 +395,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -398,16 +416,20 @@
         "outcome": {
           "kind": "panel_activated",
           "panel_instance_id": "instance:a",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "previous_active_panel_instance_id": "instance:b"
         },
         "authoritative_document": {
           "revision": 3,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -460,7 +482,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -472,7 +495,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -482,7 +506,7 @@
         "expected_revision": 3,
         "command": {
           "kind": "reorder_region",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "panel_instance_ids": [
             "instance:b",
@@ -496,7 +520,7 @@
         "committed_revision": 4,
         "outcome": {
           "kind": "region_reordered",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "panel_instance_ids": [
             "instance:b",
@@ -505,10 +529,14 @@
         },
         "authoritative_document": {
           "revision": 4,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -561,7 +589,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -573,7 +602,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -584,7 +614,7 @@
         "command": {
           "kind": "move_panel",
           "panel_instance_id": "instance:b",
-          "target_container_id": "container:primary",
+          "target_surface_id": "surface:primary",
           "target_region_id": "right_top",
           "insertion_index": 0
         }
@@ -596,19 +626,23 @@
         "outcome": {
           "kind": "panel_moved",
           "panel_instance_id": "instance:b",
-          "source_container_id": "container:primary",
+          "source_surface_id": "surface:primary",
           "source_region_id": "center_top",
           "former_index": 0,
-          "target_container_id": "container:primary",
+          "target_surface_id": "surface:primary",
           "target_region_id": "right_top",
           "insertion_index": 0
         },
         "authoritative_document": {
           "revision": 5,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -662,7 +696,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -674,7 +709,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -684,7 +720,7 @@
         "expected_revision": 5,
         "command": {
           "kind": "set_sizing_slot",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "sizing_slot_id": "left-center",
           "ratio": 300000
         }
@@ -695,17 +731,21 @@
         "committed_revision": 6,
         "outcome": {
           "kind": "sizing_slot_set",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "sizing_slot_id": "left-center",
           "previous_ratio": 200000,
           "committed_ratio": 300000
         },
         "authoritative_document": {
           "revision": 6,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -759,7 +799,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -771,7 +812,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -781,7 +823,7 @@
         "expected_revision": 6,
         "command": {
           "kind": "set_region_collapsed",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "right_top",
           "collapsed": true
         }
@@ -792,17 +834,21 @@
         "committed_revision": 7,
         "outcome": {
           "kind": "region_collapsed_set",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "right_top",
           "previous_collapsed": false,
           "committed_collapsed": true
         },
         "authoritative_document": {
           "revision": 7,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -856,7 +902,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -868,7 +915,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     },
@@ -888,16 +936,20 @@
         "outcome": {
           "kind": "panel_closed",
           "panel_instance_id": "instance:a",
-          "container_id": "container:primary",
+          "surface_id": "surface:primary",
           "region_id": "center_top",
           "former_index": 0
         },
         "authoritative_document": {
           "revision": 8,
-          "containers": [
+          "surfaces": [
             {
-              "id": "container:primary",
+              "id": "surface:primary",
               "schema_id": "schema:window-bound",
+              "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "regions": [
                 {
                   "region_id": "left",
@@ -949,7 +1001,8 @@
                   "sizing_slot_id": "right-stack",
                   "ratio": 740000
                 }
-              ]
+              ],
+              "host_preferences": []
             }
           ],
           "panel_instances": [
@@ -957,7 +1010,8 @@
               "id": "instance:b",
               "definition_id": "panel:workspace-tool"
             }
-          ]
+          ],
+          "windows": []
         }
       }
     }
@@ -970,16 +1024,20 @@
       "outcome": {
         "kind": "panel_created",
         "panel_instance_id": "instance:singleton-a",
-        "container_id": "container:primary",
+        "surface_id": "surface:primary",
         "region_id": "center_top",
         "insertion_index": 0
       },
       "authoritative_document": {
         "revision": 1,
-        "containers": [
+        "surfaces": [
           {
-            "id": "container:primary",
+            "id": "surface:primary",
             "schema_id": "schema:window-bound",
+            "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "regions": [
               {
                 "region_id": "left",
@@ -1031,7 +1089,8 @@
                 "sizing_slot_id": "right-stack",
                 "ratio": 740000
               }
-            ]
+            ],
+            "host_preferences": []
           }
         ],
         "panel_instances": [
@@ -1039,7 +1098,8 @@
             "id": "instance:singleton-a",
             "definition_id": "panel:tasks"
           }
-        ]
+        ],
+        "windows": []
       }
     },
     "second_rejection": {
@@ -1049,10 +1109,14 @@
       "detail": "layout mutation candidate failed InstancePolicyExceeded: panel definition panel:tasks has 2 instances per container; maximum is 1",
       "authoritative_document": {
         "revision": 1,
-        "containers": [
+        "surfaces": [
           {
-            "id": "container:primary",
+            "id": "surface:primary",
             "schema_id": "schema:window-bound",
+            "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "regions": [
               {
                 "region_id": "left",
@@ -1104,7 +1168,8 @@
                 "sizing_slot_id": "right-stack",
                 "ratio": 740000
               }
-            ]
+            ],
+            "host_preferences": []
           }
         ],
         "panel_instances": [
@@ -1112,7 +1177,8 @@
             "id": "instance:singleton-a",
             "definition_id": "panel:tasks"
           }
-        ]
+        ],
+        "windows": []
       }
     }
   },
@@ -1167,10 +1233,14 @@
     "detail": "expected layout revision 0; current revision is 8",
     "authoritative_document": {
       "revision": 8,
-      "containers": [
+      "surfaces": [
         {
-          "id": "container:primary",
+          "id": "surface:primary",
           "schema_id": "schema:window-bound",
+          "label": null,
+          "presentation": {
+            "kind": "regional"
+          },
           "regions": [
             {
               "region_id": "left",
@@ -1222,7 +1292,8 @@
               "sizing_slot_id": "right-stack",
               "ratio": 740000
             }
-          ]
+          ],
+          "host_preferences": []
         }
       ],
       "panel_instances": [
@@ -1230,7 +1301,8 @@
           "id": "instance:b",
           "definition_id": "panel:workspace-tool"
         }
-      ]
+      ],
+      "windows": []
     }
   },
   "invalid_rejection": {
@@ -1240,10 +1312,14 @@
     "detail": "same-region position changes require a complete reorder command",
     "authoritative_document": {
       "revision": 8,
-      "containers": [
+      "surfaces": [
         {
-          "id": "container:primary",
+          "id": "surface:primary",
           "schema_id": "schema:window-bound",
+          "label": null,
+          "presentation": {
+            "kind": "regional"
+          },
           "regions": [
             {
               "region_id": "left",
@@ -1295,7 +1371,8 @@
               "sizing_slot_id": "right-stack",
               "ratio": 740000
             }
-          ]
+          ],
+          "host_preferences": []
         }
       ],
       "panel_instances": [
@@ -1303,15 +1380,20 @@
           "id": "instance:b",
           "definition_id": "panel:workspace-tool"
         }
-      ]
+      ],
+      "windows": []
     }
   },
   "expected_snapshot": {
     "revision": 8,
-    "containers": [
+    "surfaces": [
       {
-        "id": "container:primary",
+        "id": "surface:primary",
         "schema_id": "schema:window-bound",
+        "label": null,
+        "presentation": {
+          "kind": "regional"
+        },
         "regions": [
           {
             "region_id": "left",
@@ -1363,7 +1445,8 @@
             "sizing_slot_id": "right-stack",
             "ratio": 740000
           }
-        ]
+        ],
+        "host_preferences": []
       }
     ],
     "panel_instances": [
@@ -1371,6 +1454,7 @@
         "id": "instance:b",
         "definition_id": "panel:workspace-tool"
       }
-    ]
+    ],
+    "windows": []
   }
 }

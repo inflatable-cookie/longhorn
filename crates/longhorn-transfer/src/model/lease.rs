@@ -1,6 +1,4 @@
-use longhorn_core::{
-    DomainId, DropZoneId, LayoutContainerId, RegionId, ScreenRect, TransferHostBindingId,
-};
+use longhorn_core::{DomainId, DropZoneId, RegionId, ScreenRect, SurfaceId, TransferHostBindingId};
 use serde::{Deserialize, Serialize};
 
 use crate::{InsertionPosition, TransferRevision};
@@ -22,7 +20,7 @@ pub enum TransferTargetBinding {
         /// Advertised layout revision.
         revision: TransferRevision,
         /// Target layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
     },

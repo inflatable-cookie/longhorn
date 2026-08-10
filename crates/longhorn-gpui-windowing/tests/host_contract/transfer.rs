@@ -11,9 +11,7 @@
 //! session, moving under the cursor, released over another window. That wants
 //! a target application, and the ceiling is stated rather than papered over.
 
-use longhorn_core::{
-    DomainId, LayoutContainerId, RegionId, ScreenPoint, ScreenRect, ScreenSize, WindowId,
-};
+use longhorn_core::{DomainId, RegionId, ScreenPoint, ScreenRect, ScreenSize, SurfaceId, WindowId};
 use longhorn_gpui_windowing::{
     GpuiLogicalRect, GpuiLogicalSize, GpuiWindowKey, live_transfer_windows,
 };
@@ -160,8 +158,7 @@ fn a_point_in_another_window_resolves_to_that_window() {
                             .expect("binding"),
                         document_id: DomainId::new("layout.workspace").expect("document"),
                         revision: TransferRevision::new(9),
-                        container_id: LayoutContainerId::new("container:target")
-                            .expect("container"),
+                        surface_id: SurfaceId::new("surface:target").expect("container"),
                         region_id: RegionId::new("region:main").expect("region"),
                     },
                 )],
@@ -182,7 +179,7 @@ fn a_point_in_another_window_resolves_to_that_window() {
                     host_binding_id: TransferHostBindingId::new("host:source").expect("binding"),
                     document_id: DomainId::new("layout.workspace").expect("document"),
                     revision: TransferRevision::new(7),
-                    container_id: LayoutContainerId::new("container:source").expect("container"),
+                    surface_id: SurfaceId::new("surface:source").expect("container"),
                     region_id: RegionId::new("region:tools").expect("region"),
                 },
                 TransferDuration::new(50),
@@ -251,7 +248,7 @@ fn a_point_outside_every_observed_window_is_an_empty_display() {
                     host_binding_id: TransferHostBindingId::new("host:source").expect("binding"),
                     document_id: DomainId::new("layout.workspace").expect("document"),
                     revision: TransferRevision::new(7),
-                    container_id: LayoutContainerId::new("container:source").expect("container"),
+                    surface_id: SurfaceId::new("surface:source").expect("container"),
                     region_id: RegionId::new("region:tools").expect("region"),
                 },
                 TransferDuration::new(50),

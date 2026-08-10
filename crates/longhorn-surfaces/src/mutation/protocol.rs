@@ -1,9 +1,9 @@
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
+use longhorn_core::{LayoutSchemaId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
 use serde::{Deserialize, Serialize};
 
 use crate::{SurfaceDocument, SurfaceHostPreference, SurfacePresentation};
 
-use super::{LayoutContainerCleanupIntent, SurfaceMutationRejection};
+use super::SurfaceMutationRejection;
 
 /// One strict expected-revision Surface mutation request.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -59,8 +59,8 @@ pub enum SurfaceMutationCommand {
     CreateSurface {
         /// New durable Surface identity.
         surface_id: SurfaceId,
-        /// Existing unbound layout-container identity.
-        layout_container_id: LayoutContainerId,
+        /// Registered layout schema the new Surface instantiates.
+        schema_id: LayoutSchemaId,
         /// Optional generic display label.
         label: Option<String>,
         /// Complete candidate-host policy with explicit window orders.
@@ -72,8 +72,6 @@ pub enum SurfaceMutationCommand {
         source_surface_id: SurfaceId,
         /// New durable Surface identity.
         surface_id: SurfaceId,
-        /// Existing unbound layout-container identity.
-        layout_container_id: LayoutContainerId,
     },
     /// Replaces one Surface's optional display label.
     RenameSurface {
@@ -182,8 +180,6 @@ pub enum SurfaceMutationOutcome {
     SurfaceClosed {
         /// Closed Surface identity.
         surface_id: SurfaceId,
-        /// Explicit unexecuted cross-domain cleanup work.
-        cleanup: LayoutContainerCleanupIntent,
     },
 }
 

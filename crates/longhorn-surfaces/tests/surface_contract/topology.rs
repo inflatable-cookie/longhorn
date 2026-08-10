@@ -11,34 +11,22 @@ fn topology_rejects_duplicate_and_unknown_bindings() {
     let duplicate_surface = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
         [
-            surface("surface:a", "container:a", None, [host("window:a", 0)]),
-            surface("surface:a", "container:b", None, [host("window:a", 1)]),
+            surface("surface:a", None, [host("window:a", 0)]),
+            surface("surface:a", None, [host("window:a", 1)]),
         ],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(duplicate_surface, SurfaceValidationCode::DuplicateSurface);
 
-    let duplicate_container = SurfaceDocument::new(
-        SurfaceRevision::INITIAL,
-        [
-            surface("surface:a", "container:shared", None, [host("window:a", 0)]),
-            surface("surface:b", "container:shared", None, [host("window:a", 1)]),
-        ],
-        [ParticipatingWindow::new(window_id("window:a"), None)],
-    );
-    assert_code(
-        duplicate_container,
-        SurfaceValidationCode::DuplicateLayoutContainerBinding,
-    );
+    // Card 179 retired DuplicateLayoutContainerBinding. One container per
+    // Surface was worth rejecting; two Surfaces sharing a schema is the point
+    // of a schema, so there is nothing left to reject here.
 
     let duplicate_window = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface(
-            "surface:a",
-            "container:a",
-            None,
-            [host("window:a", 0)],
-        )],
+        [surface("surface:a", None, [host("window:a", 0)])],
+        [],
         [
             ParticipatingWindow::new(window_id("window:a"), None),
             ParticipatingWindow::new(window_id("window:a"), None),
@@ -48,12 +36,8 @@ fn topology_rejects_duplicate_and_unknown_bindings() {
 
     let unknown_window = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface(
-            "surface:a",
-            "container:a",
-            None,
-            [host("window:missing", 0)],
-        )],
+        [surface("surface:a", None, [host("window:missing", 0)])],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(unknown_window, SurfaceValidationCode::UnknownHostWindow);
@@ -63,7 +47,8 @@ fn topology_rejects_duplicate_and_unknown_bindings() {
 fn topology_rejects_missing_duplicate_and_incomplete_host_order() {
     let missing = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface("surface:a", "container:a", None, [])],
+        [surface("surface:a", None, [])],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(missing, SurfaceValidationCode::MissingHostPreference);
@@ -72,10 +57,10 @@ fn topology_rejects_missing_duplicate_and_incomplete_host_order() {
         SurfaceRevision::INITIAL,
         [surface(
             "surface:a",
-            "container:a",
             None,
             [host("window:a", 0), host("window:a", 1)],
         )],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(
@@ -86,9 +71,10 @@ fn topology_rejects_missing_duplicate_and_incomplete_host_order() {
     let duplicate_order = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
         [
-            surface("surface:a", "container:a", None, [host("window:a", 0)]),
-            surface("surface:b", "container:b", None, [host("window:a", 0)]),
+            surface("surface:a", None, [host("window:a", 0)]),
+            surface("surface:b", None, [host("window:a", 0)]),
         ],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(duplicate_order, SurfaceValidationCode::DuplicateHostOrder);
@@ -96,9 +82,10 @@ fn topology_rejects_missing_duplicate_and_incomplete_host_order() {
     let incomplete_order = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
         [
-            surface("surface:a", "container:a", None, [host("window:a", 0)]),
-            surface("surface:b", "container:b", None, [host("window:a", 2)]),
+            surface("surface:a", None, [host("window:a", 0)]),
+            surface("surface:b", None, [host("window:a", 2)]),
         ],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_code(incomplete_order, SurfaceValidationCode::IncompleteHostOrder);
@@ -108,12 +95,8 @@ fn topology_rejects_missing_duplicate_and_incomplete_host_order() {
 fn topology_rejects_bad_active_count_and_label_state() {
     let bad_active = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface(
-            "surface:a",
-            "container:a",
-            None,
-            [host("window:a", 0)],
-        )],
+        [surface("surface:a", None, [host("window:a", 0)])],
+        [],
         [ParticipatingWindow::new(
             window_id("window:a"),
             Some(surface_id("surface:missing")),
@@ -123,12 +106,8 @@ fn topology_rejects_bad_active_count_and_label_state() {
 
     let long_label = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface(
-            "surface:a",
-            "container:a",
-            Some("12345"),
-            [host("window:a", 0)],
-        )],
+        [surface("surface:a", Some("12345"), [host("window:a", 0)])],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_eq!(
@@ -141,9 +120,10 @@ fn topology_rejects_bad_active_count_and_label_state() {
     let excessive = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
         [
-            surface("surface:a", "container:a", None, [host("window:a", 0)]),
-            surface("surface:b", "container:b", None, [host("window:a", 1)]),
+            surface("surface:a", None, [host("window:a", 0)]),
+            surface("surface:b", None, [host("window:a", 1)]),
         ],
+        [],
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_eq!(
@@ -155,12 +135,8 @@ fn topology_rejects_bad_active_count_and_label_state() {
 
     let too_many_windows = SurfaceDocument::new(
         SurfaceRevision::INITIAL,
-        [surface(
-            "surface:a",
-            "container:a",
-            None,
-            [host("window:a", 0)],
-        )],
+        [surface("surface:a", None, [host("window:a", 0)])],
+        [],
         [
             ParticipatingWindow::new(window_id("window:a"), None),
             ParticipatingWindow::new(window_id("window:b"), None),
@@ -180,10 +156,10 @@ fn topology_rejects_bad_active_count_and_label_state() {
         SurfaceRevision::INITIAL,
         [surface(
             "surface:a",
-            "container:a",
             None,
             [host("window:a", 0), host("window:b", 0)],
         )],
+        [],
         [
             ParticipatingWindow::new(window_id("window:a"), None),
             ParticipatingWindow::new(window_id("window:b"), None),
@@ -206,6 +182,7 @@ fn normalization_canonicalizes_structure_and_preserves_declared_host_priority() 
     let permuted = SurfaceDocument::new(
         source.revision(),
         source.surfaces().iter().rev().cloned(),
+        [],
         source.windows().iter().rev().cloned(),
     );
 

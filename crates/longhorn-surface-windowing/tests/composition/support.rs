@@ -1,8 +1,8 @@
 use std::convert::Infallible;
 
 use longhorn_core::{
-    DisplayId, LayoutContainerId, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, SurfaceId,
-    SurfaceRevision, WindowId, WindowPlacement,
+    DisplayId, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, SurfaceId, SurfaceRevision,
+    WindowId, WindowPlacement,
 };
 use longhorn_display::{
     DisplayBuiltinStatus, DisplayEvidence, DisplayFacts, DisplayIdAllocator, DisplayInventory,
@@ -36,6 +36,10 @@ pub fn limits() -> SurfaceLimits {
     SurfaceLimits::new(8, 4, 4, 64).unwrap()
 }
 
+pub fn schema_id() -> longhorn_core::LayoutSchemaId {
+    longhorn_core::LayoutSchemaId::new("schema:composition").expect("schema id is valid")
+}
+
 pub fn surface_id(value: &str) -> SurfaceId {
     SurfaceId::new(value).unwrap()
 }
@@ -44,18 +48,16 @@ pub fn window_id(value: &str) -> WindowId {
     WindowId::new(value).unwrap()
 }
 
-pub fn container_id(value: &str) -> LayoutContainerId {
-    LayoutContainerId::new(value).unwrap()
-}
-
 pub fn document() -> SurfaceDocument {
     SurfaceDocument::new(
         SurfaceRevision::new(12),
         [
             SurfaceRecord::new(
                 surface_id("surface:mix"),
-                container_id("container:mix"),
+                schema_id(),
                 Some("Mix".to_owned()),
+                [],
+                [],
                 [
                     SurfaceHostPreference::new(window_id("window:preferred"), 0),
                     SurfaceHostPreference::new(window_id("window:main"), 1),
@@ -63,11 +65,14 @@ pub fn document() -> SurfaceDocument {
             ),
             SurfaceRecord::new(
                 surface_id("surface:edit"),
-                container_id("container:edit"),
+                schema_id(),
                 Some("Edit".to_owned()),
+                [],
+                [],
                 [SurfaceHostPreference::new(window_id("window:main"), 0)],
             ),
         ],
+        [],
         [
             ParticipatingWindow::new(window_id("window:main"), Some(surface_id("surface:edit"))),
             ParticipatingWindow::new(

@@ -1,9 +1,11 @@
 import type {
-  LayoutDocument,
   LayoutMutationRejection,
   LayoutMutationRequest,
   LayoutMutationReceipt,
 } from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
 
 import {
   OptimisticProjectionState,
@@ -30,7 +32,7 @@ export interface LayoutStateOptions {
 
 export class LayoutState {
   readonly #options: LayoutStateOptions;
-  readonly #projection = new OptimisticProjectionState<LayoutDocument>(
+  readonly #projection = new OptimisticProjectionState<SurfaceDocument>(
     (document) => document.revision,
   );
   #status = $state.raw<ClientStatus>({ kind: "idle" });
@@ -44,11 +46,11 @@ export class LayoutState {
     return this.#status;
   }
 
-  get authoritative(): LayoutDocument | undefined {
+  get authoritative(): SurfaceDocument | undefined {
     return this.#projection.authoritative;
   }
 
-  get projected(): LayoutDocument | undefined {
+  get projected(): SurfaceDocument | undefined {
     return this.#projection.projected;
   }
 
@@ -69,7 +71,7 @@ export class LayoutState {
         : { kind: "loading" };
   }
 
-  accept(document: LayoutDocument): boolean {
+  accept(document: SurfaceDocument): boolean {
     this.#assertAlive();
     const accepted = this.#projection.accept(document);
     if (accepted) {
@@ -88,7 +90,7 @@ export class LayoutState {
 
   async dispatch(
     request: LayoutMutationRequest,
-    project: OptimisticProjector<LayoutDocument>,
+    project: OptimisticProjector<SurfaceDocument>,
   ): Promise<LayoutDispatchResult> {
     this.#assertAlive();
     const dispatch = this.#options.dispatch;

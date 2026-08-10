@@ -13,7 +13,12 @@
     SemanticControlSizeRole,
     TabVariant,
   } from "@inflatable-cookie/poodle-svelte";
-  import type { LayoutContainerId, RegionId } from "@inflatable-cookie/longhorn/layout";
+  import type {
+  RegionId,
+} from "@inflatable-cookie/longhorn/layout";
+import type {
+  SurfaceId,
+} from "@inflatable-cookie/longhorn/surfaces";
   import type { Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";
@@ -24,7 +29,7 @@
 
   interface Props {
     binding: PoodleLayoutBinding;
-    containerId: LayoutContainerId;
+    containerId: SurfaceId;
     regionId: RegionId;
     edge: DockEdge;
     resolvePanel: PanelPresentationResolver;

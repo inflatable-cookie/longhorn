@@ -20,10 +20,8 @@ pub enum SurfaceMutationRejectionCode {
     UnknownSurface,
     /// A create or duplicate command reused a Surface id.
     DuplicateSurface,
-    /// The supplied layout container was not present in the evidence document.
-    UnknownLayoutContainer,
-    /// The supplied layout container was already bound to another Surface.
-    LayoutContainerAlreadyBound,
+    /// The named layout schema is not registered.
+    UnknownLayoutSchema,
     /// A participating window was not present.
     UnknownWindow,
     /// A host preference repeated one window.

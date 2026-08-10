@@ -1,7 +1,7 @@
 use longhorn_core::{
-    LayoutRevision, TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
+    SurfaceRevision, TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
-use longhorn_surfaces::LayoutDocument;
+use longhorn_surfaces::SurfaceDocument;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -183,9 +183,9 @@ pub struct PanelTransferCompletion {
     target_host_binding_id: TransferHostBindingId,
     source_binding_kind: PanelHostBindingKind,
     target_binding_kind: PanelHostBindingKind,
-    previous_revision: LayoutRevision,
-    committed_revision: LayoutRevision,
-    authoritative_document: LayoutDocument,
+    previous_revision: SurfaceRevision,
+    committed_revision: SurfaceRevision,
+    authoritative_document: SurfaceDocument,
     target: TransferCommittedTarget,
 }
 

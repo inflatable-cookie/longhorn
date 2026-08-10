@@ -1,5 +1,5 @@
 use longhorn_core::{PanelInstanceId, TransferClientId, TransferHostBindingId, WindowId};
-use longhorn_layout_config::LayoutConfigPublicationReceipt;
+use longhorn_surfaces_config::LayoutConfigPublicationReceipt;
 
 use crate::{
     ClientEpoch, DragSessionId, LiveTransferWindow, TargetSelector, TerminalTransferAttempt,

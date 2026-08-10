@@ -1,7 +1,9 @@
 import { waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
+import type {
+  LayoutMutationRequest,
+} from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import {
@@ -38,7 +40,7 @@ describe("PoodleLayoutBinding", () => {
     });
 
     expect(() =>
-      binding.region("container:primary", "left", () => null),
+      binding.region("surface:primary", "left", () => null),
     ).toThrow(MissingPanelPresentationError);
   });
 
@@ -58,7 +60,7 @@ describe("PoodleLayoutBinding", () => {
     });
 
     expect(() =>
-      binding.collapsibleRegionState("container:primary", "left"),
+      binding.collapsibleRegionState("surface:primary", "left"),
     ).toThrow("region does not support collapse: left");
   });
 
@@ -76,9 +78,9 @@ describe("PoodleLayoutBinding", () => {
       },
     );
 
-    const ordinary = binding.regionVisibilities("container:primary");
+    const ordinary = binding.regionVisibilities("surface:primary");
     const moving = binding.regionVisibilities(
-      "container:primary",
+      "surface:primary",
       "instance:a",
     );
 
@@ -122,7 +124,7 @@ describe("PoodleLayoutBinding", () => {
     );
 
     binding.activate("instance:b");
-    binding.setCollapsed("container:primary", "center_bottom", true);
+    binding.setCollapsed("surface:primary", "center_bottom", true);
 
     await waitFor(() => expect(requests).toHaveLength(1));
     pendings[0].resolve(
@@ -135,7 +137,7 @@ describe("PoodleLayoutBinding", () => {
     ]);
     expect(requests[1].command).toEqual({
       kind: "set_region_collapsed",
-      container_id: "container:primary",
+      surface_id: "surface:primary",
       region_id: "center_bottom",
       collapsed: true,
     });

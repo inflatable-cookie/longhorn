@@ -79,10 +79,6 @@ opaque_id!(
     "Opaque identity for one consumer-registered layout schema."
 );
 opaque_id!(
-    LayoutContainerId,
-    "Opaque identity for one Surface-independent layout container."
-);
-opaque_id!(
     RegionId,
     "Opaque identity for one semantic region in a layout schema."
 );
@@ -434,13 +430,6 @@ mod tests {
         assert_eq!(
             serde_json::from_str::<WindowId>("\"window:primary\"").unwrap(),
             window
-        );
-
-        let container = LayoutContainerId::new("layout:primary").unwrap();
-        assert_eq!(
-            serde_json::from_str::<LayoutContainerId>(&serde_json::to_string(&container).unwrap())
-                .unwrap(),
-            container
         );
 
         let surface = SurfaceId::new("surface:primary").unwrap();

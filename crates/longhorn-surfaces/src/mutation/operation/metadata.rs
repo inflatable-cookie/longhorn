@@ -1,20 +1,19 @@
-use longhorn_core::{LayoutContainerId, SurfaceId};
+use longhorn_core::SurfaceId;
 
-use crate::{SurfaceDocument, SurfaceHostPreference, SurfaceRecord};
+use crate::{LayoutDefinitionRegistry, SurfaceDocument, SurfaceHostPreference, SurfaceRecord};
 
 use super::{
-    LayoutContainerInventory, OperationRejection, SurfaceMutationOutcome,
-    SurfaceMutationRejectionCode, operation_rejection, require_fresh_ids,
+    OperationRejection, SurfaceMutationOutcome, SurfaceMutationRejectionCode, materialize_schema,
+    operation_rejection, require_fresh_surface,
 };
 
 pub(super) fn duplicate_surface(
     document: &mut SurfaceDocument,
-    layout_containers: &LayoutContainerInventory,
+    registry: &LayoutDefinitionRegistry,
     source_surface_id: &SurfaceId,
     surface_id: &SurfaceId,
-    layout_container_id: &LayoutContainerId,
 ) -> Result<SurfaceMutationOutcome, OperationRejection> {
-    require_fresh_ids(document, layout_containers, surface_id, layout_container_id)?;
+    require_fresh_surface(document, surface_id)?;
     let source = document
         .surface(source_surface_id)
         .ok_or_else(|| {
@@ -54,10 +53,16 @@ pub(super) fn duplicate_surface(
         ));
     }
 
+    // Duplication copies generic metadata and hosting policy, never layout
+    // contents: the copy instantiates the same schema fresh, as it did when the
+    // duplicate bound a new empty container.
+    let (regions, sizing_slots) = materialize_schema(registry, source.schema_id())?;
     document.surfaces_mut().push(SurfaceRecord::new(
         surface_id.clone(),
-        layout_container_id.clone(),
+        source.schema_id().clone(),
         source.label().map(str::to_owned),
+        regions,
+        sizing_slots,
         duplicate_preferences,
     ));
     Ok(SurfaceMutationOutcome::SurfaceDuplicated {

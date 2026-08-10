@@ -1,10 +1,10 @@
 use std::{error::Error, fmt};
 
-use longhorn_core::{LayoutContainerId, PanelDefinitionId, RegionId};
+use longhorn_core::{PanelDefinitionId, RegionId, SurfaceId};
 use serde::{Deserialize, Serialize};
 
 use crate::layout::validation::validate_document;
-use crate::{EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutDocument, LayoutValidationError};
+use crate::{EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutValidationError, SurfaceDocument};
 
 /// Projected presentation state for one semantic region.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -44,14 +44,14 @@ impl RegionVisibility {
 /// Projects normal or transient-reveal visibility without mutating state.
 pub fn project_region_visibility(
     registry: &LayoutDefinitionRegistry,
-    document: &LayoutDocument,
-    container_id: &LayoutContainerId,
+    document: &SurfaceDocument,
+    surface_id: &SurfaceId,
     moving_panel_definition_id: Option<&PanelDefinitionId>,
 ) -> Result<Vec<RegionVisibility>, VisibilityProjectionError> {
     validate_document(registry, document).map_err(VisibilityProjectionError::InvalidDocument)?;
     let container = document
-        .container(container_id)
-        .ok_or_else(|| VisibilityProjectionError::UnknownContainer(container_id.clone()))?;
+        .surface(surface_id)
+        .ok_or_else(|| VisibilityProjectionError::UnknownSurface(surface_id.clone()))?;
     let schema = registry
         .schema(container.schema_id())
         .expect("schema existence was validated");
@@ -98,7 +98,7 @@ pub enum VisibilityProjectionError {
     /// The source document was invalid.
     InvalidDocument(LayoutValidationError),
     /// The requested layout container did not exist.
-    UnknownContainer(LayoutContainerId),
+    UnknownSurface(SurfaceId),
     /// The transient panel definition was not registered.
     UnknownPanelDefinition(PanelDefinitionId),
 }
@@ -107,7 +107,7 @@ impl fmt::Display for VisibilityProjectionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDocument(error) => write!(formatter, "invalid layout document: {error}"),
-            Self::UnknownContainer(id) => write!(formatter, "unknown layout container {id}"),
+            Self::UnknownSurface(id) => write!(formatter, "unknown layout container {id}"),
             Self::UnknownPanelDefinition(id) => {
                 write!(formatter, "unknown panel definition {id}")
             }
@@ -119,7 +119,7 @@ impl Error for VisibilityProjectionError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::InvalidDocument(error) => Some(error),
-            Self::UnknownContainer(_) | Self::UnknownPanelDefinition(_) => None,
+            Self::UnknownSurface(_) | Self::UnknownPanelDefinition(_) => None,
         }
     }
 }

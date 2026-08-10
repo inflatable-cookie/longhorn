@@ -1,4 +1,4 @@
-use longhorn_core::{DomainId, LayoutContainerId, SurfaceId, WindowId};
+use longhorn_core::{DomainId, SurfaceId, WindowId};
 use longhorn_surfaces::{SurfaceDocument, SurfaceMutationRejectionCode};
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceConfigMutationError, SurfaceMigration,
@@ -49,7 +49,7 @@ pub(super) fn require_binding(
 pub(super) fn require_fresh_source(
     document: &SurfaceDocument,
     source: &SurfaceSource<'_>,
-) -> Result<LayoutContainerId, SurfaceTransferError> {
+) -> Result<SurfaceId, SurfaceTransferError> {
     if document.revision().get() != source.revision {
         return Err(consumed(
             SurfaceTransferErrorCode::StaleSurfaceRevision,
@@ -80,7 +80,7 @@ pub(super) fn require_fresh_source(
             ),
         ));
     }
-    Ok(surface.layout_container_id().clone())
+    Ok(surface.id().clone())
 }
 
 pub(super) fn require_target(

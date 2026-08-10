@@ -1,9 +1,8 @@
 use std::{error::Error, fmt};
 
 use longhorn_config::{ConfigStore, DomainIssue, MutationError, MutationOptions, MutationReceipt};
-use longhorn_surfaces::LayoutDocument;
 use longhorn_surfaces::{
-    EmptyWindowPolicy, LayoutContainerInventory, SurfaceMutationEngine, SurfaceMutationReceipt,
+    EmptyWindowPolicy, LayoutDefinitionRegistry, SurfaceMutationEngine, SurfaceMutationReceipt,
     SurfaceMutationRejection, SurfaceMutationRequest,
 };
 
@@ -51,11 +50,15 @@ impl fmt::Display for SurfaceConfigMutationError {
 impl Error for SurfaceConfigMutationError {}
 
 /// Applies one request to fresh coordinated state and immediately publishes it.
+/// A rejection carries the exact unchanged authoritative document, which Card
+/// 179 made larger by folding layout state into it. Boxing would change the
+/// wire shape to save a stack move on the refusal path.
+#[allow(clippy::result_large_err)]
 pub fn publish_surface_mutation<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
     options: MutationOptions,
-    layout_document: &LayoutDocument,
+    registry: &LayoutDefinitionRegistry,
     empty_window_policy: EmptyWindowPolicy,
     request: &SurfaceMutationRequest,
 ) -> Result<SurfaceConfigPublicationReceipt, SurfaceConfigMutationError>
@@ -64,21 +67,11 @@ where
 {
     let mut surface_receipt = None;
     let mut surface_rejection = None;
-    let layout_containers = LayoutContainerInventory::new(
-        layout_document
-            .containers()
-            .iter()
-            .map(|container| container.id().clone()),
-    );
     let publication = store.mutate(
         domain,
         options,
-        |document| match SurfaceMutationEngine::new(
-            domain.limits(),
-            &layout_containers,
-            empty_window_policy,
-        )
-        .apply(document, request)
+        |document| match SurfaceMutationEngine::new(domain.limits(), registry, empty_window_policy)
+            .apply(document, request)
         {
             Ok(receipt) => {
                 *document = receipt.authoritative_document().clone();

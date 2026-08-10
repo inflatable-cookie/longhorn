@@ -1,7 +1,7 @@
 use longhorn_config::{ConfigStore, MutationOptions};
-use longhorn_core::{LayoutRequestId, LayoutRevision, PanelInstanceId};
-use longhorn_layout_config::{LayoutMigration, RegisteredLayoutDomain, publish_layout_mutation};
+use longhorn_core::{LayoutRequestId, PanelInstanceId, SurfaceRevision};
 use longhorn_surfaces::{LayoutMutationCommand, LayoutMutationRequest};
+use longhorn_surfaces_config::{LayoutMigration, RegisteredLayoutDomain, publish_layout_mutation};
 
 use crate::{MonotonicClock, TransferCoordinator};
 
@@ -52,7 +52,7 @@ where
     require_same_domain(domain, source.document_id, target.document_id)?;
     if source.revision != target.revision {
         return Err(consumed(
-            PanelTransferErrorCode::StaleLayoutRevision,
+            PanelTransferErrorCode::StaleSurfaceRevision,
             "source and target advertised different layout revisions",
         ));
     }
@@ -62,20 +62,20 @@ where
         source_binding,
         source.window_id,
         source.document_id,
-        source.container_id,
+        source.surface_id,
     )?;
     let target_binding = bindings.get(target.host_binding_id).map_err(as_consumed)?;
     require_binding(
         target_binding,
         target.window_id,
         target.document_id,
-        target.container_id,
+        target.surface_id,
     )?;
 
     let document = load_layout(store, domain).map_err(as_consumed)?;
     if document.revision().get() != source.revision {
         return Err(consumed(
-            PanelTransferErrorCode::StaleLayoutRevision,
+            PanelTransferErrorCode::StaleSurfaceRevision,
             format!(
                 "current layout revision {} differs from recorded revision {}",
                 document.revision().get(),
@@ -107,17 +107,17 @@ where
             format!("source panel {panel_instance_id} has no current placement"),
         )
     })?;
-    if placement.0 != *source.container_id || placement.1 != *source.region_id {
+    if placement.0 != *source.surface_id || placement.1 != *source.region_id {
         return Err(consumed(
             PanelTransferErrorCode::SourceChanged,
             format!("source panel {panel_instance_id} moved after admission"),
         ));
     }
 
-    let target_container = document.container(target.container_id).ok_or_else(|| {
+    let target_container = document.surface(target.surface_id).ok_or_else(|| {
         consumed(
             PanelTransferErrorCode::TargetChanged,
-            format!("target container {} no longer exists", target.container_id),
+            format!("target container {} no longer exists", target.surface_id),
         )
     })?;
     let target_region = target_container.region(target.region_id).ok_or_else(|| {
@@ -141,10 +141,10 @@ where
     let mutation = LayoutMutationRequest::new(
         LayoutRequestId::new(format!("transfer:{}", attempt.session_id()))
             .expect("transfer-derived layout request id is bounded and grammatical"),
-        LayoutRevision::new(source.revision),
+        SurfaceRevision::new(source.revision),
         LayoutMutationCommand::MovePanel {
             panel_instance_id,
-            target_container_id: target.container_id.clone(),
+            target_surface_id: target.surface_id.clone(),
             target_region_id: target.region_id.clone(),
             insertion_index,
         },

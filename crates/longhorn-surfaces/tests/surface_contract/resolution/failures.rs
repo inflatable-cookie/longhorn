@@ -57,12 +57,8 @@ fn malformed_external_sets_fail_typed() {
 
     let one_surface_document = longhorn_surfaces::SurfaceDocument::new(
         longhorn_core::SurfaceRevision::INITIAL,
-        [surface(
-            "surface:only",
-            "container:only",
-            None,
-            [host("window:only", 0)],
-        )],
+        [surface("surface:only", None, [host("window:only", 0)])],
+        [],
         [longhorn_surfaces::ParticipatingWindow::new(
             window_id("window:only"),
             None,

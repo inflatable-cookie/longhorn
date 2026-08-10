@@ -73,6 +73,7 @@
         "authoritative_document": {
           "revision": 12,
           "surfaces": [],
+          "panel_instances": [],
           "windows": []
         },
         "target": {
@@ -105,6 +106,7 @@
         "authoritative_document": {
           "revision": 12,
           "surfaces": [],
+          "panel_instances": [],
           "windows": []
         },
         "target": {

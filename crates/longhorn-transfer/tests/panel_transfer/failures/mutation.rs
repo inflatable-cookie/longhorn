@@ -1,7 +1,7 @@
-use longhorn_layout_config::publish_layout_mutation;
 use longhorn_surfaces::{
     LayoutMutationCommand, LayoutMutationRejectionCode, LayoutMutationRequest,
 };
+use longhorn_surfaces_config::publish_layout_mutation;
 use longhorn_transfer::{
     PanelHostBindingKind, PanelTransferErrorCode, PanelTransferOperation, commit_panel_transfer,
 };
@@ -79,7 +79,7 @@ fn stale_target_revision_aborts_before_loading_or_publication() {
         request,
     )
     .unwrap_err();
-    assert_eq!(error.code(), PanelTransferErrorCode::StaleLayoutRevision);
+    assert_eq!(error.code(), PanelTransferErrorCode::StaleSurfaceRevision);
     assert!(error.session_consumed());
     assert!(!fixture.path(&domain).exists());
 }
@@ -98,7 +98,7 @@ fn disappeared_source_preserves_exact_intervening_authority() {
         options(),
         &LayoutMutationRequest::new(
             longhorn_core::LayoutRequestId::new("request:close-source").unwrap(),
-            longhorn_core::LayoutRevision::new(7),
+            longhorn_core::SurfaceRevision::new(7),
             LayoutMutationCommand::ClosePanel {
                 panel_instance_id: tool_panel(),
             },
@@ -118,7 +118,7 @@ fn disappeared_source_preserves_exact_intervening_authority() {
         request,
     )
     .unwrap_err();
-    assert_eq!(error.code(), PanelTransferErrorCode::StaleLayoutRevision);
+    assert_eq!(error.code(), PanelTransferErrorCode::StaleSurfaceRevision);
     assert!(error.session_consumed());
     assert_eq!(std::fs::read(fixture.path(&domain)).unwrap(), before);
 }

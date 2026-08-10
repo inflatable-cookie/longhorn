@@ -1,14 +1,16 @@
 use std::error::Error;
 
 use longhorn_core::{
-    LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId,
+    LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionId, SizingSlotId, SurfaceId,
+    SurfaceRequestId, SurfaceRevision, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyWindowPolicy, LayoutContainerCleanupIntent, ParticipatingWindow, SURFACE_PROTOCOL_VERSION,
-    SurfaceChangedEvent, SurfaceDocument, SurfaceHostPreference, SurfaceMutationCommand,
-    SurfaceMutationOutcome, SurfaceMutationReceipt, SurfaceMutationRejection,
-    SurfaceMutationRejectionCode, SurfaceMutationRequest, SurfaceMutationResponse,
-    SurfacePresentation, SurfaceProtocolEpoch, SurfaceRecord, SurfaceSnapshot,
+    EmptyWindowPolicy, LayoutRatio, PanelInstance, ParticipatingWindow, RegionState,
+    SURFACE_PROTOCOL_VERSION, SizingSlotState, SurfaceChangedEvent, SurfaceDocument,
+    SurfaceHostPreference, SurfaceMutationCommand, SurfaceMutationOutcome, SurfaceMutationReceipt,
+    SurfaceMutationRejection, SurfaceMutationRejectionCode, SurfaceMutationRequest,
+    SurfaceMutationResponse, SurfacePresentation, SurfaceProtocolEpoch, SurfaceRecord,
+    SurfaceSnapshot,
 };
 use ts_rs::TS;
 
@@ -59,20 +61,26 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let outcome_kinds = tagged_variants(&outcome_declaration, "kind")?;
     let rejection_codes = string_union_variants(&rejection_declaration)?;
     let declarations = [
-        LayoutContainerId::decl(),
+        LayoutSchemaId::decl(),
+        RegionId::decl(),
+        SizingSlotId::decl(),
+        PanelInstanceId::decl(),
         SurfaceId::decl(),
         SurfaceRequestId::decl(),
         WindowId::decl(),
         SurfaceRevision::decl(),
         SurfaceProtocolEpoch::decl(),
         PanelDefinitionId::decl(),
+        LayoutRatio::decl(),
+        RegionState::decl(),
+        SizingSlotState::decl(),
+        PanelInstance::decl(),
         SurfaceHostPreference::decl(),
         SurfacePresentation::decl(),
         SurfaceRecord::decl(),
         ParticipatingWindow::decl(),
         SurfaceDocument::decl(),
         EmptyWindowPolicy::decl(),
-        LayoutContainerCleanupIntent::decl(),
         command_declaration,
         SurfaceMutationRequest::decl(),
         outcome_declaration,

@@ -139,6 +139,7 @@ fn structural_and_external_input_permutations_produce_one_snapshot() {
     let permuted = longhorn_surfaces::SurfaceDocument::new(
         document.revision(),
         document.surfaces().iter().rev().cloned(),
+        [],
         document.windows().iter().rev().cloned(),
     );
     let first = resolve_surfaces(

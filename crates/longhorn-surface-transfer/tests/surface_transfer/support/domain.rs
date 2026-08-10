@@ -5,17 +5,17 @@ use longhorn_config::{
     LoadOutcome, MutationOptions, StorageClass, StorageRoots,
 };
 use longhorn_core::{
-    DisplayId, DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, SchemaVersion,
-    ScreenPoint, ScreenRect, ScreenSize, SurfaceId, SurfaceRevision, WindowId, WindowPlacement,
+    DisplayId, DomainId, SchemaVersion, ScreenPoint, ScreenRect, ScreenSize, SurfaceId,
+    SurfaceRevision, WindowId, WindowPlacement,
 };
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, EmptyDisplayProvisionTarget, SurfaceTransferPolicy,
 };
 use longhorn_surfaces::{
-    EmptyWindowPolicy, ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
-    SurfaceRecord,
+    EmptyRegionPolicy, EmptyWindowPolicy, LayoutDefinitionRegistry, LayoutLimits,
+    LayoutSchemaDefinition, ParticipatingWindow, RegionDefinition, SurfaceDocument,
+    SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
 };
-use longhorn_surfaces::{LayoutContainer, LayoutDocument};
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
 
@@ -74,8 +74,10 @@ pub fn domain() -> TestDomain {
             [
                 SurfaceRecord::new(
                     surface_id("surface:a"),
-                    container_id("container:a"),
+                    schema_id(),
                     Some("A".to_owned()),
+                    [],
+                    [],
                     [
                         preference("window:main", 0),
                         preference("window:target", 0),
@@ -84,11 +86,14 @@ pub fn domain() -> TestDomain {
                 ),
                 SurfaceRecord::new(
                     surface_id("surface:b"),
-                    container_id("container:b"),
+                    schema_id(),
                     Some("B".to_owned()),
+                    [],
+                    [],
                     [preference("window:main", 1)],
                 ),
             ],
+            [],
             [
                 ParticipatingWindow::new(window_id("window:main"), Some(surface_id("surface:a"))),
                 ParticipatingWindow::new(window_id("window:new"), None),
@@ -102,8 +107,27 @@ pub fn domain() -> TestDomain {
     .unwrap()
 }
 
-pub fn layout_document() -> LayoutDocument {
-    layout(["container:a", "container:b"])
+pub fn registry() -> LayoutDefinitionRegistry {
+    LayoutDefinitionRegistry::new(
+        LayoutLimits::new(8, 8, 8, 64, 8, 64, 16).expect("layout limits are valid"),
+        [LayoutSchemaDefinition::new(
+            schema_id(),
+            [RegionDefinition::new(
+                longhorn_core::RegionId::new("region:main").expect("region id is valid"),
+                longhorn_core::RegionFamilyId::new("family:main").expect("family id is valid"),
+                0,
+                EmptyRegionPolicy::KeepVisible,
+                false,
+            )],
+            [],
+        )],
+        [],
+    )
+    .expect("registry is valid")
+}
+
+pub fn schema_id() -> longhorn_core::LayoutSchemaId {
+    longhorn_core::LayoutSchemaId::new("schema:transfer").expect("schema id is valid")
 }
 
 pub fn policy() -> SurfaceTransferPolicy {
@@ -147,25 +171,6 @@ pub fn window_id(value: &str) -> WindowId {
     WindowId::new(value).unwrap()
 }
 
-fn container_id(value: &str) -> LayoutContainerId {
-    LayoutContainerId::new(value).unwrap()
-}
-
 fn preference(window: &str, order: u32) -> SurfaceHostPreference {
     SurfaceHostPreference::new(window_id(window), order)
-}
-
-fn layout<const N: usize>(containers: [&str; N]) -> LayoutDocument {
-    LayoutDocument::new(
-        LayoutRevision::new(3),
-        containers.into_iter().map(|id| {
-            LayoutContainer::new(
-                container_id(id),
-                LayoutSchemaId::new("schema:test").unwrap(),
-                [],
-                [],
-            )
-        }),
-        [],
-    )
 }

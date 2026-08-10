@@ -1,10 +1,10 @@
 use longhorn_core::{
-    LayoutContainerId, LayoutRequestId, LayoutRevision, PanelDefinitionId, PanelInstanceId,
-    RegionId, SizingSlotId,
+    LayoutRequestId, PanelDefinitionId, PanelInstanceId, RegionId, SizingSlotId, SurfaceId,
+    SurfaceRevision,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{LayoutDocument, LayoutRatio};
+use crate::{LayoutRatio, SurfaceDocument};
 
 /// One strict expected-revision layout mutation request.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -12,7 +12,7 @@ use crate::{LayoutDocument, LayoutRatio};
 #[serde(deny_unknown_fields)]
 pub struct LayoutMutationRequest {
     request_id: LayoutRequestId,
-    expected_revision: LayoutRevision,
+    expected_revision: SurfaceRevision,
     command: LayoutMutationCommand,
 }
 
@@ -21,7 +21,7 @@ impl LayoutMutationRequest {
     #[must_use]
     pub const fn new(
         request_id: LayoutRequestId,
-        expected_revision: LayoutRevision,
+        expected_revision: SurfaceRevision,
         command: LayoutMutationCommand,
     ) -> Self {
         Self {
@@ -39,7 +39,7 @@ impl LayoutMutationRequest {
 
     /// Returns the revision required for admission.
     #[must_use]
-    pub const fn expected_revision(&self) -> LayoutRevision {
+    pub const fn expected_revision(&self) -> SurfaceRevision {
         self.expected_revision
     }
 
@@ -63,7 +63,7 @@ pub enum LayoutMutationCommand {
         /// Registered panel-definition identity.
         panel_definition_id: PanelDefinitionId,
         /// Target layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
         /// Zero-based insertion index, including append at current length.
@@ -82,7 +82,7 @@ pub enum LayoutMutationCommand {
     /// Replaces one region's tab order with an exact complete permutation.
     ReorderRegion {
         /// Target layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
         /// Complete ordered permutation of current region members.
@@ -93,7 +93,7 @@ pub enum LayoutMutationCommand {
         /// Existing durable panel-instance identity.
         panel_instance_id: PanelInstanceId,
         /// Target layout container.
-        target_container_id: LayoutContainerId,
+        target_surface_id: SurfaceId,
         /// Target semantic region.
         target_region_id: RegionId,
         /// Zero-based insertion index in the target before insertion.
@@ -102,7 +102,7 @@ pub enum LayoutMutationCommand {
     /// Sets one registered sizing-slot ratio.
     SetSizingSlot {
         /// Target layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Target sizing slot.
         sizing_slot_id: SizingSlotId,
         /// New bounded integer-millionth ratio.
@@ -111,7 +111,7 @@ pub enum LayoutMutationCommand {
     /// Sets durable collapse state on a supported region.
     SetRegionCollapsed {
         /// Target layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
         /// New collapse state.
@@ -130,7 +130,7 @@ pub enum LayoutMutationOutcome {
         /// Created panel instance.
         panel_instance_id: PanelInstanceId,
         /// Committed container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Committed region.
         region_id: RegionId,
         /// Committed insertion index.
@@ -141,7 +141,7 @@ pub enum LayoutMutationOutcome {
         /// Closed panel instance.
         panel_instance_id: PanelInstanceId,
         /// Former container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Former region.
         region_id: RegionId,
         /// Former zero-based index.
@@ -152,7 +152,7 @@ pub enum LayoutMutationOutcome {
         /// Activated panel instance.
         panel_instance_id: PanelInstanceId,
         /// Containing layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Containing semantic region.
         region_id: RegionId,
         /// Previous active member, when present.
@@ -161,7 +161,7 @@ pub enum LayoutMutationOutcome {
     /// One region accepted a complete committed tab order.
     RegionReordered {
         /// Reordered layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Reordered semantic region.
         region_id: RegionId,
         /// Complete committed order.
@@ -172,13 +172,13 @@ pub enum LayoutMutationOutcome {
         /// Moved panel instance.
         panel_instance_id: PanelInstanceId,
         /// Former container.
-        source_container_id: LayoutContainerId,
+        source_surface_id: SurfaceId,
         /// Former region.
         source_region_id: RegionId,
         /// Former zero-based index.
         former_index: u32,
         /// Committed target container.
-        target_container_id: LayoutContainerId,
+        target_surface_id: SurfaceId,
         /// Committed target region.
         target_region_id: RegionId,
         /// Committed target insertion index.
@@ -187,7 +187,7 @@ pub enum LayoutMutationOutcome {
     /// One sizing slot changed.
     SizingSlotSet {
         /// Mutated layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Mutated sizing slot.
         sizing_slot_id: SizingSlotId,
         /// Previous ratio.
@@ -198,7 +198,7 @@ pub enum LayoutMutationOutcome {
     /// One region's collapse state changed.
     RegionCollapsedSet {
         /// Mutated layout container.
-        container_id: LayoutContainerId,
+        surface_id: SurfaceId,
         /// Mutated semantic region.
         region_id: RegionId,
         /// Previous supported collapse state.
@@ -214,19 +214,19 @@ pub enum LayoutMutationOutcome {
 #[serde(deny_unknown_fields)]
 pub struct LayoutMutationReceipt {
     request_id: LayoutRequestId,
-    previous_revision: LayoutRevision,
-    committed_revision: LayoutRevision,
+    previous_revision: SurfaceRevision,
+    committed_revision: SurfaceRevision,
     outcome: LayoutMutationOutcome,
-    authoritative_document: LayoutDocument,
+    authoritative_document: SurfaceDocument,
 }
 
 impl LayoutMutationReceipt {
     pub(super) fn new(
         request_id: LayoutRequestId,
-        previous_revision: LayoutRevision,
-        committed_revision: LayoutRevision,
+        previous_revision: SurfaceRevision,
+        committed_revision: SurfaceRevision,
         outcome: LayoutMutationOutcome,
-        authoritative_document: LayoutDocument,
+        authoritative_document: SurfaceDocument,
     ) -> Self {
         Self {
             request_id,
@@ -245,13 +245,13 @@ impl LayoutMutationReceipt {
 
     /// Returns the admitted source revision.
     #[must_use]
-    pub const fn previous_revision(&self) -> LayoutRevision {
+    pub const fn previous_revision(&self) -> SurfaceRevision {
         self.previous_revision
     }
 
     /// Returns the single committed successor revision.
     #[must_use]
-    pub const fn committed_revision(&self) -> LayoutRevision {
+    pub const fn committed_revision(&self) -> SurfaceRevision {
         self.committed_revision
     }
 
@@ -263,7 +263,7 @@ impl LayoutMutationReceipt {
 
     /// Returns the complete normalized authoritative document.
     #[must_use]
-    pub const fn authoritative_document(&self) -> &LayoutDocument {
+    pub const fn authoritative_document(&self) -> &SurfaceDocument {
         &self.authoritative_document
     }
 }

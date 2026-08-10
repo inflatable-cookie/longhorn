@@ -1,6 +1,6 @@
-use longhorn_core::{LayoutContainerId, PanelDefinitionId, PanelInstanceId, RegionId};
+use longhorn_core::{PanelDefinitionId, PanelInstanceId, RegionId, SurfaceId};
 
-use crate::{LayoutDefinitionRegistry, LayoutDocument, PanelInstance};
+use crate::{LayoutDefinitionRegistry, PanelInstance, SurfaceDocument};
 
 use super::{
     LayoutMutationOutcome, LayoutMutationRejectionCode, OperationRejection, checked_index,
@@ -9,10 +9,10 @@ use super::{
 
 pub(super) fn create_panel(
     registry: &LayoutDefinitionRegistry,
-    document: &mut LayoutDocument,
+    document: &mut SurfaceDocument,
     panel_instance_id: &PanelInstanceId,
     panel_definition_id: &PanelDefinitionId,
-    container_id: &LayoutContainerId,
+    surface_id: &SurfaceId,
     region_id: &RegionId,
     insertion_index: u32,
 ) -> Result<LayoutMutationOutcome, OperationRejection> {
@@ -30,16 +30,16 @@ pub(super) fn create_panel(
                 format!("unknown panel definition {panel_definition_id}"),
             )
         })?;
-    let container = document.container(container_id).ok_or_else(|| {
+    let container = document.surface(surface_id).ok_or_else(|| {
         operation_rejection(
-            LayoutMutationRejectionCode::UnknownContainer,
-            format!("unknown layout container {container_id}"),
+            LayoutMutationRejectionCode::UnknownSurface,
+            format!("unknown layout container {surface_id}"),
         )
     })?;
     let region = container.region(region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {container_id} has no region {region_id}"),
+            format!("container {surface_id} has no region {region_id}"),
         )
     })?;
     let allowed = registry
@@ -53,7 +53,7 @@ pub(super) fn create_panel(
     }
     let index = checked_index(insertion_index, region.panel_instance_ids().len())?;
 
-    let region = region_mut(document, container_id, region_id)?;
+    let region = region_mut(document, surface_id, region_id)?;
     region
         .panel_instance_ids_mut()
         .insert(index, panel_instance_id.clone());
@@ -65,7 +65,7 @@ pub(super) fn create_panel(
 
     Ok(LayoutMutationOutcome::PanelCreated {
         panel_instance_id: panel_instance_id.clone(),
-        container_id: container_id.clone(),
+        surface_id: surface_id.clone(),
         region_id: region_id.clone(),
         insertion_index,
     })
@@ -73,7 +73,7 @@ pub(super) fn create_panel(
 
 pub(super) fn close_panel(
     registry: &LayoutDefinitionRegistry,
-    document: &mut LayoutDocument,
+    document: &mut SurfaceDocument,
     panel_instance_id: &PanelInstanceId,
 ) -> Result<LayoutMutationOutcome, OperationRejection> {
     let instance = document.panel_instance(panel_instance_id).ok_or_else(|| {
@@ -92,7 +92,7 @@ pub(super) fn close_panel(
         ));
     }
     let location = panel_location(document, panel_instance_id)?;
-    let region = region_mut(document, &location.container_id, &location.region_id)?;
+    let region = region_mut(document, &location.surface_id, &location.region_id)?;
     remove_with_active_fallback(region, panel_instance_id, location.index);
     document
         .panel_instances_mut()
@@ -100,7 +100,7 @@ pub(super) fn close_panel(
 
     Ok(LayoutMutationOutcome::PanelClosed {
         panel_instance_id: panel_instance_id.clone(),
-        container_id: location.container_id,
+        surface_id: location.surface_id,
         region_id: location.region_id,
         former_index: outcome_index(location.index),
     })

@@ -1,10 +1,13 @@
-//! Direct window-to-layout composition without optional Surface packages.
+//! Direct window-to-layout composition with no Surface chrome.
+//!
+//! Card 179 removed the container, so the no-Surface shape is what it always
+//! was underneath: exactly one Surface, unlabelled, never presented as a tab.
 
 use longhorn_core::{
-    DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize,
+    DomainId, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize, SurfaceId, SurfaceRevision,
     TransferHostBindingId, WindowId, WindowPlacement,
 };
-use longhorn_surfaces::{LayoutContainer, LayoutDocument, RegionState};
+use longhorn_surfaces::{RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceRecord};
 use longhorn_transfer::{PanelHostBinding, PanelHostBindings};
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, WindowDiffInput, plan_window_diff,
@@ -12,12 +15,13 @@ use longhorn_windowing::{
 
 fn main() {
     let window_id = WindowId::new("window:main").unwrap();
-    let container_id = LayoutContainerId::new("container:main").unwrap();
-    let layout = LayoutDocument::new(
-        LayoutRevision::new(1),
-        [LayoutContainer::new(
-            container_id.clone(),
+    let surface_id = SurfaceId::new("surface:main").unwrap();
+    let layout = SurfaceDocument::new(
+        SurfaceRevision::new(1),
+        [SurfaceRecord::new(
+            surface_id.clone(),
             LayoutSchemaId::new("schema:nucleus").unwrap(),
+            None,
             [RegionState::new(
                 RegionId::new("region:main").unwrap(),
                 [],
@@ -25,7 +29,9 @@ fn main() {
                 None,
             )],
             [],
+            [SurfaceHostPreference::new(window_id.clone(), 0)],
         )],
+        [],
         [],
     );
     let desired = DesiredWindow::new(
@@ -43,12 +49,12 @@ fn main() {
     .unwrap();
 
     assert_eq!(host_plan.generation(), ApplyGeneration::new(1));
-    assert!(layout.container(&container_id).is_some());
+    assert!(layout.surface(&surface_id).is_some());
     let _transfer_bindings = PanelHostBindings::new([PanelHostBinding::direct_window(
         TransferHostBindingId::new("binding:main").unwrap(),
         window_id.clone(),
         DomainId::new("layout.workspace").unwrap(),
-        container_id,
+        surface_id,
     )])
     .unwrap();
     assert_eq!(window_id.as_str(), "window:main");

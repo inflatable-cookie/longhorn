@@ -7,7 +7,7 @@ use longhorn_config::{
     DomainDescriptor, DomainFilePath, DurabilityRequirement, MutationOptions, StorageClass,
 };
 use longhorn_core::{
-    DisplayId, DomainId, LayoutContainerId, PhysicalPx, RoundingMode, SchemaVersion, ScreenPoint,
+    DisplayId, DomainId, LayoutSchemaId, PhysicalPx, RoundingMode, SchemaVersion, ScreenPoint,
     ScreenRect, ScreenSize, SurfaceId, SurfaceRevision, TransferHostBindingId, WindowId,
     WindowPlacement,
 };
@@ -208,22 +208,10 @@ impl SurfaceTransferAdapter for ProofSurfaceAdapter {
         live_windows: Vec<longhorn_transfer::LiveTransferWindow>,
     ) -> SurfaceTransferResponse {
         let request_id = request.request_id().clone();
-        let layout = match self.domains.layout_snapshot() {
-            Ok(layout) => layout,
-            Err(detail) => {
-                return SurfaceTransferResponse::Aborted {
-                    abort: SurfaceTransferAbort::host_transfer(
-                        request_id,
-                        longhorn_transfer::TransferErrorCode::NoTarget,
-                        detail,
-                    ),
-                };
-            }
-        };
         match commit_surface_transfer(
             self.domains.store(),
             self.domains.surface(),
-            &layout,
+            self.domains.layout().registry(),
             coordinator,
             &self.clock,
             &self.bindings,
@@ -423,6 +411,7 @@ pub(crate) fn surface_domain() -> Result<SurfaceDomain, String> {
                 surface_record(SOURCE_SURFACE_ID, SOURCE_CONTAINER_ID, 0),
                 surface_record(SECOND_SURFACE_ID, TARGET_CONTAINER_ID, 1),
             ],
+            [],
             [
                 ParticipatingWindow::new(
                     window_id(SOURCE_WINDOW_ID),
@@ -439,11 +428,13 @@ pub(crate) fn surface_domain() -> Result<SurfaceDomain, String> {
     .map_err(|error| error.to_string())
 }
 
-fn surface_record(id: &str, container: &str, order: u32) -> SurfaceRecord {
+fn surface_record(id: &str, _container: &str, order: u32) -> SurfaceRecord {
     SurfaceRecord::new(
         surface_id(id),
-        LayoutContainerId::new(container).expect("proof container id is valid"),
+        LayoutSchemaId::new("schema:proof").expect("proof schema id is valid"),
         Some(id.to_string()),
+        [],
+        [],
         [
             preference(SOURCE_WINDOW_ID, order),
             preference(TARGET_WINDOW_ID, order),

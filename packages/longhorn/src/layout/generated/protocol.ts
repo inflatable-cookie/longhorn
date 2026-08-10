@@ -4,11 +4,11 @@
 export const LAYOUT_PROTOCOL_VERSION = 1 as const;
 export const LAYOUT_MUTATION_COMMAND_KINDS = ["create_panel","close_panel","activate_panel","reorder_region","move_panel","set_sizing_slot","set_region_collapsed"] as const;
 export const LAYOUT_MUTATION_OUTCOME_KINDS = ["panel_created","panel_closed","panel_activated","region_reordered","panel_moved","sizing_slot_set","region_collapsed_set"] as const;
-export const LAYOUT_MUTATION_REJECTION_CODES = ["invalid_current_document","stale_revision","revision_overflow","unknown_container","unknown_region","unknown_sizing_slot","unknown_panel_definition","unknown_panel_instance","duplicate_panel_instance","panel_placement_not_allowed","instance_policy_exceeded","panel_not_closeable","panel_not_movable","move_target_unchanged","invalid_insertion_index","incomplete_reorder","duplicate_reorder_member","foreign_reorder_member","invalid_sizing_ratio","unsupported_collapse","invalid_candidate","request_id_conflict"] as const;
+export const LAYOUT_MUTATION_REJECTION_CODES = ["invalid_current_document","stale_revision","revision_overflow","unknown_surface","unknown_region","unknown_sizing_slot","unknown_panel_definition","unknown_panel_instance","duplicate_panel_instance","panel_placement_not_allowed","instance_policy_exceeded","panel_not_closeable","panel_not_movable","move_target_unchanged","invalid_insertion_index","incomplete_reorder","duplicate_reorder_member","foreign_reorder_member","invalid_sizing_ratio","unsupported_collapse","invalid_candidate","request_id_conflict"] as const;
 
 export type LayoutSchemaId = string;
 
-export type LayoutContainerId = string;
+export type SurfaceId = string;
 
 export type RegionId = string;
 
@@ -22,7 +22,7 @@ export type PanelInstanceId = string;
 
 export type LayoutRequestId = string;
 
-export type LayoutRevision = number;
+export type SurfaceRevision = number;
 
 export type LayoutRatio = number;
 
@@ -52,13 +52,25 @@ export type PanelDefinition = { id: PanelDefinitionId, default_placements: Array
 
 export type PanelInstance = { id: PanelInstanceId, definition_id: PanelDefinitionId, };
 
+export type WindowId = string;
+
 export type RegionState = { region_id: RegionId, panel_instance_ids: Array<PanelInstanceId>, active_panel_instance_id: PanelInstanceId | null, collapsed: boolean | null, };
 
 export type SizingSlotState = { sizing_slot_id: SizingSlotId, ratio: LayoutRatio, };
 
-export type LayoutContainer = { id: LayoutContainerId, schema_id: LayoutSchemaId, regions: Array<RegionState>, sizing_slots: Array<SizingSlotState>, };
+export type SurfaceHostPreference = { window_id: WindowId, order: number, };
 
-export type LayoutDocument = { revision: LayoutRevision, containers: Array<LayoutContainer>, panel_instances: Array<PanelInstance>, };
+export type SurfacePresentation = { "kind": "regional" } | { "kind": "focused_panel", 
+/**
+ * The panel rendered for the whole Surface.
+ */
+panel_definition_id: PanelDefinitionId, };
+
+export type SurfaceRecord = { id: SurfaceId, schema_id: LayoutSchemaId, label: string | null, presentation: SurfacePresentation, regions: Array<RegionState>, sizing_slots: Array<SizingSlotState>, host_preferences: Array<SurfaceHostPreference>, };
+
+export type ParticipatingWindow = { id: WindowId, active_surface_id: SurfaceId | null, };
+
+export type SurfaceDocument = { revision: SurfaceRevision, surfaces: Array<SurfaceRecord>, panel_instances: Array<PanelInstance>, windows: Array<ParticipatingWindow>, };
 
 export type RegionVisibilityState = "visible" | "hidden" | "transiently_revealed";
 
@@ -76,7 +88,7 @@ panel_definition_id: PanelDefinitionId,
 /**
  * Target layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Target semantic region.
  */
@@ -96,7 +108,7 @@ panel_instance_id: PanelInstanceId, } | { "kind": "reorder_region",
 /**
  * Target layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Target semantic region.
  */
@@ -112,7 +124,7 @@ panel_instance_id: PanelInstanceId,
 /**
  * Target layout container.
  */
-target_container_id: LayoutContainerId, 
+target_surface_id: SurfaceId, 
 /**
  * Target semantic region.
  */
@@ -124,7 +136,7 @@ insertion_index: number, } | { "kind": "set_sizing_slot",
 /**
  * Target layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Target sizing slot.
  */
@@ -136,7 +148,7 @@ ratio: LayoutRatio, } | { "kind": "set_region_collapsed",
 /**
  * Target layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Target semantic region.
  */
@@ -146,7 +158,7 @@ region_id: RegionId,
  */
 collapsed: boolean, };
 
-export type LayoutMutationRequest = { request_id: LayoutRequestId, expected_revision: LayoutRevision, command: LayoutMutationCommand, };
+export type LayoutMutationRequest = { request_id: LayoutRequestId, expected_revision: SurfaceRevision, command: LayoutMutationCommand, };
 
 export type LayoutMutationOutcome = { "kind": "panel_created", 
 /**
@@ -156,7 +168,7 @@ panel_instance_id: PanelInstanceId,
 /**
  * Committed container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Committed region.
  */
@@ -172,7 +184,7 @@ panel_instance_id: PanelInstanceId,
 /**
  * Former container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Former region.
  */
@@ -188,7 +200,7 @@ panel_instance_id: PanelInstanceId,
 /**
  * Containing layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Containing semantic region.
  */
@@ -200,7 +212,7 @@ previous_active_panel_instance_id: PanelInstanceId | null, } | { "kind": "region
 /**
  * Reordered layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Reordered semantic region.
  */
@@ -216,7 +228,7 @@ panel_instance_id: PanelInstanceId,
 /**
  * Former container.
  */
-source_container_id: LayoutContainerId, 
+source_surface_id: SurfaceId, 
 /**
  * Former region.
  */
@@ -228,7 +240,7 @@ former_index: number,
 /**
  * Committed target container.
  */
-target_container_id: LayoutContainerId, 
+target_surface_id: SurfaceId, 
 /**
  * Committed target region.
  */
@@ -240,7 +252,7 @@ insertion_index: number, } | { "kind": "sizing_slot_set",
 /**
  * Mutated layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Mutated sizing slot.
  */
@@ -256,7 +268,7 @@ committed_ratio: LayoutRatio, } | { "kind": "region_collapsed_set",
 /**
  * Mutated layout container.
  */
-container_id: LayoutContainerId, 
+surface_id: SurfaceId, 
 /**
  * Mutated semantic region.
  */
@@ -270,8 +282,8 @@ previous_collapsed: boolean,
  */
 committed_collapsed: boolean, };
 
-export type LayoutMutationReceipt = { request_id: LayoutRequestId, previous_revision: LayoutRevision, committed_revision: LayoutRevision, outcome: LayoutMutationOutcome, authoritative_document: LayoutDocument, };
+export type LayoutMutationReceipt = { request_id: LayoutRequestId, previous_revision: SurfaceRevision, committed_revision: SurfaceRevision, outcome: LayoutMutationOutcome, authoritative_document: SurfaceDocument, };
 
-export type LayoutMutationRejectionCode = "invalid_current_document" | "stale_revision" | "revision_overflow" | "unknown_container" | "unknown_region" | "unknown_sizing_slot" | "unknown_panel_definition" | "unknown_panel_instance" | "duplicate_panel_instance" | "panel_placement_not_allowed" | "instance_policy_exceeded" | "panel_not_closeable" | "panel_not_movable" | "move_target_unchanged" | "invalid_insertion_index" | "incomplete_reorder" | "duplicate_reorder_member" | "foreign_reorder_member" | "invalid_sizing_ratio" | "unsupported_collapse" | "invalid_candidate" | "request_id_conflict";
+export type LayoutMutationRejectionCode = "invalid_current_document" | "stale_revision" | "revision_overflow" | "unknown_surface" | "unknown_region" | "unknown_sizing_slot" | "unknown_panel_definition" | "unknown_panel_instance" | "duplicate_panel_instance" | "panel_placement_not_allowed" | "instance_policy_exceeded" | "panel_not_closeable" | "panel_not_movable" | "move_target_unchanged" | "invalid_insertion_index" | "incomplete_reorder" | "duplicate_reorder_member" | "foreign_reorder_member" | "invalid_sizing_ratio" | "unsupported_collapse" | "invalid_candidate" | "request_id_conflict";
 
-export type LayoutMutationRejection = { request_id: LayoutRequestId, current_revision: LayoutRevision, code: LayoutMutationRejectionCode, detail: string, authoritative_document: LayoutDocument, };
+export type LayoutMutationRejection = { request_id: LayoutRequestId, current_revision: SurfaceRevision, code: LayoutMutationRejectionCode, detail: string, authoritative_document: SurfaceDocument, };

@@ -1,7 +1,9 @@
 import { fireEvent, render } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
+import type {
+  LayoutMutationRequest,
+} from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import LayoutDockHarness from "./LayoutDockHarness.svelte";
@@ -66,7 +68,7 @@ describe("LayoutDockRegion", () => {
       expected_revision: 1,
       command: {
         kind: "reorder_region",
-        container_id: "container:primary",
+        surface_id: "surface:primary",
         region_id: "primary",
         panel_instance_ids: ["instance:b", "instance:a"],
       },
@@ -107,7 +109,7 @@ describe("LayoutDockRegion", () => {
       command: {
         kind: "move_panel",
         panel_instance_id: "instance:a",
-        target_container_id: "container:primary",
+        target_surface_id: "surface:primary",
         target_region_id: "secondary",
         insertion_index: 1,
       },

@@ -1,9 +1,9 @@
 use std::{error::Error, fmt};
 
-use longhorn_core::{LayoutRequestId, LayoutRevision};
+use longhorn_core::{LayoutRequestId, SurfaceRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::LayoutDocument;
+use crate::SurfaceDocument;
 
 /// Stable typed layout mutation rejection category.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -17,7 +17,7 @@ pub enum LayoutMutationRejectionCode {
     /// The current revision could not advance without wrapping.
     RevisionOverflow,
     /// A layout container was not present.
-    UnknownContainer,
+    UnknownSurface,
     /// A semantic region was not present in the selected container.
     UnknownRegion,
     /// A sizing slot was not present in the selected container.
@@ -62,10 +62,10 @@ pub enum LayoutMutationRejectionCode {
 #[serde(deny_unknown_fields)]
 pub struct LayoutMutationRejection {
     request_id: LayoutRequestId,
-    current_revision: LayoutRevision,
+    current_revision: SurfaceRevision,
     code: LayoutMutationRejectionCode,
     detail: String,
-    authoritative_document: LayoutDocument,
+    authoritative_document: SurfaceDocument,
 }
 
 impl LayoutMutationRejection {
@@ -73,7 +73,7 @@ impl LayoutMutationRejection {
         request_id: LayoutRequestId,
         code: LayoutMutationRejectionCode,
         detail: impl Into<String>,
-        authoritative_document: &LayoutDocument,
+        authoritative_document: &SurfaceDocument,
     ) -> Self {
         Self {
             request_id,
@@ -92,7 +92,7 @@ impl LayoutMutationRejection {
 
     /// Returns the unchanged current revision.
     #[must_use]
-    pub const fn current_revision(&self) -> LayoutRevision {
+    pub const fn current_revision(&self) -> SurfaceRevision {
         self.current_revision
     }
 
@@ -110,7 +110,7 @@ impl LayoutMutationRejection {
 
     /// Returns the exact unchanged authoritative source document.
     #[must_use]
-    pub const fn authoritative_document(&self) -> &LayoutDocument {
+    pub const fn authoritative_document(&self) -> &SurfaceDocument {
         &self.authoritative_document
     }
 }

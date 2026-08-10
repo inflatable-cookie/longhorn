@@ -1,4 +1,11 @@
 //! Deterministic checked binding and golden-fixture generation.
+//!
+//! A mutation rejection carries the exact unchanged authoritative document --
+//! that is the protocol's evidence that nothing moved -- and Card 179 made the
+//! document larger by folding layout state into it. Boxing the error would
+//! change the wire shape to save a stack move on a path this generator only
+//! reaches when it deliberately provokes a refusal.
+#![allow(clippy::result_large_err)]
 
 use std::{env, error::Error, process::ExitCode};
 

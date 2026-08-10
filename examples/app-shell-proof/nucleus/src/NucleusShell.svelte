@@ -9,7 +9,9 @@
     createThemeController,
     type DockEdge,
   } from "@inflatable-cookie/poodle-svelte";
-  import type { LayoutDocument } from "@inflatable-cookie/longhorn/layout";
+  import type {
+  SurfaceDocument,
+} from "@inflatable-cookie/longhorn/surfaces";
   import {
     LayoutDockRegion,
     createPoodleLayoutBinding,
@@ -22,7 +24,7 @@
 
   interface Props {
     layoutState: LayoutState;
-    loadAuthority: () => Promise<LayoutDocument>;
+    loadAuthority: () => Promise<SurfaceDocument>;
     reveal: () => Promise<void>;
   }
 
@@ -109,11 +111,11 @@
   {:else if layoutState.projected}
     <main data-shell="nucleus" data-window="workspace:main" aria-label="Nucleus workspace">
       <header><h1>Nucleus</h1></header>
-      <div data-layout-container="container:nucleus">
+      <div data-layout-container="surface:nucleus">
         {#each schema.regions as region, index (region.id)}
           <LayoutDockRegion
             {binding}
-            containerId="container:nucleus"
+            containerId="surface:nucleus"
             regionId={region.id}
             edge={edges[index]}
             {resolvePanel}
