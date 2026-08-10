@@ -1,7 +1,7 @@
 export {
-  ConfigProtocolIncompatibilityError,
-  type ConfigProtocolIncompatibilityCode,
+  ConfigProtocolValidationError,
+  type ConfigProtocolValidationCode,
 } from "./validation/primitives.ts";
 export * from "./validation/commands.ts";
 export * from "./validation/outcomes.ts";
-export { assertCompatibleConfigOperationsSnapshot } from "./validation/projection.ts";
+export { assertValidConfigOperationsSnapshot } from "./validation/projection.ts";

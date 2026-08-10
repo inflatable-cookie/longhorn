@@ -30,23 +30,23 @@ import {
   text,
 } from "./base.ts";
 import {
-  assertCompatibleContentSizeDecision,
-  assertCompatibleContentSizeProposal,
-  assertCompatibleDesiredUpdate,
-  assertCompatibleNativeContentChangedEvent,
-  assertCompatibleNativeContentSnapshot,
+  assertValidContentSizeDecision,
+  assertValidContentSizeProposal,
+  assertValidDesiredUpdate,
+  assertValidNativeContentChangedEvent,
+  assertValidNativeContentSnapshot,
   desiredReceipt,
   proposalReceipt,
 } from "./state.ts";
 
-export function assertCompatibleNativeContentConnectRequest(
+export function assertValidNativeContentConnectRequest(
   value: unknown,
 ): asserts value is NativeContentConnectRequest {
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentConnectRequest);
   requestEnvelope(object);
 }
 
-export function assertCompatibleNativeContentSnapshotRequest(
+export function assertValidNativeContentSnapshotRequest(
   value: unknown,
 ): asserts value is NativeContentSnapshotRequest {
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshotRequest);
@@ -54,7 +54,7 @@ export function assertCompatibleNativeContentSnapshotRequest(
   positive(object.client_epoch, "$.client_epoch");
 }
 
-export function assertCompatibleNativeContentDesiredUpdateRequest(
+export function assertValidNativeContentDesiredUpdateRequest(
   value: unknown,
 ): asserts value is NativeContentDesiredUpdateRequest {
   assertProductPayloadFree(value);
@@ -62,21 +62,21 @@ export function assertCompatibleNativeContentDesiredUpdateRequest(
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
   natural(object.expected_desired_revision, "$.expected_desired_revision");
-  assertCompatibleDesiredUpdate(object.update);
+  assertValidDesiredUpdate(object.update);
 }
 
-export function assertCompatibleNativeContentDecisionRequest(
+export function assertValidNativeContentDecisionRequest(
   value: unknown,
 ): asserts value is NativeContentContentSizeDecisionRequest {
   assertProductPayloadFree(value);
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentContentSizeDecisionRequest);
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
-  assertCompatibleContentSizeProposal(object.proposal);
-  assertCompatibleContentSizeDecision(object.decision);
+  assertValidContentSizeProposal(object.proposal);
+  assertValidContentSizeDecision(object.decision);
 }
 
-export function assertCompatibleNativeContentConnectResult(
+export function assertValidNativeContentConnectResult(
   value: unknown,
 ): asserts value is NativeContentConnectResult {
   assertProductPayloadFree(value);
@@ -85,14 +85,14 @@ export function assertCompatibleNativeContentConnectResult(
   responseCorrelation(object);
   if (object.status === "connected") {
     exactKeys(object, "$", ["status", "request_id", "snapshot"]);
-    assertCompatibleNativeContentSnapshot(object.snapshot);
+    assertValidNativeContentSnapshot(object.snapshot);
   } else {
     exactKeys(object, "$", ["status", "request_id", "rejection"]);
     rejection(object.rejection, "$.rejection");
   }
 }
 
-export function assertCompatibleNativeContentSnapshotResult(
+export function assertValidNativeContentSnapshotResult(
   value: unknown,
 ): asserts value is NativeContentSnapshotResult {
   assertProductPayloadFree(value);
@@ -101,14 +101,14 @@ export function assertCompatibleNativeContentSnapshotResult(
   responseCorrelation(object);
   if (object.status === "ready") {
     exactKeys(object, "$", ["status", "request_id", "snapshot"]);
-    assertCompatibleNativeContentSnapshot(object.snapshot);
+    assertValidNativeContentSnapshot(object.snapshot);
   } else {
     exactKeys(object, "$", ["status", "request_id", "rejection"]);
     rejection(object.rejection, "$.rejection");
   }
 }
 
-export function assertCompatibleNativeContentDesiredUpdateResult(
+export function assertValidNativeContentDesiredUpdateResult(
   value: unknown,
 ): asserts value is NativeContentDesiredUpdateResult {
   assertProductPayloadFree(value);
@@ -123,9 +123,9 @@ export function assertCompatibleNativeContentDesiredUpdateResult(
       "receipt",
       "event",
     ]);
-    assertCompatibleNativeContentSnapshot(object.snapshot);
+    assertValidNativeContentSnapshot(object.snapshot);
     desiredReceipt(object.receipt, "$.receipt");
-    assertCompatibleNativeContentChangedEvent(object.event);
+    assertValidNativeContentChangedEvent(object.event);
     const event = object.event as Record<string, unknown>;
     const change = event.change as Record<string, unknown>;
     if (
@@ -140,7 +140,7 @@ export function assertCompatibleNativeContentDesiredUpdateResult(
   }
 }
 
-export function assertCompatibleNativeContentDecisionResult(
+export function assertValidNativeContentDecisionResult(
   value: unknown,
 ): asserts value is NativeContentContentSizeDecisionResult {
   assertProductPayloadFree(value);
@@ -155,9 +155,9 @@ export function assertCompatibleNativeContentDecisionResult(
       "receipt",
       "event",
     ]);
-    assertCompatibleNativeContentSnapshot(object.snapshot);
+    assertValidNativeContentSnapshot(object.snapshot);
     proposalReceipt(object.receipt, "$.receipt");
-    assertCompatibleNativeContentChangedEvent(object.event);
+    assertValidNativeContentChangedEvent(object.event);
     const event = object.event as Record<string, unknown>;
     const change = event.change as Record<string, unknown>;
     if (

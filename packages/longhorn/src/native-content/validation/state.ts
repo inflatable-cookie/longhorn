@@ -40,7 +40,7 @@ import {
   record,
 } from "./base.ts";
 
-export function assertCompatibleNativeContentSnapshot(
+export function assertValidNativeContentSnapshot(
   value: unknown,
 ): asserts value is NativeContentSnapshot {
   assertProductPayloadFree(value);
@@ -63,7 +63,7 @@ export function assertCompatibleNativeContentSnapshot(
   }
 }
 
-export function assertCompatibleNativeContentChangedEvent(
+export function assertValidNativeContentChangedEvent(
   value: unknown,
 ): asserts value is NativeContentChangedEvent {
   assertProductPayloadFree(value);
@@ -73,19 +73,19 @@ export function assertCompatibleNativeContentChangedEvent(
   change(object.change, "$.change");
 }
 
-export function assertCompatibleDesiredUpdate(
+export function assertValidDesiredUpdate(
   value: unknown,
 ): asserts value is DesiredUpdate {
   desiredUpdate(value, "$", false);
 }
 
-export function assertCompatibleContentSizeProposal(
+export function assertValidContentSizeProposal(
   value: unknown,
 ): asserts value is ContentSizeProposal {
   proposal(value, "$");
 }
 
-export function assertCompatibleContentSizeDecision(
+export function assertValidContentSizeDecision(
   value: unknown,
 ): asserts value is ContentSizeDecision {
   decision(value, "$");

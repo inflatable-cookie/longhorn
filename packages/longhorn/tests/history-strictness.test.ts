@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleHistoryChangedEvent } from "../src/history/validation.ts";
+import { assertValidHistoryChangedEvent } from "../src/history/validation.ts";
 import { HISTORY_FIELDS } from "../src/history/generated/fields.ts";
 import { assertForkChangedEvent } from "../src/history-tree/validation.ts";
 import { HISTORY_TREE_FIELDS } from "../src/history-tree/generated/fields.ts";
@@ -32,13 +32,13 @@ describe("history boundary strictness", () => {
 
   test("rejects an unknown field", () => {
     expect(() =>
-      assertCompatibleHistoryChangedEvent({ ...valid, extra: 1 }),
+      assertValidHistoryChangedEvent({ ...valid, extra: 1 }),
     ).toThrow(/unknown field/);
   });
 
   test("rejects a missing field", () => {
     const { historyId: _dropped, ...missing } = valid;
-    expect(() => assertCompatibleHistoryChangedEvent(missing)).toThrow(
+    expect(() => assertValidHistoryChangedEvent(missing)).toThrow(
       /missing field/,
     );
   });

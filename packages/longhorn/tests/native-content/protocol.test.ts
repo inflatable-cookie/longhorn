@@ -2,33 +2,33 @@ import { describe, expect, test } from "bun:test";
 import fixture from "../../../../fixtures/native-content/protocol-v1.json";
 
 import {
-  NativeContentProtocolCompatibilityError,
-  assertCompatibleNativeContentChangedEvent,
-  assertCompatibleNativeContentConnectResult,
-  assertCompatibleNativeContentDecisionResult,
-  assertCompatibleNativeContentDesiredUpdateResult,
-  assertCompatibleNativeContentSnapshotResult,
+  NativeContentProtocolValidationError,
+  assertValidNativeContentChangedEvent,
+  assertValidNativeContentConnectResult,
+  assertValidNativeContentDecisionResult,
+  assertValidNativeContentDesiredUpdateResult,
+  assertValidNativeContentSnapshotResult,
   assertProductPayloadFree,
 } from "../../src/native-content/index.ts";
 import { clone } from "./support.ts";
 
 describe("Rust fixture parity", () => {
   test("accepts snapshots, observations, proposals, receipts, and rejections", () => {
-    assertCompatibleNativeContentConnectResult(fixture.connect);
-    assertCompatibleNativeContentSnapshotResult(fixture.snapshot);
-    assertCompatibleNativeContentDesiredUpdateResult(fixture.desiredUpdate);
-    assertCompatibleNativeContentChangedEvent(fixture.applyEvent);
-    assertCompatibleNativeContentChangedEvent(fixture.observationEvent);
-    assertCompatibleNativeContentChangedEvent(fixture.proposalEvent);
-    assertCompatibleNativeContentDecisionResult(fixture.decision);
-    assertCompatibleNativeContentDesiredUpdateResult(fixture.staleRevision);
-    assertCompatibleNativeContentConnectResult(fixture.remount);
-    assertCompatibleNativeContentSnapshotResult(fixture.staleSession);
+    assertValidNativeContentConnectResult(fixture.connect);
+    assertValidNativeContentSnapshotResult(fixture.snapshot);
+    assertValidNativeContentDesiredUpdateResult(fixture.desiredUpdate);
+    assertValidNativeContentChangedEvent(fixture.applyEvent);
+    assertValidNativeContentChangedEvent(fixture.observationEvent);
+    assertValidNativeContentChangedEvent(fixture.proposalEvent);
+    assertValidNativeContentDecisionResult(fixture.decision);
+    assertValidNativeContentDesiredUpdateResult(fixture.staleRevision);
+    assertValidNativeContentConnectResult(fixture.remount);
+    assertValidNativeContentSnapshotResult(fixture.staleSession);
     // The destroy receipt reaches its validator only inside a `host_destroyed`
     // event. The receipt is Rust-produced; the three envelope keys are checked
     // against a literal list in the validator itself, so assembling them here
     // does not weaken what the fixture proves.
-    assertCompatibleNativeContentChangedEvent({
+    assertValidNativeContentChangedEvent({
       ...clone(fixture.applyEvent),
       change: {
         kind: "host_destroyed",
@@ -36,11 +36,11 @@ describe("Rust fixture parity", () => {
         receipt: fixture.hostDestroy,
       },
     });
-    assertCompatibleNativeContentConnectResult(fixture.incompatible);
+    assertValidNativeContentConnectResult(fixture.incompatible);
   });
 
   test("client epoch is distinct from attach generation", () => {
-    assertCompatibleNativeContentConnectResult(fixture.remount);
+    assertValidNativeContentConnectResult(fixture.remount);
     if (fixture.remount.status !== "connected") throw new Error("fixture rejected");
     expect(fixture.remount.snapshot.cursor.client_epoch).toBe(2);
     expect(fixture.remount.snapshot.cursor.attach_generation).toBe(1);
@@ -50,20 +50,20 @@ describe("Rust fixture parity", () => {
     const future = clone(fixture.connect) as Record<string, unknown>;
     const snapshot = future.snapshot as Record<string, unknown>;
     snapshot.protocol_version = 2;
-    expect(() => assertCompatibleNativeContentConnectResult(future)).toThrow(
-      NativeContentProtocolCompatibilityError,
+    expect(() => assertValidNativeContentConnectResult(future)).toThrow(
+      NativeContentProtocolValidationError,
     );
 
     const product = clone(fixture.connect) as Record<string, unknown>;
     (product.snapshot as Record<string, unknown>).plugin = { id: "synth" };
     expect(() => assertProductPayloadFree(product)).toThrow(
-      NativeContentProtocolCompatibilityError,
+      NativeContentProtocolValidationError,
     );
 
     const unknown = clone(fixture.proposalEvent) as Record<string, unknown>;
     (unknown.change as Record<string, unknown>).kind = "product_payload";
-    expect(() => assertCompatibleNativeContentChangedEvent(unknown)).toThrow(
-      NativeContentProtocolCompatibilityError,
+    expect(() => assertValidNativeContentChangedEvent(unknown)).toThrow(
+      NativeContentProtocolValidationError,
     );
   });
 });

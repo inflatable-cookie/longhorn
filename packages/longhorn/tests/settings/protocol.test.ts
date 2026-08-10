@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  SettingsProtocolIncompatibilityError,
-  assertCompatibleSettingsApplyCommand,
-  assertCompatibleSettingsLoadCommand,
-  assertCompatibleSettingsLoadOutcome,
-  assertCompatibleSettingsMutationResult,
-  assertCompatibleSettingsRegistryChangedEvent,
-  assertCompatibleSettingsRegistrySnapshot,
-  assertCompatibleSettingsResetCommand,
-  assertCompatibleSettingsScopeChangedEvent,
-  assertCompatibleSettingsScopeSnapshot,
+  SettingsProtocolValidationError,
+  assertValidSettingsApplyCommand,
+  assertValidSettingsLoadCommand,
+  assertValidSettingsLoadOutcome,
+  assertValidSettingsMutationResult,
+  assertValidSettingsRegistryChangedEvent,
+  assertValidSettingsRegistrySnapshot,
+  assertValidSettingsResetCommand,
+  assertValidSettingsScopeChangedEvent,
+  assertValidSettingsScopeSnapshot,
 } from "../../src/settings/index.ts";
 import { fixture } from "./support.ts";
 
@@ -18,7 +18,7 @@ describe("generated settings protocol fixture", () => {
   /**
    * The fixture publishes `recoveryStates`, and nothing exercised them: every
    * fixture snapshot carries `recovery: null`, so the recovery branch of
-   * `assertCompatibleSettingsScopeSnapshot` was never taken. Found by probing
+   * `assertValidSettingsScopeSnapshot` was never taken. Found by probing
    * the generated field lists — a sentinel key injected into
    * `SettingsRecoveryState` changed no test outcome, which meant that list was
    * enforcing nothing.
@@ -30,35 +30,35 @@ describe("generated settings protocol fixture", () => {
         unknown
       >;
       snapshot.recovery = state;
-      assertCompatibleSettingsScopeSnapshot(snapshot);
+      assertValidSettingsScopeSnapshot(snapshot);
     });
   });
 
   test("validates every Rust-produced payload category", () => {
-    assertCompatibleSettingsRegistrySnapshot(fixture.registry);
+    assertValidSettingsRegistrySnapshot(fixture.registry);
     fixture.snapshots.forEach((value) =>
-      assertCompatibleSettingsScopeSnapshot(value),
+      assertValidSettingsScopeSnapshot(value),
     );
     fixture.loadCommands.forEach((value) =>
-      assertCompatibleSettingsLoadCommand(value),
+      assertValidSettingsLoadCommand(value),
     );
     fixture.applyCommands.forEach((value) =>
-      assertCompatibleSettingsApplyCommand(value),
+      assertValidSettingsApplyCommand(value),
     );
     fixture.resetCommands.forEach((value) =>
-      assertCompatibleSettingsResetCommand(value),
+      assertValidSettingsResetCommand(value),
     );
     fixture.loadOutcomes.forEach((value) =>
-      assertCompatibleSettingsLoadOutcome(value),
+      assertValidSettingsLoadOutcome(value),
     );
     fixture.mutationResults.forEach((value) =>
-      assertCompatibleSettingsMutationResult(value),
+      assertValidSettingsMutationResult(value),
     );
     fixture.registryEvents.forEach((value) =>
-      assertCompatibleSettingsRegistryChangedEvent(value),
+      assertValidSettingsRegistryChangedEvent(value),
     );
     fixture.scopeEvents.forEach((value) =>
-      assertCompatibleSettingsScopeChangedEvent(value),
+      assertValidSettingsScopeChangedEvent(value),
     );
     expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
   });
@@ -68,15 +68,15 @@ describe("generated settings protocol fixture", () => {
     futureRegistry.protocolVersion =
       fixture.incompatibility.futureProtocolVersion;
     incompatible(() =>
-      assertCompatibleSettingsRegistrySnapshot(futureRegistry),
+      assertValidSettingsRegistrySnapshot(futureRegistry),
     );
     incompatible(() =>
-      assertCompatibleSettingsMutationResult(
+      assertValidSettingsMutationResult(
         fixture.incompatibility.unknownMutationStatus,
       ),
     );
     incompatible(() =>
-      assertCompatibleSettingsLoadOutcome(
+      assertValidSettingsLoadOutcome(
         fixture.incompatibility.unknownLoadStatus,
       ),
     );
@@ -86,7 +86,7 @@ describe("generated settings protocol fixture", () => {
     ) as { receipt: { durability: unknown } };
     durability.receipt.durability =
       fixture.incompatibility.unknownDurabilityKind;
-    incompatible(() => assertCompatibleSettingsMutationResult(durability));
+    incompatible(() => assertValidSettingsMutationResult(durability));
 
     const rejection = structuredClone(
       fixture.mutationResults.find(
@@ -95,7 +95,7 @@ describe("generated settings protocol fixture", () => {
     ) as { rejection: { code: unknown } };
     rejection.rejection.code =
       fixture.incompatibility.unknownRejectionCode;
-    incompatible(() => assertCompatibleSettingsMutationResult(rejection));
+    incompatible(() => assertValidSettingsMutationResult(rejection));
 
     const recovery = structuredClone(
       fixture.snapshots[0]!,
@@ -104,39 +104,39 @@ describe("generated settings protocol fixture", () => {
       code: fixture.incompatibility.unknownRecoveryCode,
       diagnostic: null,
     };
-    incompatible(() => assertCompatibleSettingsScopeSnapshot(recovery));
+    incompatible(() => assertValidSettingsScopeSnapshot(recovery));
 
     const editability = structuredClone(fixture.snapshots[0]!);
     editability.values[0]!.editability =
       fixture.incompatibility.unknownEditability;
-    incompatible(() => assertCompatibleSettingsScopeSnapshot(editability));
+    incompatible(() => assertValidSettingsScopeSnapshot(editability));
 
     const timing = structuredClone(fixture.registry);
     timing.applyUnits[0]!.timing = "deferred";
-    incompatible(() => assertCompatibleSettingsRegistrySnapshot(timing));
+    incompatible(() => assertValidSettingsRegistrySnapshot(timing));
 
     const effectiveSource = structuredClone(fixture.snapshots[0]!);
     effectiveSource.values[0]!.effectiveSource = "remote";
     incompatible(() =>
-      assertCompatibleSettingsScopeSnapshot(effectiveSource),
+      assertValidSettingsScopeSnapshot(effectiveSource),
     );
 
     const policyEffect = structuredClone(fixture.snapshots[0]!);
     policyEffect.values[1]!.policy!.effect = "advisory";
     incompatible(() =>
-      assertCompatibleSettingsScopeSnapshot(policyEffect),
+      assertValidSettingsScopeSnapshot(policyEffect),
     );
 
     const activation = structuredClone(fixture.snapshots[0]!);
     activation.activationRequirements[0]!.state = "scheduled";
-    incompatible(() => assertCompatibleSettingsScopeSnapshot(activation));
+    incompatible(() => assertValidSettingsScopeSnapshot(activation));
 
     const mutationOutcome = structuredClone(
       fixture.mutationResults[0]!,
     ) as { receipt: { outcome: unknown } };
     mutationOutcome.receipt.outcome = "merged";
     incompatible(() =>
-      assertCompatibleSettingsMutationResult(mutationOutcome),
+      assertValidSettingsMutationResult(mutationOutcome),
     );
   });
 
@@ -144,7 +144,7 @@ describe("generated settings protocol fixture", () => {
     const invalidToken = structuredClone(fixture.snapshots[0]!);
     invalidToken.authority.authorityToken = "UPPERCASE";
     incompatible(() =>
-      assertCompatibleSettingsScopeSnapshot(invalidToken),
+      assertValidSettingsScopeSnapshot(invalidToken),
     );
 
     const oversized = structuredClone(
@@ -154,7 +154,7 @@ describe("generated settings protocol fixture", () => {
     };
     oversized.values[0].effective.value = "x".repeat(200);
     expect(() =>
-      assertCompatibleSettingsScopeSnapshot(oversized, 64),
+      assertValidSettingsScopeSnapshot(oversized, 64),
     ).toThrow(
       expect.objectContaining({
         code: "opaque_value_too_large",
@@ -164,5 +164,5 @@ describe("generated settings protocol fixture", () => {
 });
 
 function incompatible(action: () => void): void {
-  expect(action).toThrow(SettingsProtocolIncompatibilityError);
+  expect(action).toThrow(SettingsProtocolValidationError);
 }

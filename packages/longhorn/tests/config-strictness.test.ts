@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleConfigOperationsSnapshot } from "../src/config/validation.ts";
+import { assertValidConfigOperationsSnapshot } from "../src/config/validation.ts";
 import { CONFIG_FIELDS } from "../src/config/generated/fields.ts";
 
 /**
@@ -20,7 +20,7 @@ describe("config boundary strictness", () => {
       snapshot[key] = null;
     }
     expect(() =>
-      assertCompatibleConfigOperationsSnapshot({ ...snapshot, extra: 1 }),
+      assertValidConfigOperationsSnapshot({ ...snapshot, extra: 1 }),
     ).toThrow(/unknown field/);
   });
 
@@ -29,7 +29,7 @@ describe("config boundary strictness", () => {
     for (const key of CONFIG_FIELDS.ConfigOperationsSnapshot!.slice(1)) {
       snapshot[key] = null;
     }
-    expect(() => assertCompatibleConfigOperationsSnapshot(snapshot)).toThrow(
+    expect(() => assertValidConfigOperationsSnapshot(snapshot)).toThrow(
       /missing field/,
     );
   });

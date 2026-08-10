@@ -1,10 +1,10 @@
 import { CheckedSnapshotConnection, type ConnectionFailure, type ConnectionFailureReporter } from "@inflatable-cookie/longhorn/core";
 
 import {
-  assertCompatibleNotificationChangedEvent,
-  assertCompatibleNotificationMutationCommand,
-  assertCompatibleNotificationMutationResult,
-  assertCompatibleNotificationSnapshotResponse,
+  assertValidNotificationChangedEvent,
+  assertValidNotificationMutationCommand,
+  assertValidNotificationMutationResult,
+  assertValidNotificationSnapshotResponse,
 } from "./validation.ts";
 import {
   NOTIFICATION_PROTOCOL_VERSION,
@@ -31,15 +31,15 @@ export class NotificationClient {
   async snapshot(offset = 0, limit = 100): Promise<NotificationSnapshotResponse> {
     const requestId = this.port.nextRequestId();
     const value = await this.port.snapshot({ protocolVersion: NOTIFICATION_PROTOCOL_VERSION, requestId, offset, limit });
-    assertCompatibleNotificationSnapshotResponse(value);
+    assertValidNotificationSnapshotResponse(value);
     assertCorrelation(value.requestId, requestId);
     return value;
   }
 
   async mutate(command: NotificationMutationCommand): Promise<NotificationMutationResult> {
-    assertCompatibleNotificationMutationCommand(command);
+    assertValidNotificationMutationCommand(command);
     const value = await this.port.mutate(command);
-    assertCompatibleNotificationMutationResult(value);
+    assertValidNotificationMutationResult(value);
     assertCorrelation(value.requestId, command.requestId);
     return value;
   }
@@ -80,12 +80,12 @@ class CheckedNotificationSubscription implements NotificationSubscription {
 
 function parseSnapshot(value: unknown): NotificationSnapshot {
   const response = { requestId: "request:validation", snapshot: value };
-  assertCompatibleNotificationSnapshotResponse(response);
+  assertValidNotificationSnapshotResponse(response);
   return value as NotificationSnapshot;
 }
 
 export function notificationEventAction(value: unknown, current: NotificationSnapshot | undefined): { kind: "ignore" } | { kind: "refresh" } {
-  assertCompatibleNotificationChangedEvent(value);
+  assertValidNotificationChangedEvent(value);
   const event = value as NotificationChangedEvent;
   if (current === undefined) return { kind: "refresh" };
   if (event.authority.authorityId !== current.authority.authorityId) return { kind: "ignore" };

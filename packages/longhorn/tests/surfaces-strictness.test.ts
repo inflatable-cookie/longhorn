@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  assertCompatibleSurfaceSnapshot,
-  SurfaceProtocolIncompatibilityError,
+  assertValidSurfaceSnapshot,
+  SurfaceProtocolValidationError,
 } from "../src/surfaces/validation.ts";
 import { SURFACE_PROTOCOL_VERSION } from "../src/surfaces/generated/protocol.ts";
 
@@ -20,19 +20,19 @@ const valid = {
 
 describe("surfaces boundary strictness", () => {
   test("accepts exactly the declared fields", () => {
-    expect(() => assertCompatibleSurfaceSnapshot(valid)).not.toThrow();
+    expect(() => assertValidSurfaceSnapshot(valid)).not.toThrow();
   });
 
   test("rejects an unknown field", () => {
     expect(() =>
-      assertCompatibleSurfaceSnapshot({ ...valid, extra: 1 }),
-    ).toThrow(SurfaceProtocolIncompatibilityError);
+      assertValidSurfaceSnapshot({ ...valid, extra: 1 }),
+    ).toThrow(SurfaceProtocolValidationError);
   });
 
   test("rejects a missing field", () => {
     const { epoch: _dropped, ...missing } = valid;
-    expect(() => assertCompatibleSurfaceSnapshot(missing)).toThrow(
-      SurfaceProtocolIncompatibilityError,
+    expect(() => assertValidSurfaceSnapshot(missing)).toThrow(
+      SurfaceProtocolValidationError,
     );
   });
 
@@ -40,10 +40,10 @@ describe("surfaces boundary strictness", () => {
     // It used to report `unknown_response_status`, because the union had no
     // code for a non-object. Wrong for every caller but one.
     try {
-      assertCompatibleSurfaceSnapshot([]);
+      assertValidSurfaceSnapshot([]);
       throw new Error("expected a rejection");
     } catch (error) {
-      expect((error as SurfaceProtocolIncompatibilityError).code).toBe(
+      expect((error as SurfaceProtocolValidationError).code).toBe(
         "invalid_object",
       );
     }

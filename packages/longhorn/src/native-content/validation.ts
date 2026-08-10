@@ -1,7 +1,7 @@
 export * from "./validation/messages.ts";
 export * from "./validation/state.ts";
 export {
-  NativeContentProtocolCompatibilityError,
+  NativeContentProtocolValidationError,
   assertNativeContentProtocolVersion,
   assertProductPayloadFree,
 } from "./validation/base.ts";

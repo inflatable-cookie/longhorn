@@ -5,12 +5,12 @@ import {
 } from "@inflatable-cookie/longhorn/core";
 
 import {
-  assertCompatibleOperationCancellationCommand,
-  assertCompatibleOperationCancellationResult,
-  assertCompatibleOperationChangedEvent,
-  assertCompatibleOperationMutationCommand,
-  assertCompatibleOperationMutationResult,
-  assertCompatibleOperationSnapshotResponse,
+  assertValidOperationCancellationCommand,
+  assertValidOperationCancellationResult,
+  assertValidOperationChangedEvent,
+  assertValidOperationMutationCommand,
+  assertValidOperationMutationResult,
+  assertValidOperationSnapshotResponse,
 } from "./validation.ts";
 import {
   OPERATION_PROTOCOL_VERSION,
@@ -48,23 +48,23 @@ export class OperationClient {
       protocolVersion: OPERATION_PROTOCOL_VERSION,
       requestId,
     });
-    assertCompatibleOperationSnapshotResponse(value);
+    assertValidOperationSnapshotResponse(value);
     assertResponseCorrelation(value.requestId, requestId);
     return value;
   }
 
   async mutate(command: OperationMutationCommand): Promise<OperationMutationResult> {
-    assertCompatibleOperationMutationCommand(command);
+    assertValidOperationMutationCommand(command);
     const value = await this.#port.mutate(command);
-    assertCompatibleOperationMutationResult(value);
+    assertValidOperationMutationResult(value);
     assertResponseCorrelation(value.requestId, command.requestId);
     return value;
   }
 
   async cancel(command: OperationCancellationCommand): Promise<OperationCancellationResult> {
-    assertCompatibleOperationCancellationCommand(command);
+    assertValidOperationCancellationCommand(command);
     const value = await this.#port.cancel(command);
-    assertCompatibleOperationCancellationResult(value);
+    assertValidOperationCancellationResult(value);
     assertResponseCorrelation(value.requestId, command.requestId);
     return value;
   }
@@ -128,7 +128,7 @@ class CheckedOperationSubscription implements OperationSubscription {
 
 function parseSnapshot(value: unknown): OperationSnapshot {
   const response = { requestId: "request:validation", snapshot: value };
-  assertCompatibleOperationSnapshotResponse(response);
+  assertValidOperationSnapshotResponse(response);
   return value as OperationSnapshot;
 }
 
@@ -136,7 +136,7 @@ export function operationEventAction(
   value: unknown,
   current: OperationSnapshot | undefined,
 ): { kind: "ignore" } | { kind: "refresh" } {
-  assertCompatibleOperationChangedEvent(value);
+  assertValidOperationChangedEvent(value);
   const event = value as OperationChangedEvent;
   if (current === undefined) return { kind: "refresh" };
   if (event.authority.authorityId !== current.authority.authorityId) {

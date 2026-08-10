@@ -18,10 +18,10 @@ import {
 } from "./generated/protocol.ts";
 import { HISTORY_TREE_FIELDS } from "./generated/fields.ts";
 
-export class ForkHistoryCompatibilityError extends Error {
+export class ForkHistoryValidationError extends Error {
   constructor(readonly path: string, message: string) {
     super(`${path}: ${message}`);
-    this.name = "ForkHistoryCompatibilityError";
+    this.name = "ForkHistoryValidationError";
   }
 }
 
@@ -137,4 +137,4 @@ function optionalId(value: unknown, path: string): void { if (value !== null) id
 function optionalString(value: unknown, path: string): void { if (value !== null) string(value, path); }
 function boolean(value: unknown, path: string): void { if (typeof value !== "boolean") fail(path, "expected boolean"); }
 function oneOf(value: unknown, path: string, values: readonly string[]): void { if (typeof value !== "string" || !values.includes(value)) fail(path, "unsupported value"); }
-function fail(path: string, message: string): never { throw new ForkHistoryCompatibilityError(path, message); }
+function fail(path: string, message: string): never { throw new ForkHistoryValidationError(path, message); }

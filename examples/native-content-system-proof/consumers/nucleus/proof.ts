@@ -1,5 +1,5 @@
 import {
-  assertCompatibleNativeContentSnapshot,
+  assertValidNativeContentSnapshot,
   type NativeContentSnapshot,
 } from "@inflatable-cookie/longhorn/native-content";
 
@@ -11,7 +11,7 @@ import {
 
 const typed = fixture as NativeContentTraceFixture;
 for (const snapshot of typed.snapshots) {
-  assertCompatibleNativeContentSnapshot(snapshot);
+  assertValidNativeContentSnapshot(snapshot);
   if (snapshot.desired.capabilities.mechanism !== "child_view") {
     throw new Error("Nucleus fixture is not child-view coordination");
   }

@@ -17,14 +17,14 @@ import {
   type NotificationSnapshotResponse,
 } from "./generated/protocol.ts";
 
-export class NotificationProtocolCompatibilityError extends Error {
+export class NotificationProtocolValidationError extends Error {
   constructor(readonly path: string, message: string) {
     super(`incompatible notification protocol at ${path}: ${message}`);
-    this.name = "NotificationProtocolCompatibilityError";
+    this.name = "NotificationProtocolValidationError";
   }
 }
 
-export function assertCompatibleNotificationSnapshotQuery(value: unknown): asserts value is NotificationSnapshotQuery {
+export function assertValidNotificationSnapshotQuery(value: unknown): asserts value is NotificationSnapshotQuery {
   const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshotQuery);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
@@ -32,13 +32,13 @@ export function assertCompatibleNotificationSnapshotQuery(value: unknown): asser
   natural(object.limit, "$.limit");
 }
 
-export function assertCompatibleNotificationSnapshotResponse(value: unknown): asserts value is NotificationSnapshotResponse {
+export function assertValidNotificationSnapshotResponse(value: unknown): asserts value is NotificationSnapshotResponse {
   const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshotResponse);
   text(object.requestId, "$.requestId");
-  assertCompatibleNotificationSnapshot(object.snapshot);
+  assertValidNotificationSnapshot(object.snapshot);
 }
 
-export function assertCompatibleNotificationSnapshot(value: unknown): asserts value is NotificationSnapshot {
+export function assertValidNotificationSnapshot(value: unknown): asserts value is NotificationSnapshot {
   const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationSnapshot);
   protocol(object.protocolVersion, "$.protocolVersion");
   authority(object.authority, "$.authority");
@@ -55,7 +55,7 @@ export function assertCompatibleNotificationSnapshot(value: unknown): asserts va
   array(page.records, "$.page.records").forEach((item, index) => recordProjection(item, `$.page.records[${index}]`));
 }
 
-export function assertCompatibleNotificationMutationCommand(value: unknown): asserts value is NotificationMutationCommand {
+export function assertValidNotificationMutationCommand(value: unknown): asserts value is NotificationMutationCommand {
   const object = record(value, "$");
   member(object.kind, NOTIFICATION_MUTATION_KINDS, "$.kind");
   protocol(object.protocolVersion, "$.protocolVersion");
@@ -93,11 +93,11 @@ export function assertCompatibleNotificationMutationCommand(value: unknown): ass
   }
 }
 
-export function assertCompatibleNotificationMutationResult(value: unknown): asserts value is NotificationMutationResult {
+export function assertValidNotificationMutationResult(value: unknown): asserts value is NotificationMutationResult {
   const object = record(value, "$");
   member(object.status, NOTIFICATION_MUTATION_STATUSES, "$.status");
   text(object.requestId, "$.requestId");
-  assertCompatibleNotificationSnapshot(object.snapshot);
+  assertValidNotificationSnapshot(object.snapshot);
   if (object.status === "committed") {
     exactKeys(object, "$", ["status", "requestId", "snapshot", "receipt"]);
     receipt(object.receipt, "$.receipt");
@@ -110,7 +110,7 @@ export function assertCompatibleNotificationMutationResult(value: unknown): asse
   }
 }
 
-export function assertCompatibleNotificationChangedEvent(value: unknown): asserts value is NotificationChangedEvent {
+export function assertValidNotificationChangedEvent(value: unknown): asserts value is NotificationChangedEvent {
   const object = exact(value, "$", NOTIFICATIONS_FIELDS.NotificationChangedEvent);
   protocol(object.protocolVersion, "$.protocolVersion");
   text(object.requestId, "$.requestId");
@@ -225,4 +225,4 @@ function integer(value: unknown, path: string): void { if (typeof value !== "num
 function natural(value: unknown, path: string): void { integer(value, path); if ((value as number) < 0) fail(path, "expected nonnegative integer"); }
 function positive(value: unknown, path: string): void { natural(value, path); if ((value as number) === 0) fail(path, "expected positive integer"); }
 function member(value: unknown, members: readonly string[], path: string): void { if (typeof value !== "string" || !members.includes(value)) fail(path, `expected one of ${members.join(", ")}`); }
-function fail(path: string, message: string): never { throw new NotificationProtocolCompatibilityError(path, message); }
+function fail(path: string, message: string): never { throw new NotificationProtocolValidationError(path, message); }

@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 import {
-  assertCompatibleLayoutMutationCommand,
-  assertCompatibleLayoutMutationOutcome,
-  assertCompatibleLayoutMutationRejectionCode,
+  assertValidLayoutMutationCommand,
+  assertValidLayoutMutationOutcome,
+  assertValidLayoutMutationRejectionCode,
   assertLayoutProtocolVersion,
 } from "@inflatable-cookie/longhorn/layout";
 
@@ -98,8 +98,8 @@ describe("two-shape layout conformance", () => {
         const receipt = record(entry.receipt);
         const command = record(request.command);
         const outcome = record(receipt.outcome);
-        assertCompatibleLayoutMutationCommand(command);
-        assertCompatibleLayoutMutationOutcome(outcome);
+        assertValidLayoutMutationCommand(command);
+        assertValidLayoutMutationOutcome(outcome);
         expect(receipt.previous_revision).toBe(request.expected_revision);
         expect(receipt.committed_revision).toBe(
           number(receipt.previous_revision) + 1,
@@ -123,7 +123,7 @@ describe("two-shape layout conformance", () => {
       const singleton = record(fixture.singleton_policy);
       const firstReceipt = record(singleton.first_receipt);
       const rejection = record(singleton.second_rejection);
-      assertCompatibleLayoutMutationRejectionCode(rejection.code);
+      assertValidLayoutMutationRejectionCode(rejection.code);
       expect(rejection.code).toBe("instance_policy_exceeded");
       expect(rejection.authoritative_document).toEqual(
         firstReceipt.authoritative_document,
@@ -160,8 +160,8 @@ describe("two-shape layout conformance", () => {
     for (const fixture of fixtures) {
       const stale = record(fixture.stale_rejection);
       const invalid = record(fixture.invalid_rejection);
-      assertCompatibleLayoutMutationRejectionCode(stale.code);
-      assertCompatibleLayoutMutationRejectionCode(invalid.code);
+      assertValidLayoutMutationRejectionCode(stale.code);
+      assertValidLayoutMutationRejectionCode(invalid.code);
       expect(stale.code).toBe("stale_revision");
       expect(invalid.code).toBe("move_target_unchanged");
       expect(stale.authoritative_document).toEqual(fixture.expected_snapshot);

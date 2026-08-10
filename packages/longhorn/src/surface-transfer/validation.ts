@@ -12,14 +12,14 @@ import {
 import { SURFACE_TRANSFER_FIELDS } from "./generated/fields.ts";
 import {
   TRANSFER_ERROR_CODES,
-  assertCompatibleTransferTargetBinding,
+  assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
 import {
-  assertCompatibleSurfaceMutationRejectionCode,
+  assertValidSurfaceMutationRejectionCode,
 } from "@inflatable-cookie/longhorn/surfaces";
 
-export type SurfaceTransferProtocolIncompatibilityCode =
+export type SurfaceTransferProtocolValidationCode =
   | "unknown_target"
   | "unknown_abort_domain"
   | "unknown_surface_transfer_error_code"
@@ -29,22 +29,22 @@ export type SurfaceTransferProtocolIncompatibilityCode =
   | "unknown_field"
   | "missing_field";
 
-export class SurfaceTransferProtocolIncompatibilityError extends Error {
-  readonly code: SurfaceTransferProtocolIncompatibilityCode;
+export class SurfaceTransferProtocolValidationError extends Error {
+  readonly code: SurfaceTransferProtocolValidationCode;
   readonly received: unknown;
 
   constructor(
-    code: SurfaceTransferProtocolIncompatibilityCode,
+    code: SurfaceTransferProtocolValidationCode,
     received: unknown,
   ) {
     super(`incompatible Surface transfer protocol: ${code}`);
-    this.name = "SurfaceTransferProtocolIncompatibilityError";
+    this.name = "SurfaceTransferProtocolValidationError";
     this.code = code;
     this.received = received;
   }
 }
 
-export function assertCompatibleSurfaceTransferTarget(
+export function assertValidSurfaceTransferTarget(
   value: unknown,
 ): asserts value is SurfaceTransferTarget {
   // No field list: `SurfaceTransferTarget` is a tagged union, so its allowed
@@ -58,13 +58,13 @@ export function assertCompatibleSurfaceTransferTarget(
     "unknown_target",
   );
   if (target.kind === "existing") {
-    assertCompatibleTransferTargetBinding(
+    assertValidTransferTargetBinding(
       record(record(target.target).binding),
     );
   }
 }
 
-export function assertCompatibleSurfaceTransferAbort(
+export function assertValidSurfaceTransferAbort(
   value: unknown,
 ): asserts value is SurfaceTransferAbort {
   const abort = record(value, SURFACE_TRANSFER_FIELDS.SurfaceTransferAbort);
@@ -89,11 +89,11 @@ export function assertCompatibleSurfaceTransferAbort(
     );
   }
   if (abort.surface_code !== null) {
-    assertCompatibleSurfaceMutationRejectionCode(abort.surface_code);
+    assertValidSurfaceMutationRejectionCode(abort.surface_code);
   }
 }
 
-export function assertCompatibleSurfaceSessionResponse(
+export function assertValidSurfaceSessionResponse(
   value: unknown,
 ): asserts value is SurfaceSessionResponse {
   const response = responseWithStatus(
@@ -105,11 +105,11 @@ export function assertCompatibleSurfaceSessionResponse(
     assertTransferProtocolVersion(session.protocol_version);
     assertTransferProtocolVersion(record(session.payload).protocol_version);
   } else {
-    assertCompatibleSurfaceTransferAbort(response.abort);
+    assertValidSurfaceTransferAbort(response.abort);
   }
 }
 
-export function assertCompatibleSurfaceTransferResponse(
+export function assertValidSurfaceTransferResponse(
   value: unknown,
 ): asserts value is SurfaceTransferResponse {
   const response = responseWithStatus(
@@ -119,9 +119,9 @@ export function assertCompatibleSurfaceTransferResponse(
   if (response.status === "committed") {
     const completion = record(response.completion, SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
-    assertCompatibleSurfaceTransferTarget(completion.target);
+    assertValidSurfaceTransferTarget(completion.target);
   } else {
-    assertCompatibleSurfaceTransferAbort(response.abort);
+    assertValidSurfaceTransferAbort(response.abort);
   }
 }
 
@@ -137,10 +137,10 @@ function responseWithStatus(
 function assertKnown(
   value: unknown,
   known: readonly string[],
-  code: SurfaceTransferProtocolIncompatibilityCode,
+  code: SurfaceTransferProtocolValidationCode,
 ): asserts value is string {
   if (typeof value !== "string" || !known.includes(value)) {
-    throw new SurfaceTransferProtocolIncompatibilityError(code, value);
+    throw new SurfaceTransferProtocolValidationError(code, value);
   }
 }
 
@@ -157,7 +157,7 @@ function record(
   allowed?: readonly string[],
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new SurfaceTransferProtocolIncompatibilityError("invalid_object", value);
+    throw new SurfaceTransferProtocolValidationError("invalid_object", value);
   }
   const result = value as Record<string, unknown>;
   if (allowed === undefined) return result;
@@ -165,12 +165,12 @@ function record(
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
     if (!permitted.has(key)) {
-      throw new SurfaceTransferProtocolIncompatibilityError("unknown_field", { key, value });
+      throw new SurfaceTransferProtocolValidationError("unknown_field", { key, value });
     }
   }
   for (const key of allowed) {
     if (!(key in result)) {
-      throw new SurfaceTransferProtocolIncompatibilityError("missing_field", { key, value });
+      throw new SurfaceTransferProtocolValidationError("missing_field", { key, value });
     }
   }
   return result;

@@ -1,10 +1,10 @@
 import {
-  assertCompatibleHistoryChangedEvent,
-  assertCompatibleHistoryNavigationCommand,
-  assertCompatibleHistoryNavigationResult,
-  assertCompatibleHistoryPageCommand,
-  assertCompatibleHistoryPageSnapshot,
-  assertCompatibleHistorySnapshot,
+  assertValidHistoryChangedEvent,
+  assertValidHistoryNavigationCommand,
+  assertValidHistoryNavigationResult,
+  assertValidHistoryPageCommand,
+  assertValidHistoryPageSnapshot,
+  assertValidHistorySnapshot,
 } from "./validation.ts";
 import type {
   HistoryChangedEvent,
@@ -33,23 +33,23 @@ export class HistoryClient implements CheckedHistoryPort {
 
   async snapshot(): Promise<HistorySnapshot> {
     const value = await this.#port.snapshot();
-    assertCompatibleHistorySnapshot(value);
+    assertValidHistorySnapshot(value);
     return value;
   }
 
   async page(command: HistoryPageCommand): Promise<HistoryPageSnapshot> {
-    assertCompatibleHistoryPageCommand(command);
+    assertValidHistoryPageCommand(command);
     const value = await this.#port.page(command);
-    assertCompatibleHistoryPageSnapshot(value);
+    assertValidHistoryPageSnapshot(value);
     return value;
   }
 
   async navigate(
     command: HistoryNavigationCommand,
   ): Promise<HistoryNavigationResult> {
-    assertCompatibleHistoryNavigationCommand(command);
+    assertValidHistoryNavigationCommand(command);
     const value = await this.#port.navigate(command);
-    assertCompatibleHistoryNavigationResult(value);
+    assertValidHistoryNavigationResult(value);
     return value;
   }
 
@@ -58,7 +58,7 @@ export class HistoryClient implements CheckedHistoryPort {
   ): Promise<HistoryUnlisten> {
     if (this.#port.listen === undefined) return () => {};
     return this.#port.listen((value) => {
-      assertCompatibleHistoryChangedEvent(value);
+      assertValidHistoryChangedEvent(value);
       listener(value);
     });
   }

@@ -1,5 +1,5 @@
 import {
-  BridgeProtocolIncompatibilityError,
+  BridgeProtocolValidationError,
   parseBridgeHelloRequest,
 } from "@inflatable-cookie/longhorn/bridge";
 
@@ -17,7 +17,7 @@ export function protocolArtifactTrace() {
       requestedDomains: ["fixture.catalog"],
     });
   } catch (error) {
-    if (!(error instanceof BridgeProtocolIncompatibilityError)) {
+    if (!(error instanceof BridgeProtocolValidationError)) {
       throw error;
     }
     futureVersion = error.code;

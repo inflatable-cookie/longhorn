@@ -14,7 +14,7 @@ import {
   type SettingsResetCommand,
   type SettingsScopeChangedEvent,
 } from "../generated/protocol.ts";
-import { assertCompatibleSettingsScopeSnapshot } from "./authority.ts";
+import { assertValidSettingsScopeSnapshot } from "./authority.ts";
 import { activation, rejection } from "./projection.ts";
 import {
   array,
@@ -29,7 +29,7 @@ import {
   unsigned,
 } from "./primitives.ts";
 
-export function assertCompatibleSettingsLoadCommand(
+export function assertValidSettingsLoadCommand(
   value: unknown,
 ): asserts value is SettingsLoadCommand {
   const command = record(value, SETTINGS_FIELDS.SettingsLoadCommand);
@@ -42,7 +42,7 @@ export function assertCompatibleSettingsLoadCommand(
   }
 }
 
-export function assertCompatibleSettingsApplyCommand(
+export function assertValidSettingsApplyCommand(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsApplyCommand {
@@ -50,21 +50,21 @@ export function assertCompatibleSettingsApplyCommand(
   opaque(command.intent, maximumOpaqueValueBytes);
 }
 
-export function assertCompatibleSettingsResetCommand(
+export function assertValidSettingsResetCommand(
   value: unknown,
 ): asserts value is SettingsResetCommand {
   const command = mutationCommand(value, SETTINGS_FIELDS.SettingsResetCommand);
   array(command.entryIds).forEach(identity);
 }
 
-export function assertCompatibleSettingsLoadOutcome(
+export function assertValidSettingsLoadOutcome(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsLoadOutcome {
   const outcome = record(value);
   known(outcome.status, SETTINGS_LOAD_OUTCOME_STATUSES);
   if (outcome.status === "loaded") {
-    assertCompatibleSettingsScopeSnapshot(
+    assertValidSettingsScopeSnapshot(
       outcome.snapshot,
       maximumOpaqueValueBytes,
     );
@@ -77,14 +77,14 @@ export function assertCompatibleSettingsLoadOutcome(
   }
 }
 
-export function assertCompatibleSettingsMutationResult(
+export function assertValidSettingsMutationResult(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsMutationResult {
   const result = record(value);
   known(result.status, SETTINGS_MUTATION_RESULT_STATUSES);
   if (result.status === "applied") {
-    assertCompatibleSettingsScopeSnapshot(
+    assertValidSettingsScopeSnapshot(
       result.snapshot,
       maximumOpaqueValueBytes,
     );
@@ -93,7 +93,7 @@ export function assertCompatibleSettingsMutationResult(
     const conflict = record(result.conflict, SETTINGS_FIELDS.SettingsConflict);
     authority(conflict.expected);
     authority(conflict.actual);
-    assertCompatibleSettingsScopeSnapshot(
+    assertValidSettingsScopeSnapshot(
       result.snapshot,
       maximumOpaqueValueBytes,
     );
@@ -104,7 +104,7 @@ export function assertCompatibleSettingsMutationResult(
       SETTINGS_REJECTION_CODES,
     );
     if (result.snapshot !== null) {
-      assertCompatibleSettingsScopeSnapshot(
+      assertValidSettingsScopeSnapshot(
         result.snapshot,
         maximumOpaqueValueBytes,
       );
@@ -112,7 +112,7 @@ export function assertCompatibleSettingsMutationResult(
   }
 }
 
-export function assertCompatibleSettingsRegistryChangedEvent(
+export function assertValidSettingsRegistryChangedEvent(
   value: unknown,
 ): asserts value is SettingsRegistryChangedEvent {
   const event = record(value, SETTINGS_FIELDS.SettingsRegistryChangedEvent);
@@ -120,7 +120,7 @@ export function assertCompatibleSettingsRegistryChangedEvent(
   unsigned(event.registryGeneration, "invalid_revision");
 }
 
-export function assertCompatibleSettingsScopeChangedEvent(
+export function assertValidSettingsScopeChangedEvent(
   value: unknown,
 ): asserts value is SettingsScopeChangedEvent {
   const event = record(value, SETTINGS_FIELDS.SettingsScopeChangedEvent);

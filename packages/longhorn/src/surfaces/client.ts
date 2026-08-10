@@ -12,10 +12,10 @@ import type {
   SurfaceSnapshot,
 } from "./generated/protocol.ts";
 import {
-  assertCompatibleSurfaceChangedEvent,
-  assertCompatibleSurfaceMutationCommand,
-  assertCompatibleSurfaceMutationResponse,
-  assertCompatibleSurfaceSnapshot,
+  assertValidSurfaceChangedEvent,
+  assertValidSurfaceMutationCommand,
+  assertValidSurfaceMutationResponse,
+  assertValidSurfaceSnapshot,
 } from "./validation.ts";
 
 export const SURFACE_SNAPSHOT_COMMAND = "longhorn_surfaces_snapshot";
@@ -44,11 +44,11 @@ export class SurfaceClient {
   async mutate(
     request: SurfaceMutationRequest,
   ): Promise<SurfaceMutationResponse> {
-    assertCompatibleSurfaceMutationCommand(request.command);
+    assertValidSurfaceMutationCommand(request.command);
     const value = await this.#transport.invoke(SURFACE_MUTATE_COMMAND, {
       request,
     });
-    assertCompatibleSurfaceMutationResponse(value);
+    assertValidSurfaceMutationResponse(value);
     return value;
   }
 
@@ -102,7 +102,7 @@ class SurfaceSnapshotSubscription implements SurfaceSubscription {
 }
 
 function parseSurfaceSnapshot(value: unknown): SurfaceSnapshot {
-  assertCompatibleSurfaceSnapshot(value);
+  assertValidSurfaceSnapshot(value);
   return value;
 }
 
@@ -110,7 +110,7 @@ function surfaceEventAction(
   value: unknown,
   current: SurfaceSnapshot | undefined,
 ): { kind: "ignore" } | { kind: "refresh" } {
-  assertCompatibleSurfaceChangedEvent(value);
+  assertValidSurfaceChangedEvent(value);
   if (current === undefined) {
     return { kind: "refresh" };
   }

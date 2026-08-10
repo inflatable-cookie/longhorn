@@ -15,13 +15,13 @@ import {
 } from "@inflatable-cookie/longhorn/bridge";
 
 import {
-  assertCompatibleOperationCancellationCommand,
-  assertCompatibleOperationCancellationResult,
-  assertCompatibleOperationChangedEvent,
-  assertCompatibleOperationMutationCommand,
-  assertCompatibleOperationMutationResult,
-  assertCompatibleOperationSnapshotQuery,
-  assertCompatibleOperationSnapshotResponse,
+  assertValidOperationCancellationCommand,
+  assertValidOperationCancellationResult,
+  assertValidOperationChangedEvent,
+  assertValidOperationMutationCommand,
+  assertValidOperationMutationResult,
+  assertValidOperationSnapshotQuery,
+  assertValidOperationSnapshotResponse,
 } from "./validation.ts";
 import type {
   OperationCancellationCommand,
@@ -105,11 +105,11 @@ function queryDescriptor(domainId: DomainId): BridgeOperationDescriptor<BridgeQu
     requiredCapability: "longhorn.operation.read",
     request: codec((value) => {
       const payload = (value as BridgeQueryEnvelope<unknown>).payload;
-      assertCompatibleOperationSnapshotQuery(payload);
+      assertValidOperationSnapshotQuery(payload);
     }),
     reply: codec((value) => {
       const outcome = (value as BridgeQueryReply<unknown, null>).outcome;
-      if ("success" in outcome) assertCompatibleOperationSnapshotResponse(outcome.success);
+      if ("success" in outcome) assertValidOperationSnapshotResponse(outcome.success);
     }),
   };
 }
@@ -118,10 +118,10 @@ function commandDescriptor(domainId: DomainId): BridgeOperationDescriptor<Bridge
   return {
     route: "longhorn.operation.mutate", domainId, kind: "command",
     requiredCapability: "longhorn.operation.manage",
-    request: codec((value) => assertCompatibleOperationMutationCommand((value as BridgeCommandEnvelope<unknown>).payload)),
+    request: codec((value) => assertValidOperationMutationCommand((value as BridgeCommandEnvelope<unknown>).payload)),
     reply: codec((value) => {
       const outcome = (value as BridgeCommandReply<unknown, null>).outcome;
-      if ("applied" in outcome) assertCompatibleOperationMutationResult(outcome.applied);
+      if ("applied" in outcome) assertValidOperationMutationResult(outcome.applied);
     }),
   };
 }
@@ -130,10 +130,10 @@ function cancellationDescriptor(domainId: DomainId): BridgeOperationDescriptor<B
   return {
     route: "longhorn.operation.cancel", domainId, kind: "cancellation",
     requiredCapability: "longhorn.operation.cancel",
-    request: codec((value) => assertCompatibleOperationCancellationCommand((value as BridgeQueryEnvelope<unknown>).payload)),
+    request: codec((value) => assertValidOperationCancellationCommand((value as BridgeQueryEnvelope<unknown>).payload)),
     reply: codec((value) => {
       const outcome = (value as BridgeQueryReply<unknown, null>).outcome;
-      if ("success" in outcome) assertCompatibleOperationCancellationResult(outcome.success);
+      if ("success" in outcome) assertValidOperationCancellationResult(outcome.success);
     }),
   };
 }
@@ -155,14 +155,14 @@ export class BridgeOperationJobCorrelation {
 
   acceptProgress(event: BridgeProgressEvent<OperationChangedEvent>): OperationChangedEvent | undefined {
     if (this.#tracker.classifyProgress(event) !== "accept") return undefined;
-    assertCompatibleOperationChangedEvent(event.progress);
+    assertValidOperationChangedEvent(event.progress);
     return event.progress.operationId === this.#operationId ? event.progress : undefined;
   }
 
   acceptTerminal(event: BridgeJobTerminalEvent<OperationChangedEvent, null>): OperationChangedEvent | undefined {
     if (this.#tracker.classifyTerminal(event) !== "accept") return undefined;
     if (typeof event.outcome !== "object" || event.outcome === null || !("succeeded" in event.outcome)) return undefined;
-    assertCompatibleOperationChangedEvent(event.outcome.succeeded);
+    assertValidOperationChangedEvent(event.outcome.succeeded);
     return event.outcome.succeeded.operationId === this.#operationId ? event.outcome.succeeded : undefined;
   }
 }

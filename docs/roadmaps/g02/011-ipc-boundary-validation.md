@@ -79,6 +79,8 @@ map there would build a boundary the package does not own.
 Tagged unions stay on the lenient path until a per-variant field map exists —
 their allowed keys depend on the discriminant, so one flat list is wrong.
 
-Step 6, renaming the surface, is deferred rather than ready: it changes a
-consumer-visible export across 13 packages, and Card 166 is publishing those
-packages now.
+Step 6 is done. The modules are `validation.ts` and `validation/`, and the
+symbols are `assertValidX` and `XProtocolValidationError`. Nucleus was
+migrated in the same pass; Loophole needed no source change.
+
+The milestone's work is complete.

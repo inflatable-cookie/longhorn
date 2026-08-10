@@ -16,13 +16,13 @@ import {
   type TransferSessionResponse,
 } from "./generated/protocol.ts";
 import {
-  assertCompatiblePanelTransferResponse,
-  assertCompatibleTransferClientSnapshot,
-  assertCompatibleTransferCancelResponse,
-  assertCompatibleTransferCommitSelector,
-  assertCompatibleTransferLeaseResponse,
-  assertCompatibleTransferSessionResponse,
-  assertCompatibleTransferTargetBinding,
+  assertValidPanelTransferResponse,
+  assertValidTransferClientSnapshot,
+  assertValidTransferCancelResponse,
+  assertValidTransferCommitSelector,
+  assertValidTransferLeaseResponse,
+  assertValidTransferSessionResponse,
+  assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
 } from "./validation.ts";
 import {
@@ -48,7 +48,7 @@ export class TransferClient {
 
   async snapshot(): Promise<TransferClientSnapshot> {
     const value = await this.#transport.invoke(TRANSFER_SNAPSHOT_COMMAND, {});
-    assertCompatibleTransferClientSnapshot(value);
+    assertValidTransferClientSnapshot(value);
     return value;
   }
 
@@ -76,7 +76,7 @@ export class TransferClient {
     return this.#invoke(
       TRANSFER_START_PANEL_COMMAND,
       request,
-      assertCompatibleTransferSessionResponse,
+      assertValidTransferSessionResponse,
     );
   }
 
@@ -85,12 +85,12 @@ export class TransferClient {
   ): Promise<TransferLeaseResponse> {
     assertTransferProtocolVersion(request.protocol_version);
     for (const zone of request.zones) {
-      assertCompatibleTransferTargetBinding(zone.target);
+      assertValidTransferTargetBinding(zone.target);
     }
     return this.#invoke(
       TRANSFER_PUBLISH_LEASE_COMMAND,
       request,
-      assertCompatibleTransferLeaseResponse,
+      assertValidTransferLeaseResponse,
     );
   }
 
@@ -98,11 +98,11 @@ export class TransferClient {
     request: PanelTransferCommand,
   ): Promise<PanelTransferResponse> {
     assertTransferProtocolVersion(request.protocol_version);
-    assertCompatibleTransferCommitSelector(request.selector);
+    assertValidTransferCommitSelector(request.selector);
     return this.#invoke(
       TRANSFER_COMMIT_PANEL_COMMAND,
       request,
-      assertCompatiblePanelTransferResponse,
+      assertValidPanelTransferResponse,
     );
   }
 
@@ -113,7 +113,7 @@ export class TransferClient {
     return this.#invoke(
       TRANSFER_CANCEL_COMMAND,
       request,
-      assertCompatibleTransferCancelResponse,
+      assertValidTransferCancelResponse,
     );
   }
 

@@ -12,7 +12,7 @@ import {
 } from "./generated/protocol.ts";
 import { SURFACE_FIELDS } from "./generated/fields.ts";
 
-export type SurfaceProtocolIncompatibilityCode =
+export type SurfaceProtocolValidationCode =
   | "unsupported_protocol_version"
   | "unknown_command"
   | "unknown_outcome"
@@ -22,13 +22,13 @@ export type SurfaceProtocolIncompatibilityCode =
   | "unknown_field"
   | "missing_field";
 
-export class SurfaceProtocolIncompatibilityError extends Error {
-  readonly code: SurfaceProtocolIncompatibilityCode;
+export class SurfaceProtocolValidationError extends Error {
+  readonly code: SurfaceProtocolValidationCode;
   readonly received: unknown;
 
-  constructor(code: SurfaceProtocolIncompatibilityCode, received: unknown) {
+  constructor(code: SurfaceProtocolValidationCode, received: unknown) {
     super(`incompatible Surface protocol: ${code}`);
-    this.name = "SurfaceProtocolIncompatibilityError";
+    this.name = "SurfaceProtocolValidationError";
     this.code = code;
     this.received = received;
   }
@@ -38,26 +38,26 @@ export function assertSurfaceProtocolVersion(
   version: unknown,
 ): asserts version is typeof SURFACE_PROTOCOL_VERSION {
   if (version !== SURFACE_PROTOCOL_VERSION) {
-    throw new SurfaceProtocolIncompatibilityError(
+    throw new SurfaceProtocolValidationError(
       "unsupported_protocol_version",
       version,
     );
   }
 }
 
-export function assertCompatibleSurfaceMutationCommand(
+export function assertValidSurfaceMutationCommand(
   value: unknown,
 ): asserts value is SurfaceMutationCommand {
   assertKnownKind(value, SURFACE_MUTATION_COMMAND_KINDS, "unknown_command");
 }
 
-export function assertCompatibleSurfaceMutationOutcome(
+export function assertValidSurfaceMutationOutcome(
   value: unknown,
 ): asserts value is SurfaceMutationOutcome {
   assertKnownKind(value, SURFACE_MUTATION_OUTCOME_KINDS, "unknown_outcome");
 }
 
-export function assertCompatibleSurfaceMutationRejectionCode(
+export function assertValidSurfaceMutationRejectionCode(
   value: unknown,
 ): asserts value is SurfaceMutationRejectionCode {
   if (
@@ -66,37 +66,37 @@ export function assertCompatibleSurfaceMutationRejectionCode(
       value as (typeof SURFACE_MUTATION_REJECTION_CODES)[number],
     )
   ) {
-    throw new SurfaceProtocolIncompatibilityError(
+    throw new SurfaceProtocolValidationError(
       "unknown_rejection_code",
       value,
     );
   }
 }
 
-export function assertCompatibleSurfaceMutationResponse(
+export function assertValidSurfaceMutationResponse(
   value: unknown,
 ): asserts value is SurfaceMutationResponse {
   const response = record(value, SURFACE_FIELDS.SurfaceMutationResponse);
   switch (response.status) {
     case "committed": {
       const receipt = record(response.receipt, SURFACE_FIELDS.SurfaceMutationReceipt);
-      assertCompatibleSurfaceMutationOutcome(record(receipt.outcome));
+      assertValidSurfaceMutationOutcome(record(receipt.outcome));
       return;
     }
     case "rejected": {
       const rejection = record(response.rejection, SURFACE_FIELDS.SurfaceMutationRejection);
-      assertCompatibleSurfaceMutationRejectionCode(rejection.code);
+      assertValidSurfaceMutationRejectionCode(rejection.code);
       return;
     }
     default:
-      throw new SurfaceProtocolIncompatibilityError(
+      throw new SurfaceProtocolValidationError(
         "unknown_response_status",
         response.status,
       );
   }
 }
 
-export function assertCompatibleSurfaceSnapshot(
+export function assertValidSurfaceSnapshot(
   value: unknown,
 ): asserts value is SurfaceSnapshot {
   assertSurfaceProtocolVersion(
@@ -104,7 +104,7 @@ export function assertCompatibleSurfaceSnapshot(
   );
 }
 
-export function assertCompatibleSurfaceChangedEvent(
+export function assertValidSurfaceChangedEvent(
   value: unknown,
 ): asserts value is SurfaceChangedEvent {
   assertSurfaceProtocolVersion(
@@ -122,7 +122,7 @@ function assertKnownKind(
     typeof candidate.kind !== "string" ||
     !known.includes(candidate.kind)
   ) {
-    throw new SurfaceProtocolIncompatibilityError(code, value);
+    throw new SurfaceProtocolValidationError(code, value);
   }
 }
 
@@ -144,7 +144,7 @@ function record(
   allowed?: readonly string[],
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new SurfaceProtocolIncompatibilityError("invalid_object", value);
+    throw new SurfaceProtocolValidationError("invalid_object", value);
   }
   const result = value as Record<string, unknown>;
   if (allowed === undefined) return result;
@@ -152,7 +152,7 @@ function record(
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
     if (!permitted.has(key)) {
-      throw new SurfaceProtocolIncompatibilityError("unknown_field", {
+      throw new SurfaceProtocolValidationError("unknown_field", {
         key,
         value,
       });
@@ -160,7 +160,7 @@ function record(
   }
   for (const key of allowed) {
     if (!(key in result)) {
-      throw new SurfaceProtocolIncompatibilityError("missing_field", {
+      throw new SurfaceProtocolValidationError("missing_field", {
         key,
         value,
       });

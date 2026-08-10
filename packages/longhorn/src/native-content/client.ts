@@ -4,15 +4,15 @@ import type {
 } from "@inflatable-cookie/longhorn/core";
 
 import {
-  assertCompatibleNativeContentChangedEvent,
-  assertCompatibleNativeContentConnectRequest,
-  assertCompatibleNativeContentConnectResult,
-  assertCompatibleNativeContentDecisionRequest,
-  assertCompatibleNativeContentDecisionResult,
-  assertCompatibleNativeContentDesiredUpdateRequest,
-  assertCompatibleNativeContentDesiredUpdateResult,
-  assertCompatibleNativeContentSnapshotRequest,
-  assertCompatibleNativeContentSnapshotResult,
+  assertValidNativeContentChangedEvent,
+  assertValidNativeContentConnectRequest,
+  assertValidNativeContentConnectResult,
+  assertValidNativeContentDecisionRequest,
+  assertValidNativeContentDecisionResult,
+  assertValidNativeContentDesiredUpdateRequest,
+  assertValidNativeContentDesiredUpdateResult,
+  assertValidNativeContentSnapshotRequest,
+  assertValidNativeContentSnapshotResult,
 } from "./validation.ts";
 import {
   NATIVE_CONTENT_PROTOCOL_VERSION,
@@ -133,10 +133,10 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       expected_desired_revision: current.cursor.desired_revision,
       update,
     };
-    assertCompatibleNativeContentDesiredUpdateRequest(request);
+    assertValidNativeContentDesiredUpdateRequest(request);
     try {
       const value = await this.#port.updateDesired(request);
-      assertCompatibleNativeContentDesiredUpdateResult(value);
+      assertValidNativeContentDesiredUpdateResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "committed") this.#offer(value.snapshot, session);
       return value;
@@ -160,10 +160,10 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       proposal,
       decision,
     };
-    assertCompatibleNativeContentDecisionRequest(request);
+    assertValidNativeContentDecisionRequest(request);
     try {
       const value = await this.#port.decideContentSize(request);
-      assertCompatibleNativeContentDecisionResult(value);
+      assertValidNativeContentDecisionResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "decided") this.#offer(value.snapshot, session);
       return value;
@@ -207,9 +207,9 @@ class CheckedNativeContentConnection implements NativeContentConnection {
         request_id: requestId,
         island_id: this.#islandId,
       };
-      assertCompatibleNativeContentConnectRequest(request);
+      assertValidNativeContentConnectRequest(request);
       const value = await this.#port.connect(request);
-      assertCompatibleNativeContentConnectResult(value);
+      assertValidNativeContentConnectResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "rejected") {
         throw new NativeContentRequestRejectedError(value.rejection);
@@ -234,7 +234,7 @@ class CheckedNativeContentConnection implements NativeContentConnection {
   #handleEvent(value: unknown): void {
     if (this.#disposed || this.#failures.length > 0) return;
     try {
-      assertCompatibleNativeContentChangedEvent(value);
+      assertValidNativeContentChangedEvent(value);
       if (value.cursor.island_id !== this.#islandId) return;
       if (this.#snapshot === undefined) {
         this.#queuedEvents.push(value);
@@ -294,9 +294,9 @@ class CheckedNativeContentConnection implements NativeContentConnection {
         island_id: this.#islandId,
         client_epoch: current.cursor.client_epoch,
       };
-      assertCompatibleNativeContentSnapshotRequest(request);
+      assertValidNativeContentSnapshotRequest(request);
       const value = await this.#port.snapshot(request);
-      assertCompatibleNativeContentSnapshotResult(value);
+      assertValidNativeContentSnapshotResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "rejected") {
         throw new NativeContentRequestRejectedError(value.rejection);

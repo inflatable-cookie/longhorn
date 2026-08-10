@@ -23,16 +23,16 @@ import {
 } from "./generated/protocol.ts";
 import { COMMANDS_FIELDS } from "./generated/fields.ts";
 
-export class CommandProtocolIncompatibilityError extends Error {
+export class CommandProtocolValidationError extends Error {
   readonly code = "command_protocol_incompatible";
 
   constructor(readonly path: string, detail: string) {
     super(`${path}: ${detail}`);
-    this.name = "CommandProtocolIncompatibilityError";
+    this.name = "CommandProtocolValidationError";
   }
 }
 
-export function assertCompatibleCommandCatalogue(
+export function assertValidCommandCatalogue(
   value: unknown,
 ): asserts value is CommandCatalogueSnapshot {
   const record = object(value, "$", COMMANDS_FIELDS.CommandCatalogueSnapshot);
@@ -52,7 +52,7 @@ export function assertCompatibleCommandCatalogue(
   });
 }
 
-export function assertCompatibleCommandAvailabilitySnapshot(
+export function assertValidCommandAvailabilitySnapshot(
   value: unknown,
 ): asserts value is CommandAvailabilitySnapshot {
   const record = object(value, "$", COMMANDS_FIELDS.CommandAvailabilitySnapshot);
@@ -117,7 +117,7 @@ export function assertCompatibleCommandAvailabilitySnapshot(
   });
 }
 
-export function assertCompatibleCommandCatalogueChangedEvent(
+export function assertValidCommandCatalogueChangedEvent(
   value: unknown,
 ): asserts value is CommandCatalogueChangedEvent {
   const record = object(value, "$", COMMANDS_FIELDS.CommandCatalogueChangedEvent);
@@ -125,7 +125,7 @@ export function assertCompatibleCommandCatalogueChangedEvent(
   finiteInteger(record.registryGeneration, "$.registryGeneration");
 }
 
-export function assertCompatibleCommandKeymapChangedEvent(
+export function assertValidCommandKeymapChangedEvent(
   value: unknown,
 ): asserts value is CommandKeymapChangedEvent {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapChangedEvent);
@@ -134,7 +134,7 @@ export function assertCompatibleCommandKeymapChangedEvent(
   finiteInteger(record.keymapRevision, "$.keymapRevision");
 }
 
-export function assertCompatibleCommandKeymapSnapshot(
+export function assertValidCommandKeymapSnapshot(
   value: unknown,
 ): asserts value is CommandKeymapSnapshot {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapSnapshot);
@@ -161,14 +161,14 @@ export function assertCompatibleCommandKeymapSnapshot(
   array(record.diagnostics, "$.diagnostics");
 }
 
-export function assertCompatibleCommandKeymapPreview(
+export function assertValidCommandKeymapPreview(
   value: unknown,
 ): asserts value is CommandKeymapPreview {
   baseRequest(value, "$", COMMANDS_FIELDS.CommandKeymapPreview);
   keymapPatch(object(value, "$").patch, "$.patch");
 }
 
-export function assertCompatibleCommandKeymapCommit(
+export function assertValidCommandKeymapCommit(
   value: unknown,
 ): asserts value is CommandKeymapCommit {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapCommit);
@@ -185,7 +185,7 @@ export function assertCompatibleCommandKeymapCommit(
   keymapPatch(record.patch, "$.patch");
 }
 
-export function assertCompatibleCommandKeymapReset(
+export function assertValidCommandKeymapReset(
   value: unknown,
 ): asserts value is CommandKeymapReset {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapReset);
@@ -193,12 +193,12 @@ export function assertCompatibleCommandKeymapReset(
   baseRequest(value, "$");
 }
 
-export function assertCompatibleCommandKeymapPreviewResult(
+export function assertValidCommandKeymapPreviewResult(
   value: unknown,
 ): asserts value is CommandKeymapPreviewResult {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_PREVIEW_STATUSES, "$.status");
-  assertCompatibleCommandKeymapSnapshot(record.snapshot);
+  assertValidCommandKeymapSnapshot(record.snapshot);
   if (record.status === "accepted") {
     const evidence = object(record.evidence, "$.evidence");
     digest(evidence.patchDigest, "$.evidence.patchDigest");
@@ -208,13 +208,13 @@ export function assertCompatibleCommandKeymapPreviewResult(
   }
 }
 
-export function assertCompatibleCommandKeymapLoadOutcome(
+export function assertValidCommandKeymapLoadOutcome(
   value: unknown,
 ): asserts value is CommandKeymapLoadOutcome {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_LOAD_STATUSES, "$.status");
   if (record.status === "loaded") {
-    assertCompatibleCommandKeymapSnapshot(record.snapshot);
+    assertValidCommandKeymapSnapshot(record.snapshot);
   } else if (record.status === "recovery") {
     const recovery = object(record.recovery, "$.recovery");
     member(recovery.code, COMMAND_KEYMAP_RECOVERY_CODES, "$.recovery.code");
@@ -223,12 +223,12 @@ export function assertCompatibleCommandKeymapLoadOutcome(
   }
 }
 
-export function assertCompatibleCommandKeymapMutationResult(
+export function assertValidCommandKeymapMutationResult(
   value: unknown,
 ): asserts value is CommandKeymapMutationResult {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_MUTATION_STATUSES, "$.status");
-  assertCompatibleCommandKeymapSnapshot(record.snapshot);
+  assertValidCommandKeymapSnapshot(record.snapshot);
   if (record.status === "applied") {
     const receipt = object(record.receipt, "$.receipt");
     member(
@@ -410,5 +410,5 @@ function member<const T extends readonly string[]>(
 }
 
 function fail(path: string, detail: string): never {
-  throw new CommandProtocolIncompatibilityError(path, detail);
+  throw new CommandProtocolValidationError(path, detail);
 }

@@ -16,10 +16,10 @@ const FORBIDDEN_KEYS = new Set([
   "tauri_label",
 ]);
 
-export class NativeContentProtocolCompatibilityError extends Error {
+export class NativeContentProtocolValidationError extends Error {
   constructor(readonly path: string, message: string) {
     super(`incompatible native-content protocol at ${path}: ${message}`);
-    this.name = "NativeContentProtocolCompatibilityError";
+    this.name = "NativeContentProtocolValidationError";
   }
 }
 
@@ -149,7 +149,7 @@ export function nullable<T>(
 }
 
 export function fail(path: string, message: string): never {
-  throw new NativeContentProtocolCompatibilityError(path, message);
+  throw new NativeContentProtocolValidationError(path, message);
 }
 
 function visit(value: unknown, path: string, seen: Set<object>): void {

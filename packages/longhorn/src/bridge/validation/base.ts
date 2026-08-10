@@ -1,5 +1,5 @@
 import { BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
-export type BridgeProtocolIncompatibilityCode =
+export type BridgeProtocolValidationCode =
   | "unsupported_protocol_version"
   | "invalid_object"
   | "unknown_field"
@@ -30,16 +30,16 @@ export type BridgeProtocolIncompatibilityCode =
   | "multiple_writers"
   | "unrequested_domain";
 
-export class BridgeProtocolIncompatibilityError extends Error {
-  readonly code: BridgeProtocolIncompatibilityCode;
+export class BridgeProtocolValidationError extends Error {
+  readonly code: BridgeProtocolValidationCode;
   readonly received: unknown;
 
   constructor(
-    code: BridgeProtocolIncompatibilityCode,
+    code: BridgeProtocolValidationCode,
     received: unknown,
   ) {
     super(`incompatible bridge protocol: ${code}`);
-    this.name = "BridgeProtocolIncompatibilityError";
+    this.name = "BridgeProtocolValidationError";
     this.code = code;
     this.received = received;
   }
@@ -141,7 +141,7 @@ export function integer(
 export function oneOf<const T extends string>(
   value: unknown,
   values: readonly T[],
-  code: BridgeProtocolIncompatibilityCode,
+  code: BridgeProtocolValidationCode,
 ): T {
   if (typeof value !== "string" || !values.includes(value as T)) {
     incompatible(code, value);
@@ -157,8 +157,8 @@ export function nullable<T>(
 }
 
 export function incompatible(
-  code: BridgeProtocolIncompatibilityCode,
+  code: BridgeProtocolValidationCode,
   received: unknown,
 ): never {
-  throw new BridgeProtocolIncompatibilityError(code, received);
+  throw new BridgeProtocolValidationError(code, received);
 }

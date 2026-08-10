@@ -13,12 +13,12 @@ import type {
   SettingsScopeSnapshot,
 } from "./generated/protocol.ts";
 import {
-  assertCompatibleSettingsApplyCommand,
-  assertCompatibleSettingsLoadCommand,
-  assertCompatibleSettingsLoadOutcome,
-  assertCompatibleSettingsMutationResult,
-  assertCompatibleSettingsRegistrySnapshot,
-  assertCompatibleSettingsResetCommand,
+  assertValidSettingsApplyCommand,
+  assertValidSettingsLoadCommand,
+  assertValidSettingsLoadOutcome,
+  assertValidSettingsMutationResult,
+  assertValidSettingsRegistrySnapshot,
+  assertValidSettingsResetCommand,
 } from "./validation.ts";
 import {
   connectSettingsRegistry,
@@ -46,7 +46,7 @@ export class SettingsClient {
       SETTINGS_REGISTRY_COMMAND,
       {},
     );
-    assertCompatibleSettingsRegistrySnapshot(value);
+    assertValidSettingsRegistrySnapshot(value);
     return value;
   }
 
@@ -54,12 +54,12 @@ export class SettingsClient {
     registry: SettingsRegistrySnapshot,
     command: SettingsLoadCommand,
   ): Promise<SettingsLoadOutcome> {
-    assertCompatibleSettingsLoadCommand(command);
+    assertValidSettingsLoadCommand(command);
     assertRegistryGeneration(registry, command.registryGeneration);
     const value = await this.#transport.invoke(SETTINGS_LOAD_COMMAND, {
       command,
     });
-    assertCompatibleSettingsLoadOutcome(
+    assertValidSettingsLoadOutcome(
       value,
       registry.limits.maximumOpaqueValueBytes,
     );
@@ -70,7 +70,7 @@ export class SettingsClient {
     registry: SettingsRegistrySnapshot,
     command: SettingsApplyCommand,
   ): Promise<SettingsMutationResult> {
-    assertCompatibleSettingsApplyCommand(
+    assertValidSettingsApplyCommand(
       command,
       registry.limits.maximumOpaqueValueBytes,
     );
@@ -81,7 +81,7 @@ export class SettingsClient {
     const value = await this.#transport.invoke(SETTINGS_APPLY_COMMAND, {
       command,
     });
-    assertCompatibleSettingsMutationResult(
+    assertValidSettingsMutationResult(
       value,
       registry.limits.maximumOpaqueValueBytes,
     );
@@ -92,7 +92,7 @@ export class SettingsClient {
     registry: SettingsRegistrySnapshot,
     command: SettingsResetCommand,
   ): Promise<SettingsMutationResult> {
-    assertCompatibleSettingsResetCommand(command);
+    assertValidSettingsResetCommand(command);
     assertRegistryGeneration(
       registry,
       command.authority.registryGeneration,
@@ -100,7 +100,7 @@ export class SettingsClient {
     const value = await this.#transport.invoke(SETTINGS_RESET_COMMAND, {
       command,
     });
-    assertCompatibleSettingsMutationResult(
+    assertValidSettingsMutationResult(
       value,
       registry.limits.maximumOpaqueValueBytes,
     );

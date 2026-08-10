@@ -22,7 +22,7 @@ import {
 
 const DIGEST = /^[a-f0-9]{64}$/;
 
-export function assertCompatibleSettingsRegistrySnapshot(
+export function assertValidSettingsRegistrySnapshot(
   value: unknown,
 ): asserts value is SettingsRegistrySnapshot {
   const registry = record(value, SETTINGS_FIELDS.SettingsRegistrySnapshot);

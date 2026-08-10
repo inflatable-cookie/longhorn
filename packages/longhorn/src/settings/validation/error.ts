@@ -1,4 +1,4 @@
-export type SettingsProtocolIncompatibilityCode =
+export type SettingsProtocolValidationCode =
   | "invalid_shape"
   | "unsupported_protocol_version"
   | "invalid_identity"
@@ -10,24 +10,24 @@ export type SettingsProtocolIncompatibilityCode =
   | "unknown_field"
   | "missing_field";
 
-export class SettingsProtocolIncompatibilityError extends Error {
-  readonly code: SettingsProtocolIncompatibilityCode;
+export class SettingsProtocolValidationError extends Error {
+  readonly code: SettingsProtocolValidationCode;
   readonly actual: unknown;
 
   constructor(
-    code: SettingsProtocolIncompatibilityCode,
+    code: SettingsProtocolValidationCode,
     actual: unknown,
   ) {
     super(`incompatible settings protocol: ${code}`);
-    this.name = "SettingsProtocolIncompatibilityError";
+    this.name = "SettingsProtocolValidationError";
     this.code = code;
     this.actual = actual;
   }
 }
 
 export function incompatible(
-  code: SettingsProtocolIncompatibilityCode,
+  code: SettingsProtocolValidationCode,
   actual: unknown,
 ): never {
-  throw new SettingsProtocolIncompatibilityError(code, actual);
+  throw new SettingsProtocolValidationError(code, actual);
 }

@@ -1,22 +1,22 @@
 import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
-export type ConfigProtocolIncompatibilityCode =
+export type ConfigProtocolValidationCode =
   | "invalid_payload"
   | "unsupported_protocol"
   | "unknown_discriminant";
 
-export class ConfigProtocolIncompatibilityError extends Error {
-  readonly code: ConfigProtocolIncompatibilityCode;
+export class ConfigProtocolValidationError extends Error {
+  readonly code: ConfigProtocolValidationCode;
   readonly path: string;
 
   constructor(
-    code: ConfigProtocolIncompatibilityCode,
+    code: ConfigProtocolValidationCode,
     path: string,
     message: string,
   ) {
     super(message);
-    this.name = "ConfigProtocolIncompatibilityError";
+    this.name = "ConfigProtocolValidationError";
     this.code = code;
     this.path = path;
   }
@@ -166,9 +166,9 @@ export function discriminant(
 }
 
 export function fail(
-  code: ConfigProtocolIncompatibilityCode,
+  code: ConfigProtocolValidationCode,
   path: string,
   message: string,
 ): never {
-  throw new ConfigProtocolIncompatibilityError(code, path, message);
+  throw new ConfigProtocolValidationError(code, path, message);
 }

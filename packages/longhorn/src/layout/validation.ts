@@ -8,19 +8,19 @@ import {
   type LayoutMutationRejectionCode,
 } from "./generated/protocol.ts";
 
-export type LayoutProtocolIncompatibilityCode =
+export type LayoutProtocolValidationCode =
   | "unsupported_protocol_version"
   | "unknown_command"
   | "unknown_outcome"
   | "unknown_rejection_code";
 
-export class LayoutProtocolIncompatibilityError extends Error {
-  readonly code: LayoutProtocolIncompatibilityCode;
+export class LayoutProtocolValidationError extends Error {
+  readonly code: LayoutProtocolValidationCode;
   readonly received: unknown;
 
-  constructor(code: LayoutProtocolIncompatibilityCode, received: unknown) {
+  constructor(code: LayoutProtocolValidationCode, received: unknown) {
     super(message(code, received));
-    this.name = "LayoutProtocolIncompatibilityError";
+    this.name = "LayoutProtocolValidationError";
     this.code = code;
     this.received = received;
   }
@@ -30,26 +30,26 @@ export function assertLayoutProtocolVersion(
   version: unknown,
 ): asserts version is typeof LAYOUT_PROTOCOL_VERSION {
   if (version !== LAYOUT_PROTOCOL_VERSION) {
-    throw new LayoutProtocolIncompatibilityError(
+    throw new LayoutProtocolValidationError(
       "unsupported_protocol_version",
       version,
     );
   }
 }
 
-export function assertCompatibleLayoutMutationCommand(
+export function assertValidLayoutMutationCommand(
   value: unknown,
 ): asserts value is LayoutMutationCommand {
   assertKnownKind(value, LAYOUT_MUTATION_COMMAND_KINDS, "unknown_command");
 }
 
-export function assertCompatibleLayoutMutationOutcome(
+export function assertValidLayoutMutationOutcome(
   value: unknown,
 ): asserts value is LayoutMutationOutcome {
   assertKnownKind(value, LAYOUT_MUTATION_OUTCOME_KINDS, "unknown_outcome");
 }
 
-export function assertCompatibleLayoutMutationRejectionCode(
+export function assertValidLayoutMutationRejectionCode(
   value: unknown,
 ): asserts value is LayoutMutationRejectionCode {
   if (
@@ -58,7 +58,7 @@ export function assertCompatibleLayoutMutationRejectionCode(
       value as (typeof LAYOUT_MUTATION_REJECTION_CODES)[number],
     )
   ) {
-    throw new LayoutProtocolIncompatibilityError(
+    throw new LayoutProtocolValidationError(
       "unknown_rejection_code",
       value,
     );
@@ -77,12 +77,12 @@ function assertKnownKind(
     typeof value.kind !== "string" ||
     !known.includes(value.kind)
   ) {
-    throw new LayoutProtocolIncompatibilityError(code, value);
+    throw new LayoutProtocolValidationError(code, value);
   }
 }
 
 function message(
-  code: LayoutProtocolIncompatibilityCode,
+  code: LayoutProtocolValidationCode,
   received: unknown,
 ): string {
   switch (code) {

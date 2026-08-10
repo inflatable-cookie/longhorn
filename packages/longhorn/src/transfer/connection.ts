@@ -6,7 +6,7 @@ import {
 } from "@inflatable-cookie/longhorn/core";
 
 import type { TransferClientSnapshot } from "./generated/protocol.ts";
-import { assertCompatibleTransferClientSnapshot } from "./validation.ts";
+import { assertValidTransferClientSnapshot } from "./validation.ts";
 
 export const TRANSFER_CLIENT_CHANGED_EVENT =
   "longhorn://transfer/client-changed";
@@ -69,7 +69,7 @@ export class TransferClientConnectionDisposedError extends Error {
 function parseTransferClientSnapshot(
   value: unknown,
 ): TransferClientSnapshot {
-  assertCompatibleTransferClientSnapshot(value);
+  assertValidTransferClientSnapshot(value);
   return value;
 }
 

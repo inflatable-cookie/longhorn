@@ -1,6 +1,6 @@
 import type { InvokeTransport } from "@inflatable-cookie/longhorn/core";
 import {
-  assertCompatibleTransferCommitSelector,
+  assertValidTransferCommitSelector,
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
 
@@ -11,8 +11,8 @@ import type {
   SurfaceTransferResponse,
 } from "./generated/protocol.ts";
 import {
-  assertCompatibleSurfaceSessionResponse,
-  assertCompatibleSurfaceTransferResponse,
+  assertValidSurfaceSessionResponse,
+  assertValidSurfaceTransferResponse,
 } from "./validation.ts";
 
 export const TRANSFER_START_SURFACE_COMMAND =
@@ -35,7 +35,7 @@ export class SurfaceTransferClient {
       TRANSFER_START_SURFACE_COMMAND,
       { request },
     );
-    assertCompatibleSurfaceSessionResponse(value);
+    assertValidSurfaceSessionResponse(value);
     return value;
   }
 
@@ -43,12 +43,12 @@ export class SurfaceTransferClient {
     request: SurfaceTransferCommand,
   ): Promise<SurfaceTransferResponse> {
     assertTransferProtocolVersion(request.protocol_version);
-    assertCompatibleTransferCommitSelector(request.selector);
+    assertValidTransferCommitSelector(request.selector);
     const value = await this.#transport.invoke(
       TRANSFER_COMMIT_SURFACE_COMMAND,
       { request },
     );
-    assertCompatibleSurfaceTransferResponse(value);
+    assertValidSurfaceTransferResponse(value);
     return value;
   }
 }

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  assertCompatibleTransferClientSnapshot,
-  TransferProtocolIncompatibilityError,
+  assertValidTransferClientSnapshot,
+  TransferProtocolValidationError,
 } from "../src/transfer/validation.ts";
 import { TRANSFER_FIELDS } from "../src/transfer/generated/fields.ts";
 import { SURFACE_TRANSFER_FIELDS } from "../src/surface-transfer/generated/fields.ts";
@@ -29,14 +29,14 @@ describe("transfer boundary strictness", () => {
 
   test("rejects an unknown field", () => {
     expect(() =>
-      assertCompatibleTransferClientSnapshot({ ...valid, extra: 1 }),
-    ).toThrow(TransferProtocolIncompatibilityError);
+      assertValidTransferClientSnapshot({ ...valid, extra: 1 }),
+    ).toThrow(TransferProtocolValidationError);
   });
 
   test("rejects a missing field", () => {
     const { client_id: _dropped, ...missing } = valid;
-    expect(() => assertCompatibleTransferClientSnapshot(missing)).toThrow(
-      TransferProtocolIncompatibilityError,
+    expect(() => assertValidTransferClientSnapshot(missing)).toThrow(
+      TransferProtocolValidationError,
     );
   });
 });

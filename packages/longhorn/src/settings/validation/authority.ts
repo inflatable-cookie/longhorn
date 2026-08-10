@@ -26,7 +26,7 @@ import {
   text,
 } from "./primitives.ts";
 
-export function assertCompatibleSettingsScopeSnapshot(
+export function assertValidSettingsScopeSnapshot(
   value: unknown,
   maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsScopeSnapshot {

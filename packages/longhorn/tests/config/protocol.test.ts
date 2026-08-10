@@ -1,104 +1,104 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  ConfigProtocolIncompatibilityError,
-  assertCompatibleBackupCreateCommand,
-  assertCompatibleBackupCreateOutcome,
-  assertCompatibleBackupExportCommand,
-  assertCompatibleBackupExportOutcome,
-  assertCompatibleBackupRetentionApplyCommand,
-  assertCompatibleBackupRetentionApplyOutcome,
-  assertCompatibleConfigOperationsSnapshot,
-  assertCompatibleConfigSnapshotCommand,
-  assertCompatibleRestoreAdapterExecuteCommand,
-  assertCompatibleRestoreAdapterExecuteOutcome,
-  assertCompatibleRestoreExecuteCommand,
-  assertCompatibleRestoreExecuteOutcome,
-  assertCompatibleRestoreInspectCommand,
-  assertCompatibleRestoreInspectOutcome,
-  assertCompatibleRestorePlanCommand,
-  assertCompatibleRestorePlanOutcome,
-  assertCompatibleRestoreRecoveryCommand,
-  assertCompatibleRestoreRecoveryOutcome,
-  assertCompatibleStorageCleanupCommand,
-  assertCompatibleStorageCleanupOutcome,
-  assertCompatibleStorageRecoveryCommand,
-  assertCompatibleStorageRecoveryOutcome,
-  assertCompatibleStorageTransitionExecuteCommand,
-  assertCompatibleStorageTransitionExecuteOutcome,
-  assertCompatibleStorageTransitionInspectCommand,
-  assertCompatibleStorageTransitionInspectOutcome,
+  ConfigProtocolValidationError,
+  assertValidBackupCreateCommand,
+  assertValidBackupCreateOutcome,
+  assertValidBackupExportCommand,
+  assertValidBackupExportOutcome,
+  assertValidBackupRetentionApplyCommand,
+  assertValidBackupRetentionApplyOutcome,
+  assertValidConfigOperationsSnapshot,
+  assertValidConfigSnapshotCommand,
+  assertValidRestoreAdapterExecuteCommand,
+  assertValidRestoreAdapterExecuteOutcome,
+  assertValidRestoreExecuteCommand,
+  assertValidRestoreExecuteOutcome,
+  assertValidRestoreInspectCommand,
+  assertValidRestoreInspectOutcome,
+  assertValidRestorePlanCommand,
+  assertValidRestorePlanOutcome,
+  assertValidRestoreRecoveryCommand,
+  assertValidRestoreRecoveryOutcome,
+  assertValidStorageCleanupCommand,
+  assertValidStorageCleanupOutcome,
+  assertValidStorageRecoveryCommand,
+  assertValidStorageRecoveryOutcome,
+  assertValidStorageTransitionExecuteCommand,
+  assertValidStorageTransitionExecuteOutcome,
+  assertValidStorageTransitionInspectCommand,
+  assertValidStorageTransitionInspectOutcome,
 } from "../../src/config/index.ts";
 import { fixture } from "./support.ts";
 
 describe("generated config operations fixture", () => {
   test("validates every Rust-produced payload category", () => {
-    assertCompatibleConfigOperationsSnapshot(fixture.snapshot);
-    assertCompatibleConfigSnapshotCommand(fixture.commands.snapshot);
-    assertCompatibleStorageTransitionInspectCommand(
+    assertValidConfigOperationsSnapshot(fixture.snapshot);
+    assertValidConfigSnapshotCommand(fixture.commands.snapshot);
+    assertValidStorageTransitionInspectCommand(
       fixture.commands.inspectTransition,
     );
-    assertCompatibleStorageTransitionExecuteCommand(
+    assertValidStorageTransitionExecuteCommand(
       fixture.commands.executeTransition,
     );
-    assertCompatibleStorageRecoveryCommand(fixture.commands.recoverStorage);
-    assertCompatibleStorageCleanupCommand(fixture.commands.cleanupStorage);
-    assertCompatibleBackupCreateCommand(fixture.commands.createBackup);
-    assertCompatibleBackupExportCommand(fixture.commands.exportBackup);
-    assertCompatibleBackupRetentionApplyCommand(
+    assertValidStorageRecoveryCommand(fixture.commands.recoverStorage);
+    assertValidStorageCleanupCommand(fixture.commands.cleanupStorage);
+    assertValidBackupCreateCommand(fixture.commands.createBackup);
+    assertValidBackupExportCommand(fixture.commands.exportBackup);
+    assertValidBackupRetentionApplyCommand(
       fixture.commands.applyRetention,
     );
-    assertCompatibleStorageTransitionInspectOutcome(
+    assertValidStorageTransitionInspectOutcome(
       fixture.outcomes.inspectTransition,
     );
-    assertCompatibleStorageTransitionExecuteOutcome(
+    assertValidStorageTransitionExecuteOutcome(
       fixture.outcomes.executeTransition,
     );
-    assertCompatibleStorageRecoveryOutcome(fixture.outcomes.recoverStorage);
-    assertCompatibleStorageCleanupOutcome(fixture.outcomes.cleanupStorage);
-    assertCompatibleBackupCreateOutcome(fixture.outcomes.createBackup);
-    assertCompatibleBackupExportOutcome(fixture.outcomes.exportBackup);
-    assertCompatibleBackupRetentionApplyOutcome(
+    assertValidStorageRecoveryOutcome(fixture.outcomes.recoverStorage);
+    assertValidStorageCleanupOutcome(fixture.outcomes.cleanupStorage);
+    assertValidBackupCreateOutcome(fixture.outcomes.createBackup);
+    assertValidBackupExportOutcome(fixture.outcomes.exportBackup);
+    assertValidBackupRetentionApplyOutcome(
       fixture.outcomes.applyRetention,
     );
-    assertCompatibleRestoreInspectCommand(fixture.commands.inspectRestore);
-    assertCompatibleRestorePlanCommand(fixture.commands.planRestore);
-    assertCompatibleRestoreExecuteCommand(fixture.commands.executeRestore);
-    assertCompatibleRestoreAdapterExecuteCommand(
+    assertValidRestoreInspectCommand(fixture.commands.inspectRestore);
+    assertValidRestorePlanCommand(fixture.commands.planRestore);
+    assertValidRestoreExecuteCommand(fixture.commands.executeRestore);
+    assertValidRestoreAdapterExecuteCommand(
       fixture.commands.executeAdapterRestore,
     );
-    assertCompatibleRestoreRecoveryCommand(fixture.commands.recoverRestore);
-    assertCompatibleRestoreInspectOutcome(fixture.outcomes.inspectRestore);
-    assertCompatibleRestorePlanOutcome(fixture.outcomes.planRestore);
-    assertCompatibleRestoreExecuteOutcome(fixture.outcomes.executeRestore);
-    assertCompatibleRestoreAdapterExecuteOutcome(
+    assertValidRestoreRecoveryCommand(fixture.commands.recoverRestore);
+    assertValidRestoreInspectOutcome(fixture.outcomes.inspectRestore);
+    assertValidRestorePlanOutcome(fixture.outcomes.planRestore);
+    assertValidRestoreExecuteOutcome(fixture.outcomes.executeRestore);
+    assertValidRestoreAdapterExecuteOutcome(
       fixture.outcomes.executeAdapterRestore,
     );
-    assertCompatibleRestoreRecoveryOutcome(fixture.outcomes.recoverRestore);
+    assertValidRestoreRecoveryOutcome(fixture.outcomes.recoverRestore);
     fixture.restoreInspectionStates.forEach((outcome) =>
-      assertCompatibleRestoreInspectOutcome(outcome),
+      assertValidRestoreInspectOutcome(outcome),
     );
     fixture.restorePlanStates.forEach((outcome) =>
-      assertCompatibleRestorePlanOutcome(outcome),
+      assertValidRestorePlanOutcome(outcome),
     );
     fixture.restoreExecutionStates.forEach((outcome) =>
-      assertCompatibleRestoreExecuteOutcome(outcome),
+      assertValidRestoreExecuteOutcome(outcome),
     );
   });
 
   test("fails safe on future versions and unknown discriminants", () => {
     const future = structuredClone(fixture.snapshot);
     future.protocolVersion = fixture.incompatibility.futureProtocolVersion;
-    incompatible(() => assertCompatibleConfigOperationsSnapshot(future));
+    incompatible(() => assertValidConfigOperationsSnapshot(future));
 
     const capability = structuredClone(fixture.snapshot);
     capability.capabilities[0] = fixture.incompatibility.unknownCapability;
-    incompatible(() => assertCompatibleConfigOperationsSnapshot(capability));
+    incompatible(() => assertValidConfigOperationsSnapshot(capability));
 
     const inventory = structuredClone(fixture.snapshot);
     inventory.backup!.inventory.entries[0]!.state =
       fixture.incompatibility.unknownInventoryState;
-    incompatible(() => assertCompatibleConfigOperationsSnapshot(inventory));
+    incompatible(() => assertValidConfigOperationsSnapshot(inventory));
 
     const bootstrap = structuredClone(fixture.snapshot);
     (
@@ -106,10 +106,10 @@ describe("generated config operations fixture", () => {
         bootstrap: unknown;
       }
     ).bootstrap = fixture.incompatibility.unknownBootstrapState;
-    incompatible(() => assertCompatibleConfigOperationsSnapshot(bootstrap));
+    incompatible(() => assertValidConfigOperationsSnapshot(bootstrap));
 
     incompatible(() =>
-      assertCompatibleBackupCreateOutcome(
+      assertValidBackupCreateOutcome(
         fixture.incompatibility.unknownOutcomeStatus,
       ),
     );
@@ -121,30 +121,30 @@ describe("generated config operations fixture", () => {
         compatibility: unknown;
       }
     ).compatibility = fixture.incompatibility.unknownRestoreCompatibility;
-    incompatible(() => assertCompatibleRestoreInspectOutcome(compatibility));
+    incompatible(() => assertValidRestoreInspectOutcome(compatibility));
   });
 
   test("rejects malformed confirmation and archive digests", () => {
     const request = structuredClone(fixture.commands.snapshot);
     request.requestId = "UPPERCASE";
-    incompatible(() => assertCompatibleConfigSnapshotCommand(request));
+    incompatible(() => assertValidConfigSnapshotCommand(request));
 
     const execute = structuredClone(fixture.commands.executeTransition);
     execute.confirmationDigest = "not-a-digest";
     incompatible(() =>
-      assertCompatibleStorageTransitionExecuteCommand(execute),
+      assertValidStorageTransitionExecuteCommand(execute),
     );
 
     const exportCommand = structuredClone(fixture.commands.exportBackup);
     exportCommand.archiveSha256 = "A".repeat(64);
-    incompatible(() => assertCompatibleBackupExportCommand(exportCommand));
+    incompatible(() => assertValidBackupExportCommand(exportCommand));
 
     const restore = structuredClone(fixture.commands.executeRestore);
     restore.confirmationDigest = "stale";
-    incompatible(() => assertCompatibleRestoreExecuteCommand(restore));
+    incompatible(() => assertValidRestoreExecuteCommand(restore));
   });
 });
 
 function incompatible(action: () => void): void {
-  expect(action).toThrow(ConfigProtocolIncompatibilityError);
+  expect(action).toThrow(ConfigProtocolValidationError);
 }

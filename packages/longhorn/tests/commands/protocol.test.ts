@@ -1,40 +1,40 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  CommandProtocolIncompatibilityError,
-  assertCompatibleCommandAvailabilitySnapshot,
-  assertCompatibleCommandCatalogueChangedEvent,
-  assertCompatibleCommandCatalogue,
-  assertCompatibleCommandKeymapCommit,
-  assertCompatibleCommandKeymapChangedEvent,
-  assertCompatibleCommandKeymapLoadOutcome,
-  assertCompatibleCommandKeymapMutationResult,
-  assertCompatibleCommandKeymapPreview,
-  assertCompatibleCommandKeymapPreviewResult,
-  assertCompatibleCommandKeymapReset,
-  assertCompatibleCommandKeymapSnapshot,
+  CommandProtocolValidationError,
+  assertValidCommandAvailabilitySnapshot,
+  assertValidCommandCatalogueChangedEvent,
+  assertValidCommandCatalogue,
+  assertValidCommandKeymapCommit,
+  assertValidCommandKeymapChangedEvent,
+  assertValidCommandKeymapLoadOutcome,
+  assertValidCommandKeymapMutationResult,
+  assertValidCommandKeymapPreview,
+  assertValidCommandKeymapPreviewResult,
+  assertValidCommandKeymapReset,
+  assertValidCommandKeymapSnapshot,
 } from "../../src/commands/index.ts";
 import { fixture } from "./support.ts";
 import { availability } from "./support.ts";
 
 describe("generated command/keymap protocol fixture", () => {
   test("accepts every Rust-produced payload and discriminant", () => {
-    assertCompatibleCommandCatalogue(fixture.catalogue);
-    assertCompatibleCommandAvailabilitySnapshot(availability());
-    assertCompatibleCommandKeymapPreview(fixture.requests.preview);
-    assertCompatibleCommandKeymapCommit(fixture.requests.commit);
-    assertCompatibleCommandKeymapReset(fixture.requests.reset);
-    assertCompatibleCommandCatalogueChangedEvent(
+    assertValidCommandCatalogue(fixture.catalogue);
+    assertValidCommandAvailabilitySnapshot(availability());
+    assertValidCommandKeymapPreview(fixture.requests.preview);
+    assertValidCommandKeymapCommit(fixture.requests.commit);
+    assertValidCommandKeymapReset(fixture.requests.reset);
+    assertValidCommandCatalogueChangedEvent(
       fixture.events.catalogueChanged,
     );
-    assertCompatibleCommandKeymapChangedEvent(fixture.events.keymapChanged);
-    fixture.snapshots.forEach(assertCompatibleCommandKeymapSnapshot);
+    assertValidCommandKeymapChangedEvent(fixture.events.keymapChanged);
+    fixture.snapshots.forEach(assertValidCommandKeymapSnapshot);
     fixture.previewResults.forEach(
-      assertCompatibleCommandKeymapPreviewResult,
+      assertValidCommandKeymapPreviewResult,
     );
-    fixture.loadOutcomes.forEach(assertCompatibleCommandKeymapLoadOutcome);
+    fixture.loadOutcomes.forEach(assertValidCommandKeymapLoadOutcome);
     fixture.mutationResults.forEach(
-      assertCompatibleCommandKeymapMutationResult,
+      assertValidCommandKeymapMutationResult,
     );
     expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
   });
@@ -45,22 +45,22 @@ describe("generated command/keymap protocol fixture", () => {
       unknown
     >;
     catalogue.protocolVersion = fixture.incompatibility.futureProtocolVersion;
-    incompatible(() => assertCompatibleCommandCatalogue(catalogue));
+    incompatible(() => assertValidCommandCatalogue(catalogue));
 
     for (const [collection, assertion, future] of [
       [
         fixture.previewResults,
-        assertCompatibleCommandKeymapPreviewResult,
+        assertValidCommandKeymapPreviewResult,
         fixture.incompatibility.unknownPreviewStatus,
       ],
       [
         fixture.loadOutcomes,
-        assertCompatibleCommandKeymapLoadOutcome,
+        assertValidCommandKeymapLoadOutcome,
         fixture.incompatibility.unknownLoadStatus,
       ],
       [
         fixture.mutationResults,
-        assertCompatibleCommandKeymapMutationResult,
+        assertValidCommandKeymapMutationResult,
         fixture.incompatibility.unknownMutationStatus,
       ],
     ] as const) {
@@ -74,7 +74,7 @@ describe("generated command/keymap protocol fixture", () => {
     };
     preview.patch.upsertOverrides[0]!.kind =
       fixture.incompatibility.unknownOverrideKind;
-    incompatible(() => assertCompatibleCommandKeymapPreview(preview));
+    incompatible(() => assertValidCommandKeymapPreview(preview));
 
     const rejected = structuredClone(
       fixture.previewResults.find(
@@ -82,7 +82,7 @@ describe("generated command/keymap protocol fixture", () => {
       ),
     ) as { rejection: { code: unknown } };
     rejected.rejection.code = fixture.incompatibility.unknownRejectionCode;
-    incompatible(() => assertCompatibleCommandKeymapPreviewResult(rejected));
+    incompatible(() => assertValidCommandKeymapPreviewResult(rejected));
 
     const recovery = structuredClone(
       fixture.loadOutcomes.find(
@@ -90,7 +90,7 @@ describe("generated command/keymap protocol fixture", () => {
       ),
     ) as { recovery: { code: unknown } };
     recovery.recovery.code = fixture.incompatibility.unknownRecoveryCode;
-    incompatible(() => assertCompatibleCommandKeymapLoadOutcome(recovery));
+    incompatible(() => assertValidCommandKeymapLoadOutcome(recovery));
 
     const applied = structuredClone(
       fixture.mutationResults.find(
@@ -98,21 +98,21 @@ describe("generated command/keymap protocol fixture", () => {
       ),
     ) as { receipt: { durability: unknown; outcome: unknown } };
     applied.receipt.durability = fixture.incompatibility.unknownDurability;
-    incompatible(() => assertCompatibleCommandKeymapMutationResult(applied));
+    incompatible(() => assertValidCommandKeymapMutationResult(applied));
     applied.receipt.durability = "fileSynced";
     applied.receipt.outcome = fixture.incompatibility.unknownMutationOutcome;
-    incompatible(() => assertCompatibleCommandKeymapMutationResult(applied));
+    incompatible(() => assertValidCommandKeymapMutationResult(applied));
 
     const snapshot = structuredClone(fixture.snapshots[0]) as {
       origin: { kind: unknown };
       bindings: Array<{ source: { kind: unknown } }>;
     };
     snapshot.origin.kind = fixture.incompatibility.unknownLoadOrigin;
-    incompatible(() => assertCompatibleCommandKeymapSnapshot(snapshot));
+    incompatible(() => assertValidCommandKeymapSnapshot(snapshot));
     snapshot.origin.kind = "default";
     snapshot.bindings[0]!.source.kind =
       fixture.incompatibility.unknownBindingSource;
-    incompatible(() => assertCompatibleCommandKeymapSnapshot(snapshot));
+    incompatible(() => assertValidCommandKeymapSnapshot(snapshot));
 
     const futureAvailability = availability() as {
       records: Array<{
@@ -130,11 +130,11 @@ describe("generated command/keymap protocol fixture", () => {
       },
     };
     incompatible(() =>
-      assertCompatibleCommandAvailabilitySnapshot(futureAvailability),
+      assertValidCommandAvailabilitySnapshot(futureAvailability),
     );
   });
 });
 
 function incompatible(action: () => void): void {
-  expect(action).toThrow(CommandProtocolIncompatibilityError);
+  expect(action).toThrow(CommandProtocolValidationError);
 }

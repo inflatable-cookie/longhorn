@@ -11,14 +11,14 @@ import {
   TRANSFER_LEASE_RESPONSE_STATUSES,
   TRANSFER_SESSION_RESPONSE_STATUSES,
   TRANSFER_TARGET_BINDING_KINDS,
-  TransferProtocolIncompatibilityError,
-  assertCompatiblePanelTransferResponse,
-  assertCompatibleTransferAbort,
-  assertCompatibleTransferCancelResponse,
-  assertCompatibleTransferCommitSelector,
-  assertCompatibleTransferLeaseResponse,
-  assertCompatibleTransferSessionResponse,
-  assertCompatibleTransferTargetBinding,
+  TransferProtocolValidationError,
+  assertValidPanelTransferResponse,
+  assertValidTransferAbort,
+  assertValidTransferCancelResponse,
+  assertValidTransferCommitSelector,
+  assertValidTransferLeaseResponse,
+  assertValidTransferSessionResponse,
+  assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
 
@@ -51,13 +51,13 @@ describe("Rust transfer protocol fixture", () => {
     const targetKinds = array(fixture.lease_requests).flatMap((request) =>
       array(record(request).zones).map((zone) => {
         const target = record(record(zone).target);
-        assertCompatibleTransferTargetBinding(target);
+        assertValidTransferTargetBinding(target);
         return target.kind;
       }),
     );
     const selectorKinds = array(fixture.commit_requests).map((request) => {
       const selector = record(record(request).selector);
-      assertCompatibleTransferCommitSelector(selector);
+      assertValidTransferCommitSelector(selector);
       return selector.kind;
     });
     expect(new Set(targetKinds)).toEqual(
@@ -82,7 +82,7 @@ describe("Rust transfer protocol fixture", () => {
 
     const errorCodes = new Map<string, Set<unknown>>();
     for (const abortValue of array(fixture.aborts)) {
-      assertCompatibleTransferAbort(abortValue);
+      assertValidTransferAbort(abortValue);
       const source = record(record(abortValue).source);
       const codes = errorCodes.get(String(source.domain)) ?? new Set();
       codes.add(source.code);
@@ -99,16 +99,16 @@ describe("Rust transfer protocol fixture", () => {
     );
 
     for (const response of array(fixture.session_responses)) {
-      assertCompatibleTransferSessionResponse(response);
+      assertValidTransferSessionResponse(response);
     }
     for (const response of array(fixture.lease_responses)) {
-      assertCompatibleTransferLeaseResponse(response);
+      assertValidTransferLeaseResponse(response);
     }
     for (const response of array(fixture.commit_responses)) {
-      assertCompatiblePanelTransferResponse(response);
+      assertValidPanelTransferResponse(response);
     }
     for (const response of array(fixture.cancel_responses)) {
-      assertCompatibleTransferCancelResponse(response);
+      assertValidTransferCancelResponse(response);
     }
   });
 });
@@ -123,19 +123,19 @@ describe("transfer protocol incompatibility", () => {
           incompatibility.future_protocol_version,
         ),
       () =>
-        assertCompatibleTransferTargetBinding(
+        assertValidTransferTargetBinding(
           incompatibility.unknown_target_binding,
         ),
       () =>
-        assertCompatibleTransferCommitSelector(
+        assertValidTransferCommitSelector(
           incompatibility.unknown_commit_selector,
         ),
       () =>
-        assertCompatibleTransferSessionResponse(
+        assertValidTransferSessionResponse(
           incompatibility.unknown_response_status,
         ),
       () =>
-        assertCompatibleTransferAbort({
+        assertValidTransferAbort({
           protocol_version: 1,
           request_id: "request:future-domain",
           source: incompatibility.unknown_abort_domain,
@@ -144,7 +144,7 @@ describe("transfer protocol incompatibility", () => {
           session_consumed: false,
         }),
       () =>
-        assertCompatibleTransferAbort({
+        assertValidTransferAbort({
           protocol_version: 1,
           request_id: "request:future-transfer-code",
           source: {
@@ -156,7 +156,7 @@ describe("transfer protocol incompatibility", () => {
           session_consumed: false,
         }),
       () =>
-        assertCompatibleTransferAbort({
+        assertValidTransferAbort({
           protocol_version: 1,
           request_id: "request:future-panel-code",
           source: {
@@ -168,7 +168,7 @@ describe("transfer protocol incompatibility", () => {
           session_consumed: false,
         }),
     ]) {
-      expect(check).toThrow(TransferProtocolIncompatibilityError);
+      expect(check).toThrow(TransferProtocolValidationError);
     }
   });
 });

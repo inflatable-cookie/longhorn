@@ -5,10 +5,10 @@ import {
   LAYOUT_MUTATION_COMMAND_KINDS,
   LAYOUT_MUTATION_OUTCOME_KINDS,
   LAYOUT_MUTATION_REJECTION_CODES,
-  LayoutProtocolIncompatibilityError,
-  assertCompatibleLayoutMutationCommand,
-  assertCompatibleLayoutMutationOutcome,
-  assertCompatibleLayoutMutationRejectionCode,
+  LayoutProtocolValidationError,
+  assertValidLayoutMutationCommand,
+  assertValidLayoutMutationOutcome,
+  assertValidLayoutMutationRejectionCode,
   assertLayoutProtocolVersion,
   layoutRatioFromMillionths,
   layoutRatioToUnitInterval,
@@ -40,17 +40,17 @@ describe("Rust layout protocol fixture", () => {
   test("covers every command, outcome, and rejection discriminant", () => {
     const commandKinds = array(fixture.commands).map((request) => {
       const command = record(record(request).command);
-      assertCompatibleLayoutMutationCommand(command);
+      assertValidLayoutMutationCommand(command);
       return command.kind;
     });
     const outcomeKinds = array(fixture.receipts).map((receipt) => {
       const outcome = record(record(receipt).outcome);
-      assertCompatibleLayoutMutationOutcome(outcome);
+      assertValidLayoutMutationOutcome(outcome);
       return outcome.kind;
     });
     const rejectionCodes = array(fixture.errors).map((error) => {
       const code = record(error).code;
-      assertCompatibleLayoutMutationRejectionCode(code);
+      assertValidLayoutMutationRejectionCode(code);
       return code;
     });
 
@@ -126,25 +126,25 @@ describe("protocol incompatibility", () => {
   test("rejects future protocol versions", () => {
     expect(() =>
       assertLayoutProtocolVersion(incompatibility.future_protocol_version),
-    ).toThrow(LayoutProtocolIncompatibilityError);
+    ).toThrow(LayoutProtocolValidationError);
   });
 
   test("rejects unknown future variants", () => {
     expect(() =>
-      assertCompatibleLayoutMutationCommand(
+      assertValidLayoutMutationCommand(
         incompatibility.unknown_command,
       ),
-    ).toThrow(LayoutProtocolIncompatibilityError);
+    ).toThrow(LayoutProtocolValidationError);
     expect(() =>
-      assertCompatibleLayoutMutationOutcome(
+      assertValidLayoutMutationOutcome(
         incompatibility.unknown_outcome,
       ),
-    ).toThrow(LayoutProtocolIncompatibilityError);
+    ).toThrow(LayoutProtocolValidationError);
     expect(() =>
-      assertCompatibleLayoutMutationRejectionCode(
+      assertValidLayoutMutationRejectionCode(
         incompatibility.unknown_rejection_code,
       ),
-    ).toThrow(LayoutProtocolIncompatibilityError);
+    ).toThrow(LayoutProtocolValidationError);
   });
 });
 

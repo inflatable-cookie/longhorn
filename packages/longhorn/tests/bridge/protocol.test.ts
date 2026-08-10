@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
-  BridgeProtocolIncompatibilityError,
+  BridgeProtocolValidationError,
   assertBridgeProtocolVersion,
   parseBridgeCancellationReceipt,
   parseBridgeCancellationRequest,
@@ -192,13 +192,13 @@ describe("Rust bridge protocol fixture", () => {
 
 function expectCode(
   run: () => unknown,
-  code: BridgeProtocolIncompatibilityError["code"],
+  code: BridgeProtocolValidationError["code"],
 ): void {
   try {
     run();
     throw new Error("expected incompatibility");
   } catch (error) {
-    expect(error).toBeInstanceOf(BridgeProtocolIncompatibilityError);
-    expect((error as BridgeProtocolIncompatibilityError).code).toBe(code);
+    expect(error).toBeInstanceOf(BridgeProtocolValidationError);
+    expect((error as BridgeProtocolValidationError).code).toBe(code);
   }
 }

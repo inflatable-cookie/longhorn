@@ -20,7 +20,7 @@ import {
 } from "./generated/protocol.ts";
 import { TRANSFER_FIELDS } from "./generated/fields.ts";
 
-export type TransferProtocolIncompatibilityCode =
+export type TransferProtocolValidationCode =
   | "unsupported_protocol_version"
   | "unknown_target_binding"
   | "unknown_commit_selector"
@@ -33,13 +33,13 @@ export type TransferProtocolIncompatibilityCode =
   | "unknown_field"
   | "missing_field";
 
-export class TransferProtocolIncompatibilityError extends Error {
-  readonly code: TransferProtocolIncompatibilityCode;
+export class TransferProtocolValidationError extends Error {
+  readonly code: TransferProtocolValidationCode;
   readonly received: unknown;
 
-  constructor(code: TransferProtocolIncompatibilityCode, received: unknown) {
+  constructor(code: TransferProtocolValidationCode, received: unknown) {
     super(`incompatible transfer protocol: ${code}`);
-    this.name = "TransferProtocolIncompatibilityError";
+    this.name = "TransferProtocolValidationError";
     this.code = code;
     this.received = received;
   }
@@ -49,14 +49,14 @@ export function assertTransferProtocolVersion(
   version: unknown,
 ): asserts version is typeof TRANSFER_PROTOCOL_VERSION {
   if (version !== TRANSFER_PROTOCOL_VERSION) {
-    throw new TransferProtocolIncompatibilityError(
+    throw new TransferProtocolValidationError(
       "unsupported_protocol_version",
       version,
     );
   }
 }
 
-export function assertCompatibleTransferTargetBinding(
+export function assertValidTransferTargetBinding(
   value: unknown,
 ): asserts value is TransferTargetBinding {
   assertKnown(
@@ -66,7 +66,7 @@ export function assertCompatibleTransferTargetBinding(
   );
 }
 
-export function assertCompatibleTransferClientSnapshot(
+export function assertValidTransferClientSnapshot(
   value: unknown,
 ): asserts value is TransferClientSnapshot {
   const snapshot = record(value, TRANSFER_FIELDS.TransferClientSnapshot);
@@ -77,14 +77,14 @@ export function assertCompatibleTransferClientSnapshot(
     (snapshot.current_lease_generation !== null &&
       !unsignedInteger(snapshot.current_lease_generation))
   ) {
-    throw new TransferProtocolIncompatibilityError(
+    throw new TransferProtocolValidationError(
       "invalid_client_snapshot",
       value,
     );
   }
 }
 
-export function assertCompatibleTransferCommitSelector(
+export function assertValidTransferCommitSelector(
   value: unknown,
 ): asserts value is TransferCommitSelector {
   assertKnown(
@@ -94,7 +94,7 @@ export function assertCompatibleTransferCommitSelector(
   );
 }
 
-export function assertCompatibleTransferAbort(
+export function assertValidTransferAbort(
   value: unknown,
 ): asserts value is TransferAbort {
   const abort = record(value, TRANSFER_FIELDS.TransferAbort);
@@ -120,7 +120,7 @@ export function assertCompatibleTransferAbort(
   }
 }
 
-export function assertCompatibleTransferSessionResponse(
+export function assertValidTransferSessionResponse(
   value: unknown,
 ): asserts value is TransferSessionResponse {
   const response = responseWithStatus(
@@ -132,11 +132,11 @@ export function assertCompatibleTransferSessionResponse(
     assertTransferProtocolVersion(session.protocol_version);
     assertTransferProtocolVersion(record(session.payload).protocol_version);
   } else {
-    assertCompatibleTransferAbort(response.abort);
+    assertValidTransferAbort(response.abort);
   }
 }
 
-export function assertCompatibleTransferLeaseResponse(
+export function assertValidTransferLeaseResponse(
   value: unknown,
 ): asserts value is TransferLeaseResponse {
   const response = responseWithStatus(
@@ -146,11 +146,11 @@ export function assertCompatibleTransferLeaseResponse(
   if (response.status === "published") {
     assertTransferProtocolVersion(record(response.lease).protocol_version);
   } else {
-    assertCompatibleTransferAbort(response.abort);
+    assertValidTransferAbort(response.abort);
   }
 }
 
-export function assertCompatibleTransferCancelResponse(
+export function assertValidTransferCancelResponse(
   value: unknown,
 ): asserts value is TransferCancelResponse {
   const response = responseWithStatus(
@@ -162,11 +162,11 @@ export function assertCompatibleTransferCancelResponse(
       record(response.cancellation).protocol_version,
     );
   } else {
-    assertCompatibleTransferAbort(response.abort);
+    assertValidTransferAbort(response.abort);
   }
 }
 
-export function assertCompatiblePanelTransferResponse(
+export function assertValidPanelTransferResponse(
   value: unknown,
 ): asserts value is PanelTransferResponse {
   const response = responseWithStatus(
@@ -176,11 +176,11 @@ export function assertCompatiblePanelTransferResponse(
   if (response.status === "committed") {
     const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
-    assertCompatibleTransferTargetBinding(
+    assertValidTransferTargetBinding(
       record(record(completion.target).binding),
     );
   } else {
-    assertCompatibleTransferAbort(response.abort);
+    assertValidTransferAbort(response.abort);
   }
 }
 
@@ -196,10 +196,10 @@ function responseWithStatus(
 function assertKnown(
   value: unknown,
   known: readonly string[],
-  code: TransferProtocolIncompatibilityCode,
+  code: TransferProtocolValidationCode,
 ): asserts value is string {
   if (typeof value !== "string" || !known.includes(value)) {
-    throw new TransferProtocolIncompatibilityError(code, value);
+    throw new TransferProtocolValidationError(code, value);
   }
 }
 
@@ -216,7 +216,7 @@ function record(
   allowed?: readonly string[],
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TransferProtocolIncompatibilityError("invalid_object", value);
+    throw new TransferProtocolValidationError("invalid_object", value);
   }
   const result = value as Record<string, unknown>;
   if (allowed === undefined) return result;
@@ -224,12 +224,12 @@ function record(
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
     if (!permitted.has(key)) {
-      throw new TransferProtocolIncompatibilityError("unknown_field", { key, value });
+      throw new TransferProtocolValidationError("unknown_field", { key, value });
     }
   }
   for (const key of allowed) {
     if (!(key in result)) {
-      throw new TransferProtocolIncompatibilityError("missing_field", { key, value });
+      throw new TransferProtocolValidationError("missing_field", { key, value });
     }
   }
   return result;

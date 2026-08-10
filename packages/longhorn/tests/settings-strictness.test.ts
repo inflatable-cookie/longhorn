@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleSettingsLoadCommand } from "../src/settings/validation.ts";
+import { assertValidSettingsLoadCommand } from "../src/settings/validation.ts";
 import { SETTINGS_FIELDS } from "../src/settings/generated/fields.ts";
 import fixture from "../../../fixtures/settings/protocol-v1.json";
 
@@ -25,13 +25,13 @@ describe("settings boundary strictness", () => {
 
   test("rejects an unknown field", () => {
     expect(() =>
-      assertCompatibleSettingsLoadCommand({ ...valid, extra: 1 }),
+      assertValidSettingsLoadCommand({ ...valid, extra: 1 }),
     ).toThrow(/unknown_field|incompatible/);
   });
 
   test("rejects a missing field", () => {
     const { scopeId: _dropped, ...missing } = valid;
-    expect(() => assertCompatibleSettingsLoadCommand(missing)).toThrow(
+    expect(() => assertValidSettingsLoadCommand(missing)).toThrow(
       /missing_field|incompatible/,
     );
   });

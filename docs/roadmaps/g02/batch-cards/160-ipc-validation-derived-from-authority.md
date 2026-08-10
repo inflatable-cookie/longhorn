@@ -572,14 +572,24 @@ The step splits in two, and only one half is safe to take alone.
 names `compatibility`, so this is internal: the modules are reached through
 each domain's `index.ts` and no consumer import changes.
 
-**Symbols — not done, and deliberately.** `assertCompatibleX` and
-`XProtocolIncompatibilityError` carry the same misnomer, and they *are*
-consumer-visible. Nucleus uses 78 of them across 3 files; Loophole uses one.
-Renaming them is a breaking change to a repository this session cannot edit,
-so it needs either a coordinated consumer migration or a deprecation window
-with both names exported — and the card's own rule, that carrying two of a
-thing is worse than either, argues against the second. That decision is the
-operator's, not this card's to assume.
+**Symbols — done, with the consumers.** 120 names moved:
+`assertCompatibleX` → `assertValidX`, `XProtocolIncompatibilityError` and
+`XProtocolCompatibilityError` → `XProtocolValidationError`, and the matching
+`…Code` unions. 56 files in this repository, 4 proof examples under
+`examples/`, and one file in Nucleus.
+
+**The consumer cost was measured wrong first, and the mistake is instructive.**
+The initial count said 78 symbols across 3 files in Nucleus. The command was
+`grep -rhoE … | grep -v node_modules` — and `-h` suppresses filenames, so the
+`grep -v` had no filename to match and filtered nothing. Bundled copies under
+`build/` and `.svelte-kit/output/` were counted as source. The real surface was
+six references in one file, and Loophole's only match was a build artifact.
+A filter that cannot see what it is filtering does not filter.
+
+Renaming 21 modules also created 21 filenames that Nucleus's `file:` install
+had no symlink for — the papercut recorded earlier, arriving on schedule.
+Nucleus was reinstalled and typechecks clean apart from five pre-existing
+`implicit any` errors in its own vitest file.
 
 ### A proof that was already broken
 

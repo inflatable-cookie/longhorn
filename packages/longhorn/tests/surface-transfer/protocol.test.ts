@@ -7,14 +7,14 @@ import {
   SURFACE_TRANSFER_ERROR_CODES,
   SURFACE_TRANSFER_RESPONSE_STATUSES,
   SURFACE_TRANSFER_TARGET_KINDS,
-  SurfaceTransferProtocolIncompatibilityError,
-  assertCompatibleSurfaceSessionResponse,
-  assertCompatibleSurfaceTransferAbort,
-  assertCompatibleSurfaceTransferResponse,
-  assertCompatibleSurfaceTransferTarget,
+  SurfaceTransferProtocolValidationError,
+  assertValidSurfaceSessionResponse,
+  assertValidSurfaceTransferAbort,
+  assertValidSurfaceTransferResponse,
+  assertValidSurfaceTransferTarget,
 } from "@inflatable-cookie/longhorn/surface-transfer";
 import {
-  TransferProtocolIncompatibilityError,
+  TransferProtocolValidationError,
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
 
@@ -44,7 +44,7 @@ describe("Rust Surface transfer protocol fixture", () => {
       .filter((response) => response.status === "committed")
       .map((response) => {
         const target = record(record(response.completion).target);
-        assertCompatibleSurfaceTransferTarget(target);
+        assertValidSurfaceTransferTarget(target);
         return target.kind;
       });
     expect(new Set(targets)).toEqual(
@@ -60,7 +60,7 @@ describe("Rust Surface transfer protocol fixture", () => {
     const errorCodes = new Set<unknown>();
     const domains = new Set<unknown>();
     for (const value of array(fixture.aborts)) {
-      assertCompatibleSurfaceTransferAbort(value);
+      assertValidSurfaceTransferAbort(value);
       const source = record(record(value).source);
       domains.add(source.domain);
       if (source.domain === "surface_transfer") {
@@ -71,10 +71,10 @@ describe("Rust Surface transfer protocol fixture", () => {
     expect(errorCodes).toEqual(new Set(SURFACE_TRANSFER_ERROR_CODES));
 
     for (const response of array(fixture.session_responses)) {
-      assertCompatibleSurfaceSessionResponse(response);
+      assertValidSurfaceSessionResponse(response);
     }
     for (const response of array(fixture.commit_responses)) {
-      assertCompatibleSurfaceTransferResponse(response);
+      assertValidSurfaceTransferResponse(response);
     }
   });
 });
@@ -85,19 +85,19 @@ describe("Surface transfer incompatibility", () => {
   test("rejects future versions and unknown variants", () => {
     expect(() =>
       assertTransferProtocolVersion(incompatibility.future_protocol_version),
-    ).toThrow(TransferProtocolIncompatibilityError);
+    ).toThrow(TransferProtocolValidationError);
 
     for (const check of [
       () =>
-        assertCompatibleSurfaceTransferTarget(
+        assertValidSurfaceTransferTarget(
           incompatibility.unknown_target,
         ),
       () =>
-        assertCompatibleSurfaceSessionResponse(
+        assertValidSurfaceSessionResponse(
           incompatibility.unknown_response_status,
         ),
       () =>
-        assertCompatibleSurfaceTransferAbort({
+        assertValidSurfaceTransferAbort({
           protocol_version: 1,
           request_id: "request:future-domain",
           source: incompatibility.unknown_abort_domain,
@@ -108,7 +108,7 @@ describe("Surface transfer incompatibility", () => {
           reconciliation_required: false,
         }),
       () =>
-        assertCompatibleSurfaceTransferAbort({
+        assertValidSurfaceTransferAbort({
           protocol_version: 1,
           request_id: "request:future-code",
           source: {
@@ -122,7 +122,7 @@ describe("Surface transfer incompatibility", () => {
           reconciliation_required: false,
         }),
     ]) {
-      expect(check).toThrow(SurfaceTransferProtocolIncompatibilityError);
+      expect(check).toThrow(SurfaceTransferProtocolValidationError);
     }
   });
 });

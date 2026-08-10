@@ -36,13 +36,13 @@ const STORAGE_PROFILES = [
 ] as const;
 const RESTORE_CHOICES = ["useArchive", "keepCurrent"] as const;
 
-export function assertCompatibleConfigSnapshotCommand(
+export function assertValidConfigSnapshotCommand(
   value: unknown,
 ): asserts value is ConfigSnapshotCommand {
   baseCommand(value, "$", CONFIG_FIELDS.ConfigSnapshotCommand);
 }
 
-export function assertCompatibleStorageTransitionInspectCommand(
+export function assertValidStorageTransitionInspectCommand(
   value: unknown,
 ): asserts value is StorageTransitionInspectCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.StorageTransitionInspectCommand);
@@ -50,19 +50,19 @@ export function assertCompatibleStorageTransitionInspectCommand(
   boolean(command.includeLogs, "$.includeLogs");
 }
 
-export function assertCompatibleStorageTransitionExecuteCommand(
+export function assertValidStorageTransitionExecuteCommand(
   value: unknown,
 ): asserts value is StorageTransitionExecuteCommand {
   generationConfirmationCommand(value, CONFIG_FIELDS.StorageTransitionExecuteCommand);
 }
 
-export function assertCompatibleStorageRecoveryCommand(
+export function assertValidStorageRecoveryCommand(
   value: unknown,
 ): asserts value is StorageRecoveryCommand {
   baseCommand(value, "$", CONFIG_FIELDS.StorageRecoveryCommand);
 }
 
-export function assertCompatibleStorageCleanupCommand(
+export function assertValidStorageCleanupCommand(
   value: unknown,
 ): asserts value is StorageCleanupCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.StorageCleanupCommand);
@@ -70,27 +70,27 @@ export function assertCompatibleStorageCleanupCommand(
   digest(command.transitionReceiptDigest, "$.transitionReceiptDigest");
 }
 
-export function assertCompatibleBackupCreateCommand(
+export function assertValidBackupCreateCommand(
   value: unknown,
 ): asserts value is BackupCreateCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.BackupCreateCommand);
   discriminant(command.pendingPolicy, ["refuse", "flush"], "$.pendingPolicy");
 }
 
-export function assertCompatibleBackupExportCommand(
+export function assertValidBackupExportCommand(
   value: unknown,
 ): asserts value is BackupExportCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.BackupExportCommand);
   digest(command.archiveSha256, "$.archiveSha256");
 }
 
-export function assertCompatibleBackupRetentionApplyCommand(
+export function assertValidBackupRetentionApplyCommand(
   value: unknown,
 ): asserts value is BackupRetentionApplyCommand {
   generationConfirmationCommand(value, CONFIG_FIELDS.BackupRetentionApplyCommand);
 }
 
-export function assertCompatibleRestoreInspectCommand(
+export function assertValidRestoreInspectCommand(
   value: unknown,
 ): asserts value is RestoreInspectCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.RestoreInspectCommand);
@@ -105,7 +105,7 @@ export function assertCompatibleRestoreInspectCommand(
   }
 }
 
-export function assertCompatibleRestorePlanCommand(
+export function assertValidRestorePlanCommand(
   value: unknown,
 ): asserts value is RestorePlanCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.RestorePlanCommand);
@@ -119,13 +119,13 @@ export function assertCompatibleRestorePlanCommand(
   });
 }
 
-export function assertCompatibleRestoreExecuteCommand(
+export function assertValidRestoreExecuteCommand(
   value: unknown,
 ): asserts value is RestoreExecuteCommand {
   generationConfirmationCommand(value, CONFIG_FIELDS.RestoreExecuteCommand);
 }
 
-export function assertCompatibleRestoreAdapterExecuteCommand(
+export function assertValidRestoreAdapterExecuteCommand(
   value: unknown,
 ): asserts value is RestoreAdapterExecuteCommand {
   const command = generationConfirmationCommand(value, CONFIG_FIELDS.RestoreAdapterExecuteCommand);
@@ -138,7 +138,7 @@ export function assertCompatibleRestoreAdapterExecuteCommand(
   );
 }
 
-export function assertCompatibleRestoreRecoveryCommand(
+export function assertValidRestoreRecoveryCommand(
   value: unknown,
 ): asserts value is RestoreRecoveryCommand {
   baseCommand(value, "$", CONFIG_FIELDS.RestoreRecoveryCommand);

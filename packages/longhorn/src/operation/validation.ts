@@ -30,14 +30,14 @@ const FORBIDDEN_PAYLOAD_KEYS = new Set([
   "log",
 ]);
 
-export class OperationProtocolCompatibilityError extends Error {
+export class OperationProtocolValidationError extends Error {
   constructor(readonly path: string, message: string) {
     super(`incompatible operation protocol at ${path}: ${message}`);
-    this.name = "OperationProtocolCompatibilityError";
+    this.name = "OperationProtocolValidationError";
   }
 }
 
-export function assertCompatibleOperationSnapshotQuery(
+export function assertValidOperationSnapshotQuery(
   value: unknown,
 ): asserts value is OperationSnapshotQuery {
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotQuery);
@@ -45,16 +45,16 @@ export function assertCompatibleOperationSnapshotQuery(
   text(object.requestId, "$.requestId");
 }
 
-export function assertCompatibleOperationSnapshotResponse(
+export function assertValidOperationSnapshotResponse(
   value: unknown,
 ): asserts value is OperationSnapshotResponse {
   assertPayloadFree(value);
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotResponse);
   text(object.requestId, "$.requestId");
-  assertCompatibleOperationSnapshot(object.snapshot);
+  assertValidOperationSnapshot(object.snapshot);
 }
 
-export function assertCompatibleOperationSnapshot(
+export function assertValidOperationSnapshot(
   value: unknown,
 ): asserts value is OperationSnapshot {
   assertPayloadFree(value);
@@ -77,7 +77,7 @@ export function assertCompatibleOperationSnapshot(
   );
 }
 
-export function assertCompatibleOperationMutationCommand(
+export function assertValidOperationMutationCommand(
   value: unknown,
 ): asserts value is OperationMutationCommand {
   assertPayloadFree(value);
@@ -112,7 +112,7 @@ export function assertCompatibleOperationMutationCommand(
     case "changeRetention":
       exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedCatalogueRevision", "limits"]);
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
-      assertCompatibleOperationSnapshot({
+      assertValidOperationSnapshot({
         protocolVersion: 1, authority: object.authority, catalogueRevision: 0,
         closed: false, limits: object.limits, terminalEvictionCount: 0,
         retainedTerminalEncodedWeight: 0, active: [], recent: [],
@@ -130,7 +130,7 @@ export function assertCompatibleOperationMutationCommand(
   }
 }
 
-export function assertCompatibleOperationCancellationCommand(
+export function assertValidOperationCancellationCommand(
   value: unknown,
 ): asserts value is OperationCancellationCommand {
   assertPayloadFree(value);
@@ -141,7 +141,7 @@ export function assertCompatibleOperationCancellationCommand(
   operationTarget(object);
 }
 
-export function assertCompatibleOperationMutationResult(
+export function assertValidOperationMutationResult(
   value: unknown,
 ): asserts value is OperationMutationResult {
   resultBase(value, OPERATION_MUTATION_STATUSES);
@@ -155,7 +155,7 @@ export function assertCompatibleOperationMutationResult(
   }
 }
 
-export function assertCompatibleOperationCancellationResult(
+export function assertValidOperationCancellationResult(
   value: unknown,
 ): asserts value is OperationCancellationResult {
   resultBase(value, OPERATION_CANCELLATION_STATUSES);
@@ -170,7 +170,7 @@ export function assertCompatibleOperationCancellationResult(
   }
 }
 
-export function assertCompatibleOperationChangedEvent(
+export function assertValidOperationChangedEvent(
   value: unknown,
 ): asserts value is OperationChangedEvent {
   assertPayloadFree(value);
@@ -193,7 +193,7 @@ function resultBase(value: unknown, statuses: readonly string[]): void {
   const object = record(value, "$");
   member(object.status, statuses, "$.status");
   text(object.requestId, "$.requestId");
-  assertCompatibleOperationSnapshot(object.snapshot);
+  assertValidOperationSnapshot(object.snapshot);
 }
 
 function operationEntry(value: unknown, path: string): asserts value is OperationEntryProjection {
@@ -459,5 +459,5 @@ function visit(value: unknown, path: string, seen: Set<object>): void {
 }
 
 function fail(path: string, message: string): never {
-  throw new OperationProtocolCompatibilityError(path, message);
+  throw new OperationProtocolValidationError(path, message);
 }

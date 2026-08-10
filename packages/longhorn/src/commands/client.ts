@@ -1,12 +1,12 @@
 import {
-  assertCompatibleCommandAvailabilitySnapshot,
-  assertCompatibleCommandCatalogue,
-  assertCompatibleCommandKeymapCommit,
-  assertCompatibleCommandKeymapLoadOutcome,
-  assertCompatibleCommandKeymapMutationResult,
-  assertCompatibleCommandKeymapPreview,
-  assertCompatibleCommandKeymapPreviewResult,
-  assertCompatibleCommandKeymapReset,
+  assertValidCommandAvailabilitySnapshot,
+  assertValidCommandCatalogue,
+  assertValidCommandKeymapCommit,
+  assertValidCommandKeymapLoadOutcome,
+  assertValidCommandKeymapMutationResult,
+  assertValidCommandKeymapPreview,
+  assertValidCommandKeymapPreviewResult,
+  assertValidCommandKeymapReset,
 } from "./validation.ts";
 import type {
   CommandAvailabilitySnapshot,
@@ -48,9 +48,9 @@ export class CommandClient {
       this.#ports.keymap.load(),
       this.#ports.availability.load(),
     ]);
-    assertCompatibleCommandCatalogue(catalogue);
-    assertCompatibleCommandKeymapLoadOutcome(keymap);
-    assertCompatibleCommandAvailabilitySnapshot(availability);
+    assertValidCommandCatalogue(catalogue);
+    assertValidCommandKeymapLoadOutcome(keymap);
+    assertValidCommandAvailabilitySnapshot(availability);
     return { catalogue, keymap, availability };
   }
 
@@ -85,33 +85,33 @@ export class CommandClient {
   async preview(
     request: CommandKeymapPreview,
   ): Promise<CommandKeymapPreviewResult> {
-    assertCompatibleCommandKeymapPreview(request);
+    assertValidCommandKeymapPreview(request);
     const preview = this.#ports.keymap.preview;
     if (preview === undefined) throw new CommandKeymapReadOnlyError();
     const result = await preview(request);
-    assertCompatibleCommandKeymapPreviewResult(result);
+    assertValidCommandKeymapPreviewResult(result);
     return result;
   }
 
   async commit(
     request: CommandKeymapCommit,
   ): Promise<CommandKeymapMutationResult> {
-    assertCompatibleCommandKeymapCommit(request);
+    assertValidCommandKeymapCommit(request);
     const commit = this.#ports.keymap.commit;
     if (commit === undefined) throw new CommandKeymapReadOnlyError();
     const result = await commit(request);
-    assertCompatibleCommandKeymapMutationResult(result);
+    assertValidCommandKeymapMutationResult(result);
     return result;
   }
 
   async reset(
     request: CommandKeymapReset,
   ): Promise<CommandKeymapMutationResult> {
-    assertCompatibleCommandKeymapReset(request);
+    assertValidCommandKeymapReset(request);
     const reset = this.#ports.keymap.reset;
     if (reset === undefined) throw new CommandKeymapReadOnlyError();
     const result = await reset(request);
-    assertCompatibleCommandKeymapMutationResult(result);
+    assertValidCommandKeymapMutationResult(result);
     return result;
   }
 }

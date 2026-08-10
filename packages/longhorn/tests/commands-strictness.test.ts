@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertCompatibleCommandCatalogueChangedEvent } from "../src/commands/validation.ts";
+import { assertValidCommandCatalogueChangedEvent } from "../src/commands/validation.ts";
 import { COMMANDS_FIELDS } from "../src/commands/generated/fields.ts";
 
 /**
@@ -22,14 +22,14 @@ describe("commands boundary strictness", () => {
 
   test("rejects an unknown field", () => {
     expect(() =>
-      assertCompatibleCommandCatalogueChangedEvent({ ...valid, extra: 1 }),
+      assertValidCommandCatalogueChangedEvent({ ...valid, extra: 1 }),
     ).toThrow(/unknown field/);
   });
 
   test("rejects a missing field", () => {
     const { registryGeneration: _dropped, ...missing } = valid;
     expect(() =>
-      assertCompatibleCommandCatalogueChangedEvent(missing),
+      assertValidCommandCatalogueChangedEvent(missing),
     ).toThrow(/missing field/);
   });
 

@@ -5,12 +5,12 @@ import {
   SURFACE_MUTATION_COMMAND_KINDS,
   SURFACE_MUTATION_OUTCOME_KINDS,
   SURFACE_MUTATION_REJECTION_CODES,
-  SurfaceProtocolIncompatibilityError,
-  assertCompatibleSurfaceMutationCommand,
-  assertCompatibleSurfaceMutationOutcome,
-  assertCompatibleSurfaceMutationRejectionCode,
-  assertCompatibleSurfaceMutationResponse,
-  assertCompatibleSurfaceSnapshot,
+  SurfaceProtocolValidationError,
+  assertValidSurfaceMutationCommand,
+  assertValidSurfaceMutationOutcome,
+  assertValidSurfaceMutationRejectionCode,
+  assertValidSurfaceMutationResponse,
+  assertValidSurfaceSnapshot,
   assertSurfaceProtocolVersion,
 } from "@inflatable-cookie/longhorn/surfaces";
 
@@ -38,17 +38,17 @@ describe("Rust Surface protocol fixture", () => {
   test("covers every mutation discriminant and rejection code", () => {
     const commands = array(fixture.commands).map((request) => {
       const command = record(record(request).command);
-      assertCompatibleSurfaceMutationCommand(command);
+      assertValidSurfaceMutationCommand(command);
       return command.kind;
     });
     const outcomes = array(fixture.receipts).map((receipt) => {
       const outcome = record(record(receipt).outcome);
-      assertCompatibleSurfaceMutationOutcome(outcome);
+      assertValidSurfaceMutationOutcome(outcome);
       return outcome.kind;
     });
     const codes = array(fixture.errors).map((error) => {
       const code = record(error).code;
-      assertCompatibleSurfaceMutationRejectionCode(code);
+      assertValidSurfaceMutationRejectionCode(code);
       return code;
     });
 
@@ -62,10 +62,10 @@ describe("Rust Surface protocol fixture", () => {
       new Set(SURFACE_MUTATION_REJECTION_CODES),
     );
     for (const response of array(fixture.responses)) {
-      assertCompatibleSurfaceMutationResponse(response);
+      assertValidSurfaceMutationResponse(response);
     }
     for (const snapshot of array(fixture.snapshots)) {
-      assertCompatibleSurfaceSnapshot(snapshot);
+      assertValidSurfaceSnapshot(snapshot);
     }
   });
 });
@@ -80,23 +80,23 @@ describe("Surface protocol incompatibility", () => {
           incompatibility.future_protocol_version,
         ),
       () =>
-        assertCompatibleSurfaceMutationCommand(
+        assertValidSurfaceMutationCommand(
           incompatibility.unknown_command,
         ),
       () =>
-        assertCompatibleSurfaceMutationOutcome(
+        assertValidSurfaceMutationOutcome(
           incompatibility.unknown_outcome,
         ),
       () =>
-        assertCompatibleSurfaceMutationRejectionCode(
+        assertValidSurfaceMutationRejectionCode(
           incompatibility.unknown_rejection_code,
         ),
       () =>
-        assertCompatibleSurfaceMutationResponse({
+        assertValidSurfaceMutationResponse({
           status: "future_surface_response",
         }),
     ]) {
-      expect(check).toThrow(SurfaceProtocolIncompatibilityError);
+      expect(check).toThrow(SurfaceProtocolValidationError);
     }
   });
 });

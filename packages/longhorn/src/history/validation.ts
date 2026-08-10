@@ -17,14 +17,14 @@ import {
 } from "./generated/protocol.ts";
 import { HISTORY_FIELDS } from "./generated/fields.ts";
 
-export class HistoryProtocolCompatibilityError extends Error {
+export class HistoryProtocolValidationError extends Error {
   constructor(readonly path: string, message: string) {
     super(`${path}: ${message}`);
-    this.name = "HistoryProtocolCompatibilityError";
+    this.name = "HistoryProtocolValidationError";
   }
 }
 
-export function assertCompatibleHistorySnapshot(
+export function assertValidHistorySnapshot(
   value: unknown,
 ): asserts value is HistorySnapshot {
   assertNoPayload(value, "$");
@@ -35,7 +35,7 @@ export function assertCompatibleHistorySnapshot(
   summary(record.summary, "$.summary");
 }
 
-export function assertCompatibleHistoryPageCommand(
+export function assertValidHistoryPageCommand(
   value: unknown,
 ): asserts value is HistoryPageCommand {
   assertNoPayload(value, "$");
@@ -49,7 +49,7 @@ export function assertCompatibleHistoryPageCommand(
   positiveInteger(record.limit, "$.limit");
 }
 
-export function assertCompatibleHistoryPageSnapshot(
+export function assertValidHistoryPageSnapshot(
   value: unknown,
 ): asserts value is HistoryPageSnapshot {
   assertNoPayload(value, "$");
@@ -69,7 +69,7 @@ export function assertCompatibleHistoryPageSnapshot(
   );
 }
 
-export function assertCompatibleHistoryNavigationCommand(
+export function assertValidHistoryNavigationCommand(
   value: unknown,
 ): asserts value is HistoryNavigationCommand {
   assertNoPayload(value, "$");
@@ -90,7 +90,7 @@ export function assertCompatibleHistoryNavigationCommand(
   }
 }
 
-export function assertCompatibleHistoryNavigationResult(
+export function assertValidHistoryNavigationResult(
   value: unknown,
 ): asserts value is HistoryNavigationResult {
   assertNoPayload(value, "$");
@@ -98,16 +98,16 @@ export function assertCompatibleHistoryNavigationResult(
   oneOf(record.status, "$.status", HISTORY_NAVIGATION_STATUSES);
   if (record.status === "committed") {
     keys(record, "$", ["status", "snapshot", "receipt"]);
-    assertCompatibleHistorySnapshot(record.snapshot);
+    assertValidHistorySnapshot(record.snapshot);
     receipt(record.receipt, "$.receipt");
   } else {
     keys(record, "$", ["status", "snapshot", "rejection"]);
-    assertCompatibleHistorySnapshot(record.snapshot);
+    assertValidHistorySnapshot(record.snapshot);
     rejection(record.rejection, "$.rejection");
   }
 }
 
-export function assertCompatibleHistoryChangedEvent(
+export function assertValidHistoryChangedEvent(
   value: unknown,
 ): asserts value is HistoryChangedEvent {
   assertNoPayload(value, "$");
@@ -299,5 +299,5 @@ function assertNoPayload(value: unknown, path: string): void {
 }
 
 function fail(path: string, message: string): never {
-  throw new HistoryProtocolCompatibilityError(path, message);
+  throw new HistoryProtocolValidationError(path, message);
 }

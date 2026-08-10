@@ -31,7 +31,7 @@ const STORAGE_PROFILES = [
   "portable-v1",
 ] as const;
 
-export function assertCompatibleConfigOperationsSnapshot(
+export function assertValidConfigOperationsSnapshot(
   value: unknown,
 ): asserts value is ConfigOperationsSnapshot {
   const snapshot = record(value, "$", CONFIG_FIELDS.ConfigOperationsSnapshot);

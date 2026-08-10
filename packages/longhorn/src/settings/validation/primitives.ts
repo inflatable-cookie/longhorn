@@ -6,7 +6,7 @@ import {
 } from "../generated/protocol.ts";
 import {
   incompatible,
-  type SettingsProtocolIncompatibilityCode,
+  type SettingsProtocolValidationCode,
 } from "./error.ts";
 
 /**
@@ -104,7 +104,7 @@ export function integer(value: unknown): void {
 
 export function positive(
   value: unknown,
-  code: SettingsProtocolIncompatibilityCode,
+  code: SettingsProtocolValidationCode,
 ): void {
   unsigned(value, code);
   if (value === 0) {
@@ -114,7 +114,7 @@ export function positive(
 
 export function unsigned(
   value: unknown,
-  code: SettingsProtocolIncompatibilityCode,
+  code: SettingsProtocolValidationCode,
 ): void {
   if (
     typeof value !== "number" ||
@@ -128,7 +128,7 @@ export function unsigned(
 export function boundedArray(
   value: unknown,
   maximum: number,
-  code: SettingsProtocolIncompatibilityCode,
+  code: SettingsProtocolValidationCode,
 ): unknown[] {
   const values = array(value);
   if (values.length > maximum) {

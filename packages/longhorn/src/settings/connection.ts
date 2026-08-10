@@ -16,10 +16,10 @@ import type {
   SettingsScopeSnapshot,
 } from "./generated/protocol.ts";
 import {
-  assertCompatibleSettingsRegistryChangedEvent,
-  assertCompatibleSettingsRegistrySnapshot,
-  assertCompatibleSettingsScopeChangedEvent,
-  assertCompatibleSettingsScopeSnapshot,
+  assertValidSettingsRegistryChangedEvent,
+  assertValidSettingsRegistrySnapshot,
+  assertValidSettingsScopeChangedEvent,
+  assertValidSettingsScopeSnapshot,
 } from "./validation.ts";
 import {
   SETTINGS_REGISTRY_CHANGED_EVENT,
@@ -88,7 +88,7 @@ export function connectSettingsScope(
       return outcome.snapshot;
     },
     validateSnapshot: (value) => {
-      assertCompatibleSettingsScopeSnapshot(value, maximum);
+      assertValidSettingsScopeSnapshot(value, maximum);
       validateScopeIdentity(value, options);
       return value;
     },
@@ -151,7 +151,7 @@ function requiredSubscription<Snapshot>(
 }
 
 function parseRegistry(value: unknown): SettingsRegistrySnapshot {
-  assertCompatibleSettingsRegistrySnapshot(value);
+  assertValidSettingsRegistrySnapshot(value);
   return value;
 }
 
@@ -159,7 +159,7 @@ function registryEventAction(
   value: unknown,
   current: SettingsRegistrySnapshot | undefined,
 ): { kind: "ignore" } | { kind: "refresh" } {
-  assertCompatibleSettingsRegistryChangedEvent(value);
+  assertValidSettingsRegistryChangedEvent(value);
   const event = value as SettingsRegistryChangedEvent;
   return current !== undefined &&
     event.registryGeneration <= current.generation
@@ -172,7 +172,7 @@ function scopeEventAction(
   current: SettingsScopeSnapshot | undefined,
   options: SettingsScopeConnectionOptions,
 ): { kind: "ignore" } | { kind: "refresh" } {
-  assertCompatibleSettingsScopeChangedEvent(value);
+  assertValidSettingsScopeChangedEvent(value);
   const event = value as SettingsScopeChangedEvent;
   if (event.scopeId !== options.scopeId) {
     return { kind: "ignore" };

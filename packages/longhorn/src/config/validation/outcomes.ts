@@ -27,7 +27,7 @@ import {
   type StorageTransitionInspectOutcome,
 } from "../generated/protocol.ts";
 import {
-  assertCompatibleConfigOperationsSnapshot,
+  assertValidConfigOperationsSnapshot,
   assertRestoreAdapterReceipt,
   assertRestoreExecutionReceipt,
   assertRestoreFailure,
@@ -44,7 +44,7 @@ import {
   string,
 } from "./primitives.ts";
 
-export function assertCompatibleStorageTransitionInspectOutcome(
+export function assertValidStorageTransitionInspectOutcome(
   value: unknown,
 ): asserts value is StorageTransitionInspectOutcome {
   outcome(value, STORAGE_TRANSITION_INSPECT_STATUSES, "$");
@@ -70,43 +70,43 @@ export function assertCompatibleStorageTransitionInspectOutcome(
   }
 }
 
-export function assertCompatibleStorageTransitionExecuteOutcome(
+export function assertValidStorageTransitionExecuteOutcome(
   value: unknown,
 ): asserts value is StorageTransitionExecuteOutcome {
   mutationOutcome(value, STORAGE_TRANSITION_EXECUTE_STATUSES, "committed");
 }
 
-export function assertCompatibleStorageRecoveryOutcome(
+export function assertValidStorageRecoveryOutcome(
   value: unknown,
 ): asserts value is StorageRecoveryOutcome {
   mutationOutcome(value, STORAGE_RECOVERY_STATUSES, "recovered");
 }
 
-export function assertCompatibleStorageCleanupOutcome(
+export function assertValidStorageCleanupOutcome(
   value: unknown,
 ): asserts value is StorageCleanupOutcome {
   mutationOutcome(value, STORAGE_CLEANUP_STATUSES, "applied");
 }
 
-export function assertCompatibleBackupCreateOutcome(
+export function assertValidBackupCreateOutcome(
   value: unknown,
 ): asserts value is BackupCreateOutcome {
   mutationOutcome(value, BACKUP_CREATE_STATUSES, "published");
 }
 
-export function assertCompatibleBackupExportOutcome(
+export function assertValidBackupExportOutcome(
   value: unknown,
 ): asserts value is BackupExportOutcome {
   mutationOutcome(value, BACKUP_EXPORT_STATUSES, "published");
 }
 
-export function assertCompatibleBackupRetentionApplyOutcome(
+export function assertValidBackupRetentionApplyOutcome(
   value: unknown,
 ): asserts value is BackupRetentionApplyOutcome {
   mutationOutcome(value, BACKUP_RETENTION_APPLY_STATUSES, "applied");
 }
 
-export function assertCompatibleRestoreInspectOutcome(
+export function assertValidRestoreInspectOutcome(
   value: unknown,
 ): asserts value is RestoreInspectOutcome {
   outcome(value, RESTORE_INSPECT_STATUSES, "$");
@@ -121,7 +121,7 @@ export function assertCompatibleRestoreInspectOutcome(
   }
 }
 
-export function assertCompatibleRestorePlanOutcome(
+export function assertValidRestorePlanOutcome(
   value: unknown,
 ): asserts value is RestorePlanOutcome {
   outcome(value, RESTORE_PLAN_STATUSES, "$");
@@ -134,49 +134,49 @@ export function assertCompatibleRestorePlanOutcome(
   }
 }
 
-export function assertCompatibleRestoreExecuteOutcome(
+export function assertValidRestoreExecuteOutcome(
   value: unknown,
 ): asserts value is RestoreExecuteOutcome {
   outcome(value, RESTORE_EXECUTE_STATUSES, "$");
   const result = record(value, "$");
   if (result.status === "succeeded") {
     assertRestoreExecutionReceipt(result.receipt, "$.receipt");
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else if (
     result.status === "rolledBack" ||
     result.status === "recoveryRequired"
   ) {
     assertRestoreFailure(result.failure, "$.failure");
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else {
     rejection(result.rejection, "$.rejection");
   }
 }
 
-export function assertCompatibleRestoreAdapterExecuteOutcome(
+export function assertValidRestoreAdapterExecuteOutcome(
   value: unknown,
 ): asserts value is RestoreAdapterExecuteOutcome {
   outcome(value, RESTORE_ADAPTER_EXECUTE_STATUSES, "$");
   const result = record(value, "$");
   if (result.status === "completed") {
     assertRestoreAdapterReceipt(result.receipt, "$.receipt");
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else {
     rejection(result.rejection, "$.rejection");
   }
 }
 
-export function assertCompatibleRestoreRecoveryOutcome(
+export function assertValidRestoreRecoveryOutcome(
   value: unknown,
 ): asserts value is RestoreRecoveryOutcomeProjection {
   outcome(value, RESTORE_RECOVERY_STATUSES, "$");
   const result = record(value, "$");
   if (result.status === "recovered") {
     assertRestoreRecoveryReceipt(result.receipt, "$.receipt");
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else if (result.status === "recoveryRequired") {
     assertRestoreFailure(result.failure, "$.failure");
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else {
     rejection(result.rejection, "$.rejection");
   }
@@ -190,7 +190,7 @@ function mutationOutcome(
   outcome(value, variants, "$");
   const result = record(value, "$");
   if (result.status === success) {
-    assertCompatibleConfigOperationsSnapshot(result.snapshot);
+    assertValidConfigOperationsSnapshot(result.snapshot);
   } else {
     rejection(result.rejection, "$.rejection");
   }
@@ -201,7 +201,7 @@ function rejection(value: unknown, path: string): void {
   discriminant(refused.code, CONFIG_OPERATION_REJECTION_CODES, `${path}.code`);
   string(refused.detail, `${path}.detail`);
   if (refused.snapshot !== null) {
-    assertCompatibleConfigOperationsSnapshot(refused.snapshot);
+    assertValidConfigOperationsSnapshot(refused.snapshot);
   }
 }
 
