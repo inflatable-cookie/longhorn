@@ -277,6 +277,39 @@ Longhorn's own dry run is deliberately not attempted yet. Its
 which is step 3 of this card, and every Longhorn CI job runs on macOS at ten
 times the Linux rate. It runs after the repoint.
 
+## Step 1 Complete — Poodle Published 2026-08-10
+
+`@inflatable-cookie/poodle-core@0.1.0` and
+`@inflatable-cookie/poodle-svelte@0.1.0` are on the public registry, the
+repository is public, trusted publishers are configured, the credential is
+dropped and `v0.1.0` is tagged.
+
+**The registry holds exactly what the gates ran against.** The published
+tarballs were downloaded from `dist.tarball` and compared to the CI artifact:
+
+| Package | Bytes | SHA-256 |
+| --- | --- | --- |
+| `poodle-core` | 180,217 | `4934f660…02afd820` |
+| `poodle-svelte` | 192,552 | `15208b85…2d8a5cb8` |
+
+Byte-identical to run 31388087919's artifact. Publishing the artifact rather
+than a locally repacked tarball is what makes that check meaningful.
+
+**The tag path is validated.** Run 31391825299, dispatched against
+`refs/tags/v0.1.0` with `dry-run=true`, is green on all thirteen steps
+including *Versions agree with the tag* — which had never executed, because a
+branch dispatch skips it. The dispatch-against-the-tag model works.
+
+Provenance is absent from this release and will attach from the next one: it
+requires a public source repository, and visibility flipped after the tarballs
+were built.
+
+Two consequences of going public are worth noting for later. Standard runners
+are free for public repositories, macOS included, so the Actions-budget
+pressure that forced dispatch-only is gone — restoring `pull_request` triggers
+is now a choice rather than a cost. And the three uncancellable runs that held
+the `main` concurrency group have cleared.
+
 ## Bootstrap Sequence — Poodle
 
 Trusted publishing can only be configured on a package that already exists, so
