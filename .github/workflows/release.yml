@@ -121,20 +121,55 @@ jobs:
           fi
           exit "$status"
 
-      - name: Pack and inspect
+      # Named explicitly rather than globbed over packages/*/. A glob in a step
+      # holding publish rights means adding a directory publishes it.
+      - name: Pack and verify contents
         run: |
           set -euo pipefail
           mkdir -p .release
-          for dir in packages/*/; do
+          for dir in packages/longhorn packages/longhorn-poodle-svelte packages/longhorn-tauri; do
             (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/.release")
           done
           ls -l .release
+
+          status=0
+          require() { # description, pattern, minimum
+            local n
+            n=$(grep -c -- "$2" "$listing" || true)
+            if [ "$n" -lt "$3" ]; then
+              echo "  MISSING $1: $n matching '"'"'$2'"'"', expected at least $3"
+              status=1
+            else
+              echo "  ok $1: $n"
+            fi
+          }
+
+          # Do not pipe `tar -tzf` into `head`: GNU tar treats the EPIPE as an
+          # error and `set -o pipefail` fails the step.
+          listing=$(mktemp)
+          for tarball in .release/*.tgz; do
+            echo "== $tarball ($(wc -c < "$tarball") bytes)"
+            tar -tzf "$tarball" > "$listing"
+            echo "  $(wc -l < "$listing") entries"
+            require "licence"  "^package/LICENSE$"      1
+            require "readme"   "^package/README.md$"    1
+            require "manifest" "^package/package.json$" 1
+            case "$tarball" in
+              *longhorn-0.*)
+                # Generated from the Rust authority and committed. check:bindings
+                # proves they are current; this proves `files` carried them.
+                require "generated bindings" "^package/src/.*/generated/.*\.ts$" 25
+                ;;
+            esac
+          done
+          rm -f "$listing"
+          exit "$status"
 
       - name: Publish
         if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
-          for dir in packages/*/; do
+          for dir in packages/longhorn packages/longhorn-poodle-svelte packages/longhorn-tauri; do
             (cd "$dir" && npm publish --access public)
           done
 

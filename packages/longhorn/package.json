@@ -1,7 +1,13 @@
 {
   "name": "@inflatable-cookie/longhorn",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inflatable-cookie/longhorn.git",
+    "directory": "packages/longhorn"
+  },
+  "homepage": "https://github.com/inflatable-cookie/longhorn#readme",
   "type": "module",
   "types": "./src/core/index.ts",
   "exports": {
@@ -163,7 +169,12 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "src"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
-  "sideEffects": false
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
 }

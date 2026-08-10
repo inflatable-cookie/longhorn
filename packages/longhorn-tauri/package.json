@@ -1,7 +1,13 @@
 {
   "name": "@inflatable-cookie/longhorn-tauri",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inflatable-cookie/longhorn.git",
+    "directory": "packages/longhorn-tauri"
+  },
+  "homepage": "https://github.com/inflatable-cookie/longhorn#readme",
   "type": "module",
   "types": "./src/transport/index.ts",
   "exports": {
@@ -53,11 +59,16 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "src"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
   "peerDependencies": {
     "@inflatable-cookie/longhorn": "0.1.0",
     "@tauri-apps/api": "^2.10.1"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
 }
