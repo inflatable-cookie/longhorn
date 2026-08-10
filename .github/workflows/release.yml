@@ -126,11 +126,11 @@ jobs:
       - name: Pack and verify contents
         run: |
           set -euo pipefail
-          mkdir -p .release
+          mkdir -p release-artifacts
           for dir in packages/longhorn packages/longhorn-poodle-svelte packages/longhorn-tauri; do
-            (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/.release")
+            (cd "$dir" && npm pack --pack-destination "$GITHUB_WORKSPACE/release-artifacts")
           done
-          ls -l .release
+          ls -l release-artifacts
 
           status=0
           require() { # description, pattern, minimum
@@ -147,7 +147,7 @@ jobs:
           # Do not pipe `tar -tzf` into `head`: GNU tar treats the EPIPE as an
           # error and `set -o pipefail` fails the step.
           listing=$(mktemp)
-          for tarball in .release/*.tgz; do
+          for tarball in release-artifacts/*.tgz; do
             echo "== $tarball ($(wc -c < "$tarball") bytes)"
             tar -tzf "$tarball" > "$listing"
             echo "  $(wc -l < "$listing") entries"
@@ -173,7 +173,13 @@ jobs:
             (cd "$dir" && npm publish --access public)
           done
 
+      # if-no-files-found: error, not the default warn. The first green run
+      # uploaded nothing: the directory was `.release`, and upload-artifact v4
+      # skips hidden files unless told otherwise. It warned and passed. This is
+      # the artifact a first publication is bootstrapped from, so its absence
+      # has to fail the run.
       - uses: actions/upload-artifact@v4
         with:
           name: packed-tarballs
-          path: .release/*.tgz
+          path: release-artifacts/*.tgz
+          if-no-files-found: error
