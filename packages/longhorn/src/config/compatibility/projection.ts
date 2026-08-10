@@ -65,11 +65,18 @@ export function assertRestoreInspection(value: unknown, path: string): void {
     ["unauthenticated", "authenticated"],
     `${path}.authenticity`,
   );
-  identity(record(inspection.identity, `${path}.identity`), `${path}.identity`);
+  identity(
+    record(
+      inspection.identity,
+      `${path}.identity`,
+      CONFIG_FIELDS.RestoreIdentityProjection,
+    ),
+    `${path}.identity`,
+  );
   array(inspection.consistencyGroups, `${path}.consistencyGroups`).forEach(
     (value, index) => {
       const groupPath = `${path}.consistencyGroups[${index}]`;
-      const group = record(value, groupPath);
+      const group = record(value, groupPath, CONFIG_FIELDS.RestoreConsistencyGroupProjection);
       ["id", "mode", "authority"].forEach((key) =>
         nonempty(group[key], `${groupPath}.${key}`),
       );
@@ -80,7 +87,7 @@ export function assertRestoreInspection(value: unknown, path: string): void {
   );
   array(inspection.exclusions, `${path}.exclusions`).forEach((value, index) => {
     const exclusionPath = `${path}.exclusions[${index}]`;
-    const exclusion = record(value, exclusionPath);
+    const exclusion = record(value, exclusionPath, CONFIG_FIELDS.RestoreExclusionProjection);
     ["domainId", "storageClass", "reason"].forEach((key) =>
       nonempty(exclusion[key], `${exclusionPath}.${key}`),
     );
@@ -102,7 +109,7 @@ export function assertRestorePlan(value: unknown, path: string): void {
   digest(plan.confirmationDigest, `${path}.confirmationDigest`);
   array(plan.entries, `${path}.entries`).forEach((value, index) => {
     const entryPath = `${path}.entries[${index}]`;
-    const entry = record(value, entryPath);
+    const entry = record(value, entryPath, CONFIG_FIELDS.RestorePlanEntryProjection);
     nonempty(entry.domainId, `${entryPath}.domainId`);
     discriminant(
       entry.choice,
@@ -148,7 +155,7 @@ export function assertRestoreExecutionReceipt(
 }
 
 export function assertRestoreFailure(value: unknown, path: string): void {
-  const failure = record(value, path);
+  const failure = record(value, path, CONFIG_FIELDS.RestoreExecutionFailureProjection);
   nonempty(failure.stage, `${path}.stage`);
   nullableString(failure.domainId, `${path}.domainId`);
   discriminant(
@@ -163,7 +170,7 @@ export function assertRestoreAdapterReceipt(
   value: unknown,
   path: string,
 ): void {
-  const receipt = record(value, path);
+  const receipt = record(value, path, CONFIG_FIELDS.RestoreAdapterReceiptProjection);
   ["domainId", "adapter", "outcome"].forEach((key) =>
     nonempty(receipt[key], `${path}.${key}`),
   );
@@ -176,7 +183,7 @@ export function assertRestoreRecoveryReceipt(
   value: unknown,
   path: string,
 ): void {
-  const receipt = record(value, path);
+  const receipt = record(value, path, CONFIG_FIELDS.RestoreRecoveryReceiptProjection);
   discriminant(
     receipt.outcome,
     ["noRecoveryNeeded", "rolledBack", "terminalCleanup"],
@@ -190,15 +197,15 @@ export function assertPublication(value: unknown, path: string): void {
 }
 
 function storage(value: unknown, path: string): void {
-  const projection = record(value, path);
-  const layout = record(projection.layout, `${path}.layout`);
+  const projection = record(value, path, CONFIG_FIELDS.StorageOperationsProjection);
+  const layout = record(projection.layout, `${path}.layout`, CONFIG_FIELDS.StorageLayoutProjection);
   discriminant(layout.profile, STORAGE_PROFILES, `${path}.layout.profile`);
   ["platform", "canonicalApplicationId", "effectiveLeaf"].forEach((key) =>
     nonempty(layout[key], `${path}.layout.${key}`),
   );
   digest(layout.layoutDigest, `${path}.layout.layoutDigest`);
   array(layout.roots, `${path}.layout.roots`).forEach((rootValue, index) => {
-    const root = record(rootValue, `${path}.layout.roots[${index}]`);
+    const root = record(rootValue, `${path}.layout.roots[${index}]`, CONFIG_FIELDS.StorageRootProjection);
     ["kind", "path", "provenance"].forEach((key) =>
       nonempty(root[key], `${path}.layout.roots[${index}].${key}`),
     );
@@ -212,13 +219,13 @@ function storage(value: unknown, path: string): void {
 }
 
 function backup(value: unknown, path: string): void {
-  const projection = record(value, path);
-  const inventory = record(projection.inventory, `${path}.inventory`);
+  const projection = record(value, path, CONFIG_FIELDS.BackupOperationsProjection);
+  const inventory = record(projection.inventory, `${path}.inventory`, CONFIG_FIELDS.BackupInventoryProjection);
   nonempty(inventory.root, `${path}.inventory.root`);
   array(inventory.archives, `${path}.inventory.archives`).forEach(
     (archiveValue, index) => {
       const archivePath = `${path}.inventory.archives[${index}]`;
-      const archive = record(archiveValue, archivePath);
+      const archive = record(archiveValue, archivePath, CONFIG_FIELDS.BackupArchiveProjection);
       ["path", "archiveId", "createdAt", "kind"].forEach((key) =>
         nonempty(archive[key], `${archivePath}.${key}`),
       );
@@ -235,7 +242,7 @@ function backup(value: unknown, path: string): void {
   const encryption = record(projection.encryption, `${path}.encryption`);
   discriminant(encryption.state, BACKUP_ENCRYPTION_STATES, `${path}.encryption.state`);
   if (projection.retention !== null) {
-    const retention = record(projection.retention, `${path}.retention`);
+    const retention = record(projection.retention, `${path}.retention`, CONFIG_FIELDS.BackupRetentionProjection);
     stringArray(retention.deletionPaths, `${path}.retention.deletionPaths`);
     digest(retention.confirmationDigest, `${path}.retention.confirmationDigest`);
     array(retention.diagnostics, `${path}.retention.diagnostics`).forEach(
@@ -246,7 +253,7 @@ function backup(value: unknown, path: string): void {
 }
 
 function restoreState(value: unknown, path: string): void {
-  const projection = record(value, path);
+  const projection = record(value, path, CONFIG_FIELDS.RestoreOperationsProjection);
   discriminant(
     projection.state,
     ["inactive", "active", "recoveryRequired"],
@@ -268,7 +275,7 @@ function identity(value: Record<string, unknown>, path: string): void {
 }
 
 function restoreDomain(value: unknown, path: string): void {
-  const domain = record(value, path);
+  const domain = record(value, path, CONFIG_FIELDS.RestoreDomainInspectionProjection);
   ["domainId", "storageClass", "consistencyGroup", "adapter", "sourceState"].forEach(
     (key) => nonempty(domain[key], `${path}.${key}`),
   );
@@ -315,7 +322,7 @@ function currentEvidence(value: unknown, path: string): void {
 }
 
 function inventoryEntry(value: unknown, path: string): void {
-  const entry = record(value, path);
+  const entry = record(value, path, CONFIG_FIELDS.BackupInventoryEntry);
   discriminant(
     entry.state,
     ["valid", "locked", "corrupt", "foreign", "unknown", "unreadable", "unmanaged"],
@@ -326,7 +333,7 @@ function inventoryEntry(value: unknown, path: string): void {
 }
 
 function publication(value: unknown, path: string): void {
-  const receipt = record(value, path);
+  const receipt = record(value, path, CONFIG_FIELDS.BackupPublicationReceiptProjection);
   ["path", "destination", "durability"].forEach((key) =>
     nonempty(receipt[key], `${path}.${key}`),
   );

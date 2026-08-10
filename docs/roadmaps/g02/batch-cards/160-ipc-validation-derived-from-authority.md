@@ -487,11 +487,46 @@ output, so a constant nothing imports drifts silently — which is exactly how
 bridge's two message-byte constants sat unused. Emission is gated; *use* is
 not.
 
+### config's nested fragments — 2026-08-10
+
+34 more call sites typed across four files. `config` is now strict everywhere
+it validates a plain object; what stays lenient is exactly the tagged unions,
+each of which discriminates on a `status`, `kind`, `state` or `source` field
+one line later.
+
+Two shared helpers took the field list as a parameter rather than being
+split: `baseCommand`, called by ten command validators, and
+`generationConfirmationCommand`, called by four. This is the same shape as
+history-tree's `commandBase` — done deliberately this time.
+
+**The passing test suite was not evidence, and measuring that mattered.**
+Applying 18 mappings and seeing config's nine tests still pass says nothing
+about a mapping on a path the fixture never reaches. So each mapping was
+probed: inject a sentinel key into that type's field list, re-run, and see
+whether anything fails. A mapping whose tests still pass with a deliberately
+impossible field list is unverified.
+
+The first probe came back **17 of 18**, and the unproven one was a bug in the
+edit rather than a gap in the fixture. The script appended the field-list
+argument before the line's last `);` — which on
+
+```ts
+identity(record(inspection.identity, `${path}.identity`), `${path}.identity`);
+```
+
+is `identity(...)`'s closing paren, not `record(...)`'s. It passed a third
+argument to a two-parameter function. `bun test` does not type-check, so the
+suite stayed green; only the probe found it. Fixed, re-probed, 18 of 18. The
+later batch of 16 probed clean on the first pass.
+
+That is the second time today a scripted source transformation matched
+something that looked like its target and was not. The pattern is now
+explicit: **script the edit, but verify by execution, not by re-reading the
+script.**
+
 ### Remaining
 
-The nested call sites in `config` and `settings` — the fragments below each
-package's typed entry points. Every package that owns a boundary now rejects
-an unknown and a missing field at its top level.
+`settings`' nested fragments.
 
 ## Scope
 

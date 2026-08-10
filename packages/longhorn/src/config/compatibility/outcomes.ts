@@ -1,3 +1,4 @@
+import { CONFIG_FIELDS } from "../generated/fields.ts";
 import {
   BACKUP_CREATE_STATUSES,
   BACKUP_EXPORT_STATUSES,
@@ -50,7 +51,11 @@ export function assertCompatibleStorageTransitionInspectOutcome(
   const result = record(value, "$");
   if (result.status === "ready") {
     finiteNumber(result.generation, "$.generation");
-    const preview = record(result.preview, "$.preview");
+    const preview = record(
+      result.preview,
+      "$.preview",
+      CONFIG_FIELDS.StorageTransitionPreviewProjection,
+    );
     [
       "sourceLayoutDigest",
       "targetLayoutDigest",
@@ -192,7 +197,7 @@ function mutationOutcome(
 }
 
 function rejection(value: unknown, path: string): void {
-  const refused = record(value, path);
+  const refused = record(value, path, CONFIG_FIELDS.ConfigOperationRejection);
   discriminant(refused.code, CONFIG_OPERATION_REJECTION_CODES, `${path}.code`);
   string(refused.detail, `${path}.detail`);
   if (refused.snapshot !== null) {

@@ -25,8 +25,9 @@ export class ConfigProtocolIncompatibilityError extends Error {
 export function baseCommand(
   value: unknown,
   path: string,
+  allowed?: readonly string[],
 ): Record<string, unknown> {
-  const command = record(value, path);
+  const command = record(value, path, allowed);
   protocol(command.protocolVersion, `${path}.protocolVersion`);
   opaqueId(command.requestId, `${path}.requestId`);
   return command;
