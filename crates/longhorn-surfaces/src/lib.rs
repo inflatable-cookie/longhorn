@@ -11,7 +11,9 @@ mod snapshot;
 mod validation;
 
 pub use limits::{SurfaceLimits, SurfaceLimitsError};
-pub use model::{ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceRecord};
+pub use model::{
+    ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
+};
 pub use mutation::{
     EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory,
     SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationOutcome, SurfaceMutationReceipt,

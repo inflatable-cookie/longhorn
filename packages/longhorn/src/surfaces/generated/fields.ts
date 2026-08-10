@@ -5,7 +5,7 @@
 
 export const SURFACE_FIELDS: Record<string, readonly string[]> = {
   "SurfaceHostPreference": ["window_id", "order"],
-  "SurfaceRecord": ["id", "layout_container_id", "label", "host_preferences"],
+  "SurfaceRecord": ["id", "layout_container_id", "label", "presentation", "host_preferences"],
   "ParticipatingWindow": ["id", "active_surface_id"],
   "SurfaceDocument": ["revision", "surfaces", "windows"],
   "LayoutContainerCleanupIntent": ["layout_container_id"],

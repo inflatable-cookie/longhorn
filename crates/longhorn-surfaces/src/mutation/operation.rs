@@ -2,7 +2,10 @@ use std::collections::BTreeSet;
 
 use longhorn_core::SurfaceId;
 
-use crate::{SurfaceDocument, SurfaceHostPreference, SurfaceRecord, SurfaceValidationCode};
+use crate::{
+    SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
+    SurfaceValidationCode,
+};
 
 use super::{
     EmptyWindowPolicy, LayoutContainerCleanupIntent, LayoutContainerInventory,
@@ -58,6 +61,10 @@ pub(super) fn apply_command(
                 surface_id: surface_id.clone(),
             })
         }
+        SurfaceMutationCommand::SetSurfacePresentation {
+            surface_id,
+            presentation,
+        } => set_presentation(document, surface_id, presentation),
         SurfaceMutationCommand::ActivateSurface {
             window_id,
             surface_id,
@@ -81,6 +88,32 @@ pub(super) fn apply_command(
             close_surface(document, surface_id, empty_policy)
         }
     }
+}
+
+/// Replaces one Surface's presentation.
+///
+/// Setting the same presentation twice is accepted rather than rejected. There
+/// is no `MoveTargetUnchanged` equivalent here because a no-op presentation
+/// carries no ambiguity for a caller to have got wrong -- unlike a move, which
+/// names a target window the caller believed was different.
+fn set_presentation(
+    document: &mut SurfaceDocument,
+    surface_id: &SurfaceId,
+    presentation: &SurfacePresentation,
+) -> Result<SurfaceMutationOutcome, OperationRejection> {
+    let surface = document.surface_mut(surface_id).ok_or_else(|| {
+        operation_rejection(
+            SurfaceMutationRejectionCode::UnknownSurface,
+            format!("unknown Surface {surface_id}"),
+        )
+    })?;
+    let previous_presentation = surface.presentation().clone();
+    surface.set_presentation(presentation.clone());
+    Ok(SurfaceMutationOutcome::SurfacePresentationSet {
+        surface_id: surface_id.clone(),
+        presentation: presentation.clone(),
+        previous_presentation,
+    })
 }
 
 fn require_fresh_ids(

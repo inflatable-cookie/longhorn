@@ -12,6 +12,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -27,6 +30,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -42,6 +48,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -73,6 +82,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -88,6 +100,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -103,6 +118,9 @@
             "id": "surface:new",
             "layout_container_id": "container:new",
             "label": "New",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -118,6 +136,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -149,6 +170,9 @@
             "id": "surface:copy",
             "layout_container_id": "container:duplicate",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -164,6 +188,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -179,6 +206,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -194,6 +224,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -225,6 +258,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -240,6 +276,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix room",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -255,6 +294,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -286,6 +328,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -301,6 +346,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -316,6 +364,80 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "focused_panel",
+              "panel_definition_id": "panel:plugin-manager"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12,
+      "document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -347,6 +469,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -362,6 +487,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -377,6 +505,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -408,6 +539,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -423,6 +557,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -438,6 +575,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -469,6 +609,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -484,6 +627,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -550,6 +696,18 @@
       }
     },
     {
+      "request_id": "request:focus",
+      "expected_revision": 11,
+      "command": {
+        "kind": "set_surface_presentation",
+        "surface_id": "surface:plugins",
+        "presentation": {
+          "kind": "focused_panel",
+          "panel_definition_id": "panel:plugin-manager"
+        }
+      }
+    },
+    {
       "request_id": "request:activate",
       "expected_revision": 11,
       "command": {
@@ -605,6 +763,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -620,6 +781,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -635,6 +799,9 @@
             "id": "surface:new",
             "layout_container_id": "container:new",
             "label": "New",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -650,6 +817,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -686,6 +856,9 @@
             "id": "surface:copy",
             "layout_container_id": "container:duplicate",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -701,6 +874,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -716,6 +892,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -731,6 +910,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -766,6 +948,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -781,6 +966,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix room",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -796,6 +984,91 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:tools",
+                "order": 2
+              }
+            ]
+          }
+        ],
+        "windows": [
+          {
+            "id": "window:main",
+            "active_surface_id": "surface:edit"
+          },
+          {
+            "id": "window:tools",
+            "active_surface_id": "surface:plugins"
+          }
+        ]
+      }
+    },
+    {
+      "request_id": "request:focus",
+      "previous_revision": 11,
+      "committed_revision": 12,
+      "outcome": {
+        "kind": "surface_presentation_set",
+        "surface_id": "surface:plugins",
+        "presentation": {
+          "kind": "focused_panel",
+          "panel_definition_id": "panel:plugin-manager"
+        },
+        "previous_presentation": {
+          "kind": "regional"
+        }
+      },
+      "authoritative_document": {
+        "revision": 12,
+        "surfaces": [
+          {
+            "id": "surface:edit",
+            "layout_container_id": "container:edit",
+            "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 1
+              },
+              {
+                "window_id": "window:tools",
+                "order": 0
+              }
+            ]
+          },
+          {
+            "id": "surface:mix",
+            "layout_container_id": "container:mix",
+            "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
+            "host_preferences": [
+              {
+                "window_id": "window:main",
+                "order": 0
+              },
+              {
+                "window_id": "window:tools",
+                "order": 1
+              }
+            ]
+          },
+          {
+            "id": "surface:plugins",
+            "layout_container_id": "container:plugins",
+            "label": null,
+            "presentation": {
+              "kind": "focused_panel",
+              "panel_definition_id": "panel:plugin-manager"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -833,6 +1106,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -848,6 +1124,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -863,6 +1142,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -902,6 +1184,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -917,6 +1202,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -932,6 +1220,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -970,6 +1261,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -985,6 +1279,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1000,6 +1297,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1038,6 +1338,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1053,6 +1356,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1091,6 +1397,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1106,6 +1415,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1121,6 +1433,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1153,6 +1468,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1168,6 +1486,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1183,6 +1504,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1215,6 +1539,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1230,6 +1557,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1245,6 +1575,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1277,6 +1610,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1292,6 +1628,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1307,6 +1646,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1339,6 +1681,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1354,6 +1699,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1369,6 +1717,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1401,6 +1752,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1416,6 +1770,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1431,6 +1788,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1463,6 +1823,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1478,6 +1841,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1493,6 +1859,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1525,6 +1894,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1540,6 +1912,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1555,6 +1930,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1587,6 +1965,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1602,6 +1983,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1617,6 +2001,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1649,6 +2036,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1664,6 +2054,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1679,6 +2072,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1711,6 +2107,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1726,6 +2125,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1741,6 +2143,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1773,6 +2178,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1788,6 +2196,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1803,6 +2214,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1835,6 +2249,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1850,6 +2267,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1865,6 +2285,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1897,6 +2320,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1912,6 +2338,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1927,6 +2356,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -1959,6 +2391,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1974,6 +2409,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -1989,6 +2427,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -2021,6 +2462,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -2036,6 +2480,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -2051,6 +2498,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -2083,6 +2533,9 @@
             "id": "surface:mix",
             "layout_container_id": "container:mix",
             "label": "Mix",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -2098,6 +2551,9 @@
             "id": "surface:edit",
             "layout_container_id": "container:edit",
             "label": "Edit",
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:main",
@@ -2113,6 +2569,9 @@
             "id": "surface:plugins",
             "layout_container_id": "container:plugins",
             "label": null,
+            "presentation": {
+              "kind": "regional"
+            },
             "host_preferences": [
               {
                 "window_id": "window:tools",
@@ -2152,6 +2611,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2167,6 +2629,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2182,6 +2647,9 @@
               "id": "surface:new",
               "layout_container_id": "container:new",
               "label": "New",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2197,6 +2665,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2236,6 +2707,9 @@
               "id": "surface:copy",
               "layout_container_id": "container:duplicate",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2251,6 +2725,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2266,6 +2743,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2281,6 +2761,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2319,6 +2802,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2334,6 +2820,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix room",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2349,6 +2838,94 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
+              "host_preferences": [
+                {
+                  "window_id": "window:tools",
+                  "order": 2
+                }
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "id": "window:main",
+              "active_surface_id": "surface:edit"
+            },
+            {
+              "id": "window:tools",
+              "active_surface_id": "surface:plugins"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "status": "committed",
+      "receipt": {
+        "request_id": "request:focus",
+        "previous_revision": 11,
+        "committed_revision": 12,
+        "outcome": {
+          "kind": "surface_presentation_set",
+          "surface_id": "surface:plugins",
+          "presentation": {
+            "kind": "focused_panel",
+            "panel_definition_id": "panel:plugin-manager"
+          },
+          "previous_presentation": {
+            "kind": "regional"
+          }
+        },
+        "authoritative_document": {
+          "revision": 12,
+          "surfaces": [
+            {
+              "id": "surface:edit",
+              "layout_container_id": "container:edit",
+              "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 1
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 0
+                }
+              ]
+            },
+            {
+              "id": "surface:mix",
+              "layout_container_id": "container:mix",
+              "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
+              "host_preferences": [
+                {
+                  "window_id": "window:main",
+                  "order": 0
+                },
+                {
+                  "window_id": "window:tools",
+                  "order": 1
+                }
+              ]
+            },
+            {
+              "id": "surface:plugins",
+              "layout_container_id": "container:plugins",
+              "label": null,
+              "presentation": {
+                "kind": "focused_panel",
+                "panel_definition_id": "panel:plugin-manager"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2389,6 +2966,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2404,6 +2984,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2419,6 +3002,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2461,6 +3047,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2476,6 +3065,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2491,6 +3083,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2532,6 +3127,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2547,6 +3145,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2562,6 +3163,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2603,6 +3207,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2618,6 +3225,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2657,6 +3267,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2672,6 +3285,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2687,6 +3303,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2722,6 +3341,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2737,6 +3359,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2752,6 +3377,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2787,6 +3415,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2802,6 +3433,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2817,6 +3451,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2852,6 +3489,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2867,6 +3507,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2882,6 +3525,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2917,6 +3563,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2932,6 +3581,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2947,6 +3599,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -2982,6 +3637,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -2997,6 +3655,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3012,6 +3673,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3047,6 +3711,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3062,6 +3729,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3077,6 +3747,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3112,6 +3785,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3127,6 +3803,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3142,6 +3821,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3177,6 +3859,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3192,6 +3877,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3207,6 +3895,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3242,6 +3933,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3257,6 +3951,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3272,6 +3969,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3307,6 +4007,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3322,6 +4025,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3337,6 +4043,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3372,6 +4081,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3387,6 +4099,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3402,6 +4117,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3437,6 +4155,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3452,6 +4173,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3467,6 +4191,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3502,6 +4229,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3517,6 +4247,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3532,6 +4265,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3567,6 +4303,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3582,6 +4321,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3597,6 +4339,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3632,6 +4377,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3647,6 +4395,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3662,6 +4413,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3697,6 +4451,9 @@
               "id": "surface:mix",
               "layout_container_id": "container:mix",
               "label": "Mix",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3712,6 +4469,9 @@
               "id": "surface:edit",
               "layout_container_id": "container:edit",
               "label": "Edit",
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:main",
@@ -3727,6 +4487,9 @@
               "id": "surface:plugins",
               "layout_container_id": "container:plugins",
               "label": null,
+              "presentation": {
+                "kind": "regional"
+              },
               "host_preferences": [
                 {
                   "window_id": "window:tools",
@@ -3750,6 +4513,11 @@
     }
   ],
   "events": [
+    {
+      "protocol_version": 1,
+      "epoch": 7,
+      "revision": 12
+    },
     {
       "protocol_version": 1,
       "epoch": 7,

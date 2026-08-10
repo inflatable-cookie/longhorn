@@ -1,11 +1,13 @@
 use std::error::Error;
 
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
+use longhorn_core::{
+    LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId,
+};
 use longhorn_surfaces::{
     EmptyWindowPolicy, LayoutContainerInventory, ParticipatingWindow, SURFACE_PROTOCOL_VERSION,
     SurfaceChangedEvent, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
     SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationReceipt,
-    SurfaceMutationRejection, SurfaceMutationRequest, SurfaceMutationResponse,
+    SurfaceMutationRejection, SurfaceMutationRequest, SurfaceMutationResponse, SurfacePresentation,
     SurfaceProtocolEpoch, SurfaceRecord, SurfaceSnapshot,
 };
 use serde::Serialize;
@@ -159,6 +161,17 @@ fn requests(revision: SurfaceRevision) -> Vec<SurfaceMutationRequest> {
             SurfaceMutationCommand::RenameSurface {
                 surface_id: surface_id("surface:mix"),
                 label: Some("Mix room".to_owned()),
+            },
+        ),
+        request(
+            "request:focus",
+            revision,
+            SurfaceMutationCommand::SetSurfacePresentation {
+                surface_id: surface_id("surface:plugins"),
+                presentation: SurfacePresentation::FocusedPanel {
+                    panel_definition_id: PanelDefinitionId::new("panel:plugin-manager")
+                        .expect("panel definition id"),
+                },
             },
         ),
         request(

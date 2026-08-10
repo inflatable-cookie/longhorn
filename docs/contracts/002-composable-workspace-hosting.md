@@ -41,11 +41,32 @@ One Surface document carries:
 - bounded Surface records
 - one distinct `LayoutContainerId` binding per Surface
 - an optional mutable display label
+- a presentation: regional, or one focused `PanelDefinitionId`
 - ordered host-window preferences per Surface
 - ordered hosted Surfaces and active Surface per participating window
 
 The document contains no display geometry, native window handle, panel body,
-product attachment, Poodle state, or evaluated product condition.
+product attachment, Poodle state, or evaluated product condition. A focused
+presentation names a panel *definition id* and nothing else — an identifier,
+not a body, and not a placement.
+
+### Presentation
+
+A regional Surface renders through its bound container's region tree. A focused
+Surface renders one panel full-surface, with no regions and no panel tabs.
+Presentation defaults to regional, so a Surface document written before this
+clause loads unchanged and no migration is required.
+
+**Longhorn records the focused panel; it does not police the container.** The
+Surface domain has no view of container contents — its only evidence about
+layout is whether a container exists. Whether a focused Surface's container
+holds that panel and only that panel is therefore a consumer obligation, and so
+is refusing a panel dropped onto a focused Surface. Both need container and
+Surface authority in one place, which no component currently holds.
+
+This is a stated ceiling rather than a silence: a consumer can put a focused
+Surface's container into a state the Surface record no longer describes, and
+Longhorn will not reject it.
 
 Every Surface resolves to at most one available window. Every active Surface
 must be a resolved member of that window. Duplicate Surface ownership,
@@ -86,6 +107,7 @@ cover:
 - create a Surface from caller-supplied Surface and layout-container ids
 - duplicate generic Surface metadata using caller-supplied fresh ids
 - rename a Surface
+- set a Surface's presentation to regional or to one focused panel
 - activate a hosted Surface
 - reorder one window's complete hosted-Surface list
 - move a Surface to another declared window host

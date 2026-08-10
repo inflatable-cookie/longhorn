@@ -1,7 +1,7 @@
 use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
 use serde::{Deserialize, Serialize};
 
-use crate::{SurfaceDocument, SurfaceHostPreference};
+use crate::{SurfaceDocument, SurfaceHostPreference, SurfacePresentation};
 
 use super::{LayoutContainerCleanupIntent, SurfaceMutationRejection};
 
@@ -82,6 +82,13 @@ pub enum SurfaceMutationCommand {
         /// New optional generic label.
         label: Option<String>,
     },
+    /// Replaces how one Surface presents its bound layout container.
+    SetSurfacePresentation {
+        /// Existing Surface identity.
+        surface_id: SurfaceId,
+        /// Regional layout, or one panel rendered full-surface.
+        presentation: SurfacePresentation,
+    },
     /// Selects one declared member in a participating window.
     ActivateSurface {
         /// Participating window.
@@ -134,6 +141,15 @@ pub enum SurfaceMutationOutcome {
     SurfaceRenamed {
         /// Renamed Surface identity.
         surface_id: SurfaceId,
+    },
+    /// One Surface changed how it presents its container.
+    SurfacePresentationSet {
+        /// Affected Surface identity.
+        surface_id: SurfaceId,
+        /// Committed presentation.
+        presentation: SurfacePresentation,
+        /// Presentation replaced by this command.
+        previous_presentation: SurfacePresentation,
     },
     /// One window selected a declared Surface.
     SurfaceActivated {

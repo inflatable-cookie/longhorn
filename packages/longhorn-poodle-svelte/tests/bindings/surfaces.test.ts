@@ -60,6 +60,7 @@ describe("SurfaceState", () => {
           id: "surface:optimistic",
           layout_container_id: "container:optimistic",
           label: null,
+          presentation: { kind: "regional" },
           host_preferences: [],
         },
       ],

@@ -2,8 +2,8 @@
 // Rust serde types are the wire authority.
 
 export const SURFACE_PROTOCOL_VERSION = 1 as const;
-export const SURFACE_MUTATION_COMMAND_KINDS = ["create_surface","duplicate_surface","rename_surface","activate_surface","reorder_window","move_surface","close_surface"] as const;
-export const SURFACE_MUTATION_OUTCOME_KINDS = ["surface_created","surface_duplicated","surface_renamed","surface_activated","window_reordered","surface_moved","surface_closed"] as const;
+export const SURFACE_MUTATION_COMMAND_KINDS = ["create_surface","duplicate_surface","rename_surface","set_surface_presentation","activate_surface","reorder_window","move_surface","close_surface"] as const;
+export const SURFACE_MUTATION_OUTCOME_KINDS = ["surface_created","surface_duplicated","surface_renamed","surface_presentation_set","surface_activated","window_reordered","surface_moved","surface_closed"] as const;
 export const SURFACE_MUTATION_REJECTION_CODES = ["invalid_current_document","stale_revision","revision_overflow","unknown_surface","duplicate_surface","unknown_layout_container","layout_container_already_bound","unknown_window","duplicate_host_preference","undeclared_target_window","move_target_unchanged","invalid_insertion_index","incomplete_reorder","duplicate_reorder_member","foreign_reorder_member","empty_window_not_allowed","invalid_candidate"] as const;
 
 export type LayoutContainerId = string;
@@ -18,9 +18,17 @@ export type SurfaceRevision = number;
 
 export type SurfaceProtocolEpoch = number;
 
+export type PanelDefinitionId = string;
+
 export type SurfaceHostPreference = { window_id: WindowId, order: number, };
 
-export type SurfaceRecord = { id: SurfaceId, layout_container_id: LayoutContainerId, label: string | null, host_preferences: Array<SurfaceHostPreference>, };
+export type SurfacePresentation = { "kind": "regional" } | { "kind": "focused_panel", 
+/**
+ * The panel rendered for the whole Surface.
+ */
+panel_definition_id: PanelDefinitionId, };
+
+export type SurfaceRecord = { id: SurfaceId, layout_container_id: LayoutContainerId, label: string | null, presentation: SurfacePresentation, host_preferences: Array<SurfaceHostPreference>, };
 
 export type ParticipatingWindow = { id: WindowId, active_surface_id: SurfaceId | null, };
 
@@ -66,7 +74,15 @@ surface_id: SurfaceId,
 /**
  * New optional generic label.
  */
-label: string | null, } | { "kind": "activate_surface", 
+label: string | null, } | { "kind": "set_surface_presentation", 
+/**
+ * Existing Surface identity.
+ */
+surface_id: SurfaceId, 
+/**
+ * Regional layout, or one panel rendered full-surface.
+ */
+presentation: SurfacePresentation, } | { "kind": "activate_surface", 
 /**
  * Participating window.
  */
@@ -118,7 +134,19 @@ surface_id: SurfaceId, } | { "kind": "surface_renamed",
 /**
  * Renamed Surface identity.
  */
-surface_id: SurfaceId, } | { "kind": "surface_activated", 
+surface_id: SurfaceId, } | { "kind": "surface_presentation_set", 
+/**
+ * Affected Surface identity.
+ */
+surface_id: SurfaceId, 
+/**
+ * Committed presentation.
+ */
+presentation: SurfacePresentation, 
+/**
+ * Presentation replaced by this command.
+ */
+previous_presentation: SurfacePresentation, } | { "kind": "surface_activated", 
 /**
  * Participating window.
  */

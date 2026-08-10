@@ -1,12 +1,14 @@
 use std::error::Error;
 
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
+use longhorn_core::{
+    LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId,
+};
 use longhorn_surfaces::{
     EmptyWindowPolicy, LayoutContainerCleanupIntent, ParticipatingWindow, SURFACE_PROTOCOL_VERSION,
     SurfaceChangedEvent, SurfaceDocument, SurfaceHostPreference, SurfaceMutationCommand,
     SurfaceMutationOutcome, SurfaceMutationReceipt, SurfaceMutationRejection,
     SurfaceMutationRejectionCode, SurfaceMutationRequest, SurfaceMutationResponse,
-    SurfaceProtocolEpoch, SurfaceRecord, SurfaceSnapshot,
+    SurfacePresentation, SurfaceProtocolEpoch, SurfaceRecord, SurfaceSnapshot,
 };
 use ts_rs::TS;
 
@@ -63,7 +65,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         WindowId::decl(),
         SurfaceRevision::decl(),
         SurfaceProtocolEpoch::decl(),
+        PanelDefinitionId::decl(),
         SurfaceHostPreference::decl(),
+        SurfacePresentation::decl(),
         SurfaceRecord::decl(),
         ParticipatingWindow::decl(),
         SurfaceDocument::decl(),

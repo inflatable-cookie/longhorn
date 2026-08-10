@@ -95,6 +95,7 @@ export const surfaceSnapshot: SurfaceSnapshot = {
         id: "surface:arrangement",
         layout_container_id: "container:arrangement",
         label: "Arrangement",
+        presentation: { kind: "regional" },
         host_preferences: [
           {
             window_id: "window:studio",

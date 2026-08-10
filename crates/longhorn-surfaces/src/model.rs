@@ -1,4 +1,4 @@
-use longhorn_core::{LayoutContainerId, SurfaceId, SurfaceRevision, WindowId};
+use longhorn_core::{LayoutContainerId, PanelDefinitionId, SurfaceId, SurfaceRevision, WindowId};
 use serde::{Deserialize, Serialize};
 
 /// One candidate host and its declared tab order for a Surface.
@@ -34,6 +34,50 @@ impl SurfaceHostPreference {
     }
 }
 
+/// How one Surface presents its bound layout container.
+///
+/// `Regional` is the ordinary case: the container's own region tree decides
+/// what renders. `FocusedPanel` names one panel to render full-surface, with no
+/// regional layout and no panel tabs -- a dedicated console or manager surface.
+///
+/// The surfaces domain records which panel is focused. It does not verify that
+/// the bound container holds that panel and only that panel, because it has no
+/// view of container contents; see Card 177 for why that invariant is a
+/// consumer obligation rather than a rejection here.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "kind")]
+pub enum SurfacePresentation {
+    /// The bound container's region tree decides what renders.
+    #[default]
+    Regional,
+    /// One panel renders full-surface without regions or tabs.
+    FocusedPanel {
+        /// The panel rendered for the whole Surface.
+        panel_definition_id: PanelDefinitionId,
+    },
+}
+
+impl SurfacePresentation {
+    /// Returns the focused panel, when this Surface presents exactly one.
+    #[must_use]
+    pub const fn focused_panel(&self) -> Option<&PanelDefinitionId> {
+        match self {
+            Self::Regional => None,
+            Self::FocusedPanel {
+                panel_definition_id,
+            } => Some(panel_definition_id),
+        }
+    }
+
+    /// Returns whether the bound container's regions decide what renders.
+    #[must_use]
+    pub const fn is_regional(&self) -> bool {
+        matches!(self, Self::Regional)
+    }
+}
+
 /// Durable generic metadata and hosting policy for one Surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -42,6 +86,11 @@ pub struct SurfaceRecord {
     id: SurfaceId,
     layout_container_id: LayoutContainerId,
     label: Option<String>,
+    // Defaulted so a document written before Card 177 loads unchanged. The
+    // stored schema version belongs to the consumer's migration hook, so an
+    // additive field with a default is what keeps NoSurfaceMigration correct.
+    #[serde(default)]
+    presentation: SurfacePresentation,
     host_preferences: Vec<SurfaceHostPreference>,
 }
 
@@ -58,6 +107,25 @@ impl SurfaceRecord {
             id,
             layout_container_id,
             label,
+            presentation: SurfacePresentation::Regional,
+            host_preferences: host_preferences.into_iter().collect(),
+        }
+    }
+
+    /// Constructs one Surface with an explicit presentation.
+    #[must_use]
+    pub fn with_presentation(
+        id: SurfaceId,
+        layout_container_id: LayoutContainerId,
+        label: Option<String>,
+        presentation: SurfacePresentation,
+        host_preferences: impl IntoIterator<Item = SurfaceHostPreference>,
+    ) -> Self {
+        Self {
+            id,
+            layout_container_id,
+            label,
+            presentation,
             host_preferences: host_preferences.into_iter().collect(),
         }
     }
@@ -84,6 +152,16 @@ impl SurfaceRecord {
     #[must_use]
     pub fn host_preferences(&self) -> &[SurfaceHostPreference] {
         self.host_preferences.as_slice()
+    }
+
+    /// Returns how this Surface presents its bound container.
+    #[must_use]
+    pub const fn presentation(&self) -> &SurfacePresentation {
+        &self.presentation
+    }
+
+    pub(crate) fn set_presentation(&mut self, presentation: SurfacePresentation) {
+        self.presentation = presentation;
     }
 
     pub(crate) fn set_label(&mut self, label: Option<String>) {
