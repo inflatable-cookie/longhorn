@@ -137,6 +137,45 @@ merge and the `LayoutContainerId` retirement are one atomic change: the moment
 that way until the sweep completes. There is no half-landed state worth
 committing, so this needs one uninterrupted pass rather than staged commits.
 
+## Progress
+
+**Step 1 landed 2026-08-10** (`dfa72456`). `longhorn-layout` is absorbed:
+its seven modules live under `crates/longhorn-surfaces/src/layout/`, the crate
+is gone from the workspace, and every dependent changed only the crate name in
+a `use`. Workspace compiles, lint clean, 25 test suites green,
+`check:bindings` and `check:ts` pass.
+
+This contradicts the claim above that there is no compiling intermediate. That
+is true of the document merge and false of the crate move — relocating modules
+while both documents still exist is mechanical and safe. The claim is left in
+place because it is still true of what remains.
+
+**Step 2 attempted and set aside.** The document merge reached a state where
+`longhorn-surfaces` itself compiles clean with zero warnings — `SurfaceRecord`
+carrying `schema_id`, `regions` and `sizing_slots`, `SurfaceDocument` carrying
+`panel_instances`, `LayoutContainer` and `LayoutDocument` deleted, layout
+mutation retargeted onto `SurfaceId` and `SurfaceRevision`, `CreateSurface`
+materialising regions and sizing slots from the registry, and
+`LayoutContainerInventory` replaced by `LayoutDefinitionRegistry` — with **86
+errors remaining downstream** across the config, transfer and bindings crates
+and their tests.
+
+The work is saved at `~/Dev/docs/patches/179-step2-document-merge.patch`
+(1,861 lines) and the tree was restored rather than left broken. Apply it with
+`git apply` to resume from that point.
+
+Two things learned in the attempt, both worth having:
+
+- A blanket search-and-replace over the moved layout modules was the wrong
+  instrument a second time. A regex intended to delete two structs from
+  `model.rs` matched across the three state primitives between them and left a
+  six-line file. Restored from git and redone with explicit line boundaries.
+  The card's own warning about blanket substitution applies inside the crate,
+  not just to prose.
+- `DuplicateLayoutContainerBinding` disappears as a validation code. One
+  container per Surface was an invariant worth checking; a schema is shared by
+  design, so there is nothing left to reject.
+
 ## Migration
 
 Unlike Card 177 this is not a defaulted field, so it needs a real step.
