@@ -3,10 +3,9 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 import {
-  POODLE_ARTIFACT_SET,
+  POODLE_RELEASE,
   packAndCheckRustArtifacts,
   packTypescriptArtifacts,
-  readPoodleEvidence,
 } from "./command-system-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./command-system-artifact-proof/consumers.ts";
 import { run } from "./command-system-artifact-proof/shared.ts";
@@ -24,7 +23,7 @@ try {
     ["cargo", "run", "-p", "longhorn-bindings", "--", "commands", "check"],
     repoRoot,
   );
-  const poodle = await readPoodleEvidence();
+  const poodle = POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
   const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot);
   const consumers = await verifyConsumers({
@@ -38,7 +37,7 @@ try {
     JSON.stringify(
       {
         schema: "longhorn.command-system-artifact-proof.v1",
-        poodleArtifactSet: POODLE_ARTIFACT_SET,
+        poodleVersion: POODLE_RELEASE.version,
         rustArtifacts: rust.identities,
         rustPackaging: rust.packaging,
         rustGraphs: rust.graphs,

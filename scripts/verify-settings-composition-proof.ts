@@ -3,10 +3,9 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 import {
-  POODLE_ARTIFACT_SET,
+  POODLE_RELEASE,
   packAndCheckRustArtifacts,
   packTypescriptArtifacts,
-  readPoodleEvidence,
 } from "./settings-composition-proof/artifacts.ts";
 import { verifyConsumers } from "./settings-composition-proof/consumers.ts";
 
@@ -19,7 +18,7 @@ const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 
 try {
-  const poodle = await readPoodleEvidence();
+  const poodle = POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
   const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot);
   const consumers = await verifyConsumers({
@@ -34,7 +33,7 @@ try {
     JSON.stringify(
       {
         schema: "longhorn.settings-composition-artifact-proof.v1",
-        poodleArtifactSet: POODLE_ARTIFACT_SET,
+        poodleVersion: POODLE_RELEASE.version,
         rustArtifacts: rust,
         typescriptArtifacts: typescript.identities,
         consumers,

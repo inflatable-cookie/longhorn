@@ -1,18 +1,22 @@
-import { poodleEvidence } from "./poodle-evidence.ts";
+import { poodleRelease, poodleSveltePeerRange } from "./poodle-release.ts";
 
-// Card 038's claim: the Poodle preview artifacts Longhorn mounts are the exact
-// tarballs their evidence records, and their Svelte compatibility has not
-// moved. Which set that is comes from the root manifest pin — see
-// ./poodle-evidence.ts for why it is no longer a literal here.
-const evidence = poodleEvidence();
+// Card 038's claim: the Poodle packages Longhorn mounts are the exact artifacts
+// the lockfile records, and their Svelte compatibility has not moved.
+//
+// Both halves now come from the published release rather than from a sibling
+// checkout's evidence file. `poodleRelease()` checks each package's sha512
+// against bun.lock and against the copy installed in node_modules; the peer
+// range is read off the installed adapter, so this asserts what the artifact
+// declares rather than what a file alongside it claimed.
+const release = poodleRelease();
+const sveltePeerRange = poodleSveltePeerRange();
 
-if (
-  evidence.svelteFloor !== "5.38.6" ||
-  evidence.sveltePeerRange !== ">=5.38.6 <6"
-) {
-  throw new Error("Poodle Svelte compatibility evidence changed");
+if (sveltePeerRange !== ">=5.38.6 <6") {
+  throw new Error(
+    `Poodle Svelte compatibility moved: the published adapter declares ${sveltePeerRange}`,
+  );
 }
 
 console.log(
-  `verified Poodle artifact set ${evidence.artifactSetId} (${evidence.artifacts.length} tarballs)`,
+  `verified Poodle ${release.version} (${release.packages.length} published packages)`,
 );

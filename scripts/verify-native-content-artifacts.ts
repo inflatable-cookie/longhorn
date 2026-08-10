@@ -1,4 +1,4 @@
-import { poodleArtifactSet, poodleEvidence } from "./poodle-evidence.ts";
+import { poodleRelease } from "./poodle-release.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -14,7 +14,9 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-const POODLE_ARTIFACT_SET = poodleArtifactSet();
+// Poodle installs from the registry; poodleRelease() checks each published
+// package's sha512 against bun.lock and against the installed copy.
+const POODLE_RELEASE = poodleRelease();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
   "bdfed54fc5f9c70d82485c5b572e3b2be3663c7bc37c6f565a8d4fc48196557e";
 // Rebaselined 2026-08-10 for Card 160. The fixture gained a `hostDestroy`
@@ -45,11 +47,6 @@ interface ArtifactIdentity {
   readonly sha256: string;
 }
 
-interface PoodleEvidenceFile {
-  readonly artifactSetId: string;
-  readonly artifacts: readonly ArtifactIdentity[];
-}
-
 interface PackageManifest {
   readonly name: string;
   dependencies: Record<string, string>;
@@ -63,12 +60,11 @@ try {
     repoRoot,
   );
   const protocolIsolation = await verifyProtocolIsolation();
-  const poodle = await readPoodleEvidence();
   const typescript = await packTypescriptArtifacts();
   const rust = await packAndRunRustArtifacts();
   const consumers = await Promise.all(
     (["nucleus", "soundcheck", "jetstream"] as const).map((shape) =>
-      verifyConsumer(shape, typescript.paths, poodle, rust.traces[shape]),
+      verifyConsumer(shape, typescript.paths, rust.traces[shape]),
     ),
   );
   const packagedMechanisms = await verifyPackagedMechanisms();
@@ -168,32 +164,6 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
-}
-
-async function readPoodleEvidence() {
-  const evidencePath = resolve(
-    poodleEvidence().evidencePath,
-  );
-  const evidence = JSON.parse(
-    await readFile(evidencePath, "utf8"),
-  ) as PoodleEvidenceFile;
-  if (evidence.artifactSetId !== POODLE_ARTIFACT_SET) {
-    throw new Error(`Poodle artifact set mismatch: ${evidence.artifactSetId}`);
-  }
-  const packDirectory = join(resolve(evidencePath, ".."), "packs");
-  const membership = [];
-  for (const artifact of evidence.artifacts) {
-    const sha256 = await digest(join(packDirectory, artifact.filename));
-    if (sha256 !== artifact.sha256) {
-      throw new Error(`${artifact.name} Poodle artifact digest mismatch`);
-    }
-    membership.push(`${artifact.name}:${sha256}`);
-  }
-  const setId = Bun.CryptoHasher.hash("sha256", membership.join("\n"), "hex");
-  if (setId !== POODLE_ARTIFACT_SET) {
-    throw new Error(`Poodle artifact membership mismatch: ${setId}`);
-  }
-  return { artifacts: evidence.artifacts, packDirectory };
 }
 
 async function verifyProtocolIsolation() {
@@ -450,10 +420,6 @@ async function packAndRunRustArtifacts() {
 async function verifyConsumer(
   shape: Shape,
   artifacts: ReadonlyMap<string, string>,
-  poodle: {
-    readonly artifacts: readonly ArtifactIdentity[];
-    readonly packDirectory: string;
-  },
   native: Record<string, unknown>,
 ) {
   const source = join(proofRoot, "consumers", shape);
@@ -474,15 +440,11 @@ async function verifyConsumer(
     await readFile(join(source, "package.json"), "utf8"),
   ) as PackageManifest;
   manifest.dependencies = rewriteDependencies(manifest.dependencies, artifacts);
-  const allArtifacts = new Map(artifacts);
-  for (const artifact of poodle.artifacts) {
-    allArtifacts.set(
-      artifact.name,
-      resolve(poodle.packDirectory, artifact.filename),
-    );
-  }
+  // Only Longhorn's own packs are overridden onto paths. Poodle is published,
+  // so the staged consumer resolves it from the registry as a real consumer
+  // does -- which is what the pack indirection stood in for before it shipped.
   manifest.overrides = Object.fromEntries(
-    [...allArtifacts].map(([name, path]) => [name, fileDependency(path)]),
+    [...artifacts].map(([name, path]) => [name, fileDependency(path)]),
   );
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
@@ -535,7 +497,7 @@ async function verifyConsumer(
   }
 
   if (usesSvelte) {
-    for (const artifact of poodle.artifacts) {
+    for (const artifact of POODLE_RELEASE.packages) {
       await assertArtifactInstall(stage, artifact.name);
     }
     const svelte = await installedPackage(stage, "svelte");
@@ -592,7 +554,7 @@ async function verifyConsumer(
     longhornPackages: expectedLonghorn,
     imports: expectedImports,
     permissions: expectedPermissions,
-    poodleArtifactSet: usesSvelte ? POODLE_ARTIFACT_SET : null,
+    poodleVersion: usesSvelte ? POODLE_RELEASE.version : null,
     svelteCompiled: usesSvelte,
     nativeRendererParity: true,
     cleanInstall: true,

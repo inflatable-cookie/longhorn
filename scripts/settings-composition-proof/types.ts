@@ -1,15 +1,12 @@
-export interface PoodleEvidenceFile {
-  readonly artifactSetId: string;
-  readonly artifacts: readonly {
-    readonly name: string;
-    readonly filename: string;
-    readonly sha256: string;
-  }[];
+export interface PoodlePackage {
+  readonly name: string;
+  readonly version: string;
+  readonly integrity: string;
 }
 
-export interface PoodleEvidence {
-  readonly artifacts: PoodleEvidenceFile["artifacts"];
-  readonly packDirectory: string;
+export interface PoodleRelease {
+  readonly version: string;
+  readonly packages: readonly PoodlePackage[];
 }
 
 export interface ArtifactIdentity {
@@ -41,5 +38,5 @@ export interface ProofContext {
   readonly temporaryRoot: string;
   readonly artifactRoot: string;
   readonly artifacts: ReadonlyMap<string, string>;
-  readonly poodle: PoodleEvidence;
+  readonly poodle: PoodleRelease;
 }

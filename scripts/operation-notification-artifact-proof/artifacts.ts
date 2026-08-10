@@ -1,11 +1,13 @@
-import { poodleArtifactSet, poodleEvidence } from "../poodle-evidence.ts";
+import { poodleRelease } from "../poodle-release.ts";
 import { basename, join, resolve } from "node:path";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
-import type { ArtifactIdentity, PoodleEvidence, Shape } from "./types.ts";
+import type { ArtifactIdentity, Shape } from "./types.ts";
 
-export const POODLE_ARTIFACT_SET = poodleArtifactSet();
+// Poodle installs from the registry; poodleRelease() checks each published
+// package's sha512 against bun.lock and against the installed copy.
+export const POODLE_RELEASE = poodleRelease();
 
 const typescriptPackages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
 
@@ -17,22 +19,6 @@ const rustCrates = [
   "longhorn-tauri-operation",
   "longhorn-tauri-notifications",
 ] as const;
-
-export async function readPoodleEvidence(): Promise<PoodleEvidence> {
-  const evidencePath = resolve(poodleEvidence().evidencePath,);
-  const evidence = JSON.parse(await readFile(evidencePath, "utf8")) as { artifactSetId: string; artifacts: readonly ArtifactIdentity[] };
-  if (evidence.artifactSetId !== POODLE_ARTIFACT_SET) throw new Error(`Poodle artifact set mismatch: ${evidence.artifactSetId}`);
-  const packDirectory = join(resolve(evidencePath, ".."), "packs");
-  const membership = [];
-  for (const artifact of evidence.artifacts) {
-    const sha256 = await digest(join(packDirectory, artifact.filename));
-    if (sha256 !== artifact.sha256) throw new Error(`${artifact.name} Poodle artifact digest mismatch`);
-    membership.push(`${artifact.name}:${sha256}`);
-  }
-  const setId = Bun.CryptoHasher.hash("sha256", membership.join("\n"), "hex");
-  if (setId !== POODLE_ARTIFACT_SET) throw new Error(`Poodle artifact membership mismatch: ${setId}`);
-  return { artifacts: evidence.artifacts, packDirectory };
-}
 
 export async function packTypescriptArtifacts(repoRoot: string, artifactRoot: string) {
   const paths = new Map<string, string>();

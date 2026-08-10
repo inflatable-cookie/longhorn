@@ -1,4 +1,4 @@
-import { poodleArtifactSet, poodleEvidence } from "../poodle-evidence.ts";
+import { poodleRelease } from "../poodle-release.ts";
 import { basename, join, resolve } from "node:path";
 import {
   mkdir,
@@ -7,17 +7,12 @@ import {
 } from "node:fs/promises";
 
 import { digest, run } from "./shared.ts";
-import type {
-  ArtifactIdentity,
-  PoodleEvidence,
-  PoodleEvidenceFile,
-} from "./types.ts";
+import type { ArtifactIdentity } from "./types.ts";
 
-export const POODLE_ARTIFACT_SET = poodleArtifactSet();
-
-const poodleEvidencePath = resolve(
-  poodleEvidence().evidencePath,
-);
+// Poodle installs from the registry, so there is no evidence file to read and
+// no pack to digest. poodleRelease() checks each published package's sha512
+// against bun.lock and against the installed copy.
+export const POODLE_RELEASE = poodleRelease();
 
 const rustCrates = [
   "longhorn-core",
@@ -32,34 +27,6 @@ const typescriptPackages = [
   ["@inflatable-cookie/longhorn", "longhorn"],
   ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
 ] as const;
-
-export async function readPoodleEvidence(): Promise<PoodleEvidence> {
-  const raw = JSON.parse(
-    await readFile(poodleEvidencePath, "utf8"),
-  ) as PoodleEvidenceFile;
-  if (raw.artifactSetId !== POODLE_ARTIFACT_SET) {
-    throw new Error(`Poodle artifact set mismatch: ${raw.artifactSetId}`);
-  }
-  const packDirectory = join(resolve(poodleEvidencePath, ".."), "packs");
-  const membership = [];
-  for (const artifact of raw.artifacts) {
-    const path = join(packDirectory, artifact.filename);
-    const sha256 = await digest(path);
-    if (sha256 !== artifact.sha256) {
-      throw new Error(`${artifact.name} Poodle artifact digest mismatch`);
-    }
-    membership.push(`${artifact.name}:${sha256}`);
-  }
-  const setId = Bun.CryptoHasher.hash(
-    "sha256",
-    membership.join("\n"),
-    "hex",
-  );
-  if (setId !== POODLE_ARTIFACT_SET) {
-    throw new Error(`Poodle artifact membership mismatch: ${setId}`);
-  }
-  return { artifacts: raw.artifacts, packDirectory };
-}
 
 export async function packTypescriptArtifacts(
   repoRoot: string,

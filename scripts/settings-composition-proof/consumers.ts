@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 
 import { fileDependency, run, testCount } from "./shared.ts";
-import { POODLE_ARTIFACT_SET } from "./artifacts.ts";
+import { POODLE_RELEASE } from "./artifacts.ts";
 import type {
   PackageManifest,
   ProofContext,
@@ -149,15 +149,12 @@ async function verifyConsumer(
     manifest.dependencies,
     context.artifacts,
   );
-  const allArtifacts = new Map(context.artifacts);
-  for (const artifact of context.poodle.artifacts) {
-    allArtifacts.set(
-      artifact.name,
-      resolve(context.poodle.packDirectory, artifact.filename),
-    );
-  }
+  // Only Longhorn's own packs are overridden onto paths. Poodle is a published
+  // dependency, so the staged consumer resolves it from the registry exactly as
+  // a real consumer does -- which is what the pack indirection was standing in
+  // for before Poodle shipped.
   manifest.overrides = Object.fromEntries(
-    [...allArtifacts].map(([name, path]) => [name, fileDependency(path)]),
+    [...context.artifacts].map(([name, path]) => [name, fileDependency(path)]),
   );
   await writeFile(
     join(stage, "package.json"),
@@ -175,8 +172,8 @@ async function verifyConsumer(
   for (const name of policy.longhorn) {
     resolved.push(await assertArtifactInstall(stage, name));
   }
-  for (const artifact of context.poodle.artifacts) {
-    await assertArtifactInstall(stage, artifact.name);
+  for (const pkg of context.poodle.packages) {
+    await assertArtifactInstall(stage, pkg.name);
   }
   // Card 164 collapsed the domains into one package, so "this consumer does
   // not install layout" is no longer expressible or true — layout ships in
@@ -211,7 +208,7 @@ async function verifyConsumer(
     forbiddenImportsAbsent: policy.forbiddenImports,
     permissions: policy.permissions,
     artifactResolution: resolved,
-    poodleArtifactSet: POODLE_ARTIFACT_SET,
+    poodleVersion: POODLE_RELEASE.version,
     svelte: svelte.manifest.version,
     mountedTests: testCount(testOutput),
     cleanInstall: true,

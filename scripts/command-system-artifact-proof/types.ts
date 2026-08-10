@@ -25,7 +25,7 @@ export interface ProofContext {
   readonly proofRoot: string;
   readonly temporaryRoot: string;
   readonly artifacts: ReadonlyMap<string, string>;
-  readonly poodle: PoodleEvidence;
+  readonly poodle: PoodleRelease;
 }
 
 export type ShapeName = "jetstream" | "loophole";

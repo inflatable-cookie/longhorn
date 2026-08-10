@@ -1,5 +1,5 @@
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
-import { poodleEvidence } from "./poodle-evidence.ts";
+import { poodleRelease } from "./poodle-release.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -17,10 +17,10 @@ import { basename, join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/app-shell-proof");
-const expectedPoodleSet = poodleEvidence().artifactSetId;
-const poodleEvidencePath = resolve(
-  process.env.POODLE_CARD_038_EVIDENCE ?? poodleEvidence().evidencePath,
-);
+// Poodle is installed from the registry now, so there is no evidence file to
+// locate and no pack to digest here. poodleRelease() checks each published
+// package's sha512 against bun.lock and against the installed copy.
+const poodle = poodleRelease();
 
 const longhornPackages = [
   ["@inflatable-cookie/longhorn", "longhorn"],
@@ -50,7 +50,6 @@ const artifactRoot = join(temporaryRoot, "artifacts");
 await mkdir(artifactRoot);
 
 try {
-  const poodleEvidence = await readPoodleEvidence();
   const artifactPaths = new Map<string, string>();
   const artifactIdentities: ArtifactIdentity[] = [];
 
@@ -71,13 +70,6 @@ try {
     );
     artifactPaths.set(name, path);
     artifactIdentities.push(await inspectArtifact(name, path));
-  }
-
-  for (const artifact of poodleEvidence.artifacts) {
-    artifactPaths.set(
-      artifact.name,
-      resolve(poodleEvidence.packDirectory, artifact.filename),
-    );
   }
 
   const shapeReports = [];
@@ -121,7 +113,7 @@ try {
       resolved.push(await assertArtifactInstall(stage, name, repoRoot));
     }
     const poodleResolved = [];
-    for (const artifact of poodleEvidence.artifacts) {
+    for (const artifact of poodle.packages) {
       poodleResolved.push(
         await assertArtifactInstall(stage, artifact.name, repoRoot),
       );
@@ -160,7 +152,7 @@ try {
       shape,
       longhornPackages: policy.longhorn,
       forbiddenPackagesAbsent: policy.forbidden,
-      poodleArtifactSet: expectedPoodleSet,
+      poodleVersion: poodle.version,
       svelte: svelte.manifest.version,
       regions: policy.regions,
       capabilityPermissions: capability.permissions,
@@ -176,7 +168,7 @@ try {
     JSON.stringify(
       {
         schema: "longhorn.app-shell-artifact-proof.v1",
-        poodleArtifactSet: expectedPoodleSet,
+        poodleVersion: poodle.version,
         longhornArtifacts: artifactIdentities,
         shapes: shapeReports,
         duplicatePeerRuntime: false,
@@ -194,36 +186,6 @@ try {
   }
 }
 
-async function readPoodleEvidence(): Promise<PoodleEvidence> {
-  const raw = JSON.parse(
-    await readFile(poodleEvidencePath, "utf8"),
-  ) as PoodleEvidenceFile;
-  if (raw.artifactSetId !== expectedPoodleSet) {
-    throw new Error(
-      `Poodle artifact set mismatch: ${raw.artifactSetId}`,
-    );
-  }
-  const packDirectory = join(resolve(poodleEvidencePath, ".."), "packs");
-  const membership = [];
-  for (const artifact of raw.artifacts) {
-    const path = join(packDirectory, artifact.filename);
-    const sha256 = await digest(path);
-    if (sha256 !== artifact.sha256) {
-      throw new Error(`${artifact.name} Poodle artifact digest mismatch`);
-    }
-    membership.push(`${artifact.name}:${sha256}`);
-  }
-  const setId = createHash("sha256")
-    .update(membership.join("\n"))
-    .digest("hex");
-  if (setId !== expectedPoodleSet) {
-    throw new Error(`Poodle artifact membership mismatch: ${setId}`);
-  }
-  return {
-    artifacts: raw.artifacts,
-    packDirectory,
-  };
-}
 
 async function inspectArtifact(
   name: string,
@@ -375,20 +337,6 @@ function testCount(output: string): number {
 interface PackageManifest {
   dependencies: Record<string, string>;
   overrides?: Record<string, string>;
-}
-
-interface PoodleEvidenceFile {
-  readonly artifactSetId: string;
-  readonly artifacts: readonly {
-    readonly name: string;
-    readonly filename: string;
-    readonly sha256: string;
-  }[];
-}
-
-interface PoodleEvidence {
-  readonly artifacts: PoodleEvidenceFile["artifacts"];
-  readonly packDirectory: string;
 }
 
 interface ArtifactIdentity {

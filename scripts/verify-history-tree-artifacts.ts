@@ -1,10 +1,12 @@
-import { poodleArtifactSet, poodleEvidence } from "./poodle-evidence.ts";
+import { poodleRelease } from "./poodle-release.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-const POODLE_ARTIFACT_SET = poodleArtifactSet();
+// Poodle installs from the registry; poodleRelease() checks each published
+// package's sha512 against bun.lock and against the installed copy.
+const POODLE_RELEASE = poodleRelease();
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-tree-artifact-proof");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-tree-artifact-proof-"));
@@ -14,8 +16,6 @@ await mkdir(typescriptArtifactRoot);
 type Shape = "document" | "loophole";
 type Json = Record<string, any>;
 interface ArtifactIdentity { readonly name: string; readonly filename: string; readonly sha256: string; }
-interface PoodleEvidenceFile { readonly artifactSetId: string; readonly artifacts: readonly ArtifactIdentity[]; }
-interface PoodleEvidence { readonly artifacts: readonly ArtifactIdentity[]; readonly packDirectory: string; }
 interface PackageManifest { readonly name: string; dependencies: Record<string, string>; overrides?: Record<string, string>; }
 
 const policies = {
@@ -39,12 +39,11 @@ const policies = {
 
 try {
   await run(["cargo", "run", "-p", "longhorn-bindings", "--", "history-tree", "check"], repoRoot);
-  const poodle = await readPoodleEvidence();
   const typescript = await packTypescriptArtifacts();
   const rust = await packAndRunRustArtifacts();
   const consumers = [];
   for (const shape of ["document", "loophole"] as const) {
-    consumers.push(await verifyTypescriptConsumer(shape, typescript.paths, poodle, rust.traces[shape]));
+    consumers.push(await verifyTypescriptConsumer(shape, typescript.paths, rust.traces[shape]));
   }
   const rendererFixturesPayloadFree = (["document", "loophole"] as const).every(
     (shape) => !containsKey(rust.traces[shape].rendererFixture, "payload"),
@@ -54,7 +53,7 @@ try {
   console.log(JSON.stringify({
     schema: "longhorn.history-tree-artifact-proof.v1",
     linearControl: "effigy proof:history-system-artifacts",
-    poodleArtifactSet: POODLE_ARTIFACT_SET,
+    poodleVersion: POODLE_RELEASE.version,
     rustArtifacts: rust.identities,
     rustGraphs: rust.graphs,
     artifactCoreTestCount: rust.testCount,
@@ -81,23 +80,6 @@ try {
 } finally {
   if (process.env.KEEP_HISTORY_TREE_PROOF === "1") console.error(`retained proof workspace: ${temporaryRoot}`);
   else await rm(temporaryRoot, { recursive: true, force: true });
-}
-
-async function readPoodleEvidence(): Promise<PoodleEvidence> {
-  const evidencePath = resolve(poodleEvidence().evidencePath,);
-  const evidence = JSON.parse(await readFile(evidencePath, "utf8")) as PoodleEvidenceFile;
-  if (evidence.artifactSetId !== POODLE_ARTIFACT_SET) throw new Error(`Poodle artifact set mismatch: ${evidence.artifactSetId}`);
-  const packDirectory = join(resolve(evidencePath, ".."), "packs");
-  const membership = [];
-  for (const artifact of evidence.artifacts) {
-    const path = join(packDirectory, artifact.filename);
-    const sha256 = await digest(path);
-    if (sha256 !== artifact.sha256) throw new Error(`${artifact.name} Poodle artifact digest mismatch`);
-    membership.push(`${artifact.name}:${sha256}`);
-  }
-  const setId = Bun.CryptoHasher.hash("sha256", membership.join("\n"), "hex");
-  if (setId !== POODLE_ARTIFACT_SET) throw new Error(`Poodle artifact membership mismatch: ${setId}`);
-  return { artifacts: evidence.artifacts, packDirectory };
 }
 
 async function packTypescriptArtifacts(): Promise<{ identities: readonly ArtifactIdentity[]; paths: ReadonlyMap<string, string> }> {
@@ -176,7 +158,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   return { identities, graphs, traces, testCount };
 }
 
-async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<string, string>, poodle: PoodleEvidence, nativeTrace: Json) {
+async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<string, string>, nativeTrace: Json) {
   const policy = policies[shape];
   const source = join(proofRoot, "consumers", shape);
   const stage = join(temporaryRoot, `consumer-${shape}-${randomUUID()}`);
@@ -186,9 +168,9 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   await writeFile(join(stage, "consumers", shape, "fixture.json"), `${JSON.stringify(nativeTrace, null, 2)}\n`);
   const manifest = JSON.parse(await readFile(join(source, "package.json"), "utf8")) as PackageManifest;
   manifest.dependencies = Object.fromEntries(Object.entries(manifest.dependencies).map(([name, version]) => [name, artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version]));
-  const allArtifacts = new Map(artifacts);
-  if (shape === "loophole") for (const artifact of poodle.artifacts) allArtifacts.set(artifact.name, resolve(poodle.packDirectory, artifact.filename));
-  manifest.overrides = Object.fromEntries([...allArtifacts].map(([name, path]) => [name, fileDependency(path)]));
+  // Only Longhorn's own packs are overridden onto paths; Poodle resolves from
+  // the registry exactly as a real consumer resolves it.
+  manifest.overrides = Object.fromEntries([...artifacts].map(([name, path]) => [name, fileDependency(path)]));
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   await run(["bun", "install", "--ignore-scripts"], stage);
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
@@ -200,7 +182,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   for (const name of policy.longhorn) artifactResolution.push(await assertArtifactInstall(stage, name));
   for (const name of policy.forbidden) await assertPackageAbsent(stage, name);
   if (shape === "loophole") {
-    for (const artifact of poodle.artifacts) await assertArtifactInstall(stage, artifact.name);
+    for (const pkg of POODLE_RELEASE.packages) await assertArtifactInstall(stage, pkg.name);
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") throw new Error("Loophole installed unexpected Svelte version");
     await assertSingleSvelteRuntime(stage);
@@ -210,7 +192,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   if (lock.includes("workspace:") || lock.includes("link:") || lock.includes(resolve(repoRoot, "packages")) || lock.includes("/Dev/projects/poodle/packages/")) throw new Error(`${shape} lockfile contains sibling source resolution`);
-  return { shape, longhornPackages: policy.longhorn, imports: policy.imports, permissions, forbiddenPackagesAbsent: policy.forbidden, artifactResolution, poodleArtifactSet: shape === "loophole" ? POODLE_ARTIFACT_SET : null, trace, cleanInstall: true, siblingSourceAliases: false };
+  return { shape, longhornPackages: policy.longhorn, imports: policy.imports, permissions, forbiddenPackagesAbsent: policy.forbidden, artifactResolution, poodleVersion: shape === "loophole" ? POODLE_RELEASE.version : null, trace, cleanInstall: true, siblingSourceAliases: false };
 }
 
 function assertMetrics(shape: Shape, trace: Json): void {
