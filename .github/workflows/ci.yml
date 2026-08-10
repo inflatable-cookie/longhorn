@@ -4,11 +4,13 @@ name: CI
 # deliberately do not trigger a run: local `effigy qa` covers day-to-day work,
 # and CI exists to prove a clean clone with no sibling checkouts, no [patch]
 # config, and no warm caches -- the environment consumers of a tag are in.
+# Manual dispatch only. Every job here runs on macOS, because `effigy qa`
+# builds longhorn-gpui-windowing and gpui pulls metal, and macOS bills at ten
+# times the Linux rate on a private repository. A pull_request trigger on that
+# footing exhausted the org's Actions allowance. Run `effigy qa` locally, and
+# dispatch this before a tag.
 on:
   workflow_dispatch:
-  pull_request:
-  push:
-    tags: ["v*"]
 
 permissions:
   contents: read

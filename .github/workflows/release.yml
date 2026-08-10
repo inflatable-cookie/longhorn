@@ -22,6 +22,16 @@ name: Release
 # Rust is not published here. Every crate sets `publish = false` and consumers
 # take them by git tag, so the Rust half of a release is the tag itself.
 
+# Dispatch this workflow AGAINST THE TAG, not against main:
+#
+#     git tag v0.1.0 && git push origin v0.1.0
+#     gh workflow run release.yml --ref v0.1.0 -f dry-run=false
+#
+# workflow_dispatch accepts a tag ref, so `github.ref` is `refs/tags/v0.1.0`
+# and the version-agrees-with-tag check below still fires. There is no
+# `push: tags` trigger: publication should be an act someone performs, not a
+# side effect of pushing a tag, and during first publication a tag push would
+# fire a run that tries to republish versions already on the registry.
 on:
   workflow_dispatch:
     inputs:
@@ -29,8 +39,6 @@ on:
         description: Pack and verify without publishing
         type: boolean
         default: true
-  push:
-    tags: ["v*"]
 
 permissions:
   contents: read
@@ -123,7 +131,7 @@ jobs:
           ls -l .release
 
       - name: Publish
-        if: ${{ github.event_name == 'push' || !inputs.dry-run }}
+        if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
           for dir in packages/*/; do
