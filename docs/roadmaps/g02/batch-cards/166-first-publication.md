@@ -149,83 +149,42 @@ convenience would reintroduce it.
 Consumers should keep installing with `--ignore-scripts` where their tooling
 allows, which the artifact proofs already do.
 
-## A Clean Clone Does Not Currently Publish Correctly
+## Generated Artifacts Are Committed, And Gated — Resolved 2026-08-09
 
-`poodle-core`'s 1,703 icon modules and 25 generated token files are
-`.gitignore`d and produced by `packages/core/src/icons/generate.mjs` and the
-token build. They are in the packed tarball today only because they exist on
-the machine that packed it.
+This card previously recorded a hazard: `poodle-core`'s generated icon and
+token trees were `.gitignore`d, present in a packed tarball only because they
+existed on the machine that packed it. A clean checkout had neither, so
+publishing from CI would have shipped an empty `icons/` directory with nothing
+failing.
 
-**A fresh checkout has neither.** Publishing from CI — which is what trusted
-publishing means — would ship `poodle-core` with an empty `icons/` directory
-and no token CSS, and nothing in the current setup would fail. `bun pm pack`
-does not run a generate step, and the pack-install proof passes because it
-runs on a warm working tree.
+**Poodle Card 021 removed the hazard rather than automating around it.** The
+generated artifacts are now committed — 100 icon modules and 25 token files —
+so a clean clone packs a complete tarball with no build step and
+`lucide-static` is not needed at pack time at all.
 
-So step 1 needs the generation wired into the release workflow before the
-pack, and a check that the tarball contains the icon tree rather than trusting
-that it does. This is the sharpest reason not to publish from a laptop: the
-laptop is the only place that currently produces a correct artifact, and for
-the wrong reason.
+Committing generated source is only safe when something fails if the tree and
+the generator disagree, and both halves now have that. `audit:icons` was
+already the first step of `ci:web`; `audit:tokens` was added alongside it on
+2026-08-09, after the token generator gained a `--check` mode. Both were
+verified non-vacuous by perturbing a generated file and confirming the gate
+fails — the same trap as an absence assertion that can only ever pass.
 
-**Poodle Card 021 mostly dissolves this.** It removes the vendored Lucide
-catalogue from `poodle-core` — measured at 84% of the tarball, of which the
-whole portfolio uses 8% — leaving twelve built-in icons and no generated
-catalogue for a release workflow to produce. Card 021 is sequenced before this
-one for that reason and because publishing 245 KB of unused icon data as
-`0.1.0` means carrying it forever or breaking immediately after. The token CSS
-generation still needs wiring; the icon half goes away.
+The release workflow **checks rather than regenerates**, deliberately.
+Regenerating before packing would ship whatever the generator produced on the
+runner, which can differ from what was reviewed and tagged. Checking fails the
+release instead, and the tarball is exactly the reviewed tree.
 
-## Bootstrapping Trusted Publishing
-
-Trusted publishing has a chicken-and-egg problem the rest of this card assumed
-away: the trusted publisher is configured on a package's settings page, and
-that page exists only once the package does. A package that has never been
-published cannot be configured, so the **first** publish has to happen another
-way and every publish after it is automated.
-
-Both repositories are also **private**, which matters for one thing.
-Provenance attestation links a package to a public commit and a public workflow
-run; from a private repository there is nothing publicly verifiable to link to.
-Trusted publishing itself is unaffected — the OIDC exchange does not care about
-visibility — but the provenance badge waits on making the repositories public,
-which is a separate decision and not a blocker.
-
-Verify both against npm's current documentation before relying on them. Trusted
-publishing is recent and the first-publish flow is exactly the kind of detail
-that moves.
-
-### The bootstrap, without a token on GitHub
-
-1. Enable 2FA on the npm account and confirm it owns `@inflatable-cookie`.
-2. Run the release workflow with `workflow_dispatch` and `dry-run: true`. It
-   packs from a clean clone, generates what is generated, verifies the tarball
-   and uploads the `.tgz` files as run artifacts. Nothing publishes.
-3. Download those artifacts and inspect them — `tar -tzf` — confirming the
-   token CSS is present and, after Poodle Card 021, that no icon catalogue is.
-4. `npm login` locally (interactive, 2FA) and
-   `npm publish <tarball> --access public` on those exact files.
-5. Configure the trusted publisher on each new package page: the repository and
-   `release.yml`.
-6. `npm logout`. Every release after this is a tag push with no credential
-   anywhere.
-
-Step 4 uploads a CI-built artifact rather than a locally built one, which is
-the property worth keeping: what was built and who uploaded it are separate,
-and the clean-clone hazard cannot apply to a tarball that was never built on a
-developer machine.
-
-Two traps. `npm publish` on a tarball still needs `--access public`, or a
-scoped package defaults to restricted and fails. And if the workflow job ever
-gains a GitHub `environment:`, the trusted publisher configuration must name it
-too or the OIDC claim will not match.
+Verified from a clean clone on 2026-08-09: `effigy ci` exits 0, the
+packed-consumer proof passes, and `poodle-core` packs to 180,208 bytes
+carrying 100 icon modules, 22 token CSS files, LICENSE and README, with no
+runtime dependencies.
 
 ## Steps
 
 1. **Poodle publishes.** Drop `private`, add `publishConfig.access: "public"`,
-   wire icon and token generation into the release workflow ahead of the pack,
-   assert the tarball carries both, configure trusted publishing per package,
-   tag, publish `poodle-core` and `poodle-svelte`. `poodle-react` is held.
+   commit a clean tree, configure trusted publishing per package, tag, publish
+   `poodle-core` and `poodle-svelte`. `poodle-react` is held. Generation is no
+   longer part of this — the artifacts are committed and gated.
 2. **Repoint Longhorn** from `file:` packs to `^0.1.0`, deleting
    `scripts/poodle-evidence.ts` and moving the proof consumers onto the
    published version in the same change.
