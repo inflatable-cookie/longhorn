@@ -4,7 +4,7 @@ use longhorn_core::{
     DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize,
     TransferHostBindingId, WindowId, WindowPlacement,
 };
-use longhorn_layout::{LayoutContainer, LayoutDocument, RegionState};
+use longhorn_surfaces::{LayoutContainer, LayoutDocument, RegionState};
 use longhorn_transfer::{PanelHostBinding, PanelHostBindings};
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, WindowDiffInput, plan_window_diff,

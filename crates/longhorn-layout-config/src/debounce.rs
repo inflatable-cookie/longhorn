@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_config::{DebounceStrategy, DomainIssue};
-use longhorn_layout::{
+use longhorn_surfaces::{
     LayoutDefinitionRegistry, LayoutDocument, LayoutMutationCommand, LayoutMutationEngine,
     LayoutMutationRequest,
 };

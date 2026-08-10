@@ -18,7 +18,6 @@ bindings = [
 [dependencies]
 longhorn-config.workspace = true
 longhorn-core.workspace = true
-longhorn-layout.workspace = true
 longhorn-surfaces.workspace = true
 longhorn-surfaces-config.workspace = true
 longhorn-transfer.workspace = true

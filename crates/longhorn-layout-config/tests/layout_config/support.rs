@@ -9,13 +9,13 @@ use longhorn_core::{
     DomainId, LayoutContainerId, LayoutRequestId, LayoutRevision, LayoutSchemaId,
     PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SchemaVersion, SizingSlotId,
 };
-use longhorn_layout::{
+use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
     LayoutMutationCommand, LayoutMutationRequest, LayoutRatio, LayoutSchemaDefinition,
     PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,
     RegionState, SizingSlotDefinition, SizingSlotState,
 };
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

@@ -8,7 +8,6 @@ use longhorn_core::{
     DisplayId, DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, SchemaVersion,
     ScreenPoint, ScreenRect, ScreenSize, SurfaceId, SurfaceRevision, WindowId, WindowPlacement,
 };
-use longhorn_layout::{LayoutContainer, LayoutDocument};
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, EmptyDisplayProvisionTarget, SurfaceTransferPolicy,
 };
@@ -16,6 +15,7 @@ use longhorn_surfaces::{
     EmptyWindowPolicy, ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
     SurfaceRecord,
 };
+use longhorn_surfaces::{LayoutContainer, LayoutDocument};
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
 

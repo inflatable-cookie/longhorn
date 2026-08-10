@@ -4,7 +4,7 @@ mod provisioned;
 mod validation;
 
 use longhorn_config::ConfigStore;
-use longhorn_layout::LayoutDocument;
+use longhorn_surfaces::LayoutDocument;
 use longhorn_surfaces_config::{RegisteredSurfaceDomain, SurfaceMigration};
 use longhorn_transfer::{MonotonicClock, TerminalTransferResolution, TransferCoordinator};
 

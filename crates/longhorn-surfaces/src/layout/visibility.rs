@@ -3,10 +3,8 @@ use std::{error::Error, fmt};
 use longhorn_core::{LayoutContainerId, PanelDefinitionId, RegionId};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutDocument, LayoutValidationError,
-    validate_document,
-};
+use crate::layout::validation::validate_document;
+use crate::{EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutDocument, LayoutValidationError};
 
 /// Projected presentation state for one semantic region.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

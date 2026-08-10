@@ -1,5 +1,5 @@
 use longhorn_config::{ConfigStore, MutationOptions};
-use longhorn_layout::LayoutDocument;
+use longhorn_surfaces::LayoutDocument;
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_surface_mutation,
 };

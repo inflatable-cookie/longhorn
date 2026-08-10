@@ -3,12 +3,12 @@ use longhorn_config::{
     StorageClass,
 };
 use longhorn_core::{DomainId, LayoutSchemaId, RegionFamilyId, RegionId, SchemaVersion};
-use longhorn_layout::{
+use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::EmptyWindowPolicy;
+use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
     LayoutSchemaDefinition, RegionDefinition, RegionState,
 };
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
-use longhorn_surfaces::EmptyWindowPolicy;
 use longhorn_surfaces_config::publish_surface_mutation;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

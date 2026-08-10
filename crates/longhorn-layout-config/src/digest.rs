@@ -1,5 +1,5 @@
 use longhorn_config::Sha256Digest;
-use longhorn_layout::{
+use longhorn_surfaces::{
     LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition, PanelDefinition,
 };
 use serde::{Deserialize, Serialize};

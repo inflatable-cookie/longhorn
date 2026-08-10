@@ -9,7 +9,7 @@ publish = false
 
 [dependencies]
 longhorn-core.workspace = true
-longhorn-layout.workspace = true
+longhorn-surfaces.workspace = true
 longhorn-transfer.workspace = true
 longhorn-windowing.workspace = true
 

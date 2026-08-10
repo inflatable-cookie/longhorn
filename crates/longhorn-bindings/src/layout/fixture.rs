@@ -4,7 +4,7 @@ use longhorn_core::{
     LayoutContainerId, LayoutRequestId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
     PanelInstanceId, RegionFamilyId, RegionId, SizingSlotId,
 };
-use longhorn_layout::{
+use longhorn_surfaces::{
     EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutContainer, LayoutDefinitionRegistry,
     LayoutDocument, LayoutLimits, LayoutMutationCommand, LayoutMutationEngine,
     LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRequest, LayoutRatio,

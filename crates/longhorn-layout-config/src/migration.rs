@@ -1,6 +1,6 @@
 use longhorn_config::{DomainIssue, MigrationStep};
 use longhorn_core::SchemaVersion;
-use longhorn_layout::{LayoutDefinitionRegistry, LayoutDocument};
+use longhorn_surfaces::{LayoutDefinitionRegistry, LayoutDocument};
 use serde_json::Value;
 
 use crate::{LayoutRegistryDigest, PersistedLayoutDocument};

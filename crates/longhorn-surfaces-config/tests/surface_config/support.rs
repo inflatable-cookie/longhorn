@@ -8,7 +8,7 @@ use longhorn_core::{
     DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, SchemaVersion, SurfaceId,
     SurfaceRequestId, SurfaceRevision, WindowId,
 };
-use longhorn_layout::{LayoutContainer, LayoutDocument};
+use longhorn_surfaces::{LayoutContainer, LayoutDocument};
 use longhorn_surfaces::{
     ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
     SurfaceMutationCommand, SurfaceMutationRequest, SurfaceRecord,

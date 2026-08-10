@@ -1,5 +1,7 @@
-use longhorn_layout::{LayoutMutationCommand, LayoutMutationRejectionCode, LayoutMutationRequest};
 use longhorn_layout_config::publish_layout_mutation;
+use longhorn_surfaces::{
+    LayoutMutationCommand, LayoutMutationRejectionCode, LayoutMutationRequest,
+};
 use longhorn_transfer::{
     PanelHostBindingKind, PanelTransferErrorCode, PanelTransferOperation, commit_panel_transfer,
 };

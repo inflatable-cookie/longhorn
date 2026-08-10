@@ -1,7 +1,7 @@
 use longhorn_config::{ConfigStore, MutationOptions};
 use longhorn_core::{LayoutRequestId, LayoutRevision, PanelInstanceId};
-use longhorn_layout::{LayoutMutationCommand, LayoutMutationRequest};
 use longhorn_layout_config::{LayoutMigration, RegisteredLayoutDomain, publish_layout_mutation};
+use longhorn_surfaces::{LayoutMutationCommand, LayoutMutationRequest};
 
 use crate::{MonotonicClock, TransferCoordinator};
 

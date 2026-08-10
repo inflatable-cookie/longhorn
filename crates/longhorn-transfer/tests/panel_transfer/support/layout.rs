@@ -8,12 +8,12 @@ use longhorn_core::{
     DomainId, LayoutContainerId, LayoutRevision, LayoutSchemaId, PanelDefinitionId,
     PanelInstanceId, RegionFamilyId, RegionId, SchemaVersion,
 };
-use longhorn_layout::{
+use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutContainer, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
     LayoutSchemaDefinition, PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector,
     RegionDefinition, RegionState,
 };
-use longhorn_layout_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
 use tempfile::TempDir;
 
 pub type TestDomain = RegisteredLayoutDomain<NoLayoutMigration>;

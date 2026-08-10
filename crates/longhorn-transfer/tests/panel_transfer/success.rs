@@ -1,5 +1,5 @@
 use longhorn_config::LoadOutcome;
-use longhorn_layout::LayoutMutationOutcome;
+use longhorn_surfaces::LayoutMutationOutcome;
 use longhorn_transfer::{
     PanelHostBindingKind, PanelTransferErrorCode, PanelTransferOperation, TransferErrorCode,
     commit_panel_transfer,
@@ -80,7 +80,7 @@ fn direct_and_surface_container_shapes_commit_the_same_authoritative_move() {
     }
 }
 
-fn assert_committed_document(document: &longhorn_layout::LayoutDocument) {
+fn assert_committed_document(document: &longhorn_surfaces::LayoutDocument) {
     assert_eq!(document.revision().get(), 8);
     assert!(
         document

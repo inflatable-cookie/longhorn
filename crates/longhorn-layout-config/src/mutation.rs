@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_config::{ConfigStore, DomainIssue, MutationError, MutationOptions, MutationReceipt};
-use longhorn_layout::{
+use longhorn_surfaces::{
     LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRequest,
 };
 

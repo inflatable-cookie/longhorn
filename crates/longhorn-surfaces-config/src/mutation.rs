@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_config::{ConfigStore, DomainIssue, MutationError, MutationOptions, MutationReceipt};
-use longhorn_layout::LayoutDocument;
+use longhorn_surfaces::LayoutDocument;
 use longhorn_surfaces::{
     EmptyWindowPolicy, LayoutContainerInventory, SurfaceMutationEngine, SurfaceMutationReceipt,
     SurfaceMutationRejection, SurfaceMutationRequest,

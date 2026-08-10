@@ -1,4 +1,5 @@
-use crate::{LayoutDefinitionRegistry, LayoutDocument, normalize_document, validate_document};
+use crate::layout::validation::{normalize_document, validate_document};
+use crate::{LayoutDefinitionRegistry, LayoutDocument};
 
 use super::{
     BoundedLayoutReplayStore, LayoutMutationReceipt, LayoutMutationRejection,

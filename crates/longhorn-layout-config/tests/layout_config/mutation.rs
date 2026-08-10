@@ -9,10 +9,10 @@ use longhorn_config::{
     MigrationStep, MutationError, StorageClass,
 };
 use longhorn_core::{DomainId, SchemaVersion};
-use longhorn_layout::LayoutMutationRejectionCode;
 use longhorn_layout_config::{
     LayoutConfigMutationError, NoLayoutMigration, RegisteredLayoutDomain, publish_layout_mutation,
 };
+use longhorn_surfaces::LayoutMutationRejectionCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

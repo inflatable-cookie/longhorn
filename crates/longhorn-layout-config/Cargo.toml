@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 longhorn-config.workspace = true
 longhorn-core.workspace = true
-longhorn-layout.workspace = true
+longhorn-surfaces.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

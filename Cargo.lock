@@ -2330,7 +2330,6 @@ dependencies = [
  "longhorn-core",
  "longhorn-history",
  "longhorn-history-tree",
- "longhorn-layout",
  "longhorn-native-content",
  "longhorn-notifications",
  "longhorn-operation",
@@ -2477,22 +2476,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-layout"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "serde",
- "serde_json",
- "ts-rs",
-]
-
-[[package]]
 name = "longhorn-layout-config"
 version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
+ "longhorn-surfaces",
  "serde",
  "serde_json",
  "tempfile",
@@ -2621,7 +2610,7 @@ name = "longhorn-nucleus-no-surface-proof"
 version = "0.1.0"
 dependencies = [
  "longhorn-core",
- "longhorn-layout",
+ "longhorn-surfaces",
  "longhorn-transfer",
  "longhorn-windowing",
 ]
@@ -2697,7 +2686,6 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
  "longhorn-surfaces",
  "longhorn-surfaces-config",
  "longhorn-transfer",
@@ -2713,7 +2701,6 @@ version = "0.1.0"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
- "longhorn-layout",
  "longhorn-surfaces",
  "longhorn-windowing",
  "serde_json",
@@ -2735,7 +2722,6 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
  "longhorn-layout-config",
  "longhorn-surfaces",
  "serde",
@@ -2861,7 +2847,6 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
  "longhorn-layout-config",
  "longhorn-surface-transfer",
  "longhorn-surfaces",
@@ -2910,8 +2895,8 @@ version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
  "longhorn-layout-config",
+ "longhorn-surfaces",
  "serde",
  "serde_json",
  "tempfile",

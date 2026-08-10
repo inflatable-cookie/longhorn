@@ -1,7 +1,7 @@
 use std::{error::Error, io};
 
 use longhorn_core::{LayoutRevision, RegionId};
-use longhorn_layout::{
+use longhorn_surfaces::{
     LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutDocument, LayoutLimits,
     LayoutMutationCommand, LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection,
     LayoutMutationRejectionCode, LayoutMutationRequest, LayoutSchemaDefinition, PanelDefinition,

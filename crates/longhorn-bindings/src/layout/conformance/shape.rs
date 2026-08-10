@@ -2,7 +2,7 @@ use longhorn_core::{
     LayoutContainerId, LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId,
     RegionFamilyId, RegionId, SizingSlotId, WindowId,
 };
-use longhorn_layout::{
+use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutContainer, LayoutDocument, LayoutLimits, LayoutRatio,
     LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy, PlacementSelector,
     RegionDefinition, RegionState, SizingSlotDefinition, SizingSlotState,

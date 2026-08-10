@@ -1,7 +1,7 @@
 use longhorn_config::{ConfigStore, LoadOutcome};
 use longhorn_core::{LayoutContainerId, PanelInstanceId, RegionId, TransferSubjectId};
-use longhorn_layout::LayoutDocument;
 use longhorn_layout_config::{LayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::LayoutDocument;
 
 use crate::{
     DragSessionIdAllocator, MonotonicClock, SessionCreationReceipt, TransferCoordinator,

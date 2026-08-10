@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use longhorn_layout::LayoutMutationRejectionCode;
+use longhorn_surfaces::LayoutMutationRejectionCode;
 use serde::{Deserialize, Serialize};
 
 use crate::{TransferError, TransferErrorCode};
@@ -90,7 +90,7 @@ impl PanelTransferError {
 
     pub(crate) fn from_layout_rejection(
         code: PanelTransferErrorCode,
-        rejection: &longhorn_layout::LayoutMutationRejection,
+        rejection: &longhorn_surfaces::LayoutMutationRejection,
     ) -> Self {
         Self {
             code,

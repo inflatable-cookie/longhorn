@@ -1,6 +1,6 @@
 use longhorn_core::{DomainId, LayoutContainerId, WindowId};
-use longhorn_layout::LayoutMutationRejectionCode;
 use longhorn_layout_config::{LayoutConfigMutationError, LayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::LayoutMutationRejectionCode;
 
 use crate::panel::{PanelHostBinding, PanelTransferError, PanelTransferErrorCode};
 

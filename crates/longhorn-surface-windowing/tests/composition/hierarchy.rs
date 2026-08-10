@@ -1,6 +1,6 @@
 use longhorn_core::{LayoutRevision, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionId};
-use longhorn_layout::{LayoutContainer, LayoutDocument, PanelInstance, RegionState};
 use longhorn_surface_windowing::compose_surface_window_plan;
+use longhorn_surfaces::{LayoutContainer, LayoutDocument, PanelInstance, RegionState};
 use longhorn_windowing::WindowRole;
 
 use crate::support::{container_id, display, document, inventory, limits, resolve, surface_id};

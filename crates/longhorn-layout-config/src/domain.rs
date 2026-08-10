@@ -5,9 +5,9 @@ use longhorn_config::{
     DomainIssue, MigrationStep,
 };
 use longhorn_core::SchemaVersion;
-use longhorn_layout::{
-    LayoutDefinitionRegistry, LayoutDocument, LayoutValidationCode, normalize_document,
-    validate_document,
+use longhorn_surfaces::{
+    LayoutDefinitionRegistry, LayoutDocument, LayoutValidationCode,
+    normalize_layout_document as normalize_document, validate_layout_document as validate_document,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -217,7 +217,7 @@ where
     }
 }
 
-fn layout_validation_issue(error: longhorn_layout::LayoutValidationError) -> DomainIssue {
+fn layout_validation_issue(error: longhorn_surfaces::LayoutValidationError) -> DomainIssue {
     DomainIssue::new(
         format!("layout-validation-{:?}", error.code()).to_ascii_lowercase(),
         error.detail(),

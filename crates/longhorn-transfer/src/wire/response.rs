@@ -1,7 +1,7 @@
 use longhorn_core::{
     LayoutRevision, TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
-use longhorn_layout::LayoutDocument;
+use longhorn_surfaces::LayoutDocument;
 use serde::{Deserialize, Serialize};
 
 use crate::{
