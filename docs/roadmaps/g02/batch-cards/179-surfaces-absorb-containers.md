@@ -90,16 +90,29 @@ nothing in the portfolio does.
 Accepted deliberately. If contention ever appears, the answer is a finer-
 grained expected-revision check, not a second document.
 
-## Crate Structure
+## Crate Structure — The Move Is Forced
 
-Recommended: `longhorn-layout` keeps the definition registry, ratios,
-visibility and the region/panel primitives — that is genuine layout vocabulary
-and is not surface-specific. `longhorn-surfaces` owns the document and absorbs
-the mutation engine, and gains a dependency on `longhorn-layout`.
+Attempted 2026-08-10 and reverted before committing, which established the
+shape of the work.
 
-Today neither crate depends on the other. This is the one place the change
-adds coupling rather than removing it, and it runs in the direction the layering
-already implies.
+`longhorn-surfaces` keeps the document and absorbs everything stateful:
+`layout_mutation` (engine, protocol, operations, error, replay — 834 lines),
+document validation (390), the document and record model, and visibility.
+`longhorn-layout` is left holding the definition registry, ratios, limits and
+the region/panel/sizing state primitives, and `longhorn-surfaces` gains a
+dependency on it.
+
+This is not a preference. One crate must own the merged document, and both the
+Surface engine and the layout engine mutate it. If the document lived in
+`longhorn-layout`, `longhorn-surfaces` would depend on it for the document
+while `longhorn-layout` depended on `longhorn-surfaces` for the record type.
+Neither crate depends on the other today, and only one direction can survive.
+
+**There is no compiling intermediate.** The move, the document merge and the
+`LayoutContainerId` retirement are one atomic change: the moment
+`LayoutDocument` stops existing, twelve crates stop compiling and stay that way
+until the sweep completes. There is no half-landed state worth committing, so
+this needs one uninterrupted pass rather than staged commits.
 
 The alternative is one merged crate. Cheaper to execute, and it loses the
 ability to state where layout vocabulary ends.
