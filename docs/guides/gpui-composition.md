@@ -1,7 +1,7 @@
 # Compose A GPUI Application
 
 Status: checked private adoption guidance
-Updated: 2026-08-09
+Updated: 2026-08-10
 Governing contracts: [020](../contracts/020-host-adapter-boundary.md),
 [013](../contracts/013-svelte-and-poodle-adapter-lifecycle.md),
 [012](../contracts/012-distribution-and-compatibility.md)
@@ -110,6 +110,26 @@ external screen beside a 2x laptop panel.
 `CGDisplayMode`, measured against two real displays. Other platforms need
 their own; there is no fallback and deliberately no guess.
 
+## Lifecycle Services Are Handles
+
+One thing to know before writing any of the seams above. gpui hands out
+`&mut App` as a borrow that cannot be held — not `Send`, not `Sync`, alive only
+for the callback it arrived in. Tauri's `WebviewWindow` is a cloneable `Send`
+handle a service can keep.
+
+So a service that needs to see a window is self-sufficient on Tauri and cannot
+be on GPUI:
+
+- a capture backend is **fed** facts the application observed a moment ago,
+  because `GpuiWindowCaptureBackend::capture` carries no context
+- a scheduler **records** deadlines for the application to drain, because it
+  cannot reach an executor either
+
+`GpuiWindowLifecycleHost` takes ownership of its services and hands nothing
+back, so keep the shared half yourself — an `Rc<RefCell<..>>` on both sides.
+`prototypes/gpui-composition/src/lifecycle.rs` does exactly this and is short
+enough to copy.
+
 ## Lifecycle And Close
 
 `GpuiWindowLifecycleHost::handle_gpui_event` takes a `GpuiWindowEvent` and
@@ -119,7 +139,10 @@ Tauri has a dedicated scale event and translates one-to-one.
 
 Close is the sharper difference. GPUI's `on_should_close` wants a boolean
 synchronously, so `handle_close_requested` returns a `GpuiCloseDecision` and
-the whole decision is taken inside the callback. Tauri calls
+the whole decision is taken inside the callback. Bind it with
+`Window::on_window_should_close`, which is also where gpui hands the context
+back — so observe, capture, flush and answer all happen in there, because
+there is nowhere else they can. Tauri calls
 `api.prevent_close()` on every user close and lets product policy close the
 window later by its own route. Both defer; neither resumption path is the
 other's.

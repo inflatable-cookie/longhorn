@@ -67,7 +67,8 @@ compiles, and the two readable against each other.
 - [ ] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
-  teardown observation itself still needs a person to close a window.
+  teardown observation itself still needs a person to close a window. The
+  lifecycle host is wired and every close is answered through Longhorn.
 
 ## Dependency Shape
 

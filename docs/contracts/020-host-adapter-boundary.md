@@ -362,6 +362,40 @@ This is the pattern again, and the cheapest instance of it yet: the fake sink
 was correct about everything except the number, and only a real write to a
 real file showed the number was wrong.
 
+### A borrowed context, and what it does to every seam — 2026-08-10
+
+Wiring `GpuiWindowLifecycleHost` into a real application found the most
+general difference between the two hosts, and it is not about windows.
+
+**gpui hands out `&mut App` as a borrow that cannot be held.** It is not
+`Send`, not `Sync`, and lives only for the callback it arrived in.
+`tauri::WebviewWindow` is a cloneable, `Send` handle that a service can keep.
+
+Every Longhorn seam that needs to *see* a window inherits that difference:
+
+- `GpuiWindowCaptureBackend::capture` takes no host context, so a GPUI capture
+  backend cannot observe. It must be **fed** facts the application gathered a
+  moment earlier, where it had a context. Tauri's holds a window handle and
+  fetches.
+- `GpuiLifecycleScheduler::schedule` takes no context either, and gpui's
+  executors need one, so a GPUI scheduler cannot arm its own timer. It records
+  deadlines and the application drains them.
+
+Neither is a defect and neither needed an adapter change. Both are the same
+fact wearing two hats: a service that must reach the host can be
+self-sufficient on Tauri and cannot be on GPUI.
+
+The consequence for an application author is one line and belongs in the
+guide: **on GPUI, a lifecycle service is a handle onto state the application
+also holds.** `GpuiWindowLifecycleHost` takes ownership of its services and
+exposes no way back to them — correct for services that need nothing — so the
+shared half goes in an `Rc<RefCell<..>>` that both sides keep.
+
+`Window::on_window_should_close` is where gpui hands the context back, so the
+entire close decision — observe, capture, flush, answer — happens inside it.
+There is nowhere else to put it, which is a sharper version of what this
+contract already records about GPUI answering closes synchronously.
+
 ### One behaviour recorded rather than changed
 
 A window moved just before it is closed takes its final capture during the

@@ -69,17 +69,35 @@ that refusal. Every failure is now reported.
 The store result also goes to stderr, not only to the window. A durability
 result nobody can read unless they are looking at a screen is a poor result.
 
+### Step 1 is done, and it found the general shape
+
+`prototypes/gpui-composition/src/lifecycle.rs` runs a real
+`GpuiWindowLifecycleHost` over both real windows and the real store: an
+`Instant`-based clock, and every close answered through Longhorn via
+`Window::on_window_should_close`.
+
+Building it found the most general difference between the two hosts, now
+recorded in contract 020 and in the composition guide. **gpui hands out
+`&mut App` as a borrow that cannot be held**, so a service that needs to see a
+window is self-sufficient on Tauri and cannot be on GPUI. A capture backend is
+fed rather than fetching; a scheduler records rather than arming. Both are
+handles onto state the application also keeps.
+
+Two pieces of scaffolding were written and deleted rather than left: a
+`SLOW_FLUSH` threshold and a domain alias, neither of which anything used.
+
 ### Remaining
 
-1. Wire `GpuiWindowLifecycleHost` into the example with a real clock and a
-   scheduler over gpui's foreground executor, and bind `on_should_close`.
-2. Move a window, close it immediately, restart, and see whether the final
-   placement survived.
-3. Close while a flush is genuinely outstanding; record whether the close is
+1. Move a window, close it, restart, and see whether the final placement
+   survived.
+2. Close while a flush is genuinely outstanding; record whether the close is
    refused, deferred, or permitted with the write incomplete.
-4. Answer the per-window flush question with that evidence.
+3. Answer the per-window flush question with that evidence.
 
-Steps 2 and 3 need a real window closed by a person.
+All three need a real window closed by a person: `on_should_close` fires for a
+user-initiated close, so there is no headless route. Run
+`cd prototypes/gpui-composition && cargo run` and watch stderr — every close
+prints its decision, its receipt, and what remained outstanding.
 
 ## Scope
 

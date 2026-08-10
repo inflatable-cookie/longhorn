@@ -13,6 +13,7 @@
 //! ```
 
 mod drag;
+mod lifecycle;
 mod store;
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -296,6 +297,16 @@ fn main() {
                 handle: handle.into(),
             });
         }
+
+        // Card 176: the lifecycle host over the same two windows and the same
+        // real store, with every close answered through Longhorn.
+        lifecycle::install(
+            managed
+                .iter()
+                .map(|window| (window.window_id.clone(), window.handle))
+                .collect(),
+            cx,
+        );
 
         drag::TransferState::install(managed, cx);
         cx.activate(true);
