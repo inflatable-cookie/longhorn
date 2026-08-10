@@ -115,11 +115,17 @@ preview depends on it. The name stays reserved under the claimed scope, so
 holding costs nothing and publishing would start a support surface for
 something unexercised.
 
-**One version across everything.** Every Rust crate and every TypeScript
-package moves in lockstep, in both repositories — contract 012 already
-mandates this within Longhorn, and it now spans Poodle too. When
-`poodle-react` does ship, it ships at whatever the common version is, not at
-`0.1.0` from a standing start.
+**One version per repository, not one version across both.** Contract 012
+mandates that every Rust crate and every TypeScript package within a
+repository carries the same version, so a tag names all of them at once. That
+is where it stops. Longhorn and Poodle version independently and Longhorn
+depends on Poodle by ordinary semver range.
+
+**Corrected 2026-08-10.** This card previously read the rule as spanning both
+repositories. It does not, and the difference is not cosmetic: cross-repository
+lockstep would have forced Longhorn to wait for a Poodle release it does not
+need, and would have coupled two release cadences that have no reason to move
+together. When `poodle-react` does ship, it ships at Poodle's common version.
 
 ## Publish Without A Stored Token
 

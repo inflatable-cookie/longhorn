@@ -95,9 +95,10 @@ jobs:
       - name: Release gates
         run: effigy release:gates
 
-      # Contract 012 and the lockstep decision of 2026-08-09: every Rust crate
-      # and every TypeScript package across both repositories carries one
-      # version. On a tag push, that version is the tag.
+      # Contract 012: within this repository, every Rust crate and every
+      # TypeScript package carries one version, so a tag names all of them at
+      # once. Lockstep stops at the repository boundary -- Longhorn versions
+      # independently of Poodle and depends on it by ordinary semver range.
       - name: Versions agree with the tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
