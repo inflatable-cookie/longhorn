@@ -67,9 +67,10 @@ compiles, and the two readable against each other.
 - [ ] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
-  A real close is now observed: it found a flush that succeeded in 42.8µs by
-  having nothing staged to write, because a window cannot be observed at the
-  moment it closes. The restart case remains.
+  A real close is observed, and the silent-loss path it found is fixed: facts
+  are recorded from each window's own render, so a close needs no observation.
+  Confirming a moved window's placement survives a restart remains, and needs
+  a driver that refuses to fire at a window it cannot see.
 
 ## Dependency Shape
 

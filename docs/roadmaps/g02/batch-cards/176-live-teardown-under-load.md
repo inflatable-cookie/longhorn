@@ -121,16 +121,53 @@ finding is worth nothing.
 its own flush, and forcing it is not sufficient. What matters is whether
 anything was staged for it to write.
 
+### The fix, 2026-08-10
+
+The silent-loss path is closed at its root: **facts are recorded from each
+window's own render, not observed at close.**
+
+`facts_from_window` in the `gpui-windowing` prototype reads every fact
+`observe` gathers straight from a `Window` the caller already holds — same
+values, same order, same `bounds_state`, different route. A render has
+`&mut Window` for its own window and gpui redraws on move and resize, so the
+capture cache is fresh without an observation, and the close needs none.
+
+Proved by the log line that stopped appearing:
+
+```text
+before  [lifecycle] observe window:0 failed: window not found
+        [lifecycle] close window:0 -> Close in 42.791µs: [Flushed .. Succeeded, ..]
+after   [lifecycle] close window:0 -> Close in 40.083µs: [Flushed .. Succeeded, ..]
+```
+
+The close is still fast and still has no `Captured`, and that is now correct
+rather than broken: the window had not moved, so the coordinator scheduled no
+capture and there was nothing to write. Before the fix the same output meant
+the capture had *failed*. The two are indistinguishable from the timing alone,
+which is exactly why the disappearing error line is the evidence.
+
+The rule this produces is general enough for the guide and the contract: **the
+window you are inside comes from your `Window`; every other window comes from
+the backend.** It is the same rule the drag release needed, arrived at from a
+second direction.
+
 ### Remaining
 
-1. Move a window, close it, restart, and confirm the loss the analysis above
-   predicts — or find it does not happen and learn why.
-2. Close while a real store write is genuinely in flight. That needs a staged
-   capture, which needs the caching fix, so it follows step 1.
+1. Move a window, close it, restart, and confirm the placement survived. This
+   is what would show the fix works end to end rather than only removing an
+   error line.
+2. Close while a real store write is in flight, which needs a staged capture,
+   so it follows step 1.
 
-Both need the example frontmost while a window is moved, which is the part
-that has repeatedly failed: a titlebar drag sends it behind another
-application.
+Both need a window moved while the example stays frontmost, and that has now
+failed three times: a titlebar drag sends the example behind another
+application, and twice the posted events landed in the operator's own session
+instead. Input driving stopped there deliberately.
+
+A driver that refuses to fire unless the target point is over its own window
+is the prerequisite, not an optional nicety.
+`CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, ..)` returns the
+front-to-back list it needs.
 
 ## Scope
 

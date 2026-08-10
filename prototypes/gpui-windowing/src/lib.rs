@@ -205,6 +205,35 @@ impl GpuiWindowBackend for GpuiAppBackend<'_> {
     }
 }
 
+/// Reads facts straight from a `Window` the caller already holds.
+///
+/// The escape from gpui's borrowed context. `GpuiAppBackend::observe` needs to
+/// resolve a handle through the application, and gpui takes a window out of
+/// that map for the duration of its own dispatch — so observing the window
+/// whose handler is running fails with "window not found". A drag release and
+/// a close both run in exactly that position.
+///
+/// A handler is handed `&mut Window` for its own window, and every fact
+/// `observe` gathers is reachable from it. So the rule for an application is:
+/// **the window you are inside comes from your `Window`; every other window
+/// comes from the backend.**
+///
+/// Same values, same order, same `bounds_state` as `observe`; only the route
+/// differs.
+#[must_use]
+pub fn facts_from_window(window: &Window) -> GpuiWindowFacts {
+    GpuiWindowFacts::new(
+        from_gpui_bounds(window.bounds()),
+        GpuiLogicalSize::new(
+            f32::from(window.viewport_size().width),
+            f32::from(window.viewport_size().height),
+        ),
+        bounds_state(window),
+        window.scale_factor(),
+        window.is_window_active(),
+    )
+}
+
 fn bounds_state(window: &Window) -> GpuiWindowBoundsState {
     // GPUI reports the restore bounds of a maximized or fullscreen window
     // itself, so there is nothing for the caller to retain. The Tauri capture

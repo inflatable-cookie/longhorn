@@ -32,11 +32,11 @@
 
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, time::Instant};
 
-use gpui::{AnyWindowHandle, App};
+use gpui::{AnyWindowHandle, App, Window};
 use longhorn_core::WindowId;
 use longhorn_gpui_windowing::{
-    GpuiLifecycleClock, GpuiLifecycleScheduler, GpuiWindowBackend, GpuiWindowCaptureBackend,
-    GpuiWindowFacts, GpuiWindowKey, NoopGpuiUserCloseHandler, capture_from_gpui_facts,
+    GpuiLifecycleClock, GpuiLifecycleScheduler, GpuiWindowCaptureBackend, GpuiWindowFacts,
+    GpuiWindowKey, NoopGpuiUserCloseHandler, capture_from_gpui_facts,
 };
 use longhorn_windowing::{
     CapturedWindowPlacement, MonotonicMillis, ScheduledWindowLifecycleWake, WindowLifecyclePolicy,
@@ -81,16 +81,25 @@ impl GpuiLifecycleScheduler for DrainingScheduler {
     }
 }
 
-/// Answers captures from facts the application observed a moment ago.
+/// Answers captures from facts each window recorded from its own render.
 ///
 /// The alternative would be holding `&mut App`, which cannot be done, so this
-/// is the shape rather than a shortcut. Freshness is the application's
-/// responsibility: [`LifecycleHost::observe_into_cache`] runs immediately
-/// before every close decision, so what the host captures is what the window
-/// looked like when the user clicked.
+/// is the shape rather than a shortcut.
 ///
-/// A window with no cached facts fails its capture rather than inventing one.
-/// A capture that guesses is a placement that is wrong on disk.
+/// **Fed on render, not at close.** The first version observed every window
+/// immediately before the close decision, which is the one moment it cannot
+/// work: `on_window_should_close` runs inside the closing window's own
+/// dispatch, gpui has taken that window out of the application's map, and the
+/// observation fails with "window not found". The capture then failed, nothing
+/// staged, and the flush succeeded in 42.8µs by having nothing to write —
+/// against the 15-22ms a real write costs. Nothing was lost that time because
+/// the window had not moved. It would have been, silently, if it had.
+///
+/// A render has `&mut Window` for its own window and gpui redraws on move and
+/// resize, so recording there is both possible and fresh.
+///
+/// A window with no cached facts still fails its capture rather than inventing
+/// one. A capture that guesses is a placement that is wrong on disk.
 #[derive(Clone, Default)]
 pub struct CachedCapture {
     facts: Rc<RefCell<BTreeMap<WindowId, GpuiWindowFacts>>>,
@@ -120,7 +129,6 @@ type Host = longhorn_gpui_windowing::GpuiWindowLifecycleHost<
 /// The lifecycle host, shared across both windows' callbacks.
 pub struct LifecycleHost {
     inner: Rc<RefCell<Host>>,
-    windows: Vec<(WindowId, AnyWindowHandle)>,
     capture: CachedCapture,
     scheduler: DrainingScheduler,
 }
@@ -128,7 +136,7 @@ pub struct LifecycleHost {
 impl LifecycleHost {
     /// Builds the host over the real store and installs both windows.
     #[must_use]
-    pub fn new(windows: Vec<(WindowId, AnyWindowHandle)>) -> Self {
+    pub fn new(windows: &[(WindowId, AnyWindowHandle)]) -> Self {
         let capture = CachedCapture::default();
         let scheduler = DrainingScheduler::default();
         let mut host = Host::new(
@@ -142,49 +150,37 @@ impl LifecycleHost {
             },
         );
 
-        for (window_id, handle) in &windows {
+        for (window_id, handle) in windows {
             host.install(
                 window_id.clone(),
                 GpuiWindowKey::new(handle.window_id().as_u64()),
             );
         }
 
+        // The window list is not kept. It was only ever needed to observe at
+        // close, and that is the one place observation cannot work.
         Self {
             inner: Rc::new(RefCell::new(host)),
-            windows,
             capture,
             scheduler,
         }
     }
 
-    /// Observes every window and feeds the capture cache.
+    /// Records one window's facts from its own render.
     ///
-    /// Called immediately before a close decision, which is the only moment
-    /// that matters: a capture taken from stale facts writes the wrong
-    /// placement, and this is the one place the application has `&mut App`
-    /// and a reason to use it.
-    pub fn observe_into_cache(&self, cx: &mut App) {
-        let mut backend = longhorn_gpui_windowing_prototype::GpuiAppBackend::new(cx);
-        for (_, handle) in &self.windows {
-            backend.adopt(*handle);
+    /// Called from `Render::render`, which is where a window has `&mut Window`
+    /// for itself and where gpui puts it after every move and resize. This is
+    /// what makes a close survivable: by the time the close callback runs, the
+    /// facts are already here and no observation is needed.
+    pub fn record_from_render(&self, window_id: &WindowId, window: &Window) {
+        let facts = longhorn_gpui_windowing_prototype::facts_from_window(window);
+        if let Ok(scale) = facts.scale_factor() {
+            self.inner.borrow_mut().record_scale(window_id, scale);
         }
-
-        let mut host = self.inner.borrow_mut();
-        for (window_id, handle) in &self.windows {
-            let key = GpuiWindowKey::new(handle.window_id().as_u64());
-            match backend.observe(key) {
-                Ok(facts) => {
-                    if let Ok(scale) = facts.scale_factor() {
-                        host.record_scale(window_id, scale);
-                    }
-                    self.capture
-                        .facts
-                        .borrow_mut()
-                        .insert(window_id.clone(), facts);
-                }
-                Err(error) => eprintln!("[lifecycle] observe {window_id} failed: {error}"),
-            }
-        }
+        self.capture
+            .facts
+            .borrow_mut()
+            .insert(window_id.clone(), facts);
     }
 
     /// Answers gpui's synchronous close question.
@@ -193,9 +189,9 @@ impl LifecycleHost {
     /// boolean now. Contract 020 records that Tauri defers differently — it
     /// prevents every user close and lets policy close later — and neither
     /// resumption path is the other's.
-    pub fn should_close(&self, cx: &mut App, window_id: &WindowId) -> bool {
-        self.observe_into_cache(cx);
-
+    pub fn should_close(&self, _cx: &mut App, window_id: &WindowId) -> bool {
+        // Nothing is observed here. The facts arrived from this window's own
+        // renders, which is the only route that works — see `CachedCapture`.
         let started = Instant::now();
         let mut host = self.inner.borrow_mut();
         let decision = match host.handle_close_requested(window_id) {
@@ -249,8 +245,8 @@ impl LifecycleHost {
 /// `on_window_should_close` is where gpui hands back `&mut App`, which is why
 /// the whole close decision — observe, capture, flush, answer — happens inside
 /// it. There is nowhere else to put it.
-pub fn install(windows: Vec<(WindowId, AnyWindowHandle)>, cx: &mut App) {
-    let host = Rc::new(LifecycleHost::new(windows.clone()));
+pub fn install(windows: Vec<(WindowId, AnyWindowHandle)>, cx: &mut App) -> Rc<LifecycleHost> {
+    let host = Rc::new(LifecycleHost::new(&windows));
 
     for (window_id, handle) in windows {
         let host = Rc::clone(&host);
@@ -276,4 +272,6 @@ pub fn install(windows: Vec<(WindowId, AnyWindowHandle)>, cx: &mut App) {
             eprintln!("[lifecycle] could not bind close for a window: {error}");
         }
     }
+
+    host
 }

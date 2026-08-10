@@ -130,6 +130,15 @@ back, so keep the shared half yourself — an `Rc<RefCell<..>>` on both sides.
 `prototypes/gpui-composition/src/lifecycle.rs` does exactly this and is short
 enough to copy.
 
+**Feed the capture cache from `Render::render`, not from the close.** The rule
+is: *the window you are inside comes from your `Window`; every other window
+comes from the backend.* `on_window_should_close` runs inside the closing
+window's own dispatch, so observing it there fails — and the failure is quiet,
+because a capture that fails stages nothing and a flush with nothing staged
+reports success. A window that had moved would lose its final placement with no
+diagnostic anywhere. A render has `&mut Window` for its own window and gpui
+redraws on move and resize, so recording there is both possible and fresh.
+
 ## Lifecycle And Close
 
 `GpuiWindowLifecycleHost::handle_gpui_event` takes a `GpuiWindowEvent` and

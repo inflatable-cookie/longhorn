@@ -185,10 +185,20 @@ struct CompositionRoot {
     services: ExampleHost,
     /// Which window this root is, so a press knows where it came from.
     window_id: WindowId,
+    /// Set once the lifecycle host exists, which is after the windows do.
+    lifecycle: Option<std::rc::Rc<lifecycle::LifecycleHost>>,
 }
 
 impl Render for CompositionRoot {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+        // Record this window's facts every frame. gpui redraws on move and
+        // resize, so the capture cache is fresh without an observation — and
+        // an observation is impossible in the one callback that needs it, the
+        // close. See `lifecycle::CachedCapture`.
+        if let Some(host) = &self.lifecycle {
+            host.record_from_render(&self.window_id, _window);
+        }
+
         poodle_gpui_node_backend::reset_element_ids();
         let theme = &self.theme;
 
@@ -309,6 +319,7 @@ fn main() {
                             ledger: ledger(),
                             services: ExampleHost::new(),
                             window_id: root_id,
+                            lifecycle: None,
                         })
                     },
                 )
@@ -323,13 +334,28 @@ fn main() {
 
         // Card 176: the lifecycle host over the same two windows and the same
         // real store, with every close answered through Longhorn.
-        lifecycle::install(
+        let host = lifecycle::install(
             managed
                 .iter()
                 .map(|window| (window.window_id.clone(), window.handle))
                 .collect(),
             cx,
         );
+
+        // Hand each root the host, now that both exist. A window has to be
+        // open before its facts can be read, and the host has to exist before
+        // a render can record into it.
+        for window in &managed {
+            let host = std::rc::Rc::clone(&host);
+            let updated = window.handle.update(cx, move |view, _window, cx| {
+                if let Ok(root) = view.downcast::<CompositionRoot>() {
+                    root.update(cx, |root, _cx| root.lifecycle = Some(host));
+                }
+            });
+            if let Err(error) = updated {
+                eprintln!("[lifecycle] could not hand the host to a root: {error}");
+            }
+        }
 
         drag::TransferState::install(managed, cx);
         cx.activate(true);
