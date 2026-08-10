@@ -290,8 +290,10 @@ tarball repacked on a laptop: the artifact is what the gates ran against.
 
 ```sh
 cd ~/Dev/projects/poodle
+rm -rf /tmp/poodle-release   # gh run download refuses to overwrite
 gh run download 31388087919 -n packed-tarballs -D /tmp/poodle-release
 ls -l /tmp/poodle-release
+shasum -a 256 /tmp/poodle-release/*.tgz
 ```
 
 Verified 2026-08-10 against run 31388087919:
