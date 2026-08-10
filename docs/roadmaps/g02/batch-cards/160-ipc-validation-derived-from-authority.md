@@ -27,24 +27,43 @@ downstream of the boundary and carry none; they are out of scope.
 | settings | 619 | **0** | 2 | 4 |
 | operation | 476 | 42 | 1 | 3 |
 | commands | 387 | **0** | 1 | 12 |
-| history | 375 | **0** | 3 | 6 |
+| history | 375 | 15 | 3 | 6 |
 | notifications | 227 | 14 | 1 | 6 |
 | transfer | 218 | **0** | 0 | 2 |
 | surface-transfer | 147 | **0** | 0 | 0 |
-| history-tree | 139 | **0** | 1 | 9 |
+| history-tree | 139 | 14 | 1 | 9 |
 | surfaces | 129 | **0** | 0 | 2 |
 | layout | 110 | **0** | 0 | 3 |
-| **total** | **5,330** | 135 | 29 | 55 |
+| **total** | **5,330** | 164 | 29 | 55 |
 
-### Finding 1 — nine of thirteen packages never validate keys
+### Finding 1 — seven of thirteen packages never validate keys
 
-Only bridge, native-content, operation and notifications reject an unknown
-or missing field. The other nine check "is this an object" and stop:
-`config`'s `record(value, path)` and `settings`' `record(value)` return the
-value unexamined. Verified independently — zero occurrences of
-`unknown_field`, `exactKeys`, or `Object.keys` across all nine.
+*Corrected 2026-08-10. This finding first said nine, and named `history` and
+`history-tree` among them. Both were already strict.*
 
-That is 2,582 lines of validation that would accept a renamed field.
+Bridge, native-content, operation and notifications reject an unknown or
+missing field — and so do `history` (15 call sites) and `history-tree` (14).
+The other seven check "is this an object" and stop: `config`'s
+`record(value, path)` and `settings`' `record(value)` return the value
+unexamined.
+
+That is 2,068 lines of validation that would accept a renamed field.
+
+**How the count was wrong, because the mechanism matters.** The verification
+was one shell loop over the thirteen packages, resolving each package's
+compatibility files with a glob that included `compatibility/*.ts`. Seven
+packages have no such subdirectory. Under `zsh` an unmatched glob is a fatal
+error for the whole command, so the file list came back empty and every
+package counted zero. The four that were reported as strict were counted from
+a different, earlier command.
+
+A loop that reports zero for every input is not evidence of zero; it is
+evidence the loop did not run. The same failure reproduced exactly when the
+count was re-taken, which is how it was found.
+
+What `history` and `history-tree` actually needed was therefore not
+strictness but *provenance*: their key lists were hand-written literals, and
+nothing tied them to the Rust structs they mirror.
 
 ### Finding 2 — the bounds are magic numbers, and Rust names them
 
@@ -372,14 +391,55 @@ tests failed on an undefined name. The same ordering error as the earlier
 `observe_into_cache` bug — a condition evaluated against state the preceding
 statement had already changed.
 
+### commands, history, history-tree — 2026-08-10
+
+Three packages in one pass, because measuring them properly showed they were
+three different jobs rather than one repeated three times.
+
+`commands` was the real gap: 387 lines, twelve Rust `MAXIMUM_*` constants,
+and no key checking anywhere. Its `object(value, path)` gained the same
+optional `allowed` as the others, and eight validators are now typed — seven
+directly plus `CommandKeymapPreview` through the shared `baseRequest`, which
+also gained the parameter. `keymapPatch` validates exactly one type, so it
+carries `CommandKeymapPatch` unconditionally.
+
+`history` and `history-tree` were already strict. What they got is
+provenance: 11 hand-written key lists each replaced by the generated map, so
+a renamed Rust field now moves the TypeScript with it. Both keep their
+literals at the tagged unions, whose allowed keys depend on a discriminant.
+
+**A near-miss worth recording.** The replacement was scripted — match a
+literal array argument, look up its exact key set, swap in the constant. In
+`history-tree` one call site was `exact(root, "$", [...common, ...extra,
+...])`, where `extra` distinguishes the two page commands. The script matched
+the bracketed text, extracted only the quoted literals, found that set equal
+to `ForkBranchPageCommand`, and rewrote the call with that fixed list —
+silently discarding the parameter that made the function serve both types.
+`ForkPathPageCommand` would then have been rejected for carrying `target`.
+
+No test caught it. It was found by reading the diff, and the fix was to make
+the helper take the field list rather than a difference. A regression test now
+holds the two commands distinct. The lesson is narrow and real: a
+transformation that pattern-matches source text will match things that look
+like its target and are not, and the arity of a helper is exactly the sort of
+thing it cannot see.
+
+### layout has no boundary to validate
+
+`layout` was on the list as a package with zero key checks. It has zero key
+checks because it has no client: the directory is `compatibility.ts`,
+`ratio.ts`, `visibility.ts` and an index, and nothing in it receives an IPC
+payload. Its four exports check a protocol version and three tagged-union
+discriminants — none of which a field map covers.
+
+Giving it a `record` would be building a boundary the package does not own.
+It is removed from step 4's scope rather than left open.
+
 ### Remaining
 
-Four packages: `commands`, `history`, `history-tree`, `layout` — plus the
-nested call sites in `config` and `settings`.
-
-`layout` has no object validation at all, only kind checks and a version
-assert, so it needs a `record` before it needs a field list. `history`,
-`history-tree` and `commands` inline their object handling.
+The nested call sites in `config` and `settings` — the fragments below each
+package's typed entry points. Every package that owns a boundary now rejects
+an unknown and a missing field at its top level.
 
 ## Scope
 

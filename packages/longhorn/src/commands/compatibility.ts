@@ -21,6 +21,7 @@ import {
   type CommandKeymapReset,
   type CommandKeymapSnapshot,
 } from "./generated/protocol.ts";
+import { COMMANDS_FIELDS } from "./generated/fields.ts";
 
 export class CommandProtocolIncompatibilityError extends Error {
   readonly code = "command_protocol_incompatible";
@@ -34,7 +35,7 @@ export class CommandProtocolIncompatibilityError extends Error {
 export function assertCompatibleCommandCatalogue(
   value: unknown,
 ): asserts value is CommandCatalogueSnapshot {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandCatalogueSnapshot);
   version(record.protocolVersion, "$.protocolVersion");
   finiteInteger(record.registryGeneration, "$.registryGeneration");
   digest(record.registryDigest, "$.registryDigest");
@@ -54,7 +55,7 @@ export function assertCompatibleCommandCatalogue(
 export function assertCompatibleCommandAvailabilitySnapshot(
   value: unknown,
 ): asserts value is CommandAvailabilitySnapshot {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandAvailabilitySnapshot);
   finiteInteger(record.registryGeneration, "$.registryGeneration");
   finiteInteger(record.contextRevision, "$.contextRevision");
   let previous = "";
@@ -119,7 +120,7 @@ export function assertCompatibleCommandAvailabilitySnapshot(
 export function assertCompatibleCommandCatalogueChangedEvent(
   value: unknown,
 ): asserts value is CommandCatalogueChangedEvent {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandCatalogueChangedEvent);
   version(record.protocolVersion, "$.protocolVersion");
   finiteInteger(record.registryGeneration, "$.registryGeneration");
 }
@@ -127,7 +128,7 @@ export function assertCompatibleCommandCatalogueChangedEvent(
 export function assertCompatibleCommandKeymapChangedEvent(
   value: unknown,
 ): asserts value is CommandKeymapChangedEvent {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapChangedEvent);
   version(record.protocolVersion, "$.protocolVersion");
   finiteInteger(record.registryGeneration, "$.registryGeneration");
   finiteInteger(record.keymapRevision, "$.keymapRevision");
@@ -136,7 +137,7 @@ export function assertCompatibleCommandKeymapChangedEvent(
 export function assertCompatibleCommandKeymapSnapshot(
   value: unknown,
 ): asserts value is CommandKeymapSnapshot {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapSnapshot);
   version(record.protocolVersion, "$.protocolVersion");
   finiteInteger(record.registryGeneration, "$.registryGeneration");
   digest(record.registryDigest, "$.registryDigest");
@@ -163,14 +164,14 @@ export function assertCompatibleCommandKeymapSnapshot(
 export function assertCompatibleCommandKeymapPreview(
   value: unknown,
 ): asserts value is CommandKeymapPreview {
-  baseRequest(value, "$");
+  baseRequest(value, "$", COMMANDS_FIELDS.CommandKeymapPreview);
   keymapPatch(object(value, "$").patch, "$.patch");
 }
 
 export function assertCompatibleCommandKeymapCommit(
   value: unknown,
 ): asserts value is CommandKeymapCommit {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapCommit);
   text(record.requestId, "$.requestId");
   const evidence = object(record.evidence, "$.evidence");
   finiteInteger(evidence.registryGeneration, "$.evidence.registryGeneration");
@@ -187,7 +188,7 @@ export function assertCompatibleCommandKeymapCommit(
 export function assertCompatibleCommandKeymapReset(
   value: unknown,
 ): asserts value is CommandKeymapReset {
-  const record = object(value, "$");
+  const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapReset);
   text(record.requestId, "$.requestId");
   baseRequest(value, "$");
 }
@@ -246,8 +247,12 @@ export function assertCompatibleCommandKeymapMutationResult(
   }
 }
 
-function baseRequest(value: unknown, path: string): void {
-  const record = object(value, path);
+function baseRequest(
+  value: unknown,
+  path: string,
+  allowed?: readonly string[],
+): void {
+  const record = object(value, path, allowed);
   finiteInteger(record.registryGeneration, `${path}.registryGeneration`);
   finiteInteger(record.keymapRevision, `${path}.keymapRevision`);
   text(record.activePresetId, `${path}.activePresetId`);
@@ -255,7 +260,7 @@ function baseRequest(value: unknown, path: string): void {
 }
 
 function keymapPatch(value: unknown, path: string): void {
-  const record = object(value, path);
+  const record = object(value, path, COMMANDS_FIELDS.CommandKeymapPatch);
   if (
     record.activePresetId !== null &&
     typeof record.activePresetId !== "string"
@@ -360,11 +365,33 @@ function finiteInteger(value: unknown, path: string): void {
   }
 }
 
-function object(value: unknown, path: string): Record<string, unknown> {
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys accepted are the
+ * Rust struct's and nothing else — contract 010's Boundary Validation Target.
+ * Passing no list keeps shape-only behaviour for the tagged unions, whose
+ * allowed keys depend on their discriminant and so are not one flat set.
+ */
+function object(
+  value: unknown,
+  path: string,
+  allowed?: readonly string[],
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  const record = value as Record<string, unknown>;
+  if (allowed === undefined) return record;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(record)) {
+    if (!permitted.has(key)) fail(`${path}.${key}`, "unknown field");
+  }
+  for (const key of allowed) {
+    if (!(key in record)) fail(`${path}.${key}`, "missing field");
+  }
+  return record;
 }
 
 function array(value: unknown, path: string): unknown[] {

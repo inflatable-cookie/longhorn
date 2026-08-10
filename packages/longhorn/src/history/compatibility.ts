@@ -15,6 +15,7 @@ import {
   type HistoryPageSnapshot,
   type HistorySnapshot,
 } from "./generated/protocol.ts";
+import { HISTORY_FIELDS } from "./generated/fields.ts";
 
 export class HistoryProtocolCompatibilityError extends Error {
   constructor(readonly path: string, message: string) {
@@ -28,7 +29,7 @@ export function assertCompatibleHistorySnapshot(
 ): asserts value is HistorySnapshot {
   assertNoPayload(value, "$");
   const record = object(value, "$");
-  keys(record, "$", ["protocolVersion", "authorityEpoch", "summary"]);
+  keys(record, "$", HISTORY_FIELDS.HistorySnapshot);
   protocol(record.protocolVersion, "$.protocolVersion");
   positiveInteger(record.authorityEpoch, "$.authorityEpoch");
   summary(record.summary, "$.summary");
@@ -39,14 +40,7 @@ export function assertCompatibleHistoryPageCommand(
 ): asserts value is HistoryPageCommand {
   assertNoPayload(value, "$");
   const record = object(value, "$");
-  keys(record, "$", [
-    "protocolVersion",
-    "authorityEpoch",
-    "historyId",
-    "expectedRevision",
-    "offset",
-    "limit",
-  ]);
+  keys(record, "$", HISTORY_FIELDS.HistoryPageCommand);
   protocol(record.protocolVersion, "$.protocolVersion");
   positiveInteger(record.authorityEpoch, "$.authorityEpoch");
   id(record.historyId, "$.historyId");
@@ -60,18 +54,7 @@ export function assertCompatibleHistoryPageSnapshot(
 ): asserts value is HistoryPageSnapshot {
   assertNoPayload(value, "$");
   const record = object(value, "$");
-  keys(record, "$", [
-    "protocolVersion",
-    "authorityEpoch",
-    "historyId",
-    "revision",
-    "offset",
-    "totalEntries",
-    "entries",
-    "truncatedBefore",
-    "truncatedAfter",
-    "retainedBaseline",
-  ]);
+  keys(record, "$", HISTORY_FIELDS.HistoryPageSnapshot);
   protocol(record.protocolVersion, "$.protocolVersion");
   positiveInteger(record.authorityEpoch, "$.authorityEpoch");
   id(record.historyId, "$.historyId");
@@ -91,14 +74,7 @@ export function assertCompatibleHistoryNavigationCommand(
 ): asserts value is HistoryNavigationCommand {
   assertNoPayload(value, "$");
   const record = object(value, "$");
-  keys(record, "$", [
-    "protocolVersion",
-    "authorityEpoch",
-    "historyId",
-    "planId",
-    "expectedRevision",
-    "target",
-  ]);
+  keys(record, "$", HISTORY_FIELDS.HistoryNavigationCommand);
   protocol(record.protocolVersion, "$.protocolVersion");
   positiveInteger(record.authorityEpoch, "$.authorityEpoch");
   id(record.historyId, "$.historyId");
@@ -136,14 +112,7 @@ export function assertCompatibleHistoryChangedEvent(
 ): asserts value is HistoryChangedEvent {
   assertNoPayload(value, "$");
   const record = object(value, "$");
-  keys(record, "$", [
-    "protocolVersion",
-    "authorityEpoch",
-    "historyId",
-    "previousRevision",
-    "committedRevision",
-    "kind",
-  ]);
+  keys(record, "$", HISTORY_FIELDS.HistoryChangedEvent);
   protocol(record.protocolVersion, "$.protocolVersion");
   positiveInteger(record.authorityEpoch, "$.authorityEpoch");
   id(record.historyId, "$.historyId");
@@ -154,19 +123,7 @@ export function assertCompatibleHistoryChangedEvent(
 
 function summary(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, [
-    "historyId",
-    "revision",
-    "mode",
-    "undoDepth",
-    "redoDepth",
-    "currentEntryId",
-    "nextUndoLabel",
-    "nextRedoLabel",
-    "retainedEntryCount",
-    "retainedEncodedWeight",
-    "retainedBaseline",
-  ]);
+  keys(record, path, HISTORY_FIELDS.HistorySummaryProjection);
   id(record.historyId, `${path}.historyId`);
   integer(record.revision, `${path}.revision`);
   oneOf(record.mode, `${path}.mode`, HISTORY_MODES);
@@ -182,12 +139,7 @@ function summary(value: unknown, path: string): void {
 
 function baseline(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, [
-    "prunedEntryCount",
-    "prunedEncodedWeight",
-    "lastPrunedEntryId",
-    "lastPrunedSequence",
-  ]);
+  keys(record, path, HISTORY_FIELDS.HistoryBaselineProjection);
   integer(record.prunedEntryCount, `${path}.prunedEntryCount`);
   integer(record.prunedEncodedWeight, `${path}.prunedEncodedWeight`);
   optionalId(record.lastPrunedEntryId, `${path}.lastPrunedEntryId`);
@@ -196,16 +148,7 @@ function baseline(value: unknown, path: string): void {
 
 function entryRecord(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, [
-    "entryId",
-    "label",
-    "kindId",
-    "groupId",
-    "sequence",
-    "committedRevision",
-    "encodedWeight",
-    "position",
-  ]);
+  keys(record, path, HISTORY_FIELDS.HistoryEntryRecord);
   id(record.entryId, `${path}.entryId`);
   string(record.label, `${path}.label`);
   optionalId(record.kindId, `${path}.kindId`);
@@ -218,16 +161,7 @@ function entryRecord(value: unknown, path: string): void {
 
 function receipt(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, [
-    "historyId",
-    "planId",
-    "previousRevision",
-    "committedRevision",
-    "direction",
-    "movedEntryIds",
-    "sourcePosition",
-    "authoritativePosition",
-  ]);
+  keys(record, path, HISTORY_FIELDS.HistoryNavigationReceiptProjection);
   id(record.historyId, `${path}.historyId`);
   id(record.planId, `${path}.planId`);
   integer(record.previousRevision, `${path}.previousRevision`);
@@ -245,14 +179,7 @@ function receipt(value: unknown, path: string): void {
 
 function navigationPosition(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, [
-    "appliedDepth",
-    "futureDepth",
-    "currentEntryId",
-    "nextUndoLabel",
-    "nextRedoEntryId",
-    "nextRedoLabel",
-  ]);
+  keys(record, path, HISTORY_FIELDS.HistoryNavigationPositionProjection);
   integer(record.appliedDepth, `${path}.appliedDepth`);
   integer(record.futureDepth, `${path}.futureDepth`);
   optionalId(record.currentEntryId, `${path}.currentEntryId`);
@@ -263,7 +190,7 @@ function navigationPosition(value: unknown, path: string): void {
 
 function rejection(value: unknown, path: string): void {
   const record = object(value, path);
-  keys(record, path, ["code", "detail", "refreshRequired"]);
+  keys(record, path, HISTORY_FIELDS.HistoryNavigationRejectionProjection);
   oneOf(
     record.code,
     `${path}.code`,
