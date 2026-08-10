@@ -392,3 +392,69 @@ fn a_destroy_for_a_window_already_torn_down_is_refused_rather_than_ignored() {
         "a repeated destroy was accepted"
     );
 }
+
+#[test]
+fn a_shutdown_flush_writes_what_a_close_left_staged() {
+    // The gap a real run found. A window moved and then closed captures,
+    // stages, permits the close, and never writes — measured against a real
+    // store, where the file still held the old position. Tauri does not lose
+    // it: it prevents every user close and its `shutdown_flush` gets a later
+    // chance. This is that later chance for GPUI, which had none.
+    let sink = Arc::new(LoadedSink::default());
+    let mut host = loaded_host(&sink);
+    install_all(&mut host);
+
+    // Close every window the way a user would. Each stages and none writes.
+    for index in 0..WINDOWS {
+        host.handle_close_requested(&window(index))
+            .expect("close request is accepted");
+    }
+    let staged_after_closes = sink.staged.lock().unwrap().len();
+    assert!(
+        staged_after_closes > 0,
+        "the closes staged nothing, so this test proves nothing"
+    );
+
+    let before = sink.flushes.load(Ordering::Relaxed);
+    let receipt = host.shutdown_flush();
+
+    assert_eq!(receipt.per_window().len(), WINDOWS);
+    assert_eq!(receipt.outcome(), Some(&WindowFlushOutcome::Succeeded));
+    assert!(receipt.is_complete());
+    assert!(
+        sink.flushes.load(Ordering::Relaxed) > before,
+        "the sink was never asked to write at shutdown"
+    );
+}
+
+#[test]
+fn a_shutdown_flush_reports_a_store_that_refused() {
+    // The caller is usually about to exit, so "did everything I asked for
+    // actually happen" has to be answerable. A succeeded-but-empty flush and a
+    // real one are indistinguishable from timing alone — that is how the
+    // placement loss hid — so the receipt says it outright.
+    let sink = Arc::new(LoadedSink::default());
+    let mut host = loaded_host(&sink);
+    install_all(&mut host);
+    sink.fail_flushes(true);
+
+    let receipt = host.shutdown_flush();
+
+    assert!(matches!(
+        receipt.outcome(),
+        Some(WindowFlushOutcome::SinkFailed { .. })
+    ));
+    assert!(!receipt.is_complete());
+}
+
+#[test]
+fn a_shutdown_flush_on_a_host_with_no_windows_is_empty_rather_than_an_error() {
+    // Called on the way out, possibly twice, possibly after everything is
+    // already gone. Nothing to do is not a failure.
+    let mut host = loaded_host(&Arc::new(LoadedSink::default()));
+    let receipt = host.shutdown_flush();
+
+    assert!(receipt.per_window().is_empty());
+    assert_eq!(receipt.outcome(), None);
+    assert!(receipt.is_complete());
+}

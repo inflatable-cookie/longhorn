@@ -283,6 +283,21 @@ impl LifecycleHost {
     pub fn outstanding(&self) -> usize {
         self.inner.borrow().outstanding()
     }
+
+    /// Writes everything still staged, on the way out.
+    ///
+    /// Called from the close callback after the decision, because a GPUI
+    /// window is gone the moment `on_should_close` returns `true` and whatever
+    /// it staged has no later chance. A product with a real shutdown path
+    /// calls it there instead; the point is that something calls it.
+    pub fn shutdown_flush(&self) {
+        let receipt = self.inner.borrow_mut().shutdown_flush();
+        eprintln!(
+            "[lifecycle] shutdown flush: {:?}, complete={}",
+            receipt.outcome(),
+            receipt.is_complete()
+        );
+    }
 }
 
 /// Installs the host and binds every window's close callback.
@@ -306,6 +321,12 @@ pub fn install(windows: Vec<(WindowId, AnyWindowHandle)>, cx: &mut App) -> Rc<Li
                 // answer is returned, because after `true` there may be no
                 // window left to deliver them to.
                 host.drain_wakes();
+                if permitted {
+                    // And the staged placement is written before the window
+                    // goes, which is the whole point: without this the capture
+                    // a close takes is never persisted.
+                    host.shutdown_flush();
+                }
                 eprintln!(
                     "[lifecycle] {window_id} outstanding after drain: {}",
                     host.outstanding()

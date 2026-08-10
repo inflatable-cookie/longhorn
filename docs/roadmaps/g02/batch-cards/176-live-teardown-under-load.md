@@ -1,6 +1,7 @@
 # 176 Live Teardown Under Load
 
-Status: complete — the loss is demonstrated and traced to a missing GPUI shutdown flush
+Status: complete
+Completed: 2026-08-10
 Owner: Tom
 Roadmap: g02.015
 Governing refs: contract 020
@@ -192,6 +193,23 @@ The defect is an adapter gap: **the GPUI host is missing the shutdown flush its
 Tauri counterpart has.** Smaller and far more actionable than the coordinator
 change first written here, and visible only because the two hosts were compared
 rather than one generalised from.
+
+### Closed, and proved with the same gesture
+
+`GpuiWindowLifecycleHost::shutdown_flush` asks every installed window for a
+capture, then issues one aggregate write under `ApplicationShutdown` — Tauri's
+two-pass shape, for Tauri's reason: the coordinator schedules a flush rather
+than emitting one, and a scheduled deadline may never arrive on the way out.
+
+```text
+before   window:0 {"x": 120, "y": 120}     the move was lost
+after    window:0 {"x": 120, "y": 324}     the move survived
+```
+
+`GpuiShutdownReceipt` keeps the per-window receipts and the aggregate outcome
+apart, because they fail independently, and `is_complete()` answers the
+question a caller about to exit actually has. A store that refuses is reported
+rather than swallowed — pinned by a test that makes the sink fail.
 
 ### Getting here needed two fixes and a guard
 

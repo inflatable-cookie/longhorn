@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use longhorn_core::{ScaleFactor, WindowId, WindowPlacement};
+use longhorn_core::{ScaleFactor, WindowId, WindowPlacement, report_best_effort_failure};
 use longhorn_update::{OutstandingWork, QuiescenceKind, QuiescenceProbe};
 use longhorn_windowing::{
     CaptureGeneration, CapturedDisplayAssociation, CapturedWindowPlacement, MonotonicMillis,
@@ -134,6 +134,44 @@ struct OutstandingWindowWork {
 impl OutstandingWindowWork {
     const fn total(&self) -> usize {
         self.capture_pending as usize + self.flush_pending as usize
+    }
+}
+
+/// What one shutdown flush did.
+///
+/// Two halves because they can fail independently: a window that could not be
+/// captured is not the same as a store that could not be written, and a caller
+/// deciding whether it is safe to exit needs to tell them apart.
+#[derive(Debug)]
+pub struct GpuiShutdownReceipt {
+    per_window: Vec<GpuiLifecycleReceipt>,
+    outcome: Option<WindowFlushOutcome>,
+}
+
+impl GpuiShutdownReceipt {
+    /// One receipt per window that was asked for a capture.
+    #[must_use]
+    pub fn per_window(&self) -> &[GpuiLifecycleReceipt] {
+        &self.per_window
+    }
+
+    /// The aggregate write, or `None` when there were no windows to write.
+    #[must_use]
+    pub const fn outcome(&self) -> Option<&WindowFlushOutcome> {
+        self.outcome.as_ref()
+    }
+
+    /// Whether everything that was asked for actually happened.
+    ///
+    /// A shutdown that half-worked is not a shutdown that succeeded, and the
+    /// caller is usually about to exit.
+    #[must_use]
+    pub fn is_complete(&self) -> bool {
+        self.per_window.iter().all(close_is_safe)
+            && self
+                .outcome
+                .as_ref()
+                .is_none_or(|outcome| matches!(outcome, WindowFlushOutcome::Succeeded))
     }
 }
 
@@ -311,6 +349,9 @@ struct InstalledWindow {
 /// onto a blocking pool. Neither is true here.
 pub struct GpuiWindowLifecycleHost<C, S, B, U> {
     coordinator: WindowLifecycleCoordinator,
+    /// Kept for the shutdown flush, which builds its own request rather than
+    /// waiting for a directive that may never arrive.
+    policy: WindowLifecyclePolicy,
     windows: BTreeMap<WindowId, InstalledWindow>,
     services: GpuiWindowLifecycleServices<C, S, B, U>,
     /// Outstanding captures and flushes, per window.
@@ -339,6 +380,7 @@ where
     ) -> Self {
         Self {
             coordinator: WindowLifecycleCoordinator::new(policy),
+            policy,
             windows: BTreeMap::new(),
             services,
             outstanding: BTreeMap::new(),
@@ -456,6 +498,74 @@ where
             event_kind,
             actions,
         })
+    }
+
+    /// Captures every installed window and flushes them as one aggregate.
+    ///
+    /// The counterpart to `TauriWindowLifecycleHost::shutdown_flush`, and it
+    /// was missing. Its absence is a measured data loss rather than a symmetry
+    /// argument: a window moved and then closed staged its final capture,
+    /// permitted the close, and never wrote — the file still held the old
+    /// position. Tauri does not lose it, because it prevents every user close
+    /// and its shutdown flush gets a later chance; GPUI answers the close
+    /// synchronously and the window is gone.
+    ///
+    /// An application calls this before the last window goes away. Every
+    /// receipt is returned in order, and a caller that wants to know whether
+    /// anything failed reads them rather than a single boolean — a shutdown
+    /// that half-worked is not a shutdown that succeeded.
+    ///
+    /// One aggregate rather than one flush per window, because the sink
+    /// coalesces and a store that can write ten placements in one mutation
+    /// should not be asked ten times.
+    pub fn shutdown_flush(&mut self) -> GpuiShutdownReceipt {
+        let window_ids: Vec<WindowId> = self.windows.keys().cloned().collect();
+        if window_ids.is_empty() {
+            return GpuiShutdownReceipt {
+                per_window: Vec::new(),
+                outcome: None,
+            };
+        }
+
+        // First pass: ask every window for its current capture. This settles
+        // anything a close staged and is what `FlushRequested` is for.
+        let mut per_window = Vec::with_capacity(window_ids.len());
+        for window_id in &window_ids {
+            match self.handle_lifecycle_event(WindowLifecycleEvent::FlushRequested {
+                window_id: window_id.clone(),
+            }) {
+                Ok(receipt) => per_window.push(receipt),
+                Err(error) => {
+                    // Reported, not swallowed, and the loop continues: one
+                    // window that cannot capture must not take the others'
+                    // placements with it.
+                    report_best_effort_failure(
+                        "gpui.shutdown_flush",
+                        format!("{window_id} could not capture at shutdown: {error}"),
+                    );
+                }
+            }
+        }
+
+        // Second pass: one aggregate write. The coordinator schedules a flush
+        // rather than emitting one, which is right for ordinary operation and
+        // useless on the way out — the deadline it schedules may never arrive.
+        // Tauri's shutdown collects the targets and issues the flush itself for
+        // the same reason; this does the same thing.
+        let request = WindowFlushRequest::new(
+            window_ids
+                .into_iter()
+                .map(|window_id| WindowFlushTarget::new(window_id, None))
+                .collect(),
+            self.policy.flush_timeout(),
+            WindowFlushScope::ApplicationShutdown,
+        );
+        let outcome = self.flush(&request);
+
+        GpuiShutdownReceipt {
+            per_window,
+            outcome: Some(outcome),
+        }
     }
 
     /// Returns the host's own outstanding work for the restart interlock.

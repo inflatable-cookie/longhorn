@@ -159,6 +159,16 @@ other's.
 A deferred close resumes only when the user asks again. Design your close
 policy knowing that.
 
+**Call `shutdown_flush` before your last window goes.** A GPUI window is gone
+the moment `on_should_close` returns `true`, and whatever its close staged has
+no later chance — a window moved and then closed loses its placement without
+it. Tauri does not need this as urgently, because it prevents every user close
+and the window survives to be flushed later; GPUI has no such reprieve.
+
+It captures every window and issues one aggregate write. Read
+`GpuiShutdownReceipt::is_complete` before you exit: a store that refused is the
+difference between a clean shutdown and a silent loss.
+
 ## Drawing
 
 `longhorn-poodle` projects six domains into `poodle-specs`: notifications,

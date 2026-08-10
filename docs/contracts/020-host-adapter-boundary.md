@@ -527,6 +527,39 @@ much more actionable finding than the one first recorded here, and it is only
 visible because the two hosts were compared rather than one being generalised
 from.
 
+#### Closed
+
+`GpuiWindowLifecycleHost::shutdown_flush` now exists. It asks every installed
+window for a capture and then issues **one aggregate** write under
+`WindowFlushScope::ApplicationShutdown` — the same two-pass shape Tauri uses,
+and for the same reason: the coordinator *schedules* a flush rather than
+emitting one, which is right in ordinary operation and useless on the way out,
+because the deadline it schedules may never arrive.
+
+It returns a `GpuiShutdownReceipt` with the per-window receipts and the
+aggregate outcome kept apart, because they fail independently — a window that
+could not be captured is not a store that could not be written, and a caller
+about to exit needs to tell them apart. `is_complete()` answers the only
+question that matters at that point.
+
+Proved against the real store, same gesture as the loss:
+
+```text
+close window:0 -> Close in 26.542µs: [Captured { generation: 4 }, UserCloseReported]
+outstanding after close: 1 (this window 0)
+shutdown flush: Some(Succeeded), complete=true
+```
+
+```text
+before   window:0 {"x": 120, "y": 120}     the move was lost
+after    window:0 {"x": 120, "y": 324}     the move survived
+```
+
+A GPUI application must call it before its last window goes. The composition
+example calls it from the close callback, because a GPUI window is gone the
+moment `on_should_close` returns `true`; a product with a real shutdown path
+calls it there instead.
+
 ### One behaviour recorded rather than changed
 
 A window moved just before it is closed takes its final capture during the
