@@ -281,12 +281,43 @@ both generated and hand-written validators is worse than either. The field
 list is a *change to* the hand-written validator, not a second one beside it,
 so it does not trip that rule — worth stating, because it looks like it might.
 
-### Not started
+### Landed on surfaces — 2026-08-10
 
-The generator itself. This is a large, uniform migration across thirteen
-packages and roughly 5,330 lines, and it wants one package at a time with full
-attention rather than the tail of a long session. The design above is the
-starting point; nothing is half-built.
+`generation::field_map` emits `<DOMAIN>_FIELDS` from the `ts-rs`
+declarations, and `surfaces` is the first package migrated. Its `record()`
+takes the allowed keys and rejects unknown fields, missing fields, and
+non-objects. Four tests, and the drift gate proved in both directions: adding
+a field to `SurfaceChangedEvent` in Rust failed `check:bindings`; removing it
+passed.
+
+**The parser needed two corrections, both found by running it.** Its first
+output put prose in field names, because `ts-rs` renders Rust doc comments as
+`/** .. */` between fields and those contain colons and commas. And it let
+tagged unions through, because their braces balance — a naive balance check
+sees `{ .. } | { .. }` as well-formed. A union is now rejected on containing
+any brace inside its body, and the skipped names are printed rather than
+dropped: `EmptyWindowPolicy`, `SurfaceMutationCommand`,
+`SurfaceMutationOutcome`, `SurfaceMutationRejectionCode`,
+`SurfaceMutationResponse`.
+
+**Tagged unions keep the lenient path deliberately.** Their allowed keys
+depend on the discriminant, so one flat list is wrong for them; `record()`
+called without a list keeps its old shape-only behaviour, and the code says
+so. Handling them properly is a per-variant field map and is not attempted
+here.
+
+**The wrong error code is fixed as predicted.** `surfaces` threw
+`unknown_response_status` for a non-object because its union had no code for
+one. It now has `invalid_object`, `unknown_field` and `missing_field`.
+
+### Remaining
+
+Eight packages: `config`, `settings`, `commands`, `history`, `history-tree`,
+`transfer`, `surface-transfer`, `layout`. Each needs the field map emitted
+from its generator and its `record()` given the list — the same two edits, and
+`config`'s 42 call sites make it the largest.
+
+`surfaces` is the template.
 
 ## Scope
 

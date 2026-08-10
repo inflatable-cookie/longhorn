@@ -10,13 +10,17 @@ import {
   type SurfaceMutationResponse,
   type SurfaceSnapshot,
 } from "./generated/protocol.ts";
+import { SURFACE_FIELDS } from "./generated/fields.ts";
 
 export type SurfaceProtocolIncompatibilityCode =
   | "unsupported_protocol_version"
   | "unknown_command"
   | "unknown_outcome"
   | "unknown_rejection_code"
-  | "unknown_response_status";
+  | "unknown_response_status"
+  | "invalid_object"
+  | "unknown_field"
+  | "missing_field";
 
 export class SurfaceProtocolIncompatibilityError extends Error {
   readonly code: SurfaceProtocolIncompatibilityCode;
@@ -72,15 +76,15 @@ export function assertCompatibleSurfaceMutationRejectionCode(
 export function assertCompatibleSurfaceMutationResponse(
   value: unknown,
 ): asserts value is SurfaceMutationResponse {
-  const response = record(value);
+  const response = record(value, SURFACE_FIELDS.SurfaceMutationResponse);
   switch (response.status) {
     case "committed": {
-      const receipt = record(response.receipt);
+      const receipt = record(response.receipt, SURFACE_FIELDS.SurfaceMutationReceipt);
       assertCompatibleSurfaceMutationOutcome(record(receipt.outcome));
       return;
     }
     case "rejected": {
-      const rejection = record(response.rejection);
+      const rejection = record(response.rejection, SURFACE_FIELDS.SurfaceMutationRejection);
       assertCompatibleSurfaceMutationRejectionCode(rejection.code);
       return;
     }
@@ -95,13 +99,17 @@ export function assertCompatibleSurfaceMutationResponse(
 export function assertCompatibleSurfaceSnapshot(
   value: unknown,
 ): asserts value is SurfaceSnapshot {
-  assertSurfaceProtocolVersion(record(value).protocol_version);
+  assertSurfaceProtocolVersion(
+    record(value, SURFACE_FIELDS.SurfaceSnapshot).protocol_version,
+  );
 }
 
 export function assertCompatibleSurfaceChangedEvent(
   value: unknown,
 ): asserts value is SurfaceChangedEvent {
-  assertSurfaceProtocolVersion(record(value).protocol_version);
+  assertSurfaceProtocolVersion(
+    record(value, SURFACE_FIELDS.SurfaceChangedEvent).protocol_version,
+  );
 }
 
 function assertKnownKind(
@@ -118,12 +126,45 @@ function assertKnownKind(
   }
 }
 
-function record(value: unknown): Record<string, unknown> {
+/**
+ * Rejects a non-object, an unknown key, and a missing key.
+ *
+ * `allowed` comes from the generated field map, so the keys this accepts are
+ * the Rust struct's and nothing else — contract 010's Boundary Validation
+ * Target. Passing no list keeps the old shape-only behaviour for the tagged
+ * unions, whose allowed keys depend on their discriminant and so are not one
+ * flat set.
+ *
+ * The non-object case used to throw `unknown_response_status`, because the
+ * incompatibility union had no code for it. It reported the wrong thing for
+ * every caller but one.
+ */
+function record(
+  value: unknown,
+  allowed?: readonly string[],
+): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new SurfaceProtocolIncompatibilityError(
-      "unknown_response_status",
-      value,
-    );
+    throw new SurfaceProtocolIncompatibilityError("invalid_object", value);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  if (allowed === undefined) return result;
+
+  const permitted = new Set(allowed);
+  for (const key of Object.keys(result)) {
+    if (!permitted.has(key)) {
+      throw new SurfaceProtocolIncompatibilityError("unknown_field", {
+        key,
+        value,
+      });
+    }
+  }
+  for (const key of allowed) {
+    if (!(key in result)) {
+      throw new SurfaceProtocolIncompatibilityError("missing_field", {
+        key,
+        value,
+      });
+    }
+  }
+  return result;
 }

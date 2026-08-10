@@ -68,10 +68,9 @@ commit, and rename the surface.
 
 ## Next Task
 
-Card 160 step 4, starting from the design notes recorded there on 2026-08-10:
-emit per-domain **field lists** from the authority and make every `record()`
-strict, rather than emitting whole parsers first. Smaller, independently
-shippable, and it closes the asymmetry contract 010 now names.
+Step 4 across the remaining eight packages. `surfaces` is migrated and is the
+template: emit `<DOMAIN>_FIELDS` from the domain's generator, then give its
+`record()` the list. `config` is the largest at 42 call sites.
 
-The generator is not started. Thirteen packages and ~5,330 lines is a uniform
-migration that wants one package at a time.
+Tagged unions stay on the lenient path until a per-variant field map exists —
+their allowed keys depend on the discriminant, so one flat list is wrong.
