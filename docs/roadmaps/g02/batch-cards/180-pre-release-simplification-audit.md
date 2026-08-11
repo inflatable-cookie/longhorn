@@ -1,6 +1,6 @@
 # 180 Pre-release Simplification Audit
 
-Status: ready — findings only, no work done
+Status: complete — 2026-08-11; every finding closed as keep-as-is
 Owner: Tom
 Roadmap: g02 planning checkpoint
 Governing refs: contract 012
@@ -91,22 +91,34 @@ until you see that one thin adapter per domain, each depending only on its
 domain, is the shape you would design deliberately. The number is a symptom of
 twelve domains, not of a split gone wrong.
 
-## Finding 3 — The `-config` Split Is Half-Retired Already
+## Finding 3 — The `-config` Split Is Load-bearing
 
-`longhorn-command-config`, `longhorn-settings-config`, `longhorn-surfaces-config`
-and `longhorn-windowing-config` persist their domain's document. Card 179
-merged `longhorn-layout-config` into `longhorn-surfaces-config` and nothing was
-lost, which is the precedent.
+**Tested 2026-08-11. Keep them.**
 
-The open question is whether persistence belongs beside its domain rather than
-in a sibling crate. Every one of these depends on its domain crate and on
-`longhorn-config`, and nothing else depends on them except the applications.
-Folding each into its domain would remove four crates and four dependency
-edges.
+The proposal was to fold `longhorn-command-config`, `longhorn-settings-config`,
+`longhorn-surfaces-config` and `longhorn-windowing-config` into their domain
+crates, on the precedent of Card 179 folding `longhorn-layout-config` away
+without loss.
 
-The counter-argument is real and should be tested before acting: a consumer
-that wants the domain types without the storage machinery currently gets that
-for free. Check whether any consumer actually does.
+The counter-argument was that a consumer might want the domain types without
+the storage machinery. It is not hypothetical: **twenty sites take a domain
+crate without its `-config` sibling.** Eight for windowing, five for settings,
+four for surfaces, three for command — including `loophole-actions`, a real
+consumer crate that takes `longhorn-command` and persists nothing, and
+`longhorn-gpui-windowing`, `longhorn-surface-windowing` and
+`longhorn-tauri-windowing`, which reference `longhorn-config` zero times.
+
+Folding would put `longhorn-config` — 24,715 lines, the largest crate here,
+containing a 12,342-line backup and restore subsystem — behind all of them. A
+GPUI windowing adapter would compile an archive format, a retention policy and
+a restore inspection model in order to draw a window.
+
+**Why Card 179's precedent does not transfer.** The container was an
+indirection with one implementation and a 1:1 binding that never varied:
+removing it deleted a concept. The `-config` split is a dependency boundary,
+and it exists so that using a domain does not cost the storage stack. The two
+look alike in a crate listing and are opposites in a dependency graph. That
+distinction is the useful output of this audit.
 
 ## Finding 4 — The Inverse Problem
 
@@ -123,12 +135,18 @@ and should be taken on its own merits when someone needs it separately.
 
 ## Suggested Order
 
-1. Decide on `longhorn-browser` and `longhorn-config-age`. Cheapest, and it
-   changes the count the other findings are measured against.
-2. Test the `-config` counter-argument, then fold if it does not hold. This is
-   now the only structural finding still open.
-3. Leave the Tauri crates alone; see Finding 2.
-4. Leave `longhorn-config` alone unless something needs `backup` on its own.
+Nothing. Every structural finding was investigated and every one closed as
+keep-as-is:
+
+- `longhorn-browser` and `longhorn-config-age` stay; both have a product coming.
+- The eleven Tauri crates stay; see Finding 2.
+- The four `-config` crates stay; see Finding 3.
+- `longhorn-config` stays whole unless something needs `backup` on its own.
+
+**The audit found nothing to change, and that is the finding.** Longhorn's
+crate structure is already the shape it should be. The container was the
+anomaly, not the first of a pattern — which is worth knowing before a tag, and
+worth not discovering by refactoring something that was right.
 
 ## What Not To Do
 
