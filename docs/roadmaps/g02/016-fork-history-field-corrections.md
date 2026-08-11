@@ -63,7 +63,7 @@ Items 2, 3 and 5 are confirmed as described.
 
 ## Execution Plan
 
-- [ ] **Batch 1. Remove the workarounds** (Card 181, ready). Items 2, 1 and 3.
+- [x] **Batch 1. Remove the workarounds** (Card 181, complete 2026-08-12). Items 2, 1 and 3.
       `ForkHistoryController` refreshes its branches page alongside path;
       the Tauri crates agree on one re-export style; `Checkout` expresses a
       branch-root target. Ordered by the field's own priority.
@@ -105,9 +105,12 @@ Items 2, 3 and 5 are confirmed as described.
 
 ## Next Task
 
-Card 181. Item 2 first: it is the only one of the three that leaves a consumer
-holding permanently wrong data, and the retry-through-the-gap workaround it
-forces is the most fragile thing Loophole reported.
+Batch 1 is complete. Both remaining batches are paused on their planning gaps,
+so the next move is not Longhorn's: item 4 wants a stored-data policy decision,
+and item 5 wants Poodle's client-side stitcher to exist first.
+
+Loophole can delete all three workarounds now. The command wrappers never
+needed a release — see item 1 above.
 
 ## Planning Checkpoint
 

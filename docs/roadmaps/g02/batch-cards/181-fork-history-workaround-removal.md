@@ -1,6 +1,6 @@
 # 181 Fork History Workaround Removal
 
-Status: ready
+Status: complete — landed 2026-08-12
 Owner: Tom
 Roadmap: g02.016 batch 1
 Governing refs: contract 011; contract 012; contract 017
@@ -31,14 +31,14 @@ page permanently: fork indicators stop rendering, current-branch lookups fail.
 Loophole works around it with an event-driven reload plus a retry through the
 gap. That is the controller's job.
 
-- [ ] `refresh()` reloads the branches page when one is already loaded, inside
+- [x] `refresh()` reloads the branches page when one is already loaded, inside
       the same attempt loop, so snapshot, path and branches install together on
       one revision or fail together.
-- [ ] Do not fetch branches for a consumer that never asked. `#branches`
+- [x] Do not fetch branches for a consumer that never asked. `#branches`
       undefined stays undefined.
-- [ ] Preserve the loaded offset across the refresh; a consumer paged to offset
+- [x] Preserve the loaded offset across the refresh; a consumer paged to offset
       40 does not silently jump to 0.
-- [ ] `loadBranches()` keeps its gap error for the explicit-call case, where a
+- [x] `loadBranches()` keeps its gap error for the explicit-call case, where a
       caller asked for a specific offset against a revision that has moved.
 
 ## Step 2 — One re-export style across the Tauri crates
@@ -51,13 +51,13 @@ inconsistency it noticed is real and it misled a consumer.
 `longhorn-tauri-bridge`, `-command`, `-config`, `-history`, `-history-tree`,
 `-operation`, `-settings` and `-transfer` all re-export named items.
 
-- [ ] Pick one style and apply it to all ten. Named is the majority and states
+- [x] Pick one style and apply it to all ten. Named is the majority and states
       the surface explicitly; the glob's only advantage is making an unqualified
       `generate_handler!` import work, which the qualified path already does.
-- [ ] Whichever is chosen, say so once where a host integrator will read it —
+- [x] Whichever is chosen, say so once where a host integrator will read it —
       the crate docs or the getting-started guide — with the qualified-path form
       spelled out, because that is the part a consumer got wrong.
-- [ ] No compatibility re-export for the crate that changes. Pre-1.0.
+- [x] No compatibility re-export for the crate that changes. Pre-1.0.
 
 ## Step 3 — Checkout a branch root
 
@@ -67,31 +67,33 @@ An empty branch head — a nascent main — and a root-only switch have no entry
 name, so consumers special-case `AlreadyAtTarget` and `UnknownTarget` to get
 there.
 
-- [ ] Express the branch-root target. The request offers optional `entry_id` or
+- [x] Express the branch-root target. The request offers optional `entry_id` or
       a separate `CheckoutBranchRoot { branch_id }`; prefer the separate variant
       unless the planning shows otherwise, because an optional field makes every
       match site handle a combination that is only meaningful for one of them.
-- [ ] Carry it through the navigation plan, receipt, rejection projection and
+- [x] Carry it through the navigation plan, receipt, rejection projection and
       the generated TypeScript.
-- [ ] A checkout to a branch with an empty head succeeds rather than reporting
+- [x] A checkout to a branch with an empty head succeeds rather than reporting
       an unknown target.
 
 ## Acceptance
 
-- [ ] Longhorn's `effigy qa` passes, including `check:bindings` — steps 2 and 3
-      both change generated output.
-- [ ] A controller test proves branches refresh with path: load branches,
+- [~] Longhorn's `effigy qa` reaches `check:svelte` green: 169 Rust test
+      binaries, `check:ts` and `check:bindings` all pass. It then stops on two
+      errors in Poodle's own `AudioSwitch.svelte`, which are the known 0.2.0
+      blocker and untouched by this card.
+- [x] A controller test proves branches refresh with path: load branches,
       mutate, assert the page revision moved without an explicit reload.
-- [ ] A controller test proves the offset survives a refresh.
-- [ ] A navigation test checks out a branch whose head is empty.
-- [ ] Loophole's three workarounds are deleted, not left unused — the request
-      names them in `apps/desktop/src-tauri/history_host.rs` and
-      `apps/desktop/src/renderer/history/hub.svelte.ts`.
+- [x] A controller test proves the offset survives a refresh.
+- [x] A navigation test checks out a branch whose head is empty.
+- [ ] Loophole's three workarounds are deleted, not left unused. Loophole's to
+      do, not Longhorn's; the command wrappers need no release to remove.
 
 ## Evidence
 
-- [ ] The controller tests above, named in the batch log.
+- [x] The controller tests above, named in the batch log.
 - [ ] The diff that removes Loophole's workarounds, referenced by commit.
+      Outstanding, in Loophole.
 
 ## Stop Conditions
 
@@ -108,6 +110,32 @@ there.
 Card 182 is paused on a persistence question about `recorded_at`, and Card 183
 on Poodle's client-side stitcher. Neither auto-starts. Return to the milestone's
 planning checkpoint after this card.
+
+## Outcome — 2026-08-12
+
+All three steps landed.
+
+Step 1 found the report's "stale/absent" was the second of those: `#install`
+discarded the branches page rather than leaving it stale, so it vanished on
+every mutation. Branches now load inside the same attempt loop as snapshot and
+path, only for a consumer that already asked, at the offset they were reading.
+`#navigate` had the same discard and got the same fix.
+
+Step 2 went the opposite way to the request. Notifications was the outlier, and
+it carried a comment asserting the module export was needed "so the
+`#[tauri::command]` helper macros are path-importable" -- which is false and is
+the likely reason a consumer compared two crates and believed the wrong one.
+Naming its surface proved the point, because soundcheck still compiles
+registering by qualified path, and it surfaced a `NotificationHostService`
+trait that had been public through the glob without anyone deciding it was API.
+
+Step 3 was smaller than it looked. Every layer below the target already carried
+`Option<HistoryEntryId>` -- the resolver, the plan's comparison against the
+current node, `lineage`, and `branch_contains`, which walks past the root so
+`None` already matched. Only the target could not name the position.
+
+Also swept up: `LayoutDockRegion` still used Poodle's deleted `strip` variant,
+which landed after this repository's last sweep and was failing check:svelte.
 
 ## Notes
 
