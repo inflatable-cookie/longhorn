@@ -22,7 +22,7 @@ a first tag makes the answers expensive.
 | crates | 42 |
 | source lines | 118,598 |
 | test lines | 48,087 |
-| Tauri adapter crates | 11, totalling 13,433 lines |
+| Tauri adapter crates | 11, totalling 13,433 lines — keep, see Finding 2 |
 | crates with zero consumers anywhere | 2 |
 
 ## What Is Already Fine
@@ -54,26 +54,42 @@ The question is whether either has a product waiting for it. If not, they are
 1,540 lines and two crates carrying maintenance and gate time for a capability
 nobody has asked for twice. **Decision needed, not a recommendation.**
 
-## Finding 2 — Eleven Tauri Crates Could Be One
+## Finding 2 — Eleven Tauri Crates Should Stay Eleven
 
-`longhorn-tauri-bridge`, `-command`, `-config`, `-history`, `-history-tree`,
-`-native-content-child-view`, `-notifications`, `-operation`, `-settings`,
-`-transfer`, `-windowing`.
+**Investigated 2026-08-11 and withdrawn.** This was the audit's headline
+recommendation. It does not survive its own evidence.
 
-They are independent: exactly one depends on another. Most expose ten to
-fourteen public items over two to six hundred lines. `-windowing` is the
-outlier at 134 items and 6,077 lines.
+Each Tauri crate depends on its own domain crate and nothing else of substance:
+`-notifications` on `longhorn-notifications`, `-history` on `longhorn-history`,
+and so on. Merging them means the one crate depends on all twelve domains, so
+every domain dependency becomes optional behind a feature.
 
-Consumers already take subsets — 1, 4, 6 and 8 of them across the four
-applications — which is the argument for keeping them apart. Cargo features
-serve that need with one dependency line instead of eight, and a consumer that
-adds a domain edits a feature list rather than hunting the right crate name.
+That is where it stops being a simplification:
 
-**What this does not buy:** the CI and release gates run `--workspace` and name
-no crate individually, so consolidation saves nothing there. The gain is
-consumer ergonomics and eleven fewer manifests, not gate maintenance. Worth
-being accurate about, because "fewer crates" is easy to justify with reasons
-that turn out to be false.
+- **Feature gating becomes load-bearing for correctness.** Today "does the
+  notifications adapter build without `longhorn-history`?" is answered free by
+  the dependency graph. Merged, it is answered only by a CI feature matrix that
+  does not exist — and `--all-features` cannot answer it, because a missing
+  `#[cfg(feature)]` compiles fine when everything is on. The merge would add a
+  gate, not remove one.
+- **Compile parallelism goes.** Ten of the eleven are mutually independent —
+  only `-transfer` depends on `-windowing` — so they build concurrently now.
+- **Rebuild blast radius grows.** Touching the notifications adapter rebuilds
+  234 lines today and 13,433 after.
+- **The stated benefit was wrong.** The claim was that consumers swap eight
+  dependency lines for one. They would swap eight dependency lines for one
+  dependency line and eight feature flags. Same text, weaker checking.
+
+Checked and clean, so it argues neither way: there are no name collisions.
+Every crate already prefixes by domain — `BridgeHostError`, `CommandHostError`,
+`HistoryHostError` — and the colliding internal modules (`authority`,
+`commands`, `error`, `handler`) would simply nest. The merge is mechanically
+easy. That is not the same as worthwhile.
+
+**The count is not the problem.** Forty-two crates looks like over-fracturing
+until you see that one thin adapter per domain, each depending only on its
+domain, is the shape you would design deliberately. The number is a symptom of
+twelve domains, not of a split gone wrong.
 
 ## Finding 3 — The `-config` Split Is Half-Retired Already
 
@@ -109,9 +125,9 @@ and should be taken on its own merits when someone needs it separately.
 
 1. Decide on `longhorn-browser` and `longhorn-config-age`. Cheapest, and it
    changes the count the other findings are measured against.
-2. Collapse the Tauri crates behind features. Largest reduction, mechanical,
-   and the consumers are all in this portfolio.
-3. Test the `-config` counter-argument, then fold if it does not hold.
+2. Test the `-config` counter-argument, then fold if it does not hold. This is
+   now the only structural finding still open.
+3. Leave the Tauri crates alone; see Finding 2.
 4. Leave `longhorn-config` alone unless something needs `backup` on its own.
 
 ## What Not To Do
