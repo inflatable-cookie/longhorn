@@ -222,21 +222,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `crates/longhorn-update/src/source.rs`,
   `crates/longhorn-licence/src/activation.rs`.
 
-### [ ] Root package.json pins poodle to machine-local build artifacts — 2026-08-06
-- Friction: five `@inflatable-cookie/poodle-*` entries in `devDependencies` and `overrides`
-  resolve to `file:../poodle/.artifacts/g12.016-A698XB/packs/*.tgz` — a
-  poodle build-output directory outside this repo, dated 2026-07-29. The
-  first CI run to reach `bun install --frozen-lockfile` failed on all five
-  with `ENOENT`, having never run a single check.
-- Impact: the committed manifest is unresolvable on any machine but this
-  one, so the whole TypeScript CI lane is dead and a fresh clone cannot
-  install. Blocks tagging v0.1.0.
-- Possible fix: decided 2026-08-06 to block the tag on a poodle release
-  rather than vendor the packs or drop the CI coverage — poodle gets a tag
-  and longhorn consumes it by version. Poodle currently has no tags.
-- Surface: `package.json`, `bun.lock`, `.github/workflows/ci.yml` clients
-  job, portfolio distribution strategy.
-
 ### [ ] MSRV-gated Clippy lints surface late — 2026-08-06
 - Friction: raising the declared floor (1.85 -> 1.90 -> 1.95) each time
   unlocked new Clippy lints on pre-existing code (`collapsible_if`,
@@ -247,17 +232,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Possible fix: run `cargo clippy --workspace --all-targets -- -D warnings`
   as an immediate step in any floor change, before committing the bump.
 - Surface: tagged-release runbook, `scripts/check-release-floor.sh`.
-
-### [ ] Toolchain floor lived in 15 proof scripts, not the manifest — 2026-08-06
-- Friction: raising `rust-version` in `Cargo.toml` left 34 effigy gate
-  invocations and 15 TypeScript proof scripts still pinning the old
-  toolchain; the scripts are what actually enforce the floor, and a stale
-  pin only failed once code used newer language features.
-- Impact: the declared floor and the enforced floor can silently disagree.
-- Possible fix: single source for the pinned toolchain (the new
-  `release-baselines/rust-toolchains.env`) that scripts and gates read,
-  rather than a literal repeated per call site.
-- Surface: `effigy.toml`, `scripts/*.ts`, `release-baselines/`.
 
 ### [ ] Candidate receipt freezes consumer graphs, coupling unrelated repos — 2026-08-06
 - Friction: the Card 127/149 receipt asserts clean selected manifests across
