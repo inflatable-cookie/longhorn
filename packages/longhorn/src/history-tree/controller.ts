@@ -52,11 +52,22 @@ export class ForkHistoryController {
   async refresh(): Promise<void> {
     if (!this.#started) return;
     const load = ++this.#load;
+    // The offset a consumer had paged to, so a refresh returns the page they
+    // were looking at rather than sending them back to the first one.
+    const branchOffset = this.#branches?.offset;
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         const snapshot = await this.#client.snapshot();
         const path = await this.#client.path(this.#pathCommand(snapshot, this.#pathTarget));
-        if (same(snapshot, path)) { if (this.#started && load === this.#load) { this.#install(snapshot, path); this.#setStatus({ kind: "ready" }); } return; }
+        if (!same(snapshot, path)) continue;
+        // Only for a consumer that asked for branches. Loading a page nobody
+        // wanted would make every refresh pay for a projection it will not use.
+        const branches = branchOffset === undefined
+          ? undefined
+          : await this.#client.branches(this.#branchCommand(snapshot, branchOffset));
+        if (branches !== undefined && !same(snapshot, branches)) continue;
+        if (this.#started && load === this.#load) { this.#install(snapshot, path, branches); this.#setStatus({ kind: "ready" }); }
+        return;
       }
       throw new ForkHistoryProjectionGapError();
     } catch (error) { if (this.#started && load === this.#load) this.#setStatus({ kind: "failed", error }); }
@@ -64,7 +75,7 @@ export class ForkHistoryController {
 
   async loadBranches(offset = 0): Promise<ForkBranchPageSnapshot> {
     const snapshot = this.#required();
-    const value = await this.#client.branches({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, offset, limit: this.#branchPageSize });
+    const value = await this.#client.branches(this.#branchCommand(snapshot, offset));
     if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
     this.#branches = value; this.#notify(); return value;
   }
@@ -83,13 +94,20 @@ export class ForkHistoryController {
       const path = await this.#client.path(this.#pathCommand(result.snapshot, this.#pathTarget));
       if (!this.#started || navigation !== this.#navigation) throw new ForkHistoryLateResultError();
       if (!same(result.snapshot, path)) throw new ForkHistoryProjectionGapError();
-      this.#install(result.snapshot, path); this.#setStatus({ kind: "ready" }); return result;
+      const branchOffset = this.#branches?.offset;
+      const branches = branchOffset === undefined
+        ? undefined
+        : await this.#client.branches(this.#branchCommand(result.snapshot, branchOffset));
+      if (!this.#started || navigation !== this.#navigation) throw new ForkHistoryLateResultError();
+      if (branches !== undefined && !same(result.snapshot, branches)) throw new ForkHistoryProjectionGapError();
+      this.#install(result.snapshot, path, branches); this.#setStatus({ kind: "ready" }); return result;
     } finally { if (navigation === this.#navigation) { this.#pending = false; this.#notify(); } }
   }
 
   #pathCommand(snapshot: ForkSnapshot, target: ForkPathTargetProjection) { return { protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, target, offset: 0, limit: this.#pathPageSize } as const; }
   #required(): ForkSnapshot { if (!this.#started || this.#snapshot === undefined) throw new ForkHistoryUnavailableError(); return this.#snapshot; }
-  #install(snapshot: ForkSnapshot, path: ForkPathPageSnapshot): void { const current = this.#snapshot; if (current !== undefined && snapshot.authorityEpoch === current.authorityEpoch && snapshot.summary.historyId === current.summary.historyId && snapshot.summary.revision < current.summary.revision) return; this.#snapshot = snapshot; this.#path = path; if (this.#branches !== undefined && !same(snapshot, this.#branches)) this.#branches = undefined; this.#notify(); }
+  #branchCommand(snapshot: ForkSnapshot, offset: number) { return { protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, offset, limit: this.#branchPageSize } as const; }
+  #install(snapshot: ForkSnapshot, path: ForkPathPageSnapshot, branches?: ForkBranchPageSnapshot): void { const current = this.#snapshot; if (current !== undefined && snapshot.authorityEpoch === current.authorityEpoch && snapshot.summary.historyId === current.summary.historyId && snapshot.summary.revision < current.summary.revision) return; this.#snapshot = snapshot; this.#path = path; if (branches !== undefined) this.#branches = branches; else if (this.#branches !== undefined && !same(snapshot, this.#branches)) this.#branches = undefined; this.#notify(); }
   #changed(event: ForkChangedEvent): void { const snapshot = this.#snapshot; if (!this.#started || snapshot === undefined || event.authorityEpoch !== snapshot.authorityEpoch || event.historyId !== snapshot.summary.historyId || event.committedRevision > snapshot.summary.revision) void this.refresh(); }
   #setStatus(status: ForkHistoryControllerStatus): void { this.#status = status; this.#notify(); }
   #notify(): void { for (const observer of this.#observers) observer(); }
