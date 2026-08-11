@@ -456,6 +456,39 @@ That is worth naming: the lane was never broken. It was correctly reporting
 that the repository could not be installed from a clean checkout, and it said
 so for five days while the runway treated it as a lane problem.
 
+## The Release Dry Run Is Green — 2026-08-11
+
+`release.yml` had never executed. Its first run failed, and so did the next
+five. Eight distinct defects, none of them visible to `effigy qa` here.
+
+| Run | Reached | Defect |
+| --- | --- | --- |
+| 1 | 23s | `poodle-specs` path escaped the repository; `cargo metadata` failed for all 50 members |
+| 2 | 7m | `boundary.test.ts` realpath'd sibling Poodle source |
+| 3 | 10m | gpui prototypes took Poodle twice, by path and by tag; `verify-source-consumer.sh` probed the deleted `longhorn-layout` |
+| 4 | 9m | seven proofs copied `[workspace.dependencies]`, nine pins stale, `--offline` could not resolve them |
+| 5 | 20m | five proofs parsed vitest output that arrives coloured when `CI` is set |
+| 6 | 21m | `rg` absent, in the greenfield proof and again in `check-release-floor.sh`, the second hiding a floor toolchain the workflow never installed |
+| 7 | 31m | green |
+
+Three tarballs packed and asserted: `longhorn` at 114,172 bytes and 143
+entries with 31 generated bindings, `longhorn-poodle-svelte` at 52,494 and 79,
+`longhorn-tauri` at 4,769 and 12. Each carries its LICENSE, README and
+manifest. `packed-tarballs` uploaded. `Versions agree with the tag` was
+skipped, correctly — it is gated on a tag ref and this ran against `main`.
+
+Every defect came from a property of a developer machine that a runner does
+not share: a sibling Poodle checkout, a cargo cache holding versions the
+lockfile no longer names, `CI` unset so output is uncoloured, and ripgrep
+installed. Two were helpers duplicated across proofs and rotted in the copies.
+The reproductions are recorded in PAPERCUTS.md, which suggests folding them
+into an `effigy ci:rehearse` task.
+
+The step 3 note above said the clients lane had been correctly reporting for
+five days that the repository could not be installed from a clean checkout.
+The same was true of the whole repository, and only a workflow that had never
+run was in a position to say so.
+
 ## Acceptance Criteria
 
 - `@inflatable-cookie/poodle-core`, `-svelte`, `@inflatable-cookie/longhorn`,
