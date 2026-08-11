@@ -25,15 +25,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use gpui::{AnyWindowHandle, App, Global, Pixels, Point, Window};
-use longhorn_core::{DomainId, LayoutContainerId, RegionId, ScreenPoint, ScreenRect, WindowId};
+use longhorn_core::{DomainId, SurfaceId, RegionId, ScreenPoint, ScreenRect, WindowId};
 use longhorn_gpui_windowing::{GpuiWindowBackend, GpuiWindowKey, live_transfer_windows};
-use longhorn_transfer::{
-    ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
-    DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector,
-    TerminalTransferResolution, TransferCapability, TransferClientId, TransferCoordinator,
-    TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
-    TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
-};
+use longhorn_transfer::{ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector, TerminalTransferResolution, TransferCapability, TransferClientId, TransferCoordinator, TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding};
 
 /// One managed window, as this example knows it.
 #[derive(Clone)]
@@ -400,7 +394,7 @@ fn whole_window_lease(window: &ManagedWindow, bounds: ScreenRect) -> LeasePublic
                 host_binding_id: TransferHostBindingId::new("host:example").expect("binding"),
                 document_id: DomainId::new("layout.workspace").expect("document"),
                 revision: TransferRevision::new(1),
-                container_id: LayoutContainerId::new("container:example").expect("container"),
+                surface_id: SurfaceId::new("container:example").expect("container"),
                 region_id: RegionId::new("region:main").expect("region"),
             },
         )],
@@ -416,7 +410,7 @@ fn panel_source(window: &ManagedWindow) -> TransferSourceAuthority {
         host_binding_id: TransferHostBindingId::new("host:example").expect("binding"),
         document_id: DomainId::new("layout.workspace").expect("document"),
         revision: TransferRevision::new(1),
-        container_id: LayoutContainerId::new("container:example").expect("container"),
+        surface_id: SurfaceId::new("container:example").expect("container"),
         region_id: RegionId::new("region:tools").expect("region"),
     }
 }
