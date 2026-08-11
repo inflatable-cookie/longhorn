@@ -517,13 +517,35 @@ appeared.
 | Svelte dev pin | was 5.38.6, the floor of the peer range; now 5.56.8, what every consumer runs — fixed |
 | `SettingsShell` anchor focus | **open** |
 
-The open one: `resolves search anchors and focuses the structural target` fails
-because focus stays on `body`. SettingsShell binds a `tabindex="-1"` section
-and calls `.focus()` one `tick()` after navigating. Nothing in that path is
-Poodle-shaped, so the likely cause is that one tick is no longer enough and the
-bound node is replaced after it. 124 of 125 vitest pass; Longhorn's own
-svelte-check errors against local Poodle are zero, and the two that remain are
-in Poodle's own `AudioSwitch.svelte`.
+The open one is not Longhorn's to fix. `resolves search anchors and focuses the
+structural target` fails with focus on `body`, and diagnosis on 2026-08-11 put
+it in Poodle's Dialog.
+
+Dialog defers its focus restore one macrotask on the close edge (`b1a4a5e7`),
+which is correct -- a pending keyup would otherwise re-activate the trigger and
+reopen it -- but the timer handle is never stored and never cancelled.
+`onDestroy` restores only `body` overflow. So a closed Dialog schedules a focus
+change that fires unconditionally, undoing whatever the application did with
+focus in that macrotask, and firing even if the Dialog has unmounted.
+
+Proved by bisecting the file rather than by reading it:
+
+| run | result |
+| --- | --- |
+| the test alone | passes |
+| after `hosts over one controller` | passes |
+| after `keeps dirty state behind the close guard` | fails |
+
+The guard test opens and closes a Dialog. Probing showed the section *is*
+focused correctly and then loses focus in a later turn, which is the stray
+restore landing on a detached trigger.
+
+That makes the failure a true positive against a real bug -- close a dialog,
+move focus deliberately, and Poodle takes it back a tick later -- so the test
+stays failing and SettingsShell is untouched. Raised with Poodle 2026-08-11.
+
+124 of 125 vitest pass; Longhorn's own svelte-check errors against local Poodle
+are zero, and the two that remain are in Poodle's own `AudioSwitch.svelte`.
 
 ### Consequences for the steps above
 
