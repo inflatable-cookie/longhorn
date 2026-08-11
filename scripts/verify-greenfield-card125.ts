@@ -321,10 +321,35 @@ async function selectedSourcesClean(root: string, paths: readonly string[]): Pro
   return status.stdout.toString().trim().length === 0;
 }
 
+// Scanned in process rather than by shelling out to ripgrep. `rg` is on every
+// developer machine here and on no GitHub macOS runner, so this threw
+// `Executable not found in $PATH: "rg"` on the first release run -- after
+// twenty minutes of gates, at the last proof.
+//
+// Installing ripgrep in the workflow would have fixed the run and left the
+// dependency. Reading the files needs nothing that is not already required to
+// run this script, and the tree is a handful of example sources.
 async function verifyExampleSources(): Promise<void> {
-  const source = Bun.spawnSync(["rg", "-n", "-i", "loophole|nucleus|soundcheck|split-shell|jetstream", exampleRoot], { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-  if (source.exitCode === 0) throw new Error(`greenfield examples contain donor vocabulary:\n${source.stdout.toString()}`);
-  if (source.exitCode !== 1) throw new Error(`greenfield vocabulary scan failed:\n${source.stderr.toString()}`);
+  // Declared here, not at module scope: this script runs its main body at the
+  // top level, above this point, so a module-scope const is still in the
+  // temporal dead zone by the time this is called.
+  const donorVocabulary = /loophole|nucleus|soundcheck|split-shell|jetstream/i;
+  const offenders: string[] = [];
+  for (const relative of await readdir(exampleRoot, { recursive: true })) {
+    const path = join(exampleRoot, relative);
+    if (!(await lstat(path)).isFile()) continue;
+    const lines = (await readFile(path, "utf8")).split("\n");
+    for (const [index, line] of lines.entries()) {
+      if (donorVocabulary.test(line)) {
+        offenders.push(`${relative}:${index + 1}: ${line.trim()}`);
+      }
+    }
+  }
+  if (offenders.length > 0) {
+    throw new Error(
+      `greenfield examples contain donor vocabulary:\n${offenders.join("\n")}`,
+    );
+  }
   const svelteFiles = (await readdir(exampleRoot, { recursive: true }))
     .filter((path) => path.endsWith(".svelte"));
   equalSet(svelteFiles, ["common/App.svelte"], "greenfield Svelte implementation inventory");
