@@ -74,6 +74,20 @@ the release workflow.
 `verify-greenfield-card125.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.
 
+## CI rehearsal
+
+`effigy ci:rehearse` reproduces the four developer-machine properties that hid
+defects from local `qa` during the first release runs:
+
+1. `check:repo-containment` + `check:consumer-isolation` — no sibling path
+2. `check:runner-tools` — scripts must not invoke `rg`
+3. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
+4. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
+   and a cold cache
+
+Not a substitute for dispatching `release.yml`. Run it before a release when
+`qa` is green and you want the clean-runner reading, not the developer one.
+
 ## Escape hatches
 
 - `KEEP_HISTORY_TREE_PROOF=1` retains the fork-history proof's disposable

@@ -55,11 +55,16 @@ exclude = ["history/**"]
 "check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
 "check:repo-containment" = "bun scripts/verify-repo-containment.ts"
+"check:runner-tools" = "bun scripts/check-runner-tools.ts"
 "generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------
 # Each script builds isolated artifacts and asserts one composition claim.
 "proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+
+# Pre-release rehearsal of the four machine properties that made local qa green
+# while the first release.yml runs failed. Not part of qa — minutes, not seconds.
+"ci:rehearse" = "bash scripts/ci-rehearse.sh"
 
 # --- Release ------------------------------------------------------------
 "release:floor" = "bash scripts/check-release-floor.sh"

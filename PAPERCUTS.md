@@ -7,40 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] A green local gate says nothing about a clean runner — 2026-08-11
-- Friction: Longhorn's release workflow ran for the first time on 2026-08-11.
-  It failed six times before going green, on eight distinct defects, with
-  `effigy qa` green here throughout. Four properties of a developer machine
-  were doing the work, and every defect came from one of them: a sibling Poodle
-  checkout, a cargo cache still holding versions the lockfile no longer names,
-  `CI` unset so tool output arrives uncoloured, and ripgrep installed.
-- Impact: ten to thirty minutes of CI per defect, found one at a time, during a
-  release. Worse than the cost is the false reading — a fully green board on a
-  repository that could not be cloned and built.
-- The four reproductions, all cheap once known:
-  - `git clone` to a directory with no sibling Poodle, then run the gate there.
-  - `CARGO_HOME=$(mktemp -d) cargo fetch --locked`, then run the proofs against
-    it. `--offline` only fails where a stale pin is absent from the cache.
-  - `CI=1 effigy proof:artifacts`. picocolors enables colour whenever `CI` is
-    set, with no terminal involved, so piping output is not enough to get plain
-    text.
-  - Grep for tools a runner lacks. `rg` was the only one, in two places, and
-    the second was in a shell script after a sweep that only read TypeScript
-    spawn calls had declared the first to be the last.
-- Possible fix: fold the four into one `effigy ci:rehearse` task, so the check
-  before a release is a command rather than a recollection. Each is minutes;
-  together they are still far cheaper than one failed run.
-- Two of the eight were duplicated helpers rotted in the copies — the workspace
-  dependency table in seven proofs, and a vitest summary regex in five. Both
-  are single sources now. A duplicated helper only diverges where nobody looks,
-  and nobody looks locally.
-- One defect hid another twice over. The missing `rg` in check-release-floor.sh
-  failed a pipeline under `set -o pipefail`, which the `if !` read as the
-  toolchain being absent — and the toolchain *was* absent, because release.yml
-  installed only stable. A wrong error message that happens to be true is worse
-  than one that is plainly wrong.
-- Surface: `effigy.toml`, `scripts/`, `.github/workflows/release.yml`.
-
 ### [ ] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
 - Friction: Card 177 added `SurfacePresentation` to the Rust surface model and
   regenerated. `packages/longhorn/src/surfaces/generated/protocol.ts` then

@@ -12,7 +12,9 @@ effigy qa
 ```
 
 `doctor` runs cheap health (`fmt:rust`, `release:floor`) plus built-in scans.
-Full Rust/TypeScript validation is `effigy qa`, not doctor.
+Full Rust/TypeScript validation is `effigy qa`, not doctor. Before a release,
+also run `effigy ci:rehearse` — it exercises the clean-runner properties that
+local `qa` can miss.
 
 Then read:
 
