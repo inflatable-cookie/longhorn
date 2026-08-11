@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -33,9 +33,17 @@ const seamEventsRustOnly = new Map([
 ]);
 
 function walk(directory: string, suffix: string, files: string[] = []): string[] {
-  for (const entry of readdirSync(directory)) {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    // Never descend into installed packages. This walks source for protocol
+    // strings, and a dependency tree holds none that belong to this repository.
+    // It also cannot be walked safely: `effigy deps link bun ../poodle` leaves
+    // dangling symlinks in the linked package's own node_modules, and the
+    // `statSync` this used to call follows symlinks and throws ENOENT on them.
+    if (entry.name === "node_modules") continue;
+    const path = join(directory, entry.name);
+    // Dirent classification does not follow symlinks, so a broken link is a
+    // file that does not end in the suffix rather than an exception.
+    if (entry.isDirectory()) {
       walk(path, suffix, files);
     } else if (path.endsWith(suffix)) {
       files.push(path);

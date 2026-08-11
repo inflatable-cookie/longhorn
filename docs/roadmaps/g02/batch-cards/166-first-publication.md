@@ -489,6 +489,49 @@ five days that the repository could not be installed from a clean checkout.
 The same was true of the whole repository, and only a workflow that had never
 run was in a position to say so.
 
+## The First Release Ships Against Poodle 0.2.0 — 2026-08-11
+
+Decision: Longhorn's first published version depends on Poodle 0.2.0, not
+0.1.0. Poodle is taking a large feature set to 0.2 rather than cutting a 0.1.1,
+and Longhorn already needs unreleased Poodle -- `7827bd7d` forwards a DockRegion
+`showTabs` prop that does not exist in 0.1.0.
+
+**CI cannot run until Poodle 0.2.0 publishes, and that is accepted.** The
+manifest declares `^0.1.0` while the code requires main, so `check:svelte`
+fails on a clean install. This is a known state, not a regression to
+investigate. Develop against `effigy deps link bun ../poodle`, which leaves the
+manifest byte-for-byte unchanged.
+
+The dry run recorded above stays valid for everything that is not the
+TypeScript gate: the workflow, the packing assertions, the artifact upload and
+the Rust half were all proved green on 2026-08-11 before this dependency
+appeared.
+
+### What Poodle main has already broken, and its state
+
+| | |
+| --- | --- |
+| DockRegion `showTabs` | needs main; red against 0.1.0 |
+| Tabs `variant="text"` | renamed `card` by 892c2e51 — fixed |
+| package boundary test | asserted node_modules, now asserts the manifest — fixed |
+| Svelte dev pin | was 5.38.6, the floor of the peer range; now 5.56.8, what every consumer runs — fixed |
+| `SettingsShell` anchor focus | **open** |
+
+The open one: `resolves search anchors and focuses the structural target` fails
+because focus stays on `body`. SettingsShell binds a `tabindex="-1"` section
+and calls `.focus()` one `tick()` after navigating. Nothing in that path is
+Poodle-shaped, so the likely cause is that one tick is no longer enough and the
+bound node is replaced after it. 124 of 125 vitest pass; Longhorn's own
+svelte-check errors against local Poodle are zero, and the two that remain are
+in Poodle's own `AudioSwitch.svelte`.
+
+### Consequences for the steps above
+
+Step 4 (publish) and step 5 (tag) wait on Poodle 0.2.0. Step 6's consumers are
+already developing against linked local Poodle and unpublished Longhorn, which
+is why five of them now carry `file:` Longhorn references with an `overrides`
+block; those revert to versions at the same time.
+
 ## Acceptance Criteria
 
 - `@inflatable-cookie/poodle-core`, `-svelte`, `@inflatable-cookie/longhorn`,
