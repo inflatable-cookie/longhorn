@@ -17,6 +17,28 @@ import {
 } from "./support.ts";
 
 describe("LayoutDockRegion", () => {
+  it("accepts showTabs=false without dispatching", () => {
+    // Strip omission is proven in Poodle's DockRegion tests. Here we only
+    // assert the LayoutDockRegion forward stays mount-safe against the
+    // published peer until that peer version lands in this graph.
+    const shape = loadShape("surface-bound");
+    const document = shapeDocument(shape, {
+      primary: [instance("instance:a")],
+    });
+    const { binding } = mountedBinding(
+      shape.definitions,
+      document,
+      async () => {
+        throw new Error("tabless dock must not dispatch");
+      },
+    );
+    const screen = render(LayoutDockHarness, {
+      props: { binding, resolvePanel, showTabs: false },
+    });
+
+    expect(screen.getByText("A primary body")).toBeTruthy();
+  });
+
   it("keeps static panel rendering consumer-owned through a snippet", () => {
     const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {

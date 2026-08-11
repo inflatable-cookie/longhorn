@@ -13,6 +13,7 @@
     binding: PoodleLayoutBinding;
     resolvePanel: PanelPresentationResolver;
     staticPrimary?: boolean;
+    showTabs?: boolean;
     primaryExternalDragSource?: DockExternalDragSource | null;
     secondaryExternalDropTarget?: DockExternalDropTarget | null;
   }
@@ -21,6 +22,7 @@
     binding,
     resolvePanel,
     staticPrimary = false,
+    showTabs = true,
     primaryExternalDragSource = null,
     secondaryExternalDropTarget = null,
   }: Props = $props();
@@ -33,6 +35,7 @@
     regionId="primary"
     edge="left"
     sizing={staticPrimary ? "static" : "flexible"}
+    {showTabs}
     {resolvePanel}
     ariaLabel="Primary dock"
     externalDragSource={primaryExternalDragSource}

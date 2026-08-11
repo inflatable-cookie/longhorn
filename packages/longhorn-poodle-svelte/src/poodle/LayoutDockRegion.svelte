@@ -39,6 +39,8 @@ import type {
     /** Forwarded to the dock strip; false when divider-level collapse pills
      * own the affordance. */
     showCollapseToggle?: boolean;
+    /** Forwarded to DockRegion; false when the host renders tabs elsewhere. */
+    showTabs?: boolean;
     emphasis?: DockEmphasis;
     tabVariant?: TabVariant;
     size?: ControlSize | null;
@@ -60,6 +62,7 @@ import type {
     sizing = "flexible",
     collapsedPosture = "icon-strip",
     showCollapseToggle = true,
+    showTabs = true,
     emphasis = "standard",
     tabVariant = "strip",
     size = null,
@@ -112,6 +115,7 @@ import type {
   {sizing}
   collapsible={projection.definition.collapsible}
   {showCollapseToggle}
+  {showTabs}
   collapsed={projection.state.collapsed ?? false}
   {collapsedPosture}
   {emphasis}
