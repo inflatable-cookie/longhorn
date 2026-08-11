@@ -1,4 +1,5 @@
 import { poodleRelease } from "./poodle-release.ts";
+import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -720,11 +721,13 @@ longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-nativ
 longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "0.1.0" }
 longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "0.1.0" }
 longhorn-native-content-artifact-proof-common = { path = "consumers/common" }
-proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-tauri = { version = "2.10.3", default-features = false }
-ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+${workspaceDependencies([
+  "proptest",
+  "serde",
+  "serde_json",
+  "tauri",
+  "ts-rs",
+])}
 
 [workspace.lints.rust]
 missing_docs = "deny"

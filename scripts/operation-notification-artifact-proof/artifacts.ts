@@ -1,4 +1,5 @@
 import { poodleRelease } from "../poodle-release.ts";
+import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join, resolve } from "node:path";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 
@@ -127,11 +128,13 @@ longhorn-operation = { path = "crates/longhorn-operation", version = "0.1.0" }
 longhorn-notifications = { path = "crates/longhorn-notifications", version = "0.1.0" }
 longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation", version = "0.1.0" }
 longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications", version = "0.1.0" }
-proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-tauri = { version = "2.10.3", default-features = false }
-ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+${workspaceDependencies([
+  "proptest",
+  "serde",
+  "serde_json",
+  "tauri",
+  "ts-rs",
+])}
 
 [workspace.lints.rust]
 missing_docs = "deny"
