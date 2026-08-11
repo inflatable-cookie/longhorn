@@ -7,28 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
-- Friction: Card 177 added `SurfacePresentation` to the Rust surface model and
-  regenerated. `packages/longhorn/src/surfaces/generated/protocol.ts` then
-  *referenced* `SurfacePresentation` in four places while declaring it nowhere,
-  because the generator's declaration list had not been extended.
-  `effigy check:bindings` passed. It compares generated output against
-  committed output, so when the generator is wrong both sides agree and the
-  gate is satisfied by a file that does not compile.
-- Impact: the natural loop after a protocol change — `generate:bindings`, then
-  `check:bindings` — reports success on a broken package. `effigy check:ts`
-  does catch it, so `qa` is not blind, but the bindings gate alone reads as
-  authoritative and is not.
-- Fix: make the generator refuse to emit. It already knows enough — it prints
-  `tagged unions not in the field map: SurfacePresentation, …` as a warning at
-  exactly the moment it should be failing. Every type name referenced in an
-  emitted declaration should resolve to a declaration in the same file or a
-  known primitive, and anything else should be an error rather than a line of
-  output nobody reads.
-- Not: adding `check:ts` to `check:bindings`. That makes the gate slower and
-  still only catches the class after the fact; the generator is the place that
-  knows.
-
 ### [ ] A `file:` install links files, so new files never reach consumers — 2026-08-10
 - Friction: `bun install` for a `file:` dependency builds real directories
   containing one symlink per file, resolved at install time. Edits to an
@@ -167,3 +145,26 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   gate, Longhorn-only) from the cross-repo compatibility claim (receipt), so
   the former never waits on the latter.
 - Surface: `scripts/private-candidate-card149/consumers.ts`, Card 149.
+
+## Closed
+
+### [x] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
+- Friction: Card 177 added `SurfacePresentation` to the Rust surface model and
+  regenerated. `packages/longhorn/src/surfaces/generated/protocol.ts` then
+  *referenced* `SurfacePresentation` in four places while declaring it nowhere,
+  because the generator's declaration list had not been extended.
+  `effigy check:bindings` passed. It compares generated output against
+  committed output, so when the generator is wrong both sides agree and the
+  gate is satisfied by a file that does not compile.
+- Impact: the natural loop after a protocol change — `generate:bindings`, then
+  `check:bindings` — reports success on a broken package. `effigy check:ts`
+  does catch it, so `qa` is not blind, but the bindings gate alone reads as
+  authoritative and is not.
+- Fix (2026-08-11): `longhorn-bindings` `apply()` now runs
+  `assert_protocol_references_resolve` on every `protocol.ts` artifact before
+  write/check. Referenced PascalCase names must resolve to a local
+  `export type`, an `import type { … }` name, or a TypeScript builtin; comments
+  and camelCase field interiors are ignored. Tagged-union field-map skips stay
+  warnings — those types are declared, just not flat-mapped.
+- Not: adding `check:ts` to `check:bindings`.
+- Surface: `crates/longhorn-bindings/src/generation.rs`.
