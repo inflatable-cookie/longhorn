@@ -1,3 +1,4 @@
+import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
 import {
   mkdir,
@@ -398,11 +399,13 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0", default-features = false }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "0.1.0" }
-proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-tauri = { version = "2.10.3", default-features = false }
-ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+${workspaceDependencies([
+  "proptest",
+  "serde",
+  "serde_json",
+  "tauri",
+  "ts-rs",
+])}
 
 [workspace.lints.rust]
 missing_docs = "deny"

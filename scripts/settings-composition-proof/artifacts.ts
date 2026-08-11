@@ -1,4 +1,5 @@
 import { poodleRelease } from "../poodle-release.ts";
+import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join, resolve } from "node:path";
 import {
   mkdir,
@@ -215,23 +216,25 @@ license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-cap-std = "4.0.2"
-fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
 longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.1.0" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "0.1.0" }
 longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.1.0" }
-proptest = { version = "1.11.0", default-features = false, features = ["std"] }
-rusqlite = { version = "=0.31.0", features = ["backup", "bundled"] }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-sha2 = "0.10.9"
-tauri = { version = "2.10.3", default-features = false }
-tempfile = "3.27.0"
-ts-rs = { version = "=11.0.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
-zip = { version = "=5.1.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+${workspaceDependencies([
+  "cap-std",
+  "fs4",
+  "proptest",
+  "rusqlite",
+  "serde",
+  "serde_json",
+  "sha2",
+  "tauri",
+  "tempfile",
+  "ts-rs",
+  "zip",
+])}
 
 [workspace.lints.rust]
 missing_docs = "deny"
