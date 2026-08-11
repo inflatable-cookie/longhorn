@@ -3595,10 +3595,12 @@ dependencies = [
 [[package]]
 name = "poodle-headless"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 
 [[package]]
 name = "poodle-specs"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-headless",
  "poodle-tokens",
@@ -3607,6 +3609,7 @@ dependencies = [
 [[package]]
 name = "poodle-tokens"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 
 [[package]]
 name = "potential_utf"
