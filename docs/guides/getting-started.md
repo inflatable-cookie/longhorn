@@ -61,6 +61,29 @@ with the exact lock from the receipt, then verify offline:
 cargo check --locked
 ```
 
+### Registering the shipped commands
+
+Every `longhorn-tauri-*` crate names its public surface explicitly, and the
+commands it ships are registered **by qualified path**:
+
+```rust
+.invoke_handler(tauri::generate_handler![
+    longhorn_tauri_settings::longhorn_settings_registry,
+    longhorn_tauri_notifications::longhorn_notifications_snapshot,
+])
+```
+
+Do not write wrapper commands that delegate to these. A wrapper is a second
+place for the command id to live, and the id is a protocol name the renderer
+depends on — one consumer's wrappers drifted from the ids the TypeScript port
+expected and cost a live debugging session.
+
+The path form is what matters. `#[tauri::command]` puts its generated
+`__cmd__*` helper at the crate root, so the qualified path resolves both the
+function and the helper `generate_handler!` needs, whatever the crate's module
+layout. Importing the bare function name first and registering that does not,
+because the helper is not imported with it.
+
 ## 4. TypeScript: Install The Renderer Packages [temporary]
 
 ### Candidate tarballs
