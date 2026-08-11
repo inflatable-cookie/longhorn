@@ -31,6 +31,8 @@ pub enum ForkNavigationError<E> {
     AlreadyAtTarget,
     /// Entry identity does not exist.
     UnknownEntry(HistoryEntryId),
+    /// Branch identity does not exist.
+    UnknownBranch(ForkBranchId),
     /// Target entry is not on the selected branch.
     EntryOutsideBranch {
         /// Selected branch.
@@ -81,6 +83,7 @@ impl<E> fmt::Display for ForkNavigationError<E> {
             Self::NothingToRedo => "fork history has nothing to redo",
             Self::AlreadyAtTarget => "fork history is already at the requested target",
             Self::UnknownEntry(_) => "fork navigation entry does not exist",
+            Self::UnknownBranch(_) => "fork navigation branch does not exist",
             Self::EntryOutsideBranch { .. } => "fork navigation entry is outside its branch",
             Self::UnreferencedTarget(_) => "fork preferred child has no branch reference",
             Self::RouteTooLong { .. } => "fork navigation route exceeds its hard limit",

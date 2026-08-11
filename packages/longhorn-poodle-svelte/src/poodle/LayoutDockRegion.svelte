@@ -64,7 +64,10 @@ import type {
     showCollapseToggle = true,
     showTabs = true,
     emphasis = "standard",
-    tabVariant = "strip",
+    // Poodle's g13-b020 deleted the strip variant: block absorbed its list
+    // padding, hover and close-button margin, and the indicator moved to the
+    // active-edge axis. Poodle migrated its own DockRegion the same way.
+    tabVariant = "block",
     size = null,
     sizeRole = "chrome",
     density = null,

@@ -800,3 +800,62 @@ fn loophole_shaped_mixed_route_and_failure_invariance_keep_payload_semantics_ext
     assert_eq!(history.current_branch_id(), &branch_id("branch:main"));
     assert_eq!(history.current_node_id(), Some(&entry_id("entry:c")));
 }
+
+/// A branch root is a real position: the state before that branch's first
+/// entry, and where a nascent branch sits until something is recorded on it.
+/// `Checkout` requires an entry id and so cannot name it, which forced
+/// consumers to reach it by special-casing `AlreadyAtTarget` and
+/// `UnknownTarget`. Card 181 step 3.
+#[test]
+fn checkout_branch_root_unwinds_to_the_position_before_the_first_entry() {
+    let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
+    let plan = history
+        .plan_navigation(
+            plan_id("plan:checkout-root"),
+            history.revision(),
+            ForkNavigationTarget::CheckoutBranchRoot {
+                branch_id: branch_id("branch:main"),
+            },
+            &DeltaPolicy,
+        )
+        .expect("branch root plan");
+    // Nothing is shared with a target that holds no entry, so the route is the
+    // whole source lineage undone.
+    assert_eq!(plan.lowest_common_ancestor(), None);
+    assert!(
+        plan.steps()
+            .iter()
+            .all(|step| matches!(step, HistoryNavigationStep::Undo { .. })),
+        "a branch-root checkout only unwinds"
+    );
+
+    let mut transaction = ModelTransaction {
+        model: &mut model,
+        mode: TransactionMode::Commit,
+        calls: 0,
+    };
+    let receipt = history
+        .execute_navigation(plan, &mut transaction)
+        .expect("branch root commit");
+    assert_eq!(receipt.target_node_id(), None);
+    assert_eq!(receipt.target_branch_id(), &branch_id("branch:main"));
+    assert_eq!(model, 0, "unwinding every entry returns the model to zero");
+}
+
+#[test]
+fn checkout_branch_root_rejects_a_branch_that_does_not_exist() {
+    let (history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
+    let error = history
+        .plan_navigation(
+            plan_id("plan:checkout-missing"),
+            history.revision(),
+            ForkNavigationTarget::CheckoutBranchRoot {
+                branch_id: branch_id("branch:absent"),
+            },
+            &DeltaPolicy,
+        )
+        .expect_err("a missing branch has no root to reach");
+    assert!(
+        matches!(error, ForkNavigationError::UnknownBranch(id) if id == branch_id("branch:absent"))
+    );
+}

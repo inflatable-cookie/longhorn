@@ -5,7 +5,7 @@ export const FORK_HISTORY_PROTOCOL_VERSION = 1 as const;
 export const MAXIMUM_FORK_HISTORY_PAGE_SIZE = 256 as const;
 export const FORK_HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
 export const FORK_HISTORY_PATH_TARGETS = ["default","branch"] as const;
-export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout"] as const;
+export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutBranchRoot"] as const;
 export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const FORK_HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
 export const FORK_HISTORY_CHANGED_KINDS = ["record","navigation","branchMetadata","retention","checkpoint","imported","reset"] as const;
@@ -312,7 +312,11 @@ branchId: ForkBranchId,
 /**
  * Stable target entry.
  */
-entryId: HistoryEntryId, };
+entryId: HistoryEntryId, } | { "kind": "checkoutBranchRoot", 
+/**
+ * Stable target branch.
+ */
+branchId: ForkBranchId, };
 
 export type ForkNavigationCommand = { 
 /**

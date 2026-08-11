@@ -19,6 +19,22 @@ pub enum ForkNavigationTarget {
         /// Stable target entry.
         entry_id: HistoryEntryId,
     },
+    /// Move to a branch's root, holding no entry.
+    ///
+    /// A separate target rather than an optional `entry_id` on `Checkout`.
+    /// Optional would make every match site handle a combination that means
+    /// something for one branch state and nothing for the other, and callers
+    /// would have to know that `None` is the root rather than "unspecified".
+    ///
+    /// This is the position a nascent branch starts in and the one a
+    /// root-only switch asks for. It is already representable everywhere
+    /// downstream -- the resolver returns `Option<HistoryEntryId>` and the
+    /// plan compares it against a current node that is equally optional --
+    /// so only the target could not say it.
+    CheckoutBranchRoot {
+        /// Stable branch reference.
+        branch_id: ForkBranchId,
+    },
 }
 
 /// Immutable mixed undo/redo route bound to exact graph authority.

@@ -163,6 +163,12 @@ impl<P> ForkHistory<P> {
                 }
                 Ok((branch_id.clone(), Some(entry_id.clone())))
             }
+            ForkNavigationTarget::CheckoutBranchRoot { branch_id } => {
+                if !self.branches.contains_key(branch_id) {
+                    return Err(ForkNavigationError::UnknownBranch(branch_id.clone()));
+                }
+                Ok((branch_id.clone(), None))
+            }
         }
     }
 

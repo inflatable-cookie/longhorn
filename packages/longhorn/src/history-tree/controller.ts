@@ -85,6 +85,8 @@ export class ForkHistoryController {
   undo(): Promise<ForkNavigationResult> { return this.#navigate({ kind: "undo" }); }
   redo(): Promise<ForkNavigationResult> { return this.#navigate({ kind: "redo" }); }
   checkout(branchId: ForkBranchId, entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkout", branchId, entryId }); }
+  /** Move to a branch's root, the position before its first entry. */
+  checkoutBranchRoot(branchId: ForkBranchId): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutBranchRoot", branchId }); }
 
   async #navigate(target: ForkNavigationTargetProjection): Promise<ForkNavigationResult> {
     const snapshot = this.#required(); const navigation = ++this.#navigation; this.#pending = true; this.#notify();

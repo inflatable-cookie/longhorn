@@ -26,6 +26,11 @@ pub enum ForkNavigationTargetProjection {
         /// Stable target entry.
         entry_id: HistoryEntryId,
     },
+    /// Move to a branch's root, holding no entry.
+    CheckoutBranchRoot {
+        /// Stable target branch.
+        branch_id: ForkBranchId,
+    },
 }
 
 /// One exact revision-bound graph navigation command.
