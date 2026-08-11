@@ -7,6 +7,29 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Nothing local can fail on a path that escapes the repository — 2026-08-11
+- Friction: `effigy qa` is green here whether or not the repository is
+  self-contained, because this machine has Poodle checked out beside Longhorn.
+  Four gates read paths outside the repository and all four passed locally:
+  `crates/longhorn-poodle` and both gpui prototypes by Cargo path,
+  `boundary.test.ts` by `realpath`, and `verify-greenfield-card125.ts` by
+  `POODLE_REPO ?? ../poodle`. The release workflow's first run found the first
+  in 23 seconds.
+- Impact: the whole local board can be green on a repository that cannot be
+  cloned and built. Worse, it is silent — there is no partial signal, so
+  confidence tracks nothing. The fix for one escaping path also introduced a
+  duplicate-crate break in another, which local runs could not see either.
+- Possible fix: a cheap gate that greps manifests, tests and scripts for refs
+  resolving above the repository root, allow-listing the greenfield proof.
+  Grep, not a build: it needs to be fast enough to sit in `qa`. Until then, the
+  reliable check is `git clone` to a directory with no sibling Poodle and run
+  the gate there, which is how these four were found in one pass.
+- Deliberate exception: `verify-greenfield-card125.ts` packs Poodle from
+  source, so it needs a real checkout. `release.yml` clones the tag beside the
+  workspace. Any allow-list should name this one and no others.
+- Surface: `effigy.toml`, `scripts/verify-greenfield-card125.ts`,
+  `.github/workflows/release.yml`.
+
 ### [ ] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
 - Friction: Card 177 added `SurfacePresentation` to the Rust surface model and
   regenerated. `packages/longhorn/src/surfaces/generated/protocol.ts` then
@@ -105,7 +128,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `effigy.toml`, `.github/workflows/ci.yml`,
   `.github/workflows/release.yml`.
 
-### [ ] CI claims no sibling checkouts; two manifests need one — 2026-08-09
+### [x] CI claims no sibling checkouts; two manifests need one — 2026-08-09
 - Friction: `ci.yml` states it "exists to prove a clean clone with no sibling
   checkouts, no `[patch]` config, and no warm caches". Two manifests contradict
   it. `package.json` pins
@@ -123,6 +146,14 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   known rather than discovered during a release.
 - Surface: `.github/workflows/ci.yml`, `package.json`,
   `crates/longhorn-poodle/Cargo.toml`.
+- Closed 2026-08-11. Poodle carries v0.1.0, so the swap happened: the npm side
+  takes registry versions, and `longhorn-poodle` plus both gpui prototypes take
+  a git tag. Nine escaping path refs are gone and the claim is true, with one
+  deliberate exception recorded below.
+- It was found the expensive way. This entry predicted the failure and named
+  the fix, and it still went undiscovered until the release workflow's first
+  run — which failed three times, once on a regression introduced while fixing
+  it. A papercut that names a release-blocking gap is worth more than a note.
 
 ### [ ] Repo-wide renames need to be language-aware — 2026-08-09
 - Friction: the `bovine` -> `split-shell` rename was applied as a text
