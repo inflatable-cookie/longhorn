@@ -39,6 +39,14 @@ package scripts. Use `--repo <PATH>` only for another repository.
 - A donor implementation is evidence, not automatically the shared contract.
 - Stop when a missing contract or unresolved product choice changes package
   boundaries.
+- Repo-wide renames: prefer a hyphen-free identifier when the token is also a
+  Rust name; run `cargo check --workspace` before committing. A rename that
+  hits both strings and identifiers needs two substitutions, not one.
+- Shared checkouts: stage by explicit path, never `git add -A`. Verify moves
+  against the working tree, not `git grep` on the index. Prefer a branch per
+  concurrent thread when more than one agent touches the same repo.
+- Redaction sweeps: do not treat `scripts/` as prose. A placeholder that reads
+  fine in a document is a runtime failure in executable code.
 
 ## Continuation
 

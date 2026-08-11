@@ -7,67 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] A public-readiness redaction disabled a release gate — 2026-08-10
-- Friction: `6a84574c docs: remove third-party identity so the repo can be made
-  public` replaced a consumer's real path with the literal placeholder
-  `../<private-consumer>` in `scripts/private-candidate-card149/consumers.ts` —
-  executable code, not prose. The candidate verifier has been unable to resolve
-  it ever since.
-- Impact: g02.008 spent weeks recorded as "operator-held on nucleus quiescence"
-  while the actual blocker was that the gate could not run at all. Nobody
-  noticed because the recorded reason was plausible and nobody re-ran it.
-- Possible fix: the path now comes from `LONGHORN_PRIVATE_CONSUMER`, with an
-  unset value recorded as a named omission. The general lesson is that a
-  redaction sweep over a repository should not treat `scripts/` as prose — a
-  placeholder that reads fine in a document is a runtime failure in code.
-- Surface: `scripts/private-candidate-card149/consumers.ts`, any future
-  redaction sweep.
-
-### [ ] A receipt pinning five repositories goes stale silently — 2026-08-10
-- Friction: Card 149's candidate receipt pins five external consumer graphs and
-  Poodle's artifact set. Between one attempt to generate it and the next, four
-  independent things had drifted: the TypeScript package count (18 to 3 via
-  g02.013), Loophole's entire structure (restarted greenfield, old app moved to
-  `loophole-legacy`), the redacted consumer path above, and Poodle's package
-  set. Each failure surfaced one at a time, only when the previous one was
-  fixed.
-- Impact: the receipt describes a world that no longer exists, and the only way
-  to discover that is to run it — which nobody does, because it is held for a
-  reason that stopped being true.
-- Possible fix: run it often enough to fail early, or pin fewer things. A
-  compatibility claim over five moving repositories has the staleness rate of
-  the fastest one.
-- Surface: `scripts/private-candidate-card149/`, g02.008.
-
-### [ ] Repo-wide renames need to be language-aware — 2026-08-09
-- Friction: the `bovine` -> `split-shell` rename was applied as a text
-  substitution across the repository and hit Rust identifiers, which cannot
-  contain a hyphen. `let bovine = ...` became `let split-shell = ...` in five
-  places, so two crates stopped compiling and `effigy qa` was red for several
-  hours. The thread that ran it had already moved on and did not know.
-- Impact: a red gate that describes nobody's current change, and which every
-  other concurrent thread has to triage before it can trust its own results.
-  Twenty-one of the twenty-six hits were string literals and correct; only
-  five were wrong, so the noise ratio made it look worse than it was.
-- Possible fix: follow any repo-wide rename with `cargo check --workspace`
-  before committing, and prefer a hyphen-free identifier when the new name
-  will appear in code as well as in data. A rename that changes a token used
-  as both an identifier and a string needs two substitutions, not one.
-- Surface: multi-thread working practice, rename tooling.
-
-### [ ] Concurrent threads in one repository undo each other — 2026-08-09
-- Friction: three agents were working across Longhorn and Poodle at once. One
-  committed mid-way through another's file moves and restored paths that were
-  staged for deletion; only a gitignored directory survived untouched. The
-  loss was silent — `git grep` searches the index, so a check that looked like
-  confirmation reported success against stale state.
-- Impact: work redone twice, and a real risk of one thread committing
-  another's half-finished changes when staging with `git add -A`.
-- Possible fix: give each thread a branch, or stagger them. Failing that,
-  stage by explicit path and never `git add -A` in a shared checkout, and
-  verify file moves against the working tree rather than the index.
-- Surface: multi-thread working practice.
-
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
@@ -84,29 +23,57 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `crates/longhorn-update/src/source.rs`,
   `crates/longhorn-licence/src/activation.rs`.
 
-### [ ] MSRV-gated Clippy lints surface late — 2026-08-06
-- Friction: raising the declared floor (1.85 -> 1.90 -> 1.95) each time
-  unlocked new Clippy lints on pre-existing code (`collapsible_if`,
-  `question_mark`), discovered only when a release gate ran, not when the
-  floor changed.
-- Impact: two unplanned fix rounds mid-release-prep; a floor bump silently
-  carries a lint debt that surfaces at the worst moment.
-- Possible fix: run `cargo clippy --workspace --all-targets -- -D warnings`
-  as an immediate step in any floor change, before committing the bump.
-- Surface: tagged-release runbook, `scripts/check-release-floor.sh`.
-
-### [ ] Candidate receipt freezes consumer graphs, coupling unrelated repos — 2026-08-06
-- Friction: the Card 127/149 receipt asserts clean selected manifests across
-  seven consumer repositories, so an unrelated in-flight line in a consumer
-  blocks a Longhorn-side freeze indefinitely.
-- Impact: Card 149 has waited on nucleus, then soundcheck; the window where
-  every consumer is simultaneously quiescent is rare and shrinking.
-- Possible fix: separate the artifact identity claim (tag + source-consumer
-  gate, Longhorn-only) from the cross-repo compatibility claim (receipt), so
-  the former never waits on the latter.
-- Surface: `scripts/private-candidate-card149/consumers.ts`, Card 149.
-
 ## Closed
+
+### [x] Repo-wide renames need to be language-aware — 2026-08-09
+- Friction: `bovine` -> `split-shell` text substitution hit Rust identifiers
+  (hyphens illegal); two crates stopped compiling.
+- Fix (2026-08-11): `AGENTS.md` Working Posture — hyphen-free identifiers when
+  the token is also a Rust name; `cargo check --workspace` before commit;
+  two substitutions when a token is both string and identifier.
+- Surface: `AGENTS.md`, rename practice.
+
+### [x] Concurrent threads in one repository undo each other — 2026-08-09
+- Friction: concurrent agents in one checkout; `git add -A` / index-based
+  checks undid each other's moves silently.
+- Fix (2026-08-11): `AGENTS.md` — stage by explicit path, never `git add -A`;
+  verify moves in the working tree; prefer a branch per concurrent thread.
+- Surface: `AGENTS.md`, multi-thread practice.
+
+### [x] MSRV-gated Clippy lints surface late — 2026-08-06
+- Friction: floor bumps unlocked Clippy on pre-existing code only when a
+  release gate ran, not when the floor changed.
+- Fix (2026-08-11): `release-baselines/rust-toolchains.env` and
+  `scripts/README.md` require `effigy release:floor` in the same change as an
+  MSRV bump, before commit. Gate already runs Clippy `-D warnings` at floor.
+- Surface: `release-baselines/rust-toolchains.env`, `scripts/check-release-floor.sh`.
+
+### [x] A public-readiness redaction disabled a release gate — 2026-08-10
+- Friction: `6a84574c` replaced a consumer's real path with
+  `../<private-consumer>` in `scripts/private-candidate-card149/consumers.ts`
+  — executable code, not prose. The candidate verifier could not resolve it.
+- Impact: g02.008 spent weeks recorded as "operator-held on nucleus
+  quiescence" while the gate could not run at all.
+- Fix: `1371a6dc` read the path from `LONGHORN_PRIVATE_CONSUMER` and recorded
+  an unset value as a named omission. Lesson: redaction sweeps must not treat
+  `scripts/` as prose. Card149 verifier surface later removed in `81f12053`.
+- Surface: was `scripts/private-candidate-card149/consumers.ts`.
+
+### [x] A receipt pinning five repositories goes stale silently — 2026-08-10
+- Friction: Card 149's receipt pinned five external consumer graphs and
+  Poodle's artifact set; drift accumulated silently until someone ran it.
+- Fix / disposition (2026-08-11): verifier unstuck in `1371a6dc`; entire
+  `scripts/private-candidate-card149/` surface removed in `81f12053`. Lesson
+  retained on Card 149 — pin fewer things, or run often enough to fail early.
+- Surface: was `scripts/private-candidate-card149/`, g02.008.
+
+### [x] Candidate receipt freezes consumer graphs, coupling unrelated repos — 2026-08-06
+- Friction: Card 127/149 receipt required clean selected manifests across
+  seven consumers, so unrelated in-flight work blocked Longhorn freezes.
+- Fix / disposition (2026-08-11): card149 consumer-graph surface removed in
+  `81f12053`. Separate artifact-identity (Longhorn-only) from cross-repo
+  compatibility if a successor receipt returns.
+- Surface: was `scripts/private-candidate-card149/consumers.ts`, Card 149.
 
 ### [x] A `file:` install links files, so new files never reach consumers — 2026-08-10
 - Friction: `bun install` for a `file:` dependency builds real directories

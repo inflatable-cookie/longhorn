@@ -113,3 +113,7 @@ technical reason.
   git source, proving the commit is consumable as a tagged dependency.
 
 Run both with `effigy release:gates`.
+
+When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the same
+change before commit. The floor gate is what unlocks MSRV-gated Clippy lints;
+do not leave that debt for release prep.
