@@ -515,7 +515,7 @@ appeared.
 | Tabs `variant="text"` | renamed `card` by 892c2e51 — fixed |
 | package boundary test | asserted node_modules, now asserts the manifest — fixed |
 | Svelte dev pin | was 5.38.6, the floor of the peer range; now 5.56.8, what every consumer runs — fixed |
-| `SettingsShell` anchor focus | **open** |
+| `SettingsShell` anchor focus | Poodle Dialog leaked an uncancelled focus restore — fixed upstream |
 
 The open one is not Longhorn's to fix. `resolves search anchors and focuses the
 structural target` fails with focus on `body`, and diagnosis on 2026-08-11 put
@@ -540,12 +540,29 @@ The guard test opens and closes a Dialog. Probing showed the section *is*
 focused correctly and then loses focus in a later turn, which is the stray
 restore landing on a detached trigger.
 
-That makes the failure a true positive against a real bug -- close a dialog,
+That made the failure a true positive against a real bug -- close a dialog,
 move focus deliberately, and Poodle takes it back a tick later -- so the test
-stays failing and SettingsShell is untouched. Raised with Poodle 2026-08-11.
+was left failing and SettingsShell untouched.
 
-124 of 125 vitest pass; Longhorn's own svelte-check errors against local Poodle
-are zero, and the two that remain are in Poodle's own `AudioSwitch.svelte`.
+**Resolved upstream 2026-08-11** (`3889825e`). Poodle kept the deferral and
+bounded it three ways: the handle is cleared on destroy so it cannot outlive
+the component, cleared on the open edge so a restore queued by the previous
+close cannot land after a reopen, and applied only into a focus vacuum --
+`activeElement` null, `body`, or still inside the closing surface. The guard is
+what fixes this case; the cancellation covers unmount and reopen. The semantics
+are now stated in Poodle's contract, so a host can depend on them.
+
+Two things came back with the fix that are worth knowing here. React never had
+the deferral at all -- it was Svelte-only, so React carried the keyup-reopen
+bug the deferral exists to prevent, and has now been brought to parity. And the
+leak reached review because the merge instruction told the worker to preserve
+the deferred restore untouched, which fenced it off from scrutiny.
+
+Longhorn needed no change. 125 of 125 vitest pass and Longhorn's own
+svelte-check errors against local Poodle are zero.
+
+The two svelte-check errors that remain are in Poodle's own
+`AudioSwitch.svelte` and will block 0.2.0's gates independently of Longhorn.
 
 ### Consequences for the steps above
 
