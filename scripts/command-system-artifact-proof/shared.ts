@@ -55,7 +55,4 @@ export function parseTrace(output: string): Record<string, unknown> {
   return JSON.parse(line) as Record<string, unknown>;
 }
 
-export function testCount(output: string): number {
-  const match = output.match(/Tests\s+(\d+) passed/);
-  return match ? Number(match[1]) : 0;
-}
+export { testCount } from "../test-count.ts";

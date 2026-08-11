@@ -1,5 +1,6 @@
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { poodleRelease } from "./poodle-release.ts";
+import { testCount } from "./test-count.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -332,10 +333,6 @@ async function run(command: string[], cwd: string): Promise<string> {
   return `${stdout}\n${stderr}`;
 }
 
-function testCount(output: string): number {
-  const match = output.match(/Tests\s+(\d+) passed/);
-  return match ? Number(match[1]) : 0;
-}
 
 interface PackageManifest {
   dependencies: Record<string, string>;

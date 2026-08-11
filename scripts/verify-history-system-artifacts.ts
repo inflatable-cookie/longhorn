@@ -1,5 +1,6 @@
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
+import { testCount } from "./test-count.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -601,10 +602,6 @@ function parseTrace(output: string): Record<string, unknown> {
   return JSON.parse(line) as Record<string, unknown>;
 }
 
-function testCount(output: string): number {
-  const match = output.match(/Tests\s+(\d+) passed/);
-  return match ? Number(match[1]) : 0;
-}
 
 function containsKey(value: unknown, key: string): boolean {
   if (Array.isArray(value)) {

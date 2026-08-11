@@ -33,7 +33,4 @@ export function fileDependency(path: string): string {
   return `file:${path}`;
 }
 
-export function testCount(output: string): number {
-  const match = output.match(/Tests\s+(\d+) passed/);
-  return match ? Number(match[1]) : 0;
-}
+export { testCount } from "../test-count.ts";
