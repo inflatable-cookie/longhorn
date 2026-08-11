@@ -135,52 +135,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   the fastest one.
 - Surface: `scripts/private-candidate-card149/`, g02.008.
 
-### [x] `cargo fmt --all` reformats sibling repositories — 2026-08-09
-- Friction: `--all` is not workspace-scoped the way `--workspace` is. It walks
-  every *local* package in the graph, so the moment `crates/longhorn-poodle`
-  took a relative path dependency, `fmt:rust` started formatting Poodle — and
-  failing, because Longhorn is edition 2024 and Poodle is 2021, so the same
-  files pass Poodle's own gate and fail Longhorn's. Fifty-four diffs in a
-  repository this change never touched. `clippy`, `test` and `doc` were
-  unaffected; they all say `--workspace`.
-- Impact: the fix task would have *written* to a sibling checkout another
-  thread was working in. On a shared tree that is the same failure mode as
-  `git add -A`, arriving through a formatter.
-- Fixed 2026-08-09: `fmt:rust` derives its package list from `cargo metadata
-  --no-deps`, which is genuinely members-only, and passes each as `-p`.
-  `.github/workflows/ci.yml:34` and `release.yml:92` still say
-  `cargo fmt --all` and need the same change; workflows are not edited without
-  approval, so this is flagged rather than done.
-- Surface: `effigy.toml`, `.github/workflows/ci.yml`,
-  `.github/workflows/release.yml`.
-
-### [x] CI claims no sibling checkouts; two manifests need one — 2026-08-09
-- Friction: `ci.yml` states it "exists to prove a clean clone with no sibling
-  checkouts, no `[patch]` config, and no warm caches". Two manifests contradict
-  it. `package.json` pins
-  `"@inflatable-cookie/poodle-core": "file:../poodle/.artifacts/…"`, and
-  `crates/longhorn-poodle` now takes
-  `poodle-specs = { path = "../../../poodle/…" }`. Both are the sanctioned
-  temporary shape while Poodle is untagged, and both need a sibling Poodle to
-  resolve.
-- Impact: the stated contract and the manifests disagree, so anyone reading
-  `ci.yml` will believe a clean-clone build works when it cannot. It also means
-  the two lanes fail for a reason unrelated to whatever change triggered them.
-- Possible fix: none until Poodle is tagged — at which point every path ref
-  swaps to a git ref together, npm and Cargo alike, and the claim becomes true.
-  Until then the comment should say what is actually the case, so the gap is
-  known rather than discovered during a release.
-- Surface: `.github/workflows/ci.yml`, `package.json`,
-  `crates/longhorn-poodle/Cargo.toml`.
-- Closed 2026-08-11. Poodle carries v0.1.0, so the swap happened: the npm side
-  takes registry versions, and `longhorn-poodle` plus both gpui prototypes take
-  a git tag. Nine escaping path refs are gone and the claim is true, with one
-  deliberate exception recorded below.
-- It was found the expensive way. This entry predicted the failure and named
-  the fix, and it still went undiscovered until the release workflow's first
-  run — which failed three times, once on a regression introduced while fixing
-  it. A papercut that names a release-blocking gap is worth more than a note.
-
 ### [ ] Repo-wide renames need to be language-aware — 2026-08-09
 - Friction: the `bovine` -> `split-shell` rename was applied as a text
   substitution across the repository and hit Rust identifiers, which cannot
@@ -210,85 +164,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   verify file moves against the working tree rather than the index.
 - Surface: multi-thread working practice.
 
-### [x] Greenfield proof froze the tree it was meant to describe — 2026-08-09
-- Friction: `verify-greenfield-card125.ts` asserted `git diff --quiet
-  <frozen-commit>` across every TypeScript package and every Rust crate, so any
-  change to any crate failed an unrelated gate. It blocked the GPUI thread,
-  and it had already been rebaselined once during the package consolidation.
-  A second check threw when a *sibling* repository was dirty, which made
-  Longhorn's `qa` depend on whether anyone was mid-edit in Poodle.
-- Impact: two of three concurrent threads stalled on a gate describing neither
-  of their changes, with rebaselining the fixture as the only remedy.
-- Fixed 2026-08-09: the frozen-source comparison is gone and cleanliness is
-  recorded in the report rather than thrown on. The composition claims —
-  inventories, per-shape graphs, audits, mounted tests — are computed from the
-  current tree and unchanged, so nothing about correctness was traded away.
-  The artifact set ids are emitted as evidence rather than asserted, since
-  every one is a hash over packed contents and asserting them re-freezes the
-  tree through the back door. Cleanliness belongs to a release gate, where a
-  tag must name exact clean commits.
-- Surface: `scripts/verify-greenfield-card125.ts`,
-  `fixtures/greenfield/card125/composition-matrix-v1.json`.
-
-### [x] `bunx effigy` in CI would run a stranger's package — 2026-08-09
-- Friction: Effigy is a local binary at `~/.local/bin/effigy`, not a
-  devDependency. An unrelated package named `effigy` exists on npm at `0.0.2`,
-  so a workflow step written as `bunx effigy qa` fetches and executes that
-  instead. Caught while drafting `release.yml`, before it ran.
-- Impact: worst case in a release workflow, which holds publish rights. The
-  existing `ci.yml` avoids it only because it inlines every command by hand,
-  which is why the trap is not obvious — nothing documents that `bunx effigy`
-  is unsafe.
-- Fixed 2026-08-09: `inflatable-cookie/setup-effigy@v1` already exists and
-  installs the real binary from an Effigy release; monkey has been using it
-  since 0.8.17. Both release workflows now use it and call `effigy ci` /
-  `effigy qa` directly, which also retires the hand-transcribed gate lists —
-  a copy of a selector can drift from the selector, and this session already
-  shipped one that pointed at a renamed proof.
-- Remaining: the trap itself is undocumented. Nothing tells a new workflow
-  author that `bunx effigy` resolves to someone else's package, and both
-  `ci.yml` files still inline their commands for the same original reason.
-- Surface: `.github/workflows/` in both repositories, Effigy adoption docs.
-
-### [x] A new crate silently staleness-fails an unrelated gate — 2026-08-09
-- Friction: adding `crates/longhorn-gpui-windowing` turned `check:api-reference`
-  red, because `docs/reference/api-surface.md` enumerates every crate
-  directory and asserts the count. The failure surfaces during `effigy qa`,
-  several steps after the change that caused it, and its message names a
-  generator selector rather than "you added a crate".
-- Impact: every new crate costs an unexplained red gate and a hunt for the
-  right regenerate command.
-- Fixed 2026-08-09 for the second half. `verify-guides-card126.ts` hardcoded
-  "Rust 41, TypeScript 18" and then "42, 3"; it now derives both counts from
-  `crates/` and `packages/`, so adding a crate no longer reddens it, and the
-  message names the regenerate command. `check:api-reference` still requires
-  the document to be regenerated — that part is correct, since a stale
-  inventory is a real defect — but it now fails alone rather than dragging an
-  unrelated proof with it.
-- Surface: `scripts/generate-api-reference-card126.ts`, `effigy.toml`.
-
-### [x] Heavyweight host SDKs have no in-gate home — 2026-08-09
-- Friction: `gpui` cannot join the workspace without adding several hundred
-  transitive crates and a Metal shader build to `lint:rust`,
-  `lint:rust:features`, `test:rust` and `docs:rust`. The only alternative the
-  repo offers is `prototypes/`, which is outside every gate, so the binding
-  is verified by hand and can rot silently.
-- Impact: the one artefact proving a host seam matches its real SDK is the
-  one thing CI never builds. It rotted exactly as predicted: the render
-  binary was broken by a signature change in the session that introduced it,
-  and a hand-run caught it.
-- Fixed 2026-08-09 by Card 172, against measurements rather than impressions.
-  `gpui` is 757 packages and 3.3 GiB of linked artifacts, but 37s cold and
-  5.6s warm on this machine — heavy in disk and CPU, not in wall clock. So the
-  exclusion stays and a named selector covers the gap: `check:prototypes`
-  runs `cargo check --all-targets --locked` over all six prototypes in 1.3s
-  warm, sits deliberately outside `qa`, and is wired into both `release:gates`
-  and `[release.gates]`. "The host seam still matches its SDK" is a claim that
-  must hold before a tag, not before every commit.
-  Proved by breaking `project_notification_stack`'s signature and watching the
-  selector fail, then restoring it.
-- Surface: `effigy.toml`, `prototypes/`.
-
 ### [ ] Peered packages need a consumer override under `file:` refs — 2026-08-08
 - Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
   `@inflatable-cookie/longhorn` as a peer at `0.1.0`. A consumer that installs
@@ -303,21 +178,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   version. Until then, the getting-started guide should show the override
   block alongside the `file:` dependencies rather than leaving it implicit.
 - Surface: `docs/guides/getting-started.md`, consumer manifests.
-
-### [x] Poodle 0.1.0 does not export `SplitToggleVisibility` — 2026-08-08
-- Friction: `@inflatable-cookie/poodle-svelte` defines `SplitToggleVisibility`
-  in `src/types.ts` and uses it for `SplitView`'s `toggleVisibility` prop, but
-  its `index.ts` never re-exports it — unlike `SplitOrientation`,
-  `ControlDensity`, and the rest, which are all public.
-- Impact: a consumer typing that prop must either reach past the package root
-  (contract 012 forbids it) or mirror the union. `LayoutSplitView.svelte` now
-  derives it via `ComponentProps<typeof SplitView>["toggleVisibility"]`, which
-  works but is a workaround for a one-line upstream gap.
-- Fixed 2026-08-08 in Poodle Card 020: the export was added to the root
-  barrel. The derived alias here can be dropped whenever someone is in the
-  file; it costs nothing to leave.
-- Surface: `packages/longhorn-poodle-svelte/src/poodle/LayoutSplitView.svelte`,
-  poodle `packages/svelte/components/src/index.ts`.
 
 ### [ ] SSR vitest suites flake under machine load — 2026-08-08
 - Friction: the SSR suites under `packages/longhorn-poodle-svelte/tests/`
@@ -368,12 +228,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   and longhorn consumes it by version. Poodle currently has no tags.
 - Surface: `package.json`, `bun.lock`, `.github/workflows/ci.yml` clients
   job, portfolio distribution strategy.
-
-### [ ] Effigy doctor launches full QA by default — 2026-08-06
-- Friction: the standard `effigy doctor` route followed Longhorn's `health = [{ task = "qa" }]` mapping and started the full Rust/TypeScript validation suite during repository orientation.
-- Impact: a health check becomes a long-running execution path, obscures the intended diagnostic output, and can consume substantial local resources before the agent has selected a bounded task.
-- Possible fix: give `health` a cheap diagnostic baseline and expose the full suite as an explicit QA task, or make the doctor output state clearly that it is about to run the full suite.
-- Surface: `effigy.toml` health task / Effigy doctor workflow
 
 ### [ ] MSRV-gated Clippy lints surface late — 2026-08-06
 - Friction: raising the declared floor (1.85 -> 1.90 -> 1.95) each time

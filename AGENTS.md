@@ -8,7 +8,11 @@ This file applies to the whole repository.
 effigy tasks
 effigy doctor
 effigy test --plan
+effigy qa
 ```
+
+`doctor` runs cheap health (`fmt:rust`, `release:floor`) plus built-in scans.
+Full Rust/TypeScript validation is `effigy qa`, not doctor.
 
 Then read:
 

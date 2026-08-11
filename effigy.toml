@@ -92,7 +92,13 @@ exclude = ["history/**"]
 ]
 
 # --- Aggregates ---------------------------------------------------------
-health = [{ task = "qa" }]
+# Cheap orientation baseline for `effigy doctor`. Full validation is `effigy qa`.
+# Mapping health→qa made every doctor run launch the Rust/TS board before an
+# agent had picked a bounded task (see PAPERCUTS.md).
+health = [
+  { task = "fmt:rust" },
+  { task = "release:floor" },
+]
 qa = [
   { task = "fmt:rust" },
   { task = "lint:rust" },
