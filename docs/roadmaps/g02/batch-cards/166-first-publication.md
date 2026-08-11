@@ -194,9 +194,9 @@ runtime dependencies.
 2. **Repoint Longhorn** from `file:` packs to `^0.1.0`, deleting
    `scripts/poodle-evidence.ts` and moving the proof consumers onto the
    published version in the same change.
-3. **Longhorn CI.** The clients lane has never completed — `bun install
-   --frozen-lockfile` has failed on the machine-local Poodle path since
-   2026-08-06. This is the first honest run of the TypeScript lane.
+3. **Longhorn CI.** ~~The clients lane has never completed.~~ Done: every step
+   passes as of 2026-08-11, once the repoint removed the ephemeral pack path
+   the lockfile pinned. See below.
 4. **Longhorn publishes** the three packages, same flag changes.
 5. **Tag v0.1.0**, then dispatch each release workflow against the tag ref.
    Rust consumers take crates by git tag; TypeScript consumers take packages
@@ -433,6 +433,28 @@ Trusted publishing works on a private repository, but npm provenance
 attestation does not — it requires the source repository to be public. The
 first release therefore ships without provenance whichever way it is published.
 Attestation starts at the first CI publish after visibility flips.
+
+## Step 3 — The Clients Lane Passes — 2026-08-11
+
+Every step of the CI `clients` job run locally, in order:
+
+| Step | Result |
+| --- | --- |
+| `bun install --frozen-lockfile` | passes |
+| type check every package | 3 of 3 |
+| `scripts/test-packages.sh` | 194 pass, 0 fail |
+| vitest | 104 passed |
+| Svelte type gate | 1,416 files, 0 errors |
+| generated bindings current | 13 of 13 domains |
+
+Nothing in the lane was fixed. The install failed because the lockfile pinned
+`file:../poodle/.artifacts/svelte-pack-install-V2Wu2n/…`, an ephemeral pack
+directory Poodle mints fresh on every rebuild and which has never existed on a
+clean checkout. Repointing to `^0.1.0` for Card 179 resolved it in passing.
+
+That is worth naming: the lane was never broken. It was correctly reporting
+that the repository could not be installed from a clean checkout, and it said
+so for five days while the runway treated it as a lane problem.
 
 ## Acceptance Criteria
 
