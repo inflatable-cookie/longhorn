@@ -8,7 +8,7 @@ import fixtureJson from "./fixture.json";
 import RichHistoryPanel from "./RichHistoryPanel.svelte";
 
 describe("Loophole rich history composition", () => {
-  it("mounts the public Poodle panel and tears down its listener", async () => {
+  it("binds its own controls to the session and tears down its listener", async () => {
     const fixture = rendererFixture(fixtureJson);
     const harness = createControllerHarness(fixture);
     const session = new HistorySession({ port: harness.port, pageSize: 50 });

@@ -31,7 +31,7 @@ const policies = {
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"],
     longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
-    imports: ["@inflatable-cookie/longhorn-poodle-svelte/history-tree/poodle", "@inflatable-cookie/longhorn-poodle-svelte/history-tree/svelte", "@inflatable-cookie/longhorn-tauri/history-tree", "@inflatable-cookie/longhorn/history-tree"],
+    imports: ["@inflatable-cookie/longhorn-poodle-svelte/history-tree/svelte", "@inflatable-cookie/longhorn-tauri/history-tree", "@inflatable-cookie/longhorn/history-tree"],
     permissions: ["allow-longhorn-history-tree-read", "allow-longhorn-history-tree-mutate", "core:event:allow-listen", "core:event:allow-unlisten"],
     forbidden: ["@inflatable-cookie/longhorn/history"],
     metrics: { nodes: 2_112, branches: 65, payload: 540_672, lca: 1_025, baseline: 7_534_856 },

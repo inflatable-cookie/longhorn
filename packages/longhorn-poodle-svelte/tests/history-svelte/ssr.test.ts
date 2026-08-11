@@ -6,8 +6,6 @@ describe("history optional modules", () => {
     expect("document" in globalThis).toBe(false);
 
     const svelte = await import("../../src/history/svelte.ts");
-    const poodle = await import("../../src/history/poodle.ts");
     expect(svelte.HistorySession).toBeTypeOf("function");
-    expect(poodle.HistoryPanel).toBeTruthy();
   }, 60_000);
 });

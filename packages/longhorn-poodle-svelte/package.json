@@ -89,23 +89,11 @@
       "import": "./src/history/svelte.ts",
       "default": "./src/history/svelte.ts"
     },
-    "./history/poodle": {
-      "types": "./src/history/poodle.ts",
-      "svelte": "./src/history/poodle.ts",
-      "import": "./src/history/poodle.ts",
-      "default": "./src/history/poodle.ts"
-    },
     "./history-tree/svelte": {
       "types": "./src/history-tree/svelte.ts",
       "svelte": "./src/history-tree/svelte.ts",
       "import": "./src/history-tree/svelte.ts",
       "default": "./src/history-tree/svelte.ts"
-    },
-    "./history-tree/poodle": {
-      "types": "./src/history-tree/poodle.ts",
-      "svelte": "./src/history-tree/poodle.ts",
-      "import": "./src/history-tree/poodle.ts",
-      "default": "./src/history-tree/poodle.ts"
     },
     "./notifications/svelte": {
       "types": "./src/notifications/svelte.ts",
