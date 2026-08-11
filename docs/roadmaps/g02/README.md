@@ -19,6 +19,7 @@
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
 | [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
 | [g02.015](015-gpui-composition-and-live-evidence.md) | ready | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
+| [g02.016](016-fork-history-field-corrections.md) | ready | five fork-history items from Loophole's field use; three delete live workarounds |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
