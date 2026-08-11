@@ -16,6 +16,36 @@ import {
 } from "./support.ts";
 
 describe("LayoutSplitView", () => {
+  it("renders a non-collapsible region member without collapse pills", () => {
+    const shape = loadShape("window-bound");
+    const { binding } = mountedBinding(
+      shape.definitions,
+      shapeDocument(shape, {}),
+      async () => {
+        throw new Error("non-collapsible member must not dispatch");
+      },
+    );
+    const screen = render(LayoutSplitHarness, {
+      props: {
+        binding,
+        // `left` is mandatory/non-collapsible in window-bound.
+        primaryRegionId: "left",
+        secondaryRegionId: "right_top",
+      },
+    });
+
+    expect(screen.getByLabelText("Nucleus workspace split")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Collapse primary" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Expand primary" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Collapse secondary" }),
+    ).toBeTruthy();
+  });
+
   it("projects an empty hidden pane without dispatching durable collapse", () => {
     const shape = loadShape("window-bound");
     const { binding } = mountedBinding(

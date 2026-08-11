@@ -7,17 +7,24 @@
   interface Props {
     binding: PoodleLayoutBinding;
     primaryHidden?: boolean;
+    primaryRegionId?: string;
+    secondaryRegionId?: string;
   }
 
-  let { binding, primaryHidden = false }: Props = $props();
+  let {
+    binding,
+    primaryHidden = false,
+    primaryRegionId = "center_bottom",
+    secondaryRegionId = "right_top",
+  }: Props = $props();
 </script>
 
 <LayoutSplitView
   {binding}
   containerId="surface:primary"
   sizingSlotId="center-stack"
-  primaryRegionId="center_bottom"
-  secondaryRegionId="right_top"
+  {primaryRegionId}
+  {secondaryRegionId}
   {primaryHidden}
   ariaLabel="Nucleus workspace split"
 >

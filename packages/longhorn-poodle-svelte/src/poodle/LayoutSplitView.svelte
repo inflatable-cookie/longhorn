@@ -63,16 +63,20 @@
   }: Props = $props();
 
   const sizing = $derived(binding.sizingSlot(containerId, sizingSlotId));
-  const primaryRegion = $derived(
-    primaryRegionId
-      ? binding.collapsibleRegionState(containerId, primaryRegionId)
-      : null,
-  );
-  const secondaryRegion = $derived(
-    secondaryRegionId
-      ? binding.collapsibleRegionState(containerId, secondaryRegionId)
-      : null,
-  );
+  // Non-collapsible regions are valid split members; they just have no pill.
+  // collapsibleRegionState throws for those — probe the definition first.
+  const primaryRegion = $derived.by(() => {
+    if (!primaryRegionId) return null;
+    const definition = binding.regionDefinition(containerId, primaryRegionId);
+    if (!definition.collapsible) return null;
+    return binding.collapsibleRegionState(containerId, primaryRegionId);
+  });
+  const secondaryRegion = $derived.by(() => {
+    if (!secondaryRegionId) return null;
+    const definition = binding.regionDefinition(containerId, secondaryRegionId);
+    if (!definition.collapsible) return null;
+    return binding.collapsibleRegionState(containerId, secondaryRegionId);
+  });
 
   function setRatio(ratio: number): void {
     binding.setSizingSlot(
@@ -92,8 +96,8 @@
   secondaryCollapsed={secondaryRegion?.collapsed ?? false}
   primaryHidden={primaryHidden}
   secondaryHidden={secondaryHidden}
-  showCollapsePrimary={!primaryHidden && primaryRegionId !== null}
-  showCollapseSecondary={!secondaryHidden && secondaryRegionId !== null}
+  showCollapsePrimary={!primaryHidden && primaryRegion !== null}
+  showCollapseSecondary={!secondaryHidden && secondaryRegion !== null}
   disabled={primaryHidden || secondaryHidden}
   {size}
   {sizeRole}
