@@ -62,6 +62,29 @@ jobs:
       # problem trusted publishing solves for tokens.
       - uses: actions/checkout@v4
 
+      # `release:gates` runs check-release-floor.sh, which lints and tests at
+      # the declared MSRV through `rustup run`. Only stable was installed here,
+      # so that gate could not have passed -- masked until now by a missing
+      # `rg` in the same check reporting the absence as the toolchain's.
+      #
+      # Read from release-baselines/rust-toolchains.env rather than written
+      # here. That file is the floor's single declaration and a copy in this
+      # workflow would be one more thing to bump twice.
+      #
+      # Installed BEFORE stable, deliberately. dtolnay/rust-toolchain makes the
+      # toolchain it installs the default, so the later step has to be the one
+      # the rest of the job should use.
+      - name: Read the declared floor toolchain
+        id: floor
+        run: |
+          set -euo pipefail
+          source release-baselines/rust-toolchains.env
+          echo "msrv=$LONGHORN_GENERAL_MSRV" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.floor.outputs.msrv }}
+          components: clippy
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
