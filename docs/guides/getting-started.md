@@ -111,6 +111,29 @@ Adjust relative paths to your layout; commit the lockfile.
 Once Longhorn publishes and consumers depend by version, delete the
 `overrides` entry — it exists only to keep `file:` installs off the registry.
 
+`bun install` for a `file:` dependency materializes `node_modules` as a real
+directory of per-file symlinks resolved at install time. Edits to existing
+files are live; a file *added* under Longhorn afterwards has no link and is
+invisible to the consumer until the next install (Vite's optimized-dep cache
+can hold the miss even after that). Do not use raw `bun link` for this — from
+the consumer repo, link the Longhorn checkout through Effigy so each package
+is one directory symlink and new files appear without reinstall:
+
+```sh
+effigy deps link bun ../longhorn --dry-run
+effigy deps link bun ../longhorn
+effigy deps status bun
+```
+
+That leaves `package.json` and the lockfile untouched (`--no-save`).
+`bun install` can replace the symlinks; re-run the same `effigy deps link bun`
+to restore them. Unlink when the session is done:
+
+```sh
+effigy deps unlink bun ../longhorn --dry-run
+effigy deps unlink bun ../longhorn
+```
+
 ## 5. Register The Config Domain
 
 A domain is a typed, validated slice of config. The complete register →

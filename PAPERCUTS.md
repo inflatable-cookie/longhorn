@@ -7,31 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] A `file:` install links files, so new files never reach consumers — 2026-08-10
-- Friction: `bun install` for a `file:` dependency builds real directories
-  containing one symlink per file, resolved at install time. Edits to an
-  existing file are live through the link, but a file *added* to Longhorn
-  afterwards has no link and simply does not exist in the consumer. Nucleus
-  failed to launch on `Failed to resolve import "../generated/fields.ts"`
-  while happily reading the edit that introduced that import — four of the
-  eight generated field maps resolved and four did not, split exactly on
-  whether they predated the install.
-- Impact: adding any file to `packages/longhorn/src` silently breaks every
-  consumer until it reinstalls, and the symptom points at the new file rather
-  than at the install. Vite's optimized-dep cache holds the bad resolution
-  too, so a plain reinstall is not always enough.
-- Reproduced minimally 2026-08-10. With `file:../dep`, `node_modules/dep` is a
-  real directory holding one symlink per file, so a file added to the source
-  afterwards is invisible while edits to existing files are live. With
-  `bun link`, `node_modules/dep` is a single symlink to the directory and a
-  new file appears with no reinstall.
-- Possible fix: `bun link` rather than `file:`. **Not** a `postinstall` hook —
-  that fires during install, which is exactly when the symlinks are already
-  correct; the breakage happens later, in Longhorn, with no install running in
-  the consumer for a hook to fire from. Publishing to the registry also closes
-  it, because a version bump forces a reinstall and the tarball is complete.
-- Surface: consumer `package.json` `file:` deps, `packages/longhorn/src`.
-
 ### [ ] A public-readiness redaction disabled a release gate — 2026-08-10
 - Friction: `6a84574c docs: remove third-party identity so the repo can be made
   public` replaced a consumer's real path with the literal placeholder
@@ -132,6 +107,27 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `scripts/private-candidate-card149/consumers.ts`, Card 149.
 
 ## Closed
+
+### [x] A `file:` install links files, so new files never reach consumers — 2026-08-10
+- Friction: `bun install` for a `file:` dependency builds real directories
+  containing one symlink per file, resolved at install time. Edits to an
+  existing file are live through the link, but a file *added* to Longhorn
+  afterwards has no link and simply does not exist in the consumer. Nucleus
+  failed to launch on `Failed to resolve import "../generated/fields.ts"`
+  while happily reading the edit that introduced that import — four of the
+  eight generated field maps resolved and four did not, split exactly on
+  whether they predated the install.
+- Impact: adding any file to `packages/longhorn/src` silently breaks every
+  consumer until it reinstalls, and the symptom points at the new file rather
+  than at the install. Vite's optimized-dep cache holds the bad resolution
+  too, so a plain reinstall is not always enough.
+- Fix (2026-08-11): `docs/guides/getting-started.md` documents the trap and
+  the portfolio path — from the consumer, `effigy deps link bun ../longhorn`
+  (not raw `bun link`) so each package is a directory symlink and new files
+  appear without reinstall. Re-link after `bun install`; unlink when done.
+  Publishing by version also closes it (reinstall gets a complete tarball).
+- Not: a consumer `postinstall` hook (fires at install time; breakage is later).
+- Surface: `docs/guides/getting-started.md`, consumer `file:` deps.
 
 ### [x] Peered packages need a consumer override under `file:` refs — 2026-08-08
 - Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
