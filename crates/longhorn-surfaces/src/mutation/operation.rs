@@ -141,7 +141,20 @@ pub(super) fn materialize_schema(
     let regions = schema
         .regions()
         .iter()
-        .map(|region| RegionState::new(region.id().clone(), [], None, None))
+        .map(|region| {
+            RegionState::new(
+                region.id().clone(),
+                [],
+                None,
+                // Collapsible regions start expanded; the SplitView host
+                // rejects a null collapse state for collapsible regions.
+                if region.is_collapsible() {
+                    Some(false)
+                } else {
+                    None
+                },
+            )
+        })
         .collect();
     let sizing_slots = schema
         .sizing_slots()

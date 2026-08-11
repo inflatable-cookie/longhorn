@@ -502,13 +502,13 @@ fn imported_type_names(contents: &str) -> BTreeSet<String> {
         let list = &rest[open + 1..open + close];
         rest = &rest[open + close + 1..];
         for part in list.split(',') {
-            let name = part
-                .split_whitespace()
-                .next()
-                .unwrap_or("")
-                .trim_matches(|character: char| {
-                    !character.is_ascii_alphanumeric() && character != '_'
-                });
+            let name =
+                part.split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .trim_matches(|character: char| {
+                        !character.is_ascii_alphanumeric() && character != '_'
+                    });
             if !name.is_empty() {
                 names.insert(name.to_owned());
             }
@@ -549,7 +549,9 @@ fn type_name_references(contents: &str) -> BTreeSet<String> {
 }
 
 fn looks_like_type_name(name: &str) -> bool {
-    name.chars().next().is_some_and(|character| character.is_ascii_uppercase())
+    name.chars()
+        .next()
+        .is_some_and(|character| character.is_ascii_uppercase())
         && name.chars().any(|character| character.is_ascii_lowercase())
 }
 
