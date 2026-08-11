@@ -37,19 +37,19 @@ pub(super) fn set_sizing_slot(
     sizing_slot_id: &SizingSlotId,
     ratio: LayoutRatio,
 ) -> Result<LayoutMutationOutcome, OperationRejection> {
-    let container = document.surface(surface_id).ok_or_else(|| {
+    let surface = document.surface(surface_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSurface,
-            format!("unknown layout container {surface_id}"),
+            format!("unknown Surface {surface_id}"),
         )
     })?;
     let schema = registry
-        .schema(container.schema_id())
+        .schema(surface.schema_id())
         .expect("current document validation established the schema");
     let definition = schema.sizing_slot(sizing_slot_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSizingSlot,
-            format!("container {surface_id} has no sizing slot {sizing_slot_id}"),
+            format!("Surface {surface_id} has no sizing slot {sizing_slot_id}"),
         )
     })?;
     if !definition.contains(ratio) {
@@ -61,13 +61,13 @@ pub(super) fn set_sizing_slot(
             ),
         ));
     }
-    let previous_ratio = container
+    let previous_ratio = surface
         .sizing_slot(sizing_slot_id)
         .expect("complete sizing state was validated")
         .ratio();
     document
         .surface_mut(surface_id)
-        .expect("container existence was checked")
+        .expect("Surface existence was checked")
         .sizing_slot_mut(sizing_slot_id)
         .expect("complete sizing state was validated")
         .set_ratio(ratio);
@@ -87,19 +87,19 @@ pub(super) fn set_region_collapsed(
     region_id: &RegionId,
     collapsed: bool,
 ) -> Result<LayoutMutationOutcome, OperationRejection> {
-    let container = document.surface(surface_id).ok_or_else(|| {
+    let surface = document.surface(surface_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSurface,
-            format!("unknown layout container {surface_id}"),
+            format!("unknown Surface {surface_id}"),
         )
     })?;
     let schema = registry
-        .schema(container.schema_id())
+        .schema(surface.schema_id())
         .expect("current document validation established the schema");
     let definition = schema.region(region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {surface_id} has no region {region_id}"),
+            format!("Surface {surface_id} has no region {region_id}"),
         )
     })?;
     if !definition.is_collapsible() {
@@ -108,7 +108,7 @@ pub(super) fn set_region_collapsed(
             format!("region {region_id} does not support collapse state"),
         ));
     }
-    let region = container
+    let region = surface
         .region(region_id)
         .expect("complete region state was validated");
     let previous_collapsed = region.collapsed().unwrap_or(false);

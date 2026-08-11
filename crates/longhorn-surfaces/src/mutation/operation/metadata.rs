@@ -55,7 +55,7 @@ pub(super) fn duplicate_surface(
 
     // Duplication copies generic metadata and hosting policy, never layout
     // contents: the copy instantiates the same schema fresh, as it did when the
-    // duplicate bound a new empty container.
+    // duplicate bound a new empty surface.
     let (regions, sizing_slots) = materialize_schema(registry, source.schema_id())?;
     document.surfaces_mut().push(SurfaceRecord::new(
         surface_id.clone(),

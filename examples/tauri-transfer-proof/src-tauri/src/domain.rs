@@ -32,8 +32,8 @@ use longhorn_transfer::{
 };
 
 pub(crate) const LAYOUT_DOMAIN_ID: &str = "layout.proof";
-pub(crate) const SOURCE_CONTAINER_ID: &str = "container:source";
-pub(crate) const TARGET_CONTAINER_ID: &str = "container:target";
+pub(crate) const SOURCE_SURFACE_ID: &str = "surface:source";
+pub(crate) const TARGET_SURFACE_ID: &str = "surface:target";
 pub(crate) const MAIN_REGION_ID: &str = "region:main";
 pub(crate) const SOURCE_PANEL_ID: &str = "panel:tool:one";
 pub(crate) const SECOND_PANEL_ID: &str = "panel:tool:two";
@@ -293,8 +293,8 @@ fn panel_bindings(
         ),
     };
     PanelHostBindings::new([
-        make(SOURCE_BINDING_ID, SOURCE_WINDOW_ID, SOURCE_CONTAINER_ID),
-        make(TARGET_BINDING_ID, TARGET_WINDOW_ID, TARGET_CONTAINER_ID),
+        make(SOURCE_BINDING_ID, SOURCE_WINDOW_ID, SOURCE_SURFACE_ID),
+        make(TARGET_BINDING_ID, TARGET_WINDOW_ID, TARGET_SURFACE_ID),
     ])
     .map_err(|error| error.to_string())
 }
@@ -353,7 +353,7 @@ fn layout_document() -> SurfaceDocument {
         SurfaceRevision::new(7),
         [
             SurfaceRecord::new(
-                SurfaceId::new(SOURCE_CONTAINER_ID).expect("proof surface id is valid"),
+                SurfaceId::new(SOURCE_SURFACE_ID).expect("proof surface id is valid"),
                 LayoutSchemaId::new("schema:proof").expect("proof schema id is valid"),
                 None,
                 [RegionState::new(
@@ -369,7 +369,7 @@ fn layout_document() -> SurfaceDocument {
                 )],
             ),
             SurfaceRecord::new(
-                SurfaceId::new(TARGET_CONTAINER_ID).expect("proof surface id is valid"),
+                SurfaceId::new(TARGET_SURFACE_ID).expect("proof surface id is valid"),
                 LayoutSchemaId::new("schema:proof").expect("proof schema id is valid"),
                 None,
                 [RegionState::new(

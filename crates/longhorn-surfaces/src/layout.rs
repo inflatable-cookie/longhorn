@@ -11,7 +11,7 @@ pub const LAYOUT_PROTOCOL_VERSION: u32 = 1;
 pub mod definition;
 /// Bounded counts for layout state.
 pub mod limits;
-/// Durable layout state: containers, regions, sizing slots, panel instances.
+/// Durable layout state: regions, sizing slots and panel instances.
 pub mod model;
 /// Expected-revision layout mutation protocol and engine.
 pub mod mutation;

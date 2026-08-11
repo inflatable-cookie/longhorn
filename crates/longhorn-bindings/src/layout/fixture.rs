@@ -296,7 +296,7 @@ fn panel_definitions() -> Vec<PanelDefinition> {
             [PlacementSelector::Family(family_id("workspace"))],
             PanelInstancePolicy::Bounded {
                 maximum_per_document: 2,
-                maximum_per_container: 1,
+                maximum_per_surface: 1,
             },
             true,
             true,

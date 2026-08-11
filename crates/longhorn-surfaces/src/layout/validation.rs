@@ -15,13 +15,13 @@ pub fn validate_document(
     document: &SurfaceDocument,
 ) -> Result<(), LayoutValidationError> {
     let limits = registry.limits();
-    if document.surfaces().len() > limits.maximum_containers() {
+    if document.surfaces().len() > limits.maximum_surfaces() {
         return Err(validation_error(
             LayoutValidationCode::TooManyContainers,
             format!(
-                "{} containers exceed limit {}",
+                "{} Surfaces exceed limit {}",
                 document.surfaces().len(),
-                limits.maximum_containers()
+                limits.maximum_surfaces()
             ),
         ));
     }
@@ -65,35 +65,35 @@ pub fn validate_document(
 
     let mut surface_ids = BTreeSet::new();
     let mut placed_instances = BTreeSet::<PanelInstanceId>::new();
-    let mut counts_by_container = BTreeMap::<_, BTreeMap<PanelDefinitionId, usize>>::new();
+    let mut counts_by_surface = BTreeMap::<_, BTreeMap<PanelDefinitionId, usize>>::new();
 
-    for container in document.surfaces() {
-        if !surface_ids.insert(container.id()) {
+    for surface in document.surfaces() {
+        if !surface_ids.insert(surface.id()) {
             return Err(validation_error(
                 LayoutValidationCode::DuplicateContainer,
-                format!("duplicate layout container {}", container.id()),
+                format!("duplicate Surface {}", surface.id()),
             ));
         }
-        let schema = registry.schema(container.schema_id()).ok_or_else(|| {
+        let schema = registry.schema(surface.schema_id()).ok_or_else(|| {
             validation_error(
                 LayoutValidationCode::UnknownSchema,
                 format!(
-                    "container {} uses unknown schema {}",
-                    container.id(),
-                    container.schema_id()
+                    "Surface {} uses unknown schema {}",
+                    surface.id(),
+                    surface.schema_id()
                 ),
             )
         })?;
 
         let mut region_ids = BTreeSet::new();
-        let mut container_definition_counts = BTreeMap::<PanelDefinitionId, usize>::new();
-        for region in container.regions() {
+        let mut surface_definition_counts = BTreeMap::<PanelDefinitionId, usize>::new();
+        for region in surface.regions() {
             if !region_ids.insert(region.region_id()) {
                 return Err(validation_error(
                     LayoutValidationCode::DuplicateRegionState,
                     format!(
-                        "container {} repeats region {}",
-                        container.id(),
+                        "surface {} repeats region {}",
+                        surface.id(),
                         region.region_id()
                     ),
                 ));
@@ -102,8 +102,8 @@ pub fn validate_document(
                 validation_error(
                     LayoutValidationCode::UnknownRegion,
                     format!(
-                        "container {} has unknown region {}",
-                        container.id(),
+                        "surface {} has unknown region {}",
+                        surface.id(),
                         region.region_id()
                     ),
                 )
@@ -112,8 +112,8 @@ pub fn validate_document(
                 return Err(validation_error(
                     LayoutValidationCode::TooManyPanelInstancesInRegion,
                     format!(
-                        "container {} region {} has {} panel instances; limit is {}",
-                        container.id(),
+                        "surface {} region {} has {} panel instances; limit is {}",
+                        surface.id(),
                         region.region_id(),
                         region.panel_instance_ids().len(),
                         limits.maximum_panel_instances_per_region()
@@ -161,7 +161,7 @@ pub fn validate_document(
                 })?;
                 let allowed = registry
                     .is_panel_allowed_in(
-                        container.schema_id(),
+                        surface.schema_id(),
                         instance.definition_id(),
                         region.region_id(),
                     )
@@ -181,7 +181,7 @@ pub fn validate_document(
                         ),
                     ));
                 }
-                *container_definition_counts
+                *surface_definition_counts
                     .entry(instance.definition_id().clone())
                     .or_default() += 1;
             }
@@ -195,20 +195,20 @@ pub fn validate_document(
             return Err(validation_error(
                 LayoutValidationCode::IncompleteRegionState,
                 format!(
-                    "container {} does not contain every schema region exactly once",
-                    container.id()
+                    "surface {} does not contain every schema region exactly once",
+                    surface.id()
                 ),
             ));
         }
 
         let mut sizing_slot_ids = BTreeSet::new();
-        for slot in container.sizing_slots() {
+        for slot in surface.sizing_slots() {
             if !sizing_slot_ids.insert(slot.sizing_slot_id()) {
                 return Err(validation_error(
                     LayoutValidationCode::DuplicateSizingSlotState,
                     format!(
-                        "container {} repeats sizing slot {}",
-                        container.id(),
+                        "surface {} repeats sizing slot {}",
+                        surface.id(),
                         slot.sizing_slot_id()
                     ),
                 ));
@@ -217,8 +217,8 @@ pub fn validate_document(
                 validation_error(
                     LayoutValidationCode::UnknownSizingSlot,
                     format!(
-                        "container {} has unknown sizing slot {}",
-                        container.id(),
+                        "surface {} has unknown sizing slot {}",
+                        surface.id(),
                         slot.sizing_slot_id()
                     ),
                 )
@@ -245,13 +245,13 @@ pub fn validate_document(
             return Err(validation_error(
                 LayoutValidationCode::IncompleteSizingSlotState,
                 format!(
-                    "container {} does not contain every sizing slot exactly once",
-                    container.id()
+                    "surface {} does not contain every sizing slot exactly once",
+                    surface.id()
                 ),
             ));
         }
 
-        counts_by_container.insert(container.id(), container_definition_counts);
+        counts_by_surface.insert(surface.id(), surface_definition_counts);
     }
 
     if placed_instances.len() != instances.len() {
@@ -270,16 +270,16 @@ pub fn validate_document(
                 return Err(instance_limit_error(&definition_id, total, 1, "document"));
             }
             PanelInstancePolicy::OnePerContainer => {
-                for counts in counts_by_container.values() {
+                for counts in counts_by_surface.values() {
                     let actual = counts.get(&definition_id).copied().unwrap_or_default();
                     if actual > 1 {
-                        return Err(instance_limit_error(&definition_id, actual, 1, "container"));
+                        return Err(instance_limit_error(&definition_id, actual, 1, "surface"));
                     }
                 }
             }
             PanelInstancePolicy::Bounded {
                 maximum_per_document,
-                maximum_per_container,
+                maximum_per_surface,
             } => {
                 if total > maximum_per_document as usize {
                     return Err(instance_limit_error(
@@ -289,14 +289,14 @@ pub fn validate_document(
                         "document",
                     ));
                 }
-                for counts in counts_by_container.values() {
+                for counts in counts_by_surface.values() {
                     let actual = counts.get(&definition_id).copied().unwrap_or_default();
-                    if actual > maximum_per_container as usize {
+                    if actual > maximum_per_surface as usize {
                         return Err(instance_limit_error(
                             &definition_id,
                             actual,
-                            maximum_per_container as usize,
-                            "container",
+                            maximum_per_surface as usize,
+                            "surface",
                         ));
                     }
                 }
@@ -323,9 +323,9 @@ pub fn normalize_document(
         .surfaces_mut()
         .sort_by(|left, right| left.id().cmp(right.id()));
 
-    for container in normalized.surfaces_mut() {
+    for surface in normalized.surfaces_mut() {
         let schema = registry
-            .schema(container.schema_id())
+            .schema(surface.schema_id())
             .expect("schema existence was validated");
         let region_order: BTreeMap<_, _> = schema
             .regions()
@@ -340,17 +340,17 @@ pub fn normalize_document(
             .map(|(index, slot)| (slot.id(), index))
             .collect();
 
-        container
+        surface
             .regions_mut()
             .sort_by_key(|region| region_order[region.region_id()]);
-        for region in container.regions_mut() {
+        for region in surface.regions_mut() {
             let definition = schema
                 .region(region.region_id())
                 .expect("region existence was validated");
             region.normalize_active();
             region.normalize_collapse(definition.is_collapsible());
         }
-        container
+        surface
             .sizing_slots_mut()
             .sort_by_key(|slot| sizing_order[slot.sizing_slot_id()]);
     }

@@ -49,9 +49,14 @@ pub use layout::mutation::{
 };
 pub use layout::ratio::{LayoutRatio, LayoutRatioError, RATIO_ONE_MILLIONTHS};
 pub use layout::validation::{
-    LayoutValidationCode, LayoutValidationError, normalize_document as normalize_registry,
-    validate_document as validate_registry,
-    validate_normalized_document as validate_normalized_registry,
+    LayoutValidationCode,
+    LayoutValidationError,
+    // The layout half of one document: regions, sizing slots and panel
+    // placement, checked against the registry. The Surface half -- identity,
+    // hosting policy, window membership -- is validate_document above.
+    normalize_document as normalize_layout,
+    validate_document as validate_layout,
+    validate_normalized_document as validate_normalized_layout,
 };
 pub use layout::visibility::{
     RegionVisibility, RegionVisibilityState, VisibilityProjectionError, project_region_visibility,

@@ -49,11 +49,11 @@ pub fn project_region_visibility(
     moving_panel_definition_id: Option<&PanelDefinitionId>,
 ) -> Result<Vec<RegionVisibility>, VisibilityProjectionError> {
     validate_document(registry, document).map_err(VisibilityProjectionError::InvalidDocument)?;
-    let container = document
+    let surface = document
         .surface(surface_id)
         .ok_or_else(|| VisibilityProjectionError::UnknownSurface(surface_id.clone()))?;
     let schema = registry
-        .schema(container.schema_id())
+        .schema(surface.schema_id())
         .expect("schema existence was validated");
     let moving_panel = moving_panel_definition_id
         .map(|id| {
@@ -65,7 +65,7 @@ pub fn project_region_visibility(
 
     let mut projection = Vec::with_capacity(schema.regions().len());
     for definition in schema.regions() {
-        let state = container
+        let state = surface
             .region(definition.id())
             .expect("complete region state was validated");
         let visible = !state.panel_instance_ids().is_empty()
@@ -74,7 +74,7 @@ pub fn project_region_visibility(
             && moving_panel.is_some_and(|panel| {
                 panel.is_movable()
                     && registry
-                        .is_panel_allowed_in(container.schema_id(), panel.id(), definition.id())
+                        .is_panel_allowed_in(surface.schema_id(), panel.id(), definition.id())
                         .unwrap_or(false)
             });
 
@@ -97,7 +97,7 @@ pub fn project_region_visibility(
 pub enum VisibilityProjectionError {
     /// The source document was invalid.
     InvalidDocument(LayoutValidationError),
-    /// The requested layout container did not exist.
+    /// The requested layout surface did not exist.
     UnknownSurface(SurfaceId),
     /// The transient panel definition was not registered.
     UnknownPanelDefinition(PanelDefinitionId),
@@ -107,7 +107,7 @@ impl fmt::Display for VisibilityProjectionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidDocument(error) => write!(formatter, "invalid layout document: {error}"),
-            Self::UnknownSurface(id) => write!(formatter, "unknown layout container {id}"),
+            Self::UnknownSurface(id) => write!(formatter, "unknown layout surface {id}"),
             Self::UnknownPanelDefinition(id) => {
                 write!(formatter, "unknown panel definition {id}")
             }

@@ -22,7 +22,7 @@ use serde_json::{Value, json};
 
 use crate::domain::{
     LAYOUT_DOMAIN_ID, MAIN_REGION_ID, ProofDomains, ProofSessionAllocator, SOURCE_BINDING_ID,
-    SOURCE_PANEL_ID, SOURCE_WINDOW_ID, TARGET_BINDING_ID, TARGET_CONTAINER_ID, TARGET_WINDOW_ID,
+    SOURCE_PANEL_ID, SOURCE_WINDOW_ID, TARGET_BINDING_ID, TARGET_SURFACE_ID, TARGET_WINDOW_ID,
     binding_kind, mutation_options,
 };
 
@@ -235,7 +235,7 @@ impl Scenario {
                             document_id: longhorn_core::DomainId::new(LAYOUT_DOMAIN_ID)
                                 .expect("proof domain id is valid"),
                             revision: TransferRevision::new(revision),
-                            surface_id: longhorn_core::SurfaceId::new(TARGET_CONTAINER_ID)
+                            surface_id: longhorn_core::SurfaceId::new(TARGET_SURFACE_ID)
                                 .expect("proof container id is valid"),
                             region_id: longhorn_core::RegionId::new(MAIN_REGION_ID)
                                 .expect("proof region id is valid"),

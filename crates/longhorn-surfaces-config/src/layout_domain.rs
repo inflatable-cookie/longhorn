@@ -7,7 +7,7 @@ use longhorn_config::{
 use longhorn_core::SchemaVersion;
 use longhorn_surfaces::{
     LayoutDefinitionRegistry, LayoutValidationCode, SurfaceDocument,
-    normalize_registry as normalize_document, validate_registry as validate_document,
+    normalize_layout as normalize_document, validate_layout as validate_document,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

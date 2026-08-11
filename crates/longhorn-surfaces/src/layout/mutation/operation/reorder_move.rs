@@ -20,14 +20,14 @@ pub(super) fn reorder_region(
         .ok_or_else(|| {
             operation_rejection(
                 LayoutMutationRejectionCode::UnknownSurface,
-                format!("unknown layout container {surface_id}"),
+                format!("unknown Surface {surface_id}"),
             )
         })?
         .region(region_id)
         .ok_or_else(|| {
             operation_rejection(
                 LayoutMutationRejectionCode::UnknownRegion,
-                format!("container {surface_id} has no region {region_id}"),
+                format!("Surface {surface_id} has no region {region_id}"),
             )
         })?;
 
@@ -92,21 +92,21 @@ pub(super) fn move_panel(
             "same-region position changes require a complete reorder command",
         ));
     }
-    let target_container = document.surface(target_surface_id).ok_or_else(|| {
+    let target_surface = document.surface(target_surface_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSurface,
-            format!("unknown layout container {target_surface_id}"),
+            format!("unknown Surface {target_surface_id}"),
         )
     })?;
-    let target_region = target_container.region(target_region_id).ok_or_else(|| {
+    let target_region = target_surface.region(target_region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {target_surface_id} has no region {target_region_id}"),
+            format!("Surface {target_surface_id} has no region {target_region_id}"),
         )
     })?;
     let allowed = registry
         .is_panel_allowed_in(
-            target_container.schema_id(),
+            target_surface.schema_id(),
             definition.id(),
             target_region_id,
         )

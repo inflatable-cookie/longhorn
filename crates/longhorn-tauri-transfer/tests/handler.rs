@@ -218,7 +218,7 @@ fn lease_request(
                 host_binding_id: TransferHostBindingId::new("binding:main").unwrap(),
                 document_id: DomainId::new("layout.main").unwrap(),
                 revision: TransferRevision::new(1),
-                surface_id: SurfaceId::new("container:main").unwrap(),
+                surface_id: SurfaceId::new("surface:main").unwrap(),
                 region_id: RegionId::new("region:main").unwrap(),
             },
         )],

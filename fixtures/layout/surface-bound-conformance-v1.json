@@ -12,7 +12,7 @@
       "maximum_regions_per_schema": 16,
       "maximum_sizing_slots_per_schema": 8,
       "maximum_panel_definitions": 8,
-      "maximum_containers": 4,
+      "maximum_surfaces": 4,
       "maximum_panel_instances": 32,
       "maximum_panel_instances_per_region": 16
     },

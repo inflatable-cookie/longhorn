@@ -86,7 +86,7 @@ describe("DropZoneLeaseRegistry", () => {
         host_binding_id: "binding:target",
         document_id: "app.layout",
         revision: 7,
-        surface_id: "container:target",
+        surface_id: "surface:target",
         region_id: "center",
       },
     });

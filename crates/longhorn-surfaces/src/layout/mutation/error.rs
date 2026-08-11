@@ -16,11 +16,11 @@ pub enum LayoutMutationRejectionCode {
     StaleRevision,
     /// The current revision could not advance without wrapping.
     RevisionOverflow,
-    /// A layout container was not present.
+    /// A layout surface was not present.
     UnknownSurface,
-    /// A semantic region was not present in the selected container.
+    /// A semantic region was not present in the selected surface.
     UnknownRegion,
-    /// A sizing slot was not present in the selected container.
+    /// A sizing slot was not present in the selected surface.
     UnknownSizingSlot,
     /// A panel definition was not registered.
     UnknownPanelDefinition,

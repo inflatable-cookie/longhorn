@@ -134,7 +134,7 @@ impl SizingSlotDefinition {
         self.minimum
     }
 
-    /// Returns the initial ratio for a new container.
+    /// Returns the initial ratio for a new surface.
     #[must_use]
     pub const fn default(&self) -> LayoutRatio {
         self.default
@@ -152,7 +152,7 @@ impl SizingSlotDefinition {
     }
 }
 
-/// Complete flat semantic-region schema for one layout-container shape.
+/// Complete flat semantic-region schema for one layout-surface shape.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
@@ -235,14 +235,14 @@ impl PlacementSelector {
 pub enum PanelInstancePolicy {
     /// At most one instance may exist in the complete document.
     Singleton,
-    /// At most one instance may exist in each container.
+    /// At most one instance may exist in each surface.
     OnePerContainer,
-    /// Explicit document and per-container maxima.
+    /// Explicit document and per-surface maxima.
     Bounded {
         /// Maximum instances in the complete document.
         maximum_per_document: u32,
-        /// Maximum instances in one container.
-        maximum_per_container: u32,
+        /// Maximum instances in one surface.
+        maximum_per_surface: u32,
     },
     /// Multiple instances are permitted within document limits.
     Multiple,

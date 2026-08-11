@@ -26,7 +26,7 @@ export type SurfaceRevision = number;
 
 export type LayoutRatio = number;
 
-export type LayoutLimits = { maximum_schemas: number, maximum_regions_per_schema: number, maximum_sizing_slots_per_schema: number, maximum_panel_definitions: number, maximum_containers: number, maximum_panel_instances: number, maximum_panel_instances_per_region: number, };
+export type LayoutLimits = { maximum_schemas: number, maximum_regions_per_schema: number, maximum_sizing_slots_per_schema: number, maximum_panel_definitions: number, maximum_surfaces: number, maximum_panel_instances: number, maximum_panel_instances_per_region: number, };
 
 export type EmptyRegionPolicy = "keep_visible" | "hide_when_empty";
 
@@ -44,9 +44,9 @@ export type PanelInstancePolicy = { "kind": "singleton" } | { "kind": "one_per_c
  */
 maximum_per_document: number, 
 /**
- * Maximum instances in one container.
+ * Maximum instances in one surface.
  */
-maximum_per_container: number, } | { "kind": "multiple" };
+maximum_per_surface: number, } | { "kind": "multiple" };
 
 export type PanelDefinition = { id: PanelDefinitionId, default_placements: Array<PlacementSelector>, allowed_placements: Array<PlacementSelector>, instance_policy: PanelInstancePolicy, movable: boolean, closeable: boolean, };
 
@@ -86,7 +86,7 @@ panel_instance_id: PanelInstanceId,
  */
 panel_definition_id: PanelDefinitionId, 
 /**
- * Target layout container.
+ * Target layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -106,7 +106,7 @@ panel_instance_id: PanelInstanceId, } | { "kind": "activate_panel",
  */
 panel_instance_id: PanelInstanceId, } | { "kind": "reorder_region", 
 /**
- * Target layout container.
+ * Target layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -122,7 +122,7 @@ panel_instance_ids: Array<PanelInstanceId>, } | { "kind": "move_panel",
  */
 panel_instance_id: PanelInstanceId, 
 /**
- * Target layout container.
+ * Target layout surface.
  */
 target_surface_id: SurfaceId, 
 /**
@@ -134,7 +134,7 @@ target_region_id: RegionId,
  */
 insertion_index: number, } | { "kind": "set_sizing_slot", 
 /**
- * Target layout container.
+ * Target layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -146,7 +146,7 @@ sizing_slot_id: SizingSlotId,
  */
 ratio: LayoutRatio, } | { "kind": "set_region_collapsed", 
 /**
- * Target layout container.
+ * Target layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -166,7 +166,7 @@ export type LayoutMutationOutcome = { "kind": "panel_created",
  */
 panel_instance_id: PanelInstanceId, 
 /**
- * Committed container.
+ * Committed surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -182,7 +182,7 @@ insertion_index: number, } | { "kind": "panel_closed",
  */
 panel_instance_id: PanelInstanceId, 
 /**
- * Former container.
+ * Former surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -198,7 +198,7 @@ former_index: number, } | { "kind": "panel_activated",
  */
 panel_instance_id: PanelInstanceId, 
 /**
- * Containing layout container.
+ * Containing layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -210,7 +210,7 @@ region_id: RegionId,
  */
 previous_active_panel_instance_id: PanelInstanceId | null, } | { "kind": "region_reordered", 
 /**
- * Reordered layout container.
+ * Reordered layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -226,7 +226,7 @@ panel_instance_ids: Array<PanelInstanceId>, } | { "kind": "panel_moved",
  */
 panel_instance_id: PanelInstanceId, 
 /**
- * Former container.
+ * Former surface.
  */
 source_surface_id: SurfaceId, 
 /**
@@ -238,7 +238,7 @@ source_region_id: RegionId,
  */
 former_index: number, 
 /**
- * Committed target container.
+ * Committed target surface.
  */
 target_surface_id: SurfaceId, 
 /**
@@ -250,7 +250,7 @@ target_region_id: RegionId,
  */
 insertion_index: number, } | { "kind": "sizing_slot_set", 
 /**
- * Mutated layout container.
+ * Mutated layout surface.
  */
 surface_id: SurfaceId, 
 /**
@@ -266,7 +266,7 @@ previous_ratio: LayoutRatio,
  */
 committed_ratio: LayoutRatio, } | { "kind": "region_collapsed_set", 
 /**
- * Mutated layout container.
+ * Mutated layout surface.
  */
 surface_id: SurfaceId, 
 /**

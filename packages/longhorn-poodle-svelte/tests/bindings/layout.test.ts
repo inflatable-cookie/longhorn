@@ -34,7 +34,7 @@ const request: LayoutMutationRequest = {
   expected_revision: 1,
   command: {
     kind: "set_region_collapsed",
-    surface_id: "container:main",
+    surface_id: "surface:main",
     region_id: "left",
     collapsed: true,
   },
@@ -49,7 +49,7 @@ function committed(revision: number): LayoutDispatchResult {
       committed_revision: revision,
       outcome: {
         kind: "region_collapsed_set",
-        surface_id: "container:main",
+        surface_id: "surface:main",
         region_id: "left",
         previous_collapsed: false,
         committed_collapsed: true,

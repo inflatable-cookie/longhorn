@@ -179,7 +179,7 @@ fn layout_registry() -> LayoutDefinitionRegistry {
 fn seeded_document() -> SurfaceDocument {
     SurfaceDocument::new(
         longhorn_core::SurfaceRevision::new(3),
-        ["container:a", "container:b", "container:c"]
+        ["surface:a", "surface:b", "surface:c"]
             .into_iter()
             .map(|id| {
                 SurfaceRecord::new(

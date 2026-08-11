@@ -127,7 +127,7 @@ pub(super) fn require_fresh_surface(
 
 /// Builds a Surface's layout from its registered schema: every region empty,
 /// every sizing slot at its declared default. This is what replaced binding a
-/// container that something else had to create first.
+/// surface that something else had to create first.
 pub(super) fn materialize_schema(
     registry: &LayoutDefinitionRegistry,
     schema_id: &LayoutSchemaId,

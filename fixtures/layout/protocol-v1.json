@@ -6,7 +6,7 @@
       "maximum_regions_per_schema": 16,
       "maximum_sizing_slots_per_schema": 16,
       "maximum_panel_definitions": 32,
-      "maximum_containers": 8,
+      "maximum_surfaces": 8,
       "maximum_panel_instances": 128,
       "maximum_panel_instances_per_region": 64
     },
@@ -132,7 +132,7 @@
         "instance_policy": {
           "kind": "bounded",
           "maximum_per_document": 2,
-          "maximum_per_container": 1
+          "maximum_per_surface": 1
         },
         "movable": true,
         "closeable": true

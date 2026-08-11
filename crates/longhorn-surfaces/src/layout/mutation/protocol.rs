@@ -62,7 +62,7 @@ pub enum LayoutMutationCommand {
         panel_instance_id: PanelInstanceId,
         /// Registered panel-definition identity.
         panel_definition_id: PanelDefinitionId,
-        /// Target layout container.
+        /// Target layout surface.
         surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
@@ -81,7 +81,7 @@ pub enum LayoutMutationCommand {
     },
     /// Replaces one region's tab order with an exact complete permutation.
     ReorderRegion {
-        /// Target layout container.
+        /// Target layout surface.
         surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
@@ -92,7 +92,7 @@ pub enum LayoutMutationCommand {
     MovePanel {
         /// Existing durable panel-instance identity.
         panel_instance_id: PanelInstanceId,
-        /// Target layout container.
+        /// Target layout surface.
         target_surface_id: SurfaceId,
         /// Target semantic region.
         target_region_id: RegionId,
@@ -101,7 +101,7 @@ pub enum LayoutMutationCommand {
     },
     /// Sets one registered sizing-slot ratio.
     SetSizingSlot {
-        /// Target layout container.
+        /// Target layout surface.
         surface_id: SurfaceId,
         /// Target sizing slot.
         sizing_slot_id: SizingSlotId,
@@ -110,7 +110,7 @@ pub enum LayoutMutationCommand {
     },
     /// Sets durable collapse state on a supported region.
     SetRegionCollapsed {
-        /// Target layout container.
+        /// Target layout surface.
         surface_id: SurfaceId,
         /// Target semantic region.
         region_id: RegionId,
@@ -129,7 +129,7 @@ pub enum LayoutMutationOutcome {
     PanelCreated {
         /// Created panel instance.
         panel_instance_id: PanelInstanceId,
-        /// Committed container.
+        /// Committed surface.
         surface_id: SurfaceId,
         /// Committed region.
         region_id: RegionId,
@@ -140,7 +140,7 @@ pub enum LayoutMutationOutcome {
     PanelClosed {
         /// Closed panel instance.
         panel_instance_id: PanelInstanceId,
-        /// Former container.
+        /// Former surface.
         surface_id: SurfaceId,
         /// Former region.
         region_id: RegionId,
@@ -151,7 +151,7 @@ pub enum LayoutMutationOutcome {
     PanelActivated {
         /// Activated panel instance.
         panel_instance_id: PanelInstanceId,
-        /// Containing layout container.
+        /// Containing layout surface.
         surface_id: SurfaceId,
         /// Containing semantic region.
         region_id: RegionId,
@@ -160,7 +160,7 @@ pub enum LayoutMutationOutcome {
     },
     /// One region accepted a complete committed tab order.
     RegionReordered {
-        /// Reordered layout container.
+        /// Reordered layout surface.
         surface_id: SurfaceId,
         /// Reordered semantic region.
         region_id: RegionId,
@@ -171,13 +171,13 @@ pub enum LayoutMutationOutcome {
     PanelMoved {
         /// Moved panel instance.
         panel_instance_id: PanelInstanceId,
-        /// Former container.
+        /// Former surface.
         source_surface_id: SurfaceId,
         /// Former region.
         source_region_id: RegionId,
         /// Former zero-based index.
         former_index: u32,
-        /// Committed target container.
+        /// Committed target surface.
         target_surface_id: SurfaceId,
         /// Committed target region.
         target_region_id: RegionId,
@@ -186,7 +186,7 @@ pub enum LayoutMutationOutcome {
     },
     /// One sizing slot changed.
     SizingSlotSet {
-        /// Mutated layout container.
+        /// Mutated layout surface.
         surface_id: SurfaceId,
         /// Mutated sizing slot.
         sizing_slot_id: SizingSlotId,
@@ -197,7 +197,7 @@ pub enum LayoutMutationOutcome {
     },
     /// One region's collapse state changed.
     RegionCollapsedSet {
-        /// Mutated layout container.
+        /// Mutated layout surface.
         surface_id: SurfaceId,
         /// Mutated semantic region.
         region_id: RegionId,

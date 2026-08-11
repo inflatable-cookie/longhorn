@@ -4,12 +4,12 @@
   "domain": "regional-surfaces",
   "regionalSurface": {
     "registered": true,
-    "layoutBinding": "container:sha256(surface-id)",
+    "layoutBinding": "surface-id is the layout identity",
     "hostPolicy": "primary-then-declared-fallback-windows"
   },
   "focusedPanelSurface": {
     "registered": false,
-    "reason": "product habitat has no regional layout-container binding",
+    "reason": "focused presentation renders one panel full-surface, with no regional layout",
     "attachmentAuthority": "loophole"
   },
   "lifecycle": [

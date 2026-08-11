@@ -30,20 +30,20 @@ pub(super) fn create_panel(
                 format!("unknown panel definition {panel_definition_id}"),
             )
         })?;
-    let container = document.surface(surface_id).ok_or_else(|| {
+    let surface = document.surface(surface_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSurface,
-            format!("unknown layout container {surface_id}"),
+            format!("unknown Surface {surface_id}"),
         )
     })?;
-    let region = container.region(region_id).ok_or_else(|| {
+    let region = surface.region(region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {surface_id} has no region {region_id}"),
+            format!("Surface {surface_id} has no region {region_id}"),
         )
     })?;
     let allowed = registry
-        .is_panel_allowed_in(container.schema_id(), definition.id(), region_id)
+        .is_panel_allowed_in(surface.schema_id(), definition.id(), region_id)
         .expect("validated registry lookup uses known schema, definition, and region");
     if !allowed {
         return Err(operation_rejection(

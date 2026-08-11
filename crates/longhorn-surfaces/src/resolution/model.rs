@@ -126,7 +126,7 @@ impl UnresolvedSurface {
         &self.surface_id
     }
 
-    /// Returns the unchanged external layout-container binding.
+    /// Returns the unchanged external layout-surface binding.
     #[must_use]
     pub const fn schema_id(&self) -> &LayoutSchemaId {
         &self.schema_id

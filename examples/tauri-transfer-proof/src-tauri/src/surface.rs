@@ -37,13 +37,13 @@ use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder, Wry,
 };
 
+pub(crate) use crate::domain::SOURCE_SURFACE_ID;
 use crate::domain::{
-    ProofClock, ProofDomains, ProofSessionAllocator, SOURCE_CONTAINER_ID, SOURCE_WINDOW_ID,
-    TARGET_CONTAINER_ID, TARGET_WINDOW_ID,
+    ProofClock, ProofDomains, ProofSessionAllocator, SOURCE_WINDOW_ID, TARGET_SURFACE_ID,
+    TARGET_WINDOW_ID,
 };
 
 pub(crate) const SURFACE_DOMAIN_ID: &str = "surfaces.proof";
-pub(crate) const SOURCE_SURFACE_ID: &str = "surface:source";
 pub(crate) const SECOND_SURFACE_ID: &str = "surface:second";
 pub(crate) const PROVISIONED_WINDOW_ID: &str = "provisioned";
 pub(crate) const PROVISIONED_BINDING_ID: &str = "binding:provisioned";
@@ -408,8 +408,8 @@ pub(crate) fn surface_domain() -> Result<SurfaceDomain, String> {
         SurfaceDocument::new(
             SurfaceRevision::new(7),
             [
-                surface_record(SOURCE_SURFACE_ID, SOURCE_CONTAINER_ID, 0),
-                surface_record(SECOND_SURFACE_ID, TARGET_CONTAINER_ID, 1),
+                surface_record(SOURCE_SURFACE_ID, SOURCE_SURFACE_ID, 0),
+                surface_record(SECOND_SURFACE_ID, TARGET_SURFACE_ID, 1),
             ],
             [],
             [

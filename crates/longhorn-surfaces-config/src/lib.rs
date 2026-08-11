@@ -1,6 +1,5 @@
 //! Registered configuration persistence for authoritative Surface documents.
 
-mod card179;
 mod domain;
 mod layout_debounce;
 mod layout_digest;
@@ -9,6 +8,7 @@ mod layout_migration;
 mod layout_mutation;
 mod migration;
 mod mutation;
+mod recovery;
 
 pub use domain::{
     PersistedSurfaceDocument, RegisteredSurfaceDomain, RegisteredSurfaceDomainError,
@@ -35,4 +35,4 @@ pub use layout_mutation::{
     LayoutConfigMutationError, LayoutConfigPublicationReceipt, publish_layout_mutation,
 };
 
-pub use card179::merge_pre_card179_state;
+pub use recovery::{LayoutFallback, load_or_default};

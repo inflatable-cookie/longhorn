@@ -7,17 +7,17 @@ pub enum LayoutValidationCode {
     TooManyContainers,
     /// Panel-instance count exceeded configured limits.
     TooManyPanelInstances,
-    /// A container id appeared more than once.
+    /// A surface id appeared more than once.
     DuplicateContainer,
     /// A panel-instance id appeared more than once.
     DuplicatePanelInstance,
-    /// A container referenced an unknown schema.
+    /// A surface referenced an unknown schema.
     UnknownSchema,
     /// A panel instance referenced an unknown definition.
     UnknownPanelDefinition,
-    /// A region id appeared more than once in one container.
+    /// A region id appeared more than once in one surface.
     DuplicateRegionState,
-    /// A region was not part of its container schema.
+    /// A region was not part of its surface schema.
     UnknownRegion,
     /// Complete schema region state was missing.
     IncompleteRegionState,
@@ -35,9 +35,9 @@ pub enum LayoutValidationCode {
     UnknownDefinitionReference,
     /// Panel policy rejected its current region.
     PanelPlacementNotAllowed,
-    /// A sizing-slot id appeared more than once in one container.
+    /// A sizing-slot id appeared more than once in one surface.
     DuplicateSizingSlotState,
-    /// A sizing slot was not part of its container schema.
+    /// A sizing slot was not part of its surface schema.
     UnknownSizingSlot,
     /// Complete schema sizing-slot state was missing.
     IncompleteSizingSlotState,

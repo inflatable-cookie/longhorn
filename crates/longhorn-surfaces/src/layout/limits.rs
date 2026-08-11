@@ -13,7 +13,11 @@ pub struct LayoutLimits {
     maximum_regions_per_schema: usize,
     maximum_sizing_slots_per_schema: usize,
     maximum_panel_definitions: usize,
-    maximum_containers: usize,
+    // Card 179 note: SurfaceLimits bounds this same list. Two limits on one
+    // list can disagree, and only the stricter one takes effect. Collapsing
+    // them means changing this constructor's arity, which is a wider change
+    // than the rename that surfaced it.
+    maximum_surfaces: usize,
     maximum_panel_instances: usize,
     maximum_panel_instances_per_region: usize,
 }
@@ -30,7 +34,7 @@ impl<'de> Deserialize<'de> for LayoutLimits {
             maximum_regions_per_schema: usize,
             maximum_sizing_slots_per_schema: usize,
             maximum_panel_definitions: usize,
-            maximum_containers: usize,
+            maximum_surfaces: usize,
             maximum_panel_instances: usize,
             maximum_panel_instances_per_region: usize,
         }
@@ -41,7 +45,7 @@ impl<'de> Deserialize<'de> for LayoutLimits {
             limits.maximum_regions_per_schema,
             limits.maximum_sizing_slots_per_schema,
             limits.maximum_panel_definitions,
-            limits.maximum_containers,
+            limits.maximum_surfaces,
             limits.maximum_panel_instances,
             limits.maximum_panel_instances_per_region,
         )
@@ -57,7 +61,7 @@ impl LayoutLimits {
         maximum_regions_per_schema: usize,
         maximum_sizing_slots_per_schema: usize,
         maximum_panel_definitions: usize,
-        maximum_containers: usize,
+        maximum_surfaces: usize,
         maximum_panel_instances: usize,
         maximum_panel_instances_per_region: usize,
     ) -> Result<Self, LayoutLimitsError> {
@@ -78,7 +82,7 @@ impl LayoutLimits {
                 maximum_panel_definitions,
                 HARD_MAXIMUM_SMALL,
             ),
-            ("maximum_containers", maximum_containers, HARD_MAXIMUM_SMALL),
+            ("maximum_surfaces", maximum_surfaces, HARD_MAXIMUM_SMALL),
             (
                 "maximum_panel_instances",
                 maximum_panel_instances,
@@ -109,7 +113,7 @@ impl LayoutLimits {
             maximum_regions_per_schema,
             maximum_sizing_slots_per_schema,
             maximum_panel_definitions,
-            maximum_containers,
+            maximum_surfaces,
             maximum_panel_instances,
             maximum_panel_instances_per_region,
         })
@@ -139,10 +143,10 @@ impl LayoutLimits {
         self.maximum_panel_definitions
     }
 
-    /// Returns the maximum containers in one document.
+    /// Returns the maximum Surfaces in one document.
     #[must_use]
-    pub const fn maximum_containers(self) -> usize {
-        self.maximum_containers
+    pub const fn maximum_surfaces(self) -> usize {
+        self.maximum_surfaces
     }
 
     /// Returns the maximum panel instances in one document.

@@ -99,15 +99,15 @@ fn panel_location(
     document: &SurfaceDocument,
     panel_instance_id: &PanelInstanceId,
 ) -> Result<PanelLocation, OperationRejection> {
-    for container in document.surfaces() {
-        for region in container.regions() {
+    for surface in document.surfaces() {
+        for region in surface.regions() {
             if let Some(index) = region
                 .panel_instance_ids()
                 .iter()
                 .position(|id| id == panel_instance_id)
             {
                 return Ok(PanelLocation {
-                    surface_id: container.id().clone(),
+                    surface_id: surface.id().clone(),
                     region_id: region.region_id().clone(),
                     index,
                 });
@@ -125,16 +125,16 @@ fn region_mut<'a>(
     surface_id: &SurfaceId,
     region_id: &RegionId,
 ) -> Result<&'a mut RegionState, OperationRejection> {
-    let container = document.surface_mut(surface_id).ok_or_else(|| {
+    let surface = document.surface_mut(surface_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownSurface,
-            format!("unknown layout container {surface_id}"),
+            format!("unknown Surface {surface_id}"),
         )
     })?;
-    container.region_mut(region_id).ok_or_else(|| {
+    surface.region_mut(region_id).ok_or_else(|| {
         operation_rejection(
             LayoutMutationRejectionCode::UnknownRegion,
-            format!("container {surface_id} has no region {region_id}"),
+            format!("Surface {surface_id} has no region {region_id}"),
         )
     })
 }

@@ -138,11 +138,11 @@ pub(super) fn validate_panel<'a>(
 
     if let PanelInstancePolicy::Bounded {
         maximum_per_document,
-        maximum_per_container,
+        maximum_per_surface,
     } = panel.instance_policy
         && (maximum_per_document == 0
-            || maximum_per_container == 0
-            || maximum_per_container > maximum_per_document)
+            || maximum_per_surface == 0
+            || maximum_per_surface > maximum_per_document)
     {
         return Err(definition_error(
             DefinitionErrorCode::InvalidInstanceLimit,

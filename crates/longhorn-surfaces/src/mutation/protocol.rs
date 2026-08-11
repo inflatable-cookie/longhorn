@@ -55,7 +55,7 @@ impl SurfaceMutationRequest {
 #[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "kind")]
 pub enum SurfaceMutationCommand {
-    /// Creates a caller-identified Surface bound to an existing container.
+    /// Creates a caller-identified Surface bound to an existing surface.
     CreateSurface {
         /// New durable Surface identity.
         surface_id: SurfaceId,
@@ -80,7 +80,7 @@ pub enum SurfaceMutationCommand {
         /// New optional generic label.
         label: Option<String>,
     },
-    /// Replaces how one Surface presents its bound layout container.
+    /// Replaces how one Surface presents its bound layout surface.
     SetSurfacePresentation {
         /// Existing Surface identity.
         surface_id: SurfaceId,
@@ -140,7 +140,7 @@ pub enum SurfaceMutationOutcome {
         /// Renamed Surface identity.
         surface_id: SurfaceId,
     },
-    /// One Surface changed how it presents its container.
+    /// One Surface changed how it presents its surface.
     SurfacePresentationSet {
         /// Affected Surface identity.
         surface_id: SurfaceId,

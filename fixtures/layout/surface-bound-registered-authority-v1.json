@@ -4,36 +4,200 @@
   "schemaId": "schema:regional-surface",
   "externalBinding": {
     "hostKind": "surface",
-    "identityRule": "container:sha256(surface-id)",
-    "focusedSurfaceContainer": null
+    "identityRule": "surface-id is the layout identity",
+    "focusedSurfaceLayout": null
   },
   "regions": [
-    { "wireId": "topStrip", "id": "top-strip", "family": "strip", "order": 0, "hideWhenEmpty": true, "collapsible": false },
-    { "wireId": "bottomStrip", "id": "bottom-strip", "family": "strip", "order": 1, "hideWhenEmpty": true, "collapsible": false },
-    { "wireId": "leftStrip", "id": "left-strip", "family": "strip", "order": 2, "hideWhenEmpty": true, "collapsible": false },
-    { "wireId": "rightStrip", "id": "right-strip", "family": "strip", "order": 3, "hideWhenEmpty": true, "collapsible": false },
-    { "wireId": "left", "id": "left", "family": "dock", "order": 4, "hideWhenEmpty": true, "collapsible": true },
-    { "wireId": "right", "id": "right", "family": "dock", "order": 5, "hideWhenEmpty": true, "collapsible": true },
-    { "wireId": "centerTop", "id": "center-top", "family": "editorial", "order": 6, "hideWhenEmpty": true, "collapsible": false },
-    { "wireId": "centerBottom", "id": "center-bottom", "family": "detail", "order": 7, "hideWhenEmpty": true, "collapsible": true }
+    {
+      "wireId": "topStrip",
+      "id": "top-strip",
+      "family": "strip",
+      "order": 0,
+      "hideWhenEmpty": true,
+      "collapsible": false
+    },
+    {
+      "wireId": "bottomStrip",
+      "id": "bottom-strip",
+      "family": "strip",
+      "order": 1,
+      "hideWhenEmpty": true,
+      "collapsible": false
+    },
+    {
+      "wireId": "leftStrip",
+      "id": "left-strip",
+      "family": "strip",
+      "order": 2,
+      "hideWhenEmpty": true,
+      "collapsible": false
+    },
+    {
+      "wireId": "rightStrip",
+      "id": "right-strip",
+      "family": "strip",
+      "order": 3,
+      "hideWhenEmpty": true,
+      "collapsible": false
+    },
+    {
+      "wireId": "left",
+      "id": "left",
+      "family": "dock",
+      "order": 4,
+      "hideWhenEmpty": true,
+      "collapsible": true
+    },
+    {
+      "wireId": "right",
+      "id": "right",
+      "family": "dock",
+      "order": 5,
+      "hideWhenEmpty": true,
+      "collapsible": true
+    },
+    {
+      "wireId": "centerTop",
+      "id": "center-top",
+      "family": "editorial",
+      "order": 6,
+      "hideWhenEmpty": true,
+      "collapsible": false
+    },
+    {
+      "wireId": "centerBottom",
+      "id": "center-bottom",
+      "family": "detail",
+      "order": 7,
+      "hideWhenEmpty": true,
+      "collapsible": true
+    }
   ],
   "sizingSlots": [
-    { "id": "left-size", "regionWireId": "left", "minimum": 100000, "default": 220000, "maximum": 900000 },
-    { "id": "right-size", "regionWireId": "right", "minimum": 100000, "default": 720000, "maximum": 900000 },
-    { "id": "center-bottom-size", "regionWireId": "centerBottom", "minimum": 100000, "default": 660000, "maximum": 900000 }
+    {
+      "id": "left-size",
+      "regionWireId": "left",
+      "minimum": 100000,
+      "default": 220000,
+      "maximum": 900000
+    },
+    {
+      "id": "right-size",
+      "regionWireId": "right",
+      "minimum": 100000,
+      "default": 720000,
+      "maximum": 900000
+    },
+    {
+      "id": "center-bottom-size",
+      "regionWireId": "centerBottom",
+      "minimum": 100000,
+      "default": 660000,
+      "maximum": 900000
+    }
   ],
   "panels": [
-    { "key": "timeline", "id": "panel:timeline", "default": "center-top", "allowed": ["center-top"] },
-    { "key": "transport", "id": "panel:transport", "default": "bottom-strip", "allowed": ["top-strip", "bottom-strip"] },
-    { "key": "timelineChannel", "id": "panel:timeline-channel", "default": "left-strip", "allowed": ["left-strip", "right-strip"] },
-    { "key": "inspector", "id": "panel:inspector", "default": "left", "allowed": ["left", "right"] },
-    { "key": "clip-editor", "id": "panel:clip-editor", "default": "center-bottom", "allowed": ["center-bottom", "center-top"] },
-    { "key": "console", "id": "panel:console", "default": "center-bottom", "allowed": ["center-bottom", "center-top"] },
-    { "key": "history", "id": "panel:history", "default": "right", "allowed": ["right", "left"] },
-    { "key": "notifications", "id": "panel:notifications", "default": "right", "allowed": ["right", "left"] },
-    { "key": "plugin-browser", "id": "panel:plugin-browser", "default": "center-bottom", "allowed": ["center-bottom", "center-top", "left", "right"] },
-    { "key": "media-browser", "id": "panel:media-browser", "default": "right", "allowed": ["center-bottom", "center-top", "left", "right"] }
+    {
+      "key": "timeline",
+      "id": "panel:timeline",
+      "default": "center-top",
+      "allowed": [
+        "center-top"
+      ]
+    },
+    {
+      "key": "transport",
+      "id": "panel:transport",
+      "default": "bottom-strip",
+      "allowed": [
+        "top-strip",
+        "bottom-strip"
+      ]
+    },
+    {
+      "key": "timelineChannel",
+      "id": "panel:timeline-channel",
+      "default": "left-strip",
+      "allowed": [
+        "left-strip",
+        "right-strip"
+      ]
+    },
+    {
+      "key": "inspector",
+      "id": "panel:inspector",
+      "default": "left",
+      "allowed": [
+        "left",
+        "right"
+      ]
+    },
+    {
+      "key": "clip-editor",
+      "id": "panel:clip-editor",
+      "default": "center-bottom",
+      "allowed": [
+        "center-bottom",
+        "center-top"
+      ]
+    },
+    {
+      "key": "console",
+      "id": "panel:console",
+      "default": "center-bottom",
+      "allowed": [
+        "center-bottom",
+        "center-top"
+      ]
+    },
+    {
+      "key": "history",
+      "id": "panel:history",
+      "default": "right",
+      "allowed": [
+        "right",
+        "left"
+      ]
+    },
+    {
+      "key": "notifications",
+      "id": "panel:notifications",
+      "default": "right",
+      "allowed": [
+        "right",
+        "left"
+      ]
+    },
+    {
+      "key": "plugin-browser",
+      "id": "panel:plugin-browser",
+      "default": "center-bottom",
+      "allowed": [
+        "center-bottom",
+        "center-top",
+        "left",
+        "right"
+      ]
+    },
+    {
+      "key": "media-browser",
+      "id": "panel:media-browser",
+      "default": "right",
+      "allowed": [
+        "center-bottom",
+        "center-top",
+        "left",
+        "right"
+      ]
+    }
   ],
   "panelInstancePolicy": "singleton",
-  "productAttachmentsExcluded": ["title", "icon", "body", "resource", "surfaceFallbacks", "canFillSurface"]
+  "productAttachmentsExcluded": [
+    "title",
+    "icon",
+    "body",
+    "resource",
+    "surfaceFallbacks",
+    "canFillSurface"
+  ]
 }

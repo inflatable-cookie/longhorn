@@ -209,7 +209,7 @@ export class PoodleLayoutBinding {
       case "one_per_container":
         return peerCount === 0;
       case "bounded":
-        return peerCount < definition.instance_policy.maximum_per_container;
+        return peerCount < definition.instance_policy.maximum_per_surface;
       case "singleton":
       case "multiple":
         return true;

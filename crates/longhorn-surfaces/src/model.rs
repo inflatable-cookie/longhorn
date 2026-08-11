@@ -39,22 +39,22 @@ impl SurfaceHostPreference {
     }
 }
 
-/// How one Surface presents its bound layout container.
+/// How one Surface presents its bound layout surface.
 ///
-/// `Regional` is the ordinary case: the container's own region tree decides
+/// `Regional` is the ordinary case: the surface's own region tree decides
 /// what renders. `FocusedPanel` names one panel to render full-surface, with no
 /// regional layout and no panel tabs -- a dedicated console or manager surface.
 ///
 /// The surfaces domain records which panel is focused. It does not verify that
-/// the bound container holds that panel and only that panel, because it has no
-/// view of container contents; see Card 177 for why that invariant is a
+/// the bound surface holds that panel and only that panel, because it has no
+/// view of surface contents; see Card 177 for why that invariant is a
 /// consumer obligation rather than a rejection here.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(rename_all = "snake_case"))]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "kind")]
 pub enum SurfacePresentation {
-    /// The bound container's region tree decides what renders.
+    /// The bound surface's region tree decides what renders.
     #[default]
     Regional,
     /// One panel renders full-surface without regions or tabs.
@@ -76,7 +76,7 @@ impl SurfacePresentation {
         }
     }
 
-    /// Returns whether the bound container's regions decide what renders.
+    /// Returns whether the bound surface's regions decide what renders.
     #[must_use]
     pub const fn is_regional(&self) -> bool {
         matches!(self, Self::Regional)
@@ -215,7 +215,7 @@ impl SurfaceRecord {
         self.host_preferences.as_slice()
     }
 
-    /// Returns how this Surface presents its bound container.
+    /// Returns how this Surface presents its bound surface.
     #[must_use]
     pub const fn presentation(&self) -> &SurfacePresentation {
         &self.presentation
