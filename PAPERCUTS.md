@@ -7,6 +7,32 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] A green local gate says nothing about a clean runner — 2026-08-11
+- Friction: Longhorn's release workflow ran for the first time on 2026-08-11
+  and failed five times in a row, each on a different pre-existing defect, with
+  `effigy qa` green here throughout. Three properties of a developer machine
+  were doing the work: a sibling Poodle checkout, a cargo cache still holding
+  versions the lockfile no longer names, and `CI` unset so tool output arrives
+  uncoloured. Every failure came from one of the three.
+- Impact: ten minutes of CI per defect, discovered one at a time, during a
+  release. Worse than the cost is the false reading — a fully green board on a
+  repository that could not be cloned and built.
+- The three reproductions, all cheap once known:
+  - `git clone` to a directory with no sibling Poodle, then run the gate there.
+  - `CARGO_HOME=$(mktemp -d) cargo fetch --locked`, then run the proofs against
+    it. `--offline` only fails where a stale pin is absent from the cache.
+  - `CI=1 effigy proof:artifacts`. picocolors enables colour whenever `CI` is
+    set, with no terminal involved, so piping output is not enough to get plain
+    text.
+- Possible fix: fold the three into one `effigy ci:rehearse` task, so the check
+  before a release is a command rather than a recollection. Each is minutes;
+  together they are still cheaper than one failed run.
+- Also worth noting: two of the five defects were duplicated helpers that had
+  rotted in the copies — the workspace dependency table in seven proofs, and a
+  vitest summary regex in five. Both are now single sources. A duplicated
+  helper only diverges where nobody looks, and nobody looks locally.
+- Surface: `effigy.toml`, `scripts/`, `.github/workflows/release.yml`.
+
 ### [ ] Nothing local can fail on a path that escapes the repository — 2026-08-11
 - Friction: `effigy qa` is green here whether or not the repository is
   self-contained, because this machine has Poodle checked out beside Longhorn.
