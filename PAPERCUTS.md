@@ -41,29 +41,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   than one that is plainly wrong.
 - Surface: `effigy.toml`, `scripts/`, `.github/workflows/release.yml`.
 
-### [ ] Nothing local can fail on a path that escapes the repository — 2026-08-11
-- Friction: `effigy qa` is green here whether or not the repository is
-  self-contained, because this machine has Poodle checked out beside Longhorn.
-  Four gates read paths outside the repository and all four passed locally:
-  `crates/longhorn-poodle` and both gpui prototypes by Cargo path,
-  `boundary.test.ts` by `realpath`, and `verify-greenfield-card125.ts` by
-  `POODLE_REPO ?? ../poodle`. The release workflow's first run found the first
-  in 23 seconds.
-- Impact: the whole local board can be green on a repository that cannot be
-  cloned and built. Worse, it is silent — there is no partial signal, so
-  confidence tracks nothing. The fix for one escaping path also introduced a
-  duplicate-crate break in another, which local runs could not see either.
-- Possible fix: a cheap gate that greps manifests, tests and scripts for refs
-  resolving above the repository root, allow-listing the greenfield proof.
-  Grep, not a build: it needs to be fast enough to sit in `qa`. Until then, the
-  reliable check is `git clone` to a directory with no sibling Poodle and run
-  the gate there, which is how these four were found in one pass.
-- Deliberate exception: `verify-greenfield-card125.ts` packs Poodle from
-  source, so it needs a real checkout. `release.yml` clones the tag beside the
-  workspace. Any allow-list should name this one and no others.
-- Surface: `effigy.toml`, `scripts/verify-greenfield-card125.ts`,
-  `.github/workflows/release.yml`.
-
 ### [ ] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
 - Friction: Card 177 added `SurfacePresentation` to the Rust surface model and
   regenerated. `packages/longhorn/src/surfaces/generated/protocol.ts` then

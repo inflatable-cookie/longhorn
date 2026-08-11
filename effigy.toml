@@ -54,6 +54,7 @@ exclude = ["history/**"]
 "generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout native-content notifications operation settings surfaces surface-transfer transfer; do cargo run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
 "check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
+"check:repo-containment" = "bun scripts/verify-repo-containment.ts"
 "generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------
@@ -112,6 +113,7 @@ qa = [
   { task = "check:bindings" },
   { task = "check:api-reference" },
   { task = "check:consumer-isolation" },
+  { task = "check:repo-containment" },
   { task = "proof:artifacts" },
   { task = "qa:docs" },
   { task = "qa:northstar" },

@@ -65,6 +65,12 @@ Poodle and poodle-specs are admitted by name in `DEPENDENCIES`, because
 Longhorn projects into them rather than the other way round. A fourth entry
 should be argued for.
 
+`check:repo-containment`, also in `qa`, is stricter about location: Cargo
+`path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
+inside this tree. The only admitted escape is
+`scripts/verify-greenfield-card125.ts`, which packs Poodle from source under
+the release workflow.
+
 `verify-greenfield-card125.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.
 
