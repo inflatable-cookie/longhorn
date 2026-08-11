@@ -11,5 +11,5 @@ describe("operation optional modules", () => {
     expect(root.OperationController).toBeTypeOf("function");
     expect(svelte.OperationSession).toBeTypeOf("function");
     expect(poodle.OperationPanel).toBeTruthy();
-  }, 20_000);
+  }, 60_000);
 });

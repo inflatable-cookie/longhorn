@@ -187,25 +187,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   block alongside the `file:` dependencies rather than leaving it implicit.
 - Surface: `docs/guides/getting-started.md`, consumer manifests.
 
-### [ ] SSR vitest suites flake under machine load — 2026-08-08
-- Friction: the SSR suites under `packages/longhorn-poodle-svelte/tests/`
-  carry 15s and 20s timeouts and spend nearly all of it in transform, so they
-  fail whenever the machine is busy — including inside `effigy qa` itself,
-  where the Rust lanes are the competing load. Measured 2026-08-09:
-  `config-svelte/ssr.test.ts` takes 6.8s alone and times out at 15s in a full
-  gate run. The margin is roughly 2x and the gate routinely eats it.
-- Impact: `effigy qa` fails intermittently with no real defect, and the
-  failure names an SSR import check, which reads like a genuine regression.
-  Three misdiagnoses so far: once read as the `@inflatable-cookie` rename (it
-  was a stale `node_modules`), once as the bindings change, once as the new
-  `longhorn-poodle` crate. Each cost a full re-run to disprove.
-- Possible fix: raise the timeouts to a multiple of the measured cost rather
-  than a round number, or give the SSR suites a serial lane so they do not
-  compete with a parallel Rust build. Not done here: `packages/*` is outside
-  this thread's remit.
-- Surface: `packages/longhorn-poodle-svelte/tests/config-svelte/ssr.test.ts`,
-  `packages/longhorn-poodle-svelte/tests/commands-svelte/ssr.test.ts`.
-
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose

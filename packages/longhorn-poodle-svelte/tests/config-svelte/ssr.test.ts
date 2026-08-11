@@ -9,5 +9,5 @@ test(
     expect(pages.StorageSettingsPage).toBeTruthy();
     expect(pages.BackupSettingsPage).toBeTruthy();
   },
-  15_000,
+  45_000,
 );

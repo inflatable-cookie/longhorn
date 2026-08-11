@@ -9,5 +9,5 @@ describe("history optional modules", () => {
     const poodle = await import("../../src/history/poodle.ts");
     expect(svelte.HistorySession).toBeTypeOf("function");
     expect(poodle.HistoryPanel).toBeTruthy();
-  }, 20_000);
+  }, 60_000);
 });

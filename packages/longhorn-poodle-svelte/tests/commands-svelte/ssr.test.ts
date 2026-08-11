@@ -10,5 +10,5 @@ describe("command optional modules", () => {
     expect(svelte.CommandSession).toBeTypeOf("function");
     expect(poodle.CommandPaletteBinding).toBeTruthy();
     expect(poodle.KeybindingSettings).toBeTruthy();
-  }, 20_000);
+  }, 60_000);
 });

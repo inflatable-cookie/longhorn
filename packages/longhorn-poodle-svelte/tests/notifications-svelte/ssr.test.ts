@@ -10,5 +10,5 @@ describe("notification optional modules", () => {
     expect(root.NotificationController).toBeTypeOf("function");
     expect(svelte.NotificationSession).toBeTypeOf("function");
     expect(poodle.NotificationPanel).toBeTruthy();
-  }, 20_000);
+  }, 60_000);
 });

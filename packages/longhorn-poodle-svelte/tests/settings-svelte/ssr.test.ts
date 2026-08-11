@@ -9,5 +9,5 @@ describe("settings optional modules", () => {
     const poodle = await import("../../src/settings/poodle.ts");
     expect(svelte.SettingsSession).toBeTypeOf("function");
     expect(poodle.SettingsShell).toBeTruthy();
-  }, 20_000);
+  }, 60_000);
 });
