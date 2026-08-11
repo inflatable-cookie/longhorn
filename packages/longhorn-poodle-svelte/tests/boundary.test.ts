@@ -1,10 +1,28 @@
-import { readFile, readdir, realpath, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 const packageRoot = resolve(process.cwd(), "packages/longhorn-poodle-svelte");
 const repositoryRoot = resolve(packageRoot, "../..");
+
+const POODLE = "@inflatable-cookie/poodle-svelte";
+
+type Manifest = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+};
+
+function manifest(root: string): Manifest {
+  return JSON.parse(
+    readFileSync(resolve(root, "package.json"), "utf8"),
+  ) as Manifest;
+}
+
+const rootManifest = manifest(repositoryRoot);
+const packageManifest = manifest(packageRoot);
 
 async function sourceFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir);
@@ -81,28 +99,41 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
     expect(offenders).toEqual([]);
   });
 
-  // Poodle must come from the registry, never from a checkout beside this one.
+  // Poodle must be *declared* as a published version, never as a path into a
+  // checkout beside this one. A package that ships a path dependency is
+  // uninstallable for everyone who is not the author.
   //
-  // This used to prove it by realpath-ing `../poodle/packages/svelte/components`
-  // and asserting the install differed from it. That named a path outside the
-  // repository, so it passed only on a machine with Poodle checked out as a
-  // sibling: the first CI run failed here with ENOENT, on the very test meant
-  // to forbid depending on sibling source.
+  // This has been wrong twice, both times by inspecting the wrong thing.
+  // First it realpath'd `../poodle/packages/svelte/components` to compare
+  // against, which named a path outside the repository and so passed only
+  // where Poodle sat as a sibling -- the first CI run failed here with ENOENT,
+  // on the very test meant to forbid depending on sibling source. Then it
+  // asserted the install resolved under `node_modules`, which is false the
+  // moment anyone runs the sanctioned `effigy deps link bun ../poodle`.
   //
-  // Containment is the property that was actually wanted, and it is stronger.
-  // Any escaping pin -- the old `file:../poodle/.artifacts/...`, a `link:`, an
-  // npm link -- resolves outside `node_modules`, and needs no donor to detect.
-  it("resolves an installed Poodle, not a link to source outside the repository", async () => {
-    const installedRoot = await realpath(
-      resolve(repositoryRoot, "node_modules/@inflatable-cookie/poodle-svelte"),
-    );
-    const modulesRoot = await realpath(resolve(repositoryRoot, "node_modules"));
-    const metadata = JSON.parse(
-      await readFile(resolve(installedRoot, "package.json"), "utf8"),
-    );
+  // Both mistook the developer's node_modules for the published contract. The
+  // manifest is the contract: `effigy deps link` leaves it byte-for-byte
+  // unchanged by design, so linking Poodle to work against an unreleased
+  // version is invisible here, exactly as it should be.
+  it("declares Poodle by published version, not by path", () => {
+    const pathProtocol = /^(file|link|portal|workspace):/;
+    const declarations = [
+      [
+        "workspace dependency",
+        // A devDependency at the root: the packages take Poodle as an optional
+        // peer, and the root installs it to build and test against.
+        (rootManifest.dependencies?.[POODLE] ??
+          rootManifest.devDependencies?.[POODLE]) as string | undefined,
+      ],
+      ["peer", packageManifest.peerDependencies?.[POODLE] as string | undefined],
+    ] as const;
 
-    expect(installedRoot.startsWith(`${modulesRoot}/`)).toBe(true);
-    expect(metadata.name).toBe("@inflatable-cookie/poodle-svelte");
-    expect(metadata.version).toBe("0.1.0");
+    for (const [kind, spec] of declarations) {
+      expect(spec, `${POODLE} is not declared as a ${kind}`).toBeDefined();
+      expect(
+        pathProtocol.test(spec as string),
+        `${POODLE} ${kind} is a path reference: ${spec}`,
+      ).toBe(false);
+    }
   });
 });

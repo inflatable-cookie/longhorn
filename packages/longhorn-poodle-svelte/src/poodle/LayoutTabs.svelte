@@ -37,7 +37,10 @@ import type {
     regionId,
     resolvePanel,
     ariaLabel,
-    variant = "text",
+    // Poodle collapsed five Tabs variants to four: the old `text` was renamed
+    // `card` and the old `card` deleted, with no alias window. Same appearance,
+    // new name.
+    variant = "card",
     orientation = "horizontal",
     activationMode = "automatic",
     body,
