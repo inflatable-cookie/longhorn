@@ -93,21 +93,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   verify file moves against the working tree rather than the index.
 - Surface: multi-thread working practice.
 
-### [ ] Peered packages need a consumer override under `file:` refs — 2026-08-08
-- Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
-  `@inflatable-cookie/longhorn` as a peer at `0.1.0`. A consumer that installs
-  longhorn as `file:../longhorn/packages/longhorn` does not satisfy that peer
-  by itself, so bun reaches for the registry and 404s. Nucleus and soundcheck
-  happened to carry `overrides` already; jetstream did not and failed to
-  install until one was added.
-- Impact: every new consumer hits a confusing registry 404 for a package that
-  is sitting on disk beside them, and the fix is not discoverable from the
-  error.
-- Possible fix: it disappears once longhorn publishes and consumers depend by
-  version. Until then, the getting-started guide should show the override
-  block alongside the `file:` dependencies rather than leaving it implicit.
-- Surface: `docs/guides/getting-started.md`, consumer manifests.
-
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
@@ -147,6 +132,21 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `scripts/private-candidate-card149/consumers.ts`, Card 149.
 
 ## Closed
+
+### [x] Peered packages need a consumer override under `file:` refs — 2026-08-08
+- Friction: `longhorn-poodle-svelte` and `longhorn-tauri` declare
+  `@inflatable-cookie/longhorn` as a peer at `0.1.0`. A consumer that installs
+  longhorn as `file:../longhorn/packages/longhorn` does not satisfy that peer
+  by itself, so bun reaches for the registry and 404s. Nucleus and soundcheck
+  happened to carry `overrides` already; jetstream did not and failed to
+  install until one was added.
+- Impact: every new consumer hits a confusing registry 404 for a package that
+  is sitting on disk beside them, and the fix is not discoverable from the
+  error.
+- Fix (2026-08-11): `docs/guides/getting-started.md` now shows the
+  `dependencies` + `overrides` pair for sibling `file:` installs, and states
+  that the override is required until consumers depend by published version.
+- Surface: `docs/guides/getting-started.md`, consumer manifests.
 
 ### [x] `check:bindings` cannot catch a generator that emits an undeclared type — 2026-08-10
 - Friction: Card 177 added `SurfacePresentation` to the Rust surface model and

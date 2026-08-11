@@ -1,7 +1,7 @@
 # Getting Started: Zero To Running
 
 Status: checked private adoption guidance
-Updated: 2026-08-08
+Updated: 2026-08-11
 Governing contracts: [002](../contracts/002-composable-workspace-hosting.md),
 [004](../contracts/004-configuration-storage-backup-and-recovery.md), and
 [005](../contracts/005-settings-and-system-registration.md)
@@ -63,6 +63,8 @@ cargo check --locked
 
 ## 4. TypeScript: Install The Renderer Packages [temporary]
 
+### Candidate tarballs
+
 Install the minimal shape's packages from the produced tarballs, never from a
 registry:
 
@@ -81,6 +83,33 @@ Tarball filenames come from the candidate receipt (`artifacts.longhornTypescript
 and `artifacts.poodle`). Commit the lockfile. The exact Poodle tarball names
 and this recipe change with the upcoming Poodle release — re-read the
 [distribution reference](../reference/private-0-1-candidate.md) when it lands.
+
+### Local sibling checkout (`file:`)
+
+Portfolio consumers often pin Longhorn by path while it is unpublished:
+
+```json
+{
+  "dependencies": {
+    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn",
+    "@inflatable-cookie/longhorn-poodle-svelte": "file:../longhorn/packages/longhorn-poodle-svelte",
+    "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri"
+  },
+  "overrides": {
+    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn"
+  }
+}
+```
+
+The `overrides` block is required, not optional. `longhorn-poodle-svelte` and
+`longhorn-tauri` peer-depend on `@inflatable-cookie/longhorn` at exact
+`0.1.0`. A top-level `file:` dependency does not satisfy that peer for bun, so
+install reaches the registry for `0.1.0` and 404s — for a package that is
+already on disk. Point the override at the same path as the dependency.
+Adjust relative paths to your layout; commit the lockfile.
+
+Once Longhorn publishes and consumers depend by version, delete the
+`overrides` entry — it exists only to keep `file:` installs off the registry.
 
 ## 5. Register The Config Domain
 
