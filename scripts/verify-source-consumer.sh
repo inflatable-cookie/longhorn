@@ -57,7 +57,9 @@ release_probe_crates=(
   longhorn-core
   longhorn-config
   longhorn-windowing
-  longhorn-layout
+  # No longhorn-layout: Card 179 absorbed it into longhorn-surfaces, which
+  # already stands below. Probing a crate that no longer exists failed
+  # resolution for the whole consumer, so this gate had been red since 179.
   longhorn-surfaces
   longhorn-transfer
   longhorn-history

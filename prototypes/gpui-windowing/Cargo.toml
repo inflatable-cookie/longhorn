@@ -18,10 +18,19 @@ longhorn-poodle = { path = "../../crates/longhorn-poodle" }
 longhorn-update = { path = "../../crates/longhorn-update" }
 longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
 longhorn-windowing = { path = "../../crates/longhorn-windowing" }
-poodle-adapter = { path = "../../../poodle/packages/contracts/adapter" }
-poodle-gpui = { path = "../../../poodle/packages/gpui/adapter" }
-poodle-gpui-node-backend = { path = "../../../poodle/packages/gpui/node-backend" }
-poodle-render = { path = "../../../poodle/packages/render" }
+# Same tag `longhorn-poodle` takes, and it has to be: this prototype reaches
+# Poodle twice, directly and through `longhorn-poodle`. Two sources for one
+# crate are two distinct types, and the error says so obscurely -- "expected
+# `poodle_specs::banner::BannerSpec`, found a different
+# `poodle_specs::banner::BannerSpec`". Move these and that tag together.
+#
+# Taking them by tag also makes this prototype build on its own. The paths
+# these replace pointed outside the repository, so `effigy check:prototypes`
+# -- which `release:gates` runs -- passed only where Poodle sat alongside.
+poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
 semver = "1"
 
 [lints.rust]

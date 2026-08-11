@@ -81,19 +81,27 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("resolves the exact packed Poodle package, not sibling source", async () => {
+  // Poodle must come from the registry, never from a checkout beside this one.
+  //
+  // This used to prove it by realpath-ing `../poodle/packages/svelte/components`
+  // and asserting the install differed from it. That named a path outside the
+  // repository, so it passed only on a machine with Poodle checked out as a
+  // sibling: the first CI run failed here with ENOENT, on the very test meant
+  // to forbid depending on sibling source.
+  //
+  // Containment is the property that was actually wanted, and it is stronger.
+  // Any escaping pin -- the old `file:../poodle/.artifacts/...`, a `link:`, an
+  // npm link -- resolves outside `node_modules`, and needs no donor to detect.
+  it("resolves an installed Poodle, not a link to source outside the repository", async () => {
     const installedRoot = await realpath(
       resolve(repositoryRoot, "node_modules/@inflatable-cookie/poodle-svelte"),
     );
-    const donorSource = await realpath(
-      resolve(repositoryRoot, "../poodle/packages/svelte/components"),
-    );
+    const modulesRoot = await realpath(resolve(repositoryRoot, "node_modules"));
     const metadata = JSON.parse(
       await readFile(resolve(installedRoot, "package.json"), "utf8"),
     );
 
-    expect(installedRoot).not.toBe(donorSource);
-    expect(installedRoot.startsWith(`${donorSource}/`)).toBe(false);
+    expect(installedRoot.startsWith(`${modulesRoot}/`)).toBe(true);
     expect(metadata.name).toBe("@inflatable-cookie/poodle-svelte");
     expect(metadata.version).toBe("0.1.0");
   });

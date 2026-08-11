@@ -32,10 +32,13 @@ longhorn-windowing = { path = "../../crates/longhorn-windowing" }
 longhorn-windowing-config = { path = "../../crates/longhorn-windowing-config" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-poodle-adapter = { path = "../../../poodle/packages/contracts/adapter" }
-poodle-gpui = { path = "../../../poodle/packages/gpui/adapter" }
-poodle-gpui-node-backend = { path = "../../../poodle/packages/gpui/node-backend" }
-poodle-render = { path = "../../../poodle/packages/render" }
+# By tag, matching `longhorn-poodle`. See the note in prototypes/gpui-windowing:
+# reaching Poodle both directly and through `longhorn-poodle` needs one source,
+# or the same struct arrives as two incompatible types.
+poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
 
 [lints.rust]
 missing_docs = "deny"

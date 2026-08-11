@@ -3194,25 +3194,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-layout"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "serde",
-]
-
-[[package]]
-name = "longhorn-layout-config"
-version = "0.1.0"
-dependencies = [
- "longhorn-config",
- "longhorn-core",
- "longhorn-layout",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "longhorn-licence"
 version = "0.1.0"
 dependencies = [
@@ -3266,13 +3247,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-surfaces"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "serde",
+]
+
+[[package]]
+name = "longhorn-surfaces-config"
+version = "0.1.0"
+dependencies = [
+ "longhorn-config",
+ "longhorn-core",
+ "longhorn-surfaces",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "longhorn-transfer"
 version = "0.1.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
- "longhorn-layout",
- "longhorn-layout-config",
+ "longhorn-surfaces",
+ "longhorn-surfaces-config",
  "serde",
 ]
 
@@ -4119,6 +4119,7 @@ checksum = "5da3b0203fd7ee5720aa0b5e790b591aa5d3f41c3ed2c34a3a393382198af2f7"
 [[package]]
 name = "poodle-adapter"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-events",
  "poodle-layout",
@@ -4129,10 +4130,12 @@ dependencies = [
 [[package]]
 name = "poodle-events"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 
 [[package]]
 name = "poodle-gpui"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-adapter",
  "poodle-events",
@@ -4146,6 +4149,7 @@ dependencies = [
 [[package]]
 name = "poodle-gpui-node-backend"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "gpui",
  "poodle-headless",
@@ -4155,10 +4159,12 @@ dependencies = [
 [[package]]
 name = "poodle-headless"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 
 [[package]]
 name = "poodle-layout"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-tokens",
 ]
@@ -4166,6 +4172,7 @@ dependencies = [
 [[package]]
 name = "poodle-markdown"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "pulldown-cmark",
 ]
@@ -4173,6 +4180,7 @@ dependencies = [
 [[package]]
 name = "poodle-node"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-layout",
  "poodle-style",
@@ -4182,6 +4190,7 @@ dependencies = [
 [[package]]
 name = "poodle-render"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-adapter",
  "poodle-headless",
@@ -4194,6 +4203,7 @@ dependencies = [
 [[package]]
 name = "poodle-specs"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-headless",
  "poodle-tokens",
@@ -4202,6 +4212,7 @@ dependencies = [
 [[package]]
 name = "poodle-style"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 dependencies = [
  "poodle-layout",
  "poodle-tokens",
@@ -4210,6 +4221,7 @@ dependencies = [
 [[package]]
 name = "poodle-tokens"
 version = "0.1.0"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.1.0#64809388b45073c11703b198dc14b92489cb0c6f"
 
 [[package]]
 name = "postage"
