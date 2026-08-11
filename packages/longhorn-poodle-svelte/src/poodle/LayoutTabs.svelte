@@ -26,6 +26,12 @@ import type {
     resolvePanel: PanelPresentationResolver;
     ariaLabel: string;
     variant?: TabVariant;
+    /**
+     * The border under the tab list. Defaults true, which is what this
+     * projection rendered before Poodle flipped the Tabs default to false;
+     * a consumer that wants the borderless list now has to say so.
+     */
+    bordered?: boolean;
     orientation?: Orientation;
     activationMode?: TabActivationMode;
     body?: Snippet<[PanelRenderContext]>;
@@ -41,6 +47,7 @@ import type {
     // `card` and the old `card` deleted, with no alias window. Same appearance,
     // new name.
     variant = "card",
+    bordered = true,
     orientation = "horizontal",
     activationMode = "automatic",
     body,
@@ -71,6 +78,7 @@ import type {
   }))}
   value={projection.state.active_panel_instance_id ?? ""}
   {variant}
+  {bordered}
   {orientation}
   {activationMode}
   reorderable={true}
