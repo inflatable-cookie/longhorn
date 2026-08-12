@@ -1,3 +1,7 @@
+import {
+  NOTIFICATION_VARIANT_FIELDS,
+  NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
 import { NOTIFICATIONS_FIELDS } from "./generated/fields.ts";
 import {
   NOTIFICATION_CHANGED_KINDS,
@@ -64,30 +68,30 @@ export function assertValidNotificationMutationCommand(value: unknown): asserts 
   natural(object.expectedLedgerRevision, "$.expectedLedgerRevision");
   switch (object.kind) {
     case "add":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedLedgerRevision", "notificationId", "draft"]);
+      exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       text(object.notificationId, "$.notificationId");
       draft(object.draft, "$.draft");
       break;
     case "replace":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedLedgerRevision", "draft", "markUnseen"]);
+      exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       draft(object.draft, "$.draft");
       boolean(object.markUnseen, "$.markUnseen");
       break;
     case "markSeen":
     case "dismiss":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedLedgerRevision", "notificationId"]);
+      exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       text(object.notificationId, "$.notificationId");
       break;
     case "clear": {
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedLedgerRevision", "target"]);
+      exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       const target = record(object.target, "$.target");
       member(target.kind, ["all", "records"] as const, "$.target.kind");
-      exactKeys(target, "$.target", target.kind === "all" ? ["kind"] : ["kind", "notificationIds"]);
+      exactKeys(target, "$.target", variantKeys("NotificationClearTargetProjection", target, "$.target"));
       if (target.kind === "records") array(target.notificationIds, "$.target.notificationIds").forEach((id, index) => text(id, `$.target.notificationIds[${index}]`));
       break;
     }
     case "changeRetention":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedLedgerRevision", "limits"]);
+      exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       limits(object.limits, "$.limits");
       break;
   }
@@ -99,10 +103,10 @@ export function assertValidNotificationMutationResult(value: unknown): asserts v
   text(object.requestId, "$.requestId");
   assertValidNotificationSnapshot(object.snapshot);
   if (object.status === "committed") {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "receipt"]);
+    exactKeys(object, "$", variantKeys("NotificationMutationResult", object, "$"));
     receipt(object.receipt, "$.receipt");
   } else {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "rejection"]);
+    exactKeys(object, "$", variantKeys("NotificationMutationResult", object, "$"));
     const rejection = exact(object.rejection, "$.rejection", NOTIFICATIONS_FIELDS.NotificationRejection);
     member(rejection.code, NOTIFICATION_REJECTION_CODES, "$.rejection.code");
     text(rejection.detail, "$.rejection.detail");
@@ -167,17 +171,17 @@ function receipt(value: unknown, path: string): void {
   natural(object.previousLedgerRevision, `${path}.previousLedgerRevision`);
   natural(object.committedLedgerRevision, `${path}.committedLedgerRevision`);
   if (object.kind === "added" || object.kind === "replaced") {
-    exactKeys(object, path, ["kind", "record", "previousLedgerRevision", "committedLedgerRevision", "pruned"]);
+    exactKeys(object, path, variantKeys("NotificationMutationReceiptProjection", object, path));
     recordProjection(object.record, `${path}.record`);
     removals(object.pruned, `${path}.pruned`);
   } else if (object.kind === "seen") {
-    exactKeys(object, path, ["kind", "record", "previousLedgerRevision", "committedLedgerRevision"]);
+    exactKeys(object, path, variantKeys("NotificationMutationReceiptProjection", object, path));
     recordProjection(object.record, `${path}.record`);
   } else if (object.kind === "removed") {
-    exactKeys(object, path, ["kind", "previousLedgerRevision", "committedLedgerRevision", "removals"]);
+    exactKeys(object, path, variantKeys("NotificationMutationReceiptProjection", object, path));
     removals(object.removals, `${path}.removals`);
   } else {
-    exactKeys(object, path, ["kind", "previousLimits", "committedLimits", "previousLedgerRevision", "committedLedgerRevision", "removals"]);
+    exactKeys(object, path, variantKeys("NotificationMutationReceiptProjection", object, path));
     limits(object.previousLimits, `${path}.previousLimits`);
     limits(object.committedLimits, `${path}.committedLimits`);
     removals(object.removals, `${path}.removals`);
@@ -226,3 +230,17 @@ function natural(value: unknown, path: string): void { integer(value, path); if 
 function positive(value: unknown, path: string): void { natural(value, path); if ((value as number) === 0) fail(path, "expected positive integer"); }
 function member(value: unknown, members: readonly string[], path: string): void { if (typeof value !== "string" || !members.includes(value)) fail(path, `expected one of ${members.join(", ")}`); }
 function fail(path: string, message: string): never { throw new NotificationProtocolValidationError(path, message); }
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too.
+ *
+ * A missing entry means the generator failed to read the union: every caller
+ * checks the discriminant above this call.
+ */
+function variantKeys(type: string, object: Record<string, unknown>, path: string): readonly string[] {
+  const discriminant = object[NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = NOTIFICATION_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return keys;
+}

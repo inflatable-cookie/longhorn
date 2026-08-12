@@ -142,37 +142,21 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     // that is what the variant pass returns.
     let _ = skipped;
 
-    // Every fork union is tagged `kind` except the results, tagged `status`.
-    // Rendered in two passes and joined, because one pass cannot know which
-    // key a union uses without reading it.
-    let (kind_variants, kind_unreadable) = variant_field_map(
+    // One pass. The generator detects each union's discriminant rather than
+    // being told: this domain's targets are tagged `kind` and its results
+    // `status`, and a caller that has to know which is another place the
+    // answer is written down twice.
+    let (variant_fields, unreadable) = variant_field_map(
         "generate:history-tree",
         "HISTORY_TREE_VARIANT_FIELDS",
-        "kind",
         &declarations,
     );
-    let (status_variants, status_unreadable) = variant_field_map(
-        "generate:history-tree",
-        "HISTORY_TREE_STATUS_VARIANT_FIELDS",
-        "status",
-        &declarations,
-    );
-    // Unreadable under *both* keys. A union tagged `kind` is naturally absent
-    // from the `status` pass and vice versa, so only the intersection is a
-    // union nothing could read.
-    let unreadable: Vec<_> = kind_unreadable
-        .iter()
-        .filter(|name| status_unreadable.contains(name))
-        .cloned()
-        .collect();
     if !unreadable.is_empty() {
         eprintln!(
-            "[history-tree] tagged unions readable under no known discriminant: {}",
+            "[history-tree] tagged unions with no detectable discriminant: {}",
             unreadable.join(", ")
         );
     }
-    let variant_fields = format!("{kind_variants}\n{status_variants}");
-
     Ok(RenderedProtocol {
         contents,
         fields,

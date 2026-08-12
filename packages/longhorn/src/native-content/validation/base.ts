@@ -1,4 +1,8 @@
 import {
+  NATIVE_CONTENT_VARIANT_FIELDS,
+  NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS,
+} from "../generated/variant-fields.ts";
+import {
   NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES,
   NATIVE_CONTENT_PROTOCOL_VERSION,
 } from "../generated/protocol.ts";
@@ -165,4 +169,26 @@ function visit(value: unknown, path: string, seen: Set<object>): void {
     }
   }
   seen.delete(value);
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map.
+ *
+ * The discriminant's *name* comes from the generated map too: this domain
+ * uses `kind`, `status` and `state`, and a call site that has to name the
+ * right one is a per-site chance to name the wrong one.
+ *
+ * A missing entry means the generator failed to read the union, not that a
+ * caller sent something odd — every switch checks the discriminant above this
+ * call. Failing loudly beats a hand-written list, which is what these were.
+ */
+export function variantKeys(
+  type: string,
+  object: Record<string, unknown>,
+  path: string,
+): readonly string[] {
+  const discriminant = object[NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = NATIVE_CONTENT_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return keys;
 }

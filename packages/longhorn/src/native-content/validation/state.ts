@@ -29,6 +29,7 @@ import {
   assertProductPayloadFree,
   boolean,
   exactKeys,
+  variantKeys,
   exactObject,
   fail,
   finite,
@@ -118,12 +119,12 @@ export function decision(
   const object = record(value, path);
   member(object.kind, NATIVE_CONTENT_SIZE_DECISION_KINDS, `${path}.kind`);
   if (object.kind === "accepted") {
-    exactKeys(object, path, ["kind"]);
+    exactKeys(object, path, variantKeys("ContentSizeDecision", object, path));
   } else if (object.kind === "constrained") {
-    exactKeys(object, path, ["kind", "size"]);
+    exactKeys(object, path, variantKeys("ContentSizeDecision", object, path));
     clientSize(object.size, `${path}.size`);
   } else {
-    exactKeys(object, path, ["kind", "code"]);
+    exactKeys(object, path, variantKeys("ContentSizeDecision", object, path));
     opaqueId(object.code, `${path}.code`);
   }
 }
@@ -181,9 +182,9 @@ function desiredVisibility(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.state, NATIVE_CONTENT_DESIRED_VISIBILITY_STATES, `${path}.state`);
   if (object.state === "visible") {
-    exactKeys(object, path, ["state"]);
+    exactKeys(object, path, variantKeys("DesiredVisibility", object, path));
   } else {
-    exactKeys(object, path, ["state", "reason"]);
+    exactKeys(object, path, variantKeys("DesiredVisibility", object, path));
     opaqueId(object.reason, `${path}.reason`);
   }
 }
@@ -207,18 +208,18 @@ function observedGeometry(value: unknown, path: string): void {
   member(object.kind, NATIVE_CONTENT_OBSERVED_GEOMETRY_KINDS, `${path}.kind`);
   switch (object.kind) {
     case "unknown":
-      exactKeys(object, path, ["kind"]);
+      exactKeys(object, path, variantKeys("ObservedGeometry", object, path));
       break;
     case "child_bounds":
-      exactKeys(object, path, ["kind", "bounds"]);
+      exactKeys(object, path, variantKeys("ObservedGeometry", object, path));
       physicalRect(object.bounds, `${path}.bounds`);
       break;
     case "isolated_content":
-      exactKeys(object, path, ["kind", "size"]);
+      exactKeys(object, path, variantKeys("ObservedGeometry", object, path));
       physicalSize(object.size, `${path}.size`);
       break;
     case "backing_surface":
-      exactKeys(object, path, ["kind", "storage_bounds", "clip"]);
+      exactKeys(object, path, variantKeys("ObservedGeometry", object, path));
       physicalRect(object.storage_bounds, `${path}.storage_bounds`);
       physicalRect(object.clip, `${path}.clip`);
       break;
@@ -230,32 +231,32 @@ function change(value: unknown, path: string): void {
   member(object.kind, NATIVE_CONTENT_CHANGE_KINDS, `${path}.kind`);
   switch (object.kind) {
     case "desired_updated":
-      exactKeys(object, path, ["kind", "request_id", "receipt"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       opaqueId(object.request_id, `${path}.request_id`);
       desiredReceipt(object.receipt, `${path}.receipt`);
       break;
     case "observation_admitted":
-      exactKeys(object, path, ["kind", "request_id", "receipt"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       nullable(object.request_id, `${path}.request_id`, opaqueId);
       observationReceipt(object.receipt, `${path}.receipt`);
       break;
     case "content_size_proposed":
-      exactKeys(object, path, ["kind", "request_id", "proposal"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       opaqueId(object.request_id, `${path}.request_id`);
       proposal(object.proposal, `${path}.proposal`);
       break;
     case "content_size_decided":
-      exactKeys(object, path, ["kind", "request_id", "receipt"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       opaqueId(object.request_id, `${path}.request_id`);
       proposalReceipt(object.receipt, `${path}.receipt`);
       break;
     case "apply_completed":
-      exactKeys(object, path, ["kind", "request_id", "receipt"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       opaqueId(object.request_id, `${path}.request_id`);
       applyReceipt(object.receipt, `${path}.receipt`);
       break;
     case "host_destroyed":
-      exactKeys(object, path, ["kind", "request_id", "receipt"]);
+      exactKeys(object, path, variantKeys("NativeContentChangeProjection", object, path));
       nullable(object.request_id, `${path}.request_id`, opaqueId);
       hostDestroyReceipt(object.receipt, `${path}.receipt`);
       break;
@@ -315,38 +316,38 @@ function operation(value: unknown, path: string): void {
   member(object.kind, NATIVE_CONTENT_OPERATION_KINDS, `${path}.kind`);
   switch (object.kind) {
     case "attach":
-      exactKeys(object, path, ["kind", "host_window_id", "mechanism"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       opaqueId(object.host_window_id, `${path}.host_window_id`);
       member(object.mechanism, NATIVE_CONTENT_MECHANISMS, `${path}.mechanism`);
       break;
     case "set_child_bounds":
-      exactKeys(object, path, ["kind", "bounds"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       physicalRect(object.bounds, `${path}.bounds`);
       break;
     case "set_isolated_content_size":
-      exactKeys(object, path, ["kind", "size"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       physicalSize(object.size, `${path}.size`);
       break;
     case "set_backing_viewport":
-      exactKeys(object, path, ["kind", "clip"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       physicalRect(object.clip, `${path}.clip`);
       break;
     case "hide":
-      exactKeys(object, path, ["kind", "reason"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       opaqueId(object.reason, `${path}.reason`);
       break;
     case "set_input_routing":
-      exactKeys(object, path, ["kind", "mode"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       member(object.mode, NATIVE_CONTENT_INPUT_ROUTING_MODES, `${path}.mode`);
       break;
     case "detach":
-      exactKeys(object, path, ["kind", "policy"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       member(object.policy, NATIVE_CONTENT_DETACH_POLICIES, `${path}.policy`);
       break;
     case "show":
     case "request_focus":
     case "release_focus_if_owned":
-      exactKeys(object, path, ["kind"]);
+      exactKeys(object, path, variantKeys("NativeContentOperation", object, path));
       break;
   }
 }
@@ -355,13 +356,13 @@ function outcome(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.kind, NATIVE_CONTENT_OPERATION_OUTCOME_KINDS, `${path}.kind`);
   if (object.kind === "failed") {
-    exactKeys(object, path, ["kind", "code"]);
+    exactKeys(object, path, variantKeys("OperationOutcome", object, path));
     opaqueId(object.code, `${path}.code`);
   } else if (object.kind === "dependency_skipped") {
-    exactKeys(object, path, ["kind", "blocked_by"]);
+    exactKeys(object, path, variantKeys("OperationOutcome", object, path));
     positive(object.blocked_by, `${path}.blocked_by`);
   } else {
-    exactKeys(object, path, ["kind"]);
+    exactKeys(object, path, variantKeys("OperationOutcome", object, path));
   }
 }
 

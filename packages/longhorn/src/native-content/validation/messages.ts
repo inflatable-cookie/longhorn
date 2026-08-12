@@ -20,6 +20,7 @@ import {
   assertNativeContentProtocolVersion,
   assertProductPayloadFree,
   exactKeys,
+  variantKeys,
   exactObject,
   fail,
   member,
@@ -84,10 +85,10 @@ export function assertValidNativeContentConnectResult(
   member(object.status, NATIVE_CONTENT_CONNECT_STATUSES, "$.status");
   responseCorrelation(object);
   if (object.status === "connected") {
-    exactKeys(object, "$", ["status", "request_id", "snapshot"]);
+    exactKeys(object, "$", variantKeys("NativeContentConnectResult", object, "$"));
     assertValidNativeContentSnapshot(object.snapshot);
   } else {
-    exactKeys(object, "$", ["status", "request_id", "rejection"]);
+    exactKeys(object, "$", variantKeys("NativeContentConnectResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }
@@ -100,10 +101,10 @@ export function assertValidNativeContentSnapshotResult(
   member(object.status, NATIVE_CONTENT_SNAPSHOT_STATUSES, "$.status");
   responseCorrelation(object);
   if (object.status === "ready") {
-    exactKeys(object, "$", ["status", "request_id", "snapshot"]);
+    exactKeys(object, "$", variantKeys("NativeContentSnapshotResult", object, "$"));
     assertValidNativeContentSnapshot(object.snapshot);
   } else {
-    exactKeys(object, "$", ["status", "request_id", "rejection"]);
+    exactKeys(object, "$", variantKeys("NativeContentSnapshotResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }
@@ -135,7 +136,7 @@ export function assertValidNativeContentDesiredUpdateResult(
       fail("$.event.change", "desired update event correlation mismatch");
     }
   } else {
-    exactKeys(object, "$", ["status", "request_id", "rejection"]);
+    exactKeys(object, "$", variantKeys("NativeContentDesiredUpdateResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }
@@ -167,7 +168,7 @@ export function assertValidNativeContentDecisionResult(
       fail("$.event.change", "content-size decision event correlation mismatch");
     }
   } else {
-    exactKeys(object, "$", ["status", "request_id", "rejection"]);
+    exactKeys(object, "$", variantKeys("NativeContentContentSizeDecisionResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }

@@ -1,4 +1,5 @@
 import { OPERATION_FIELDS } from "./generated/fields.ts";
+import { OPERATION_VARIANT_FIELDS, OPERATION_VARIANT_FIELDS_DISCRIMINANTS } from "./generated/variant-fields.ts";
 import {
   OPERATION_CANCELLATION_OUTCOMES,
   OPERATION_CANCELLATION_STATUSES,
@@ -88,7 +89,7 @@ export function assertValidOperationMutationCommand(
   authority(object.authority, "$.authority");
   switch (object.kind) {
     case "register":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedCatalogueRevision", "operationId", "kindId", "scopeId", "label", "initialState", "cancellationSupport", "retryOf"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
       text(object.operationId, "$.operationId");
       text(object.kindId, "$.kindId");
@@ -99,18 +100,18 @@ export function assertValidOperationMutationCommand(
       nullableText(object.retryOf, "$.retryOf");
       break;
     case "progress":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "operationId", "expectedOperationRevision", "overall", "phase"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       operationTarget(object);
       progressOverall(object.overall, "$.overall");
       if (object.phase !== null) phase(object.phase, "$.phase");
       break;
     case "transition":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "operationId", "expectedOperationRevision", "nextState"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       operationTarget(object);
       member(object.nextState, OPERATION_STATES, "$.nextState");
       break;
     case "changeRetention":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedCatalogueRevision", "limits"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
       assertValidOperationSnapshot({
         protocolVersion: 1, authority: object.authority, catalogueRevision: 0,
@@ -119,11 +120,11 @@ export function assertValidOperationMutationCommand(
       });
       break;
     case "dismiss":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "operationId", "expectedOperationRevision"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       operationTarget(object);
       break;
     case "teardown":
-      exactKeys(object, "$", ["kind", "requestId", "protocolVersion", "authority", "expectedCatalogueRevision", "resolutions"]);
+      exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
       array(object.resolutions, "$.resolutions").forEach((resolution, index) => teardownResolution(resolution, `$.resolutions[${index}]`));
       break;
@@ -147,10 +148,10 @@ export function assertValidOperationMutationResult(
   resultBase(value, OPERATION_MUTATION_STATUSES);
   const object = value as Record<string, unknown>;
   if (object.status === "committed") {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "receipt"]);
+    exactKeys(object, "$", variantKeys("OperationMutationResult", object, "$"));
     mutationReceipt(object.receipt, "$.receipt");
   } else {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "rejection"]);
+    exactKeys(object, "$", variantKeys("OperationMutationResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }
@@ -161,11 +162,11 @@ export function assertValidOperationCancellationResult(
   resultBase(value, OPERATION_CANCELLATION_STATUSES);
   const object = value as Record<string, unknown>;
   if (object.status === "committed") {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "receipt", "executorDispatch"]);
+    exactKeys(object, "$", variantKeys("OperationCancellationResult", object, "$"));
     cancellationReceipt(object.receipt, "$.receipt");
     executorDispatch(object.executorDispatch, "$.executorDispatch");
   } else {
-    exactKeys(object, "$", ["status", "requestId", "snapshot", "rejection"]);
+    exactKeys(object, "$", variantKeys("OperationCancellationResult", object, "$"));
     rejection(object.rejection, "$.rejection");
   }
 }
@@ -219,14 +220,14 @@ function operationEntry(value: unknown, path: string): asserts value is Operatio
 function progressOverall(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.kind, OPERATION_PROGRESS_KINDS, `${path}.kind`);
-  if (object.kind === "indeterminate") exactKeys(object, path, ["kind"]);
+  if (object.kind === "indeterminate") exactKeys(object, path, variantKeys("OperationOverallProgressProjection", object, path));
   if (object.kind === "units") {
-    exactKeys(object, path, ["kind", "completed", "total"]);
+    exactKeys(object, path, variantKeys("OperationOverallProgressProjection", object, path));
     finite(object.completed, `${path}.completed`);
     finite(object.total, `${path}.total`);
   }
   if (object.kind === "normalized") {
-    exactKeys(object, path, ["kind", "value"]);
+    exactKeys(object, path, variantKeys("OperationOverallProgressProjection", object, path));
     finite(object.value, `${path}.value`);
   }
 }
@@ -243,10 +244,10 @@ function teardownResolution(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.kind, ["complete", "transfer"] as const, `${path}.kind`);
   if (object.kind === "complete") {
-    exactKeys(object, path, ["kind", "operationId", "expectedOperationRevision", "state"]);
+    exactKeys(object, path, variantKeys("OperationTeardownResolutionProjection", object, path));
     member(object.state, OPERATION_STATES, `${path}.state`);
   } else {
-    exactKeys(object, path, ["kind", "operationId", "expectedOperationRevision", "targetAuthority"]);
+    exactKeys(object, path, variantKeys("OperationTeardownResolutionProjection", object, path));
     authority(object.targetAuthority, `${path}.targetAuthority`);
   }
   text(object.operationId, `${path}.operationId`);
@@ -265,12 +266,12 @@ function mutationReceipt(value: unknown, path: string): void {
   member(object.kind, OPERATION_MUTATION_RECEIPT_KINDS, `${path}.kind`);
   switch (object.kind) {
     case "registered":
-      exactKeys(object, path, ["kind", "operation", "previousCatalogueRevision", "committedCatalogueRevision"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       operationEntry(object.operation, `${path}.operation`);
       catalogueRevisionPair(object, path);
       break;
     case "progressed":
-      exactKeys(object, path, ["kind", "operationId", "previousOperationRevision", "committedOperationRevision", "previousProgressSequence", "committedProgress", "previousCatalogueRevision", "committedCatalogueRevision"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       operationRevisionPair(object, path);
       natural(object.previousProgressSequence, `${path}.previousProgressSequence`);
       const progress = exactObject(object.committedProgress, `${path}.committedProgress`, OPERATION_FIELDS.OperationProgressProjection);
@@ -280,7 +281,7 @@ function mutationReceipt(value: unknown, path: string): void {
       catalogueRevisionPair(object, path);
       break;
     case "transitioned":
-      exactKeys(object, path, ["kind", "operationId", "previousState", "committedState", "previousOperationRevision", "committedOperationRevision", "previousCatalogueRevision", "committedCatalogueRevision", "evicted"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       member(object.previousState, OPERATION_STATES, `${path}.previousState`);
       member(object.committedState, OPERATION_STATES, `${path}.committedState`);
       operationRevisionPair(object, path);
@@ -288,7 +289,7 @@ function mutationReceipt(value: unknown, path: string): void {
       removals(object.evicted, `${path}.evicted`);
       break;
     case "retentionChanged":
-      exactKeys(object, path, ["kind", "previousLimits", "committedLimits", "previousCatalogueRevision", "committedCatalogueRevision", "evicted", "retainedTerminalEncodedWeight"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       limits(object.previousLimits, `${path}.previousLimits`);
       limits(object.committedLimits, `${path}.committedLimits`);
       catalogueRevisionPair(object, path);
@@ -296,12 +297,12 @@ function mutationReceipt(value: unknown, path: string): void {
       natural(object.retainedTerminalEncodedWeight, `${path}.retainedTerminalEncodedWeight`);
       break;
     case "dismissed":
-      exactKeys(object, path, ["kind", "removed", "previousCatalogueRevision", "committedCatalogueRevision"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       removal(object.removed, `${path}.removed`);
       catalogueRevisionPair(object, path);
       break;
     case "tornDown":
-      exactKeys(object, path, ["kind", "previousCatalogueRevision", "committedCatalogueRevision", "outcomes", "evicted"]);
+      exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       catalogueRevisionPair(object, path);
       array(object.outcomes, `${path}.outcomes`).forEach((outcome, index) => teardownOutcome(outcome, `${path}.outcomes[${index}]`));
       removals(object.evicted, `${path}.evicted`);
@@ -324,12 +325,12 @@ function executorDispatch(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.kind, OPERATION_EXECUTOR_DISPATCH_KINDS, `${path}.kind`);
   if (object.kind === "failed") {
-    exactKeys(object, path, ["kind", "code", "message", "retryable"]);
+    exactKeys(object, path, variantKeys("OperationExecutorDispatchProjection", object, path));
     text(object.code, `${path}.code`);
     text(object.message, `${path}.message`);
     boolean(object.retryable, `${path}.retryable`);
   } else {
-    exactKeys(object, path, ["kind"]);
+    exactKeys(object, path, variantKeys("OperationExecutorDispatchProjection", object, path));
   }
 }
 
@@ -349,10 +350,10 @@ function teardownOutcome(value: unknown, path: string): void {
   const object = record(value, path);
   member(object.kind, ["completed", "transferred"] as const, `${path}.kind`);
   if (object.kind === "completed") {
-    exactKeys(object, path, ["kind", "operationId", "state", "previousOperationRevision", "committedOperationRevision"]);
+    exactKeys(object, path, variantKeys("OperationTeardownOutcomeProjection", object, path));
     member(object.state, OPERATION_STATES, `${path}.state`);
   } else {
-    exactKeys(object, path, ["kind", "operationId", "previousOperationRevision", "targetAuthority"]);
+    exactKeys(object, path, variantKeys("OperationTeardownOutcomeProjection", object, path));
     authority(object.targetAuthority, `${path}.targetAuthority`);
   }
   text(object.operationId, `${path}.operationId`);
@@ -460,4 +461,19 @@ function visit(value: unknown, path: string, seen: Set<object>): void {
 
 function fail(path: string, message: string): never {
   throw new OperationProtocolValidationError(path, message);
+}
+
+/**
+ * Allowed keys for one variant, from the generated map.
+ *
+ * A missing entry means the generator failed to read the union, not that a
+ * caller sent something odd: every switch below runs `member()` over the
+ * discriminant first. Failing loudly beats a hand-written list, which is what
+ * these were and what drifted in `history-tree`.
+ */
+function variantKeys(type: string, object: Record<string, unknown>, path: string): readonly string[] {
+  const discriminant = object[OPERATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = OPERATION_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return keys;
 }

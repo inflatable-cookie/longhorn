@@ -58,10 +58,20 @@ second to each.
 
 ## Scope
 
-The generator, then adoption. Adoption is per domain and most domains are on
-the lenient path today, so emitting the map changes nothing for them until
-someone uses it. Batch 1 proves the generator against the domain that already
-has three hand-written maps to delete.
+The generator, then adoption. Emitting a map nobody reads is inert, so the
+batches split by what adoption actually costs rather than by domain count.
+
+The survey that set that split, taken 2026-08-12 after batch 1:
+
+| | Domains | Per-variant key lists today |
+| --- | --- | --- |
+| Replace | `native-content`, `operation`, `notifications` | 69, inline in switches |
+| Add | the other eight | none |
+
+Counting named `Record<string, readonly string[]>` constants found zero of the
+69 — those three domains write the lists as literal arrays passed straight to
+`exactKeys`, which is the same second copy in a shape that does not grep like
+one. The measure was wrong before the card was written, not after.
 
 ## Execution Plan
 
@@ -70,14 +80,23 @@ has three hand-written maps to delete.
       A per-variant map beside the flat one, and `history-tree` adopting it in
       place of `PATH_TARGET_FIELDS`, `NAVIGATION_TARGET_FIELDS` and the inline
       `ForkPruneResult` keys.
-- [ ] **Batch 2. Adopt across the remaining domains.** Eleven domains, mostly
-      mechanical, and worth doing only once batch 1 has shown the map is right.
-      Some domains validate no unions at all today; those gain strictness they
-      never had, which is a behaviour change per domain and wants its own
-      evidence.
-- [ ] **Batch 3. Make the warning an error.** Once nothing is skipped, a union
+- [x] **Batch 2. Replace the inline key lists** (Card 188, complete
+      2026-08-12). Three domains
+      hand-write per-variant keys today, as literal arrays inside a switch
+      rather than as a named map: `native-content` 32, `operation` 25,
+      `notifications` 12. Same second-copy argument as batch 1, same
+      demonstrated drift, and replacing them changes nothing a consumer sends
+      unless a list is already wrong — in which case finding it is the point.
+- [ ] **Batch 3. Add strictness to the eight that have none.** `bridge`,
+      `commands`, `config`, `history`, `settings`, `surfaces`,
+      `surface-transfer` and `transfer` validate no union per variant at all.
+      Each gains a check it never had, so each can start rejecting a payload it
+      used to accept. That is a behaviour change per domain and wants its own
+      evidence, separate from batch 2's replacements.
+- [ ] **Batch 4. Make the warning an error.** Once nothing is skipped, a union
       the generator cannot parse should fail the build rather than print. Not
-      before, or every generate fails on the domains batch 2 has not reached.
+      before, or every generate fails on the domains batches 2 and 3 have not
+      reached.
 
 ## Goals
 
@@ -103,14 +122,12 @@ has three hand-written maps to delete.
 
 ## Next Task
 
-Batch 2. Card 187 showed the generator side costs one function and two
-helpers, and that adoption in a domain costs three call sites and a lookup
-helper. Eleven domains at that size is one card, not eleven — but most of them
-validate no union at all today, so each gains strictness it never had, and that
-is the part worth sizing per domain rather than in aggregate.
+Batch 3, the eight domains with no per-variant checks at all. It is the first
+batch that can reject a payload a boundary used to accept, so the planning
+checkpoint below comes first.
 
 ## Planning Checkpoint
 
-After batch 1. Whether batch 2 is one card or eleven depends on how much each
-domain's adoption actually costs, and one worked example answers that better
-than an estimate.
+Answered after batch 1: not eleven cards, and not one. Two, split by whether a
+domain already hand-writes the lists. The next checkpoint is after batch 2,
+before the eight domains start rejecting payloads they used to accept.

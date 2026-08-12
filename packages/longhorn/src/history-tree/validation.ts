@@ -1,4 +1,4 @@
-import { HISTORY_TREE_STATUS_VARIANT_FIELDS, HISTORY_TREE_VARIANT_FIELDS } from "./generated/variant-fields.ts";
+import { HISTORY_TREE_VARIANT_FIELDS, HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS } from "./generated/variant-fields.ts";
 import {
   FORK_HISTORY_CHANGED_KINDS,
   FORK_HISTORY_ENTRY_POSITIONS,
@@ -54,7 +54,7 @@ export function assertForkPathCommand(value: unknown): asserts value is ForkPath
   commandBase(value, HISTORY_TREE_FIELDS.ForkPathPageCommand);
   const target = object(object(value, "$").target, "$.target");
   oneOf(target.kind, "$.target.kind", FORK_HISTORY_PATH_TARGETS);
-  exact(target, "$.target", variantFields("ForkPathTargetProjection", target.kind, "$.target"));
+  exact(target, "$.target", variantFields("ForkPathTargetProjection", target, "$.target"));
   if (target.kind === "branch") id(target.branchId, "$.target.branchId");
   if (target.kind === "continuation") id(target.fromEntryId, "$.target.fromEntryId");
 }
@@ -105,7 +105,7 @@ export function assertForkNavigationCommand(value: unknown): asserts value is Fo
   exact(root, "$", HISTORY_TREE_FIELDS.ForkNavigationCommand);
   protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); id(root.planId, "$.planId"); integer(root.expectedRevision, "$.expectedRevision");
   const target = object(root.target, "$.target"); oneOf(target.kind, "$.target.kind", FORK_HISTORY_NAVIGATION_TARGETS);
-  exact(target, "$.target", variantFields("ForkNavigationTargetProjection", target.kind, "$.target"));
+  exact(target, "$.target", variantFields("ForkNavigationTargetProjection", target, "$.target"));
   if (target.kind === "checkout") { id(target.branchId, "$.target.branchId"); id(target.entryId, "$.target.entryId"); }
   if (target.kind === "checkoutBranchRoot") id(target.branchId, "$.target.branchId");
   if (target.kind === "checkoutContinuation") id(target.entryId, "$.target.entryId");
@@ -241,7 +241,7 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
   noPayload(value);
   const root = object(value, "$");
   oneOf(root.status, "$.status", FORK_HISTORY_PRUNE_STATUSES);
-  exact(root, "$", statusVariantFields("ForkPruneResult", root.status, "$"));
+  exact(root, "$", variantFields("ForkPruneResult", root, "$"));
   if (root.status === "pruned") assertForkRemovalReceipt(root.receipt);
 }
 
@@ -254,14 +254,9 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
  * loudly beats defaulting to a key list, which is how `checkoutBranchRoot`
  * shipped rejecting its own `branchId`.
  */
-function variantFields(type: string, discriminant: unknown, path: string): readonly string[] {
+function variantFields(type: string, object: Record<string, unknown>, path: string): readonly string[] {
+  const discriminant = object[HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const fields = HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  return fields;
-}
-
-function statusVariantFields(type: string, discriminant: unknown, path: string): readonly string[] {
-  const fields = HISTORY_TREE_STATUS_VARIANT_FIELDS[type]?.[discriminant as string];
   if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   return fields;
 }

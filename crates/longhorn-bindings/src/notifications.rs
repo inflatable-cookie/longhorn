@@ -20,7 +20,7 @@ use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, LabelMap, apply, exported_declaration, field_map, label_module,
-    string_union_variants, tagged_variants,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -28,10 +28,13 @@ mod fixture;
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/notifications/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/notifications/protocol-v1.json";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/notifications/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str =
+    "packages/longhorn/src/notifications/generated/variant-fields.ts";
 
 struct RenderedProtocol {
     contents: String,
     fields: String,
+    variant_fields: String,
 }
 const GENERATED_LABELS: &str = "packages/longhorn/src/notifications/generated/labels.ts";
 
@@ -49,6 +52,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             Artifact {
                 relative_path: GENERATED_FIELDS,
                 contents: protocol.fields,
+            },
+            Artifact {
+                relative_path: GENERATED_VARIANT_FIELDS,
+                contents: protocol.variant_fields,
             },
             Artifact {
                 relative_path: GOLDEN_FIXTURE,
@@ -188,5 +195,24 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         );
     }
 
-    Ok(RenderedProtocol { contents, fields })
+    let (variant_fields, unreadable) = variant_field_map(
+        "generate:notifications",
+        "NOTIFICATION_VARIANT_FIELDS",
+        &declarations,
+    );
+
+    if !unreadable.is_empty() {
+        eprintln!(
+            "[notifications] tagged unions with no detectable discriminant: {}",
+            unreadable.join(", ")
+        );
+    }
+
+    Ok(RenderedProtocol {
+        contents,
+
+        fields,
+
+        variant_fields,
+    })
 }
