@@ -1,3 +1,4 @@
+import { HISTORY_TREE_STATUS_VARIANT_FIELDS, HISTORY_TREE_VARIANT_FIELDS } from "./generated/variant-fields.ts";
 import {
   FORK_HISTORY_CHANGED_KINDS,
   FORK_HISTORY_ENTRY_POSITIONS,
@@ -53,23 +54,10 @@ export function assertForkPathCommand(value: unknown): asserts value is ForkPath
   commandBase(value, HISTORY_TREE_FIELDS.ForkPathPageCommand);
   const target = object(object(value, "$").target, "$.target");
   oneOf(target.kind, "$.target.kind", FORK_HISTORY_PATH_TARGETS);
-  exact(target, "$.target", PATH_TARGET_FIELDS[target.kind as string] ?? ["kind"]);
+  exact(target, "$.target", variantFields("ForkPathTargetProjection", target.kind, "$.target"));
   if (target.kind === "branch") id(target.branchId, "$.target.branchId");
   if (target.kind === "continuation") id(target.fromEntryId, "$.target.fromEntryId");
 }
-
-// Per-variant fields, so a target that carries a payload is not rejected by a
-// rule written for the ones that do not. A missing entry means "kind only".
-const PATH_TARGET_FIELDS: Record<string, readonly string[]> = {
-  branch: ["kind", "branchId"],
-  continuation: ["kind", "fromEntryId"],
-};
-
-const NAVIGATION_TARGET_FIELDS: Record<string, readonly string[]> = {
-  checkout: ["kind", "branchId", "entryId"],
-  checkoutBranchRoot: ["kind", "branchId"],
-  checkoutContinuation: ["kind", "entryId"],
-};
 
 export function assertForkBranchCommand(value: unknown): asserts value is ForkBranchPageCommand {
   commandBase(value, HISTORY_TREE_FIELDS.ForkBranchPageCommand);
@@ -117,7 +105,7 @@ export function assertForkNavigationCommand(value: unknown): asserts value is Fo
   exact(root, "$", HISTORY_TREE_FIELDS.ForkNavigationCommand);
   protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); id(root.planId, "$.planId"); integer(root.expectedRevision, "$.expectedRevision");
   const target = object(root.target, "$.target"); oneOf(target.kind, "$.target.kind", FORK_HISTORY_NAVIGATION_TARGETS);
-  exact(target, "$.target", NAVIGATION_TARGET_FIELDS[target.kind as string] ?? ["kind"]);
+  exact(target, "$.target", variantFields("ForkNavigationTargetProjection", target.kind, "$.target"));
   if (target.kind === "checkout") { id(target.branchId, "$.target.branchId"); id(target.entryId, "$.target.entryId"); }
   if (target.kind === "checkoutBranchRoot") id(target.branchId, "$.target.branchId");
   if (target.kind === "checkoutContinuation") id(target.entryId, "$.target.entryId");
@@ -253,10 +241,27 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
   noPayload(value);
   const root = object(value, "$");
   oneOf(root.status, "$.status", FORK_HISTORY_PRUNE_STATUSES);
-  if (root.status === "unchanged") {
-    exact(root, "$", ["status"]);
-    return;
-  }
-  exact(root, "$", ["status", "receipt"]);
-  assertForkRemovalReceipt(root.receipt);
+  exact(root, "$", statusVariantFields("ForkPruneResult", root.status, "$"));
+  if (root.status === "pruned") assertForkRemovalReceipt(root.receipt);
+}
+
+/**
+ * Allowed keys for one variant, from the generated map.
+ *
+ * A missing entry means the generator failed to read the union, not that a
+ * consumer sent something odd — every caller runs `oneOf` over the
+ * discriminant first, so an unknown one is already rejected by then. Failing
+ * loudly beats defaulting to a key list, which is how `checkoutBranchRoot`
+ * shipped rejecting its own `branchId`.
+ */
+function variantFields(type: string, discriminant: unknown, path: string): readonly string[] {
+  const fields = HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return fields;
+}
+
+function statusVariantFields(type: string, discriminant: unknown, path: string): readonly string[] {
+  const fields = HISTORY_TREE_STATUS_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return fields;
 }

@@ -1,6 +1,6 @@
 # g02.011 IPC Boundary Validation
 
-Status: ready
+Status: complete — 2026-08-12
 Owner: Tom
 Updated: 2026-08-08
 Governing refs: contracts 010 and 012; the P2-10 audit finding
@@ -84,3 +84,10 @@ symbols are `assertValidX` and `XProtocolValidationError`. Nucleus was
 migrated in the same pass; Loophole needed no source change.
 
 The milestone's work is complete.
+
+Closed 2026-08-12. The header said `ready` for a week after the body said this,
+which is the kind of drift the front doors exist to prevent.
+
+The tagged-union deferral above is now its own milestone, g02.018. It stopped
+being theoretical when Cards 183 to 186 needed three hand-written per-variant
+key lists, and one union that already had one was wrong.

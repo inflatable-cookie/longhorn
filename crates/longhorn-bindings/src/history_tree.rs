@@ -19,18 +19,21 @@ use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants,
+    tagged_variants, variant_field_map,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/history-tree/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/history-tree/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str =
+    "packages/longhorn/src/history-tree/generated/variant-fields.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/history-tree/protocol-v1.json";
 
 struct RenderedProtocol {
     contents: String,
     fields: String,
+    variant_fields: String,
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
@@ -43,6 +46,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_FIELDS,
             contents: protocol.fields,
+        },
+        Artifact {
+            relative_path: GENERATED_VARIANT_FIELDS,
+            contents: protocol.variant_fields,
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,
@@ -128,12 +135,47 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "HISTORY_TREE_FIELDS",
         &declarations,
     );
-    if !skipped.is_empty() {
+    // The flat map skips every union, by design. Reporting that here would now
+    // mislead: this domain's tagged unions are in the variant map below, and
+    // its string unions are in the `*_POSITIONS`, `*_CODES` and `*_KINDS`
+    // constants above. What is worth reporting is a union no map covers, and
+    // that is what the variant pass returns.
+    let _ = skipped;
+
+    // Every fork union is tagged `kind` except the results, tagged `status`.
+    // Rendered in two passes and joined, because one pass cannot know which
+    // key a union uses without reading it.
+    let (kind_variants, kind_unreadable) = variant_field_map(
+        "generate:history-tree",
+        "HISTORY_TREE_VARIANT_FIELDS",
+        "kind",
+        &declarations,
+    );
+    let (status_variants, status_unreadable) = variant_field_map(
+        "generate:history-tree",
+        "HISTORY_TREE_STATUS_VARIANT_FIELDS",
+        "status",
+        &declarations,
+    );
+    // Unreadable under *both* keys. A union tagged `kind` is naturally absent
+    // from the `status` pass and vice versa, so only the intersection is a
+    // union nothing could read.
+    let unreadable: Vec<_> = kind_unreadable
+        .iter()
+        .filter(|name| status_unreadable.contains(name))
+        .cloned()
+        .collect();
+    if !unreadable.is_empty() {
         eprintln!(
-            "[history-tree] tagged unions not in the field map: {}",
-            skipped.join(", ")
+            "[history-tree] tagged unions readable under no known discriminant: {}",
+            unreadable.join(", ")
         );
     }
+    let variant_fields = format!("{kind_variants}\n{status_variants}");
 
-    Ok(RenderedProtocol { contents, fields })
+    Ok(RenderedProtocol {
+        contents,
+        fields,
+        variant_fields,
+    })
 }
