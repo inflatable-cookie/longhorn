@@ -124,22 +124,11 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&string_union_variants(&changed_kind)?)?,
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map("generate:history", "HISTORY_FIELDS", &declarations);
-    if !skipped.is_empty() {
-        eprintln!(
-            "[history] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
+    let (fields, _skipped) = field_map("generate:history", "HISTORY_FIELDS", &declarations);
 
-    let (variant_fields, unreadable) =
+    let variant_fields =
         variant_field_map("generate:history", "HISTORY_VARIANT_FIELDS", &declarations);
-    if !unreadable.is_empty() {
-        eprintln!(
-            "[history] tagged unions with no detectable discriminant: {}",
-            unreadable.join(", ")
-        );
-    }
+
     Ok(RenderedProtocol {
         contents,
         fields,

@@ -88,11 +88,9 @@ export function assertValidHistoryNavigationCommand(
   integer(record.expectedRevision, "$.expectedRevision");
   const target = object(record.target, "$.target");
   oneOf(target.kind, "$.target.kind", HISTORY_NAVIGATION_TARGETS);
+  keys(target, "$.target", variantKeys("HistoryNavigationTargetProjection", target, "$.target"));
   if (target.kind === "checkout") {
-    keys(target, "$.target", ["kind", "entryId"]);
     id(target.entryId, "$.target.entryId");
-  } else {
-    keys(target, "$.target", ["kind"]);
   }
 }
 
@@ -102,13 +100,11 @@ export function assertValidHistoryNavigationResult(
   assertNoPayload(value, "$");
   const record = object(value, "$");
   oneOf(record.status, "$.status", HISTORY_NAVIGATION_STATUSES);
+  keys(record, "$", variantKeys("HistoryNavigationResult", record, "$"));
+  assertValidHistorySnapshot(record.snapshot);
   if (record.status === "committed") {
-    keys(record, "$", ["status", "snapshot", "receipt"]);
-    assertValidHistorySnapshot(record.snapshot);
     receipt(record.receipt, "$.receipt");
   } else {
-    keys(record, "$", ["status", "snapshot", "rejection"]);
-    assertValidHistorySnapshot(record.snapshot);
     rejection(record.rejection, "$.rejection");
   }
 }

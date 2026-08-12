@@ -183,23 +183,13 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&mutation_outcomes)?,
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map("generate:settings", "SETTINGS_FIELDS", &declarations);
-    if !skipped.is_empty() {
-        eprintln!(
-            "[settings] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
+    let (fields, _skipped) = field_map("generate:settings", "SETTINGS_FIELDS", &declarations);
 
-    let (variant_fields, unreadable) = variant_field_map(
+    let variant_fields = variant_field_map(
         "generate:settings",
         "SETTINGS_VARIANT_FIELDS",
         &declarations,
     );
-
-    if !unreadable.is_empty() {
-        eprintln!("[settings] unreadable unions: {}", unreadable.join(", "));
-    }
 
     Ok(RenderedProtocol {
         variant_fields,

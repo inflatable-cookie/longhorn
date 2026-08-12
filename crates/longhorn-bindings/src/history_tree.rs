@@ -150,17 +150,12 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     // being told: this domain's targets are tagged `kind` and its results
     // `status`, and a caller that has to know which is another place the
     // answer is written down twice.
-    let (variant_fields, unreadable) = variant_field_map(
+    let variant_fields = variant_field_map(
         "generate:history-tree",
         "HISTORY_TREE_VARIANT_FIELDS",
         &declarations,
     );
-    if !unreadable.is_empty() {
-        eprintln!(
-            "[history-tree] tagged unions with no detectable discriminant: {}",
-            unreadable.join(", ")
-        );
-    }
+
     Ok(RenderedProtocol {
         contents,
         fields,

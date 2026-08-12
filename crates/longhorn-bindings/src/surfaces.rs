@@ -112,22 +112,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          {}\n",
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map("generate:surfaces", "SURFACE_FIELDS", &declarations);
-    if !skipped.is_empty() {
-        // Tagged unions carry different fields per variant, so one flat list
-        // would be wrong. Named rather than dropped silently.
-        eprintln!(
-            "[surfaces] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
-
-    let (variant_fields, unreadable) =
+    let (fields, _skipped) = field_map("generate:surfaces", "SURFACE_FIELDS", &declarations);
+    let variant_fields =
         variant_field_map("generate:surfaces", "SURFACE_VARIANT_FIELDS", &declarations);
-
-    if !unreadable.is_empty() {
-        eprintln!("[surfaces] unreadable unions: {}", unreadable.join(", "));
-    }
 
     Ok(RenderedProtocol {
         variant_fields,

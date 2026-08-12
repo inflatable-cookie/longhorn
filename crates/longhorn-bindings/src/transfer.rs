@@ -153,23 +153,13 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&panel_error_codes)?,
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map("generate:transfer", "TRANSFER_FIELDS", &declarations);
-    if !skipped.is_empty() {
-        eprintln!(
-            "[transfer] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
+    let (fields, _skipped) = field_map("generate:transfer", "TRANSFER_FIELDS", &declarations);
 
-    let (variant_fields, unreadable) = variant_field_map(
+    let variant_fields = variant_field_map(
         "generate:transfer",
         "TRANSFER_VARIANT_FIELDS",
         &declarations,
     );
-
-    if !unreadable.is_empty() {
-        eprintln!("[transfer] unreadable unions: {}", unreadable.join(", "));
-    }
 
     Ok(RenderedProtocol {
         variant_fields,

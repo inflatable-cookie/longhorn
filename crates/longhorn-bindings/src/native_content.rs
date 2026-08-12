@@ -215,30 +215,17 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&tagged_variants(&change, "kind")?)?,
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map(
+    let (fields, _skipped) = field_map(
         "generate:native-content",
         "NATIVE_CONTENT_FIELDS",
         &declarations,
     );
-    if !skipped.is_empty() {
-        eprintln!(
-            "[native-content] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
 
-    let (variant_fields, unreadable) = variant_field_map(
+    let variant_fields = variant_field_map(
         "generate:native-content",
         "NATIVE_CONTENT_VARIANT_FIELDS",
         &declarations,
     );
-
-    if !unreadable.is_empty() {
-        eprintln!(
-            "[native-content] tagged unions with no detectable discriminant: {}",
-            unreadable.join(", ")
-        );
-    }
 
     Ok(RenderedProtocol {
         contents,

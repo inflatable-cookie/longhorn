@@ -194,20 +194,10 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&tagged_variants(&override_kind, "kind")?)?,
         declarations.join("\n\n")
     );
-    let (fields, skipped) = field_map("generate:commands", "COMMANDS_FIELDS", &declarations);
-    if !skipped.is_empty() {
-        eprintln!(
-            "[commands] tagged unions not in the field map: {}",
-            skipped.join(", ")
-        );
-    }
+    let (fields, _skipped) = field_map("generate:commands", "COMMANDS_FIELDS", &declarations);
 
-    let (variant_fields, unreadable) =
+    let variant_fields =
         variant_field_map("generate:commands", "COMMAND_VARIANT_FIELDS", &declarations);
-
-    if !unreadable.is_empty() {
-        eprintln!("[commands] unreadable unions: {}", unreadable.join(", "));
-    }
 
     Ok(RenderedProtocol {
         contents,
