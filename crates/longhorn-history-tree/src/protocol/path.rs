@@ -34,6 +34,10 @@ pub struct ForkEntryRecord {
     pub encoded_weight: u64,
     /// Current applied position.
     pub position: ForkProjectionPosition,
+    /// How many entries continue from this one, this page's own next entry
+    /// included. A fork count is one less; a run's last entry is always zero.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub continuation_count: u64,
 }
 
 /// Explicit path selection. Alternate paths never load by default.
@@ -51,6 +55,16 @@ pub enum ForkPathTargetProjection {
     Branch {
         /// Explicit first-class branch selection.
         branch_id: ForkBranchId,
+    },
+    /// The flat run beginning at one entry, following preferred children to
+    /// its leaf.
+    ///
+    /// The same snapshot type as the default path, deliberately: the list a
+    /// renderer draws under an opened fork is the list it draws at the top
+    /// level, so it recurses instead of growing a second layout.
+    Continuation {
+        /// First entry of the run.
+        from_entry_id: HistoryEntryId,
     },
 }
 
@@ -97,6 +111,10 @@ pub struct ForkPathPageSnapshot {
     /// Newest-first offset.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub offset: u64,
+    /// How many entries continue from the root. A fork count at the root is
+    /// one less, on the same rule as an entry's own count.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub root_continuation_count: u64,
     /// Full path length.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub total_entries: u64,
@@ -121,23 +139,27 @@ impl ForkPathPageSnapshot {
             revision: page.revision(),
             branch_id: page.branch_id().cloned(),
             head_entry_id: page.head_entry_id().cloned(),
+            root_continuation_count: count(page.root_continuation_count())?,
             offset: count(page.offset())?,
             total_entries: count(page.total_entries())?,
             entries: page
                 .entries()
                 .iter()
-                .map(|entry| ForkEntryRecord {
-                    entry_id: entry.entry_id().clone(),
-                    label: entry.label().as_str().to_owned(),
-                    kind_id: entry.kind_id().cloned(),
-                    group_id: entry.group_id().cloned(),
-                    recorded_at: entry.recorded_at(),
-                    sequence: entry.sequence().get(),
-                    committed_revision: entry.committed_revision(),
-                    encoded_weight: entry.encoded_weight(),
-                    position: project_position(entry.position()),
+                .map(|entry| {
+                    Ok(ForkEntryRecord {
+                        entry_id: entry.entry_id().clone(),
+                        label: entry.label().as_str().to_owned(),
+                        kind_id: entry.kind_id().cloned(),
+                        group_id: entry.group_id().cloned(),
+                        recorded_at: entry.recorded_at(),
+                        continuation_count: count(entry.continuation_count())?,
+                        sequence: entry.sequence().get(),
+                        committed_revision: entry.committed_revision(),
+                        encoded_weight: entry.encoded_weight(),
+                        position: project_position(entry.position()),
+                    })
                 })
-                .collect(),
+                .collect::<Result<Vec<_>, ForkProtocolProjectionError>>()?,
             truncated_before: page.truncated_before(),
             truncated_after: page.truncated_after(),
         })

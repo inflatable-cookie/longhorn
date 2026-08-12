@@ -3,14 +3,15 @@
 use std::sync::{Arc, Mutex};
 
 use longhorn_history_tree::{
-    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkNavigationCommand, ForkNavigationResult,
-    ForkPathPageCommand, ForkPathPageSnapshot, ForkSnapshot,
+    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
+    ForkContinuationPageSnapshot, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
+    ForkPathPageSnapshot, ForkSnapshot,
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
     ForkHistoryHostService, TauriForkHistoryState, fork_history_changed_event,
-    longhorn_history_tree_branches, longhorn_history_tree_navigate, longhorn_history_tree_path,
-    longhorn_history_tree_snapshot,
+    longhorn_history_tree_branches, longhorn_history_tree_continuations,
+    longhorn_history_tree_navigate, longhorn_history_tree_path, longhorn_history_tree_snapshot,
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -46,6 +47,18 @@ impl ForkHistoryHostAuthority for Authority {
             .unwrap()
             .push(format!("branches:{caller}"));
         Ok(branches())
+    }
+
+    fn continuations(
+        &mut self,
+        caller: &str,
+        _: ForkContinuationPageCommand,
+    ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("continuations:{caller}"));
+        Ok(continuations())
     }
 
     fn navigate(
@@ -87,6 +100,11 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         branches()
     );
     assert_eq!(
+        longhorn_history_tree_continuations(window.clone(), app.state(), continuation_command())
+            .unwrap(),
+        continuations()
+    );
+    assert_eq!(
         longhorn_history_tree_navigate(window, app.state(), navigation_command()).unwrap(),
         committed()
     );
@@ -96,6 +114,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
             "snapshot:history",
             "path:history",
             "branches:history",
+            "continuations:history",
             "navigate:history"
         ]
     );
@@ -122,10 +141,13 @@ fn snapshot() -> ForkSnapshot {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":4,"currentBranchId":"branch:main","currentEntryId":"entry:b","undoDepth":2,"redoDepth":1,"nextUndoLabel":"Move","nextRedoLabel":"Resize","retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}})).unwrap()
 }
 fn path() -> ForkPathPageSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"branchId":null,"headEntryId":"entry:c","offset":0,"totalEntries":1,"entries":[{"entryId":"entry:b","label":"Move","kindId":null,"groupId":null,"sequence":2,"committedRevision":2,"encodedWeight":16,"position":"current"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"branchId":null,"headEntryId":"entry:c","rootContinuationCount":1,"offset":0,"totalEntries":1,"entries":[{"entryId":"entry:b","label":"Move","kindId":null,"groupId":null,"recordedAt":null,"continuationCount":2,"sequence":2,"committedRevision":2,"encodedWeight":16,"position":"current"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn branches() -> ForkBranchPageSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"offset":0,"totalBranches":1,"branches":[{"branchId":"branch:main","headEntryId":"entry:c","divergenceEntryId":"entry:c","name":"Main","annotation":null,"pinned":true,"current":true}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"offset":0,"totalBranches":1,"branches":[{"branchId":"branch:main","headEntryId":"entry:c","divergenceEntryId":null,"divergenceBranchId":null,"name":"Main","annotation":null,"pinned":true,"current":true}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+}
+fn continuations() -> ForkContinuationPageSnapshot {
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"anchorEntryId":"entry:b","offset":0,"totalContinuations":1,"continuations":[{"entryId":"entry:c","label":"Resize","recordedAt":null,"preferred":true,"entryCount":1,"branchId":"branch:main","branchName":"Main"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn committed() -> ForkNavigationResult {
     serde_json::from_value(serde_json::json!({"status":"committed","snapshot":{"protocolVersion":1,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":5,"currentBranchId":"branch:main","currentEntryId":"entry:c","undoDepth":3,"redoDepth":0,"nextUndoLabel":"Resize","nextRedoLabel":null,"retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}},"receipt":{"historyId":"history:tree","planId":"plan:test","previousRevision":4,"committedRevision":5,"sourceEntryId":"entry:b","targetEntryId":"entry:c","targetBranchId":"branch:main","movedEntryIds":["entry:c"]}})).unwrap()
@@ -135,6 +157,9 @@ fn path_command() -> ForkPathPageCommand {
 }
 fn branch_command() -> ForkBranchPageCommand {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"offset":0,"limit":10})).unwrap()
+}
+fn continuation_command() -> ForkContinuationPageCommand {
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"anchorEntryId":"entry:b","offset":0,"limit":10})).unwrap()
 }
 fn navigation_command() -> ForkNavigationCommand {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","planId":"plan:test","expectedRevision":4,"target":{"kind":"redo"}})).unwrap()

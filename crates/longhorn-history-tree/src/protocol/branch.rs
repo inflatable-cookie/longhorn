@@ -15,8 +15,11 @@ pub struct ForkBranchRecord {
     pub branch_id: ForkBranchId,
     /// Branch head, or root.
     pub head_entry_id: Option<HistoryEntryId>,
-    /// Shared ancestor relative to the current branch, or root.
+    /// Last entry shared with this branch's nearest ancestor branch -- where
+    /// it forked. Relative to the parent run, never to the current branch.
     pub divergence_entry_id: Option<HistoryEntryId>,
+    /// The branch it forked off, paired with the entry above.
+    pub divergence_branch_id: Option<ForkBranchId>,
     /// Optional branch name.
     pub name: Option<String>,
     /// Optional branch annotation.
@@ -95,6 +98,7 @@ impl ForkBranchPageSnapshot {
                     branch_id: branch.branch_id().clone(),
                     head_entry_id: branch.head_entry_id().cloned(),
                     divergence_entry_id: branch.divergence_entry_id().cloned(),
+                    divergence_branch_id: branch.divergence_branch_id().cloned(),
                     name: branch.name().map(str::to_owned),
                     annotation: branch.annotation().map(str::to_owned),
                     pinned: branch.pinned(),

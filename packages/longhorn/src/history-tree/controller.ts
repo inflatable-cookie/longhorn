@@ -1,15 +1,16 @@
 import { ForkHistoryClient } from "./client.ts";
-import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkEntryRecord, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
+import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
 import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 
 export type ForkHistoryControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
-export interface ForkHistoryControllerOptions { readonly port: ForkHistoryPort; readonly pathPageSize?: number; readonly branchPageSize?: number; }
+export interface ForkHistoryControllerOptions { readonly port: ForkHistoryPort; readonly pathPageSize?: number; readonly branchPageSize?: number; readonly continuationPageSize?: number; }
 
 export class ForkHistoryController {
   readonly #client: ForkHistoryClient;
   readonly #observers = new Set<() => void>();
   readonly #pathPageSize: number;
   readonly #branchPageSize: number;
+  readonly #continuationPageSize: number;
   #status: ForkHistoryControllerStatus = { kind: "idle" };
   #snapshot?: ForkSnapshot;
   #path?: ForkPathPageSnapshot;
@@ -22,7 +23,7 @@ export class ForkHistoryController {
   #pending = false;
   #unlisten: ForkHistoryUnlisten[] = [];
 
-  constructor(options: ForkHistoryControllerOptions) { this.#client = new ForkHistoryClient(options.port); this.#pathPageSize = pageSize(options.pathPageSize ?? 50); this.#branchPageSize = pageSize(options.branchPageSize ?? 50); }
+  constructor(options: ForkHistoryControllerOptions) { this.#client = new ForkHistoryClient(options.port); this.#pathPageSize = pageSize(options.pathPageSize ?? 50); this.#branchPageSize = pageSize(options.branchPageSize ?? 50); this.#continuationPageSize = pageSize(options.continuationPageSize ?? 50); }
   get status() { return this.#status; }
   get snapshot() { return this.#snapshot; }
   get path() { return this.#path; }
@@ -80,6 +81,34 @@ export class ForkHistoryController {
     this.#branches = value; this.#notify(); return value;
   }
 
+  /**
+   * The continuations at one entry, or at the root when `anchorEntryId` is
+   * null. Every child is returned, the one already on the current page
+   * included: a renderer showing entry E inline drops it and shows the rest as
+   * that entry's forks, which is why `continuationCount` is one more than the
+   * fork badge.
+   *
+   * Not cached and not refreshed. A consumer asks when the operator opens an
+   * entry, and the revision check below tells them if it went stale meanwhile.
+   */
+  async loadContinuations(anchorEntryId: string | null, offset = 0): Promise<ForkContinuationPageSnapshot> {
+    const snapshot = this.#required();
+    const value = await this.#client.continuations({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, anchorEntryId, offset, limit: this.#continuationPageSize });
+    if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
+    return value;
+  }
+
+  /**
+   * The flat run beginning at one entry. The same snapshot type as the main
+   * path, so a renderer draws a nested fork with the component it already has.
+   */
+  async loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> {
+    const snapshot = this.#required();
+    const value = await this.#client.path({ ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }), offset });
+    if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
+    return value;
+  }
+
   async selectDefaultPath(): Promise<void> { this.#pathTarget = { kind: "default" }; await this.refresh(); }
   async selectBranchPath(branchId: ForkBranchId): Promise<void> { this.#pathTarget = { kind: "branch", branchId }; await this.refresh(); }
   undo(): Promise<ForkNavigationResult> { return this.#navigate({ kind: "undo" }); }
@@ -87,6 +116,13 @@ export class ForkHistoryController {
   checkout(branchId: ForkBranchId, entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkout", branchId, entryId }); }
   /** Move to a branch's root, the position before its first entry. */
   checkoutBranchRoot(branchId: ForkBranchId): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutBranchRoot", branchId }); }
+  /**
+   * Make one entry the preferred continuation of its parent, applying none of
+   * it. The chosen run becomes the default path and the previous default
+   * becomes a fork at the same entry; the operator ends up standing at that
+   * entry, whether or not they started there.
+   */
+  preferContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "preferContinuation", entryId }); }
 
   async #navigate(target: ForkNavigationTargetProjection): Promise<ForkNavigationResult> {
     const snapshot = this.#required(); const navigation = ++this.#navigation; this.#pending = true; this.#notify();

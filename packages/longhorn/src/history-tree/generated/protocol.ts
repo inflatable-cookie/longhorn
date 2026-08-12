@@ -4,8 +4,8 @@
 export const FORK_HISTORY_PROTOCOL_VERSION = 1 as const;
 export const MAXIMUM_FORK_HISTORY_PAGE_SIZE = 256 as const;
 export const FORK_HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
-export const FORK_HISTORY_PATH_TARGETS = ["default","branch"] as const;
-export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutBranchRoot"] as const;
+export const FORK_HISTORY_PATH_TARGETS = ["default","branch","continuation"] as const;
+export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutBranchRoot","preferContinuation"] as const;
 export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const FORK_HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
 export const FORK_HISTORY_CHANGED_KINDS = ["record","navigation","branchMetadata","retention","checkpoint","imported","reset"] as const;
@@ -132,13 +132,22 @@ encodedWeight: number,
 /**
  * Current applied position.
  */
-position: ForkProjectionPosition, };
+position: ForkProjectionPosition, 
+/**
+ * How many entries continue from this one, this page's own next entry
+ * included. A fork count is one less; a run's last entry is always zero.
+ */
+continuationCount: number, };
 
 export type ForkPathTargetProjection = { "kind": "default" } | { "kind": "branch", 
 /**
  * Explicit first-class branch selection.
  */
-branchId: ForkBranchId, };
+branchId: ForkBranchId, } | { "kind": "continuation", 
+/**
+ * First entry of the run.
+ */
+fromEntryId: HistoryEntryId, };
 
 export type ForkPathPageCommand = { 
 /**
@@ -200,6 +209,11 @@ headEntryId: HistoryEntryId | null,
  */
 offset: number, 
 /**
+ * How many entries continue from the root. A fork count at the root is
+ * one less, on the same rule as an entry's own count.
+ */
+rootContinuationCount: number, 
+/**
  * Full path length.
  */
 totalEntries: number, 
@@ -226,9 +240,14 @@ branchId: ForkBranchId,
  */
 headEntryId: HistoryEntryId | null, 
 /**
- * Shared ancestor relative to the current branch, or root.
+ * Last entry shared with this branch's nearest ancestor branch -- where
+ * it forked. Relative to the parent run, never to the current branch.
  */
 divergenceEntryId: HistoryEntryId | null, 
+/**
+ * The branch it forked off, paired with the entry above.
+ */
+divergenceBranchId: ForkBranchId | null, 
 /**
  * Optional branch name.
  */
@@ -310,6 +329,108 @@ truncatedBefore: boolean,
  */
 truncatedAfter: boolean, };
 
+export type ForkContinuationRecord = { 
+/**
+ * Stable identity of the continuing entry.
+ */
+entryId: HistoryEntryId, 
+/**
+ * Consumer-owned label.
+ */
+label: string, 
+/**
+ * Optional host-supplied recorded-at stamp, in epoch milliseconds.
+ */
+recordedAt: HistoryRecordedAt | null, 
+/**
+ * Whether a redo from the anchor takes this continuation.
+ */
+preferred: boolean, 
+/**
+ * Entries in the run starting here, this one included.
+ */
+entryCount: number, 
+/**
+ * Branch a consumer lands on by taking this continuation.
+ */
+branchId: ForkBranchId, 
+/**
+ * That branch's optional name.
+ */
+branchName: string | null, };
+
+export type ForkContinuationPageCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: ForkHistoryProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: HistoryAuthorityEpoch, 
+/**
+ * History identity observed by the caller.
+ */
+historyId: HistoryId, 
+/**
+ * Exact graph revision required.
+ */
+expectedRevision: HistoryRevision, 
+/**
+ * Entry the continuations continue from, or root.
+ */
+anchorEntryId: HistoryEntryId | null, 
+/**
+ * Graph-order offset.
+ */
+offset: number, 
+/**
+ * Maximum requested records.
+ */
+limit: number, };
+
+export type ForkContinuationPageSnapshot = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: ForkHistoryProtocolVersion, 
+/**
+ * Live authority lifetime.
+ */
+authorityEpoch: HistoryAuthorityEpoch, 
+/**
+ * Stable graph identity.
+ */
+historyId: HistoryId, 
+/**
+ * Exact projected revision.
+ */
+revision: HistoryRevision, 
+/**
+ * Entry these continue from, or root.
+ */
+anchorEntryId: HistoryEntryId | null, 
+/**
+ * Graph-order offset.
+ */
+offset: number, 
+/**
+ * Total continuations at the anchor.
+ */
+totalContinuations: number, 
+/**
+ * Bounded continuation records.
+ */
+continuations: Array<ForkContinuationRecord>, 
+/**
+ * Whether earlier continuations precede this page.
+ */
+truncatedBefore: boolean, 
+/**
+ * Whether later continuations follow this page.
+ */
+truncatedAfter: boolean, };
+
 export type ForkNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
 /**
  * Stable target branch.
@@ -322,7 +443,11 @@ entryId: HistoryEntryId, } | { "kind": "checkoutBranchRoot",
 /**
  * Stable target branch.
  */
-branchId: ForkBranchId, };
+branchId: ForkBranchId, } | { "kind": "preferContinuation", 
+/**
+ * Entry to prefer.
+ */
+entryId: HistoryEntryId, };
 
 export type ForkNavigationCommand = { 
 /**

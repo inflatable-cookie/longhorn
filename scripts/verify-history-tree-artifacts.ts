@@ -144,10 +144,11 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
 
   const testOutput = await run(["cargo", "+1.95.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
-  // 32 since Card 182 added recorded-at coverage: an envelope without the
-  // field loads as None, a supplied value round-trips, and the stamp reaches
-  // the projected page and the wire record.
-  if (testCount !== 32) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // 39 since Cards 183 and 184 added the node-centric fork surface: three
+  // projection tests for continuation counts, parent-relative divergence and
+  // run/path agreement, and four navigation tests for preferring a
+  // continuation without walking into it.
+  if (testCount !== 39) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;

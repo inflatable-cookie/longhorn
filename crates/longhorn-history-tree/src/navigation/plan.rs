@@ -30,7 +30,12 @@ impl<P: Clone> ForkHistory<P> {
         }
 
         let (target_branch_id, target_node_id) = self.resolve_target(&target)?;
-        if target_node_id == self.current_node_id {
+        // Every target but one is a request to move, so arriving where you
+        // already are is nothing to do. `PreferContinuation` commits a change
+        // to which future is default while deliberately standing still, and
+        // its resolver rejects the genuinely-nothing-to-do case itself.
+        let stands_still = matches!(target, ForkNavigationTarget::PreferContinuation { .. });
+        if target_node_id == self.current_node_id && !stands_still {
             return Err(ForkNavigationError::AlreadyAtTarget);
         }
         let source_lineage = self

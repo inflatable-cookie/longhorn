@@ -2,6 +2,8 @@ import type {
   ForkBranchPageCommand,
   ForkBranchPageSnapshot,
   ForkChangedEvent,
+  ForkContinuationPageCommand,
+  ForkContinuationPageSnapshot,
   ForkNavigationCommand,
   ForkNavigationResult,
   ForkPathPageCommand,
@@ -16,6 +18,7 @@ export interface ForkHistoryPort {
   snapshot(): Promise<unknown>;
   path(command: ForkPathPageCommand): Promise<unknown>;
   branches(command: ForkBranchPageCommand): Promise<unknown>;
+  continuations(command: ForkContinuationPageCommand): Promise<unknown>;
   navigate(command: ForkNavigationCommand): Promise<unknown>;
   listen?(listener: (event: unknown) => void): ForkHistoryUnlisten | Promise<ForkHistoryUnlisten>;
   nextPlanId(): HistoryPlanId;
@@ -25,6 +28,7 @@ export interface CheckedForkHistoryPort {
   snapshot(): Promise<ForkSnapshot>;
   path(command: ForkPathPageCommand): Promise<ForkPathPageSnapshot>;
   branches(command: ForkBranchPageCommand): Promise<ForkBranchPageSnapshot>;
+  continuations(command: ForkContinuationPageCommand): Promise<ForkContinuationPageSnapshot>;
   navigate(command: ForkNavigationCommand): Promise<ForkNavigationResult>;
   listen?(listener: (event: ForkChangedEvent) => void): Promise<ForkHistoryUnlisten>;
   nextPlanId(): HistoryPlanId;

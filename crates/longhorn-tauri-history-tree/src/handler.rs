@@ -1,8 +1,9 @@
 use std::sync::Mutex;
 
 use longhorn_history_tree::{
-    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkNavigationCommand, ForkNavigationResult,
-    ForkPathPageCommand, ForkPathPageSnapshot, ForkSnapshot,
+    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
+    ForkContinuationPageSnapshot, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
+    ForkPathPageSnapshot, ForkSnapshot,
 };
 
 use crate::{ForkHistoryHostAuthority, ForkHistoryHostError, ForkHistoryHostService};
@@ -55,6 +56,14 @@ where
         command: ForkBranchPageCommand,
     ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError> {
         self.with_authority(|authority| authority.branches(caller, command))?
+    }
+
+    fn continuations(
+        &self,
+        caller: &str,
+        command: ForkContinuationPageCommand,
+    ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError> {
+        self.with_authority(|authority| authority.continuations(caller, command))?
     }
 
     fn navigate(

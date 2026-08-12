@@ -2,6 +2,8 @@
 
 use std::{error::Error, fmt};
 
+use longhorn_core::HistoryEntryId;
+
 use crate::ForkBranchId;
 /// Rejected bounded graph projection.
 
@@ -25,6 +27,8 @@ pub enum ForkProjectionError {
     },
     /// Explicit path named no branch reference.
     UnknownBranch(ForkBranchId),
+    /// Anchor or run start named no retained entry.
+    UnknownEntry(HistoryEntryId),
     /// Validated topology could not be projected consistently.
     InvalidTopology,
 }

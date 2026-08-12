@@ -165,6 +165,16 @@ fn main() {
     let branch_snapshot =
         longhorn_history_tree::ForkBranchPageSnapshot::from_page(epoch, &branches)
             .expect("branch protocol");
+    // Card 183. The continuations at the path's newest entry, so the packed
+    // artifact proves the node-centric surface as well as the flat one.
+    let continuation_anchor = path.entries().first().map(|entry| entry.entry_id().clone());
+    let continuations = graph
+        .project_continuations(continuation_anchor.as_ref(), request)
+        .expect("continuation projection");
+    assert!(continuations.continuations().len() <= PAGE_SIZE);
+    let continuation_snapshot =
+        longhorn_history_tree::ForkContinuationPageSnapshot::from_page(epoch, &continuations)
+            .expect("continuation protocol");
     let receipt_projection = ForkNavigationReceiptProjection::from_receipt(&receipt);
     let navigation_result = ForkNavigationResult::Committed {
         snapshot: snapshot.clone(),
@@ -240,6 +250,8 @@ fn main() {
         "alternatePathCount": summary.alternate_path_count(),
         "pathEntryIds": path.entries().iter().map(|entry| entry.entry_id().as_str()).collect::<Vec<_>>(),
         "branchIds": branches.branches().iter().map(|branch| branch.branch_id().as_str()).collect::<Vec<_>>(),
+        "continuationAnchorId": continuation_anchor.as_ref().map(HistoryEntryId::as_str),
+        "continuationEntryIds": continuations.continuations().iter().map(|continuation| continuation.entry_id().as_str()).collect::<Vec<_>>(),
         "movedEntryCount": receipt.moved_entry_ids().len(),
         "firstMovedEntryId": receipt.moved_entry_ids().first().map(HistoryEntryId::as_str),
         "lastMovedEntryId": receipt.moved_entry_ids().last().map(HistoryEntryId::as_str),
@@ -251,6 +263,7 @@ fn main() {
             "snapshot": snapshot,
             "path": path_snapshot,
             "branches": branch_snapshot,
+            "continuations": continuation_snapshot,
             "navigationResult": navigation_result,
             "changedEvent": changed_event,
         },

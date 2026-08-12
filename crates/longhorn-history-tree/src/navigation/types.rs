@@ -35,6 +35,27 @@ pub enum ForkNavigationTarget {
         /// Stable branch reference.
         branch_id: ForkBranchId,
     },
+    /// Make one entry its parent's preferred continuation, without walking
+    /// into it.
+    ///
+    /// The operator picked a different future at a fork. The chosen run
+    /// becomes the flat default path and what was the default becomes a
+    /// continuation at the same entry -- but not one delta of it is applied.
+    ///
+    /// The target node is the entry's *parent*, so an operator standing
+    /// downstream of the fork undoes back to it as ordinary steps and never
+    /// ends up off the default path. An operator already standing there
+    /// commits a zero-step plan, which is the only target for which that is
+    /// legitimate.
+    ///
+    /// `Checkout` cannot express this. Checking out the fork entry re-points
+    /// nothing, because execution only re-points preferred children down to
+    /// the target node; checking out the fork's first entry re-points them and
+    /// applies that entry, which is the thing the operator declined.
+    PreferContinuation {
+        /// Entry to prefer. Its parent may be the root.
+        entry_id: HistoryEntryId,
+    },
 }
 
 /// Immutable mixed undo/redo route bound to exact graph authority.

@@ -8,8 +8,8 @@ use longhorn_history::{
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkCheckpoint, ForkCheckpointError,
     ForkCheckpointId, ForkHistory, ForkHistoryState, ForkHistoryStateError, ForkNavigationError,
-    ForkNavigationPlan, ForkNavigationTarget, ForkNavigationTransaction, ForkPruningOutcome,
-    ForkRecord, ForkRetentionError, ForkRetentionLimits,
+    ForkNavigationPlan, ForkNavigationTarget, ForkNavigationTransaction, ForkProjectionPageRequest,
+    ForkPruningOutcome, ForkRecord, ForkRetentionError, ForkRetentionLimits,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -858,4 +858,148 @@ fn checkout_branch_root_rejects_a_branch_that_does_not_exist() {
     assert!(
         matches!(error, ForkNavigationError::UnknownBranch(id) if id == branch_id("branch:absent"))
     );
+}
+
+/// Card 184. The operator standing at the fork picks the other future. The
+/// list they are reading swaps; the document does not move by one delta.
+#[test]
+fn preferring_a_continuation_applies_nothing_and_swaps_the_default_path() {
+    let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
+    // Back to the fork entry, which is where the operator stands when they
+    // open it and pick a different continuation.
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:undo-d",
+        ForkNavigationTarget::Undo,
+    );
+    assert_eq!(model, 3);
+    let before = history.revision();
+
+    let plan = history
+        .plan_navigation(
+            plan_id("plan:prefer-c"),
+            history.revision(),
+            ForkNavigationTarget::PreferContinuation {
+                entry_id: entry_id("entry:c"),
+            },
+            &DeltaPolicy,
+        )
+        .expect("prefer plan");
+    assert!(
+        plan.steps().is_empty(),
+        "the operator is already at the fork, so there is nothing to apply"
+    );
+
+    let mut transaction = ModelTransaction {
+        model: &mut model,
+        mode: TransactionMode::Commit,
+        calls: 0,
+    };
+    let receipt = history
+        .execute_navigation(plan, &mut transaction)
+        .expect("prefer commit");
+    assert_eq!(receipt.target_node_id(), Some(&entry_id("entry:b")));
+    assert_eq!(receipt.target_branch_id(), &branch_id("branch:main"));
+    assert!(
+        history.revision() > before,
+        "a zero-step commit still moves the revision, or every page a consumer \
+         holds would look current"
+    );
+    assert_eq!(model, 3, "not one delta of the chosen fork was applied");
+
+    let page = history
+        .project_default_path_page(ForkProjectionPageRequest::new(0, 8).unwrap())
+        .expect("default path");
+    assert_eq!(
+        page.head_entry_id(),
+        Some(&entry_id("entry:c")),
+        "the chosen run is now the flat list"
+    );
+
+    // And what was the flat list is a fork at the same entry, unchanged.
+    let continuations = history
+        .project_continuations(
+            Some(&entry_id("entry:b")),
+            ForkProjectionPageRequest::new(0, 8).unwrap(),
+        )
+        .expect("continuations");
+    let previous = continuations
+        .continuations()
+        .iter()
+        .find(|continuation| continuation.entry_id() == &entry_id("entry:d"))
+        .expect("the previous future is still there");
+    assert!(!previous.preferred());
+    assert_eq!(previous.entry_count(), 1);
+    assert_eq!(previous.branch_id(), &branch_id("branch:alternate"));
+}
+
+/// Card 184. Standing inside the run being replaced, the operator has to come
+/// back to the fork first, or the flat list would no longer contain them.
+#[test]
+fn preferring_a_continuation_from_downstream_returns_to_the_fork_entry() {
+    let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
+    assert_eq!(model, 7);
+    let plan = history
+        .plan_navigation(
+            plan_id("plan:prefer-from-downstream"),
+            history.revision(),
+            ForkNavigationTarget::PreferContinuation {
+                entry_id: entry_id("entry:c"),
+            },
+            &DeltaPolicy,
+        )
+        .expect("prefer plan");
+    assert_eq!(plan.steps().len(), 1);
+    assert!(
+        matches!(
+            &plan.steps()[0],
+            HistoryNavigationStep::Undo { entry_id: id, .. } if id == &entry_id("entry:d")
+        ),
+        "coming back to the fork is ordinary undo work, not a special case"
+    );
+
+    let mut transaction = ModelTransaction {
+        model: &mut model,
+        mode: TransactionMode::Commit,
+        calls: 0,
+    };
+    let receipt = history
+        .execute_navigation(plan, &mut transaction)
+        .expect("prefer commit");
+    assert_eq!(receipt.target_node_id(), Some(&entry_id("entry:b")));
+    assert_eq!(model, 3, "back to the fork, and no further");
+}
+
+/// Card 184. The one case where standing still really is nothing to do.
+#[test]
+fn preferring_the_continuation_already_preferred_is_rejected() {
+    let (history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
+    let error = history
+        .plan_navigation(
+            plan_id("plan:prefer-noop"),
+            history.revision(),
+            ForkNavigationTarget::PreferContinuation {
+                entry_id: entry_id("entry:d"),
+            },
+            &DeltaPolicy,
+        )
+        .expect_err("already the preferred continuation");
+    assert!(matches!(error, ForkNavigationError::AlreadyAtTarget));
+}
+
+#[test]
+fn preferring_a_continuation_that_does_not_exist_is_rejected() {
+    let (history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
+    let error = history
+        .plan_navigation(
+            plan_id("plan:prefer-absent"),
+            history.revision(),
+            ForkNavigationTarget::PreferContinuation {
+                entry_id: entry_id("entry:absent"),
+            },
+            &DeltaPolicy,
+        )
+        .expect_err("no such entry");
+    assert!(matches!(error, ForkNavigationError::UnknownEntry(_)));
 }

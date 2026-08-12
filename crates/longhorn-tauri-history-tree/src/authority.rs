@@ -1,6 +1,7 @@
 use longhorn_history_tree::{
-    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkNavigationCommand, ForkNavigationResult,
-    ForkPathPageCommand, ForkPathPageSnapshot, ForkSnapshot,
+    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
+    ForkContinuationPageSnapshot, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
+    ForkPathPageSnapshot, ForkSnapshot,
 };
 
 use crate::ForkHistoryHostError;
@@ -23,6 +24,13 @@ pub trait ForkHistoryHostAuthority: Send {
         caller: &str,
         command: ForkBranchPageCommand,
     ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError>;
+
+    /// Returns one caller-authorized bounded continuation page.
+    fn continuations(
+        &mut self,
+        caller: &str,
+        command: ForkContinuationPageCommand,
+    ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError>;
 
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(

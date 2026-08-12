@@ -76,6 +76,22 @@ Items 2, 3 and 5 are confirmed as described.
       plan against Poodle's shipped stitcher). A single paged `ForkTreePage` in ancestry order with branch
       and lane annotations, moving the stitch into the authority.
 
+## What Reading The Stitcher Changed
+
+Batch 3 was scoped as "a single paged `ForkTreePage` in ancestry order with
+branch and lane annotations" -- the shape Poodle's HistoryCentre v2 builds
+client-side, moved into the authority. Reading
+`poodle/packages/core/src/history-center.ts` showed the shape is the defect.
+
+v2's `childrenOf` is a vector, so N runs can attach at one entry, and it emits
+them back to back at the same depth. Two forks at the same entry and a fork off
+a fork produce identical rows: same order, same depth, same lane flags. Moving
+that stitch into the authority would have moved the ambiguity, not fixed it.
+
+The operator model is flat. One active list; jumping back and editing gives an
+entry more than one continuation. So the projection answers that question
+directly, and the renderer recurses instead of laying out a tree.
+
 ## Goals
 
 - [ ] Loophole deletes its branches-reload retry loop, its command wrappers and

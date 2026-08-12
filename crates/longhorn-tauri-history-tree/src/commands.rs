@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedEvent, ForkChangedKind,
-    ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
-    ForkPathPageSnapshot, ForkSnapshot,
+    ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkHistoryProtocolVersion,
+    ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkSnapshot,
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
@@ -28,6 +29,12 @@ pub trait ForkHistoryHostService: Send + Sync {
         caller: &str,
         command: ForkBranchPageCommand,
     ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError>;
+    /// Returns one caller-authorized bounded continuation page.
+    fn continuations(
+        &self,
+        caller: &str,
+        command: ForkContinuationPageCommand,
+    ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError>;
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(
         &self,
@@ -76,6 +83,16 @@ pub fn longhorn_history_tree_branches<R: Runtime>(
     command: ForkBranchPageCommand,
 ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError> {
     state.service.branches(window.label(), command)
+}
+
+/// Returns one caller-authorized bounded continuation page.
+#[tauri::command]
+pub fn longhorn_history_tree_continuations<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriForkHistoryState>,
+    command: ForkContinuationPageCommand,
+) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError> {
+    state.service.continuations(window.label(), command)
 }
 
 /// Applies and commits one caller-authorized graph navigation.

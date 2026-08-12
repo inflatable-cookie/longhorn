@@ -6,7 +6,8 @@ use longhorn_core::{
 use longhorn_history::{HistoryAuthorityEpoch, HistoryRecordedAt};
 use longhorn_history_tree::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchId, ForkBranchPageCommand, ForkBranchPageSnapshot,
-    ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkEntryRecord,
+    ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkContinuationPageCommand,
+    ForkContinuationPageSnapshot, ForkContinuationRecord, ForkEntryRecord,
     ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationReceiptProjection,
     ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkNavigationResult,
     ForkNavigationTargetProjection, ForkPathPageCommand, ForkPathPageSnapshot,
@@ -78,6 +79,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         ForkBranchRecord::decl(),
         ForkBranchPageCommand::decl(),
         ForkBranchPageSnapshot::decl(),
+        ForkContinuationRecord::decl(),
+        ForkContinuationPageCommand::decl(),
+        ForkContinuationPageSnapshot::decl(),
         navigation_target.clone(),
         ForkNavigationCommand::decl(),
         ForkNavigationReceiptProjection::decl(),

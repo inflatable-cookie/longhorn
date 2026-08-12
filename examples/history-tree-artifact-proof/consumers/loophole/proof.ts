@@ -10,6 +10,7 @@ const transport = {
     if (command === "longhorn_history_tree_snapshot") return structuredClone(fixture.rendererFixture.snapshot);
     if (command === "longhorn_history_tree_path") return structuredClone(fixture.rendererFixture.path);
     if (command === "longhorn_history_tree_branches") return structuredClone(fixture.rendererFixture.branches);
+    if (command === "longhorn_history_tree_continuations") return structuredClone(fixture.rendererFixture.continuations);
     if (command === "longhorn_history_tree_navigate") return structuredClone(fixture.rendererFixture.navigationResult);
     throw new Error(`unexpected command ${command}`);
   },
@@ -22,18 +23,20 @@ const transport = {
 const controller = new ForkHistoryController({ port: createTauriForkHistoryPort({ transport, nextPlanId: () => "plan:loophole-renderer" }), pathPageSize: 17, branchPageSize: 17 });
 await controller.start();
 await controller.loadBranches();
+// Card 183: the node-centric surface, through the same packed artifact.
+const continuations = await controller.loadContinuations(fixture.rendererFixture.continuations.anchorEntryId);
 const navigation = fixture.rendererFixture.navigationResult;
-const publicTrace = trace(controller.snapshot, controller.path, controller.branches, navigation);
+const publicTrace = trace(controller.snapshot, controller.path, controller.branches, continuations, navigation);
 if (!equalJson(publicTrace, fixture.publicTrace)) throw new Error("Loophole native and renderer traces diverged");
 listener?.(structuredClone(fixture.rendererFixture.changedEvent));
 await controller.stop();
 if (unlistenCount !== 1 || listener !== undefined) throw new Error("Loophole controller leaked its listener");
 console.log(JSON.stringify({ shape: "loophole", publicTrace, transport: "tauri", teardown: { unlistenCount }, cleanInstall: true }));
 
-function trace(snapshot: any, path: any, branches: any, navigation: any) {
+function trace(snapshot: any, path: any, branches: any, continuations: any, navigation: any) {
   const receipt = navigation.status === "committed" ? navigation.receipt : undefined;
   const moved = receipt?.movedEntryIds ?? [];
-  return { historyId: snapshot.summary.historyId, revision: snapshot.summary.revision, currentBranchId: snapshot.summary.currentBranchId, currentEntryId: snapshot.summary.currentEntryId, undoDepth: snapshot.summary.undoDepth, redoDepth: snapshot.summary.redoDepth, retainedEntryCount: snapshot.summary.retainedEntryCount, branchCount: snapshot.summary.branchCount, alternatePathCount: snapshot.summary.alternatePathCount, pathEntryIds: path.entries.map((entry: any) => entry.entryId), branchIds: branches.branches.map((branch: any) => branch.branchId), movedEntryCount: moved.length, firstMovedEntryId: moved[0] ?? null, lastMovedEntryId: moved.at(-1) ?? null };
+  return { historyId: snapshot.summary.historyId, revision: snapshot.summary.revision, currentBranchId: snapshot.summary.currentBranchId, currentEntryId: snapshot.summary.currentEntryId, undoDepth: snapshot.summary.undoDepth, redoDepth: snapshot.summary.redoDepth, retainedEntryCount: snapshot.summary.retainedEntryCount, branchCount: snapshot.summary.branchCount, alternatePathCount: snapshot.summary.alternatePathCount, pathEntryIds: path.entries.map((entry: any) => entry.entryId), branchIds: branches.branches.map((branch: any) => branch.branchId), continuationAnchorId: continuations.anchorEntryId, continuationEntryIds: continuations.continuations.map((continuation: any) => continuation.entryId), movedEntryCount: moved.length, firstMovedEntryId: moved[0] ?? null, lastMovedEntryId: moved.at(-1) ?? null };
 }
 
 function equalJson(left: unknown, right: unknown): boolean { return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right)); }

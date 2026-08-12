@@ -62,6 +62,14 @@ impl<P> ForkHistory<P> {
             parent = Some(child.clone());
         }
 
+        if let ForkNavigationTarget::PreferContinuation { entry_id } = &plan.target {
+            // The route above re-points preferred children only down to the
+            // target node, which is this entry's parent. This is the step past
+            // it that makes the chosen run the default path.
+            self.preferred_children
+                .insert(plan.target_node_id.clone(), entry_id.clone());
+        }
+
         self.current_node_id = plan.target_node_id.clone();
         self.current_branch_id = plan.target_branch_id.clone();
         self.revision = committed_revision;
@@ -168,6 +176,24 @@ impl<P> ForkHistory<P> {
                     return Err(ForkNavigationError::UnknownBranch(branch_id.clone()));
                 }
                 Ok((branch_id.clone(), None))
+            }
+            ForkNavigationTarget::PreferContinuation { entry_id } => {
+                let node = self
+                    .nodes
+                    .get(entry_id)
+                    .ok_or_else(|| ForkNavigationError::UnknownEntry(entry_id.clone()))?;
+                let parent = node.parent_entry_id().cloned();
+                if self.preferred_children.get(&parent) == Some(entry_id) {
+                    // The only case where standing still really is nothing to
+                    // do: this future is already the chosen one.
+                    return Err(ForkNavigationError::AlreadyAtTarget);
+                }
+                // The branch reported by the continuation page, so the picker
+                // and the commit name the same thing.
+                let branch_id = self
+                    .preferred_branch_for(entry_id)
+                    .ok_or_else(|| ForkNavigationError::UnreferencedTarget(entry_id.clone()))?;
+                Ok((branch_id, parent))
             }
         }
     }

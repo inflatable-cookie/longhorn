@@ -2,6 +2,7 @@
 
 mod branch;
 mod changed;
+mod continuation;
 mod navigation;
 mod path;
 mod summary;
@@ -9,6 +10,9 @@ mod summary;
 pub use branch::{ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord};
 pub(crate) use changed::count;
 pub use changed::{ForkChangedEvent, ForkChangedKind, ForkProtocolProjectionError};
+pub use continuation::{
+    ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkContinuationRecord,
+};
 pub use navigation::{
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,

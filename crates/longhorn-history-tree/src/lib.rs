@@ -39,13 +39,15 @@ pub use persistence::{
     MAXIMUM_FORK_HISTORY_ENVELOPE_BYTES, NoForkStructuralMigration,
 };
 pub use projection::{
-    ForkBranchPage, ForkBranchProjection, ForkEntryProjection, ForkPathPage, ForkProjectionError,
-    ForkProjectionPageRequest, ForkSummary, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkBranchPage, ForkBranchProjection, ForkContinuation, ForkContinuationPage,
+    ForkEntryProjection, ForkPathPage, ForkProjectionError, ForkProjectionPageRequest, ForkSummary,
+    MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 pub use protocol::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord,
-    ForkChangedEvent, ForkChangedKind, ForkEntryRecord, ForkHistoryProtocolVersion,
-    ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
+    ForkChangedEvent, ForkChangedKind, ForkContinuationPageCommand, ForkContinuationPageSnapshot,
+    ForkContinuationRecord, ForkEntryRecord, ForkHistoryProtocolVersion, ForkNavigationCommand,
+    ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
     ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
     ForkProtocolProjectionError, ForkSnapshot, ForkSummaryProjection,

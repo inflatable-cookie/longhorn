@@ -31,6 +31,13 @@ pub enum ForkNavigationTargetProjection {
         /// Stable target branch.
         branch_id: ForkBranchId,
     },
+    /// Make one entry its parent's preferred continuation, applying none of
+    /// it. The chosen run becomes the default path; the previous default
+    /// becomes a continuation at the same entry.
+    PreferContinuation {
+        /// Entry to prefer.
+        entry_id: HistoryEntryId,
+    },
 }
 
 /// One exact revision-bound graph navigation command.
