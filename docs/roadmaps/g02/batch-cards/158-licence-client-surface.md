@@ -1,20 +1,34 @@
 # 158 Licence Client Surface
 
-Status: ready
+Status: blocked — needs Card 193; scope corrected 2026-08-12
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 010, and 013; research memo 020
-Depends on: Card 157
+Depends on: Card 157; Card 193
 Auto-start next card: no
 
 ## Objective
 
-Build `packages/licence`: generated bindings and the Svelte surface for
+Build the licence client surface: generated bindings and the Svelte surface for
 activation, seat management, and expiry.
+
+## Correction — 2026-08-12
+
+The same two faults Card 154 had, found the same way.
+
+**`packages/licence` cannot be built.** g02.013 consolidated eighteen
+TypeScript packages into three and is complete. The surface belongs in
+`packages/longhorn/src/licence/`, where every other domain lives.
+
+**There is nothing to bind.** Step 1 presupposes wire types.
+`longhorn-licence` derives `ts_rs::TS` four times across three files and has no
+`protocol` module, no command envelope, no snapshot and no changed event.
+Card 193 supplies them; this card resumes after it.
 
 ## Scope
 
-- generated bindings for the licence domain, living with this package
+- generated bindings for the licence domain, in
+  `packages/longhorn/src/licence/` as g02.013 left the package graph
 - activation: serial key entry, account sign-in, licence-file import
 - current licence state, including entitlements and both windows
 - activation slot list with self-service release

@@ -46,8 +46,13 @@ whether a release may be taken.
   persistence need a packaged proof application
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the shared packaged proof application both host cards wait on
-- [ ] [Card 158](batch-cards/158-licence-client-surface.md) builds
-  `packages/licence`: activation, seat management, expiry
+- [ ] [Card 193](batch-cards/193-licence-protocol-surface.md) gives the licence
+  domain a wire protocol — snapshot, commands, rejection codes, changed event —
+  which Card 158 assumed existed
+- [ ] [Card 158](batch-cards/158-licence-client-surface.md) builds the licence
+  client surface: activation, seat management, expiry. Blocked on Card 193 and
+  rescoped: `packages/licence` cannot be built, because g02.013 consolidated
+  eighteen packages into three
 
 ## Dependency Shape
 
@@ -92,4 +97,9 @@ reads.
 
 ## Next Task
 
-Open Card 155.
+Card 193, the licence protocol. Cards 155 and 156 are complete, Card 157's pure
+half is done and its host wiring waits on Card 159, and Card 159 is
+deprioritized by operator decision — so Card 193 is the only unblocked work in
+this milestone.
+
+This section said "Open Card 155" while 155 and 156 were both complete.
