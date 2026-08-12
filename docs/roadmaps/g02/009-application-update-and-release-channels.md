@@ -43,6 +43,10 @@ better than the plugin's.
 Card 153's mechanism findings were recorded as "the guide for the
 application-side wiring". They are now requirements on this crate.
 
+**Checked 2026-08-12: three of the four below were already met on 2026-08-09**,
+by the contract 018 amendment that built `longhorn-update-install`. This
+section was written as though the decision opened them. It confirmed them.
+
 - **Signature verification.** Card 153 step 6 said "never implement, wrap, or
   bypass" it, and its acceptance criterion was that verification stays entirely
   inside the plugin. Both are void. Longhorn verifies update artifacts now.
@@ -101,9 +105,9 @@ source adapters are the only check path rather than a duplicate of one.
 ### Batch 3. Install and client surface
 
 - [ ] [Card 196](batch-cards/196-longhorn-is-the-update-controller.md) builds
-  what the operator decision made Longhorn's: artifact verification, the
-  download, and the controller that sequences check, fetch, verify, gate and
-  install
+  the two pieces that do not exist: the download adapter, and the controller
+  that sequences check, fetch, verify, gate and install and holds the state
+  Card 190's snapshot projects
 - [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
   — findings recorded, quiescence contract landed, and `longhorn-tauri-update`
@@ -134,10 +138,14 @@ classification to explain a channel rejoin.
 - [x] rollout decided on the client, so static hosting is sufficient
 - [x] `minimum_version` and user-initiated checks both override rollout
 - [ ] no install proceeds while Longhorn-owned work is in flight
-- [ ] ~~signature verification stays entirely inside the Tauri plugin~~ Void
-      from 2026-08-12. Longhorn verifies, and the goal is now that no
-      unverified artifact can reach an installer by the shape of the call
-      rather than by each implementation's promise. Card 196.
+- [x] ~~signature verification stays entirely inside the Tauri plugin~~ Void,
+      and already met the other way round. The contract 018 amendment of
+      2026-08-09 built `longhorn-update-install`: minisign verification, atomic
+      replacement, an escalation port rather than shell interpolation,
+      classified `NotWritable`, bounded extraction. The 2026-08-12 decision
+      removed the plugin as a path; its job had already been taken over.
+      What remains is making verification unreachable-around rather than
+      promised per implementation — Card 196 step 3.
 - [ ] one crate and one package added, following existing naming pairs.
       `longhorn-tauri-update` was absorbed back into `longhorn-update` on
       2026-08-09 and the decision of 2026-08-12 removed the reason to recreate

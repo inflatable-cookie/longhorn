@@ -11,148 +11,152 @@ Auto-start next card: no
 
 ## Why
 
-The operator decision of 2026-08-12 removed the Tauri updater plugin and made
-Longhorn the update controller for both hosts. The milestone records what that
-makes Longhorn's problem. No card builds it.
+The operator decision of 2026-08-12 made Longhorn the update controller for
+both hosts. Nothing controls anything. `UpdateSnapshot` is built in one place
+in the tree and that place is a test.
 
-Card 153 is complete against the *old* division and cannot be reopened to hold
-this: its acceptance criterion was "signature verification stays entirely
-inside the plugin", which the decision voids. Card 190 built the protocol and
-stopped at step 4 because there is no host crate. Card 154 is the client
-surface. The controller itself has no card, and every other card in the batch
-is either finished, blocked on it, or blocked on the packaged proof.
+Every other piece exists. Cards 151 and 152 built policy and sources; the
+contract 018 amendment of 2026-08-09 built verification and install; Card 190
+built the protocol. What is missing is the thing that sequences them and holds
+the state the protocol projects.
 
-## What The Crate Already Has
+## What Already Exists — Checked, Not Assumed
 
-Not a green field. Cards 151 and 152 left more standing than the decision
-needs replacing.
+The first draft of this card was wrong about most of this column, and the error
+is worth recording: it proposed building verification and recommended minisign
+over raw ed25519 as an open decision. Both had already landed on 2026-08-09.
 
-| | Exists | This card |
+| | Where | Status |
 | --- | --- | --- |
-| Channel resolution, semver, rollout, deferral | ✅ Card 151 | — |
-| Four source adapters, `UpdateSource` | ✅ Card 152 | — |
-| Quiescence probes and `UpdateGate` | ✅ Card 153 | — |
-| `InstallProvenance`, `classify_install` | ✅ Card 153 | — |
-| `UpdateInstaller`, `InstallFailure`, conformance suite | ✅ Card 153 | rescoped |
-| Protocol, snapshot, progress union, commands | ✅ Card 190 | driven |
-| **Artifact verification** | ❌ | step 2 |
-| **The download** | ❌ | step 1 |
-| **The controller that sequences them** | ❌ | step 3 |
+| Channel resolution, semver, rollout, deferral | `longhorn-update` | Card 151 |
+| Four source adapters, `UpdateSource` | `longhorn-update` | Card 152 |
+| Quiescence probes and `UpdateGate` | `longhorn-update` | Card 153 |
+| `InstallProvenance`, `classify_install` | `longhorn-update` | Card 153 |
+| **Minisign verification** | `longhorn-update-install` | 2026-08-09 |
+| **Atomic bundle replacement, escalation port** | `longhorn-update-install` | 2026-08-09 |
+| **Classified `NotWritable`, bounded extraction** | `longhorn-update-install` | 2026-08-09 |
+| Protocol, snapshot, progress union, four commands | `longhorn-update` | Card 190 |
+| **The download** | — | this card |
+| **The controller** | — | this card |
 
-`Artifact.signature` is documented today as "passed through to the installer
-unread". That line is the old division in one sentence.
+`longhorn-update-install` already records why minisign and where it diverges
+from Tauri deliberately — no shell interpolation, classified failures, bounded
+extraction, and a reasoned decision *not* to diverge on quarantine. The
+milestone's "the burden is on diverging" rule was already applied there.
+
+So the 2026-08-12 decision changed less in the tree than the milestone text
+implies. It removed the plugin as a *path*; the plugin's job had already been
+taken over on 2026-08-09.
 
 ## Scope
 
-`longhorn-update`, and nothing else. No host crate, no Tauri commands, no
-client surface. Those are Card 190 step 4, Card 159 and Card 154 respectively,
-and each is blocked on something this card does not supply.
+`longhorn-update`. No host crate, no Tauri commands, no client surface — those
+are Card 190 step 4, Card 159 and Card 154, each blocked on something this card
+does not supply.
 
-The crate stays pure. No network, no filesystem, no ambient clock — the same
-rule `longhorn-licence` keeps. Longhorn *drives* the download; the host
-performs it, as the host already performs a check for `UpdateSource`.
+The crate stays pure. No network, no filesystem, no ambient clock. Longhorn
+*drives* the download; the host performs it, as the host already performs a
+check for `UpdateSource` and the replacement for `UpdateInstaller`.
 
 ## Step 1 — The download is described here and performed there
 
 Card 152 set the shape: an adapter describes an exchange, the host performs it.
 The same shape, for bytes rather than a manifest.
 
-- [ ] An `ArtifactFetch` describing one transfer: the URL, and how many bytes
-      the manifest says to expect when it says.
+- [ ] An `ArtifactFetch` describing one transfer: the URL, and the expected
+      length when the manifest gives one.
 - [ ] The host reports progress back as counted bytes. The crate turns counts
       into `UpdateProgressProjection`, which is where the `Option<f64>`
       fraction Card 190 built gets its `None`: a source with no content length
-      cannot produce one.
-- [ ] A partial or abandoned transfer leaves no state a later check has to
-      reason about. Resume is out of scope — say so in the type rather than
-      leaving a reader to infer it from an absence.
+      cannot produce one, and a bar that invents a number is worse than one
+      that says it does not know.
+- [ ] A partial or abandoned transfer leaves no state a later check must reason
+      about. Resume is out of scope — say so in the type rather than leaving a
+      reader to infer it from an absence.
 
-## Step 2 — Longhorn verifies
-
-The one place "as well as the plugin" is not a matter of taste. Card 153 step 6
-said never implement, wrap, or bypass it. That is void.
-
-- [ ] Verification happens **in the crate**, before any byte is offered to an
-      `UpdateInstaller`. Today the trait's doc comment promises this and each
-      implementation must keep the promise; after this card the crate keeps it
-      and the trait cannot be handed an unverified artifact at all.
-- [ ] **Adopt minisign framing, not raw ed25519.** Tauri's answer, and the
-      milestone puts the burden on diverging. It buys the existing signing
-      tooling and public-key format, and interoperability matters here in a way
-      it does not for licences: an artifact is signed by a release pipeline
-      that already exists, where a licence is signed by us. `longhorn-licence`
-      keeps raw ed25519; the two are different problems and sharing a format
-      would be the coincidence, not the design.
-- [ ] The trusted comment is read and checked, not skipped. It is where
-      minisign carries the version, and a signature that verifies against the
-      wrong release is a downgrade.
-- [ ] `InstallFailure::SignatureRejected` already exists and is already
-      terminal. Verification failing in the crate must produce that same
-      outcome rather than a second vocabulary for the same event.
-
-## Step 3 — The controller
+## Step 2 — The controller
 
 - [ ] One type that sequences check → fetch → verify → gate → install, holds
       the state Card 190's snapshot projects, and answers the four commands.
-- [ ] It observes progress; it does not perform work. Every side effect is a
-      host call through an existing trait — `UpdateSource`, `ArtifactFetch`,
+- [ ] It observes; it does not perform. Every side effect is a host call
+      through an existing trait — `UpdateSource`, `ArtifactFetch`,
       `QuiescenceProbe`, `UpdateInstaller`.
-- [ ] A stale `expectedRevision` is refused on all four commands, which is
-      Card 190's acceptance criterion and has nothing to refuse it today.
+- [ ] A stale `expectedRevision` is refused on all four commands. Card 190
+      lists this as acceptance and there is nothing to refuse it today.
 - [ ] The gate sits between verify and install, not before fetch. Downloading
-      while work is in flight is fine; replacing the bundle is not, and a
-      controller that gates too early makes the user wait for a transfer that
-      could have happened in the background.
+      while work is in flight is fine; replacing the bundle is not, and gating
+      too early makes the user wait for a transfer that could have happened in
+      the background.
 
-## Step 4 — Non-writable is a first-class outcome
+## Step 3 — Verification becomes unreachable-around, not just promised
 
-The milestone names this as where "better than the plugin" has a concrete
-meaning: the plugin had no typed error for it.
+Verification exists and is correct. What does not exist is any structure
+stopping a *second* installer from skipping it.
 
-- [ ] A non-writable installation is detected before the download, not after.
-      `classify_install` already answers this, and downloading eighty megabytes
-      to then say "you installed this with Homebrew" is the plugin's behaviour,
-      not an improvement on it.
-- [ ] The offer survives. A non-writable install still gets told a version
-      exists and where to get it; it is not an error state and must not project
-      as one.
+`UpdateInstaller::apply` takes `artifact: &[u8]` and `signature: &str` and its
+doc comment says an implementation must verify before applying. The conformance
+suite has an `Unverifying` case that proves the suite catches one. That is a
+test of implementations, not a property of the design — and the controller
+about to call this trait is the moment to decide which it should be.
+
+- [ ] The controller verifies before it calls an installer, so the guarantee
+      holds for every implementation rather than for the ones that remembered.
+- [ ] Whether `UpdateInstaller` should then stop taking a signature at all is
+      the question to answer here rather than to leave open. If verification
+      moves out, say what an implementation still promises and what the
+      conformance suite still tests.
+- [ ] `InstallFailure::SignatureRejected` is already terminal. Verification
+      failing in the controller produces that same outcome, not a second
+      vocabulary for the same event.
+
+## Step 4 — Non-writable costs nothing to discover
+
+`classify_install` and `detect_provenance` both exist. Nothing consults them
+before a transfer, because nothing performs a transfer yet.
+
+- [ ] A non-writable installation is detected before the download. Fetching
+      eighty megabytes and then saying "you installed this with Homebrew" is
+      the plugin's behaviour, not an improvement on it.
+- [ ] The offer survives. A non-writable install is told a version exists and
+      where to get it; it is not an error state and must not project as one.
 
 ## Acceptance
 
 - [ ] `effigy qa` passes.
-- [ ] A test asserts an `UpdateInstaller` cannot be reached with an artifact
-      that failed verification. Not "is not", but *cannot be* — by the shape of
-      the call, the way the trait's doc comment currently only asks.
+- [ ] A test asserts an installer cannot be reached with an artifact that
+      failed verification — by the shape of the call, not by the installer's
+      own diligence.
 - [ ] A test asserts a signature valid for a different version is rejected.
+      `longhorn-update-install` reads the trusted comment; the controller must
+      not lose that when it takes over the ordering.
 - [ ] A test asserts a source with no content length projects a `null`
-      fraction rather than zero, which Card 190 lists and cannot exercise.
+      fraction rather than zero. Card 190 lists this and cannot exercise it.
 - [ ] A stale `expectedRevision` is refused on all four commands.
 - [ ] A non-writable install reaches the manual-download outcome without
-      downloading anything, proved by a fetch adapter that fails the test if
-      called.
-- [ ] The conformance suite still passes for a host installer, with
-      verification moved out of it.
+      downloading anything, proved by a fetch adapter that fails if called.
+- [ ] The conformance suite still passes, with whatever step 3 removed from it
+      accounted for rather than quietly dropped.
 
 ## Evidence
 
 - [ ] The tests above, named in the batch log.
-- [ ] What the conformance suite lost, and what an implementation is still
-      required to promise once it no longer verifies.
-- [ ] Every place Tauri's behaviour was diverged from, with the reason in the
-      code as the milestone requires.
+- [ ] What the conformance suite lost, and what an implementation still
+      promises once the controller verifies.
+- [ ] Any place the controller's ordering diverges from Tauri's, with the
+      reason in the code — the rule `longhorn-update-install` already follows.
 
 ## Stop Conditions
 
-- Stop if minisign framing cannot be verified without a dependency that pulls
-  in a runtime or a C toolchain. The format is a means; if it costs the crate
-  its purity, raw ed25519 with the version in the signed payload is the
-  fallback and the operator should hear about the swap rather than find it.
 - Stop if the controller needs a clock. Rollout staging and deferral both look
-  time-shaped, and both were built without one; a controller that reaches for
+  time-shaped and both were built without one; a controller reaching for
   `SystemTime` has found a modelling gap rather than a missing dependency.
 - Stop if sequencing the install correctly needs the host crate that does not
-  exist. That is Card 190 step 4's problem, and pulling it in here would put
-  two unfinished things in one card — the exact failure Card 190 avoided.
+  exist. That is Card 190 step 4, and pulling it in would put two unfinished
+  things in one card — the failure Card 190 avoided.
+- Stop if moving verification into the controller would make
+  `longhorn-update-install`'s own verification dead code rather than a second
+  line. Two verifiers that can disagree is worse than either arrangement, and
+  which one holds it is a design decision, not a refactor.
 
 ## Continuation
 
