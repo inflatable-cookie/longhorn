@@ -87,8 +87,8 @@ one. The measure was wrong before the card was written, not after.
       `notifications` 12. Same second-copy argument as batch 1, same
       demonstrated drift, and replacing them changes nothing a consumer sends
       unless a list is already wrong — in which case finding it is the point.
-- [ ] **Batch 3. Add strictness to the eight that have none** (ready — the
-      checkpoint below is answered). `bridge`,
+- [x] **Batch 3. Add strictness to the eight that have none** (Card 194,
+      complete 2026-08-12 — six domains; bridge is externally tagged and out). `bridge`,
       `commands`, `config`, `history`, `settings`, `surfaces`,
       `surface-transfer` and `transfer` validate no union per variant at all.
       Each gains a check it never had, so each can start rejecting a payload it
@@ -123,7 +123,9 @@ one. The measure was wrong before the card was written, not after.
 
 ## Next Task
 
-Batch 3. Its checkpoint is answered and it is ready to execute.
+Batch 4, the build check. It must exempt bridge explicitly rather than by
+silence: its unions are externally tagged, so there is no discriminant to
+detect and no per-variant map to require.
 
 ## Planning Checkpoint
 

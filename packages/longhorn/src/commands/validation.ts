@@ -1,4 +1,8 @@
 import {
+  COMMAND_VARIANT_FIELDS,
+  COMMAND_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
+import {
   COMMAND_KEYMAP_DURABILITIES,
   COMMAND_KEYMAP_LOAD_ORIGINS,
   COMMAND_KEYMAP_LOAD_STATUSES,
@@ -154,6 +158,7 @@ export function assertValidCommandKeymapSnapshot(
   array(record.conflicts, "$.conflicts");
   const origin = object(record.origin, "$.origin");
   member(origin.kind, COMMAND_KEYMAP_LOAD_ORIGINS, "$.origin.kind");
+  object(origin, "$.origin", variantKeys("CommandKeymapLoadOrigin", origin, "$.origin"));
   if (origin.kind === "migrated") {
     positiveInteger(origin.from, "$.origin.from");
     positiveInteger(origin.to, "$.origin.to");
@@ -198,6 +203,7 @@ export function assertValidCommandKeymapPreviewResult(
 ): asserts value is CommandKeymapPreviewResult {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_PREVIEW_STATUSES, "$.status");
+  object(record, "$", variantKeys("CommandKeymapPreviewResult", record, "$"));
   assertValidCommandKeymapSnapshot(record.snapshot);
   if (record.status === "accepted") {
     const evidence = object(record.evidence, "$.evidence");
@@ -213,6 +219,7 @@ export function assertValidCommandKeymapLoadOutcome(
 ): asserts value is CommandKeymapLoadOutcome {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_LOAD_STATUSES, "$.status");
+  object(record, "$", variantKeys("CommandKeymapLoadOutcome", record, "$"));
   if (record.status === "loaded") {
     assertValidCommandKeymapSnapshot(record.snapshot);
   } else if (record.status === "recovery") {
@@ -228,6 +235,7 @@ export function assertValidCommandKeymapMutationResult(
 ): asserts value is CommandKeymapMutationResult {
   const record = object(value, "$");
   member(record.status, COMMAND_KEYMAP_MUTATION_STATUSES, "$.status");
+  object(record, "$", variantKeys("CommandKeymapMutationResult", record, "$"));
   assertValidCommandKeymapSnapshot(record.snapshot);
   if (record.status === "applied") {
     const receipt = object(record.receipt, "$.receipt");
@@ -282,6 +290,7 @@ function keymapPatch(value: unknown, path: string): void {
 function keymapOverride(value: unknown, path: string): void {
   const record = object(value, path);
   member(record.kind, COMMAND_KEYMAP_OVERRIDE_KINDS, `${path}.kind`);
+  object(record, path, variantKeys("CommandKeymapOverride", record, path));
   if (record.kind === "add") {
     bindingDefinition(record.binding, `${path}.binding`);
   } else {
@@ -310,6 +319,7 @@ function effectiveBinding(value: unknown, path: string): void {
   text(record.id, `${path}.id`);
   const source = object(record.source, `${path}.source`);
   member(source.kind, ["preset", "replacement", "addedOverride"], `${path}.source.kind`);
+  object(source, `${path}.source`, variantKeys("CommandBindingSource", source, `${path}.source`));
   bindingDefinition(
     {
       ...record,
@@ -322,6 +332,7 @@ function effectiveBinding(value: unknown, path: string): void {
 function argumentSchema(value: unknown, path: string): void {
   const record = object(value, path);
   member(record.shape, ["none", "object"], `${path}.shape`);
+  object(record, path, variantKeys("CommandArgumentSchema", record, path));
   if (record.shape === "object") array(record.fields, `${path}.fields`);
 }
 
@@ -411,4 +422,23 @@ function member<const T extends readonly string[]>(
 
 function fail(path: string, detail: string): never {
   throw new CommandProtocolValidationError(path, detail);
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too. This domain tags on `kind`,
+ * `shape` and `status`.
+ *
+ * A missing entry means the generator failed to read the union — every caller
+ * runs `member()` over the discriminant above this call.
+ */
+function variantKeys(
+  type: string,
+  value: Record<string, unknown>,
+  path: string,
+): readonly string[] {
+  const discriminant = value[COMMAND_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = COMMAND_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return keys;
 }

@@ -1,4 +1,8 @@
 import {
+  TRANSFER_VARIANT_FIELDS,
+  TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
+import {
   PANEL_TRANSFER_ERROR_CODES,
   PANEL_TRANSFER_RESPONSE_STATUSES,
   TRANSFER_ABORT_DOMAINS,
@@ -59,11 +63,13 @@ export function assertTransferProtocolVersion(
 export function assertValidTransferTargetBinding(
   value: unknown,
 ): asserts value is TransferTargetBinding {
+  const candidate = record(value);
   assertKnown(
-    record(value).kind,
+    candidate.kind,
     TRANSFER_TARGET_BINDING_KINDS,
     "unknown_target_binding",
   );
+  record(candidate, variantKeys("TransferTargetBinding", candidate));
 }
 
 export function assertValidTransferClientSnapshot(
@@ -87,11 +93,13 @@ export function assertValidTransferClientSnapshot(
 export function assertValidTransferCommitSelector(
   value: unknown,
 ): asserts value is TransferCommitSelector {
+  const candidate = record(value);
   assertKnown(
-    record(value).kind,
+    candidate.kind,
     TRANSFER_COMMIT_SELECTOR_KINDS,
     "unknown_commit_selector",
   );
+  record(candidate, variantKeys("TransferCommitSelector", candidate));
 }
 
 export function assertValidTransferAbort(
@@ -105,6 +113,7 @@ export function assertValidTransferAbort(
     TRANSFER_ABORT_DOMAINS,
     "unknown_abort_domain",
   );
+  record(source, variantKeys("TransferAbortSource", source));
   if (source.domain === "transfer") {
     assertKnown(
       source.code,
@@ -126,6 +135,7 @@ export function assertValidTransferSessionResponse(
   const response = responseWithStatus(
     value,
     TRANSFER_SESSION_RESPONSE_STATUSES,
+    "TransferSessionResponse",
   );
   if (response.status === "started") {
     const session = record(response.session, TRANSFER_FIELDS.TransferSessionStarted);
@@ -142,6 +152,7 @@ export function assertValidTransferLeaseResponse(
   const response = responseWithStatus(
     value,
     TRANSFER_LEASE_RESPONSE_STATUSES,
+    "TransferLeaseResponse",
   );
   if (response.status === "published") {
     assertTransferProtocolVersion(record(response.lease).protocol_version);
@@ -156,6 +167,7 @@ export function assertValidTransferCancelResponse(
   const response = responseWithStatus(
     value,
     TRANSFER_CANCEL_RESPONSE_STATUSES,
+    "TransferCancelResponse",
   );
   if (response.status === "cancelled") {
     assertTransferProtocolVersion(
@@ -172,6 +184,7 @@ export function assertValidPanelTransferResponse(
   const response = responseWithStatus(
     value,
     PANEL_TRANSFER_RESPONSE_STATUSES,
+    "PanelTransferResponse",
   );
   if (response.status === "committed") {
     const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
@@ -187,10 +200,35 @@ export function assertValidPanelTransferResponse(
 function responseWithStatus(
   value: unknown,
   statuses: readonly string[],
+  type: string,
 ): Record<string, unknown> {
   const response = record(value);
   assertKnown(response.status, statuses, "unknown_response_status");
+  record(response, variantKeys(type, response));
   return response;
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too — this domain tags on `kind`,
+ * `status` and `domain`.
+ *
+ * A missing entry means the generator failed to read the union; every caller
+ * runs `assertKnown` over the discriminant above this.
+ */
+function variantKeys(
+  type: string,
+  value: Record<string, unknown>,
+): readonly string[] {
+  const discriminant = value[TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) {
+    throw new TransferProtocolValidationError("unknown_response_status", {
+      type,
+      discriminant,
+    });
+  }
+  return keys;
 }
 
 function assertKnown(

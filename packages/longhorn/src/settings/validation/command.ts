@@ -27,6 +27,7 @@ import {
   protocolVersion,
   record,
   unsigned,
+  variantKeys,
 } from "./primitives.ts";
 
 export function assertValidSettingsLoadCommand(
@@ -63,6 +64,7 @@ export function assertValidSettingsLoadOutcome(
 ): asserts value is SettingsLoadOutcome {
   const outcome = record(value);
   known(outcome.status, SETTINGS_LOAD_OUTCOME_STATUSES);
+  record(outcome, variantKeys("SettingsLoadOutcome", outcome));
   if (outcome.status === "loaded") {
     assertValidSettingsScopeSnapshot(
       outcome.snapshot,
@@ -83,6 +85,7 @@ export function assertValidSettingsMutationResult(
 ): asserts value is SettingsMutationResult {
   const result = record(value);
   known(result.status, SETTINGS_MUTATION_RESULT_STATUSES);
+  record(result, variantKeys("SettingsMutationResult", result));
   if (result.status === "applied") {
     assertValidSettingsScopeSnapshot(
       result.snapshot,

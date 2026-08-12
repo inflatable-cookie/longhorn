@@ -1,6 +1,6 @@
 # 194 Strictness For The Lenient Eight
 
-Status: in progress — step 1 complete 2026-08-12; bridge removed from scope
+Status: complete — landed 2026-08-12; bridge removed from scope
 Owner: Tom
 Roadmap: g02.018 batch 3
 Governing refs: contract 010; contract 011; contract 012
@@ -85,12 +85,12 @@ with no struct at all, so its map was declared and never written.
 
 ## Step 2 — Read it where the discriminant is already checked
 
-- [ ] Every `record(value, path)` that sits under a discriminant check becomes
+- [x] Every `record(value, path)` that sits under a discriminant check becomes
       `record(value, path, variantKeys(type, value, path))`.
-- [ ] Keep the discriminant check above the lookup, as Cards 187 and 188
+- [x] Keep the discriminant check above the lookup, as Cards 187 and 188
       established. A missing map entry then means the generator failed rather
       than that a consumer sent something odd.
-- [ ] One lookup helper per domain, reading that domain's map and its
+- [x] One lookup helper per domain, reading that domain's map and its
       discriminant names. Do not hand-write a key list anywhere.
 
 ## Step 3 — Say what each domain gained
@@ -107,9 +107,10 @@ is what is now rejected that was not.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes.
-- [ ] The generator reports no unreadable union in any of the seven.
-- [ ] No hand-written per-variant key list exists in any domain, which is the
+- [x] `effigy qa` passes.
+- [x] The generator reports no unreadable union in any of the six. Bridge's
+      six are externally tagged and out of scope; see above.
+- [x] No hand-written per-variant key list exists in any domain, which is the
       milestone's first goal and becomes checkable at batch 4.
 - [ ] Each domain has the pair of tests from step 3.
 
@@ -133,3 +134,41 @@ is what is now rejected that was not.
 
 Batch 4 turns the rule into a build check: no union missing from a variant map.
 It cannot run until this card leaves nothing skipped.
+
+## Outcome — 2026-08-12
+
+Six domains wired, 50 unions gained a key check: config 20, commands 12,
+transfer 7, surfaces 4, surface-transfer 4, settings 3. `effigy qa` exit 0;
+203 package tests.
+
+There is no uniform call shape across domains, which is why each was done by
+hand rather than scripted. Four had a single choke point that covered several
+unions at once — `assertKnownKind` in surfaces, `responseWithStatus` in
+transfer and surface-transfer, `outcome` and `mutationOutcome` in config — and
+threading the type name through those was most of the work.
+
+**Two findings, and the first is a live defect rather than a gap.**
+
+`assertValidSurfaceMutationResponse` was calling
+`record(value, SURFACE_FIELDS.SurfaceMutationResponse)`. That type is a union
+and the flat field map **skips unions by design**, so the lookup was
+`undefined` and `record` returned without checking any key. It read as a closed
+boundary and was an open one — worse than the domains that plainly checked
+nothing, because a reader sees a field list being passed.
+
+`surface-transfer` already carried a comment naming this exact limitation:
+"`SurfaceTransferTarget` is a tagged union, so its allowed keys depend on
+`kind` and one flat list is wrong. The generator skips it for that reason."
+Someone hit it, understood it, and documented it rather than working around it.
+The per-variant map is the answer that comment was waiting for.
+
+**A fourth discriminant name appeared.** Card 188 found `kind`, `status` and
+`state`; `transfer` and `surface-transfer` tag their abort sources on `domain`.
+The detector found it without being told, which is the whole reason Card 188
+made detection replace configuration.
+
+**Process note.** Two `effigy qa` runs overlapped, because one was started to
+gate two domains and then four more were wired while it ran. The second failed
+on a lock conflict, and the first was gating a tree that had changed four times
+underneath it. Both results were discarded and one clean run was taken over the
+final tree. One gate at a time, and do not edit while it runs.

@@ -1,4 +1,8 @@
 import {
+  SURFACE_TRANSFER_VARIANT_FIELDS,
+  SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
+import {
   SURFACE_SESSION_RESPONSE_STATUSES,
   SURFACE_TRANSFER_ABORT_DOMAINS,
   SURFACE_TRANSFER_ERROR_CODES,
@@ -47,16 +51,16 @@ export class SurfaceTransferProtocolValidationError extends Error {
 export function assertValidSurfaceTransferTarget(
   value: unknown,
 ): asserts value is SurfaceTransferTarget {
-  // No field list: `SurfaceTransferTarget` is a tagged union, so its allowed
-  // keys depend on `kind` and one flat list is wrong. The generator skips it
-  // for that reason; handing it another type's list here rejected `kind`
-  // itself.
+  // The flat field map skips unions, because a union's allowed keys depend on
+  // its discriminant and one list is wrong for every variant. That used to
+  // mean no key check at all here; the generated per-variant map supplies one.
   const target = record(value);
   assertKnown(
     target.kind,
     SURFACE_TRANSFER_TARGET_KINDS,
     "unknown_target",
   );
+  record(target, variantKeys("SurfaceTransferTarget", target));
   if (target.kind === "existing") {
     assertValidTransferTargetBinding(
       record(record(target.target).binding),
@@ -75,6 +79,7 @@ export function assertValidSurfaceTransferAbort(
     SURFACE_TRANSFER_ABORT_DOMAINS,
     "unknown_abort_domain",
   );
+  record(source, variantKeys("SurfaceTransferAbortSource", source));
   if (source.domain === "transfer") {
     assertKnown(
       source.code,
@@ -99,6 +104,7 @@ export function assertValidSurfaceSessionResponse(
   const response = responseWithStatus(
     value,
     SURFACE_SESSION_RESPONSE_STATUSES,
+    "SurfaceSessionResponse",
   );
   if (response.status === "started") {
     const session = record(response.session);
@@ -115,6 +121,7 @@ export function assertValidSurfaceTransferResponse(
   const response = responseWithStatus(
     value,
     SURFACE_TRANSFER_RESPONSE_STATUSES,
+    "SurfaceTransferResponse",
   );
   if (response.status === "committed") {
     const completion = record(response.completion, SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion);
@@ -128,10 +135,35 @@ export function assertValidSurfaceTransferResponse(
 function responseWithStatus(
   value: unknown,
   statuses: readonly string[],
+  type: string,
 ): Record<string, unknown> {
   const response = record(value);
   assertKnown(response.status, statuses, "unknown_response_status");
+  record(response, variantKeys(type, response));
   return response;
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too. This domain uses three: `kind`,
+ * `status`, and `domain` on the abort source.
+ *
+ * A missing entry means the generator failed to read the union — every caller
+ * runs `assertKnown` over the discriminant above this.
+ */
+function variantKeys(
+  type: string,
+  value: Record<string, unknown>,
+): readonly string[] {
+  const discriminant = value[SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) {
+    throw new SurfaceTransferProtocolValidationError("unknown_response_status", {
+      type,
+      discriminant,
+    });
+  }
+  return keys;
 }
 
 function assertKnown(

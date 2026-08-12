@@ -1,4 +1,8 @@
 import {
+  SURFACE_VARIANT_FIELDS,
+  SURFACE_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
+import {
   SURFACE_MUTATION_COMMAND_KINDS,
   SURFACE_MUTATION_OUTCOME_KINDS,
   SURFACE_MUTATION_REJECTION_CODES,
@@ -48,13 +52,13 @@ export function assertSurfaceProtocolVersion(
 export function assertValidSurfaceMutationCommand(
   value: unknown,
 ): asserts value is SurfaceMutationCommand {
-  assertKnownKind(value, SURFACE_MUTATION_COMMAND_KINDS, "unknown_command");
+  assertKnownKind(value, SURFACE_MUTATION_COMMAND_KINDS, "unknown_command", "SurfaceMutationCommand");
 }
 
 export function assertValidSurfaceMutationOutcome(
   value: unknown,
 ): asserts value is SurfaceMutationOutcome {
-  assertKnownKind(value, SURFACE_MUTATION_OUTCOME_KINDS, "unknown_outcome");
+  assertKnownKind(value, SURFACE_MUTATION_OUTCOME_KINDS, "unknown_outcome", "SurfaceMutationOutcome");
 }
 
 export function assertValidSurfaceMutationRejectionCode(
@@ -76,14 +80,19 @@ export function assertValidSurfaceMutationRejectionCode(
 export function assertValidSurfaceMutationResponse(
   value: unknown,
 ): asserts value is SurfaceMutationResponse {
-  const response = record(value, SURFACE_FIELDS.SurfaceMutationResponse);
+  // Was `record(value, SURFACE_FIELDS.SurfaceMutationResponse)`. The flat
+  // field map skips unions by design, so that lookup was `undefined` and
+  // `record` checked no keys at all -- a call that read as strict and was not.
+  const response = record(value);
   switch (response.status) {
     case "committed": {
+      record(response, variantKeys("SurfaceMutationResponse", response));
       const receipt = record(response.receipt, SURFACE_FIELDS.SurfaceMutationReceipt);
       assertValidSurfaceMutationOutcome(record(receipt.outcome));
       return;
     }
     case "rejected": {
+      record(response, variantKeys("SurfaceMutationResponse", response));
       const rejection = record(response.rejection, SURFACE_FIELDS.SurfaceMutationRejection);
       assertValidSurfaceMutationRejectionCode(rejection.code);
       return;
@@ -116,6 +125,7 @@ function assertKnownKind(
   value: unknown,
   known: readonly string[],
   code: "unknown_command" | "unknown_outcome",
+  type: string,
 ): asserts value is Record<"kind", string> {
   const candidate = record(value);
   if (
@@ -124,6 +134,25 @@ function assertKnownKind(
   ) {
     throw new SurfaceProtocolValidationError(code, value);
   }
+  // The discriminant is checked above, so a missing map entry here means the
+  // generator failed rather than that a caller sent something odd.
+  record(candidate, variantKeys(type, candidate));
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too.
+ */
+function variantKeys(
+  type: string,
+  value: Record<string, unknown>,
+): readonly string[] {
+  const discriminant = value[SURFACE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = SURFACE_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) {
+    throw new SurfaceProtocolValidationError("unknown_outcome", { type, discriminant });
+  }
+  return keys;
 }
 
 /**

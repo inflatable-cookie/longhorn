@@ -1,3 +1,7 @@
+import {
+  SETTINGS_VARIANT_FIELDS,
+  SETTINGS_VARIANT_FIELDS_DISCRIMINANTS,
+} from "../generated/variant-fields.ts";
 import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
@@ -174,4 +178,26 @@ export function record(
     }
   }
   return result;
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map.
+ *
+ * The discriminant's name comes from the map too: this domain tags
+ * `SettingsDurabilityEvidence` on `kind` and its two results on `status`, and
+ * a call site that has to name the right one is a per-site chance to name the
+ * wrong one.
+ *
+ * A missing entry means the generator failed to read the union, not that a
+ * caller sent something odd — every caller checks the discriminant with
+ * `known()` above this call.
+ */
+export function variantKeys(
+  type: string,
+  value: Record<string, unknown>,
+): readonly string[] {
+  const discriminant = value[SETTINGS_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const keys = SETTINGS_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (keys === undefined) incompatible("unknown_field", { type, discriminant });
+  return keys;
 }
