@@ -9,7 +9,7 @@ use longhorn_core::{
 use longhorn_history::{
     HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, HistoryPayloadCodec,
     HistoryPayloadCodecFamily, HistoryPayloadCodecVersion, HistoryPayloadMigrationStep,
-    HistoryPayloadMigrationTarget,
+    HistoryPayloadMigrationTarget, HistoryRecordedAt,
 };
 use longhorn_history_tree::{
     ForkBranch, ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkCheckpointId, ForkHistory,
@@ -787,4 +787,76 @@ fn future_versions_classify_for_the_update_surface() {
     );
 
     drop(live);
+}
+
+/// Card 182. The operator decision, enforced: an envelope written before
+/// `recorded_at` existed has no such field, and must load as `None` rather
+/// than failing. Nothing backfills a time the system never observed.
+#[test]
+fn an_envelope_without_recorded_at_loads_as_none() {
+    let (graph, encoded) = encoded_v1();
+    let document: Value = serde_json::from_slice(&encoded).expect("fixture JSON");
+    assert!(
+        document["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .all(|node| node.get("recordedAt").is_none()),
+        "a history whose host never stamped writes the field nowhere"
+    );
+
+    let loaded = persistence_v1()
+        .load(graph.history_id(), &encoded)
+        .expect("an envelope without the field still loads");
+    assert!(
+        loaded
+            .history()
+            .nodes()
+            .all(|node| node.metadata().recorded_at().is_none())
+    );
+}
+
+/// A supplied stamp survives encode and decode unchanged, and is the only
+/// difference in the envelope.
+#[test]
+fn a_supplied_recorded_at_round_trips() {
+    let stamped = HistoryRecordedAt::from_epoch_millis(1_765_432_100_000);
+    let mut graph = ForkHistory::new(
+        history_id("history:stamped"),
+        branch_id("branch:main"),
+        branch_metadata("Main", true),
+    );
+    let payload = mutation(1, b"alpha");
+    let encoded_weight = mutation_weight(1, &payload.body);
+    graph
+        .record_applied(ForkRecord::new(
+            graph.revision(),
+            entry_id("entry:a"),
+            metadata("Stamped").with_recorded_at(stamped),
+            encoded_weight,
+            payload,
+            None,
+        ))
+        .expect("record stamped entry");
+
+    let encoded = persistence_v1().encode(&graph).expect("encode stamped");
+    let document: Value = serde_json::from_slice(&encoded).expect("stamped JSON");
+    assert_eq!(
+        document["nodes"][0]["recordedAt"].as_u64(),
+        Some(stamped.epoch_millis())
+    );
+
+    let loaded = persistence_v1()
+        .load(graph.history_id(), &encoded)
+        .expect("load stamped");
+    assert_eq!(
+        loaded
+            .history()
+            .nodes()
+            .next()
+            .expect("one node")
+            .metadata()
+            .recorded_at(),
+        Some(stamped)
+    );
 }

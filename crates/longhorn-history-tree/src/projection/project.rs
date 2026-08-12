@@ -164,6 +164,7 @@ impl<P> ForkHistory<P> {
                     entry_id: entry_id.clone(),
                     label: node.metadata().label().clone(),
                     kind_id: node.metadata().kind_id().cloned(),
+                    recorded_at: node.metadata().recorded_at(),
                     group_id: node.metadata().group_id().cloned(),
                     sequence: node.sequence(),
                     committed_revision: node.committed_revision(),

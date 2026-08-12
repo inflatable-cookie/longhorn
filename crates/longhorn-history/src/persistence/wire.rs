@@ -4,7 +4,10 @@ use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, Hi
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{HistoryEntrySequence, HistoryLimits, HistoryLimitsError, HistoryRetainedBaseline};
+use crate::{
+    HistoryEntrySequence, HistoryLimits, HistoryLimitsError, HistoryRecordedAt,
+    HistoryRetainedBaseline,
+};
 
 use super::{HistoryPayloadCodecFamily, HistoryPayloadCodecVersion, HistoryStructuralHeaderError};
 
@@ -147,6 +150,14 @@ pub(super) struct PersistedHistoryEntry {
     pub(super) label: String,
     pub(super) kind_id: Option<HistoryKindId>,
     pub(super) group_id: Option<HistoryGroupId>,
+    /// Absent in anything written before this field existed, which decodes
+    /// to `None` rather than failing the envelope.
+    ///
+    /// Skipped when absent, so a host that never stamps writes exactly the
+    /// bytes it wrote before this field existed. Adding `null` to every node
+    /// would churn stored data for consumers who do not use the feature.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) recorded_at: Option<HistoryRecordedAt>,
     pub(super) sequence: u64,
     pub(super) committed_revision: HistoryRevision,
     pub(super) encoded_weight: u64,

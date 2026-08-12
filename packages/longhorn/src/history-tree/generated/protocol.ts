@@ -94,6 +94,8 @@ authorityEpoch: HistoryAuthorityEpoch,
  */
 summary: ForkSummaryProjection, };
 
+export type HistoryRecordedAt = number;
+
 export type ForkEntryRecord = { 
 /**
  * Stable entry identity.
@@ -107,6 +109,10 @@ label: string,
  * Optional consumer-owned kind.
  */
 kindId: HistoryKindId | null, 
+/**
+ * Optional host-supplied recorded-at stamp, in epoch milliseconds.
+ */
+recordedAt: HistoryRecordedAt | null, 
 /**
  * Optional consumer-owned group.
  */

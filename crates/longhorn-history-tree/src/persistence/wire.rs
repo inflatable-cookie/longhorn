@@ -2,7 +2,7 @@
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
-use longhorn_history::{HistoryPayloadCodecFamily, HistoryPayloadCodecVersion};
+use longhorn_history::{HistoryPayloadCodecFamily, HistoryPayloadCodecVersion, HistoryRecordedAt};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 use crate::{ForkBranchId, ForkCheckpointId};
@@ -45,6 +45,14 @@ pub(crate) struct Node {
     pub(crate) parent_entry_id: Option<HistoryEntryId>,
     pub(crate) label: String,
     pub(crate) kind_id: Option<HistoryKindId>,
+    /// Absent in anything written before this field existed, which decodes
+    /// to `None` rather than failing the envelope.
+    ///
+    /// Skipped when absent, so a host that never stamps writes exactly the
+    /// bytes it wrote before this field existed. Adding `null` to every node
+    /// would churn stored data for consumers who do not use the feature.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) recorded_at: Option<HistoryRecordedAt>,
     pub(crate) group_id: Option<HistoryGroupId>,
     pub(crate) sequence: u64,
     pub(crate) committed_revision: HistoryRevision,

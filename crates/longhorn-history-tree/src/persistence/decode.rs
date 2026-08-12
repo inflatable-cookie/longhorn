@@ -79,7 +79,11 @@ where
         nodes.push(ForkHistoryNode::new(
             node.entry_id,
             node.parent_entry_id,
-            HistoryEntryMetadata::new(label, node.kind_id, node.group_id),
+            match node.recorded_at {
+                Some(recorded_at) => HistoryEntryMetadata::new(label, node.kind_id, node.group_id)
+                    .with_recorded_at(recorded_at),
+                None => HistoryEntryMetadata::new(label, node.kind_id, node.group_id),
+            },
             sequence,
             node.committed_revision,
             encoded_weight,

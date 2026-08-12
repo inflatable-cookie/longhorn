@@ -1,7 +1,9 @@
 //! Fork-history projection view types.
 
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
-use longhorn_history::{HistoryEntryPosition, HistoryEntrySequence, HistoryLabel};
+use longhorn_history::{
+    HistoryEntryPosition, HistoryEntrySequence, HistoryLabel, HistoryRecordedAt,
+};
 
 use crate::ForkBranchId;
 
@@ -142,6 +144,7 @@ pub struct ForkEntryProjection {
     pub(crate) entry_id: HistoryEntryId,
     pub(crate) label: HistoryLabel,
     pub(crate) kind_id: Option<HistoryKindId>,
+    pub(crate) recorded_at: Option<HistoryRecordedAt>,
     pub(crate) group_id: Option<HistoryGroupId>,
     pub(crate) sequence: HistoryEntrySequence,
     pub(crate) committed_revision: HistoryRevision,
@@ -166,6 +169,12 @@ impl ForkEntryProjection {
     #[must_use]
     pub const fn kind_id(&self) -> Option<&HistoryKindId> {
         self.kind_id.as_ref()
+    }
+
+    /// Returns the optional host-supplied recorded-at stamp.
+    #[must_use]
+    pub const fn recorded_at(&self) -> Option<HistoryRecordedAt> {
+        self.recorded_at
     }
 
     /// Returns optional consumer-owned group identity.

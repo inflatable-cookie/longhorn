@@ -24,6 +24,8 @@ export type HistoryPlanId = string;
 
 export type HistoryRevision = number;
 
+export type HistoryRecordedAt = number;
+
 export type HistoryProtocolVersion = number;
 
 export type HistoryAuthorityEpoch = number;
@@ -127,6 +129,10 @@ kindId: HistoryKindId | null,
  * Optional committed group identity.
  */
 groupId: HistoryGroupId | null, 
+/**
+ * Optional host-supplied recorded-at stamp, in epoch milliseconds.
+ */
+recordedAt: HistoryRecordedAt | null, 
 /**
  * Monotonic insertion sequence.
  */

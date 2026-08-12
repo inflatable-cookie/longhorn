@@ -3,7 +3,7 @@
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 use serde::{Deserialize, Serialize};
 
-use crate::{HistoryEntryPosition, HistoryPage, HistorySummary};
+use crate::{HistoryEntryPosition, HistoryPage, HistoryRecordedAt, HistorySummary};
 
 use super::{
     HistoryAuthorityEpoch, HistoryProjectionPosition, HistoryProtocolMode,
@@ -128,6 +128,8 @@ pub struct HistoryEntryRecord {
     pub kind_id: Option<HistoryKindId>,
     /// Optional committed group identity.
     pub group_id: Option<HistoryGroupId>,
+    /// Optional host-supplied recorded-at stamp, in epoch milliseconds.
+    pub recorded_at: Option<HistoryRecordedAt>,
     /// Monotonic insertion sequence.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub sequence: u64,
@@ -204,6 +206,7 @@ impl HistoryPageSnapshot {
                 label: entry.label().as_str().to_owned(),
                 kind_id: entry.kind_id().cloned(),
                 group_id: entry.group_id().cloned(),
+                recorded_at: entry.recorded_at(),
                 sequence: entry.sequence().get(),
                 committed_revision: entry.committed_revision(),
                 encoded_weight: entry.encoded_weight(),

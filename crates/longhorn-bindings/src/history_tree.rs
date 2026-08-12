@@ -3,7 +3,7 @@ use std::error::Error;
 use longhorn_core::{
     HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
 };
-use longhorn_history::HistoryAuthorityEpoch;
+use longhorn_history::{HistoryAuthorityEpoch, HistoryRecordedAt};
 use longhorn_history_tree::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchId, ForkBranchPageCommand, ForkBranchPageSnapshot,
     ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkEntryRecord,
@@ -70,6 +70,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         position.clone(),
         ForkSummaryProjection::decl(),
         ForkSnapshot::decl(),
+        HistoryRecordedAt::decl(),
         ForkEntryRecord::decl(),
         path_target.clone(),
         ForkPathPageCommand::decl(),

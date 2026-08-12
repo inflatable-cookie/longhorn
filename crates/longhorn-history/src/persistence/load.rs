@@ -271,7 +271,13 @@ where
             })?;
             entries.push(HistoryEntry::new(
                 entry_id,
-                HistoryEntryMetadata::new(label, entry.kind_id, entry.group_id),
+                match entry.recorded_at {
+                    Some(recorded_at) => {
+                        HistoryEntryMetadata::new(label, entry.kind_id, entry.group_id)
+                            .with_recorded_at(recorded_at)
+                    }
+                    None => HistoryEntryMetadata::new(label, entry.kind_id, entry.group_id),
+                },
                 sequence,
                 entry.committed_revision,
                 encoded_weight,

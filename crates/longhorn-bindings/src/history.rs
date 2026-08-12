@@ -11,8 +11,8 @@ use longhorn_history::{
     HistoryNavigationReceiptProjection, HistoryNavigationRejectionCode,
     HistoryNavigationRejectionProjection, HistoryNavigationResult,
     HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
-    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistorySnapshot,
-    HistorySummaryProjection, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
+    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistoryRecordedAt,
+    HistorySnapshot, HistorySummaryProjection, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
@@ -66,6 +66,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         HistoryKindId::decl(),
         HistoryPlanId::decl(),
         HistoryRevision::decl(),
+        HistoryRecordedAt::decl(),
         HistoryProtocolVersion::decl(),
         HistoryAuthorityEpoch::decl(),
         mode.clone(),

@@ -121,6 +121,7 @@
         "kindId": "track:rename",
         "label": "Rename track",
         "position": "future",
+        "recordedAt": null,
         "sequence": 5
       },
       {
@@ -131,6 +132,7 @@
         "kindId": "clip:move",
         "label": "Move clip",
         "position": "current",
+        "recordedAt": 1765432100000,
         "sequence": 4
       }
     ],

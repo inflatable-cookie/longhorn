@@ -3,8 +3,8 @@ use std::{error::Error, fmt};
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryRevision};
 
 use crate::{
-    HistoryEntry, HistoryEntrySequence, HistoryLabel, HistoryRetainedBaseline, LinearHistory,
-    MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
+    HistoryEntry, HistoryEntrySequence, HistoryLabel, HistoryRecordedAt, HistoryRetainedBaseline,
+    LinearHistory, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
 };
 
 /// Public history topology mode.
@@ -32,6 +32,7 @@ pub struct HistoryEntryProjection {
     label: HistoryLabel,
     kind_id: Option<HistoryKindId>,
     group_id: Option<HistoryGroupId>,
+    recorded_at: Option<HistoryRecordedAt>,
     sequence: HistoryEntrySequence,
     committed_revision: HistoryRevision,
     encoded_weight: u64,
@@ -45,6 +46,7 @@ impl HistoryEntryProjection {
             label: entry.metadata().label().clone(),
             kind_id: entry.metadata().kind_id().cloned(),
             group_id: entry.metadata().group_id().cloned(),
+            recorded_at: entry.metadata().recorded_at(),
             sequence: entry.sequence(),
             committed_revision: entry.committed_revision(),
             encoded_weight: entry.encoded_weight(),
@@ -68,6 +70,12 @@ impl HistoryEntryProjection {
     #[must_use]
     pub const fn kind_id(&self) -> Option<&HistoryKindId> {
         self.kind_id.as_ref()
+    }
+
+    /// Returns the optional host-supplied recorded-at stamp.
+    #[must_use]
+    pub const fn recorded_at(&self) -> Option<HistoryRecordedAt> {
+        self.recorded_at
     }
 
     /// Returns the optional committed group identity.

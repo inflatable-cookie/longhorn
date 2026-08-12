@@ -50,6 +50,7 @@ where
                 label: entry.metadata().label().as_str().to_owned(),
                 kind_id: entry.metadata().kind_id().cloned(),
                 group_id: entry.metadata().group_id().cloned(),
+                recorded_at: entry.metadata().recorded_at(),
                 sequence: entry.sequence().get(),
                 committed_revision: entry.committed_revision(),
                 encoded_weight: entry.encoded_weight(),

@@ -9,8 +9,8 @@ use longhorn_history::{
     HistoryNavigationPositionProjection, HistoryNavigationReceiptProjection,
     HistoryNavigationRejectionCode, HistoryNavigationRejectionProjection, HistoryNavigationResult,
     HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
-    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistorySnapshot,
-    HistorySummaryProjection,
+    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistoryRecordedAt,
+    HistorySnapshot, HistorySummaryProjection,
 };
 use serde_json::{json, to_value};
 
@@ -55,6 +55,8 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                 label: "Rename track".into(),
                 kind_id: Some(id::<HistoryKindId>("track:rename")),
                 group_id: None,
+                // A host that keeps no clock leaves the stamp absent.
+                recorded_at: None,
                 sequence: 5,
                 committed_revision: HistoryRevision::new(9),
                 encoded_weight: 32,
@@ -65,6 +67,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                 label: "Move clip".into(),
                 kind_id: Some(id::<HistoryKindId>("clip:move")),
                 group_id: Some(id::<HistoryGroupId>("gesture:move")),
+                recorded_at: Some(HistoryRecordedAt::from_epoch_millis(1_765_432_100_000)),
                 sequence: 4,
                 committed_revision: HistoryRevision::new(11),
                 encoded_weight: 40,

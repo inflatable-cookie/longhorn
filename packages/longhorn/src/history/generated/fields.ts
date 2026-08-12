@@ -7,7 +7,7 @@ export const HISTORY_FIELDS: Record<string, readonly string[]> = {
   "HistoryBaselineProjection": ["prunedEntryCount", "prunedEncodedWeight", "lastPrunedEntryId", "lastPrunedSequence"],
   "HistorySummaryProjection": ["historyId", "revision", "mode", "undoDepth", "redoDepth", "currentEntryId", "nextUndoLabel", "nextRedoLabel", "retainedEntryCount", "retainedEncodedWeight", "retainedBaseline"],
   "HistorySnapshot": ["protocolVersion", "authorityEpoch", "summary"],
-  "HistoryEntryRecord": ["entryId", "label", "kindId", "groupId", "sequence", "committedRevision", "encodedWeight", "position"],
+  "HistoryEntryRecord": ["entryId", "label", "kindId", "groupId", "recordedAt", "sequence", "committedRevision", "encodedWeight", "position"],
   "HistoryPageCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "offset", "limit"],
   "HistoryPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "offset", "totalEntries", "entries", "truncatedBefore", "truncatedAfter", "retainedBaseline"],
   "HistoryNavigationCommand": ["protocolVersion", "authorityEpoch", "historyId", "planId", "expectedRevision", "target"],

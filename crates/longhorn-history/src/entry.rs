@@ -1,6 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryKindId, HistoryRevision};
+use serde::{Deserialize, Serialize};
 
 use crate::HistoryEntrySequence;
 
@@ -68,12 +69,42 @@ impl fmt::Display for HistoryLabelError {
 
 impl Error for HistoryLabelError {}
 
+/// When a host observed an entry being recorded, in epoch milliseconds.
+///
+/// Supplied, never derived. These crates own no clock and never will: a
+/// history that invented times would assert an observation it never made.
+/// A host that has a clock stamps this at record time; one that does not
+/// leaves it absent, and its captions show no time.
+///
+/// Nothing here reads it. Ordering is structural, and no comparison,
+/// retention rule or navigation decision may consult this value.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[cfg_attr(feature = "bindings", ts(type = "number"))]
+#[serde(transparent)]
+pub struct HistoryRecordedAt(u64);
+
+impl HistoryRecordedAt {
+    /// Constructs a recorded-at stamp from epoch milliseconds.
+    #[must_use]
+    pub const fn from_epoch_millis(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the stamp as epoch milliseconds.
+    #[must_use]
+    pub const fn epoch_millis(self) -> u64 {
+        self.0
+    }
+}
+
 /// Consumer-owned metadata for one history entry.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoryEntryMetadata {
     label: HistoryLabel,
     kind_id: Option<HistoryKindId>,
     group_id: Option<HistoryGroupId>,
+    recorded_at: Option<HistoryRecordedAt>,
 }
 
 impl HistoryEntryMetadata {
@@ -88,7 +119,19 @@ impl HistoryEntryMetadata {
             label,
             kind_id,
             group_id,
+            recorded_at: None,
         }
+    }
+
+    /// Returns the metadata with a host-supplied recorded-at stamp.
+    ///
+    /// A builder rather than a fourth constructor argument: three optional
+    /// parameters in a row read as `new(label, None, None, None)` at every
+    /// call site, and the stamp is the one a caller most often omits.
+    #[must_use]
+    pub const fn with_recorded_at(mut self, recorded_at: HistoryRecordedAt) -> Self {
+        self.recorded_at = Some(recorded_at);
+        self
     }
 
     /// Returns the user-facing entry label.
@@ -107,6 +150,12 @@ impl HistoryEntryMetadata {
     #[must_use]
     pub const fn group_id(&self) -> Option<&HistoryGroupId> {
         self.group_id.as_ref()
+    }
+
+    /// Returns the optional host-supplied recorded-at stamp.
+    #[must_use]
+    pub const fn recorded_at(&self) -> Option<HistoryRecordedAt> {
+        self.recorded_at
     }
 
     pub(crate) fn set_group_id(&mut self, group_id: Option<HistoryGroupId>) {

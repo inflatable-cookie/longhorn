@@ -19,7 +19,7 @@ mod transition;
 
 pub use entry::{
     AppliedHistoryRecord, HistoryEntry, HistoryEntryMetadata, HistoryLabel, HistoryLabelError,
-    MAXIMUM_HISTORY_LABEL_BYTES,
+    HistoryRecordedAt, MAXIMUM_HISTORY_LABEL_BYTES,
 };
 pub use group::{
     HistoryActiveGroup, HistoryActiveGroupMode, HistoryGroupCloseReason, HistoryGroupClosure,

@@ -1,10 +1,14 @@
 //! Linear-default and explicit bounded alternate projection evidence.
 
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId};
-use longhorn_history::{HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel};
+use longhorn_history::{
+    HistoryAuthorityEpoch, HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel,
+    HistoryRecordedAt,
+};
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryState,
-    ForkProjectionError, ForkProjectionPageRequest, ForkRecord, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkPathPageSnapshot, ForkProjectionError, ForkProjectionPageRequest, ForkRecord,
+    MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -22,12 +26,17 @@ fn branch_id(value: &str) -> ForkBranchId {
     ForkBranchId::new(value).unwrap()
 }
 
+/// Epoch milliseconds a host would have stamped. Card 182: the tree never
+/// reads this, so the fixture value only has to be recognisable downstream.
+const FIXTURE_RECORDED_AT: u64 = 1_765_432_100_000;
+
 fn metadata(label: &str) -> HistoryEntryMetadata {
     HistoryEntryMetadata::new(
         HistoryLabel::new(label).unwrap(),
         Some(HistoryKindId::new("fixture:projection").unwrap()),
         None,
     )
+    .with_recorded_at(HistoryRecordedAt::from_epoch_millis(FIXTURE_RECORDED_AT))
 }
 
 fn branch_metadata(name: &str) -> ForkBranchMetadata {
@@ -208,4 +217,34 @@ fn deep_wide_shape_returns_only_the_requested_records() {
     assert_eq!(page.entries().len(), 17);
     assert!(page.truncated_before());
     assert!(page.truncated_after());
+}
+
+/// Card 182. A host-supplied stamp survives projection and reaches
+/// `ForkEntryRecord`, which is the only reason the field exists: version
+/// captions read it from there.
+#[test]
+fn a_recorded_at_stamp_reaches_the_entry_record() {
+    let graph = forked_graph();
+    let page = graph
+        .project_default_path_page(ForkProjectionPageRequest::new(0, 8).unwrap())
+        .unwrap();
+    assert!(!page.entries().is_empty());
+
+    let stamp = Some(HistoryRecordedAt::from_epoch_millis(FIXTURE_RECORDED_AT));
+    assert!(
+        page.entries()
+            .iter()
+            .all(|entry| entry.recorded_at() == stamp),
+        "every projected entry carries the stamp its metadata held"
+    );
+
+    let snapshot =
+        ForkPathPageSnapshot::from_page(HistoryAuthorityEpoch::new(1).unwrap(), &page).unwrap();
+    assert!(
+        snapshot
+            .entries
+            .iter()
+            .all(|record| record.recorded_at == stamp),
+        "and the wire record carries it too"
+    );
 }

@@ -6,7 +6,7 @@
 export const HISTORY_TREE_FIELDS: Record<string, readonly string[]> = {
   "ForkSummaryProjection": ["historyId", "revision", "currentBranchId", "currentEntryId", "undoDepth", "redoDepth", "nextUndoLabel", "nextRedoLabel", "retainedEntryCount", "retainedEncodedWeight", "branchCount", "alternatePathCount"],
   "ForkSnapshot": ["protocolVersion", "authorityEpoch", "summary"],
-  "ForkEntryRecord": ["entryId", "label", "kindId", "groupId", "sequence", "committedRevision", "encodedWeight", "position"],
+  "ForkEntryRecord": ["entryId", "label", "kindId", "recordedAt", "groupId", "sequence", "committedRevision", "encodedWeight", "position"],
   "ForkPathPageCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "target", "offset", "limit"],
   "ForkPathPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "branchId", "headEntryId", "offset", "totalEntries", "entries", "truncatedBefore", "truncatedAfter"],
   "ForkBranchRecord": ["branchId", "headEntryId", "divergenceEntryId", "name", "annotation", "pinned", "current"],

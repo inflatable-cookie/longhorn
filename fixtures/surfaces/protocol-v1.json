@@ -137,7 +137,7 @@
                 "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               },
               {
                 "region_id": "center",
@@ -149,7 +149,7 @@
                 "region_id": "right",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               }
             ],
             "sizing_slots": [
@@ -222,7 +222,7 @@
                 "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               },
               {
                 "region_id": "center",
@@ -234,7 +234,7 @@
                 "region_id": "right",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               }
             ],
             "sizing_slots": [
@@ -931,7 +931,7 @@
                 "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               },
               {
                 "region_id": "center",
@@ -943,7 +943,7 @@
                 "region_id": "right",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               }
             ],
             "sizing_slots": [
@@ -1021,7 +1021,7 @@
                 "region_id": "left",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               },
               {
                 "region_id": "center",
@@ -1033,7 +1033,7 @@
                 "region_id": "right",
                 "panel_instance_ids": [],
                 "active_panel_instance_id": null,
-                "collapsed": null
+                "collapsed": false
               }
             ],
             "sizing_slots": [
@@ -2931,7 +2931,7 @@
                   "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 },
                 {
                   "region_id": "center",
@@ -2943,7 +2943,7 @@
                   "region_id": "right",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [
@@ -3024,7 +3024,7 @@
                   "region_id": "left",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 },
                 {
                   "region_id": "center",
@@ -3036,7 +3036,7 @@
                   "region_id": "right",
                   "panel_instance_ids": [],
                   "active_panel_instance_id": null,
-                  "collapsed": null
+                  "collapsed": false
                 }
               ],
               "sizing_slots": [

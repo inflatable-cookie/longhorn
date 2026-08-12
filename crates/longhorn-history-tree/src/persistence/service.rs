@@ -82,6 +82,7 @@ where
                     parent_entry_id: node.parent_entry_id().cloned(),
                     label: node.metadata().label().as_str().to_owned(),
                     kind_id: node.metadata().kind_id().cloned(),
+                    recorded_at: node.metadata().recorded_at(),
                     group_id: node.metadata().group_id().cloned(),
                     sequence: node.sequence().get(),
                     committed_revision: node.committed_revision(),

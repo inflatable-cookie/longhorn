@@ -144,9 +144,10 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
 
   const testOutput = await run(["cargo", "+1.95.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
-  // 29 since Card 181 step 3 added branch-root checkout coverage: the target
-  // resolves, and a missing branch is rejected rather than resolved.
-  if (testCount !== 29) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // 32 since Card 182 added recorded-at coverage: an envelope without the
+  // field loads as None, a supplied value round-trips, and the stamp reaches
+  // the projected page and the wire record.
+  if (testCount !== 32) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;
