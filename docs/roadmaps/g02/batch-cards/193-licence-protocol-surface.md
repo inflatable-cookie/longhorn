@@ -1,6 +1,6 @@
 # 193 Licence Protocol Surface
 
-Status: ready
+Status: complete — landed 2026-08-12
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contract 019; contracts 010, 012; research memo 020
@@ -46,17 +46,17 @@ The Tauri host is Card 157, which is separately blocked on Card 159.
 A client needs to answer "what am I entitled to, and for how long" without
 learning how a licence is proved.
 
-- [ ] `LicenceSnapshot`: protocol line, authority epoch, the `Usability`
+- [x] `LicenceSnapshot`: protocol line, authority epoch, the `Usability`
       projection, the entitlement ids held, and both windows — use and update —
       as timestamps.
-- [ ] `Usability` projects every variant distinctly, including `ClockRefused`.
+- [x] `Usability` projects every variant distinctly, including `ClockRefused`.
       A licence refused because the machine clock moved is not expired, and a
       surface that shows "expired" for it sends the operator to buy something
       they already own.
-- [ ] Entitlements are **opaque ids**. Longhorn enumerates no features, per the
+- [x] Entitlements are **opaque ids**. Longhorn enumerates no features, per the
       milestone's own acceptance criterion, and the protocol must not become
       the place that does.
-- [ ] The trust basis is reported but never the credential. A client may show
+- [x] The trust basis is reported but never the credential. A client may show
       "verified offline" versus "confirmed with the server"; it may not receive
       a signature, a token, or a key.
 
@@ -65,22 +65,22 @@ learning how a licence is proved.
 Card 158 lists three activation routes as peers: serial key, account sign-in,
 licence-file import.
 
-- [ ] One `LicenceActivateCommand` carrying a tagged credential, not three
+- [x] One `LicenceActivateCommand` carrying a tagged credential, not three
       commands. They are three ways to present the same thing, and three
       commands would make the client choose a code path where the authority
       should.
-- [ ] `LicenceDeactivateCommand` for self-service seat release.
-- [ ] `LicenceRefreshCommand` to re-check the lease.
-- [ ] Each carries the standard envelope and is refused on a stale epoch.
+- [x] `LicenceDeactivateCommand` for self-service seat release.
+- [x] `LicenceRefreshCommand` to re-check the lease.
+- [x] Each carries the standard envelope and is refused on a stale epoch.
 
 ## Step 3 — Rejections a client can act on
 
 The milestone's evidence requires that a mistyped key never reads as an invalid
 one. That distinction has to survive the wire.
 
-- [ ] A rejection projection with a code, distinguishing at least: malformed
+- [x] A rejection projection with a code, distinguishing at least: malformed
       input, not recognised, no seats free, revoked, and clock refused.
-- [ ] Card 156's format helpers validate locally first, so malformed should
+- [x] Card 156's format helpers validate locally first, so malformed should
       rarely reach the authority. It still needs the code, because a client
       that cannot tell "wrong shape" from "wrong key" writes one message for
       both.
@@ -107,40 +107,40 @@ No keys exist yet, so this is a design input rather than a defect — and it is
 the moment to fix it, because the security argument for distinguishing the two
 codes rests on it.
 
-- [ ] Enforce a minimum body length in `LicenceKey::from_body`, high enough
+- [x] Enforce a minimum body length in `LicenceKey::from_body`, high enough
       that enumeration is infeasible. Twelve symbols is sixty bits and already
       ample; twenty is four groups of five and reads naturally in the grouped
       form the type already renders.
-- [ ] A test asserts a short body is rejected, and the error says the key is
+- [x] A test asserts a short body is rejected, and the error says the key is
       too short rather than malformed — a mistyped key must never read as an
       invalid one, per the milestone's own evidence requirement.
-- [ ] If the minimum cannot be raised because a key has already been minted
+- [x] If the minimum cannot be raised because a key has already been minted
       somewhere, collapse the two rejection codes instead. The codes and the
       entropy floor are one decision, not two.
 
 ## Step 4 — The changed event and the surfaces
 
-- [ ] `LicenceChangedEvent` with a kind, following `ForkChangedEvent`.
-- [ ] Register the domain in the bindings generator, with both field maps.
+- [x] `LicenceChangedEvent` with a kind, following `ForkChangedEvent`.
+- [x] Register the domain in the bindings generator, with both field maps.
       `Usability` is tagged `state` and the credential will be tagged too, so
       Card 188's detector earns its keep again.
-- [ ] No Tauri commands here. Card 157 owns the host and is blocked on
+- [x] No Tauri commands here. Card 157 owns the host and is blocked on
       Card 159; adding them would put a second unfinished thing in this card.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes, including `check:bindings`.
-- [ ] A round-trip test per command and per projection.
-- [ ] A test asserts `ClockRefused` projects distinctly from every expiry
+- [x] `effigy qa` passes, including `check:bindings`.
+- [x] A round-trip test per command and per projection.
+- [x] A test asserts `ClockRefused` projects distinctly from every expiry
       state, by state name.
-- [ ] A test asserts no credential material appears in any projection — the
+- [x] A test asserts no credential material appears in any projection — the
       same shape as the payload-free assertions the history proofs make.
-- [ ] The generator reports no unreadable union in the licence domain.
+- [x] The generator reports no unreadable union in the licence domain.
 
 ## Evidence
 
-- [ ] The tests above, named in the batch log.
-- [ ] The generated TypeScript, showing the commands, the snapshot, the
+- [x] The tests above, named in the batch log.
+- [x] The generated TypeScript, showing the commands, the snapshot, the
       rejection codes and the event.
 
 ## Stop Conditions
@@ -156,3 +156,45 @@ codes rests on it.
 
 Card 158, rescoped as Card 154 was: `packages/longhorn/src/licence/`, not
 `packages/licence`.
+
+## Outcome — 2026-08-12
+
+`longhorn-licence` has the envelope every other domain has: a versioned line,
+three commands, a snapshot, an outcome union, a rejection code and a changed
+event. Fifteen types, four tagged unions, all four in the generated variant
+map. Sixteen tests; `effigy qa` exit 0.
+
+**The entropy floor landed, and it is the reason the two rejection codes stay
+separate.** `LicenceKey` now requires twenty symbols including the check
+character — nineteen body symbols of Crockford base32, ninety-five bits, and
+four clean groups of five in the form `grouped` already prints. Enforced in
+both `parse` and `from_body`, not just at minting: a truncated key should fail
+locally with "too short" rather than travel to the authority and come back as
+"not recognised". No keys exist yet, so nothing was invalidated.
+
+Four departures from the card, each recorded in the type it affects.
+
+**A held licence is `Option`, not a sixth usability state.** "Not activated" is
+the absence of a licence rather than a licence that cannot be used, and folding
+it in would make every consumer narrow a variant carrying none of the other
+fields.
+
+**The trust basis drops the key id.** `TrustBasis::OfflineSignature` names the
+verifying key so rotation can be reasoned about. A client has no use for it,
+and keeping it would have made the no-credential-material test an argument
+about what counts as material rather than a check.
+
+**Entitlement bounds are `Option<u64>`, not `Limit`.** `Limit` is
+`#[serde(untagged)]`, so it has no discriminant and would arrive at the
+boundary as exactly the union g02.018 just made a build error. Absent means
+unlimited.
+
+**One outcome union, not one per command.** `LicenceOutcomeProjection` is
+tagged `status` with `Committed` and `Rejected`, following
+`HistoryNavigationResult`. Rejection carries the state as it remains, so a
+refused activation does not leave a client without a snapshot.
+
+`Unreachable` was added to the rejection codes beyond the five the card names.
+An unreachable authority is not a licence problem, and a surface that reports
+it as one blames the customer for an outage — the same rule that makes
+`InGrace` quiet.

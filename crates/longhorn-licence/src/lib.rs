@@ -27,6 +27,7 @@ mod credential;
 mod entitlement;
 mod key;
 mod licence;
+mod protocol;
 mod status;
 mod time;
 mod verify;
@@ -45,6 +46,13 @@ pub use credential::{
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};
 pub use key::{LicenceKey, LicenceKeyError};
 pub use licence::{GracePolicy, LicencePayload, TrustBasis, VerifiedLicence};
+pub use protocol::{
+    HeldLicenceProjection, LICENCE_PROTOCOL_VERSION, LicenceActivateCommand, LicenceChangedEvent,
+    LicenceChangedKind, LicenceCredentialProjection, LicenceDeactivateCommand,
+    LicenceEntitlementProjection, LicenceOutcomeProjection, LicenceProtocolVersion,
+    LicenceRefreshCommand, LicenceRejectionCode, LicenceSnapshot, LicenceTrustBasisProjection,
+    LicenceUsabilityProjection,
+};
 pub use status::{ClockGuard, Usability, usability};
 pub use time::{Span, Timestamp};
 pub use verify::{SignedLicence, VerificationError, verify};

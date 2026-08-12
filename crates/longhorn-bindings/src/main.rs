@@ -16,6 +16,7 @@ mod generation;
 mod history;
 mod history_tree;
 mod layout;
+mod licence;
 mod native_content;
 mod notifications;
 mod operation;
@@ -56,6 +57,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         Some("history") => history::run(mode),
         Some("history-tree") => history_tree::run(mode),
         Some("layout") => layout::run(mode),
+        Some("licence") => licence::run(mode),
         Some("native-content") => native_content::run(mode),
         Some("notifications") => notifications::run(mode),
         Some("update") => update::run(mode),
@@ -70,5 +72,5 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn usage() -> &'static str {
     "usage: longhorn-bindings \
-     <bridge|commands|config|history|history-tree|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer|update> <write|check>"
+     <bridge|commands|config|history|history-tree|layout|licence|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer|update> <write|check>"
 }

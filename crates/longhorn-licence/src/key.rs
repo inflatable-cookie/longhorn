@@ -17,6 +17,18 @@ const CHECK_ALPHABET: &[u8; 37] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U";
 /// Symbols per group in the display form.
 const GROUP: usize = 5;
 
+/// The shortest key that may exist, check symbol included.
+///
+/// Not a typing convenience: it is what makes `NotRecognised` safe to
+/// distinguish from `Revoked`. Telling a caller that a well-formed key is not
+/// recognised lets them learn which keys exist, and that only matters if keys
+/// are guessable. Crockford base32 is five bits a symbol, so nineteen body
+/// symbols is ninety-five bits and enumeration is not a threat.
+///
+/// Twenty also renders as four clean groups of five, which is the form
+/// `grouped` already prints.
+pub const MINIMUM_KEY_SYMBOLS: usize = 20;
+
 /// A licence key as typed by a customer.
 ///
 /// A **redemption token**, never a self-verifying artifact. An Ed25519
@@ -49,9 +61,9 @@ impl LicenceKey {
     /// the customer for the typeface's mistake.
     pub fn parse(input: &str) -> Result<Self, LicenceKeyError> {
         let normalized = normalize(input)?;
-        if normalized.len() < 2 {
+        if normalized.len() < MINIMUM_KEY_SYMBOLS {
             return Err(LicenceKeyError::TooShort {
-                minimum: 2,
+                minimum: MINIMUM_KEY_SYMBOLS,
                 actual: normalized.len(),
             });
         }
@@ -71,10 +83,11 @@ impl LicenceKey {
     /// The issuing side of the same rule, kept here so the two cannot drift.
     pub fn from_body(body: &str) -> Result<Self, LicenceKeyError> {
         let normalized = normalize(body)?;
-        if normalized.is_empty() {
+        // The body is one symbol shorter than the key it becomes.
+        if normalized.len() + 1 < MINIMUM_KEY_SYMBOLS {
             return Err(LicenceKeyError::TooShort {
-                minimum: 2,
-                actual: 0,
+                minimum: MINIMUM_KEY_SYMBOLS,
+                actual: normalized.len() + 1,
             });
         }
         let check = check_symbol(&normalized);
@@ -207,8 +220,10 @@ impl Error for LicenceKeyError {}
 mod tests {
     use super::*;
 
+    /// Nineteen body symbols, so the issued key is the twenty the entropy
+    /// floor requires.
     fn key() -> LicenceKey {
-        LicenceKey::from_body("ABCDE12345FGHJK").unwrap()
+        LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap()
     }
 
     #[test]
@@ -220,20 +235,26 @@ mod tests {
 
     #[test]
     fn keys_display_in_groups_of_five() {
-        assert_eq!(key().grouped(), "ABCDE-12345-FGHJK-X");
+        let issued = key();
+        let check = &issued.as_str()[19..];
+
+        assert_eq!(issued.grouped(), format!("ABCDE-12345-FGHJK-6789{check}"));
     }
 
     #[test]
     fn typed_variations_all_parse_to_the_same_key() {
         let issued = key();
 
+        let plain = issued.as_str().to_owned();
+        let grouped = issued.grouped();
         for typed in [
-            "ABCDE12345FGHJKX",
-            "abcde12345fghjkx",
-            "ABCDE-12345-FGHJK-X",
-            "  ABCDE 12345 FGHJK X  ",
-            "abcde-12345-fghjk-x",
+            plain.clone(),
+            plain.to_lowercase(),
+            grouped.clone(),
+            format!("  {}  ", grouped.replace('-', " ")),
+            grouped.to_lowercase(),
         ] {
+            let typed = typed.as_str();
             assert_eq!(
                 LicenceKey::parse(typed).unwrap(),
                 issued,
@@ -246,7 +267,7 @@ mod tests {
     fn the_classic_confusions_are_accepted_not_rejected() {
         // A customer reading `1` as `I` has made the typeface's mistake, not
         // their own. `0` and `O` likewise.
-        let issued = LicenceKey::from_body("10101").unwrap();
+        let issued = LicenceKey::from_body("1010123456789ABCDEF").unwrap();
 
         let check = &issued.as_str()[5..];
 
@@ -268,7 +289,7 @@ mod tests {
         // The reason the checksum is position-weighted. An unweighted sum
         // accepts any reordering, and transposition is one of the two
         // mistakes people actually make.
-        let issued = LicenceKey::from_body("ABCDE").unwrap();
+        let issued = key();
         let mut swapped = issued.as_str().to_owned();
         swapped.replace_range(0..2, "BA");
 
@@ -281,7 +302,7 @@ mod tests {
     #[test]
     fn a_symbol_outside_the_alphabet_is_reported_as_typed() {
         assert_eq!(
-            LicenceKey::parse("ABCDE!2345"),
+            LicenceKey::parse("ABCDE!2345FGHJK6789"),
             Err(LicenceKeyError::UnexpectedSymbol { symbol: '!' })
         );
     }
@@ -292,7 +313,7 @@ mod tests {
         assert!(LicenceKeyError::UnexpectedSymbol { symbol: '!' }.is_probably_a_typo());
         assert!(
             !LicenceKeyError::TooShort {
-                minimum: 2,
+                minimum: MINIMUM_KEY_SYMBOLS,
                 actual: 0
             }
             .is_probably_a_typo()
@@ -305,5 +326,30 @@ mod tests {
             LicenceKey::parse(""),
             Err(LicenceKeyError::TooShort { .. })
         ));
+    }
+
+    /// The entropy floor. Distinguishing "not recognised" from "revoked" is
+    /// only safe while a well-formed key cannot be enumerated, and nothing
+    /// else in the type stops a five-bit key being minted.
+    #[test]
+    fn a_body_too_short_to_be_unguessable_cannot_be_issued() {
+        assert_eq!(
+            LicenceKey::from_body("ABCDE"),
+            Err(LicenceKeyError::TooShort {
+                minimum: MINIMUM_KEY_SYMBOLS,
+                actual: 6,
+            })
+        );
+    }
+
+    /// A short key reports its length, not its shape. A mistyped key must
+    /// never read as an invalid one, and the inverse holds too.
+    #[test]
+    fn a_short_key_says_short_rather_than_malformed() {
+        let error = LicenceKey::parse("ABCDE12345").unwrap_err();
+
+        assert!(matches!(error, LicenceKeyError::TooShort { .. }));
+        assert!(!error.is_probably_a_typo());
+        assert!(error.to_string().contains("at least 20"));
     }
 }

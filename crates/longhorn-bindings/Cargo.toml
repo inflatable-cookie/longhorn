@@ -15,6 +15,7 @@ longhorn-command-config = { workspace = true, features = ["bindings"] }
 longhorn-config = { workspace = true, features = ["bindings"] }
 longhorn-history = { workspace = true, features = ["bindings"] }
 longhorn-history-tree = { workspace = true, features = ["bindings"] }
+longhorn-licence = { workspace = true, features = ["bindings"] }
 longhorn-native-content = { workspace = true, features = ["bindings"] }
 longhorn-notifications = { workspace = true, features = ["bindings"] }
 longhorn-update = { workspace = true, features = ["bindings"] }

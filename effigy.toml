@@ -50,8 +50,8 @@ exclude = ["history/**"]
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
 
 # --- Generated protocol bindings ----------------------------------------
-"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
-"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
+"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
+"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
 "check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
 "check:repo-containment" = "bun scripts/verify-repo-containment.ts"

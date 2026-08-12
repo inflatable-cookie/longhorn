@@ -70,7 +70,7 @@ fn a_licence_file_signed_by_another_key_is_refused() {
 #[test]
 fn a_file_source_refuses_credentials_it_does_not_handle() {
     let source = SignedFileSource::new(signing_key().verifying_key());
-    let key = LicenceKey::from_body("ABCDE12345").unwrap();
+    let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
 
     assert_eq!(
         source.acquire(&Credential::Key(key)),
@@ -91,7 +91,7 @@ fn a_file_source_holds_no_slot_to_release() {
 #[test]
 fn redeeming_a_key_describes_an_exchange_rather_than_performing_one() {
     let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
-    let key = LicenceKey::from_body("ABCDE12345").unwrap();
+    let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
 
     let Activation::Exchange(request) = source.acquire(&Credential::Key(key.clone())).unwrap()
     else {
