@@ -9,6 +9,7 @@ export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checko
 export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const FORK_HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
 export const FORK_HISTORY_CHANGED_KINDS = ["record","navigation","branchMetadata","retention","checkpoint","imported","reset"] as const;
+export const FORK_HISTORY_PRUNE_STATUSES = ["unchanged","pruned"] as const;
 
 export type HistoryId = string;
 
@@ -513,7 +514,49 @@ retainedEntryCount: number,
 /**
  * Weight the graph still holds.
  */
-retainedEncodedWeight: number, };
+retainedEncodedWeight: number, 
+/**
+ * Entries a budget still governs -- everything unprotected. Beside the
+ * retained totals, not instead of them: the two answer different
+ * questions.
+ */
+unprotectedEntryCount: number, 
+/**
+ * Encoded weight a budget still governs.
+ */
+unprotectedEncodedWeight: number, };
+
+export type ForkPruneCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: ForkHistoryProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: HistoryAuthorityEpoch, 
+/**
+ * History identity observed by the caller.
+ */
+historyId: HistoryId, 
+/**
+ * Exact graph revision required.
+ */
+expectedRevision: HistoryRevision, 
+/**
+ * Maximum unprotected entries to keep.
+ */
+maximumEntries: number, 
+/**
+ * Maximum unprotected encoded weight to keep.
+ */
+maximumEncodedWeight: number, };
+
+export type ForkPruneResult = { "status": "unchanged" } | { "status": "pruned", 
+/**
+ * What it removed, and what is left.
+ */
+receipt: ForkRemovalReceiptProjection, };
 
 export type ForkNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
 /**

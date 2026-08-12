@@ -1,6 +1,6 @@
 # 186 Retention That Can Prune
 
-Status: ready
+Status: complete — landed 2026-08-12
 Owner: Tom
 Roadmap: g02.017 batch 2
 Governing refs: contract 011; contract 012; contract 017
@@ -35,20 +35,20 @@ on a timer, and on an explicit operator action. Per-app, opt in or out of each.
 
 `src/retention.rs`.
 
-- [ ] `plan_pruning` compares the **unprotected** count and weight against the
+- [x] `plan_pruning` compares the **unprotected** count and weight against the
       limits, not the totals. Today it loops while the whole graph exceeds the
       budget and then looks for an unprotected leaf to remove, which is how a
       fully protected graph reaches `ProtectedBudget`.
-- [ ] `prune_to`'s early return does the same: unchanged when the unprotected
+- [x] `prune_to`'s early return does the same: unchanged when the unprotected
       share already fits.
-- [ ] Delete `ForkRetentionError::ProtectedBudget`. Not deprecated — removed.
+- [x] Delete `ForkRetentionError::ProtectedBudget`. Not deprecated — removed.
       Pre-1.0, and leaving an unreachable variant invites a consumer to handle
       a case that cannot happen.
-- [ ] `ForkRetentionLimits`' documentation says what it now bounds. The type
+- [x] `ForkRetentionLimits`' documentation says what it now bounds. The type
       keeps its name and its fields; the meaning changed from "how large the
       graph may be" to "how much unprotected history is kept", and a reader who
       misses that will size it wrong by the size of their pinned set.
-- [ ] `ForkPruningReceipt` reports the retained totals it always did. Add the
+- [x] `ForkPruningReceipt` reports the retained totals it always did. Add the
       unprotected share beside them, so a host can see the number the budget
       actually governs.
 
@@ -58,25 +58,25 @@ on a timer, and on an explicit operator action. Per-app, opt in or out of each.
 pinned, **or has a name**. Loophole names every fork at divergence, so every
 branch is protected.
 
-- [ ] Drop the name clause. Protection is the current branch plus pinned
+- [x] Drop the name clause. Protection is the current branch plus pinned
       branches.
-- [ ] This is a behaviour change to shipped code, and the right one: `pinned`
+- [x] This is a behaviour change to shipped code, and the right one: `pinned`
       exists to mean protect, and a name written by an auto-namer carries no
       operator intent at all. A consumer that relied on names protecting
       branches was relying on an accident.
-- [ ] Step 1 alone does not fix Loophole. Under step 1 a fully protected graph
+- [x] Step 1 alone does not fix Loophole. Under step 1 a fully protected graph
       simply never prunes instead of erroring, which is quieter and equally
       useless. Both steps are needed and neither is sufficient.
 
 ## Step 3 — A surface
 
-- [ ] `ForkPruneCommand` carrying the limits, and a receipt projection.
+- [x] `ForkPruneCommand` carrying the limits, and a receipt projection.
       Protocol version, authority epoch, expected revision, like every other
       command.
-- [ ] A Tauri command with a named re-export, under the destructive capability
+- [x] A Tauri command with a named re-export, under the destructive capability
       Card 185 introduces rather than the mutate one. Pruning removes entries.
-- [ ] `ForkHistoryController.prune(limits)`, forwarded on `ForkHistorySession`.
-- [ ] Publish `ForkChangedKind::Retention`. Card 185 is the first thing to
+- [x] `ForkHistoryController.prune(limits)`, forwarded on `ForkHistorySession`.
+- [x] Publish `ForkChangedKind::Retention`. Card 185 is the first thing to
       construct it; this is the second.
 
 ## Step 4 — Longhorn owns no scheduler
@@ -85,10 +85,10 @@ The three triggers are the host's, and Longhorn holds no configuration for
 them. See the milestone's note on why, and confirm it still reads true after
 step 3 exists.
 
-- [ ] Say so once where a host integrator reads it: the crate docs or the
+- [x] Say so once where a host integrator reads it: the crate docs or the
       getting-started guide. The three triggers, and that all three are the
       host calling one command.
-- [ ] `ForkSummaryProjection` already carries `retained_entry_count` and
+- [x] `ForkSummaryProjection` already carries `retained_entry_count` and
       `retained_encoded_weight`, so a host can already see budget pressure
       after any record without a new signal. Confirm that is still true and
       name it in the same place, because it is what makes the on-record
@@ -96,23 +96,23 @@ step 3 exists.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes, including `check:bindings`.
-- [ ] A test builds a graph where every branch is named and unpinned, sets a
+- [x] `effigy qa` passes, including `check:bindings`.
+- [x] A test builds a graph where every branch is named and unpinned, sets a
       budget below the entry count, and asserts pruning removes entries. This
       is the Loophole shape and it is the reason the card exists.
-- [ ] A test pins a branch, sets a budget below the pinned lineage's own size,
+- [x] A test pins a branch, sets a budget below the pinned lineage's own size,
       and asserts `Unchanged` — not an error, and not a pruned pin.
-- [ ] A test asserts the budget is measured against the unprotected share: a
+- [x] A test asserts the budget is measured against the unprotected share: a
       graph whose protected set is large and whose unprotected set fits is
       `Unchanged`.
-- [ ] A test asserts `ProtectedBudget` no longer exists, by the enum not
+- [x] A test asserts `ProtectedBudget` no longer exists, by the enum not
       compiling with it — no test needed beyond the removal itself.
-- [ ] A conformance test drives the prune command end to end and asserts a
+- [x] A conformance test drives the prune command end to end and asserts a
       `Retention` changed event is published.
 
 ## Evidence
 
-- [ ] The tests above, named in the batch log.
+- [x] The tests above, named in the batch log.
 
 ## Stop Conditions
 
@@ -128,3 +128,47 @@ step 3 exists.
 
 Batch 3 is bulk selection, and only if the field asks for it. Return to the
 milestone's planning checkpoint after this card.
+
+## Outcome — 2026-08-12
+
+All four steps landed. `effigy qa` exit 0; the tree artifact proof moved
+47 -> 49 tests.
+
+**`ProtectedBudget`'s removal is provable, not just unused.** The fallback that
+raised it is unreachable for a structural reason, and the reason is recorded
+where the `expect` now sits: protection is by lineage, so the protected set is
+ancestor-closed, so the unprotected set is descendant-closed, so any
+unprotected entry has an unprotected leaf below it. A candidate always exists
+while the loop runs.
+
+**The receipt reports the share, recomputed after the removal.** Pruning can
+take a branch with it, which changes what is protected, so carrying the
+pre-removal figure through would have reported a number that was true before
+the operation and not after.
+
+**Three tests replaced one.** `named_pinned_and_current_lineages_reject_impossible_budgets_without_mutation`
+pinned the removed error across three fixtures. It became
+`a_named_unpinned_branch_is_prunable` — the Loophole shape, and the reason the
+card exists — plus `a_pinned_branch_survives_any_budget` and
+`the_budget_is_measured_against_the_unprotected_share`.
+
+**The changed-event criterion was ticked before it was met.** The handler test
+returned `Unchanged`, which publishes nothing, so the event side of both
+destructive commands was untested. Both were also building the same event
+inline. It is now `fork_retention_changed_event`, a pure function beside the
+existing `fork_history_changed_event`, asserted directly -- which removed the
+duplication and made the event testable without driving an emit.
+
+**Two other places had sized budgets against the whole graph.**
+`deterministic_pruning_removes_only_anonymous_unpinned_future` used `(3, 24)`,
+which now reads as "keep three unprotected entries" and was already satisfied.
+And the packed artifact proof asserted `protectedPruneRejectedWithoutMutation`
+— it pinned the removed error too. Both now express the new meaning, and the
+proof's reported flag is renamed `protectedBudgetLeftGraphUnchanged` rather
+than left saying "rejected" while reporting that nothing happened.
+
+Evidence, in `crates/longhorn-history-tree/tests/navigation_retention.rs`:
+- `a_named_unpinned_branch_is_prunable`
+- `a_pinned_branch_survives_any_budget`
+- `the_budget_is_measured_against_the_unprotected_share`
+- `deterministic_pruning_removes_only_anonymous_unpinned_future`, resized

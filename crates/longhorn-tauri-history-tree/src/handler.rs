@@ -3,8 +3,8 @@ use std::sync::Mutex;
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
     ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkRemovalReceiptProjection,
-    ForkSnapshot,
+    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
+    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 
 use crate::{ForkHistoryHostAuthority, ForkHistoryHostError, ForkHistoryHostService};
@@ -73,6 +73,14 @@ where
         command: ForkDeleteContinuationCommand,
     ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
         self.with_authority(|authority| authority.delete_continuation(caller, command))?
+    }
+
+    fn prune(
+        &self,
+        caller: &str,
+        command: ForkPruneCommand,
+    ) -> Result<ForkPruneResult, ForkHistoryHostError> {
+        self.with_authority(|authority| authority.prune(caller, command))?
     }
 
     fn navigate(

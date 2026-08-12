@@ -109,7 +109,7 @@ revision twice and has to report two outcomes in one receipt.
       subtree removal taking the same handle `CheckoutContinuation` takes, with
       a protocol command, a Tauri command and a controller method. Rejects
       deleting the line the operator is on or inside.
-- [ ] **Batch 2. Retention that can prune** (Card 186, ready). Measure the
+- [x] **Batch 2. Retention that can prune** (Card 186, complete 2026-08-12). Measure the
       budget against the unprotected share, drop the name clause from
       protection, and give `prune_to` a surface so a host can hold a budget
       without writing Rust. Both fixes are needed: either alone leaves a fully
@@ -123,10 +123,10 @@ revision twice and has to report two outcomes in one receipt.
 
 - [x] An operator can delete a fork they know they do not need, and the space
       it occupied is gone.
-- [ ] A host can hold a fork graph inside a budget without calling into Rust.
-- [ ] Automatic pruning prunes. Today it cannot, in the one consumer that has
+- [x] A host can hold a fork graph inside a budget without calling into Rust.
+- [x] Automatic pruning prunes. Today it cannot, in the one consumer that has
       the problem.
-- [ ] Nothing protects a branch merely because it has a name.
+- [x] Nothing protects a branch merely because it has a name.
 
 ## Acceptance Criteria
 
@@ -135,9 +135,9 @@ revision twice and has to report two outcomes in one receipt.
 - [x] Deleting the continuation the operator is standing on or inside is
       rejected, not silently redirected. Deletion also cannot empty a graph:
       the active line always survives.
-- [ ] A named, unpinned, non-current branch is prunable.
-- [ ] A pinned branch is not prunable, whatever its budget pressure.
-- [ ] `effigy qa` passes, including `check:bindings`.
+- [x] A named, unpinned, non-current branch is prunable.
+- [x] A pinned branch is not prunable, whatever its budget pressure.
+- [x] `effigy qa` passes, including `check:bindings`.
 
 ## Explicit Non-goals
 
@@ -151,7 +151,9 @@ revision twice and has to report two outcomes in one receipt.
 
 ## Next Task
 
-Card 186. Card 185 landed 2026-08-12. Batch 3 waits for batch 1 to ship and
+Batches 1 and 2 are complete. Batch 3 is bulk selection and waits for the
+field: deleting one at a time is fine for a handful, and only use will say
+whether an operator reaches for more. Batch 3 waits for batch 1 to ship and
 for the field to say whether one-at-a-time is enough.
 
 ## Planning Checkpoint

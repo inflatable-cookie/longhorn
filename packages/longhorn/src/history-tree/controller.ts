@@ -1,5 +1,5 @@
 import { ForkHistoryClient } from "./client.ts";
-import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkRemovalReceiptProjection, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
+import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkPruneResult, type ForkRemovalReceiptProjection, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
 import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 
 export type ForkHistoryControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
@@ -126,6 +126,25 @@ export class ForkHistoryController {
     // this refresh is not optional and is not left to the changed event.
     await this.refresh();
     return receipt;
+  }
+
+  /**
+   * Prunes the unprotected share to a budget, then refreshes if anything went.
+   *
+   * The budget bounds what is **not** protected -- not on the current branch
+   * and not on a pinned branch. Size it for the transient history to keep; a
+   * graph with a large pinned set exceeds it and that is correct.
+   *
+   * Longhorn owns no scheduler. Call this on record, on a timer, on an
+   * operator action, or not at all: those are the app's three triggers and
+   * opting out is not calling it. `summary.retainedEntryCount` and
+   * `summary.retainedEncodedWeight` are there to decide with.
+   */
+  async prune(maximumEntries: number, maximumEncodedWeight: number): Promise<ForkPruneResult> {
+    const snapshot = this.#required();
+    const result = await this.#client.prune({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, maximumEntries, maximumEncodedWeight });
+    if (result.status === "pruned") await this.refresh();
+    return result;
   }
 
   async selectDefaultPath(): Promise<void> { this.#pathTarget = { kind: "default" }; await this.refresh(); }

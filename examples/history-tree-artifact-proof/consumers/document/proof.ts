@@ -8,6 +8,7 @@ const client = new ForkHistoryClient({
   async branches() { return structuredClone(fixture.rendererFixture.branches); },
   async continuations() { return structuredClone(fixture.rendererFixture.continuations); },
   async deleteContinuation(): Promise<never> { throw new Error("the document proof does not exercise deletion"); },
+  async prune(): Promise<never> { throw new Error("the document proof does not exercise pruning"); },
   async navigate() { return structuredClone(fixture.rendererFixture.navigationResult); },
   nextPlanId() { return "plan:document-renderer"; },
 });

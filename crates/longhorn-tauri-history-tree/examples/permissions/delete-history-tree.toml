@@ -4,5 +4,8 @@
 # is not permission to destroy it.
 [[permission]]
 identifier = "allow-longhorn-history-tree-delete"
-description = "Allows irreversible Longhorn fork deletion."
-commands.allow = ["longhorn_history_tree_delete_continuation"]
+description = "Allows irreversible Longhorn fork deletion and budget pruning."
+commands.allow = [
+  "longhorn_history_tree_delete_continuation",
+  "longhorn_history_tree_prune",
+]

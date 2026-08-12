@@ -364,10 +364,15 @@ fn deterministic_pruning_removes_only_anonymous_unpinned_future() {
         },
     );
     let source_revision = history.revision();
+    // Card 186: the budget bounds the unprotected share, not the graph. Here
+    // the protected main lineage is three entries at twenty-four weight, and
+    // the unprotected alternate is two at sixteen. The old (3, 24) sized the
+    // whole graph and now reads as "keep three unprotected entries", which
+    // this fixture already satisfies.
     let outcome = history
         .prune_to(
             source_revision,
-            ForkRetentionLimits::new(3, 24).expect("fixture limits"),
+            ForkRetentionLimits::new(1, 1).expect("fixture limits"),
         )
         .expect("bounded prune");
     let ForkPruningOutcome::Pruned(receipt) = outcome else {
@@ -409,43 +414,98 @@ fn deterministic_pruning_removes_only_anonymous_unpinned_future() {
     assert_eq!(redo.target_node_id(), Some(&entry_id("entry:c")));
 }
 
+/// main a - b - c with the operator on c, and an unpinned fork `d`. Under the
+/// old rule `d`'s branch was protected merely for having a name, which is the
+/// Loophole shape: every fork is auto-named, so nothing was ever prunable.
 #[test]
-fn named_pinned_and_current_lineages_reject_impossible_budgets_without_mutation() {
-    for metadata in [
-        branch_metadata(Some("Named"), false),
-        branch_metadata(None, true),
-    ] {
-        let (mut history, mut model) = forked_history(metadata);
-        navigate(
-            &mut history,
-            &mut model,
-            "plan:select-main",
-            ForkNavigationTarget::Checkout {
-                branch_id: branch_id("branch:main"),
-                entry_id: entry_id("entry:c"),
-            },
-        );
-        let before = history.clone();
-        let error = history
-            .prune_to(
-                history.revision(),
-                ForkRetentionLimits::new(3, 24).expect("fixture limits"),
-            )
-            .expect_err("protected budget");
-        assert!(matches!(error, ForkRetentionError::ProtectedBudget { .. }));
-        assert_eq!(history, before);
-    }
+fn a_named_unpinned_branch_is_prunable() {
+    let (mut history, mut model) = forked_history(branch_metadata(Some("Named"), false));
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:select-main",
+        ForkNavigationTarget::Checkout {
+            branch_id: branch_id("branch:main"),
+            entry_id: entry_id("entry:c"),
+        },
+    );
+    let outcome = history
+        .prune_to(
+            history.revision(),
+            ForkRetentionLimits::new(1, 1).expect("fixture limits"),
+        )
+        .expect("a name is not protection");
+    let ForkPruningOutcome::Pruned(receipt) = outcome else {
+        panic!("the unprotected fork is over budget and must be pruned");
+    };
+    assert_eq!(
+        receipt
+            .pruned_nodes()
+            .iter()
+            .map(|node| node.entry_id().as_str())
+            .collect::<Vec<_>>(),
+        ["entry:d"]
+    );
+    assert_eq!(receipt.removed_branches(), [branch_id("branch:alternate")]);
+    assert_eq!(
+        receipt.unprotected_entry_count(),
+        0,
+        "everything the budget governs is gone; the protected line remains"
+    );
+    assert_eq!(receipt.retained_entry_count(), 3);
+}
 
-    let (mut history, _model) = forked_history(branch_metadata(None, false));
+/// Pinning protects against a budget however tight, and the budget is not
+/// exceeded by the protected lineage -- that condition no longer exists.
+#[test]
+fn a_pinned_branch_survives_any_budget() {
+    let (mut history, mut model) = forked_history(branch_metadata(None, true));
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:select-main",
+        ForkNavigationTarget::Checkout {
+            branch_id: branch_id("branch:main"),
+            entry_id: entry_id("entry:c"),
+        },
+    );
     let before = history.clone();
-    assert!(matches!(
+    assert_eq!(
         history.prune_to(
             history.revision(),
-            ForkRetentionLimits::new(3, 24).expect("fixture limits")
+            ForkRetentionLimits::new(1, 1).expect("fixture limits")
         ),
-        Err(ForkRetentionError::ProtectedBudget { .. })
-    ));
+        Ok(ForkPruningOutcome::Unchanged),
+        "a budget below the protected lineage is not an error; it has nothing to act on"
+    );
     assert_eq!(history, before);
+}
+
+/// The budget bounds the unprotected share, not the graph. Four protected
+/// entries against a budget of one is `Unchanged`, because none of them is
+/// something a budget may take.
+#[test]
+fn the_budget_is_measured_against_the_unprotected_share() {
+    let (mut history, mut model) = forked_history(branch_metadata(None, true));
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:select-main",
+        ForkNavigationTarget::Checkout {
+            branch_id: branch_id("branch:main"),
+            entry_id: entry_id("entry:c"),
+        },
+    );
+    assert_eq!(history.retained_entry_count(), 4);
+    let before = history.clone();
+    assert_eq!(
+        history.prune_to(
+            history.revision(),
+            ForkRetentionLimits::new(1, 1).expect("fixture limits")
+        ),
+        Ok(ForkPruningOutcome::Unchanged)
+    );
+    assert_eq!(history, before, "a protected graph is never over budget");
 }
 
 #[test]

@@ -3,17 +3,18 @@
 use std::sync::{Arc, Mutex};
 
 use longhorn_history_tree::{
-    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
+    ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedKind, ForkContinuationPageCommand,
     ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkRemovalReceiptProjection,
-    ForkSnapshot,
+    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
+    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
     ForkHistoryHostService, TauriForkHistoryState, fork_history_changed_event,
-    longhorn_history_tree_branches, longhorn_history_tree_continuations,
-    longhorn_history_tree_delete_continuation, longhorn_history_tree_navigate,
-    longhorn_history_tree_path, longhorn_history_tree_snapshot,
+    fork_retention_changed_event, longhorn_history_tree_branches,
+    longhorn_history_tree_continuations, longhorn_history_tree_delete_continuation,
+    longhorn_history_tree_navigate, longhorn_history_tree_path, longhorn_history_tree_prune,
+    longhorn_history_tree_snapshot,
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -72,6 +73,15 @@ impl ForkHistoryHostAuthority for Authority {
         Ok(removal())
     }
 
+    fn prune(
+        &mut self,
+        caller: &str,
+        _: ForkPruneCommand,
+    ) -> Result<ForkPruneResult, ForkHistoryHostError> {
+        self.calls.lock().unwrap().push(format!("prune:{caller}"));
+        Ok(ForkPruneResult::Unchanged)
+    }
+
     fn navigate(
         &mut self,
         caller: &str,
@@ -121,6 +131,10 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         removal()
     );
     assert_eq!(
+        longhorn_history_tree_prune(window.clone(), app.state(), prune_command()).unwrap(),
+        ForkPruneResult::Unchanged
+    );
+    assert_eq!(
         longhorn_history_tree_navigate(window, app.state(), navigation_command()).unwrap(),
         committed()
     );
@@ -132,6 +146,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
             "branches:history",
             "continuations:history",
             "delete:history",
+            "prune:history",
             "navigate:history"
         ]
     );
@@ -150,6 +165,15 @@ fn serialized_service_and_committed_event_remain_payload_free() {
     let event = fork_history_changed_event(&committed()).unwrap();
     assert_eq!(event.previous_revision.unwrap().get(), 4);
     assert_eq!(event.committed_revision.get(), 5);
+    // Card 185/186: both destructive commands invalidate every page a
+    // consumer holds, because after a removal those pages name entries that no
+    // longer exist.
+    let retention = fork_retention_changed_event(&removal());
+    assert_eq!(retention.kind, ForkChangedKind::Retention);
+    assert_eq!(retention.previous_revision.unwrap().get(), 4);
+    assert_eq!(retention.committed_revision.get(), 5);
+    assert_eq!(retention.history_id.as_str(), "history:tree");
+
     let text = serde_json::to_string(&(snapshot(), path(), branches(), committed())).unwrap();
     assert!(!text.to_ascii_lowercase().contains("payload"));
 }
@@ -167,7 +191,7 @@ fn continuations() -> ForkContinuationPageSnapshot {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"anchorEntryId":"entry:b","offset":0,"totalContinuations":1,"continuations":[{"entryId":"entry:c","label":"Resize","recordedAt":null,"preferred":true,"entryCount":1,"branchId":"branch:main","branchName":"Main"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn removal() -> ForkRemovalReceiptProjection {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","previousRevision":4,"committedRevision":5,"removedEntries":[{"entryId":"entry:d","sequence":4,"encodedWeight":16}],"removedBranches":["branch:alternate"],"removedCheckpoints":[],"retainedEntryCount":3,"retainedEncodedWeight":48})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","previousRevision":4,"committedRevision":5,"removedEntries":[{"entryId":"entry:d","sequence":4,"encodedWeight":16}],"removedBranches":["branch:alternate"],"removedCheckpoints":[],"retainedEntryCount":3,"retainedEncodedWeight":48,"unprotectedEntryCount":0,"unprotectedEncodedWeight":0})).unwrap()
 }
 fn delete_command() -> ForkDeleteContinuationCommand {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"entryId":"entry:d"})).unwrap()
@@ -183,6 +207,9 @@ fn branch_command() -> ForkBranchPageCommand {
 }
 fn continuation_command() -> ForkContinuationPageCommand {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"anchorEntryId":"entry:b","offset":0,"limit":10})).unwrap()
+}
+fn prune_command() -> ForkPruneCommand {
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"maximumEntries":16,"maximumEncodedWeight":1024})).unwrap()
 }
 fn navigation_command() -> ForkNavigationCommand {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","planId":"plan:test","expectedRevision":4,"target":{"kind":"redo"}})).unwrap()

@@ -12,8 +12,8 @@ use longhorn_history_tree::{
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
     ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
-    ForkRemovalReceiptProjection, ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection,
-    MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection, ForkRemovedEntryRecord,
+    ForkSnapshot, ForkSummaryProjection, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
@@ -58,6 +58,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let navigation_target = ForkNavigationTargetProjection::decl();
     let rejection_code = ForkNavigationRejectionCode::decl();
     let navigation_result = ForkNavigationResult::decl();
+    let prune_result = ForkPruneResult::decl();
     let changed_kind = ForkChangedKind::decl();
     let declarations = [
         HistoryId::decl(),
@@ -87,6 +88,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         ForkDeleteContinuationCommand::decl(),
         ForkRemovedEntryRecord::decl(),
         ForkRemovalReceiptProjection::decl(),
+        ForkPruneCommand::decl(),
+        prune_result.clone(),
         navigation_target.clone(),
         ForkNavigationCommand::decl(),
         ForkNavigationReceiptProjection::decl(),
@@ -108,7 +111,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const FORK_HISTORY_NAVIGATION_TARGETS = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_STATUSES = {} as const;\n\
-         export const FORK_HISTORY_CHANGED_KINDS = {} as const;\n\n\
+         export const FORK_HISTORY_CHANGED_KINDS = {} as const;\n\
+         export const FORK_HISTORY_PRUNE_STATUSES = {} as const;\n\n\
          {}\n",
         serde_json::to_string(&string_union_variants(&position)?)?,
         serde_json::to_string(&tagged_variants(&path_target, "kind")?)?,
@@ -116,6 +120,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&string_union_variants(&rejection_code)?)?,
         serde_json::to_string(&tagged_variants(&navigation_result, "status")?)?,
         serde_json::to_string(&string_union_variants(&changed_kind)?)?,
+        serde_json::to_string(&tagged_variants(&prune_result, "status")?)?,
         declarations.join("\n\n"),
     );
     let (fields, skipped) = field_map(

@@ -35,12 +35,15 @@ fn deletion_is_its_own_capability() {
     let delete = file("examples/permissions/delete-history-tree.toml");
     let mutate = file("examples/permissions/mutate-history-tree.toml");
     let read = file("examples/permissions/read-history-tree.toml");
-    assert_eq!(delete.matches("\"longhorn_history_tree_").count(), 1);
+    assert_eq!(delete.matches("\"longhorn_history_tree_").count(), 2);
     assert!(delete.contains("longhorn_history_tree_delete_continuation"));
+    // Card 186: pruning removes entries too, so it sits with deletion rather
+    // than with navigation.
+    assert!(delete.contains("longhorn_history_tree_prune"));
     for other in [&mutate, &read] {
         assert!(
-            !other.contains("delete"),
-            "deletion must not ride along with another permission"
+            !other.contains("delete") && !other.contains("prune"),
+            "destructive commands must not ride along with another permission"
         );
     }
     let capability = file("examples/capabilities/destructive-history-tree.json");

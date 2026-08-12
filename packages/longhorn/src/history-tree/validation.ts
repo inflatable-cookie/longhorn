@@ -5,6 +5,7 @@ import {
   FORK_HISTORY_NAVIGATION_TARGETS,
   FORK_HISTORY_NAVIGATION_REJECTION_CODES,
   FORK_HISTORY_PATH_TARGETS,
+  FORK_HISTORY_PRUNE_STATUSES,
   FORK_HISTORY_PROTOCOL_VERSION,
   MAXIMUM_FORK_HISTORY_PAGE_SIZE,
   type ForkBranchPageCommand,
@@ -12,6 +13,8 @@ import {
   type ForkContinuationPageCommand,
   type ForkContinuationPageSnapshot,
   type ForkDeleteContinuationCommand,
+  type ForkPruneCommand,
+  type ForkPruneResult,
   type ForkRemovalReceiptProjection,
   type ForkChangedEvent,
   type ForkNavigationCommand,
@@ -228,4 +231,32 @@ export function assertForkRemovalReceipt(value: unknown): asserts value is ForkR
   array(root.removedCheckpoints, "$.removedCheckpoints").forEach((checkpoint, index) => id(checkpoint, `$.removedCheckpoints[${index}]`));
   integer(root.retainedEntryCount, "$.retainedEntryCount");
   integer(root.retainedEncodedWeight, "$.retainedEncodedWeight");
+  integer(root.unprotectedEntryCount, "$.unprotectedEntryCount");
+  integer(root.unprotectedEncodedWeight, "$.unprotectedEncodedWeight");
+}
+
+export function assertForkPruneCommand(value: unknown): asserts value is ForkPruneCommand {
+  noPayload(value);
+  const root = object(value, "$");
+  exact(root, "$", HISTORY_TREE_FIELDS.ForkPruneCommand);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  integer(root.expectedRevision, "$.expectedRevision");
+  // The budget bounds the unprotected share, and a zero budget is rejected by
+  // the authority rather than treated as "remove everything unprotected".
+  positive(root.maximumEntries, "$.maximumEntries");
+  positive(root.maximumEncodedWeight, "$.maximumEncodedWeight");
+}
+
+export function assertForkPruneResult(value: unknown): asserts value is ForkPruneResult {
+  noPayload(value);
+  const root = object(value, "$");
+  oneOf(root.status, "$.status", FORK_HISTORY_PRUNE_STATUSES);
+  if (root.status === "unchanged") {
+    exact(root, "$", ["status"]);
+    return;
+  }
+  exact(root, "$", ["status", "receipt"]);
+  assertForkRemovalReceipt(root.receipt);
 }

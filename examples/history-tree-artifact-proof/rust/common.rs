@@ -13,7 +13,8 @@ use longhorn_history_tree::{
     ForkCheckpointId, ForkHistory, ForkHistoryNode, ForkHistoryState,
     ForkNavigationReceiptProjection, ForkNavigationResult, ForkNavigationTarget,
     ForkNavigationTransaction, ForkPathPageSnapshot, ForkPersistence, ForkPersistenceLimits,
-    ForkPreferredChild, ForkProjectionPageRequest, ForkRecord, ForkRetentionLimits, ForkSnapshot,
+    ForkPreferredChild, ForkProjectionPageRequest, ForkPruningOutcome, ForkRecord,
+    ForkRetentionLimits, ForkSnapshot,
 };
 use serde_json::json;
 
@@ -204,9 +205,14 @@ fn main() {
         .expect("checkpoint replay cost");
     assert_eq!(replay.entry_count(), 0);
 
+    // Card 186: a budget below the graph's size is not an error and does not
+    // mutate. It bounds the unprotected share, and here the protected main
+    // chain is pinned and current while only the alternates are unprotected,
+    // so a budget the whole graph exceeds is one the share already fits.
+    // This used to assert `ProtectedBudget`, which can no longer arise.
     let mut pruning_graph = graph.clone();
     let pruning_before = pruning_graph.clone();
-    let pruning_rejected = pruning_graph
+    let pruning_outcome = pruning_graph
         .prune_to(
             pruning_graph.revision(),
             ForkRetentionLimits::new(
@@ -215,8 +221,8 @@ fn main() {
             )
             .expect("retention limits"),
         )
-        .is_err();
-    assert!(pruning_rejected);
+        .expect("a budget the unprotected share fits is not an error");
+    assert_eq!(pruning_outcome, ForkPruningOutcome::Unchanged);
     assert_eq!(pruning_graph, pruning_before);
 
     let mut stale_graph = graph.clone();
@@ -286,7 +292,7 @@ fn main() {
         "failures": {
             "staleRecordRejectedWithoutMutation": stale_rejected,
             "truncatedEnvelopeRejected": truncated_rejected,
-            "protectedPruneRejectedWithoutMutation": pruning_rejected,
+            "protectedBudgetLeftGraphUnchanged": pruning_outcome == ForkPruningOutcome::Unchanged,
             "checkpointReplayEntries": replay.entry_count(),
             "oversizedProjectionRejected": ForkProjectionPageRequest::new(0, 257).is_err(),
         },

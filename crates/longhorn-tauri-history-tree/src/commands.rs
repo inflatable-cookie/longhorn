@@ -4,7 +4,8 @@ use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedEvent, ForkChangedKind,
     ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkDeleteContinuationCommand,
     ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
-    ForkPathPageSnapshot, ForkRemovalReceiptProjection, ForkSnapshot,
+    ForkPathPageSnapshot, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
+    ForkSnapshot,
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
@@ -41,6 +42,12 @@ pub trait ForkHistoryHostService: Send + Sync {
         caller: &str,
         command: ForkDeleteContinuationCommand,
     ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
+    /// Prunes the unprotected share of the graph to a budget.
+    fn prune(
+        &self,
+        caller: &str,
+        command: ForkPruneCommand,
+    ) -> Result<ForkPruneResult, ForkHistoryHostError>;
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(
         &self,
@@ -112,18 +119,35 @@ pub fn longhorn_history_tree_delete_continuation<R: Runtime>(
     command: ForkDeleteContinuationCommand,
 ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
     let receipt = state.service.delete_continuation(window.label(), command)?;
-    let event = ForkChangedEvent {
-        protocol_version: ForkHistoryProtocolVersion::CURRENT,
-        authority_epoch: receipt.authority_epoch,
-        history_id: receipt.history_id.clone(),
-        previous_revision: Some(receipt.previous_revision),
-        committed_revision: receipt.committed_revision,
-        kind: ForkChangedKind::Retention,
-    };
-    if let Err(error) = window.emit(FORK_HISTORY_CHANGED_EVENT, event) {
+    if let Err(error) = window.emit(
+        FORK_HISTORY_CHANGED_EVENT,
+        fork_retention_changed_event(&receipt),
+    ) {
         longhorn_core::report_best_effort_failure("history-tree.retention-emit", error);
     }
     Ok(receipt)
+}
+
+/// Prunes the unprotected share of the graph to a budget.
+///
+/// Under the destructive capability, not the mutate one: pruning removes
+/// entries. Publishes `ForkChangedKind::Retention` only when something went.
+#[tauri::command]
+pub fn longhorn_history_tree_prune<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriForkHistoryState>,
+    command: ForkPruneCommand,
+) -> Result<ForkPruneResult, ForkHistoryHostError> {
+    let result = state.service.prune(window.label(), command)?;
+    if let ForkPruneResult::Pruned { receipt } = &result
+        && let Err(error) = window.emit(
+            FORK_HISTORY_CHANGED_EVENT,
+            fork_retention_changed_event(receipt),
+        )
+    {
+        longhorn_core::report_best_effort_failure("history-tree.retention-emit", error);
+    }
+    Ok(result)
 }
 
 /// Applies and commits one caller-authorized graph navigation.
@@ -149,6 +173,23 @@ pub fn publish_fork_history_changed<R: Runtime>(
 ) -> Result<(), ForkHistoryHostError> {
     app.emit(FORK_HISTORY_CHANGED_EVENT, event)
         .map_err(|error| ForkHistoryHostError::event_publication(error.to_string()))
+}
+
+/// Projects the invalidation hint for a removal.
+///
+/// Both destructive commands build the same event, and a consumer holding any
+/// page needs it: after a removal their pages name entries that no longer
+/// exist. Pure, so it is asserted directly rather than through an emit.
+#[must_use]
+pub fn fork_retention_changed_event(receipt: &ForkRemovalReceiptProjection) -> ForkChangedEvent {
+    ForkChangedEvent {
+        protocol_version: ForkHistoryProtocolVersion::CURRENT,
+        authority_epoch: receipt.authority_epoch,
+        history_id: receipt.history_id.clone(),
+        previous_revision: Some(receipt.previous_revision),
+        committed_revision: receipt.committed_revision,
+        kind: ForkChangedKind::Retention,
+    }
 }
 
 /// Projects a non-durable hint only for committed navigation.

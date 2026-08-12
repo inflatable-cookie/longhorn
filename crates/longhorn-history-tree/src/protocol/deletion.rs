@@ -75,6 +75,14 @@ pub struct ForkRemovalReceiptProjection {
     /// Weight the graph still holds.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub retained_encoded_weight: u64,
+    /// Entries a budget still governs -- everything unprotected. Beside the
+    /// retained totals, not instead of them: the two answer different
+    /// questions.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub unprotected_entry_count: u64,
+    /// Encoded weight a budget still governs.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub unprotected_encoded_weight: u64,
 }
 
 impl ForkRemovalReceiptProjection {
@@ -103,6 +111,56 @@ impl ForkRemovalReceiptProjection {
             removed_checkpoints: receipt.removed_checkpoints().to_vec(),
             retained_entry_count: count(receipt.retained_entry_count())?,
             retained_encoded_weight: receipt.retained_encoded_weight(),
+            unprotected_entry_count: count(receipt.unprotected_entry_count())?,
+            unprotected_encoded_weight: receipt.unprotected_encoded_weight(),
         })
     }
+}
+
+/// Revision-bound request to prune the graph to a budget.
+///
+/// The budget bounds the **unprotected** share -- everything not on the
+/// current branch and not on a pinned branch. Size it for the transient
+/// history to keep, not for the graph.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ForkPruneCommand {
+    /// Exact metadata protocol line.
+    pub protocol_version: ForkHistoryProtocolVersion,
+    /// Authority lifetime observed by the caller.
+    pub authority_epoch: HistoryAuthorityEpoch,
+    /// History identity observed by the caller.
+    pub history_id: HistoryId,
+    /// Exact graph revision required.
+    pub expected_revision: HistoryRevision,
+    /// Maximum unprotected entries to keep.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub maximum_entries: u64,
+    /// Maximum unprotected encoded weight to keep.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub maximum_encoded_weight: u64,
+}
+
+/// The result of a prune.
+///
+/// Tagged rather than an empty receipt, because "already inside the budget"
+/// and "removed nothing that mattered" are different facts and a consumer
+/// reporting to an operator should not have to infer which it got.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "status"
+)]
+pub enum ForkPruneResult {
+    /// The unprotected share already fitted the budget. Nothing was removed
+    /// and the revision did not move.
+    Unchanged,
+    /// One pruning transition committed.
+    Pruned {
+        /// What it removed, and what is left.
+        receipt: ForkRemovalReceiptProjection,
+    },
 }

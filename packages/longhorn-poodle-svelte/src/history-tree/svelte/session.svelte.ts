@@ -1,5 +1,5 @@
 import { ForkHistoryController, type ForkHistoryControllerOptions, type ForkHistoryControllerStatus } from "@inflatable-cookie/longhorn/history-tree";
-import type { ForkBranchId, ForkBranchPageSnapshot, ForkContinuationPageSnapshot, ForkEntryRecord, ForkRemovalReceiptProjection, ForkNavigationResult, ForkPathPageSnapshot, ForkSnapshot } from "@inflatable-cookie/longhorn/history-tree/protocol";
+import type { ForkBranchId, ForkBranchPageSnapshot, ForkContinuationPageSnapshot, ForkEntryRecord, ForkPruneResult, ForkRemovalReceiptProjection, ForkNavigationResult, ForkPathPageSnapshot, ForkSnapshot } from "@inflatable-cookie/longhorn/history-tree/protocol";
 export class ForkHistorySession {
   readonly #controller: ForkHistoryController; readonly #unobserve: () => void;
   status = $state<ForkHistoryControllerStatus>({ kind: "idle" }); snapshot = $state<ForkSnapshot>(); path = $state<ForkPathPageSnapshot>(); branches = $state<ForkBranchPageSnapshot>(); entries = $state<ForkEntryRecord[]>([]); navigationPending = $state(false); canUndo = $state(false); canRedo = $state(false);
@@ -17,6 +17,8 @@ export class ForkHistorySession {
   loadContinuations(anchorEntryId: string | null, offset = 0): Promise<ForkContinuationPageSnapshot> { return this.#controller.loadContinuations(anchorEntryId, offset); }
   /** Card 183. The flat run beginning at one entry, as the same page type as `path`. */
   loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> { return this.#controller.loadContinuationRun(fromEntryId, offset); }
+  /** Card 186. Prune the unprotected share to a budget. */
+  prune(maximumEntries: number, maximumEncodedWeight: number): Promise<ForkPruneResult> { return this.#controller.prune(maximumEntries, maximumEncodedWeight); }
   /** Card 185. Delete one continuation and everything below it. Irreversible. */
   deleteContinuation(entryId: string): Promise<ForkRemovalReceiptProjection> { return this.#controller.deleteContinuation(entryId); }
   /** Card 184. Check out the run beginning at one entry; applies none of it. */

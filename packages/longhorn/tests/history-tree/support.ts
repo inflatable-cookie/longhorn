@@ -18,4 +18,4 @@ export const continuationPage: ForkContinuationPageSnapshot = { protocolVersion:
 ], truncatedBefore: false, truncatedAfter: false };
 export const removal: ForkRemovalReceiptProjection = { protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", previousRevision: 4, committedRevision: 5, removedEntries: [
   { entryId: "entry:d", sequence: 4, encodedWeight: 16 },
-], removedBranches: ["branch:alternate"], removedCheckpoints: [], retainedEntryCount: 3, retainedEncodedWeight: 48 };
+], removedBranches: ["branch:alternate"], removedCheckpoints: [], retainedEntryCount: 3, retainedEncodedWeight: 48, unprotectedEntryCount: 0, unprotectedEncodedWeight: 0 };

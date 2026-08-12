@@ -12,6 +12,7 @@ function tracked() {
     branches: async (command) => { calls.push("branches"); branchOffsets.push(command.offset); return at({ ...clone(branchPage), offset: command.offset }); },
     continuations: async (command) => { calls.push("continuations"); return at({ ...clone(continuationPage), anchorEntryId: command.anchorEntryId, offset: command.offset }); },
     deleteContinuation: async (command) => { calls.push("delete"); revision += 1; return { ...clone(removal), entryId: undefined, previousRevision: revision - 1, committedRevision: revision } as never; },
+    prune: async () => { calls.push("prune"); return { status: "unchanged" } as const; },
     navigate: async () => { calls.push("navigate"); return clone(committed); },
     listen: (listener) => { calls.push("listen"); listeners.add(listener); return () => { listeners.delete(listener); }; },
     nextPlanId: () => "plan:test",

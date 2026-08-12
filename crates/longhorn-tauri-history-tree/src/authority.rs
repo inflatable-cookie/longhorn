@@ -1,8 +1,8 @@
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
     ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkRemovalReceiptProjection,
-    ForkSnapshot,
+    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
+    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 
 use crate::ForkHistoryHostError;
@@ -42,6 +42,13 @@ pub trait ForkHistoryHostAuthority: Send {
         caller: &str,
         command: ForkDeleteContinuationCommand,
     ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
+
+    /// Prunes the unprotected share of the graph to a budget.
+    fn prune(
+        &mut self,
+        caller: &str,
+        command: ForkPruneCommand,
+    ) -> Result<ForkPruneResult, ForkHistoryHostError>;
 
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(

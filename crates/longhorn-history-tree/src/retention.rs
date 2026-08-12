@@ -10,6 +10,12 @@ use longhorn_history::{HistoryEntrySequence, MAXIMUM_HISTORY_ENCODED_WEIGHT};
 use crate::{ForkBranchId, ForkCheckpointId, ForkHistory, MAXIMUM_FORK_NODES};
 
 /// Count and exact encoded-weight budgets for graph pruning.
+///
+/// These bound the **unprotected** share, not the whole graph. A protected
+/// entry -- one on the current branch or on a pinned branch -- is a core
+/// record of the project and is never counted against a budget or removed by
+/// one. Size these for the transient history you want to keep; a graph with a
+/// large pinned set will exceed them and that is correct.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForkRetentionLimits {
     maximum_entries: usize,
@@ -84,6 +90,18 @@ impl ForkPrunedNode {
     }
 }
 
+/// The part of a graph a budget governs.
+///
+/// Protected entries are excluded: once protected, an entry is a core record
+/// of the project rather than transient history, so the budget bounds what is
+/// left. This is also why "the protected lineage alone exceeds the budget"
+/// stopped being a condition -- it cannot arise.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnprotectedShare {
+    entry_count: usize,
+    encoded_weight: u64,
+}
+
 /// What one removal pass took, before it is shaped into a receipt.
 struct Removal {
     pruned_nodes: Vec<ForkPrunedNode>,
@@ -102,6 +120,8 @@ pub struct ForkPruningReceipt {
     removed_checkpoints: Vec<ForkCheckpointId>,
     retained_entry_count: usize,
     retained_encoded_weight: u64,
+    unprotected_entry_count: usize,
+    unprotected_encoded_weight: u64,
 }
 
 impl ForkPruningReceipt {
@@ -146,6 +166,22 @@ impl ForkPruningReceipt {
     pub const fn retained_encoded_weight(&self) -> u64 {
         self.retained_encoded_weight
     }
+
+    /// Returns the entries the budget governs -- everything unprotected.
+    ///
+    /// Beside the retained totals rather than instead of them, because the two
+    /// answer different questions: how large the graph is, and how much of it
+    /// a budget can still reach.
+    #[must_use]
+    pub const fn unprotected_entry_count(&self) -> usize {
+        self.unprotected_entry_count
+    }
+
+    /// Returns the encoded weight the budget governs.
+    #[must_use]
+    pub const fn unprotected_encoded_weight(&self) -> u64 {
+        self.unprotected_encoded_weight
+    }
 }
 
 /// Accepted pruning result.
@@ -170,14 +206,15 @@ impl<P> ForkHistory<P> {
                 actual: self.revision,
             });
         }
-        if self.nodes.len() <= limits.maximum_entries()
-            && self.retained_encoded_weight <= limits.maximum_encoded_weight()
+        let protected = self.protected_lineage()?;
+        let unprotected = self.unprotected_share(&protected)?;
+        if unprotected.entry_count <= limits.maximum_entries()
+            && unprotected.encoded_weight <= limits.maximum_encoded_weight()
         {
             return Ok(ForkPruningOutcome::Unchanged);
         }
 
-        let protected = self.protected_lineage()?;
-        let prune_ids = self.plan_pruning(limits, &protected)?;
+        let prune_ids = self.plan_pruning(limits, &protected, unprotected);
         let committed_revision = self
             .revision
             .checked_next()
@@ -186,6 +223,9 @@ impl<P> ForkHistory<P> {
 
         self.revision = committed_revision;
         self.retained_encoded_weight = removal.retained_encoded_weight;
+        // Recomputed after the removal, not carried through it: pruning can
+        // take a branch with it, which changes what is protected.
+        let remaining_share = self.unprotected_share(&self.protected_lineage()?)?;
         Ok(ForkPruningOutcome::Pruned(ForkPruningReceipt {
             previous_revision: expected_revision,
             committed_revision,
@@ -194,6 +234,8 @@ impl<P> ForkHistory<P> {
             removed_checkpoints: removal.removed_checkpoints,
             retained_entry_count: self.nodes.len(),
             retained_encoded_weight: removal.retained_encoded_weight,
+            unprotected_entry_count: remaining_share.entry_count,
+            unprotected_encoded_weight: remaining_share.encoded_weight,
         }))
     }
 
@@ -293,6 +335,7 @@ impl<P> ForkHistory<P> {
         let removal = self.remove_in_leaf_order(order);
         self.revision = committed_revision;
         self.retained_encoded_weight = removal.retained_encoded_weight;
+        let remaining_share = self.unprotected_share(&self.protected_lineage()?)?;
         Ok(ForkPruningReceipt {
             previous_revision: expected_revision,
             committed_revision,
@@ -301,6 +344,8 @@ impl<P> ForkHistory<P> {
             removed_checkpoints: removal.removed_checkpoints,
             retained_entry_count: self.nodes.len(),
             retained_encoded_weight: removal.retained_encoded_weight,
+            unprotected_entry_count: remaining_share.entry_count,
+            unprotected_encoded_weight: remaining_share.encoded_weight,
         })
     }
 
@@ -397,10 +442,12 @@ impl<P> ForkHistory<P> {
 
     fn protected_lineage(&self) -> Result<BTreeSet<HistoryEntryId>, ForkRetentionError> {
         let mut protected = BTreeSet::new();
+        // Pinned and current only. A name used to imply protection, from when
+        // a name meant an operator had typed one; auto-naming turned that into
+        // "protect everything", which is why a fully-named graph could never
+        // be pruned. `pinned` is the field that means protect.
         for branch in self.branches.values().filter(|branch| {
-            branch.branch_id() == &self.current_branch_id
-                || branch.metadata().name().is_some()
-                || branch.metadata().pinned()
+            branch.branch_id() == &self.current_branch_id || branch.metadata().pinned()
         }) {
             protected.extend(
                 self.lineage(branch.head_entry_id())
@@ -418,7 +465,8 @@ impl<P> ForkHistory<P> {
         &self,
         limits: ForkRetentionLimits,
         protected: &BTreeSet<HistoryEntryId>,
-    ) -> Result<Vec<HistoryEntryId>, ForkRetentionError> {
+        unprotected: UnprotectedShare,
+    ) -> Vec<HistoryEntryId> {
         let mut remaining: BTreeSet<_> = self.nodes.keys().cloned().collect();
         let mut child_counts: BTreeMap<_, usize> = self
             .nodes
@@ -431,8 +479,12 @@ impl<P> ForkHistory<P> {
                 (entry_id.clone(), count)
             })
             .collect();
-        let mut count = remaining.len();
-        let mut weight = self.retained_encoded_weight;
+        // The budget bounds the unprotected share, not the graph. A protected
+        // entry is a core record of the project, not a transient budgeted
+        // thing, so pinning may grow a graph without bound and that is the
+        // operator's choice.
+        let mut count = unprotected.entry_count;
+        let mut weight = unprotected.encoded_weight;
         let mut removals = Vec::new();
 
         while count > limits.maximum_entries() || weight > limits.maximum_encoded_weight() {
@@ -445,10 +497,11 @@ impl<P> ForkHistory<P> {
                     (node.sequence(), (*entry_id).clone())
                 })
                 .cloned()
-                .ok_or(ForkRetentionError::ProtectedBudget {
-                    protected_entries: protected.len(),
-                    protected_encoded_weight: self.protected_weight(protected)?,
-                })?;
+                .expect(
+                    "an unprotected entry always has an unprotected leaf below it: protection \
+                     is by lineage, so the protected set is ancestor-closed and no unprotected \
+                     entry can have a protected descendant",
+                );
             let node = self.nodes.get(&candidate).expect("candidate exists");
             count -= 1;
             weight = weight
@@ -462,7 +515,19 @@ impl<P> ForkHistory<P> {
             }
             removals.push(candidate);
         }
-        Ok(removals)
+        removals
+    }
+
+    fn unprotected_share(
+        &self,
+        protected: &BTreeSet<HistoryEntryId>,
+    ) -> Result<UnprotectedShare, ForkRetentionError> {
+        Ok(UnprotectedShare {
+            entry_count: self.nodes.len().saturating_sub(protected.len()),
+            encoded_weight: self
+                .retained_encoded_weight
+                .saturating_sub(self.protected_weight(protected)?),
+        })
     }
 
     fn protected_weight(
@@ -518,13 +583,6 @@ pub enum ForkRetentionError {
     EntryOnCurrentPath(HistoryEntryId),
     /// Deletion would remove a pinned branch. Unpin it first.
     PinnedBranchInSubtree(ForkBranchId),
-    /// Protected lineage alone exceeds the requested budget.
-    ProtectedBudget {
-        /// Protected node count.
-        protected_entries: usize,
-        /// Protected encoded payload weight.
-        protected_encoded_weight: u64,
-    },
     /// Retained weight overflowed.
     WeightOverflow,
     /// Topology could not produce finite protected lineages.
