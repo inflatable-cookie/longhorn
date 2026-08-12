@@ -52,14 +52,16 @@ Items 2, 3 and 5 are confirmed as described.
 
 ## Planning Gaps
 
-- **Item 4 needs a persistence decision before it is ready.** The request says
+- ~~**Item 4 needs a persistence decision before it is ready.**~~ Closed
+  2026-08-12: entries written before the field lands read back as `None`,
+  permanently, and nothing backfills. Recorded on Card 182. The request said
   "structural migration path exists". Which migration, and whether an entry
   written before this lands reads back as `recorded_at: None` or fails the
   envelope, is not settled. That is operator policy about stored data, so the
   card stays paused until it is answered.
-- **Item 5 needs the client-side stitcher first.** Poodle ships one for
-  HistoryCentre v2. A projection designed before the stitcher exists would be
-  designed against a guess at what it needs.
+- ~~**Item 5 needs the client-side stitcher first.**~~ Closed 2026-08-12:
+  Poodle has built HistoryCentre v2, so its stitcher is readable and Card 183
+  can be designed against it rather than a guess.
 
 ## Execution Plan
 
@@ -67,12 +69,11 @@ Items 2, 3 and 5 are confirmed as described.
       `ForkHistoryController` refreshes its branches page alongside path;
       the Tauri crates agree on one re-export style; `Checkout` expresses a
       branch-root target. Ordered by the field's own priority.
-- [ ] **Batch 2. Host-supplied `recorded_at`** (Card 182, paused on the
-      persistence gap above). Optional, consumer-supplied, carried inert from
+- [x] **Batch 2. Host-supplied `recorded_at`** (Card 182, complete 2026-08-12). Optional, consumer-supplied, carried inert from
       `HistoryEntryMetadata` through the envelope to `ForkEntryRecord` and the
       generated types, in both history domains.
-- [ ] **Batch 3. Topological tree projection** (Card 183, paused on Poodle's
-      stitcher). A single paged `ForkTreePage` in ancestry order with branch
+- [ ] **Batch 3. Topological tree projection** (Card 183, unblocked; ready to
+      plan against Poodle's shipped stitcher). A single paged `ForkTreePage` in ancestry order with branch
       and lane annotations, moving the stitch into the authority.
 
 ## Goals
@@ -82,7 +83,7 @@ Items 2, 3 and 5 are confirmed as described.
 - [ ] A consumer that loads branches once and keeps editing sees a current page
       without asking for one.
 - [ ] The ten Tauri crates answer the same question the same way.
-- [ ] Version captions can show a time without the history crates owning a
+- [x] Version captions can show a time without the history crates owning a
       clock.
 
 ## Acceptance Criteria
@@ -105,15 +106,15 @@ Items 2, 3 and 5 are confirmed as described.
 
 ## Next Task
 
-Batch 1 is complete. Both remaining batches are paused on their planning gaps,
-so the next move is not Longhorn's: item 4 wants a stored-data policy decision,
-and item 5 wants Poodle's client-side stitcher to exist first.
+Batches 1 and 2 are complete and both planning gaps are closed. Card 183 is the
+remaining work: read Poodle's HistoryCentre v2 stitcher, then compile the
+topological `ForkTreePage` against what it actually consumes.
 
 Loophole can delete all three workarounds now. The command wrappers never
 needed a release — see item 1 above.
 
 ## Planning Checkpoint
 
-After Card 181, before Batch 2. The persistence question in item 4 wants an
-answer from whoever owns stored-data policy, and by then Poodle's stitcher will
-have shown what item 5's projection actually has to produce.
+Before Batch 3. Card 183 moves a stitch from a consumer into the authority, so
+what the projection emits should be settled against Poodle's shipped stitcher
+rather than designed ahead of it.

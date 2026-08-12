@@ -1,6 +1,6 @@
 # 182 Host-Supplied `recorded_at`
 
-Status: ready
+Status: complete — landed 2026-08-12
 Owner: Tom
 Roadmap: g02.016 batch 2
 Governing refs: contract 011; contract 012
@@ -54,35 +54,35 @@ Five surfaces per domain, all following the path `kind_id` already takes:
 
 ## Steps
 
-- [ ] Add `recorded_at: Option<HistoryRecordedAt>` to `HistoryEntryMetadata`
+- [x] Add `recorded_at: Option<HistoryRecordedAt>` to `HistoryEntryMetadata`
       with an accessor, where the newtype wraps epoch milliseconds. A named
       type rather than a bare `u64`, so the unit is in the signature and a
       sequence number cannot be passed by mistake.
-- [ ] Keep `HistoryEntryMetadata::new` at three arguments and add
+- [x] Keep `HistoryEntryMetadata::new` at three arguments and add
       `with_recorded_at`. A fourth positional `Option` next to two others reads
       as `new(label, None, None, None)` at every call site, and there are seven.
       This is a builder for an optional field, not a compatibility shim.
-- [ ] Carry it inert through both envelopes. Absent in stored data decodes to
+- [x] Carry it inert through both envelopes. Absent in stored data decodes to
       `None`; present round-trips unchanged.
-- [ ] Carry it to `ForkEntryRecord` and the linear entry record, then
+- [x] Carry it to `ForkEntryRecord` and the linear entry record, then
       regenerate bindings.
-- [ ] Do not let the tree read it. No ordering, retention or navigation rule
+- [x] Do not let the tree read it. No ordering, retention or navigation rule
       may consult the field.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes, including `check:bindings`.
-- [ ] A persistence test proves an envelope written without the field loads as
+- [x] `effigy qa` passes, including `check:bindings`.
+- [x] A persistence test proves an envelope written without the field loads as
       `None` rather than failing — the operator decision above, enforced.
-- [ ] A persistence test proves a supplied value round-trips through encode and
+- [x] A persistence test proves a supplied value round-trips through encode and
       decode unchanged.
-- [ ] A projection test proves the value reaches `ForkEntryRecord`.
-- [ ] Nothing in either crate reads `recorded_at` outside a projection: a grep
+- [x] A projection test proves the value reaches `ForkEntryRecord`.
+- [x] Nothing in either crate reads `recorded_at` outside a projection: a grep
       of the source shows reads only where the record is built.
 
 ## Evidence
 
-- [ ] The tests above, named in the batch log.
+- [x] The tests above, named in the batch log.
 
 ## Stop Conditions
 
@@ -94,3 +94,28 @@ Five surfaces per domain, all following the path `kind_id` already takes:
 
 Card 183 for the topological projection. Poodle has built HistoryCentre v2, so
 its stitcher is now readable and that card's planning gap is closed.
+
+## Outcome — 2026-08-12
+
+`HistoryRecordedAt` wraps epoch milliseconds, `#[serde(transparent)]`, and
+generates as `type HistoryRecordedAt = number` in both domains' TypeScript.
+
+The persistence envelopes carry it under
+`#[serde(default, skip_serializing_if = "Option::is_none")]`, so the golden
+fixture `crates/longhorn-history-tree/fixtures/history/tree-v1.json` is
+byte-identical: a host that stamps nothing writes nothing, and the operator
+decision needed no schema version bump. The protocol records take the plain
+`Option`, matching `kind_id` and `group_id`, which serialise as `null`.
+
+Evidence:
+- `an_envelope_without_recorded_at_loads_as_none`, `a_supplied_recorded_at_round_trips`
+  (`crates/longhorn-history-tree/tests/persistence.rs`)
+- `a_recorded_at_stamp_reaches_the_entry_record`
+  (`crates/longhorn-history-tree/tests/projection.rs`) — asserts through both
+  `ForkEntryProjection` and `ForkEntryRecord`
+- A grep of both crates' `src/` shows every read is a copy into a projection,
+  encode or decode. No comparison, sort or retention rule consults it.
+
+The bindings generator needed the newtype declared in both `history.rs` and
+`history_tree.rs` lists, the same as `HistoryRevision`. The tree artifact proof
+moved from 29 tests to 32.
