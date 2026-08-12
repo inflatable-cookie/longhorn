@@ -100,6 +100,10 @@ source adapters are the only check path rather than a duplicate of one.
 
 ### Batch 3. Install and client surface
 
+- [ ] [Card 196](batch-cards/196-longhorn-is-the-update-controller.md) builds
+  what the operator decision made Longhorn's: artifact verification, the
+  download, and the controller that sequences check, fetch, verify, gate and
+  install
 - [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
   — findings recorded, quiescence contract landed, and `longhorn-tauri-update`
@@ -130,8 +134,15 @@ classification to explain a channel rejoin.
 - [x] rollout decided on the client, so static hosting is sufficient
 - [x] `minimum_version` and user-initiated checks both override rollout
 - [ ] no install proceeds while Longhorn-owned work is in flight
-- [ ] signature verification stays entirely inside the Tauri plugin
-- [ ] two crates and one package added, following existing naming pairs
+- [ ] ~~signature verification stays entirely inside the Tauri plugin~~ Void
+      from 2026-08-12. Longhorn verifies, and the goal is now that no
+      unverified artifact can reach an installer by the shape of the call
+      rather than by each implementation's promise. Card 196.
+- [ ] one crate and one package added, following existing naming pairs.
+      `longhorn-tauri-update` was absorbed back into `longhorn-update` on
+      2026-08-09 and the decision of 2026-08-12 removed the reason to recreate
+      it as a plugin wrapper; a host crate for Tauri commands is still owed by
+      Card 190 step 4.
 
 ## Acceptance Criteria
 
@@ -160,10 +171,13 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 190, the update protocol. Cards 150 to 153 are complete and Card 159 is
-paused by operator decision, so batch 3's remaining work is the client surface
-— and Card 154 cannot start, because there is nothing to bind. See its
-correction note.
+Card 196, the controller. Card 190 landed the protocol on 2026-08-12 and
+stopped at step 4 for want of a host crate; Card 154 is blocked behind it; Card
+159 is paused by operator decision. The controller is the only unblocked work
+in the batch, and it is what the decision of 2026-08-12 made Longhorn's without
+anything then being written down that builds it.
 
-This section said "Open Card 150" while 150, 151, 152 and 153 were all
-complete.
+Two corrections are recorded here rather than silently applied. This section
+said "Open Card 150" while 150 to 153 were all complete. And the goal
+"signature verification stays entirely inside the Tauri plugin" survived the
+decision that voided it by nine days.
