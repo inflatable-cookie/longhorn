@@ -51,12 +51,35 @@ be wrong under a new shell, and neither is Poodle's to fix.
 
 - [ ] Their **content** stays. They render Longhorn's keymap, storage, backup
       and restore domains, and none of that is general-purpose.
-- [ ] Their **layout** composes Poodle primitives. `FormLayout`, `Field`,
-      `DetailSection`, `Stack` and `Grid` all exist.
-- [ ] Where a page needs something Poodle does not have, papercut it rather
-      than writing the CSS here. That papercut is the evidence batch 3 needs.
-- [ ] `RestoreSettingsPage` is 529 lines and the largest. Expect it to be the
-      one that finds the gaps.
+
+These four are a **strip-and-compose job, not a redesign**. Their structure is
+sound; their author reached for CSS where a primitive existed. Every line was
+read on 2026-08-12 and it is three patterns:
+
+| Pattern | Where | Replacement |
+| --- | --- | --- |
+| `display: grid; gap: 0.75rem` | 10 selectors, all four pages | `Stack` |
+| `repeat(auto-fit, minmax(14rem, 1fr))` | 3 config pages, identical | `Grid columns="repeat(auto-fit, minmax(14rem, 1fr))"` |
+| `minmax(0, 1fr) auto auto` | `KeybindingSettings` rows | `Grid columns=…` |
+| `minmax(0, 1fr) minmax(12rem, auto)` | `RestoreSettingsPage` domain rows | `Grid columns=…` |
+| `minmax(12rem, 1fr) auto` | `StorageSettingsPage` flow | `Grid columns=…` |
+| `overflow-wrap: anywhere` | 2 pages, on paths and digests | **nothing — papercut** |
+
+`Grid` takes an arbitrary `columns` string, so every track above is
+expressible today with no new Poodle component.
+
+- [ ] Substitute per the table. No judgement call is needed for the first five
+      rows.
+- [ ] **The one real gap is text wrapping.** `Text` has `clamp` but no wrap or
+      break control, and `Code` has none either. Without it a long filesystem
+      path or content digest overflows its column or forces the grid wider.
+      Papercut it; do not reintroduce the rule locally.
+- [ ] Anything else Poodle lacks: papercut rather than writing CSS here. Those
+      papercuts are the evidence batch 3 needs.
+- [ ] Worth telling the Poodle thread even though it is not a blocker: the
+      `repeat(auto-fit, minmax(14rem, 1fr))` detail grid appears identically in
+      all three config pages. One idea written three times, and the moment to
+      notice whether it wants a name.
 
 ## Acceptance
 
@@ -82,7 +105,9 @@ be wrong under a new shell, and neither is Poodle's to fix.
   that.
 - Stop if a page needs more than two papercuts to lose its CSS. That means the
   redesign missed a class of layout these pages depend on, and the answer is
-  another round in Poodle rather than a Longhorn workaround.
+  another round in Poodle rather than a Longhorn workaround. The survey above
+  found exactly one gap across all four, so a page hitting two is a signal
+  that something changed rather than that the page is unusual.
 
 ## Continuation
 
