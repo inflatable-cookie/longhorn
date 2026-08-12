@@ -1,0 +1,9 @@
+# Separate from read deliberately. Reading the last check's answer is local;
+# running a check reaches the network on the operator's behalf. A window that
+# displays update state has not thereby been given permission to make requests.
+[[permission]]
+identifier = "allow-longhorn-update-check"
+description = "Allows Longhorn to ask the update source for the channel's current manifest."
+commands.allow = [
+  "longhorn_update_check",
+]

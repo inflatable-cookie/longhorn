@@ -1,0 +1,10 @@
+# Changing what this install follows, and declining a version. Neither reaches
+# the network and neither replaces anything, so they sit together and apart
+# from both check and install.
+[[permission]]
+identifier = "allow-longhorn-update-mutate"
+description = "Allows selecting a Longhorn release channel and deferring a version."
+commands.allow = [
+  "longhorn_update_select_channel",
+  "longhorn_update_defer",
+]

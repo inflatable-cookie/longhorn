@@ -1,0 +1,9 @@
+# Replaces the running application. Card 190 step 2: authorizing an install is
+# not covered by permission to look for one, so this is never bundled with
+# check. Grant it to the window that confirms the install, and to no other.
+[[permission]]
+identifier = "allow-longhorn-update-install"
+description = "Allows Longhorn to fetch, verify and install an update, replacing the application."
+commands.allow = [
+  "longhorn_update_install",
+]

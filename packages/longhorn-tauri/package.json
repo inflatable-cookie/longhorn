@@ -16,30 +16,30 @@
       "import": "./src/transport/index.ts",
       "default": "./src/transport/index.ts"
     },
-    "./events": {
-      "types": "./src/transport/events.ts",
-      "import": "./src/transport/events.ts",
-      "default": "./src/transport/events.ts"
+    "./bridge": {
+      "types": "./src/bridge.ts",
+      "import": "./src/bridge.ts",
+      "default": "./src/bridge.ts"
     },
     "./bridge-events": {
       "types": "./src/bridge-events.ts",
       "import": "./src/bridge-events.ts",
       "default": "./src/bridge-events.ts"
     },
-    "./bridge": {
-      "types": "./src/bridge.ts",
-      "import": "./src/bridge.ts",
-      "default": "./src/bridge.ts"
-    },
-    "./history-tree": {
-      "types": "./src/history-tree.ts",
-      "import": "./src/history-tree.ts",
-      "default": "./src/history-tree.ts"
+    "./events": {
+      "types": "./src/transport/events.ts",
+      "import": "./src/transport/events.ts",
+      "default": "./src/transport/events.ts"
     },
     "./history": {
       "types": "./src/history.ts",
       "import": "./src/history.ts",
       "default": "./src/history.ts"
+    },
+    "./history-tree": {
+      "types": "./src/history-tree.ts",
+      "import": "./src/history-tree.ts",
+      "default": "./src/history-tree.ts"
     },
     "./native-content": {
       "types": "./src/native-content.ts",
@@ -56,7 +56,12 @@
       "import": "./src/operation.ts",
       "default": "./src/operation.ts"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./update": {
+      "types": "./src/update.ts",
+      "import": "./src/update.ts",
+      "default": "./src/update.ts"
+    }
   },
   "files": [
     "src",

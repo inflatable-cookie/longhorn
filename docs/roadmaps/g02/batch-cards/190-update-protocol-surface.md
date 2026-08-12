@@ -1,7 +1,6 @@
 # 190 Update Protocol Surface
 
-Status: steps 1-3 complete 2026-08-12; step 4 unblocked by the operator
-decision of the same day
+Status: complete — steps 1-3 landed 2026-08-12, step 4 on 2026-08-13
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contract 018; contracts 010, 011, 012; research memo 019
@@ -84,13 +83,13 @@ not have.
 
 ## Step 4 — The changed event and the surfaces
 
-- [ ] `UpdateChangedEvent` with a kind, so a consumer invalidates without
+- [x] `UpdateChangedEvent` with a kind, so a consumer invalidates without
       polling. Follow `ForkChangedEvent`.
-- [ ] Register the domain in the bindings generator, with both field maps —
+- [x] Register the domain in the bindings generator, with both field maps —
       flat and per-variant. The per-variant map matters here: this domain is
       mostly tagged unions, and `UpdateAvailability` is tagged `state`, which
       is exactly the case Card 188's detector was built for.
-- [ ] Tauri commands with named re-exports, per Card 181 step 2. `check` and
+- [x] Tauri commands with named re-exports, per Card 181 step 2. `check` and
       `install` are separate capabilities: authorizing an install is not
       covered by permission to look for one.
 
@@ -158,3 +157,44 @@ Step 4 itself now needs a host crate that does not exist, because
 `longhorn-tauri-update` was absorbed and its tauri dependency deliberately
 removed. Recreating it is a decision for the card that does the install work,
 not this one.
+
+
+## Outcome, Step 4 — 2026-08-13
+
+`longhorn-tauri-update` exists again. A crate of that name was absorbed into
+`longhorn-update` on 2026-08-09 and its tauri dependency deliberately removed;
+what it held then was the installer, and what it holds now is only the seam —
+commands, capabilities, and the invalidation hint. A test asserts it depends on
+neither `longhorn-update-install` nor minisign, so the distinction cannot erode
+quietly.
+
+Five commands over four capabilities, which is one more split than the card
+asked for.
+
+| Capability | Commands | Why separate |
+| --- | --- | --- |
+| read | `snapshot` | Local. The last answer, already computed. |
+| check | `check` | Reaches the network on the operator's behalf. |
+| mutate | `select_channel`, `defer` | Changes what this install follows. |
+| install | `install` | Replaces the running application. |
+
+The card required `check` and `install` to be separate. Splitting `read` from
+`check` as well follows the same rule one step further: a window that displays
+update state has not thereby been given permission to make requests. A test
+asserts every command is granted by exactly one permission and that the count
+matches the crate, which is the check Card 183 wished existed when a fork
+command shipped without one.
+
+Only a committed outcome publishes an invalidation hint. A rejection leaves the
+state as it was, so a consumer that refetched on one would be refetching for
+nothing.
+
+**Two things were added ahead of Card 154, so the seam could be typed.**
+`packages/longhorn/src/update/index.ts` re-exports the generated protocol and
+both field maps, and the package gained `./update` and `./update/protocol`
+exports. No client, no controller, no validation — those are Card 154.
+
+The port returns `Promise<unknown>` from every call, as every other raw port
+does. What comes back over a transport is untrusted until a validator says
+otherwise, and the checked port that narrows these arrives with the validation
+that earns it. Commands going out are typed, because those this side builds.

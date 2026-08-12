@@ -148,7 +148,7 @@ classification to explain a channel rejoin.
       removed the plugin as a path; its job had already been taken over.
       What remains is making verification unreachable-around rather than
       promised per implementation — Card 196 step 3.
-- [ ] one crate and one package added, following existing naming pairs.
+- [x] one crate and one package added, following existing naming pairs.
       `longhorn-tauri-update` was absorbed back into `longhorn-update` on
       2026-08-09 and the decision of 2026-08-12 removed the reason to recreate
       it as a plugin wrapper; a host crate for Tauri commands is still owed by
@@ -181,11 +181,15 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 190 step 4: the host crate and the Tauri commands, with `check` and
-`install` as separate capabilities. Card 196 landed the controller on
-2026-08-12, so there is now something for those commands to call.
+Card 154, the client surface, rescoped to `packages/longhorn/src/update/` and
+`packages/longhorn-poodle-svelte/src/update/`. Card 190 step 4 landed the seam
+on 2026-08-13 and left the raw port returning `unknown`; the validation and the
+checked port that narrows it are the first thing 154 owes.
 
-Previously: Card 196, the controller. Card 190 landed the protocol on 2026-08-12 and
+Card 159's packaged proof stays paused by operator decision. It is the only
+other open item in the batch.
+
+Previously: Card 190 step 4, then Card 196. Card 190 landed the protocol on 2026-08-12 and
 stopped at step 4 for want of a host crate; Card 154 is blocked behind it; Card
 159 is paused by operator decision. The controller is the only unblocked work
 in the batch, and it is what the decision of 2026-08-12 made Longhorn's without

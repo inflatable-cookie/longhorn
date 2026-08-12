@@ -1,0 +1,6 @@
+[[permission]]
+identifier = "allow-longhorn-update-read"
+description = "Allows reading Longhorn update state: channel, availability, deferral, progress."
+commands.allow = [
+  "longhorn_update_snapshot",
+]

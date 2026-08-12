@@ -26,6 +26,16 @@
       "import": "./src/bridge/generated/protocol.ts",
       "default": "./src/bridge/generated/protocol.ts"
     },
+    "./bridge/stream": {
+      "types": "./src/bridge/stream.ts",
+      "import": "./src/bridge/stream.ts",
+      "default": "./src/bridge/stream.ts"
+    },
+    "./bridge/supervision": {
+      "types": "./src/bridge/supervision.ts",
+      "import": "./src/bridge/supervision.ts",
+      "default": "./src/bridge/supervision.ts"
+    },
     "./commands": {
       "types": "./src/commands/index.ts",
       "import": "./src/commands/index.ts",
@@ -56,11 +66,6 @@
       "import": "./src/history/index.ts",
       "default": "./src/history/index.ts"
     },
-    "./history/protocol": {
-      "types": "./src/history/generated/protocol.ts",
-      "import": "./src/history/generated/protocol.ts",
-      "default": "./src/history/generated/protocol.ts"
-    },
     "./history-tree": {
       "types": "./src/history-tree/index.ts",
       "import": "./src/history-tree/index.ts",
@@ -70,6 +75,11 @@
       "types": "./src/history-tree/generated/protocol.ts",
       "import": "./src/history-tree/generated/protocol.ts",
       "default": "./src/history-tree/generated/protocol.ts"
+    },
+    "./history/protocol": {
+      "types": "./src/history/generated/protocol.ts",
+      "import": "./src/history/generated/protocol.ts",
+      "default": "./src/history/generated/protocol.ts"
     },
     "./layout": {
       "types": "./src/layout/index.ts",
@@ -106,11 +116,17 @@
       "import": "./src/operation/index.ts",
       "default": "./src/operation/index.ts"
     },
+    "./operation/bridge": {
+      "types": "./src/operation/bridge.ts",
+      "import": "./src/operation/bridge.ts",
+      "default": "./src/operation/bridge.ts"
+    },
     "./operation/protocol": {
       "types": "./src/operation/generated/protocol.ts",
       "import": "./src/operation/generated/protocol.ts",
       "default": "./src/operation/generated/protocol.ts"
     },
+    "./package.json": "./package.json",
     "./settings": {
       "types": "./src/settings/index.ts",
       "import": "./src/settings/index.ts",
@@ -151,22 +167,16 @@
       "import": "./src/transfer/generated/protocol.ts",
       "default": "./src/transfer/generated/protocol.ts"
     },
-    "./bridge/stream": {
-      "types": "./src/bridge/stream.ts",
-      "import": "./src/bridge/stream.ts",
-      "default": "./src/bridge/stream.ts"
+    "./update": {
+      "types": "./src/update/index.ts",
+      "import": "./src/update/index.ts",
+      "default": "./src/update/index.ts"
     },
-    "./bridge/supervision": {
-      "types": "./src/bridge/supervision.ts",
-      "import": "./src/bridge/supervision.ts",
-      "default": "./src/bridge/supervision.ts"
-    },
-    "./operation/bridge": {
-      "types": "./src/operation/bridge.ts",
-      "import": "./src/operation/bridge.ts",
-      "default": "./src/operation/bridge.ts"
-    },
-    "./package.json": "./package.json"
+    "./update/protocol": {
+      "types": "./src/update/generated/protocol.ts",
+      "import": "./src/update/generated/protocol.ts",
+      "default": "./src/update/generated/protocol.ts"
+    }
   },
   "files": [
     "src",
