@@ -1,6 +1,6 @@
 # g02.018 Tagged-Union Boundary Validation
 
-Status: in progress — batch 1 complete 2026-08-12
+Status: in progress — batches 1 and 2 complete 2026-08-12
 Owner: Tom
 Governing refs: contract 010; contract 011; contract 012
 Depends on: g02.011 (complete)
@@ -129,5 +129,12 @@ checkpoint below comes first.
 ## Planning Checkpoint
 
 Answered after batch 1: not eleven cards, and not one. Two, split by whether a
-domain already hand-writes the lists. The next checkpoint is after batch 2,
-before the eight domains start rejecting payloads they used to accept.
+domain already hand-writes the lists.
+
+**The live checkpoint is here, before batch 3.** Two things it has to weigh.
+The eight domains gain a check they never had, so each can start rejecting a
+payload a shipped consumer sends today — that is a consumer-visible behaviour
+change and the operator's call, not a mechanical sweep. And Card 188 verified
+44 of its 69 replaced lists only at the weaker attribution-free standard, so
+batch 3 must not inherit a belief that the earlier lists were audited per
+variant.
