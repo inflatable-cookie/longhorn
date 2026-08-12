@@ -17,7 +17,7 @@ export class ForkHistorySession {
   loadContinuations(anchorEntryId: string | null, offset = 0): Promise<ForkContinuationPageSnapshot> { return this.#controller.loadContinuations(anchorEntryId, offset); }
   /** Card 183. The flat run beginning at one entry, as the same page type as `path`. */
   loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> { return this.#controller.loadContinuationRun(fromEntryId, offset); }
-  /** Card 184. Make one entry its parent's preferred continuation, applying none of it. */
-  preferContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#controller.preferContinuation(entryId); }
+  /** Card 184. Check out the run beginning at one entry; applies none of it. */
+  checkoutContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#controller.checkoutContinuation(entryId); }
   #sync() { this.status = this.#controller.status; this.snapshot = this.#controller.snapshot; this.path = this.#controller.path; this.branches = this.#controller.branches; this.entries = [...this.#controller.entries]; this.navigationPending = this.#controller.navigationPending; this.canUndo = this.#controller.canUndo; this.canRedo = this.#controller.canRedo; }
 }

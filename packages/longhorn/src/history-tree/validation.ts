@@ -63,7 +63,7 @@ const PATH_TARGET_FIELDS: Record<string, readonly string[]> = {
 const NAVIGATION_TARGET_FIELDS: Record<string, readonly string[]> = {
   checkout: ["kind", "branchId", "entryId"],
   checkoutBranchRoot: ["kind", "branchId"],
-  preferContinuation: ["kind", "entryId"],
+  checkoutContinuation: ["kind", "entryId"],
 };
 
 export function assertForkBranchCommand(value: unknown): asserts value is ForkBranchPageCommand {
@@ -115,7 +115,7 @@ export function assertForkNavigationCommand(value: unknown): asserts value is Fo
   exact(target, "$.target", NAVIGATION_TARGET_FIELDS[target.kind as string] ?? ["kind"]);
   if (target.kind === "checkout") { id(target.branchId, "$.target.branchId"); id(target.entryId, "$.target.entryId"); }
   if (target.kind === "checkoutBranchRoot") id(target.branchId, "$.target.branchId");
-  if (target.kind === "preferContinuation") id(target.entryId, "$.target.entryId");
+  if (target.kind === "checkoutContinuation") id(target.entryId, "$.target.entryId");
 }
 
 export function assertForkNavigationResult(value: unknown): asserts value is ForkNavigationResult {

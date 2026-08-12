@@ -34,7 +34,7 @@ pub enum ForkNavigationTargetProjection {
     /// Make one entry its parent's preferred continuation, applying none of
     /// it. The chosen run becomes the default path; the previous default
     /// becomes a continuation at the same entry.
-    PreferContinuation {
+    CheckoutContinuation {
         /// Entry to prefer.
         entry_id: HistoryEntryId,
     },

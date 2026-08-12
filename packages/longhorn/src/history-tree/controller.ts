@@ -117,12 +117,15 @@ export class ForkHistoryController {
   /** Move to a branch's root, the position before its first entry. */
   checkoutBranchRoot(branchId: ForkBranchId): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutBranchRoot", branchId }); }
   /**
-   * Make one entry the preferred continuation of its parent, applying none of
-   * it. The chosen run becomes the default path and the previous default
-   * becomes a fork at the same entry; the operator ends up standing at that
-   * entry, whether or not they started there.
+   * Check out the run beginning at one entry: it becomes the current line,
+   * and the previous line becomes a fork at the same entry. No delta of it is
+   * applied, and the operator ends up standing at the fork entry whether or
+   * not they started there.
+   *
+   * This commits. Browsing the forks does not — use `loadContinuationRun` to
+   * show a fork's entries without choosing it.
    */
-  preferContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "preferContinuation", entryId }); }
+  checkoutContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutContinuation", entryId }); }
 
   async #navigate(target: ForkNavigationTargetProjection): Promise<ForkNavigationResult> {
     const snapshot = this.#required(); const navigation = ++this.#navigation; this.#pending = true; this.#notify();

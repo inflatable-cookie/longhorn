@@ -62,7 +62,7 @@ impl<P> ForkHistory<P> {
             parent = Some(child.clone());
         }
 
-        if let ForkNavigationTarget::PreferContinuation { entry_id } = &plan.target {
+        if let ForkNavigationTarget::CheckoutContinuation { entry_id } = &plan.target {
             // The route above re-points preferred children only down to the
             // target node, which is this entry's parent. This is the step past
             // it that makes the chosen run the default path.
@@ -177,7 +177,7 @@ impl<P> ForkHistory<P> {
                 }
                 Ok((branch_id.clone(), None))
             }
-            ForkNavigationTarget::PreferContinuation { entry_id } => {
+            ForkNavigationTarget::CheckoutContinuation { entry_id } => {
                 let node = self
                     .nodes
                     .get(entry_id)

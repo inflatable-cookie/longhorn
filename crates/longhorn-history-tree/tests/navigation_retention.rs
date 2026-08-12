@@ -863,7 +863,7 @@ fn checkout_branch_root_rejects_a_branch_that_does_not_exist() {
 /// Card 184. The operator standing at the fork picks the other future. The
 /// list they are reading swaps; the document does not move by one delta.
 #[test]
-fn preferring_a_continuation_applies_nothing_and_swaps_the_default_path() {
+fn checking_out_a_continuation_applies_nothing_and_swaps_the_default_path() {
     let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
     // Back to the fork entry, which is where the operator stands when they
     // open it and pick a different continuation.
@@ -878,14 +878,14 @@ fn preferring_a_continuation_applies_nothing_and_swaps_the_default_path() {
 
     let plan = history
         .plan_navigation(
-            plan_id("plan:prefer-c"),
+            plan_id("plan:checkout-c"),
             history.revision(),
-            ForkNavigationTarget::PreferContinuation {
+            ForkNavigationTarget::CheckoutContinuation {
                 entry_id: entry_id("entry:c"),
             },
             &DeltaPolicy,
         )
-        .expect("prefer plan");
+        .expect("checkout plan");
     assert!(
         plan.steps().is_empty(),
         "the operator is already at the fork, so there is nothing to apply"
@@ -898,7 +898,7 @@ fn preferring_a_continuation_applies_nothing_and_swaps_the_default_path() {
     };
     let receipt = history
         .execute_navigation(plan, &mut transaction)
-        .expect("prefer commit");
+        .expect("checkout commit");
     assert_eq!(receipt.target_node_id(), Some(&entry_id("entry:b")));
     assert_eq!(receipt.target_branch_id(), &branch_id("branch:main"));
     assert!(
@@ -937,19 +937,19 @@ fn preferring_a_continuation_applies_nothing_and_swaps_the_default_path() {
 /// Card 184. Standing inside the run being replaced, the operator has to come
 /// back to the fork first, or the flat list would no longer contain them.
 #[test]
-fn preferring_a_continuation_from_downstream_returns_to_the_fork_entry() {
+fn checking_out_a_continuation_from_downstream_returns_to_the_fork_entry() {
     let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
     assert_eq!(model, 7);
     let plan = history
         .plan_navigation(
-            plan_id("plan:prefer-from-downstream"),
+            plan_id("plan:checkout-from-downstream"),
             history.revision(),
-            ForkNavigationTarget::PreferContinuation {
+            ForkNavigationTarget::CheckoutContinuation {
                 entry_id: entry_id("entry:c"),
             },
             &DeltaPolicy,
         )
-        .expect("prefer plan");
+        .expect("checkout plan");
     assert_eq!(plan.steps().len(), 1);
     assert!(
         matches!(
@@ -966,20 +966,20 @@ fn preferring_a_continuation_from_downstream_returns_to_the_fork_entry() {
     };
     let receipt = history
         .execute_navigation(plan, &mut transaction)
-        .expect("prefer commit");
+        .expect("checkout commit");
     assert_eq!(receipt.target_node_id(), Some(&entry_id("entry:b")));
     assert_eq!(model, 3, "back to the fork, and no further");
 }
 
 /// Card 184. The one case where standing still really is nothing to do.
 #[test]
-fn preferring_the_continuation_already_preferred_is_rejected() {
+fn checking_out_the_continuation_already_current_is_rejected() {
     let (history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
     let error = history
         .plan_navigation(
-            plan_id("plan:prefer-noop"),
+            plan_id("plan:checkout-noop"),
             history.revision(),
-            ForkNavigationTarget::PreferContinuation {
+            ForkNavigationTarget::CheckoutContinuation {
                 entry_id: entry_id("entry:d"),
             },
             &DeltaPolicy,
@@ -989,13 +989,13 @@ fn preferring_the_continuation_already_preferred_is_rejected() {
 }
 
 #[test]
-fn preferring_a_continuation_that_does_not_exist_is_rejected() {
+fn checking_out_a_continuation_that_does_not_exist_is_rejected() {
     let (history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
     let error = history
         .plan_navigation(
-            plan_id("plan:prefer-absent"),
+            plan_id("plan:checkout-absent"),
             history.revision(),
-            ForkNavigationTarget::PreferContinuation {
+            ForkNavigationTarget::CheckoutContinuation {
                 entry_id: entry_id("entry:absent"),
             },
             &DeltaPolicy,

@@ -35,12 +35,17 @@ pub enum ForkNavigationTarget {
         /// Stable branch reference.
         branch_id: ForkBranchId,
     },
-    /// Make one entry its parent's preferred continuation, without walking
-    /// into it.
+    /// Check out the run that begins at one entry: it becomes the current
+    /// line, without the operator walking into it.
     ///
-    /// The operator picked a different future at a fork. The chosen run
-    /// becomes the flat default path and what was the default becomes a
-    /// continuation at the same entry -- but not one delta of it is applied.
+    /// The operator picked a different line at a fork. The chosen run becomes
+    /// the flat default path and what was the default becomes a continuation
+    /// at the same entry -- but not one delta of it is applied.
+    ///
+    /// Distinct from `Checkout`, which answers "where in this line am I" and
+    /// moves the document to an entry. This answers "which line am I on".
+    /// Browsing the forks costs nothing: a consumer reads them with
+    /// `project_continuation_run_page` and commits only here.
     ///
     /// The target node is the entry's *parent*, so an operator standing
     /// downstream of the fork undoes back to it as ordinary steps and never
@@ -52,8 +57,8 @@ pub enum ForkNavigationTarget {
     /// nothing, because execution only re-points preferred children down to
     /// the target node; checking out the fork's first entry re-points them and
     /// applies that entry, which is the thing the operator declined.
-    PreferContinuation {
-        /// Entry to prefer. Its parent may be the root.
+    CheckoutContinuation {
+        /// First entry of the run to check out. Its parent may be the root.
         entry_id: HistoryEntryId,
     },
 }

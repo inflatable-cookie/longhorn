@@ -1,4 +1,4 @@
-# 184 Prefer A Continuation Without Walking Into It
+# 184 Check Out A Continuation Without Walking Into It
 
 Status: complete — landed 2026-08-12
 Owner: Tom
@@ -31,14 +31,14 @@ the operator asked not to do.
 
 `src/navigation/types.rs`.
 
-- [x] `ForkNavigationTarget::PreferContinuation { entry_id }`: make `entry_id`
-      the preferred continuation of its parent.
+- [x] `ForkNavigationTarget::CheckoutContinuation { entry_id }`: the run
+      beginning at `entry_id` becomes the current line.
 - [x] Resolves to the parent as the target node and to the branch a consumer
       would land on by taking the child — the same derivation Card 183's
       continuation page reports, so the picker and the commit agree.
 - [x] Committing sets `preferred_children[parent] = entry_id` in addition to
       whatever the route already re-points.
-- [x] `entry_id` must be a retained entry. Its parent may be `None`: preferring
+- [x] `entry_id` must be a retained entry. Its parent may be `None`: checking out
       a root continuation is the same operation at the root.
 
 ## Step 2 — Zero-step plans are legitimate here
@@ -47,12 +47,12 @@ the operator asked not to do.
 as `AlreadyAtTarget`. That is right for every existing target and wrong for this
 one — the whole point is to commit a change while standing still.
 
-- [x] Exempt `PreferContinuation` from the `AlreadyAtTarget` check. Every other
+- [x] Exempt `CheckoutContinuation` from the `AlreadyAtTarget` check. Every other
       target keeps it.
 - [x] A zero-step plan still bumps the revision and still returns a receipt.
       Consumers watch the revision, and a fork switch that did not move it would
       leave every page they hold looking current.
-- [x] Reject preferring an entry that is already its parent's preferred child.
+- [x] Reject checking out an entry that is already its parent's preferred child.
       That is genuinely nothing to do, and it is the one case where
       `AlreadyAtTarget` is the honest answer.
 
@@ -73,18 +73,18 @@ lineage, and the flat list would no longer contain where the operator is.
 
 - [x] Carry the target through `ForkNavigationTargetProjection`, the receipt,
       the rejection projection and the generated TypeScript.
-- [x] `ForkHistoryController.preferContinuation(entryId)`, refreshing snapshot,
+- [x] `ForkHistoryController.checkoutContinuation(entryId)`, refreshing snapshot,
       path and branches together the way Card 181 step 1 established.
 
 ## Acceptance
 
 - [x] `effigy qa` passes, including `check:bindings`.
-- [x] A navigation test standing at the fork entry prefers a continuation,
+- [x] A navigation test standing at the fork entry checks out a continuation,
       applies zero steps, bumps the revision, and finds the default path page
       now walks the chosen fork.
-- [x] A navigation test standing three entries downstream prefers a
+- [x] A navigation test standing three entries downstream checks out a
       continuation and lands at the fork entry with three undo steps applied.
-- [x] A navigation test asserts preferring the current preferred child is
+- [x] A navigation test asserts checking out the current preferred child is
       `AlreadyAtTarget`.
 - [x] A navigation test asserts the previous future is still reachable — it is
       now a continuation at the same entry, with the same entry count.
@@ -108,7 +108,7 @@ milestone's planning checkpoint after this card.
 
 ## Outcome — 2026-08-12
 
-Landed as planned. `PreferContinuation { entry_id }` resolves to the entry's
+Landed as planned. `CheckoutContinuation { entry_id }` resolves to the entry's
 parent as the target node and to the branch a consumer would land on by taking
 the child -- the same derivation the continuation page reports, so the picker
 and the commit name the same branch. Execution re-points
@@ -118,13 +118,39 @@ take.
 
 The `AlreadyAtTarget` exemption stayed a single `matches!` at the one existing
 check, so step 2's stop condition never came into play. The genuinely-nothing-
-to-do case moved into the resolver, where it belongs: preferring the entry that
-is already preferred is rejected there.
+to-do case moved into the resolver, where it belongs: checking out the entry
+that is already current is rejected there.
 
 Evidence:
-- `preferring_a_continuation_applies_nothing_and_swaps_the_default_path`,
-  `preferring_a_continuation_from_downstream_returns_to_the_fork_entry`,
-  `preferring_the_continuation_already_preferred_is_rejected`,
-  `preferring_a_continuation_that_does_not_exist_is_rejected`
+- `checking_out_a_continuation_applies_nothing_and_swaps_the_default_path`,
+  `checking_out_a_continuation_from_downstream_returns_to_the_fork_entry`,
+  `checking_out_the_continuation_already_current_is_rejected`,
+  `checking_out_a_continuation_that_does_not_exist_is_rejected`
   (`crates/longhorn-history-tree/tests/navigation_retention.rs`)
 - `effigy qa` exit 0.
+
+## Naming — corrected 2026-08-12
+
+Shipped as `PreferContinuation`, renamed to `CheckoutContinuation` on the
+operator's call. "Prefer" named the mechanism -- the target sets
+`preferred_children[parent]` -- and every sibling in the enum names an intent
+instead: `Undo`, `Redo`, `Checkout`, `CheckoutBranchRoot`. It was the odd one
+out in its own list and nobody noticed when it landed.
+
+Checkout is the operator's word and the right metaphor: switch which line is
+current, change no history. Poodle uses it in the UI, and a second word for one
+operation is a glossary, not decoupling.
+
+The `preferred` field on `ForkContinuationRecord` keeps its name. That is
+authority data -- which child a redo takes -- and nothing user-facing shows it.
+
+Three operations, easily confused, so they are stated here once:
+
+| Gesture | Operation | Commits |
+| --- | --- | --- |
+| Pick a fork in the dropdown | `project_continuation_run_page` | no |
+| Confirm | `CheckoutContinuation` | yes |
+| Click a row | `Checkout` | yes |
+
+Browsing forks is a projection. Only confirm commits, and only `Checkout` moves
+the document within a line.
