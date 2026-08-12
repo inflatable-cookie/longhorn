@@ -1,6 +1,7 @@
 # 192 Bind The Settings Shell
 
-Status: blocked — needs Poodle's redesigned settings shell (batch 1)
+Status: in progress — step 1 complete 2026-08-12; steps 2 and 3 need Poodle's
+redesigned shell (batch 1)
 Owner: Tom
 Roadmap: g02.020 batch 2
 Governing refs: contract 012; contract 013; contract 020
@@ -19,17 +20,35 @@ components in the package ship none.
 Do these first and on their own commit. They are wrong today, they will still
 be wrong under a new shell, and neither is Poodle's to fix.
 
-- [ ] **Stop composing two labels into one.** `SettingsShell.svelte:51` builds
+- [x] **Stop composing two labels into one.** `SettingsShell.svelte:51` builds
       a group label as `` `${module.label} · ${section.label}` `` whenever more
       than one module is registered. Soundcheck reads "STORAGE · STORAGE &
       BACKUPS" because its Storage module holds a Storage & Backups section.
       Pass the section label. If a host needs the module named, that is the
       host's label to write, not a rule applied to every group.
-- [ ] **Delete the per-page close.** `SettingsShell.svelte:212` renders a ghost
-      `Close` into every page's `PageHeader` actions while the `Dialog` already
-      renders its own. One affordance.
-- [ ] Both have a test. The first asserts a group label is exactly the
-      section's; the second asserts the page header has no close action.
+- [x] **Delete the per-page close** — *corrected during execution, see below.*
+      `SettingsShell.svelte:212` renders a ghost `Close` into every page's
+      `PageHeader` actions while the `Dialog` already renders its own.
+- [x] Both have a test. The first asserts a group label is exactly the
+      section's; the second asserts one close per host.
+
+### Correction — deleting it outright would have been a defect
+
+Only `host === "modal"` renders a `Dialog`, and only that branch passes
+`showCloseButton`. The `window` and `panel` hosts render a bare `Surface` with
+no close affordance at all, so the page-header button was **their only way
+out**. Removing it for every host would have left two of three unclosable.
+
+The screenshot that prompted this milestone is the modal host, which is why
+the duplicate was the visible fault. "Remove it from every page" was a
+generalisation from one host.
+
+So it is now conditional: the page keeps its close only where the host provides
+none. Per-page remains the wrong home — the redesigned shell should carry one
+close in its own chrome for every host — and the file says so where the
+condition is.
+
+`offers exactly one close per host, whichever host it is` asserts all three.
 
 ## Step 2 — The shell becomes a binding
 

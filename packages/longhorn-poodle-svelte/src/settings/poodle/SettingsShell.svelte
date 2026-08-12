@@ -45,13 +45,16 @@
   useSettingsSession(session, resolveRenderer);
 
   const navigationGroups = $derived<SidebarNavGroup[]>(
-    session.navigation?.modules.flatMap(({ module, sections }) =>
+    session.navigation?.modules.flatMap(({ sections }) =>
       sections.map(({ section, pages }) => ({
         id: section.id,
-        label:
-          session.navigation!.modules.length > 1
-            ? `${module.label} · ${section.label}`
-            : section.label,
+        // The section's own label, always. This used to prefix the module's
+        // whenever more than one was registered, which reads as
+        // "STORAGE · STORAGE & BACKUPS" for a Storage module holding a
+        // Storage & Backups section -- and then wraps to two lines in a
+        // narrow column. A host that wants its module named writes that into
+        // the section label; it is not a rule to apply to every group.
+        label: section.label,
         items: pages.map((page) => ({
           value: page.id,
           label: page.label,
@@ -209,7 +212,19 @@
         >
           <PageHeader title={page.label} level={2}>
             {#snippet actions()}
-              <Button variant="ghost" onClick={requestClose}>Close</Button>
+              <!-- Only where the host provides no close of its own. The modal
+                   host renders a Dialog with `showCloseButton`, so a second
+                   one here gave every page two affordances for one action --
+                   the reported fault. The window and panel hosts render a bare
+                   Surface and have none, so removing it outright would leave
+                   them unclosable.
+
+                   Per-page is still the wrong home for it. The redesigned
+                   shell should carry one close in its own chrome for every
+                   host; this keeps the behaviour correct until it does. -->
+              {#if host !== "modal"}
+                <Button variant="ghost" onClick={requestClose}>Close</Button>
+              {/if}
             {/snippet}
           </PageHeader>
 

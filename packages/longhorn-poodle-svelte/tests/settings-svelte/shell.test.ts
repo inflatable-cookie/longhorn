@@ -25,6 +25,47 @@ function createSession(
 }
 
 describe("SettingsShell", () => {
+  // Card 192 step 1. The dialog's own close is the only one now; the page
+  // header used to carry a second, so every page offered two affordances for
+  // one action. `handleDialogOpen` runs the guard, so the close is still
+  // refusable -- which the dirty test below proves.
+  it("offers exactly one close per host, whichever host it is", async () => {
+    // modal: the Dialog has one, so the page header must not add a second.
+    // window and panel: the Surface has none, so the page header is the only
+    // one and removing it outright would leave them unclosable.
+    for (const [host, dialogCloses, pageCloses] of [
+      ["modal", 1, 0],
+      ["window", 0, 1],
+      ["panel", 0, 1],
+    ] as const) {
+      const transport = new FakeSettingsTransport();
+      const mounted = render(SettingsShellHarness, {
+        props: { session: createSession(transport), host },
+      });
+      await mounted.findByTestId("consumer-page");
+      expect(
+        mounted.queryAllByRole("button", { name: "Close dialog" }),
+      ).toHaveLength(dialogCloses);
+      expect(
+        mounted.queryAllByRole("button", { name: "Close" }),
+      ).toHaveLength(pageCloses);
+      mounted.unmount();
+    }
+  });
+
+  // The section's own label, never the module's prefixed onto it. The fixture
+  // registry has more than one module, which is precisely when the old rule
+  // fired and produced "STORAGE · STORAGE & BACKUPS".
+  it("labels a navigation group with its section alone", async () => {
+    const transport = new FakeSettingsTransport();
+    const mounted = render(SettingsShellHarness, {
+      props: { session: createSession(transport), host: "window" },
+    });
+    await mounted.findByTestId("consumer-page");
+    const nav = document.querySelector('[aria-label="Settings pages"]');
+    expect(nav?.textContent ?? "").not.toContain("·");
+  });
+
   it("mounts modal, window, and panel hosts over one controller", async () => {
     for (const host of ["modal", "window", "panel"] as const) {
       const transport = new FakeSettingsTransport();
