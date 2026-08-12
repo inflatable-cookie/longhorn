@@ -21,6 +21,7 @@
 | [g02.015](015-gpui-composition-and-live-evidence.md) | ready | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
 | [g02.017](017-fork-retention-and-deletion.md) | in progress | an operator can delete a fork; retention can prune, which today it cannot |
+| [g02.020](020-no-design-in-the-authority.md) | ready | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | in progress | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | in progress | the 181 tagged unions validate per variant, from the Rust enums |
 

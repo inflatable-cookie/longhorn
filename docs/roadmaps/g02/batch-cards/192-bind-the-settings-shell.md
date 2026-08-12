@@ -1,0 +1,90 @@
+# 192 Bind The Settings Shell
+
+Status: blocked — needs Poodle's redesigned settings shell (batch 1)
+Owner: Tom
+Roadmap: g02.020 batch 2
+Governing refs: contract 012; contract 013; contract 020
+Depends on: g02.020 batch 1
+Blocks: batch 3
+Auto-start next card: no
+
+## Why
+
+See the milestone. Five components in `longhorn-poodle-svelte` ship 152 lines
+of CSS between them, and all five are the settings family. The other eight
+components in the package ship none.
+
+## Step 1 — Two faults that are Longhorn's, and are not CSS
+
+Do these first and on their own commit. They are wrong today, they will still
+be wrong under a new shell, and neither is Poodle's to fix.
+
+- [ ] **Stop composing two labels into one.** `SettingsShell.svelte:51` builds
+      a group label as `` `${module.label} · ${section.label}` `` whenever more
+      than one module is registered. Soundcheck reads "STORAGE · STORAGE &
+      BACKUPS" because its Storage module holds a Storage & Backups section.
+      Pass the section label. If a host needs the module named, that is the
+      host's label to write, not a rule applied to every group.
+- [ ] **Delete the per-page close.** `SettingsShell.svelte:212` renders a ghost
+      `Close` into every page's `PageHeader` actions while the `Dialog` already
+      renders its own. One affordance.
+- [ ] Both have a test. The first asserts a group label is exactly the
+      section's; the second asserts the page header has no close action.
+
+## Step 2 — The shell becomes a binding
+
+- [ ] Replace the composition with Poodle's shell, feeding it the
+      `SettingsSession` this file already reads. No layout decisions, no
+      `<style>` block.
+- [ ] Keep every behaviour the current file owns that is not layout: the
+      close guard (`session.requestClose()` may refuse), the search wiring,
+      deep-link routing to an anchor, and the focus restore Poodle's Dialog
+      fix depends on.
+- [ ] Under a hundred lines. If it will not fit, the shell is missing
+      something and that is batch 1's problem, not a reason to keep layout
+      here.
+
+## Step 3 — The other four drop their CSS
+
+`KeybindingSettings`, `BackupSettingsPage`, `RestoreSettingsPage`,
+`StorageSettingsPage`.
+
+- [ ] Their **content** stays. They render Longhorn's keymap, storage, backup
+      and restore domains, and none of that is general-purpose.
+- [ ] Their **layout** composes Poodle primitives. `FormLayout`, `Field`,
+      `DetailSection`, `Stack` and `Grid` all exist.
+- [ ] Where a page needs something Poodle does not have, papercut it rather
+      than writing the CSS here. That papercut is the evidence batch 3 needs.
+- [ ] `RestoreSettingsPage` is 529 lines and the largest. Expect it to be the
+      one that finds the gaps.
+
+## Acceptance
+
+- [ ] `effigy qa` passes.
+- [ ] No `<style>` block remains in `longhorn-poodle-svelte`.
+- [ ] The settings binding is under a hundred lines.
+- [ ] A test asserts a refused close still surfaces its reason. That behaviour
+      is the one most likely to be lost in a rewrite, because it only shows on
+      a page with unsaved edits.
+- [ ] A worked example in the batch log: the Soundcheck dialog, with the two
+      step 1 faults gone.
+
+## Evidence
+
+- [ ] The tests above, named in the batch log.
+- [ ] The before-and-after CSS count for the package: 152 lines to zero.
+- [ ] Any papercut raised against Poodle, with what the page needed.
+
+## Stop Conditions
+
+- Stop if the shell cannot express the close guard. A settings dialog that
+  cannot be refused loses unsaved edits, and moving the design is not worth
+  that.
+- Stop if a page needs more than two papercuts to lose its CSS. That means the
+  redesign missed a class of layout these pages depend on, and the answer is
+  another round in Poodle rather than a Longhorn workaround.
+
+## Continuation
+
+Batch 3 adds the check: no `<style>` block in this package. It cannot run
+before this card, because the five files it exists to prevent are still here.
