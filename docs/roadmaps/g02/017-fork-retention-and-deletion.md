@@ -56,7 +56,9 @@ a name meant an operator had cared enough to type one. Auto-naming turned it
 into "protect everything". `pinned` already means what protection should mean,
 which makes the name clause redundant as well as harmful.
 
-## Operator Decision — settled 2026-08-12
+## Operator Decisions — settled 2026-08-12
+
+Three, and they close both planning gaps this milestone opened with.
 
 **Deleting a fork is irreversible, and the deletion is not itself undoable.**
 
@@ -68,18 +70,38 @@ This makes the operation the only destructive one in either history domain, so
 it is confirmed at the UI and it is reported precisely: the receipt names every
 node, branch and checkpoint it removed, and the revision moves.
 
-## Planning Gaps
+**The protected set falls outside the budget.** Once protected, an entry is a
+core record of the project, not a transient budgeted thing. The budget bounds
+how much *transient* history is kept, not how large the graph is.
 
-- **Who sets the budgets, and when does automatic pruning run?** Longhorn owns
-  no policy and no scheduler. The likely answer is that the host supplies
-  limits and calls a command, but whether that call is on record, on a timer,
-  or on an explicit operator action is a consumer decision that shapes the
-  command's shape. Batch 2 stays paused until it is answered.
-- **What happens when the protected set alone exceeds the budget?** Today it is
-  `ProtectedBudget`, an error with no remedy the operator can act on. Once
-  protection means `pinned` only, the remedy is "unpin something" — but the
-  error does not say which, and the UI has nothing to show. Answer before
-  batch 2.
+This deletes a failure mode rather than handling it. `ProtectedBudget` cannot
+arise: if everything is protected there is nothing to prune and nothing is over
+budget. A graph can then grow without bound through pinning, which is correct —
+the operator pinned those.
+
+**Pruning has three triggers, and each app opts in or out of each.** On record,
+on a timer, and on an explicit operator action.
+
+### Why that needs no scheduler in Longhorn
+
+The ruling is per-app configuration over three triggers. Longhorn holds none of
+that configuration, and this is a reading of the ruling rather than a
+restatement of it — say so if it is the wrong reading.
+
+Only one of the three could ever be Longhorn's, and it does not need to be.
+A timer needs a clock and a runtime, and Longhorn has neither. An operator
+action is the host wiring a control. That leaves "on record", which Longhorn
+does see — but `ForkSummaryProjection` already reports
+`retained_entry_count` and `retained_encoded_weight`, so a host can read budget
+pressure after any record and decide for itself.
+
+So all three triggers are the host calling one command, and opting out is not
+calling it. Longhorn ships the operation and the numbers; the policy, the
+timer and the per-app configuration live where the policy already lives.
+
+The alternative — a `prune_on_record` flag inside the crate — buys nothing and
+costs the atomicity of `record_applied`: a record that also prunes moves the
+revision twice and has to report two outcomes in one receipt.
 
 ## Execution Plan
 
@@ -87,9 +109,11 @@ node, branch and checkpoint it removed, and the revision moves.
       subtree removal taking the same handle `CheckoutContinuation` takes, with
       a protocol command, a Tauri command and a controller method. Rejects
       deleting the line the operator is on or inside.
-- [ ] **Batch 2. Retention that can act** (Card 186, paused on both gaps
-      above). Drop the name clause from protection, then give `prune_to` a
-      surface so a host can hold a budget without writing Rust.
+- [ ] **Batch 2. Retention that can prune** (Card 186, ready). Measure the
+      budget against the unprotected share, drop the name clause from
+      protection, and give `prune_to` a surface so a host can hold a budget
+      without writing Rust. Both fixes are needed: either alone leaves a fully
+      protected graph unprunable, one loudly and one quietly.
 - [ ] **Batch 3. Bulk selection, if the field asks for it.** Deleting forks one
       at a time is fine for a handful and wrong for two hundred. A
       delete-many-by-predicate belongs here, not in batch 1, and only once
@@ -126,10 +150,11 @@ node, branch and checkpoint it removed, and the revision moves.
 
 ## Next Task
 
-Card 185. Batch 2 waits for both planning gaps; batch 3 waits for batch 1 to
-ship and for the field to say whether one-at-a-time is enough.
+Card 185, then Card 186. Both are ready. Batch 3 waits for batch 1 to ship and
+for the field to say whether one-at-a-time is enough.
 
 ## Planning Checkpoint
 
-After Card 185, before batch 2. The two gaps are consumer-policy questions and
-the answer to the first one shapes the command.
+After Card 186. By then a consumer will have set a real budget against a real
+graph, which is the first evidence that the unprotected-share measure is the
+one an operator can reason about.
