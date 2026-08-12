@@ -1,6 +1,6 @@
 # g02.018 Tagged-Union Boundary Validation
 
-Status: ready
+Status: in progress — batch 1 complete 2026-08-12
 Owner: Tom
 Governing refs: contract 010; contract 011; contract 012
 Depends on: g02.011 (complete)
