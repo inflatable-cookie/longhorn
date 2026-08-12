@@ -26,10 +26,9 @@ use std::{
 };
 
 use flate2::{Compression, write::GzEncoder};
-use longhorn_update::{InstallFailure, UpdateInstaller};
+use longhorn_update::{ArtifactKey, InstallFailure, UpdateInstaller, verify_artifact};
 use longhorn_update_install::NativeInstaller;
 use minisign::KeyPair;
-use minisign_verify::PublicKey;
 use semver::Version;
 use serde_json::{Value, json};
 
@@ -102,17 +101,19 @@ fn run(app: &Path) -> Result<Value, String> {
     let mut tampered = artifact.clone();
     let last = tampered.len() - 1;
     tampered[last] ^= 0xff;
-    let tamper_outcome = NativeInstaller::new(public_key.clone(), &installed).apply(
-        &next_version,
-        &tampered,
-        &signature,
-    );
+    // Verification is the controller's since 2026-08-12, so the proof
+    // verifies rather than watching the installer do it. The claim is
+    // unchanged and slightly stronger: a tampered artifact cannot become a
+    // `VerifiedArtifact`, so it never reaches the installer at all.
+    let tamper_outcome = verify_artifact(&public_key, &next_version, tampered, &signature);
     let tamper_rejected = matches!(tamper_outcome, Err(InstallFailure::SignatureRejected));
     let untouched_after_tamper = bundle_version(&installed)? == installed_version;
 
     // 2. The real artifact must replace the bundle.
-    let applied = NativeInstaller::new(public_key, &installed)
-        .apply(&next_version, &artifact, &signature)
+    let verified = verify_artifact(&public_key, &next_version, artifact, &signature)
+        .map_err(|failure| format!("the proof's own artifact did not verify: {failure}"))?;
+    let applied = NativeInstaller::new(&installed)
+        .apply(&verified)
         .map_err(|failure| format!("verified artifact was refused: {failure}"))?;
 
     let version_after = bundle_version(&installed)?;
@@ -242,17 +243,11 @@ fn executables(app: &Path) -> Result<Vec<String>, String> {
     Ok(found)
 }
 
-fn verifying_key(pair: &KeyPair) -> Result<PublicKey, String> {
+fn verifying_key(pair: &KeyPair) -> Result<ArtifactKey, String> {
     let boxed = pair
         .pk
         .to_box()
         .map_err(|error| error.to_string())?
         .to_string();
-    let encoded = boxed
-        .trim()
-        .lines()
-        .last()
-        .ok_or_else(|| "public key box was empty".to_owned())?
-        .trim();
-    PublicKey::from_base64(encoded).map_err(|error| error.to_string())
+    ArtifactKey::from_key_file(&boxed).map_err(|error| error.to_string())
 }

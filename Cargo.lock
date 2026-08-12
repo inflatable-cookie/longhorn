@@ -2330,6 +2330,7 @@ dependencies = [
  "longhorn-core",
  "longhorn-history",
  "longhorn-history-tree",
+ "longhorn-licence",
  "longhorn-native-content",
  "longhorn-notifications",
  "longhorn-operation",
@@ -2337,6 +2338,7 @@ dependencies = [
  "longhorn-surface-transfer",
  "longhorn-surfaces",
  "longhorn-transfer",
+ "longhorn-update",
  "serde",
  "serde_json",
  "ts-rs",
@@ -2895,6 +2897,8 @@ name = "longhorn-update"
 version = "0.1.0"
 dependencies = [
  "longhorn-core",
+ "minisign",
+ "minisign-verify",
  "semver",
  "serde",
  "serde_json",

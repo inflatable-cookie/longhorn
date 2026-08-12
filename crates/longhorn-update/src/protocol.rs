@@ -303,3 +303,55 @@ pub struct UpdateChangedEvent {
     /// Coarse invalidation category.
     pub kind: UpdateChangedKind,
 }
+
+/// Why an update command was refused.
+///
+/// Separate from `InstallFailure`, which is the installer's vocabulary and
+/// says nothing about a stale caller or an absent offer. The controller maps
+/// one onto the other rather than leaking the trait's error across the wire.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum UpdateRejectionCode {
+    /// The caller's authority lifetime is behind the live one.
+    StaleAuthority,
+    /// No such version is on offer. Covers an install request for a version
+    /// that was never offered, one the last check superseded, and an
+    /// externally managed install, which never reaches an offer at all.
+    NoOffer,
+    /// The source answered, and not with the artifact the manifest promised.
+    Unavailable,
+    /// The transfer did not complete. Retryable.
+    Unreachable,
+    /// The artifact did not come from the signing key. Terminal, never
+    /// retried, and never applied anyway.
+    SignatureRejected,
+    /// The installation cannot be written -- a Homebrew cask, or an
+    /// administrator-installed copy. The remedy is a manual download.
+    NotWritable,
+    /// Replacement failed for another reason.
+    InstallFailed,
+}
+
+/// The answer to an update command.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "status"
+)]
+pub enum UpdateOutcomeProjection {
+    /// The command was applied. The snapshot is the state after it.
+    Committed {
+        /// The state the command produced.
+        snapshot: UpdateSnapshot,
+    },
+    /// The command was refused, and the state is unchanged.
+    Rejected {
+        /// What a surface should tell the operator.
+        code: UpdateRejectionCode,
+        /// The state as it remains.
+        snapshot: UpdateSnapshot,
+    },
+}

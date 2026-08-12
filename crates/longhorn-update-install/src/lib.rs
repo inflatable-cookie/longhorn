@@ -6,11 +6,17 @@
 //! crate. Building for the host with no plugin and letting the other inherit
 //! is the only ordering that leaves neither under-served.
 //!
-//! # Why minisign
+//! # Verification is not here
 //!
-//! Tauri's plugin verifies with minisign. This uses the same format and the
-//! same key, so a product shipping to both hosts signs once. Two signature
-//! schemes would mean two keys and two signing steps per release.
+//! It was, and for the right reason: beside the write it guards. It moved to
+//! `longhorn-update`'s `verify_artifact` on 2026-08-12 so that the type
+//! system, rather than this crate's diligence, is what stops unverified bytes
+//! reaching disk. `apply` takes a `VerifiedArtifact` and there is no way to
+//! make one without verifying.
+//!
+//! Still minisign, and still Tauri's format and key, for the reason recorded
+//! when this crate chose it: a product shipping to both hosts signs once, and
+//! two schemes would mean two keys and two signing steps per release.
 //!
 //! # Deliberate divergences from Tauri's implementation
 //!
@@ -43,9 +49,7 @@ use std::{
 };
 
 use flate2::read::GzDecoder;
-use longhorn_update::{Applied, InstallFailure, UpdateInstaller};
-use minisign_verify::{PublicKey, Signature};
-use semver::Version;
+use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact};
 
 /// Escalates a replacement the current user cannot perform.
 ///
@@ -72,9 +76,12 @@ impl PrivilegedReplace for NoPrivilegedReplace {
     }
 }
 
-/// Installs updates by verifying, extracting, and replacing in place.
+/// Installs updates by extracting and replacing in place.
+///
+/// Holds no key. The controller verifies and hands over a `VerifiedArtifact`;
+/// an installer with its own key could have been built with a different one
+/// from the controller checking on its behalf, and nothing would have noticed.
 pub struct NativeInstaller<E> {
-    key: PublicKey,
     target: PathBuf,
     escalate: E,
 }
@@ -82,9 +89,8 @@ pub struct NativeInstaller<E> {
 impl NativeInstaller<NoPrivilegedReplace> {
     /// Records an installer that never escalates.
     #[must_use]
-    pub fn new(key: PublicKey, target: impl Into<PathBuf>) -> Self {
+    pub fn new(target: impl Into<PathBuf>) -> Self {
         Self {
-            key,
             target: target.into(),
             escalate: NoPrivilegedReplace,
         }
@@ -96,7 +102,6 @@ impl<E> NativeInstaller<E> {
     #[must_use]
     pub fn with_escalation<N>(self, escalate: N) -> NativeInstaller<N> {
         NativeInstaller {
-            key: self.key,
             target: self.target,
             escalate,
         }
@@ -110,15 +115,9 @@ impl<E> NativeInstaller<E> {
 }
 
 impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
-    fn apply(
-        &self,
-        version: &Version,
-        artifact: &[u8],
-        signature: &str,
-    ) -> Result<Applied, InstallFailure> {
-        // Verification first, always. Nothing below this line runs on bytes
-        // that have not been proved to come from the signing key.
-        verify(&self.key, artifact, signature)?;
+    fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        let version = artifact.version();
+        let artifact = artifact.bytes();
 
         let parent = self.target.parent().ok_or_else(|| InstallFailure::Failed {
             detail: "install target has no parent directory".to_owned(),
@@ -188,12 +187,6 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
 }
 
 /// Verifies a detached minisign signature over the artifact.
-fn verify(key: &PublicKey, artifact: &[u8], signature: &str) -> Result<(), InstallFailure> {
-    let signature = Signature::decode(signature).map_err(|_| InstallFailure::SignatureRejected)?;
-    key.verify(artifact, &signature, false)
-        .map_err(|_| InstallFailure::SignatureRejected)
-}
-
 /// Extracts a gzip tar into `staging`, returning the unpacked root.
 ///
 /// Matches Tauri's archive shape — a gzip tar whose single top-level entry

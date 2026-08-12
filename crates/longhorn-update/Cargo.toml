@@ -13,12 +13,14 @@ bindings = ["dep:ts-rs", "longhorn-core/bindings"]
 
 [dependencies]
 longhorn-core.workspace = true
+minisign-verify.workspace = true
 semver.workspace = true
 serde.workspace = true
 sha2.workspace = true
 ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
+minisign.workspace = true
 serde_json.workspace = true
 
 [lints]

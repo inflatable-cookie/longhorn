@@ -104,8 +104,8 @@ source adapters are the only check path rather than a duplicate of one.
 
 ### Batch 3. Install and client surface
 
-- [ ] [Card 196](batch-cards/196-longhorn-is-the-update-controller.md) builds
-  the two pieces that do not exist: the download adapter, and the controller
+- [x] [Card 196](batch-cards/196-longhorn-is-the-update-controller.md)
+  (complete 2026-08-12) builds the two pieces that did not exist: the download adapter, and the controller
   that sequences check, fetch, verify, gate and install and holds the state
   Card 190's snapshot projects
 - [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
@@ -137,7 +137,9 @@ classification to explain a channel rejoin.
 - [x] channel selected at runtime from settings; one bundle identity
 - [x] rollout decided on the client, so static hosting is sufficient
 - [x] `minimum_version` and user-initiated checks both override rollout
-- [ ] no install proceeds while Longhorn-owned work is in flight
+- [x] no install proceeds while Longhorn-owned work is in flight. Card 196
+      puts the gate between verify and install, so the transfer is not held
+      hostage to work the replacement is.
 - [x] ~~signature verification stays entirely inside the Tauri plugin~~ Void,
       and already met the other way round. The contract 018 amendment of
       2026-08-09 built `longhorn-update-install`: minisign verification, atomic
@@ -179,7 +181,11 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 196, the controller. Card 190 landed the protocol on 2026-08-12 and
+Card 190 step 4: the host crate and the Tauri commands, with `check` and
+`install` as separate capabilities. Card 196 landed the controller on
+2026-08-12, so there is now something for those commands to call.
+
+Previously: Card 196, the controller. Card 190 landed the protocol on 2026-08-12 and
 stopped at step 4 for want of a host crate; Card 154 is blocked behind it; Card
 159 is paused by operator decision. The controller is the only unblocked work
 in the batch, and it is what the decision of 2026-08-12 made Longhorn's without

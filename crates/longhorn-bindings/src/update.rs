@@ -4,8 +4,8 @@ use longhorn_update::{
     Channel, DeferralCause, InstallManager, OfferReason, UPDATE_PROTOCOL_VERSION,
     UpdateAvailabilityProjection, UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand,
     UpdateDeferCommand, UpdateDeferralProjection, UpdateInstallAuthorizationProjection,
-    UpdateInstallCommand, UpdateProgressProjection, UpdateProtocolVersion,
-    UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateInstallCommand, UpdateOutcomeProjection, UpdateProgressProjection, UpdateProtocolVersion,
+    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSnapshot,
 };
 use ts_rs::TS;
 
@@ -55,6 +55,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let availability = UpdateAvailabilityProjection::decl();
     let progress = UpdateProgressProjection::decl();
     let authorization = UpdateInstallAuthorizationProjection::decl();
+    let rejection_code = UpdateRejectionCode::decl();
+    let outcome = UpdateOutcomeProjection::decl();
     let changed_kind = UpdateChangedKind::decl();
 
     let declarations = [
@@ -72,6 +74,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         UpdateDeferCommand::decl(),
         UpdateInstallCommand::decl(),
         authorization.clone(),
+        rejection_code.clone(),
+        outcome.clone(),
         changed_kind.clone(),
         UpdateChangedEvent::decl(),
     ]
@@ -89,6 +93,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const UPDATE_AVAILABILITY_STATES = {} as const;\n\
          export const UPDATE_PROGRESS_STATES = {} as const;\n\
          export const UPDATE_INSTALL_AUTHORIZATION_STATUSES = {} as const;\n\
+         export const UPDATE_REJECTION_CODES = {} as const;\n\
+         export const UPDATE_OUTCOME_STATUSES = {} as const;\n\
          export const UPDATE_CHANGED_KINDS = {} as const;\n\n\
          {}\n",
         serde_json::to_string(&string_union_variants(&channel)?)?,
@@ -98,6 +104,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&tagged_variants(&availability, "state")?)?,
         serde_json::to_string(&tagged_variants(&progress, "state")?)?,
         serde_json::to_string(&tagged_variants(&authorization, "status")?)?,
+        serde_json::to_string(&string_union_variants(&rejection_code)?)?,
+        serde_json::to_string(&tagged_variants(&outcome, "status")?)?,
         serde_json::to_string(&string_union_variants(&changed_kind)?)?,
         declarations.join("\n\n"),
     );

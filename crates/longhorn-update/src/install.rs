@@ -3,6 +3,8 @@ use std::error::Error;
 
 use semver::Version;
 
+use crate::{ArtifactKey, VerifiedArtifact, verify_artifact};
+
 /// Applies a downloaded update.
 ///
 /// One implementation serves every host: `longhorn-update-install`. Contract
@@ -21,17 +23,18 @@ use semver::Version;
 /// can still satisfy it. What an implementation must promise is
 /// the *observable* behaviour: what reaches disk, and what is reported.
 pub trait UpdateInstaller {
-    /// Applies `artifact`, whose detached signature is `signature`.
+    /// Applies an artifact that has already been proved genuine.
     ///
-    /// An implementation **must** verify before applying. There is no
-    /// configuration, host, or build profile under which an unverified
-    /// artifact may reach disk.
-    fn apply(
-        &self,
-        version: &Version,
-        artifact: &[u8],
-        signature: &str,
-    ) -> Result<Applied, InstallFailure>;
+    /// The parameter is a [`VerifiedArtifact`], which only
+    /// [`verify_artifact`](crate::verify_artifact) can construct. "No
+    /// unverified artifact reaches disk" is therefore a property of the call
+    /// rather than an instruction an implementation has to follow: there is no
+    /// configuration, host, or build profile under which this can be reached
+    /// with unproved bytes, because there is no way to make the argument.
+    ///
+    /// It used to take `&[u8]` and `&str` and say the same thing in prose,
+    /// with a conformance case to catch an implementation that ignored it.
+    fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure>;
 }
 
 /// What an applied update left behind.
@@ -115,6 +118,13 @@ pub trait ConformanceFixtures {
     /// A version the artifacts claim.
     fn version(&self) -> Version;
 
+    /// The key the fixtures were signed with.
+    ///
+    /// Needed since verification moved out of the installer: the suite proves
+    /// the tampered fixture is rejected, and it now has to do the verifying
+    /// itself rather than watching an implementation do it.
+    fn key(&self) -> ArtifactKey;
+
     /// An artifact and signature that must verify and apply.
     fn valid(&self) -> (Vec<u8>, String);
 
@@ -153,10 +163,13 @@ where
     F: ConformanceFixtures,
 {
     let version = fixtures.version();
+    let key = fixtures.key();
     let mut outcomes = Vec::new();
 
     let (artifact, signature) = fixtures.valid();
-    match installer.apply(&version, &artifact, &signature) {
+    let applied = verify_artifact(&key, &version, artifact, &signature)
+        .and_then(|verified| installer.apply(&verified));
+    match applied {
         Ok(applied) => {
             outcomes.push(satisfied("a verified artifact is applied"));
             outcomes.push(check(
@@ -171,8 +184,12 @@ where
         }
     }
 
+    // A claim about the shared verifier rather than about this installer,
+    // since the installer can no longer be reached with a tampered artifact.
+    // It stays in the suite because it is still per-implementation: it proves
+    // the fixture's own signing agrees with the verifier the controller uses.
     let (artifact, signature) = fixtures.tampered();
-    match installer.apply(&version, &artifact, &signature) {
+    match verify_artifact(&key, &version, artifact, &signature) {
         Err(InstallFailure::SignatureRejected) => {
             outcomes.push(satisfied("a tampered artifact is rejected as unsigned"));
         }
@@ -184,12 +201,14 @@ where
         Ok(_) => outcomes.push(check(
             "a tampered artifact is rejected as unsigned",
             false,
-            "the artifact was applied".to_owned(),
+            "the artifact verified".to_owned(),
         )),
     }
 
     if let Some((artifact, signature)) = fixtures.signed_but_unusable() {
-        match installer.apply(&version, &artifact, &signature) {
+        let outcome = verify_artifact(&key, &version, artifact, &signature)
+            .and_then(|verified| installer.apply(&verified));
+        match outcome {
             Err(InstallFailure::MalformedArtifact { .. }) => outcomes.push(satisfied(
                 "a signed but unusable artifact is not a signature failure",
             )),

@@ -29,6 +29,10 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
     "approved": ["status"],
     "deferred": ["status", "cause"],
   },
+  "UpdateOutcomeProjection": {
+    "committed": ["status", "snapshot"],
+    "rejected": ["status", "code", "snapshot"],
+  },
 };
 
 export const UPDATE_VARIANT_FIELDS_DISCRIMINANTS: Record<string, string> = {
@@ -36,4 +40,5 @@ export const UPDATE_VARIANT_FIELDS_DISCRIMINANTS: Record<string, string> = {
   "UpdateAvailabilityProjection": "state",
   "UpdateProgressProjection": "state",
   "UpdateInstallAuthorizationProjection": "status",
+  "UpdateOutcomeProjection": "status",
 };

@@ -1,58 +1,99 @@
 //! Evidence that the installer conformance suite catches what it claims to.
 //!
 //! A suite nobody has seen fail is a suite nobody should trust. Each test
-//! here feeds it a deliberately wrong implementation and asserts the
-//! specific claim goes red.
+//! here feeds it a deliberately wrong implementation and asserts the specific
+//! claim goes red.
+//!
+//! # What Card 196 removed, and why nothing is weaker
+//!
+//! There used to be an `Unverifying` case: an installer that applied whatever
+//! it was handed, proving the suite caught an implementation that skipped
+//! verification. It cannot be written any more. `apply` takes a
+//! `VerifiedArtifact`, which only `verify_artifact` constructs, so an
+//! implementation has nothing to skip.
+//!
+//! The tampered claim stays in the suite and now exercises the shared
+//! verifier against the fixture's own key. That is still per-implementation
+//! and still worth running — it proves the signing that produced the fixtures
+//! agrees with the verification the controller will do — but it is no longer
+//! a claim about the installer's diligence, because the installer no longer
+//! has any in this area.
 
 use longhorn_update::{
-    Applied, ConformanceFixtures, InstallFailure, UpdateInstaller, run_conformance,
+    Applied, ArtifactKey, ConformanceFixtures, InstallFailure, UpdateInstaller, VerifiedArtifact,
+    run_conformance, verify_artifact,
 };
+use minisign::KeyPair;
 use semver::Version;
+use std::io::Cursor;
 
 const VALID: &[u8] = b"a valid bundle";
 const TAMPERED: &[u8] = b"a tampered bundle";
 const UNUSABLE: &[u8] = b"signed but not a bundle";
 
-struct Fixtures;
+/// Real minisign material. The fixtures used to carry the string
+/// `"good-signature"`, which was enough while each installer decided for
+/// itself what verification meant and is not now that the suite verifies.
+struct Fixtures {
+    keys: KeyPair,
+}
+
+impl Fixtures {
+    fn new() -> Self {
+        Self {
+            keys: KeyPair::generate_unencrypted_keypair().expect("keypair"),
+        }
+    }
+
+    fn sign(&self, bytes: &[u8]) -> String {
+        minisign::sign(None, &self.keys.sk, Cursor::new(bytes), None, None)
+            .expect("signs")
+            .to_string()
+    }
+
+    /// A signature over `VALID`, which does not match any other bytes.
+    fn valid_signature(&self) -> String {
+        self.sign(VALID)
+    }
+}
 
 impl ConformanceFixtures for Fixtures {
     fn version(&self) -> Version {
         Version::parse("1.3.0").unwrap()
     }
 
+    fn key(&self) -> ArtifactKey {
+        ArtifactKey::from_base64(&self.keys.pk.to_base64()).expect("public key")
+    }
+
     fn valid(&self) -> (Vec<u8>, String) {
-        (VALID.to_vec(), "good-signature".to_owned())
+        (VALID.to_vec(), self.valid_signature())
     }
 
     fn tampered(&self) -> (Vec<u8>, String) {
-        (TAMPERED.to_vec(), "good-signature".to_owned())
+        // The valid signature against different bytes: exactly what an
+        // attacker who cannot sign but can substitute has to offer.
+        (TAMPERED.to_vec(), self.valid_signature())
     }
 
     fn signed_but_unusable(&self) -> Option<(Vec<u8>, String)> {
-        Some((UNUSABLE.to_vec(), "good-signature".to_owned()))
+        Some((UNUSABLE.to_vec(), self.sign(UNUSABLE)))
     }
 }
 
-/// A correct installer: verifies first, applies only what verifies.
+/// A correct installer: applies what it is given, and reports what it cannot
+/// use as unusable rather than as untrusted.
 struct Correct;
 
 impl UpdateInstaller for Correct {
-    fn apply(
-        &self,
-        version: &Version,
-        artifact: &[u8],
-        _signature: &str,
-    ) -> Result<Applied, InstallFailure> {
-        if artifact == TAMPERED {
-            return Err(InstallFailure::SignatureRejected);
-        }
-        if artifact == UNUSABLE {
+    fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        if artifact.bytes() == UNUSABLE {
             return Err(InstallFailure::MalformedArtifact {
                 detail: "not an application bundle".into(),
             });
         }
         Ok(Applied {
-            version: version.clone(),
+            version: artifact.version().clone(),
             relaunched: true,
         })
     }
@@ -70,7 +111,7 @@ fn claim<'a>(
 
 #[test]
 fn a_correct_installer_satisfies_every_claim() {
-    let outcomes = run_conformance(&Correct, &Fixtures);
+    let outcomes = run_conformance(&Correct, &Fixtures::new());
 
     assert_eq!(outcomes.len(), 4);
     for outcome in &outcomes {
@@ -78,68 +119,63 @@ fn a_correct_installer_satisfies_every_claim() {
     }
 }
 
+/// The claim that used to be about the installer and is now about the
+/// verifier. A substituted artifact carrying a genuine signature for
+/// different bytes must not verify.
 #[test]
-fn an_installer_that_applies_a_tampered_artifact_fails_the_suite() {
-    // The claim that matters most. An implementation that skips verification
-    // must not be able to pass.
-    struct Unverifying;
+fn a_tampered_artifact_never_becomes_a_verified_one() {
+    let fixtures = Fixtures::new();
+    let (bytes, signature) = fixtures.tampered();
 
-    impl UpdateInstaller for Unverifying {
-        fn apply(
-            &self,
-            version: &Version,
-            _artifact: &[u8],
-            _signature: &str,
-        ) -> Result<Applied, InstallFailure> {
-            Ok(Applied {
-                version: version.clone(),
-                relaunched: true,
-            })
-        }
-    }
-
-    let outcomes = run_conformance(&Unverifying, &Fixtures);
-    let tampered = claim(&outcomes, "tampered");
-
-    assert!(!tampered.satisfied);
-    assert_eq!(tampered.detail.as_deref(), Some("the artifact was applied"));
+    assert_eq!(
+        verify_artifact(&fixtures.key(), &fixtures.version(), bytes, &signature),
+        Err(InstallFailure::SignatureRejected)
+    );
 }
 
+/// A signature from a different keypair, which is the other half of the same
+/// claim: right shape, wrong signer.
 #[test]
-fn rejecting_a_tampered_artifact_for_the_wrong_reason_fails_the_suite() {
-    // Refusing is not enough. A signature failure reported as a generic
-    // fault invites a retry loop against an attacker-supplied artifact.
-    struct WrongReason;
+fn an_artifact_signed_by_another_key_never_becomes_a_verified_one() {
+    let ours = Fixtures::new();
+    let theirs = Fixtures::new();
+    let (bytes, signature) = theirs.valid();
 
-    impl UpdateInstaller for WrongReason {
-        fn apply(
-            &self,
-            version: &Version,
-            artifact: &[u8],
-            _signature: &str,
-        ) -> Result<Applied, InstallFailure> {
-            if artifact == VALID {
-                return Ok(Applied {
-                    version: version.clone(),
-                    relaunched: true,
-                });
-            }
-            Err(InstallFailure::Failed {
-                detail: "something went wrong".into(),
-            })
-        }
-    }
-
-    let outcomes = run_conformance(&WrongReason, &Fixtures);
-    let tampered = claim(&outcomes, "tampered");
-
-    assert!(!tampered.satisfied);
-    assert!(
-        tampered
-            .detail
-            .as_deref()
-            .is_some_and(|d| d.contains("rather than a signature failure"))
+    assert_eq!(
+        verify_artifact(&ours.key(), &ours.version(), bytes, &signature),
+        Err(InstallFailure::SignatureRejected)
     );
+}
+
+/// Not a signature at all. Decoding failure and verification failure are the
+/// same event to a caller, and must not be two vocabularies.
+#[test]
+fn an_unparseable_signature_is_a_signature_rejection() {
+    let fixtures = Fixtures::new();
+
+    assert_eq!(
+        verify_artifact(
+            &fixtures.key(),
+            &fixtures.version(),
+            VALID.to_vec(),
+            "not a signature",
+        ),
+        Err(InstallFailure::SignatureRejected)
+    );
+}
+
+/// The verified artifact carries the version the caller asked for, not one
+/// read out of the bytes. `verify_artifact`'s doc records why: minisign does
+/// not bind a version, and pretending otherwise would be worse than saying so.
+#[test]
+fn a_verified_artifact_carries_the_requested_version() {
+    let fixtures = Fixtures::new();
+    let (bytes, signature) = fixtures.valid();
+    let verified =
+        verify_artifact(&fixtures.key(), &fixtures.version(), bytes, &signature).expect("verifies");
+
+    assert_eq!(verified.version(), &fixtures.version());
+    assert_eq!(verified.bytes(), VALID);
 }
 
 #[test]
@@ -149,15 +185,10 @@ fn conflating_an_unusable_artifact_with_a_signature_failure_fails_the_suite() {
     struct Conflating;
 
     impl UpdateInstaller for Conflating {
-        fn apply(
-            &self,
-            version: &Version,
-            artifact: &[u8],
-            _signature: &str,
-        ) -> Result<Applied, InstallFailure> {
-            if artifact == VALID {
+        fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+            if artifact.bytes() == VALID {
                 return Ok(Applied {
-                    version: version.clone(),
+                    version: artifact.version().clone(),
                     relaunched: true,
                 });
             }
@@ -165,7 +196,7 @@ fn conflating_an_unusable_artifact_with_a_signature_failure_fails_the_suite() {
         }
     }
 
-    let outcomes = run_conformance(&Conflating, &Fixtures);
+    let outcomes = run_conformance(&Conflating, &Fixtures::new());
 
     assert!(claim(&outcomes, "tampered").satisfied);
     assert!(!claim(&outcomes, "unusable").satisfied);
@@ -176,15 +207,7 @@ fn applying_the_wrong_version_fails_the_suite() {
     struct WrongVersion;
 
     impl UpdateInstaller for WrongVersion {
-        fn apply(
-            &self,
-            _version: &Version,
-            artifact: &[u8],
-            _signature: &str,
-        ) -> Result<Applied, InstallFailure> {
-            if artifact != VALID {
-                return Err(InstallFailure::SignatureRejected);
-            }
+        fn apply(&self, _artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
             Ok(Applied {
                 version: Version::parse("9.9.9").unwrap(),
                 relaunched: true,
@@ -192,7 +215,7 @@ fn applying_the_wrong_version_fails_the_suite() {
         }
     }
 
-    let outcomes = run_conformance(&WrongVersion, &Fixtures);
+    let outcomes = run_conformance(&WrongVersion, &Fixtures::new());
 
     assert!(!claim(&outcomes, "applied version").satisfied);
 }
@@ -203,19 +226,14 @@ fn the_suite_reports_every_failure_rather_than_the_first() {
     struct WhollyWrong;
 
     impl UpdateInstaller for WhollyWrong {
-        fn apply(
-            &self,
-            _version: &Version,
-            _artifact: &[u8],
-            _signature: &str,
-        ) -> Result<Applied, InstallFailure> {
+        fn apply(&self, _artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
             Err(InstallFailure::Failed {
                 detail: "nothing works".into(),
             })
         }
     }
 
-    let outcomes = run_conformance(&WhollyWrong, &Fixtures);
+    let outcomes = run_conformance(&WhollyWrong, &Fixtures::new());
     let failures = outcomes.iter().filter(|o| !o.satisfied).count();
 
     assert!(failures >= 3, "expected several failures, found {failures}");
@@ -239,5 +257,10 @@ fn failure_classification_drives_the_right_response() {
         }
         .needs_manual_action()
     );
-    assert!(!InstallFailure::SignatureRejected.needs_manual_action());
+    assert!(
+        !InstallFailure::Failed {
+            detail: "network".into()
+        }
+        .needs_manual_action()
+    );
 }

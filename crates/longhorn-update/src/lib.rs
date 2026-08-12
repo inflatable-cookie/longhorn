@@ -10,8 +10,10 @@
 //! Everything is pure. No network, no filesystem, no clock.
 
 mod channel;
+mod controller;
 mod decision;
 mod deferral;
+mod fetch;
 mod gate;
 mod install;
 mod manifest;
@@ -21,10 +23,13 @@ mod provenance;
 mod restart;
 mod rollout;
 mod source;
+mod verify;
 
 pub use channel::{BuildIdentity, Channel};
+pub use controller::UpdateController;
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
 pub use deferral::{Deferral, DeferralCause};
+pub use fetch::{ArtifactFetch, FetchError, FetchProgress};
 pub use gate::{InstallAuthorization, UpdateGate};
 pub use install::{
     Applied, ConformanceFixtures, ConformanceOutcome, InstallFailure, UpdateInstaller,
@@ -35,8 +40,9 @@ pub use probes::{CountingProbe, operation_probe, transfer_session_probe};
 pub use protocol::{
     UPDATE_PROTOCOL_VERSION, UpdateAvailabilityProjection, UpdateChangedEvent, UpdateChangedKind,
     UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection,
-    UpdateInstallAuthorizationProjection, UpdateInstallCommand, UpdateProgressProjection,
-    UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateInstallAuthorizationProjection, UpdateInstallCommand, UpdateOutcomeProjection,
+    UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
+    UpdateSelectChannelCommand, UpdateSnapshot,
 };
 pub use provenance::{InstallLocation, InstallManager, InstallProvenance, classify_install};
 pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
@@ -45,3 +51,4 @@ pub use source::{
     EndpointUrl, EndpointUrlError, GitHubReleasesSource, ObjectStorageSource, SourceError,
     SourceRequest, StaticJsonSource, UpdateSource,
 };
+pub use verify::{ArtifactKey, ArtifactKeyError, VerifiedArtifact, verify_artifact};

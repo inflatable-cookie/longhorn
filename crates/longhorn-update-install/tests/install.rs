@@ -11,10 +11,12 @@ use std::{
 };
 
 use flate2::{Compression, write::GzEncoder};
-use longhorn_update::{ConformanceFixtures, InstallFailure, UpdateInstaller, run_conformance};
+use longhorn_update::{
+    ArtifactKey, ConformanceFixtures, InstallFailure, UpdateInstaller, VerifiedArtifact,
+    run_conformance, verify_artifact,
+};
 use longhorn_update_install::{NativeInstaller, NoPrivilegedReplace, PrivilegedReplace};
 use minisign::KeyPair;
-use minisign_verify::PublicKey;
 use semver::Version;
 use tempfile::TempDir;
 
@@ -23,11 +25,9 @@ fn keypair() -> KeyPair {
     KeyPair::generate_unencrypted_keypair().unwrap()
 }
 
-fn verifying_key(pair: &KeyPair) -> PublicKey {
+fn verifying_key(pair: &KeyPair) -> ArtifactKey {
     // The public-key box is the `.pub` file: a comment line then the key.
-    let boxed = pair.pk.to_box().unwrap().to_string();
-    let encoded = boxed.trim().lines().last().unwrap().trim();
-    PublicKey::from_base64(encoded).unwrap()
+    ArtifactKey::from_key_file(&pair.pk.to_box().unwrap().to_string()).unwrap()
 }
 
 fn sign(pair: &KeyPair, data: &[u8]) -> String {
@@ -84,6 +84,10 @@ impl ConformanceFixtures for Fixtures {
         Version::parse("1.3.0").unwrap()
     }
 
+    fn key(&self) -> ArtifactKey {
+        verifying_key(&self.pair)
+    }
+
     fn valid(&self) -> (Vec<u8>, String) {
         let bytes = bundle();
         let signature = sign(&self.pair, &bytes);
@@ -125,7 +129,7 @@ impl Fixture {
     }
 
     fn installer(&self) -> NativeInstaller<NoPrivilegedReplace> {
-        NativeInstaller::new(verifying_key(&self.fixtures.pair), &self.target)
+        NativeInstaller::new(&self.target)
     }
 
     fn marker(&self) -> String {
@@ -156,23 +160,29 @@ fn a_verified_artifact_replaces_the_installed_application() {
 
     fixture
         .installer()
-        .apply(&fixture.fixtures.version(), &bytes, &signature)
+        .apply(&verified(&fixture, bytes, &signature))
         .expect("a verified artifact installs");
 
     assert_eq!(fixture.marker(), "new");
 }
 
 #[test]
-fn a_tampered_artifact_leaves_the_installed_application_untouched() {
-    // Refusing is necessary; refusing without having already disturbed the
-    // install is what makes it safe.
+fn a_tampered_artifact_never_reaches_the_installer() {
+    // This used to hand the tampered bytes to `apply` and assert it refused
+    // them. It cannot: `apply` takes a `VerifiedArtifact`, and there is no way
+    // to make one from bytes that do not verify. The install is untouched
+    // because nothing was called, which is a stronger statement than the one
+    // this test used to make.
     let fixture = Fixture::new();
     let (bytes, signature) = fixture.fixtures.tampered();
 
     assert_eq!(
-        fixture
-            .installer()
-            .apply(&fixture.fixtures.version(), &bytes, &signature),
+        verify_artifact(
+            &fixture.fixtures.key(),
+            &fixture.fixtures.version(),
+            bytes,
+            &signature,
+        ),
         Err(InstallFailure::SignatureRejected)
     );
     assert_eq!(fixture.marker(), "old");
@@ -190,7 +200,7 @@ fn a_signed_archive_escaping_the_destination_is_refused() {
 
     let outcome = fixture
         .installer()
-        .apply(&fixture.fixtures.version(), &escaping, &signature);
+        .apply(&verified(&fixture, escaping, &signature));
 
     assert!(
         matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
@@ -218,7 +228,7 @@ fn escalation_is_not_attempted_when_the_target_is_writable() {
     fixture
         .installer()
         .with_escalation(Forbidden)
-        .apply(&fixture.fixtures.version(), &bytes, &signature)
+        .apply(&verified(&fixture, bytes, &signature))
         .expect("a writable target needs no escalation");
 }
 
@@ -239,7 +249,7 @@ fn a_failed_install_leaves_no_staging_directory_behind() {
     drop(
         fixture
             .installer()
-            .apply(&fixture.fixtures.version(), &bytes, &signature),
+            .apply(&verified(&fixture, bytes, &signature)),
     );
 
     let leftovers: Vec<_> = fs::read_dir(fixture.parent())
@@ -264,8 +274,22 @@ fn relaunch_is_left_to_the_host() {
 
     let applied = fixture
         .installer()
-        .apply(&fixture.fixtures.version(), &bytes, &signature)
+        .apply(&verified(&fixture, bytes, &signature))
         .unwrap();
 
     assert!(!applied.relaunched);
+}
+
+/// Verification now happens before an installer is reachable, so every test
+/// that used to hand bytes straight to `apply` has to pass through it. A
+/// fixture whose signature does not verify fails here, loudly, rather than
+/// inside the assertion it was setting up.
+fn verified(fixture: &Fixture, bytes: Vec<u8>, signature: &str) -> VerifiedArtifact {
+    verify_artifact(
+        &fixture.fixtures.key(),
+        &fixture.fixtures.version(),
+        bytes,
+        signature,
+    )
+    .expect("fixture verifies")
 }
