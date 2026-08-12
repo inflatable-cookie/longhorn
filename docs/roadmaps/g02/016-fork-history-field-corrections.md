@@ -84,9 +84,14 @@ client-side, moved into the authority. Reading
 `poodle/packages/core/src/history-center.ts` showed the shape is the defect.
 
 v2's `childrenOf` is a vector, so N runs can attach at one entry, and it emits
-them back to back at the same depth. Two forks at the same entry and a fork off
-a fork produce identical rows: same order, same depth, same lane flags. Moving
-that stitch into the authority would have moved the ambiguity, not fixed it.
+them back to back. Two forks at one entry and a fork off a fork reach the same
+position in the row array and differ only by `depth` and `lane.parentBranchId`
+-- one indent step, which saturates past the depth cap.
+
+So the rows carry the structure and the drawing loses it. The reason is the
+shape: a tree draws one fork per node unambiguously, and multiple forks at one
+node are ordinary here. Moving the stitch into the authority would not have
+touched that.
 
 The operator model is flat. One active list; jumping back and editing gives an
 entry more than one continuation. So the projection answers that question

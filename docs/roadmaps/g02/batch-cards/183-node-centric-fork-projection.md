@@ -18,10 +18,16 @@ the problem, not the missing projection.
 
 v2 renders a fork run inline between two spine rows, at one extra indent level.
 Its `childrenOf` map is a vector, so it already supports N runs attached at one
-entry, and it emits them back to back at the same depth. Two forks at the same
-entry and a fork off a fork therefore produce identical row output: same order,
-same depth, same lane flags. No renderer can tell them apart. Moving the stitch
-into the authority would move that ambiguity, not fix it.
+entry, and it emits them back to back. Two forks at one entry and a fork off a
+fork land at the same position in the row array, separated only by `depth` and
+`lane.parentBranchId` -- one indent step, and a field no indentation shows. Past
+`HISTORY_TREE_DEPTH_CAP` the depth saturates and even that step is gone.
+
+The row data is therefore not ambiguous; the visual encoding is. Which is worse
+in a way, because the fix looks like a rendering job. It is not: the encoding
+is weak because a tree can only draw one fork per node unambiguously, and
+multiple forks at one node are ordinary here. That is a shape problem, and
+moving the stitch into the authority would not touch it.
 
 The operator model is flat. There is one active list of deltas. Jumping back
 and editing creates a fork; the entry that was jumped to now has more than one
