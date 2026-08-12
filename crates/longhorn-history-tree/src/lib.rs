@@ -46,11 +46,12 @@ pub use projection::{
 pub use protocol::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchPageCommand, ForkBranchPageSnapshot, ForkBranchRecord,
     ForkChangedEvent, ForkChangedKind, ForkContinuationPageCommand, ForkContinuationPageSnapshot,
-    ForkContinuationRecord, ForkEntryRecord, ForkHistoryProtocolVersion, ForkNavigationCommand,
-    ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
-    ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
-    ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
-    ForkProtocolProjectionError, ForkSnapshot, ForkSummaryProjection,
+    ForkContinuationRecord, ForkDeleteContinuationCommand, ForkEntryRecord,
+    ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationReceiptProjection,
+    ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkNavigationResult,
+    ForkNavigationTargetProjection, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkPathTargetProjection, ForkProjectionPosition, ForkProtocolProjectionError,
+    ForkRemovalReceiptProjection, ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection,
 };
 pub use retention::{
     ForkPrunedNode, ForkPruningOutcome, ForkPruningReceipt, ForkRetentionError, ForkRetentionLimits,

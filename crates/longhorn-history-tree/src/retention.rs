@@ -84,6 +84,14 @@ impl ForkPrunedNode {
     }
 }
 
+/// What one removal pass took, before it is shaped into a receipt.
+struct Removal {
+    pruned_nodes: Vec<ForkPrunedNode>,
+    removed_branches: Vec<ForkBranchId>,
+    removed_checkpoints: Vec<ForkCheckpointId>,
+    retained_encoded_weight: u64,
+}
+
 /// Successful bounded pruning transition.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForkPruningReceipt {
@@ -174,12 +182,155 @@ impl<P> ForkHistory<P> {
             .revision
             .checked_next()
             .map_err(|_| ForkRetentionError::RevisionOverflow)?;
-        let mut pruned_nodes = Vec::with_capacity(prune_ids.len());
+        let removal = self.remove_in_leaf_order(prune_ids);
+
+        self.revision = committed_revision;
+        self.retained_encoded_weight = removal.retained_encoded_weight;
+        Ok(ForkPruningOutcome::Pruned(ForkPruningReceipt {
+            previous_revision: expected_revision,
+            committed_revision,
+            pruned_nodes: removal.pruned_nodes,
+            removed_branches: removal.removed_branches,
+            removed_checkpoints: removal.removed_checkpoints,
+            retained_entry_count: self.nodes.len(),
+            retained_encoded_weight: removal.retained_encoded_weight,
+        }))
+    }
+
+    /// Deletes one continuation and everything below it. Irreversible.
+    ///
+    /// Takes the handle `ForkNavigationTarget::CheckoutContinuation` takes --
+    /// a fork's first entry -- so the control that switches to a fork and the
+    /// control that removes it name the same thing the same way.
+    ///
+    /// The operator knows things the budget does not: which fork was a
+    /// mistake, and which was explored and rejected. `prune_to` cannot act on
+    /// that, because it chooses by age against a budget and erodes from the
+    /// tip. This chooses by name and takes the whole subtree.
+    ///
+    /// There is no undo. A delete that could be undone would have to keep what
+    /// it deleted, which is the state the operator asked to leave.
+    pub fn delete_continuation(
+        &mut self,
+        expected_revision: HistoryRevision,
+        entry_id: &HistoryEntryId,
+    ) -> Result<ForkPruningReceipt, ForkRetentionError> {
+        if expected_revision != self.revision {
+            return Err(ForkRetentionError::StaleRevision {
+                expected: expected_revision,
+                actual: self.revision,
+            });
+        }
+        if !self.nodes.contains_key(entry_id) {
+            return Err(ForkRetentionError::UnknownEntry(entry_id.clone()));
+        }
+        let committed_revision = self
+            .revision
+            .checked_next()
+            .map_err(|_| ForkRetentionError::RevisionOverflow)?;
+
+        // Leaves first, so every node is childless by the time it is removed
+        // and the shared removal pass holds.
+        let order = self.subtree_leaf_first(entry_id);
+        let members: BTreeSet<_> = order.iter().cloned().collect();
+
+        // Standing inside it. Refused rather than combined with a navigation
+        // the operator did not ask for.
+        if let Some(current) = self.current_node_id.as_ref()
+            && members.contains(current)
+        {
+            return Err(ForkRetentionError::CurrentNodeInSubtree(entry_id.clone()));
+        }
+
+        // On the active line, including its futures. The picker never offers
+        // this one -- it is the row already shown inline -- so reaching here
+        // means a caller asked for something the operator could not have
+        // clicked.
+        let default = self
+            .default_lineage()
+            .map_err(|_| ForkRetentionError::InvalidTopology)?;
+        if default.iter().any(|candidate| members.contains(candidate)) {
+            return Err(ForkRetentionError::EntryOnCurrentPath(entry_id.clone()));
+        }
+
+        // Pinned means protect, and it has to mean it against an explicit
+        // request as well as against a budget. Unpinning first makes removing
+        // a pinned fork two deliberate acts.
+        for branch in self.branches.values() {
+            if branch.metadata().pinned()
+                && branch
+                    .head_entry_id()
+                    .is_some_and(|head| members.contains(head))
+            {
+                return Err(ForkRetentionError::PinnedBranchInSubtree(
+                    branch.branch_id().clone(),
+                ));
+            }
+        }
+
+        // The current branch survives even when its head is inside: it shrinks
+        // back to where the operator stands, which the checks above prove is
+        // at or above the subtree. This is what lets the last continuation of
+        // the root be deleted -- the branch is left holding no entry, which is
+        // where every history starts.
+        let current_branch_shrinks = self
+            .branches
+            .get(&self.current_branch_id)
+            .and_then(|branch| branch.head_entry_id())
+            .is_some_and(|head| members.contains(head));
+        if current_branch_shrinks {
+            let position = self.current_node_id.clone();
+            let branch = self
+                .branches
+                .get_mut(&self.current_branch_id)
+                .expect("validated graph always has its current branch");
+            match position {
+                Some(entry) => branch.set_head(entry),
+                None => branch.clear_head(),
+            }
+        }
+
+        let removal = self.remove_in_leaf_order(order);
+        self.revision = committed_revision;
+        self.retained_encoded_weight = removal.retained_encoded_weight;
+        Ok(ForkPruningReceipt {
+            previous_revision: expected_revision,
+            committed_revision,
+            pruned_nodes: removal.pruned_nodes,
+            removed_branches: removal.removed_branches,
+            removed_checkpoints: removal.removed_checkpoints,
+            retained_entry_count: self.nodes.len(),
+            retained_encoded_weight: removal.retained_encoded_weight,
+        })
+    }
+
+    /// One entry and its descendants, deepest first.
+    ///
+    /// Pre-order reversed: a node's descendants all follow it in pre-order, so
+    /// they all precede it here.
+    fn subtree_leaf_first(&self, entry_id: &HistoryEntryId) -> Vec<HistoryEntryId> {
+        let mut order = Vec::new();
+        let mut stack = vec![entry_id.clone()];
+        while let Some(current) = stack.pop() {
+            stack.extend(self.child_ids(Some(&current)).iter().cloned());
+            order.push(current);
+        }
+        order.reverse();
+        order
+    }
+
+    /// Removes nodes already ordered so that every node is a leaf by the time
+    /// it is reached. Shared by budget pruning and explicit deletion: the two
+    /// choose different nodes, but removing one means the same thing either
+    /// way -- detach from the parent, repair its preference, and take the
+    /// checkpoints and branch heads that pointed here.
+    fn remove_in_leaf_order(&mut self, order: Vec<HistoryEntryId>) -> Removal {
+        let mut pruned_nodes = Vec::with_capacity(order.len());
         let mut removed_branches = Vec::new();
         let mut removed_checkpoints = Vec::new();
         let mut retained_encoded_weight = self.retained_encoded_weight;
 
-        for entry_id in prune_ids {
+        for entry_id in order {
             let node = self
                 .nodes
                 .remove(&entry_id)
@@ -221,7 +372,6 @@ impl<P> ForkHistory<P> {
                 .map(|branch| branch.branch_id().clone())
                 .collect();
             for branch_id in branch_ids {
-                debug_assert_ne!(branch_id, self.current_branch_id);
                 self.branches.remove(&branch_id);
                 removed_branches.push(branch_id);
             }
@@ -235,19 +385,14 @@ impl<P> ForkHistory<P> {
             });
         }
 
-        self.revision = committed_revision;
-        self.retained_encoded_weight = retained_encoded_weight;
         removed_branches.sort();
         removed_checkpoints.sort();
-        Ok(ForkPruningOutcome::Pruned(ForkPruningReceipt {
-            previous_revision: expected_revision,
-            committed_revision,
+        Removal {
             pruned_nodes,
             removed_branches,
             removed_checkpoints,
-            retained_entry_count: self.nodes.len(),
             retained_encoded_weight,
-        }))
+        }
     }
 
     fn protected_lineage(&self) -> Result<BTreeSet<HistoryEntryId>, ForkRetentionError> {
@@ -364,6 +509,15 @@ pub enum ForkRetentionError {
         /// Current revision.
         actual: HistoryRevision,
     },
+    /// Deletion named an entry that is not retained.
+    UnknownEntry(HistoryEntryId),
+    /// Deletion would remove the entry the operator is standing on, or one
+    /// above it. That is a delete plus a navigation nobody asked for.
+    CurrentNodeInSubtree(HistoryEntryId),
+    /// Deletion would remove part of the active line, including its futures.
+    EntryOnCurrentPath(HistoryEntryId),
+    /// Deletion would remove a pinned branch. Unpin it first.
+    PinnedBranchInSubtree(ForkBranchId),
     /// Protected lineage alone exceeds the requested budget.
     ProtectedBudget {
         /// Protected node count.

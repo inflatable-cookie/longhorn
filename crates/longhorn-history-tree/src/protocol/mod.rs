@@ -3,6 +3,7 @@
 mod branch;
 mod changed;
 mod continuation;
+mod deletion;
 mod navigation;
 mod path;
 mod summary;
@@ -12,6 +13,9 @@ pub(crate) use changed::count;
 pub use changed::{ForkChangedEvent, ForkChangedKind, ForkProtocolProjectionError};
 pub use continuation::{
     ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkContinuationRecord,
+};
+pub use deletion::{
+    ForkDeleteContinuationCommand, ForkRemovalReceiptProjection, ForkRemovedEntryRecord,
 };
 pub use navigation::{
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,

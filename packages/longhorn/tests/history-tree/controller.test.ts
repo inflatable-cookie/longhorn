@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { ForkHistoryController } from "../../src/history-tree/controller.ts";
 import type { ForkHistoryPort } from "../../src/history-tree/ports.ts";
-import { branchPage, changed, clone, committed, continuationPage, pathPage, snapshot } from "./support.ts";
+import { branchPage, changed, clone, committed, continuationPage, pathPage, removal, snapshot } from "./support.ts";
 function tracked() {
   const calls: string[] = []; const branchOffsets: number[] = []; const listeners = new Set<(value: unknown) => void>();
   let revision = 4;
@@ -11,6 +11,7 @@ function tracked() {
     path: async (command) => { calls.push(`path:${command.target.kind}`); return at({ ...clone(pathPage), branchId: command.target.kind === "branch" ? command.target.branchId : null }); },
     branches: async (command) => { calls.push("branches"); branchOffsets.push(command.offset); return at({ ...clone(branchPage), offset: command.offset }); },
     continuations: async (command) => { calls.push("continuations"); return at({ ...clone(continuationPage), anchorEntryId: command.anchorEntryId, offset: command.offset }); },
+    deleteContinuation: async (command) => { calls.push("delete"); revision += 1; return { ...clone(removal), entryId: undefined, previousRevision: revision - 1, committedRevision: revision } as never; },
     navigate: async () => { calls.push("navigate"); return clone(committed); },
     listen: (listener) => { calls.push("listen"); listeners.add(listener); return () => { listeners.delete(listener); }; },
     nextPlanId: () => "plan:test",

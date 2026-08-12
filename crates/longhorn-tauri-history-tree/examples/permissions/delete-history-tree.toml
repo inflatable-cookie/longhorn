@@ -1,0 +1,8 @@
+# Destructive. Deleting a fork removes its entries, the branches whose heads
+# were inside it, and the checkpoints anchored inside it. Nothing restores
+# them. Separate from mutate deliberately: permission to move through history
+# is not permission to destroy it.
+[[permission]]
+identifier = "allow-longhorn-history-tree-delete"
+description = "Allows irreversible Longhorn fork deletion."
+commands.allow = ["longhorn_history_tree_delete_continuation"]

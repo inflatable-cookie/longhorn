@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "history-tree-destructive",
+  "description": "Irreversible fork deletion. Grant to the window that confirms it, and no other.",
+  "windows": ["history"],
+  "permissions": [
+    "allow-longhorn-history-tree-delete"
+  ]
+}

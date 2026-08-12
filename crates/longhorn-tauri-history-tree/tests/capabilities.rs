@@ -26,6 +26,31 @@ fn permissions_split_reads_from_navigation() {
     assert!(!read.contains("navigate"));
     assert!(mutate.contains("longhorn_history_tree_navigate"));
 }
+
+/// Card 185. Deletion is irreversible, so permission to move through history
+/// must not carry permission to destroy it. A host grants this one to the
+/// window that confirms the deletion, and to no other.
+#[test]
+fn deletion_is_its_own_capability() {
+    let delete = file("examples/permissions/delete-history-tree.toml");
+    let mutate = file("examples/permissions/mutate-history-tree.toml");
+    let read = file("examples/permissions/read-history-tree.toml");
+    assert_eq!(delete.matches("\"longhorn_history_tree_").count(), 1);
+    assert!(delete.contains("longhorn_history_tree_delete_continuation"));
+    for other in [&mutate, &read] {
+        assert!(
+            !other.contains("delete"),
+            "deletion must not ride along with another permission"
+        );
+    }
+    let capability = file("examples/capabilities/destructive-history-tree.json");
+    assert!(capability.contains("allow-longhorn-history-tree-delete"));
+    assert_eq!(
+        capability.matches("allow-longhorn-history-tree-").count(),
+        1,
+        "the destructive capability grants nothing else"
+    );
+}
 #[test]
 fn adapter_manifest_excludes_payload_and_unrelated_domains() {
     let manifest = file("Cargo.toml");

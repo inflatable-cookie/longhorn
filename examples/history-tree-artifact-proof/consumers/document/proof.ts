@@ -7,6 +7,7 @@ const client = new ForkHistoryClient({
   async path() { return structuredClone(fixture.rendererFixture.path); },
   async branches() { return structuredClone(fixture.rendererFixture.branches); },
   async continuations() { return structuredClone(fixture.rendererFixture.continuations); },
+  async deleteContinuation(): Promise<never> { throw new Error("the document proof does not exercise deletion"); },
   async navigate() { return structuredClone(fixture.rendererFixture.navigationResult); },
   nextPlanId() { return "plan:document-renderer"; },
 });

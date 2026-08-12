@@ -26,6 +26,8 @@ export type HistoryAuthorityEpoch = number;
 
 export type ForkBranchId = string;
 
+export type ForkCheckpointId = string;
+
 export type ForkHistoryProtocolVersion = number;
 
 export type ForkProjectionPosition = "past" | "current" | "future";
@@ -432,6 +434,86 @@ truncatedBefore: boolean,
  * Whether later continuations follow this page.
  */
 truncatedAfter: boolean, };
+
+export type ForkDeleteContinuationCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: ForkHistoryProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: HistoryAuthorityEpoch, 
+/**
+ * History identity observed by the caller.
+ */
+historyId: HistoryId, 
+/**
+ * Exact graph revision required.
+ */
+expectedRevision: HistoryRevision, 
+/**
+ * First entry of the run to delete -- the same handle a checkout takes.
+ */
+entryId: HistoryEntryId, };
+
+export type ForkRemovedEntryRecord = { 
+/**
+ * Stable identity of the removed entry.
+ */
+entryId: HistoryEntryId, 
+/**
+ * Its original insertion sequence.
+ */
+sequence: number, 
+/**
+ * The consumer-measured weight it no longer occupies.
+ */
+encodedWeight: number, };
+
+export type ForkRemovalReceiptProjection = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: ForkHistoryProtocolVersion, 
+/**
+ * Live authority lifetime.
+ */
+authorityEpoch: HistoryAuthorityEpoch, 
+/**
+ * Stable graph identity. Carried for the same reason the navigation
+ * receipt carries it: the invalidation event built from this receipt has
+ * to name the history it invalidates.
+ */
+historyId: HistoryId, 
+/**
+ * Revision the removal started from.
+ */
+previousRevision: HistoryRevision, 
+/**
+ * Revision it committed at.
+ */
+committedRevision: HistoryRevision, 
+/**
+ * Every removed entry, deepest first.
+ */
+removedEntries: Array<ForkRemovedEntryRecord>, 
+/**
+ * Branches whose heads were inside the removal.
+ */
+removedBranches: Array<ForkBranchId>, 
+/**
+ * Checkpoints anchored inside the removal.
+ */
+removedCheckpoints: Array<ForkCheckpointId>, 
+/**
+ * Entries the graph still holds.
+ */
+retainedEntryCount: number, 
+/**
+ * Weight the graph still holds.
+ */
+retainedEncodedWeight: number, };
 
 export type ForkNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
 /**

@@ -193,6 +193,13 @@ impl ForkBranch {
         self.head_entry_id = Some(head_entry_id);
     }
 
+    /// Returns the branch to holding no entry -- where a nascent branch starts
+    /// and where one shrinks back to when everything below the operator's
+    /// position is deleted.
+    pub(crate) fn clear_head(&mut self) {
+        self.head_entry_id = None;
+    }
+
     pub(crate) fn set_metadata(&mut self, metadata: ForkBranchMetadata) {
         self.metadata = metadata;
     }

@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedEvent, ForkChangedKind,
-    ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkHistoryProtocolVersion,
-    ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot,
-    ForkSnapshot,
+    ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkDeleteContinuationCommand,
+    ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
+    ForkPathPageSnapshot, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
@@ -35,6 +35,12 @@ pub trait ForkHistoryHostService: Send + Sync {
         caller: &str,
         command: ForkContinuationPageCommand,
     ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError>;
+    /// Deletes one continuation and everything below it. Irreversible.
+    fn delete_continuation(
+        &self,
+        caller: &str,
+        command: ForkDeleteContinuationCommand,
+    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(
         &self,
@@ -93,6 +99,31 @@ pub fn longhorn_history_tree_continuations<R: Runtime>(
     command: ForkContinuationPageCommand,
 ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError> {
     state.service.continuations(window.label(), command)
+}
+
+/// Deletes one continuation and everything below it. Irreversible.
+///
+/// Publishes `ForkChangedKind::Retention`: every page a consumer holds names
+/// entries that may no longer exist, so the invalidation is not optional.
+#[tauri::command]
+pub fn longhorn_history_tree_delete_continuation<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriForkHistoryState>,
+    command: ForkDeleteContinuationCommand,
+) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
+    let receipt = state.service.delete_continuation(window.label(), command)?;
+    let event = ForkChangedEvent {
+        protocol_version: ForkHistoryProtocolVersion::CURRENT,
+        authority_epoch: receipt.authority_epoch,
+        history_id: receipt.history_id.clone(),
+        previous_revision: Some(receipt.previous_revision),
+        committed_revision: receipt.committed_revision,
+        kind: ForkChangedKind::Retention,
+    };
+    if let Err(error) = window.emit(FORK_HISTORY_CHANGED_EVENT, event) {
+        longhorn_core::report_best_effort_failure("history-tree.retention-emit", error);
+    }
+    Ok(receipt)
 }
 
 /// Applies and commits one caller-authorized graph navigation.

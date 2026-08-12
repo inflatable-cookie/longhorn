@@ -1003,3 +1003,215 @@ fn checking_out_a_continuation_that_does_not_exist_is_rejected() {
         .expect_err("no such entry");
     assert!(matches!(error, ForkNavigationError::UnknownEntry(_)));
 }
+
+// --- Card 185: explicit, irreversible fork deletion -------------------------
+
+/// main a - b - c, alternate a - b - d, and after this the operator stands at
+/// `b` on `main`, so the `d` fork is deletable.
+fn deletable_fork() -> (ForkHistory<Delta>, i64) {
+    let (mut history, mut model) = forked_history(branch_metadata(Some("Alternate"), false));
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:back-to-b",
+        ForkNavigationTarget::Undo,
+    );
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:onto-main",
+        ForkNavigationTarget::CheckoutContinuation {
+            entry_id: entry_id("entry:c"),
+        },
+    );
+    (history, model)
+}
+
+#[test]
+fn deleting_a_fork_removes_its_subtree_its_branch_and_its_checkpoints() {
+    let (mut history, model) = deletable_fork();
+    let before_weight = history.retained_encoded_weight();
+    let before_count = history.retained_entry_count();
+    let revision = history.revision();
+
+    let receipt = history
+        .delete_continuation(revision, &entry_id("entry:d"))
+        .expect("the d fork is not the current line and is not pinned");
+
+    assert_eq!(
+        receipt
+            .pruned_nodes()
+            .iter()
+            .map(|node| node.entry_id().as_str())
+            .collect::<Vec<_>>(),
+        ["entry:d"]
+    );
+    assert_eq!(receipt.removed_branches(), [branch_id("branch:alternate")]);
+    assert!(receipt.committed_revision() > revision);
+
+    // The space is gone. That is the whole point of the operation.
+    assert_eq!(history.retained_entry_count(), before_count - 1);
+    assert!(history.retained_encoded_weight() < before_weight);
+    assert_eq!(model, 3, "no delta was applied or unapplied");
+
+    // The fork point stops being one: b now continues only to c.
+    let page = history
+        .project_default_path_page(ForkProjectionPageRequest::new(0, 8).unwrap())
+        .expect("default path");
+    let b = page
+        .entries()
+        .iter()
+        .find(|entry| entry.entry_id() == &entry_id("entry:b"))
+        .expect("entry:b is on the path");
+    assert_eq!(b.continuation_count(), 1);
+}
+
+#[test]
+fn deleting_a_fork_takes_the_forks_inside_it() {
+    let (mut history, mut model) = deletable_fork();
+    // A fork off the fork: back to d, then record onto a third branch.
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:into-d",
+        ForkNavigationTarget::Checkout {
+            branch_id: branch_id("branch:alternate"),
+            entry_id: entry_id("entry:d"),
+        },
+    );
+    // Extend alternate first: recording at a branch's own head is a linear
+    // extension and the graph rejects a seed for it.
+    record(&mut history, &mut model, "entry:e", 5, None);
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:back-to-d",
+        ForkNavigationTarget::Undo,
+    );
+    record(
+        &mut history,
+        &mut model,
+        "entry:f",
+        6,
+        Some(ForkBranchSeed::new(
+            branch_id("branch:third"),
+            branch_metadata(Some("Third"), false),
+        )),
+    );
+    // Switch the line back to c. A plain checkout to b would leave
+    // `preferred[b]` pointing into the d subtree -- checkout only re-points
+    // down to its target -- so the subtree would still be the active line.
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:back-to-c",
+        ForkNavigationTarget::CheckoutContinuation {
+            entry_id: entry_id("entry:c"),
+        },
+    );
+
+    let revision = history.revision();
+    let receipt = history
+        .delete_continuation(revision, &entry_id("entry:d"))
+        .expect("the whole d subtree is off the current line");
+    let mut removed: Vec<_> = receipt
+        .pruned_nodes()
+        .iter()
+        .map(|node| node.entry_id().as_str().to_owned())
+        .collect();
+    removed.sort();
+    assert_eq!(removed, ["entry:d", "entry:e", "entry:f"]);
+    assert_eq!(
+        receipt.removed_branches(),
+        [branch_id("branch:alternate"), branch_id("branch:third")],
+        "an inner branch goes with the subtree that held it"
+    );
+}
+
+#[test]
+fn deleting_refuses_the_ground_the_operator_stands_on() {
+    let (mut history, _model) = forked_history(branch_metadata(Some("Alternate"), false));
+    let revision = history.revision();
+    let error = history
+        .delete_continuation(revision, &entry_id("entry:d"))
+        .expect_err("the operator is standing on entry:d");
+    assert!(matches!(error, ForkRetentionError::CurrentNodeInSubtree(_)));
+}
+
+#[test]
+fn deleting_refuses_the_active_line() {
+    let (mut history, _model) = deletable_fork();
+    let revision = history.revision();
+    let error = history
+        .delete_continuation(revision, &entry_id("entry:c"))
+        .expect_err("entry:c is the active line's next entry");
+    assert!(matches!(error, ForkRetentionError::EntryOnCurrentPath(_)));
+}
+
+#[test]
+fn deleting_refuses_a_pinned_branch() {
+    let (mut history, _model) = deletable_fork();
+    let revision = history.revision();
+    history
+        .set_branch_metadata(
+            revision,
+            &branch_id("branch:alternate"),
+            branch_metadata(Some("Alternate"), true),
+        )
+        .expect("pin the alternate");
+    let revision = history.revision();
+    let error = history
+        .delete_continuation(revision, &entry_id("entry:d"))
+        .expect_err("pinned means protect, against an explicit request too");
+    assert!(matches!(
+        error,
+        ForkRetentionError::PinnedBranchInSubtree(_)
+    ));
+}
+
+#[test]
+fn deleting_refuses_an_entry_that_does_not_exist() {
+    let (mut history, _model) = deletable_fork();
+    let revision = history.revision();
+    let error = history
+        .delete_continuation(revision, &entry_id("entry:absent"))
+        .expect_err("no such entry");
+    assert!(matches!(error, ForkRetentionError::UnknownEntry(_)));
+}
+
+/// The card asked for this to empty the graph. It cannot, and should not.
+///
+/// Standing at the root with one continuation, that continuation *is* the
+/// active line -- the operator's entire future. Refusing it is the more
+/// important rule, and it is the exact destructive accident worth preventing.
+///
+/// So deletion can never empty a graph: the active line always survives, and
+/// there is always an active line. An empty history is still a real state; it
+/// is just where a history starts, not somewhere this operation can take one.
+#[test]
+fn deleting_the_only_continuation_of_the_root_is_refused() {
+    let mut history = history();
+    let mut model = 0;
+    record(&mut history, &mut model, "entry:a", 1, None);
+    record(&mut history, &mut model, "entry:b", 2, None);
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:undo-b",
+        ForkNavigationTarget::Undo,
+    );
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:undo-a",
+        ForkNavigationTarget::Undo,
+    );
+    assert_eq!(history.current_node_id(), None);
+
+    let revision = history.revision();
+    let error = history
+        .delete_continuation(revision, &entry_id("entry:a"))
+        .expect_err("the only continuation of the root is the active line");
+    assert!(matches!(error, ForkRetentionError::EntryOnCurrentPath(_)));
+    assert_eq!(history.retained_entry_count(), 2, "nothing was removed");
+}

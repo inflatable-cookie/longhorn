@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { ForkHistoryClient } from "../../src/history-tree/client.ts";
 import { SerializedForkHistoryPort } from "../../src/history-tree/serialized.ts";
 import type { ForkHistoryPort } from "../../src/history-tree/ports.ts";
-import { branchPage, changed, clone, committed, continuationPage, pathPage, snapshot } from "./support.ts";
+import { branchPage, changed, clone, committed, continuationPage, pathPage, removal, snapshot } from "./support.ts";
 
-function port(): ForkHistoryPort { return { snapshot: async () => clone(snapshot), path: async () => clone(pathPage), branches: async () => clone(branchPage), continuations: async () => clone(continuationPage), navigate: async () => clone(committed), listen: (listener) => { listener(clone(changed)); return () => {}; }, nextPlanId: () => "plan:test" }; }
+function port(): ForkHistoryPort { return { snapshot: async () => clone(snapshot), path: async () => clone(pathPage), branches: async () => clone(branchPage), continuations: async () => clone(continuationPage), deleteContinuation: async () => clone(removal), navigate: async () => clone(committed), listen: (listener) => { listener(clone(changed)); return () => {}; }, nextPlanId: () => "plan:test" }; }
 describe("fork-history direct and serialized conformance", () => {
   for (const [name, value] of [["direct", port()], ["serialized", new SerializedForkHistoryPort(port())]] as const) it(name, async () => {
     const client = new ForkHistoryClient(value); expect(await client.snapshot()).toEqual(snapshot);

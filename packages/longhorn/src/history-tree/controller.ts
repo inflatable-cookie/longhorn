@@ -1,5 +1,5 @@
 import { ForkHistoryClient } from "./client.ts";
-import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
+import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkRemovalReceiptProjection, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
 import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 
 export type ForkHistoryControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
@@ -107,6 +107,25 @@ export class ForkHistoryController {
     const value = await this.#client.path({ ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }), offset });
     if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
     return value;
+  }
+
+  /**
+   * Deletes one continuation and everything below it, then refreshes.
+   *
+   * **Irreversible.** Nothing restores what this removes. Confirm it with the
+   * operator before calling; the authority will not ask.
+   *
+   * It refuses four things rather than working around them: the entry the
+   * operator stands on or above, the active line, a pinned branch, and an
+   * entry that does not exist. A refusal arrives as a rejected promise.
+   */
+  async deleteContinuation(entryId: string): Promise<ForkRemovalReceiptProjection> {
+    const snapshot = this.#required();
+    const receipt = await this.#client.deleteContinuation({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, entryId });
+    // Every page the consumer holds may name entries that no longer exist, so
+    // this refresh is not optional and is not left to the changed event.
+    await this.refresh();
+    return receipt;
   }
 
   async selectDefaultPath(): Promise<void> { this.#pathTarget = { kind: "default" }; await this.refresh(); }

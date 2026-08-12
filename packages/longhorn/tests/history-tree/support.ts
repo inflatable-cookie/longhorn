@@ -1,4 +1,4 @@
-import type { ForkBranchPageSnapshot, ForkChangedEvent, ForkContinuationPageSnapshot, ForkNavigationResult, ForkPathPageSnapshot, ForkSnapshot } from "../../src/history-tree/generated/protocol.ts";
+import type { ForkBranchPageSnapshot, ForkChangedEvent, ForkContinuationPageSnapshot, ForkRemovalReceiptProjection, ForkNavigationResult, ForkPathPageSnapshot, ForkSnapshot } from "../../src/history-tree/generated/protocol.ts";
 export const snapshot: ForkSnapshot = { protocolVersion: 1, authorityEpoch: 7, summary: { historyId: "history:tree", revision: 4, currentBranchId: "branch:main", currentEntryId: "entry:b", undoDepth: 2, redoDepth: 1, nextUndoLabel: "Move panel", nextRedoLabel: "Resize region", retainedEntryCount: 4, retainedEncodedWeight: 64, branchCount: 2, alternatePathCount: 2 } };
 export const pathPage: ForkPathPageSnapshot = { protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", revision: 4, branchId: null, headEntryId: "entry:c", precedingContinuationCount: 1, offset: 0, totalEntries: 3, entries: [
   { entryId: "entry:c", label: "Resize region", kindId: "fixture:layout", groupId: null, recordedAt: null, continuationCount: 1, sequence: 3, committedRevision: 3, encodedWeight: 16, position: "future" },
@@ -16,3 +16,6 @@ export const continuationPage: ForkContinuationPageSnapshot = { protocolVersion:
   { entryId: "entry:c", label: "Resize region", recordedAt: null, preferred: true, entryCount: 1, branchId: "branch:main", branchName: "Main" },
   { entryId: "entry:d", label: "Alternate edit", recordedAt: 1765432100000, preferred: false, entryCount: 1, branchId: "branch:alternate", branchName: "Alternate" },
 ], truncatedBefore: false, truncatedAfter: false };
+export const removal: ForkRemovalReceiptProjection = { protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", previousRevision: 4, committedRevision: 5, removedEntries: [
+  { entryId: "entry:d", sequence: 4, encodedWeight: 16 },
+], removedBranches: ["branch:alternate"], removedCheckpoints: [], retainedEntryCount: 3, retainedEncodedWeight: 48 };

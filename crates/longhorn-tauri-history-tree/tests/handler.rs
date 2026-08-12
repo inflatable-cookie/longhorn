@@ -4,14 +4,16 @@ use std::sync::{Arc, Mutex};
 
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
-    ForkPathPageSnapshot, ForkSnapshot,
+    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
+    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkRemovalReceiptProjection,
+    ForkSnapshot,
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
     ForkHistoryHostService, TauriForkHistoryState, fork_history_changed_event,
     longhorn_history_tree_branches, longhorn_history_tree_continuations,
-    longhorn_history_tree_navigate, longhorn_history_tree_path, longhorn_history_tree_snapshot,
+    longhorn_history_tree_delete_continuation, longhorn_history_tree_navigate,
+    longhorn_history_tree_path, longhorn_history_tree_snapshot,
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -61,6 +63,15 @@ impl ForkHistoryHostAuthority for Authority {
         Ok(continuations())
     }
 
+    fn delete_continuation(
+        &mut self,
+        caller: &str,
+        _: ForkDeleteContinuationCommand,
+    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
+        self.calls.lock().unwrap().push(format!("delete:{caller}"));
+        Ok(removal())
+    }
+
     fn navigate(
         &mut self,
         caller: &str,
@@ -105,6 +116,11 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         continuations()
     );
     assert_eq!(
+        longhorn_history_tree_delete_continuation(window.clone(), app.state(), delete_command())
+            .unwrap(),
+        removal()
+    );
+    assert_eq!(
         longhorn_history_tree_navigate(window, app.state(), navigation_command()).unwrap(),
         committed()
     );
@@ -115,6 +131,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
             "path:history",
             "branches:history",
             "continuations:history",
+            "delete:history",
             "navigate:history"
         ]
     );
@@ -148,6 +165,12 @@ fn branches() -> ForkBranchPageSnapshot {
 }
 fn continuations() -> ForkContinuationPageSnapshot {
     serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"anchorEntryId":"entry:b","offset":0,"totalContinuations":1,"continuations":[{"entryId":"entry:c","label":"Resize","recordedAt":null,"preferred":true,"entryCount":1,"branchId":"branch:main","branchName":"Main"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+}
+fn removal() -> ForkRemovalReceiptProjection {
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","previousRevision":4,"committedRevision":5,"removedEntries":[{"entryId":"entry:d","sequence":4,"encodedWeight":16}],"removedBranches":["branch:alternate"],"removedCheckpoints":[],"retainedEntryCount":3,"retainedEncodedWeight":48})).unwrap()
+}
+fn delete_command() -> ForkDeleteContinuationCommand {
+    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"entryId":"entry:d"})).unwrap()
 }
 fn committed() -> ForkNavigationResult {
     serde_json::from_value(serde_json::json!({"status":"committed","snapshot":{"protocolVersion":1,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":5,"currentBranchId":"branch:main","currentEntryId":"entry:c","undoDepth":3,"redoDepth":0,"nextUndoLabel":"Resize","nextRedoLabel":null,"retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}},"receipt":{"historyId":"history:tree","planId":"plan:test","previousRevision":4,"committedRevision":5,"sourceEntryId":"entry:b","targetEntryId":"entry:c","targetBranchId":"branch:main","movedEntryIds":["entry:c"]}})).unwrap()

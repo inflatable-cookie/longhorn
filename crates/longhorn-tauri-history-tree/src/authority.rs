@@ -1,7 +1,8 @@
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
-    ForkPathPageSnapshot, ForkSnapshot,
+    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
+    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkRemovalReceiptProjection,
+    ForkSnapshot,
 };
 
 use crate::ForkHistoryHostError;
@@ -31,6 +32,16 @@ pub trait ForkHistoryHostAuthority: Send {
         caller: &str,
         command: ForkContinuationPageCommand,
     ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError>;
+
+    /// Deletes one continuation and everything below it. Irreversible.
+    ///
+    /// Separate from `navigate` because it destroys authority rather than
+    /// moving through it, and its capability is separate for the same reason.
+    fn delete_continuation(
+        &mut self,
+        caller: &str,
+        command: ForkDeleteContinuationCommand,
+    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
 
     /// Applies and commits one caller-authorized graph navigation.
     fn navigate(

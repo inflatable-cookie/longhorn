@@ -11,6 +11,8 @@ import {
   type ForkBranchPageSnapshot,
   type ForkContinuationPageCommand,
   type ForkContinuationPageSnapshot,
+  type ForkDeleteContinuationCommand,
+  type ForkRemovalReceiptProjection,
   type ForkChangedEvent,
   type ForkNavigationCommand,
   type ForkNavigationResult,
@@ -186,4 +188,44 @@ export function assertForkContinuationPage(value: unknown): asserts value is For
   });
   boolean(root.truncatedBefore, "$.truncatedBefore");
   boolean(root.truncatedAfter, "$.truncatedAfter");
+}
+
+/**
+ * Deletion is irreversible, so its command is validated on its own terms
+ * rather than through `commandBase`: it carries no page, and a validator that
+ * silently tolerated `offset` and `limit` would accept a caller who thought
+ * this was a paged read.
+ */
+export function assertForkDeleteCommand(value: unknown): asserts value is ForkDeleteContinuationCommand {
+  noPayload(value);
+  const root = object(value, "$");
+  exact(root, "$", HISTORY_TREE_FIELDS.ForkDeleteContinuationCommand);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  integer(root.expectedRevision, "$.expectedRevision");
+  id(root.entryId, "$.entryId");
+}
+
+export function assertForkRemovalReceipt(value: unknown): asserts value is ForkRemovalReceiptProjection {
+  noPayload(value);
+  const root = object(value, "$");
+  exact(root, "$", HISTORY_TREE_FIELDS.ForkRemovalReceiptProjection);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  integer(root.previousRevision, "$.previousRevision");
+  integer(root.committedRevision, "$.committedRevision");
+  array(root.removedEntries, "$.removedEntries").forEach((value, index) => {
+    const at = `$.removedEntries[${index}]`;
+    const entry = object(value, at);
+    exact(entry, at, HISTORY_TREE_FIELDS.ForkRemovedEntryRecord);
+    id(entry.entryId, `${at}.entryId`);
+    positive(entry.sequence, `${at}.sequence`);
+    integer(entry.encodedWeight, `${at}.encodedWeight`);
+  });
+  array(root.removedBranches, "$.removedBranches").forEach((branch, index) => id(branch, `$.removedBranches[${index}]`));
+  array(root.removedCheckpoints, "$.removedCheckpoints").forEach((checkpoint, index) => id(checkpoint, `$.removedCheckpoints[${index}]`));
+  integer(root.retainedEntryCount, "$.retainedEntryCount");
+  integer(root.retainedEncodedWeight, "$.retainedEncodedWeight");
 }

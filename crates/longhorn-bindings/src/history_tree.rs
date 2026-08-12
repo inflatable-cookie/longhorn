@@ -6,12 +6,13 @@ use longhorn_core::{
 use longhorn_history::{HistoryAuthorityEpoch, HistoryRecordedAt};
 use longhorn_history_tree::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchId, ForkBranchPageCommand, ForkBranchPageSnapshot,
-    ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkContinuationRecord, ForkEntryRecord,
-    ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationReceiptProjection,
-    ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkNavigationResult,
-    ForkNavigationTargetProjection, ForkPathPageCommand, ForkPathPageSnapshot,
-    ForkPathTargetProjection, ForkProjectionPosition, ForkSnapshot, ForkSummaryProjection,
+    ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkCheckpointId,
+    ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkContinuationRecord,
+    ForkDeleteContinuationCommand, ForkEntryRecord, ForkHistoryProtocolVersion,
+    ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
+    ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
+    ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
+    ForkRemovalReceiptProjection, ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection,
     MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
@@ -67,6 +68,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         HistoryRevision::decl(),
         HistoryAuthorityEpoch::decl(),
         ForkBranchId::decl(),
+        ForkCheckpointId::decl(),
         ForkHistoryProtocolVersion::decl(),
         position.clone(),
         ForkSummaryProjection::decl(),
@@ -82,6 +84,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         ForkContinuationRecord::decl(),
         ForkContinuationPageCommand::decl(),
         ForkContinuationPageSnapshot::decl(),
+        ForkDeleteContinuationCommand::decl(),
+        ForkRemovedEntryRecord::decl(),
+        ForkRemovalReceiptProjection::decl(),
         navigation_target.clone(),
         ForkNavigationCommand::decl(),
         ForkNavigationReceiptProjection::decl(),
