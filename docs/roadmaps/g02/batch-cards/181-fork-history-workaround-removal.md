@@ -1,6 +1,6 @@
 # 181 Fork History Workaround Removal
 
-Status: complete — landed 2026-08-12
+Status: complete — landed 2026-08-12; consumer evidence closed 2026-08-12
 Owner: Tom
 Roadmap: g02.016 batch 1
 Governing refs: contract 011; contract 012; contract 017
@@ -86,14 +86,17 @@ there.
       mutate, assert the page revision moved without an explicit reload.
 - [x] A controller test proves the offset survives a refresh.
 - [x] A navigation test checks out a branch whose head is empty.
-- [ ] Loophole's three workarounds are deleted, not left unused. Loophole's to
-      do, not Longhorn's; the command wrappers need no release to remove.
+- [x] Loophole's three workarounds are deleted, not left unused. Confirmed
+      2026-08-12: all three landed, and the command wrappers went without
+      waiting for a release, as item 1 said they could.
 
 ## Evidence
 
 - [x] The controller tests above, named in the batch log.
-- [ ] The diff that removes Loophole's workarounds, referenced by commit.
-      Outstanding, in Loophole.
+- [x] The diff that removes Loophole's workarounds, referenced by commit:
+      `c67d3a8` drops the branches-refresh retry loop, `c494fd5` registers the
+      history-tree commands directly and drops the local wrappers, and
+      `d2e8f50` stops the branch checkout targeting the fork-point entry.
 
 ## Stop Conditions
 
