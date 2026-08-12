@@ -1,21 +1,39 @@
 # 154 Update Client Surface
 
-Status: ready
+Status: blocked — needs Card 190; scope corrected 2026-08-12
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contracts 018, 010, and 013; research memo 019
-Depends on: Card 153
+Depends on: Card 153; Card 190
 Auto-start next card: no
 
 ## Objective
 
-Build `packages/update`: generated bindings and the Svelte surface for
+Build the update client surface: generated bindings and the Svelte surface for
 update availability, progress, channel selection, and deferral.
+
+## Correction — 2026-08-12
+
+Two things this card assumed, neither of which holds.
+
+**`packages/update` cannot be built.** g02.013 consolidated eighteen
+TypeScript packages into three and is complete. The update surface belongs in
+`packages/longhorn/src/update/` and `packages/longhorn-poodle-svelte/src/update/`,
+where every other domain lives.
+
+**There is nothing to bind.** Step 1 says "generate and check bindings for the
+update domain types", which presupposes wire types. `longhorn-update` derives
+`ts_rs::TS` on seven enums and nothing else, has no `protocol` module, no
+command envelope, no snapshot and no changed event. `UpdateAvailability`,
+`UpdateOffer`, `Deferral` and `QuiescenceReceipt` are serde-ready but not
+TS-derived, and nothing aggregates them into something a client can read.
+
+Card 190 supplies that. This card resumes after it.
 
 ## Scope
 
-- generated bindings for the update domain, living with this package per
-  contract 012
+- generated bindings for the update domain, in `packages/longhorn/src/update/`
+  per contract 012 as g02.013 left it
 - available-update presentation with release notes
 - download and install progress
 - channel selection

@@ -1,0 +1,127 @@
+# 190 Update Protocol Surface
+
+Status: ready
+Owner: Tom
+Roadmap: g02.009 batch 3
+Governing refs: contract 018; contracts 010, 011, 012; research memo 019
+Depends on: Card 151 (complete); Card 152 (complete); Card 153 (complete)
+Blocks: Card 154
+Auto-start next card: no
+
+## Why
+
+Card 154 was written to build the update client surface, and its first step is
+"generate and check bindings for the update domain types". There are none.
+
+`longhorn-update` is a finished domain — channel resolution, semver comparison,
+rollout staging, deferral, source adapters, the quiescence gate — and none of
+it crosses a boundary. It derives `ts_rs::TS` on seven enums (`Channel`,
+`CheckKind`, `OfferReason`, `DeferralCause`, `InstallProvenance`,
+`InstallManager`, `QuiescenceKind`) and on nothing else.
+
+The gap is narrower than "no protocol" and wider than "add some derives".
+`UpdateAvailability` is already a `#[serde(tag = "state")]` union, and
+`UpdateOffer`, `Deferral`, `OutstandingWork` and `QuiescenceReceipt` all
+serialise. What is missing is the envelope every other domain has:
+
+| | Update | Every other domain |
+| --- | --- | --- |
+| Versioned command | — | `protocolVersion`, `authorityEpoch`, `expectedRevision` |
+| Snapshot projection | — | one type a client reads state from |
+| Changed event | — | `*ChangedEvent` with a kind |
+| Generated field maps | — | flat and per-variant |
+
+## Scope
+
+`longhorn-update`, the bindings generator, and the Tauri host crate. The client
+surface is Card 154 and stays there: this card stops at "a consumer could
+build one".
+
+Progress is the part with no representation at all today, so it is step 3 on
+its own rather than a line in step 1.
+
+## Step 1 — The snapshot
+
+- [ ] `UpdateSnapshot`: protocol version, authority epoch, the selected
+      `Channel`, the installed `BuildIdentity`, the last check's
+      `UpdateAvailability`, and the current `Deferral` if any.
+- [ ] `AheadOfChannel` survives into the projection as its own state, not
+      folded into up-to-date. Card 154 step 5 calls this the single most likely
+      support question the feature generates, and a projection that loses the
+      distinction makes that surface impossible to build.
+- [ ] The crate owns no clock, so "when was the last check" is a host-supplied
+      stamp or absent — the same rule and the same type as Card 182's
+      `HistoryRecordedAt`, reused rather than re-invented.
+
+## Step 2 — The commands
+
+Four, matching the four things an operator can do.
+
+- [ ] `UpdateCheckCommand` — ask the source now.
+- [ ] `UpdateSelectChannelCommand` — carries the target `Channel`.
+- [ ] `UpdateDeferCommand` — carries the `DeferralCause`.
+- [ ] `UpdateInstallCommand` — authorize the install. Card 153 settled that
+      Longhorn authorizes and the application installs, so this returns the
+      authorization and the quiescence receipt, not an installed state.
+- [ ] Each carries the standard envelope and is refused on a stale
+      `expectedRevision`, as every other domain's command is.
+
+## Step 3 — Progress has no representation
+
+Nothing in the crate models a download or an install in flight. Card 154 needs
+it and cannot invent it client-side without holding state the authority does
+not have.
+
+- [ ] `UpdateProgress`: a tagged union over idle, downloading with a fraction,
+      verifying, ready-to-install, and installing.
+- [ ] A fraction is `Option`. A source that does not report content length
+      cannot produce one, and a bar that invents a number is worse than a bar
+      that says it does not know.
+- [ ] The authority reports progress; it does not perform the download. The
+      host drives the transfer and reports, the same division Card 153 set for
+      installation.
+
+## Step 4 — The changed event and the surfaces
+
+- [ ] `UpdateChangedEvent` with a kind, so a consumer invalidates without
+      polling. Follow `ForkChangedEvent`.
+- [ ] Register the domain in the bindings generator, with both field maps —
+      flat and per-variant. The per-variant map matters here: this domain is
+      mostly tagged unions, and `UpdateAvailability` is tagged `state`, which
+      is exactly the case Card 188's detector was built for.
+- [ ] Tauri commands with named re-exports, per Card 181 step 2. `check` and
+      `install` are separate capabilities: authorizing an install is not
+      covered by permission to look for one.
+
+## Acceptance
+
+- [ ] `effigy qa` passes, including `check:bindings`.
+- [ ] A round-trip test per command and per projection, as the other domains
+      have.
+- [ ] A test asserts `AheadOfChannel` projects distinctly from `UpToDate`, by
+      state name, not by an absent field.
+- [ ] A test asserts a download with no content length projects a `null`
+      fraction rather than zero.
+- [ ] A stale `expectedRevision` is refused on all four commands.
+- [ ] The generator reports no unreadable union in the update domain.
+
+## Evidence
+
+- [ ] The tests above, named in the batch log.
+- [ ] The generated TypeScript, showing the four commands, the snapshot, the
+      progress union and the event.
+
+## Stop Conditions
+
+- Stop if progress cannot be modelled without the authority knowing how the
+  host performs the download. Card 153 drew that line deliberately and a
+  protocol that crosses it makes Longhorn responsible for transfers it does
+  not run.
+- Stop if the snapshot needs a clock to be useful. `recorded_at` is
+  host-supplied by the same rule as Card 182, and a projection that has to
+  invent a time is a modelling gap rather than a missing field.
+
+## Continuation
+
+Card 154, rescoped: `packages/longhorn/src/update/` and
+`packages/longhorn-poodle-svelte/src/update/`, not `packages/update`.

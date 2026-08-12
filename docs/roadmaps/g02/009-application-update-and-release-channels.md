@@ -102,4 +102,10 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Open Card 150.
+Card 190, the update protocol. Cards 150 to 153 are complete and Card 159 is
+paused by operator decision, so batch 3's remaining work is the client surface
+— and Card 154 cannot start, because there is nothing to bind. See its
+correction note.
+
+This section said "Open Card 150" while 150, 151, 152 and 153 were all
+complete.
