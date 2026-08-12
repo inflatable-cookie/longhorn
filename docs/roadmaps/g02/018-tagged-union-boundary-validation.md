@@ -87,7 +87,8 @@ one. The measure was wrong before the card was written, not after.
       `notifications` 12. Same second-copy argument as batch 1, same
       demonstrated drift, and replacing them changes nothing a consumer sends
       unless a list is already wrong — in which case finding it is the point.
-- [ ] **Batch 3. Add strictness to the eight that have none.** `bridge`,
+- [ ] **Batch 3. Add strictness to the eight that have none** (ready — the
+      checkpoint below is answered). `bridge`,
       `commands`, `config`, `history`, `settings`, `surfaces`,
       `surface-transfer` and `transfer` validate no union per variant at all.
       Each gains a check it never had, so each can start rejecting a payload it
@@ -122,19 +123,28 @@ one. The measure was wrong before the card was written, not after.
 
 ## Next Task
 
-Batch 3, the eight domains with no per-variant checks at all. It is the first
-batch that can reject a payload a boundary used to accept, so the planning
-checkpoint below comes first.
+Batch 3. Its checkpoint is answered and it is ready to execute.
 
 ## Planning Checkpoint
 
 Answered after batch 1: not eleven cards, and not one. Two, split by whether a
 domain already hand-writes the lists.
 
-**The live checkpoint is here, before batch 3.** Two things it has to weigh.
-The eight domains gain a check they never had, so each can start rejecting a
-payload a shipped consumer sends today — that is a consumer-visible behaviour
-change and the operator's call, not a mechanical sweep. And Card 188 verified
-44 of its 69 replaced lists only at the weaker attribution-free standard, so
-batch 3 must not inherit a belief that the earlier lists were audited per
-variant.
+**Answered 2026-08-12: proceed.** The checkpoint asked whether eight boundaries
+should start rejecting payloads a shipped consumer sends today. Measured rather
+than argued:
+
+- Loophole makes **zero** direct `longhorn_*` command invocations. Every
+  payload goes through Longhorn's typed client.
+- Where Longhorn owns a controller it builds the payload itself; `commands` and
+  `history` both do.
+- The `kind:` literals in consumer code are their own app domains — nucleus's
+  `schema`, `class`, `directory`, `message` — not protocol payloads.
+
+So a payload batch 3 would newly reject is one TypeScript already disallows.
+The residual risk is a consumer bypassing the client, and four repos were
+checked of seven.
+
+The second concern stands and is not resolved by that: Card 188 verified 44 of
+its 69 replaced lists only at the weaker attribution-free standard. Batch 3
+must not inherit a belief that the earlier lists were audited per variant.

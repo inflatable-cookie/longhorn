@@ -24,6 +24,51 @@ refuse forward, and the write path refuses to overwrite a store it could not
 load. Card 150 is now a proof-and-classification card and gates nothing;
 memo 019 carries the correction and the evidence.
 
+## Operator Decision — settled 2026-08-12
+
+**Longhorn is the update controller, for both hosts.** No Tauri updater plugin.
+
+This reverses Card 153's correction of 2026-08-08, which recorded that "Longhorn
+does not implement an installer — Tauri's updater plugin performs check,
+download, verification, and bundle replacement", reshaped the gate to authorize
+rather than drive, and removed the tauri dependency from the crate.
+
+The reasoning for reversing it: Longhorn must build this reliably for GPUI
+regardless, since a GPUI application has no plugin. Having a second path for
+Tauri only complicates things. The bar is that Longhorn's does as well or
+better than the plugin's.
+
+### What this makes Longhorn's problem
+
+Card 153's mechanism findings were recorded as "the guide for the
+application-side wiring". They are now requirements on this crate.
+
+- **Signature verification.** Card 153 step 6 said "never implement, wrap, or
+  bypass" it, and its acceptance criterion was that verification stays entirely
+  inside the plugin. Both are void. Longhorn verifies update artifacts now.
+  The primitive is not new to the portfolio — `longhorn-licence` already
+  verifies with `ed25519-dalek` — but the artifact path is new and it is the
+  one place where "as well as the plugin" is not a matter of taste.
+- **Non-writable installations.** Homebrew casks and administrator-installed
+  copies need the manual-download fallback rather than an error, and the plugin
+  had no typed error for it. Longhorn now owns both the detection and the
+  fallback. `InstallProvenance` and `classify_install` already exist for this.
+- **macOS separates install from relaunch.** The plugin handled the ordering;
+  Longhorn's teardown must now interleave correctly with in-place bundle
+  replacement.
+- **The endpoint-only question dissolves.** Card 153's first mechanism question
+  was whether Tauri installs a chosen artifact or only what its endpoint
+  returns, with a loopback endpoint as the workaround. With no plugin there is
+  no endpoint and no nonce.
+
+### What it makes right
+
+Card 190's protocol was written before this decision and is more correct
+because of it, not less. `UpdateCheckCommand` is Longhorn's, since Longhorn
+checks. `UpdateProgressProjection` is a state the authority observes rather
+than a pass-through, since Longhorn performs the download. Card 152's four
+source adapters are the only check path rather than a duplicate of one.
+
 ## Execution Plan
 
 ### Batch 1. Cross-channel store compatibility

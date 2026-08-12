@@ -1,6 +1,7 @@
 # 190 Update Protocol Surface
 
-Status: ready
+Status: steps 1-3 complete 2026-08-12; step 4 unblocked by the operator
+decision of the same day
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contract 018; contracts 010, 011, 012; research memo 019
@@ -125,3 +126,35 @@ not have.
 
 Card 154, rescoped: `packages/longhorn/src/update/` and
 `packages/longhorn-poodle-svelte/src/update/`, not `packages/update`.
+
+## Outcome — 2026-08-12
+
+Steps 1 to 3 landed: a versioned line, four commands, the snapshot, the install
+authorization, the changed event, and the progress union that had no
+representation anywhere. Eight round-trip tests, `effigy qa` exit 0.
+
+Three departures from the card, each recorded in the type it affects. Versions
+are strings, because `semver::Version` already serialises as one. The authority
+epoch is a plain `u64`, as `operation` and `notifications` carry it, rather than
+pulling `longhorn-history` in for one integer. And there is no timestamp: the
+card wanted Card 182's host-supplied stamp reused, that type lives in
+`longhorn-history`, and no surface this protocol exists for asks for a time.
+
+**Step 4 was stopped, and then unblocked.**
+
+It was stopped because Card 153 recorded that Tauri's plugin performs check,
+download, verification and install, which left three things unanswered: there
+was no host crate for the commands, Card 152's source adapters overlapped the
+plugin's check, and progress looked like a pass-through the authority should
+not hold.
+
+The operator decision of 2026-08-12 answers all three by removing the plugin:
+Longhorn is the update controller for both hosts. So `UpdateCheckCommand` is
+Longhorn's, progress is observed rather than relayed, and the source adapters
+are the only check path. See g02.009 for what that makes Longhorn responsible
+for -- signature verification most of all.
+
+Step 4 itself now needs a host crate that does not exist, because
+`longhorn-tauri-update` was absorbed and its tauri dependency deliberately
+removed. Recreating it is a decision for the card that does the install work,
+not this one.

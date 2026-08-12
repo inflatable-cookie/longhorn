@@ -85,6 +85,39 @@ one. That distinction has to survive the wire.
       that cannot tell "wrong shape" from "wrong key" writes one message for
       both.
 
+## Operator Decision — settled 2026-08-12
+
+**Distinguish "not recognised" from "revoked".** They need different operator
+actions: not recognised means check your typing or your purchase, revoked means
+contact support and no amount of retyping helps. Collapsing them sends revoked
+users into a loop.
+
+### The assumption that makes this safe, and it is not yet enforced
+
+Distinguishing them lets someone learn which well-formed keys exist. That only
+matters if keys are guessable.
+
+`LicenceKey` uses Crockford base32 — 32 symbols, five bits each, with a check
+character. So a twenty-character body is a hundred bits and enumeration is not
+a threat. But `LicenceKey::parse` accepts **any body of one character or more**
+(`key.rs:52` rejects only lengths below two, check character included). Nothing
+in the type stops a five-bit key being minted.
+
+No keys exist yet, so this is a design input rather than a defect — and it is
+the moment to fix it, because the security argument for distinguishing the two
+codes rests on it.
+
+- [ ] Enforce a minimum body length in `LicenceKey::from_body`, high enough
+      that enumeration is infeasible. Twelve symbols is sixty bits and already
+      ample; twenty is four groups of five and reads naturally in the grouped
+      form the type already renders.
+- [ ] A test asserts a short body is rejected, and the error says the key is
+      too short rather than malformed — a mistyped key must never read as an
+      invalid one, per the milestone's own evidence requirement.
+- [ ] If the minimum cannot be raised because a key has already been minted
+      somewhere, collapse the two rejection codes instead. The codes and the
+      entropy floor are one decision, not two.
+
 ## Step 4 — The changed event and the surfaces
 
 - [ ] `LicenceChangedEvent` with a kind, following `ForkChangedEvent`.
@@ -115,9 +148,9 @@ one. That distinction has to survive the wire.
 - Stop if the snapshot cannot express entitlements without naming a feature.
   Longhorn answering "entitled?" is the milestone's line, and a protocol that
   enumerates features crosses it permanently.
-- Stop if a rejection code cannot be produced without revealing whether a key
-  exists. "Not recognised" and "revoked" are different to an operator and may
-  be the same to an attacker, and which to send is the operator's call.
+- ~~Stop if a rejection code cannot be produced without revealing whether a key
+  exists.~~ Answered 2026-08-12: distinguish them, conditional on the entropy
+  floor above. If that floor cannot be enforced, collapse them.
 
 ## Continuation
 

@@ -1,6 +1,8 @@
 # 153 Restart Interlock And Tauri Install
 
-Status: complete — authorization-only; installation is the application's
+Status: complete, and its central correction is reversed — see g02.009's
+operator decision of 2026-08-12. Status as landed: authorization-only;
+installation is the application's
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contracts 018 and 017; research memo 019
