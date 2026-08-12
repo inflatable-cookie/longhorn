@@ -77,7 +77,7 @@ export function assertForkPathPage(value: unknown): asserts value is ForkPathPag
   snapshotBase(root);
   optionalId(root.branchId, "$.branchId");
   optionalId(root.headEntryId, "$.headEntryId");
-  integer(root.rootContinuationCount, "$.rootContinuationCount");
+  integer(root.precedingContinuationCount, "$.precedingContinuationCount");
   integer(root.totalEntries, "$.totalEntries");
   array(root.entries, "$.entries").forEach((entry, index) => entryRecord(entry, `$.entries[${index}]`));
   boolean(root.truncatedBefore, "$.truncatedBefore");

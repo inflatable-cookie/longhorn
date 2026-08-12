@@ -7,8 +7,8 @@ use longhorn_history::{
 };
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryState,
-    ForkPathPageSnapshot, ForkProjectionError, ForkProjectionPageRequest, ForkRecord,
-    MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkHistoryStateError, ForkPathPageSnapshot, ForkProjectionError, ForkProjectionPageRequest,
+    ForkRecord, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -455,8 +455,49 @@ fn a_continuation_run_matches_the_path_page_for_the_same_entries() {
         .expect("entry:e is the default path head");
     assert_eq!(&run.entries()[0], from_default, "same entry, same record");
     assert_eq!(
-        default.root_continuation_count(),
+        default.preceding_continuation_count(),
         1,
         "one root, so no fork badge above the first entry"
     );
+
+    // The same field on a run page is about the run's anchor, not the history
+    // root. entry:e was recorded at entry:b, which has three continuations.
+    let anchored = graph
+        .project_continuation_run_page(
+            &entry_id("entry:e"),
+            ForkProjectionPageRequest::new(0, 8).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        anchored.preceding_continuation_count(),
+        3,
+        "the position above this run is entry:b, which has three continuations"
+    );
+}
+
+/// Card 183 follow-up. Every forward walk in the crate follows preferred
+/// children, so a node with children and no preference truncates all of them
+/// and hides whatever is past it. Recording and pruning maintain the
+/// preference; a hand-built state is the only way to omit it, and it is
+/// rejected rather than left to surface as a fork nobody can open.
+#[test]
+fn a_state_whose_node_has_children_but_no_preference_is_rejected() {
+    let state = forked_graph().into_state();
+    let error = ForkHistory::<Mutation>::from_state(
+        ForkHistoryState::new(
+            state.history_id().clone(),
+            state.revision(),
+            branch_id("branch:alternate"),
+            Some(entry_id("entry:d")),
+            state.next_sequence(),
+        )
+        .with_nodes(state.nodes().to_vec())
+        .with_branches(state.branches().to_vec()),
+        // preferred_children deliberately omitted
+    )
+    .expect_err("a graph with children and no preference is not projectable");
+    assert!(matches!(
+        error,
+        ForkHistoryStateError::MissingPreferredChild(_)
+    ));
 }

@@ -73,9 +73,12 @@ itself.
       fork badge is `continuation_count - 1`, and a run's last entry always has
       zero children because the preferred chain only terminates at a childless
       node.
-- [x] `ForkPathPage` carries `root_continuation_count` for the same reason at
-      the root, where children are keyed on `None` and more than one root is
-      reachable after an undo to root followed by a record.
+- [x] `ForkPathPage` carries `preceding_continuation_count` for the same
+      reason one position above the run's first entry — the history root for a
+      default or branch path, the anchor entry for a continuation run. It
+      shipped as `root_continuation_count` and reported the history root's
+      children on every page, which is a fact about a different position on a
+      run page. Corrected on the Poodle thread's report; see the outcome.
 
 ## Step 3 — The continuations page
 
@@ -190,3 +193,46 @@ Evidence:
   `a_continuation_run_matches_the_path_page_for_the_same_entries`
   (`crates/longhorn-history-tree/tests/projection.rs`)
 - `effigy qa` exit 0; the tree artifact proof moved 32 -> 39 tests.
+
+## Follow-up — 2026-08-12, from the Poodle thread's b028 review
+
+Two defects, both reported against the shipped card and both real.
+
+**`root_continuation_count` reported the history root on every page.** True for
+a default or branch path, false for a continuation run, where the page starts
+mid-graph. It is now `preceding_continuation_count`, computed from the parent
+of the lineage's first entry: the history root when the lineage starts at a
+root, the anchor entry when it does not. One rule, true everywhere. Renamed
+rather than patched, because a field called `root` that is not the root is the
+kind of thing that survives a decade.
+
+**The preferred-child invariant was a comment, not a guard.** Every forward
+walk here follows preferred children and stops where there is none, so a node
+with children and no preference truncates all of them — the run ends early and
+a fork at its terminal entry cannot be opened.
+
+Recording maintains the preference unconditionally, and pruning installs a
+replacement, so neither is the hole. `ForkHistoryState::with_preferred_children`
+is public and `from_state` never checked completeness. Two of this repo's own
+fixtures were in exactly that state, including the Loophole-shaped graph in the
+artifact proof, where the anchor carried the main chain and sixty-four
+alternates with no preference between them. Nothing failed, because nothing
+walked forward from the anchor.
+
+The fix is in two halves, because the strict reading was wrong:
+
+- A preference only means something among alternatives. With exactly one child
+  there is nothing to choose, so `preferred_child_id` returns it whether or not
+  a preference was recorded. Several fixtures relied on this without saying so.
+- With two or more children a choice exists and must have been made.
+  `from_state` rejects a state that has not, as `MissingPreferredChild`.
+
+So the invariant a consumer can rely on is: a run's terminal entry has no
+children at all. A renderer's fork count is therefore
+`max(0, continuationCount - 1)` — the saturating form, because the plain
+subtraction underflows to -1 at every terminal entry. The card and the Poodle
+handoff both stated the unsaturated form.
+
+Evidence: `a_state_whose_node_has_children_but_no_preference_is_rejected`, and
+the root-choice row of `malformed_topology_rejection_matrix_is_deterministic`.
+The tree artifact proof moved 39 -> 40 tests.

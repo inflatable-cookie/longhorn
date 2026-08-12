@@ -713,10 +713,16 @@ fn loophole_shaped_graph() -> ForkHistory<Vec<u8>> {
         )
         .with_nodes(nodes)
         .with_branches(branches)
-        .with_preferred_children(vec![ForkPreferredChild::new(
-            None,
-            entry_id("entry:main-0001"),
-        )]),
+        .with_preferred_children(vec![
+            ForkPreferredChild::new(None, entry_id("entry:main-0001")),
+            // The anchor carries every alternate, so it has a real choice and
+            // has to name one. Without this the graph is rejected -- and it
+            // was rejected when the guard landed, which is the point: a
+            // forward walk from the anchor used to stop dead and none of the
+            // alternates were reachable. The fixture only measured envelope
+            // density, so nothing noticed.
+            ForkPreferredChild::new(Some(anchor.clone()), entry_id("entry:alternate-01")),
+        ]),
     )
     .expect("Loophole-shaped graph")
 }

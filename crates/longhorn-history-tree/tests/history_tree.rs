@@ -449,10 +449,23 @@ fn malformed_topology_rejection_matrix_is_deterministic() {
                 vec![node("entry:a", None, 1, 1), node("entry:b", None, 2, 2)],
                 vec![main_branch(Some("entry:a"))],
                 Some("entry:b"),
-                vec![],
+                // Two roots is a real choice, so the state has to name one.
+                // Without this the case is rejected as MissingPreferredChild
+                // and never reaches the current-node check it exists to test.
+                vec![ForkPreferredChild::new(None, entry_id("entry:a"))],
                 3,
             ),
             ForkHistoryStateError::InvalidCurrentNode,
+        ),
+        (
+            imported_state(
+                vec![node("entry:a", None, 1, 1), node("entry:b", None, 2, 2)],
+                vec![main_branch(Some("entry:a"))],
+                Some("entry:a"),
+                vec![],
+                3,
+            ),
+            ForkHistoryStateError::MissingPreferredChild(None),
         ),
         (
             imported_state(

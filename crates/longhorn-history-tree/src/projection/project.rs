@@ -272,9 +272,10 @@ impl<P> ForkHistory<P> {
     pub(crate) fn continuation_run(&self, from_entry_id: &HistoryEntryId) -> Vec<HistoryEntryId> {
         let mut run = vec![from_entry_id.clone()];
         let mut parent = Some(from_entry_id.clone());
-        while let Some(child) = self.preferred_children.get(&parent) {
+        while let Some(child) = self.preferred_child_id(parent.as_ref()) {
+            let child = child.clone();
             run.push(child.clone());
-            parent = Some(child.clone());
+            parent = Some(child);
         }
         run
     }
@@ -284,9 +285,10 @@ impl<P> ForkHistory<P> {
             .lineage(self.current_node_id.as_ref())
             .map_err(|_| ForkProjectionError::InvalidTopology)?;
         let mut parent = self.current_node_id.clone();
-        while let Some(child) = self.preferred_children.get(&parent) {
+        while let Some(child) = self.preferred_child_id(parent.as_ref()) {
+            let child = child.clone();
             lineage.push(child.clone());
-            parent = Some(child.clone());
+            parent = Some(child);
         }
         Ok(lineage)
     }
@@ -298,6 +300,10 @@ impl<P> ForkHistory<P> {
         request: ForkProjectionPageRequest,
     ) -> Result<ForkPathPage, ForkProjectionError> {
         check_offset(request.offset, lineage.len())?;
+        let preceding_anchor = lineage
+            .first()
+            .and_then(|entry_id| self.nodes.get(entry_id))
+            .and_then(|node| node.parent_entry_id().cloned());
         let applied = self
             .lineage(self.current_node_id.as_ref())
             .map_err(|_| ForkProjectionError::InvalidTopology)?;
@@ -341,7 +347,11 @@ impl<P> ForkHistory<P> {
             offset: request.offset,
             total_entries: lineage.len(),
             entries,
-            root_continuation_count: self.child_ids(None).len(),
+            // The position immediately above this run, not the history root.
+            // For a lineage that starts at a root those are the same thing;
+            // for a continuation run they are not, and reporting the root's
+            // children on a run page is a fact about a different position.
+            preceding_continuation_count: self.child_ids(preceding_anchor.as_ref()).len(),
             truncated_before: request.offset != 0,
             truncated_after: page_end < lineage.len(),
         })

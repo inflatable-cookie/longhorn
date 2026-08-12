@@ -135,6 +135,22 @@ pub enum ForkHistoryStateError {
     DuplicatePreferredParent,
     /// Preferred child was not a direct child of its declared parent.
     InvalidPreferredChild(HistoryEntryId),
+    /// A node with a choice of children declared no preference among them.
+    ///
+    /// Every forward walk in this crate -- redo, the default path, a
+    /// continuation run -- follows preferred children and stops where there is
+    /// none. A node with two or more children and no preference stops those
+    /// walks early, so every one of them becomes unreachable and a projection
+    /// reports a run's end where the graph has more. Recording and pruning
+    /// both maintain the preference; only a hand-built state can omit it, so
+    /// it is rejected here rather than left to surface as a fork nobody can
+    /// open.
+    ///
+    /// A single child is not affected: there is nothing to prefer, and
+    /// `preferred_child_id` resolves it without a recorded preference.
+    ///
+    /// `None` names the root, which has children like any other position.
+    MissingPreferredChild(Option<HistoryEntryId>),
     /// Checkpoint identity appeared more than once.
     DuplicateCheckpoint(ForkCheckpointId),
     /// A checkpoint referenced an absent node.

@@ -341,10 +341,17 @@ fn shaped_graph(
         )
         .with_nodes(nodes)
         .with_branches(branches)
-        .with_preferred_children(vec![ForkPreferredChild::new(
-            None,
-            entry_id("entry:main-0001"),
-        )]),
+        .with_preferred_children(vec![
+            ForkPreferredChild::new(None, entry_id("entry:main-0001")),
+            // The anchor carries the main chain and every alternate, so it has
+            // a real choice and must name one. The main chain is the preferred
+            // continuation, which is what makes this a Loophole-shaped graph:
+            // one long default path with alternates hanging off a mid-point.
+            ForkPreferredChild::new(
+                Some(anchor.clone()),
+                entry_id(&format!("entry:main-{:04}", main_depth / 2 + 1)),
+            ),
+        ]),
     )
     .expect("valid shaped graph")
 }

@@ -231,7 +231,7 @@ pub struct ForkPathPage {
     pub(crate) offset: usize,
     pub(crate) total_entries: usize,
     pub(crate) entries: Vec<ForkEntryProjection>,
-    pub(crate) root_continuation_count: usize,
+    pub(crate) preceding_continuation_count: usize,
     pub(crate) truncated_before: bool,
     pub(crate) truncated_after: bool,
 }
@@ -292,13 +292,19 @@ impl ForkPathPage {
         self.truncated_after
     }
 
-    /// Returns how many entries continue from the root.
+    /// Returns how many entries continue from the position immediately above
+    /// this run's first entry.
     ///
-    /// The same fact as `continuation_count`, one level above the first entry.
-    /// More than one root is reachable: undo to root, then record.
+    /// For a default or branch path that position is the history root, and
+    /// more than one root is reachable: undo to root, then record. For a
+    /// continuation run it is the entry the run was anchored at, so the count
+    /// includes this run and its siblings.
+    ///
+    /// One rule either way, and never the history root's children reported on
+    /// a page that does not start there.
     #[must_use]
-    pub const fn root_continuation_count(&self) -> usize {
-        self.root_continuation_count
+    pub const fn preceding_continuation_count(&self) -> usize {
+        self.preceding_continuation_count
     }
 }
 

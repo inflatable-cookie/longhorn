@@ -111,10 +111,12 @@ pub struct ForkPathPageSnapshot {
     /// Newest-first offset.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub offset: u64,
-    /// How many entries continue from the root. A fork count at the root is
-    /// one less, on the same rule as an entry's own count.
+    /// How many entries continue from the position immediately above this
+    /// run's first entry -- the history root for a default or branch path,
+    /// the anchor entry for a continuation run. A fork count is one less,
+    /// saturating at zero, on the same rule as an entry's own count.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
-    pub root_continuation_count: u64,
+    pub preceding_continuation_count: u64,
     /// Full path length.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub total_entries: u64,
@@ -139,7 +141,7 @@ impl ForkPathPageSnapshot {
             revision: page.revision(),
             branch_id: page.branch_id().cloned(),
             head_entry_id: page.head_entry_id().cloned(),
-            root_continuation_count: count(page.root_continuation_count())?,
+            preceding_continuation_count: count(page.preceding_continuation_count())?,
             offset: count(page.offset())?,
             total_entries: count(page.total_entries())?,
             entries: page

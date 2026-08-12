@@ -209,10 +209,12 @@ headEntryId: HistoryEntryId | null,
  */
 offset: number, 
 /**
- * How many entries continue from the root. A fork count at the root is
- * one less, on the same rule as an entry's own count.
+ * How many entries continue from the position immediately above this
+ * run's first entry -- the history root for a default or branch path,
+ * the anchor entry for a continuation run. A fork count is one less,
+ * saturating at zero, on the same rule as an entry's own count.
  */
-rootContinuationCount: number, 
+precedingContinuationCount: number, 
 /**
  * Full path length.
  */

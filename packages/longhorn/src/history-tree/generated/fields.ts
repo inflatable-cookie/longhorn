@@ -8,7 +8,7 @@ export const HISTORY_TREE_FIELDS: Record<string, readonly string[]> = {
   "ForkSnapshot": ["protocolVersion", "authorityEpoch", "summary"],
   "ForkEntryRecord": ["entryId", "label", "kindId", "recordedAt", "groupId", "sequence", "committedRevision", "encodedWeight", "position", "continuationCount"],
   "ForkPathPageCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "target", "offset", "limit"],
-  "ForkPathPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "branchId", "headEntryId", "offset", "rootContinuationCount", "totalEntries", "entries", "truncatedBefore", "truncatedAfter"],
+  "ForkPathPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "branchId", "headEntryId", "offset", "precedingContinuationCount", "totalEntries", "entries", "truncatedBefore", "truncatedAfter"],
   "ForkBranchRecord": ["branchId", "headEntryId", "divergenceEntryId", "divergenceBranchId", "name", "annotation", "pinned", "current"],
   "ForkBranchPageCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "offset", "limit"],
   "ForkBranchPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "offset", "totalBranches", "branches", "truncatedBefore", "truncatedAfter"],

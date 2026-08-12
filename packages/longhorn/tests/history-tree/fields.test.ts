@@ -11,6 +11,6 @@ describe("the generated field map is reachable as public API", () => {
     ]);
     expect(HISTORY_TREE_FIELDS.ForkEntryRecord).toContain("continuationCount");
     expect(HISTORY_TREE_FIELDS.ForkBranchRecord).toContain("divergenceBranchId");
-    expect(HISTORY_TREE_FIELDS.ForkPathPageSnapshot).toContain("rootContinuationCount");
+    expect(HISTORY_TREE_FIELDS.ForkPathPageSnapshot).toContain("precedingContinuationCount");
   });
 });

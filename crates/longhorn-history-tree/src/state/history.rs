@@ -119,6 +119,16 @@ impl<P> ForkHistory<P> {
                 return Err(ForkHistoryStateError::DuplicatePreferredParent);
             }
         }
+        // A parent with a choice to make must have made it. See
+        // `MissingPreferredChild`: a forward walk follows preferences, so a
+        // node with two children and no preference truncates both and hides
+        // everything past it. One child needs no preference -- see
+        // `preferred_child_id`, which resolves that case without one.
+        for (parent, siblings) in &children {
+            if siblings.len() > 1 && !preferred_children.contains_key(parent) {
+                return Err(ForkHistoryStateError::MissingPreferredChild(parent.clone()));
+            }
+        }
 
         let mut checkpoints = BTreeMap::new();
         for checkpoint in state.checkpoints {
@@ -249,12 +259,29 @@ impl<P> ForkHistory<P> {
     }
 
     /// Returns the deterministic preferred direct child, when present.
+    ///
+    /// A preference only means something among alternatives. With exactly one
+    /// child there is nothing to choose, so that child is the answer whether
+    /// or not a preference was recorded. Recording always records one; an
+    /// imported state need not, and a forward walk must not stop at a node
+    /// whose single continuation is unambiguous.
+    ///
+    /// With more than one child a preference is required, and
+    /// `ForkHistoryStateError::MissingPreferredChild` rejects a state without
+    /// one rather than letting a walk truncate silently.
     #[must_use]
     pub fn preferred_child_id(
         &self,
         parent_entry_id: Option<&HistoryEntryId>,
     ) -> Option<&HistoryEntryId> {
-        self.preferred_children.get(&parent_entry_id.cloned())
+        let key = parent_entry_id.cloned();
+        if let Some(preferred) = self.preferred_children.get(&key) {
+            return Some(preferred);
+        }
+        match self.children.get(&key).map(Vec::as_slice) {
+            Some([only]) => Some(only),
+            _ => None,
+        }
     }
 
     /// Returns retained node count.
