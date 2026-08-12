@@ -35,18 +35,20 @@ use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants,
+    tagged_variants, variant_field_map,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/commands/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/commands/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/commands/generated/variant-fields.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/commands/protocol-v1.json";
 
 struct RenderedProtocol {
     contents: String,
     fields: String,
+    variant_fields: String,
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
@@ -59,6 +61,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_FIELDS,
             contents: protocol.fields,
+        },
+        Artifact {
+            relative_path: GENERATED_VARIANT_FIELDS,
+            contents: protocol.variant_fields,
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,
@@ -196,5 +202,16 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         );
     }
 
-    Ok(RenderedProtocol { contents, fields })
+    let (variant_fields, unreadable) =
+        variant_field_map("generate:commands", "COMMAND_VARIANT_FIELDS", &declarations);
+
+    if !unreadable.is_empty() {
+        eprintln!("[commands] unreadable unions: {}", unreadable.join(", "));
+    }
+
+    Ok(RenderedProtocol {
+        contents,
+        fields,
+        variant_fields,
+    })
 }

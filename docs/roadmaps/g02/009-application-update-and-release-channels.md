@@ -61,6 +61,19 @@ application-side wiring". They are now requirements on this crate.
   returns, with a loopback endpoint as the workaround. With no plugin there is
   no endpoint and no nonce.
 
+### Tauri's updater is the design guide
+
+Not a port and not a dependency — a reference. They have solved the problems
+this crate is about to meet, and the mechanism findings Card 153 recorded came
+from reading their behaviour in the first place.
+
+Where a decision has a Tauri answer, the burden is on diverging from it rather
+than on following it. Where Longhorn diverges, say why in the code.
+
+The one place their answer is known to be short is the typed non-writable
+error, recorded on Card 153 as a limitation of the app-facing surface. That is
+where "as well or better" has a concrete meaning rather than a rhetorical one.
+
 ### What it makes right
 
 Card 190's protocol was written before this decision and is more correct

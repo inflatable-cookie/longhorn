@@ -38,7 +38,7 @@ use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, LabelMap, apply, exported_declaration, field_map, label_module,
-    label_template_renderer, string_union_variants, tagged_variants,
+    label_template_renderer, string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -49,6 +49,7 @@ const GENERATED_RESTORE_PROTOCOL: &str = "packages/longhorn/src/config/generated
 const GOLDEN_FIXTURE: &str = "fixtures/config/protocol-v1.json";
 const GENERATED_LABELS: &str = "packages/longhorn/src/config/generated/labels.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/config/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/config/generated/variant-fields.ts";
 const GENERATED_LABEL_TEMPLATE: &str = "packages/longhorn/src/config/generated/label-template.ts";
 
 /// Emits the three restore label maps.
@@ -214,6 +215,14 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     all_declarations.extend_from_slice(&restore_declarations);
     let (fields_contents, skipped) =
         field_map("generate:config", "CONFIG_FIELDS", &all_declarations);
+    let (variant_fields_contents, unreadable) = variant_field_map(
+        "generate:config",
+        "CONFIG_VARIANT_FIELDS",
+        &all_declarations,
+    );
+    if !unreadable.is_empty() {
+        eprintln!("[config] unreadable unions: {}", unreadable.join(", "));
+    }
     if !skipped.is_empty() {
         eprintln!(
             "[config] tagged unions not in the field map: {}",
@@ -304,6 +313,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_FIELDS,
             contents: fields_contents,
+        },
+        Artifact {
+            relative_path: GENERATED_VARIANT_FIELDS,
+            contents: variant_fields_contents,
         },
         Artifact {
             relative_path: GENERATED_LABELS,

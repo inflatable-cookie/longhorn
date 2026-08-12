@@ -19,13 +19,14 @@ use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants,
+    tagged_variants, variant_field_map,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/transfer/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/transfer/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/transfer/generated/variant-fields.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/transfer/protocol-v1.json";
 
 struct RenderedProtocol {
@@ -33,6 +34,7 @@ struct RenderedProtocol {
     fields: String,
     transfer_error_codes: Vec<String>,
     panel_error_codes: Vec<String>,
+    variant_fields: String,
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
@@ -45,6 +47,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_FIELDS,
             contents: protocol.fields,
+        },
+        Artifact {
+            relative_path: GENERATED_VARIANT_FIELDS,
+            contents: protocol.variant_fields,
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,
@@ -155,7 +161,18 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         );
     }
 
+    let (variant_fields, unreadable) = variant_field_map(
+        "generate:transfer",
+        "TRANSFER_VARIANT_FIELDS",
+        &declarations,
+    );
+
+    if !unreadable.is_empty() {
+        eprintln!("[transfer] unreadable unions: {}", unreadable.join(", "));
+    }
+
     Ok(RenderedProtocol {
+        variant_fields,
         contents,
         fields,
         transfer_error_codes,
