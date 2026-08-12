@@ -1,6 +1,6 @@
 # g02.018 Tagged-Union Boundary Validation
 
-Status: in progress — batches 1 and 2 complete 2026-08-12
+Status: complete — 2026-08-12
 Owner: Tom
 Governing refs: contract 010; contract 011; contract 012
 Depends on: g02.011 (complete)
@@ -94,25 +94,33 @@ one. The measure was wrong before the card was written, not after.
       Each gains a check it never had, so each can start rejecting a payload it
       used to accept. That is a behaviour change per domain and wants its own
       evidence, separate from batch 2's replacements.
-- [ ] **Batch 4. Make the warning an error.** Once nothing is skipped, a union
+- [x] **Batch 4. Make the warning an error** (Card 195, complete
+      2026-08-12). Once nothing is skipped, a union
       the generator cannot parse should fail the build rather than print. Not
       before, or every generate fails on the domains batches 2 and 3 have not
       reached.
 
 ## Goals
 
-- [ ] No hand-written per-variant key list survives in any `validation.ts`.
-- [ ] A variant that gains a field is rejected at the boundary until the
+- [x] No hand-written per-variant key list survives in any `validation.ts`.
+      Checked by a test rather than by reading, which is how the last four in
+      `history` were found — after batch 3 had recorded the goal as met.
+- [x] A variant that gains a field is rejected at the boundary until the
       bindings are regenerated, the same as a plain object today.
-- [ ] The generator's "not in the field map" warning goes to zero.
+- [x] The generator's "not in the field map" warning goes to zero. Removed
+      rather than driven to zero: it reported a by-design skip, and every union
+      it named is now in the variant map or in a `*_KINDS` constant.
 
 ## Acceptance Criteria
 
-- [ ] The per-variant map is generated for all 181 unions, including generic
-      ones and unit variants that carry only the discriminant.
-- [ ] `history-tree` validates all three of its unions from the generated map,
+- [x] The per-variant map is generated for every union with a discriminant to
+      detect, including generic ones and unit variants that carry only the
+      discriminant. 168 across twelve domains, not the 181 estimated when this
+      was written; the difference is bridge's six externally tagged unions and
+      the string unions that were counted as tagged.
+- [x] `history-tree` validates all three of its unions from the generated map,
       and the `checkoutBranchRoot` case that was wrong has a test.
-- [ ] `effigy qa` passes, including `check:bindings`.
+- [x] `effigy qa` passes, including `check:bindings`.
 
 ## Explicit Non-goals
 
@@ -123,9 +131,14 @@ one. The measure was wrong before the card was written, not after.
 
 ## Next Task
 
-Batch 4, the build check. It must exempt bridge explicitly rather than by
-silence: its unions are externally tagged, so there is no discriminant to
-detect and no per-variant map to require.
+None. The milestone is closed.
+
+**One question leaves it open elsewhere: bridge's tagging.** Its six unions are
+externally tagged -- `"unsupported" | { "finite": … }` -- so the variant is the
+key and there is no discriminant to detect. They are exempted by name in
+`EXTERNALLY_TAGGED`, which is honest but not a boundary. Bridge needs either
+internal tagging or a validation strategy shaped for external tagging. That is
+a modelling decision and wants its own card, not a line in this one.
 
 ## Planning Checkpoint
 
