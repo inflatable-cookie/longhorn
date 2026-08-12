@@ -23,6 +23,7 @@ mod settings;
 mod surface_transfer;
 mod surfaces;
 mod transfer;
+mod update;
 
 fn main() -> ExitCode {
     match run() {
@@ -57,6 +58,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         Some("layout") => layout::run(mode),
         Some("native-content") => native_content::run(mode),
         Some("notifications") => notifications::run(mode),
+        Some("update") => update::run(mode),
         Some("operation") => operation::run(mode),
         Some("settings") => settings::run(mode),
         Some("surfaces") => surfaces::run(mode),
@@ -68,5 +70,5 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn usage() -> &'static str {
     "usage: longhorn-bindings \
-     <bridge|commands|config|history|history-tree|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer> <write|check>"
+     <bridge|commands|config|history|history-tree|layout|native-content|notifications|operation|settings|surfaces|surface-transfer|transfer|update> <write|check>"
 }
