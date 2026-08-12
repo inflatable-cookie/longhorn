@@ -62,9 +62,10 @@ pub use protocol::{
     HistoryNavigationCommand, HistoryNavigationDirectionProjection,
     HistoryNavigationPositionProjection, HistoryNavigationReceiptProjection,
     HistoryNavigationRejectionCode, HistoryNavigationRejectionProjection, HistoryNavigationResult,
-    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
-    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolProjectionError,
-    HistoryProtocolVersion, HistorySnapshot, HistorySummaryProjection,
+    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageFloorProjection,
+    HistoryPageSnapshot, HistoryProjectionPosition, HistoryProtocolMode,
+    HistoryProtocolProjectionError, HistoryProtocolVersion, HistorySnapshot,
+    HistorySummaryProjection,
 };
 pub use retention::{
     HistoryLimitChangeError, HistoryLimitChangeReceipt, HistoryPrunedEntry, HistoryPruningReceipt,

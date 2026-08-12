@@ -16,8 +16,8 @@ pub use navigation::{
     HistoryNavigationTargetProjection,
 };
 pub use snapshot::{
-    HistoryBaselineProjection, HistoryEntryRecord, HistoryPageCommand, HistoryPageSnapshot,
-    HistorySnapshot, HistorySummaryProjection,
+    HistoryBaselineProjection, HistoryEntryRecord, HistoryPageCommand, HistoryPageFloorProjection,
+    HistoryPageSnapshot, HistorySnapshot, HistorySummaryProjection,
 };
 pub use version::{
     HISTORY_PROTOCOL_VERSION, HistoryAuthorityEpoch, HistoryAuthorityEpochError,

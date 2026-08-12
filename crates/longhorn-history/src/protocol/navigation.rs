@@ -28,6 +28,9 @@ pub enum HistoryNavigationTargetProjection {
         /// Stable entry identity, never a presentation index.
         entry_id: HistoryEntryId,
     },
+    /// Return to the position before the oldest retained entry -- the state
+    /// the operator started from, and the only one no entry can name.
+    CheckoutRoot,
 }
 
 /// One revision-bound renderer navigation command.

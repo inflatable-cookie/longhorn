@@ -73,10 +73,10 @@ pub use protocol::{
     ForkContinuationRecord, ForkDeleteContinuationCommand, ForkEntryRecord,
     ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationReceiptProjection,
     ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkNavigationResult,
-    ForkNavigationTargetProjection, ForkPathPageCommand, ForkPathPageSnapshot,
-    ForkPathTargetProjection, ForkProjectionPosition, ForkProtocolProjectionError,
-    ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection, ForkRemovedEntryRecord,
-    ForkSnapshot, ForkSummaryProjection,
+    ForkNavigationTargetProjection, ForkPathFloorProjection, ForkPathPageCommand,
+    ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
+    ForkProtocolProjectionError, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
+    ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection,
 };
 pub use retention::{
     ForkPrunedNode, ForkPruningOutcome, ForkPruningReceipt, ForkRetentionError, ForkRetentionLimits,

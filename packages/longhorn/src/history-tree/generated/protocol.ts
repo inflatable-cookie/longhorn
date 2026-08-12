@@ -5,6 +5,7 @@ export const FORK_HISTORY_PROTOCOL_VERSION = 1 as const;
 export const MAXIMUM_FORK_HISTORY_PAGE_SIZE = 256 as const;
 export const FORK_HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
 export const FORK_HISTORY_PATH_TARGETS = ["default","branch","continuation"] as const;
+export const FORK_HISTORY_PATH_FLOORS = ["origin","anchor"] as const;
 export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutBranchRoot","checkoutContinuation"] as const;
 export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const FORK_HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
@@ -142,6 +143,12 @@ position: ForkProjectionPosition,
  */
 continuationCount: number, };
 
+export type ForkPathFloorProjection = { "kind": "origin" } | { "kind": "anchor", 
+/**
+ * The fork point.
+ */
+entryId: HistoryEntryId, };
+
 export type ForkPathTargetProjection = { "kind": "default" } | { "kind": "branch", 
 /**
  * Explicit first-class branch selection.
@@ -218,6 +225,11 @@ offset: number,
  * saturating at zero, on the same rule as an entry's own count.
  */
 precedingContinuationCount: number, 
+/**
+ * What sits below this page's oldest entry: the origin, or the entry the
+ * run forked from.
+ */
+floor: ForkPathFloorProjection, 
 /**
  * Full path length.
  */

@@ -75,6 +75,11 @@ export class HistorySession {
     return this.#controller.checkout(entryId);
   }
 
+  /** Card 191. The position before the oldest retained entry, in one step. */
+  checkoutRoot(): Promise<HistoryNavigationResult> {
+    return this.#controller.checkoutRoot();
+  }
+
   #sync(): void {
     this.status = this.#controller.status;
     this.snapshot = this.#controller.snapshot;

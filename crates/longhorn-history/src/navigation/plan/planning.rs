@@ -49,6 +49,12 @@ impl<P: Clone> LinearHistory<P> {
                 }
                 source_depth + 1
             }
+            HistoryNavigationTarget::CheckoutRoot => {
+                if source_depth == 0 {
+                    return Err(HistoryNavigationPlanningError::NothingToUndo);
+                }
+                0
+            }
             HistoryNavigationTarget::Checkout { entry_id } => {
                 if let Some(index) = self
                     .state

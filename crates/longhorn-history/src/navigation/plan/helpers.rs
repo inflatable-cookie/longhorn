@@ -74,6 +74,12 @@ impl<P> LinearHistory<P> {
             HistoryNavigationTarget::Checkout { entry_id } => {
                 plan.target_position.current_entry_id.as_ref() == Some(entry_id)
             }
+            // Depth zero and no current entry are the same statement made from
+            // the two sides of the plan, so both are checked: a plan that
+            // reached depth zero while still naming an entry is malformed.
+            HistoryNavigationTarget::CheckoutRoot => {
+                target_depth == 0 && plan.target_position.current_entry_id.is_none()
+            }
         }
     }
 

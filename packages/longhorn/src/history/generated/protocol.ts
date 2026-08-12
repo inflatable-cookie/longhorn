@@ -6,7 +6,8 @@ export const HISTORY_MAXIMUM_OPAQUE_ID_BYTES = 128 as const;
 export const HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE = 4096 as const;
 export const HISTORY_MODES = ["linear"] as const;
 export const HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const;
-export const HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout"] as const;
+export const HISTORY_PAGE_FLOORS = ["origin","baseline"] as const;
+export const HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutRoot"] as const;
 export const HISTORY_NAVIGATION_DIRECTIONS = ["undo","redo","stationary"] as const;
 export const HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownEntry","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
@@ -150,6 +151,12 @@ encodedWeight: number,
  */
 position: HistoryProjectionPosition, };
 
+export type HistoryPageFloorProjection = { "kind": "origin" } | { "kind": "baseline", 
+/**
+ * How many entries were pruned before the oldest retained one.
+ */
+prunedEntryCount: number, };
+
 export type HistoryPageCommand = { 
 /**
  * Exact metadata protocol line.
@@ -216,13 +223,20 @@ truncatedAfter: boolean,
 /**
  * Evidence for history pruned before retained entries.
  */
-retainedBaseline: HistoryBaselineProjection, };
+retainedBaseline: HistoryBaselineProjection, 
+/**
+ * What sits below this page's oldest entry: the origin, or a baseline.
+ *
+ * On the page rather than the summary, because the row a renderer draws
+ * for it belongs to the list.
+ */
+floor: HistoryPageFloorProjection, };
 
 export type HistoryNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
 /**
  * Stable entry identity, never a presentation index.
  */
-entryId: HistoryEntryId, };
+entryId: HistoryEntryId, } | { "kind": "checkoutRoot" };
 
 export type HistoryNavigationCommand = { 
 /**

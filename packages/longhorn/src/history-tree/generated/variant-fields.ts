@@ -4,6 +4,10 @@
 // each list, because `exact()` compares every key.
 
 export const HISTORY_TREE_VARIANT_FIELDS: Record<string, Record<string, readonly string[]>> = {
+  "ForkPathFloorProjection": {
+    "origin": ["kind"],
+    "anchor": ["kind", "entryId"],
+  },
   "ForkPathTargetProjection": {
     "default": ["kind"],
     "branch": ["kind", "branchId"],
@@ -27,6 +31,7 @@ export const HISTORY_TREE_VARIANT_FIELDS: Record<string, Record<string, readonly
 };
 
 export const HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS: Record<string, string> = {
+  "ForkPathFloorProjection": "kind",
   "ForkPathTargetProjection": "kind",
   "ForkPruneResult": "status",
   "ForkNavigationTargetProjection": "kind",

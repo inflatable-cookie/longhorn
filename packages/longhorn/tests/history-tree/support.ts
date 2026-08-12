@@ -1,6 +1,6 @@
 import type { ForkBranchPageSnapshot, ForkChangedEvent, ForkContinuationPageSnapshot, ForkRemovalReceiptProjection, ForkNavigationResult, ForkPathPageSnapshot, ForkSnapshot } from "../../src/history-tree/generated/protocol.ts";
 export const snapshot: ForkSnapshot = { protocolVersion: 1, authorityEpoch: 7, summary: { historyId: "history:tree", revision: 4, currentBranchId: "branch:main", currentEntryId: "entry:b", undoDepth: 2, redoDepth: 1, nextUndoLabel: "Move panel", nextRedoLabel: "Resize region", retainedEntryCount: 4, retainedEncodedWeight: 64, branchCount: 2, alternatePathCount: 2 } };
-export const pathPage: ForkPathPageSnapshot = { protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", revision: 4, branchId: null, headEntryId: "entry:c", precedingContinuationCount: 1, offset: 0, totalEntries: 3, entries: [
+export const pathPage: ForkPathPageSnapshot = { protocolVersion: 1, authorityEpoch: 7, historyId: "history:tree", revision: 4, branchId: null, headEntryId: "entry:c", precedingContinuationCount: 1, floor: { kind: "origin" }, offset: 0, totalEntries: 3, entries: [
   { entryId: "entry:c", label: "Resize region", kindId: "fixture:layout", groupId: null, recordedAt: null, continuationCount: 1, sequence: 3, committedRevision: 3, encodedWeight: 16, position: "future" },
   { entryId: "entry:b", label: "Move panel", kindId: "fixture:layout", groupId: null, recordedAt: 1765432100000, continuationCount: 2, sequence: 2, committedRevision: 2, encodedWeight: 16, position: "current" },
 ], truncatedBefore: false, truncatedAfter: true };

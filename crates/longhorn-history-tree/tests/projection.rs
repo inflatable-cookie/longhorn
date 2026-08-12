@@ -501,3 +501,63 @@ fn a_state_whose_node_has_children_but_no_preference_is_rejected() {
         ForkHistoryStateError::MissingPreferredChild(_)
     ));
 }
+
+/// Card 191. The fork domain has no baseline case, and this is why: protection
+/// covers the current branch root to head, so no entry on the default path can
+/// be pruned. Asserted rather than assumed -- a change to protection that
+/// broke it would otherwise surface as an origin row that lies.
+#[test]
+fn the_default_path_reports_the_origin_even_after_a_prune() {
+    let mut graph = two_forks_at_one_entry();
+    let revision = graph.revision();
+    let outcome = graph
+        .prune_to(
+            revision,
+            longhorn_history_tree::ForkRetentionLimits::new(1, 1).unwrap(),
+        )
+        .expect("prune");
+    assert!(
+        matches!(
+            outcome,
+            longhorn_history_tree::ForkPruningOutcome::Pruned(_)
+        ),
+        "the fixture has unprotected forks, so something must go"
+    );
+
+    let page = graph
+        .project_default_path_page(ForkProjectionPageRequest::new(0, 8).unwrap())
+        .unwrap();
+    assert_eq!(
+        page.preceding_entry_id(),
+        None,
+        "the default path still runs back to the origin"
+    );
+    let snapshot =
+        ForkPathPageSnapshot::from_page(HistoryAuthorityEpoch::new(1).unwrap(), &page).unwrap();
+    assert_eq!(
+        snapshot.floor,
+        longhorn_history_tree::ForkPathFloorProjection::Origin
+    );
+}
+
+/// A nested run's floor is the entry it forked from, which is already a row in
+/// the list above. Drawing an origin row there would invent a second one.
+#[test]
+fn a_continuation_run_reports_its_anchor_not_the_origin() {
+    let graph = two_forks_at_one_entry();
+    let run = graph
+        .project_continuation_run_page(
+            &entry_id("entry:d"),
+            ForkProjectionPageRequest::new(0, 8).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(run.preceding_entry_id(), Some(&entry_id("entry:b")));
+    let snapshot =
+        ForkPathPageSnapshot::from_page(HistoryAuthorityEpoch::new(1).unwrap(), &run).unwrap();
+    assert_eq!(
+        snapshot.floor,
+        longhorn_history_tree::ForkPathFloorProjection::Anchor {
+            entry_id: entry_id("entry:b")
+        }
+    );
+}

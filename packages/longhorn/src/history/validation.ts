@@ -2,6 +2,7 @@ import {
   HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
   HISTORY_ENTRY_POSITIONS,
+  HISTORY_PAGE_FLOORS,
   HISTORY_MODES,
   HISTORY_NAVIGATION_DIRECTIONS,
   HISTORY_NAVIGATION_REJECTION_CODES,
@@ -16,6 +17,10 @@ import {
   type HistorySnapshot,
 } from "./generated/protocol.ts";
 import { HISTORY_FIELDS } from "./generated/fields.ts";
+import {
+  HISTORY_VARIANT_FIELDS,
+  HISTORY_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
 
 export class HistoryProtocolValidationError extends Error {
   constructor(readonly path: string, message: string) {
@@ -64,6 +69,7 @@ export function assertValidHistoryPageSnapshot(
   boolean(record.truncatedBefore, "$.truncatedBefore");
   boolean(record.truncatedAfter, "$.truncatedAfter");
   baseline(record.retainedBaseline, "$.retainedBaseline");
+  floor(record.floor, "$.floor");
   array(record.entries, "$.entries").forEach((entry, index) =>
     entryRecord(entry, `$.entries[${index}]`),
   );
@@ -300,4 +306,33 @@ function assertNoPayload(value: unknown, path: string): void {
 
 function fail(path: string, message: string): never {
   throw new HistoryProtocolValidationError(path, message);
+}
+
+/**
+ * What sits below the page's oldest entry.
+ *
+ * `baseline` means retention took everything before it, so the position is
+ * where the surviving history begins rather than where the document did. A
+ * renderer that draws it as the origin claims data the authority discarded,
+ * which is why the two are separate variants and not a flag.
+ */
+function floor(value: unknown, path: string): void {
+  const record = object(value, path);
+  oneOf(record.kind, `${path}.kind`, HISTORY_PAGE_FLOORS);
+  keys(record, path, variantKeys("HistoryPageFloorProjection", record, path));
+  if (record.kind === "baseline") integer(record.prunedEntryCount, `${path}.prunedEntryCount`);
+}
+
+/**
+ * Allowed keys for one tagged-union variant, from the generated map, with the
+ * discriminant's name read from the map too.
+ *
+ * A missing entry means the generator failed to read the union: every caller
+ * checks the discriminant above this call.
+ */
+function variantKeys(type: string, record: Record<string, unknown>, path: string): readonly string[] {
+  const discriminant = record[HISTORY_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
+  const allowed = HISTORY_VARIANT_FIELDS[type]?.[discriminant as string];
+  if (allowed === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  return allowed;
 }

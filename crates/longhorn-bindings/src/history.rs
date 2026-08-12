@@ -10,26 +10,29 @@ use longhorn_history::{
     HistoryNavigationDirectionProjection, HistoryNavigationPositionProjection,
     HistoryNavigationReceiptProjection, HistoryNavigationRejectionCode,
     HistoryNavigationRejectionProjection, HistoryNavigationResult,
-    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
-    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistoryRecordedAt,
-    HistorySnapshot, HistorySummaryProjection, MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
+    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageFloorProjection,
+    HistoryPageSnapshot, HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion,
+    HistoryRecordedAt, HistorySnapshot, HistorySummaryProjection,
+    MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
 use crate::generation::{
     Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants,
+    tagged_variants, variant_field_map,
 };
 
 mod fixture;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/history/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/history/generated/fields.ts";
+const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/history/generated/variant-fields.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/history/protocol-v1.json";
 
 struct RenderedProtocol {
     contents: String,
     fields: String,
+    variant_fields: String,
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
@@ -42,6 +45,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         Artifact {
             relative_path: GENERATED_FIELDS,
             contents: protocol.fields,
+        },
+        Artifact {
+            relative_path: GENERATED_VARIANT_FIELDS,
+            contents: protocol.variant_fields,
         },
         Artifact {
             relative_path: GOLDEN_FIXTURE,
@@ -59,6 +66,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let rejection_code = HistoryNavigationRejectionCode::decl();
     let navigation_result = HistoryNavigationResult::decl();
     let changed_kind = HistoryChangedKind::decl();
+    let page_floor = HistoryPageFloorProjection::decl();
     let declarations = [
         HistoryId::decl(),
         HistoryEntryId::decl(),
@@ -75,6 +83,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         HistorySummaryProjection::decl(),
         HistorySnapshot::decl(),
         HistoryEntryRecord::decl(),
+        page_floor.clone(),
         HistoryPageCommand::decl(),
         HistoryPageSnapshot::decl(),
         target.clone(),
@@ -98,6 +107,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE = {MAXIMUM_HISTORY_PROJECTION_PAGE_SIZE} as const;\n\
          export const HISTORY_MODES = {} as const;\n\
          export const HISTORY_ENTRY_POSITIONS = {} as const;\n\
+         export const HISTORY_PAGE_FLOORS = {} as const;\n\
          export const HISTORY_NAVIGATION_TARGETS = {} as const;\n\
          export const HISTORY_NAVIGATION_DIRECTIONS = {} as const;\n\
          export const HISTORY_NAVIGATION_REJECTION_CODES = {} as const;\n\
@@ -106,6 +116,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          {}\n",
         serde_json::to_string(&string_union_variants(&mode)?)?,
         serde_json::to_string(&string_union_variants(&position)?)?,
+        serde_json::to_string(&tagged_variants(&page_floor, "kind")?)?,
         serde_json::to_string(&tagged_variants(&target, "kind")?)?,
         serde_json::to_string(&string_union_variants(&direction)?)?,
         serde_json::to_string(&string_union_variants(&rejection_code)?)?,
@@ -121,5 +132,17 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         );
     }
 
-    Ok(RenderedProtocol { contents, fields })
+    let (variant_fields, unreadable) =
+        variant_field_map("generate:history", "HISTORY_VARIANT_FIELDS", &declarations);
+    if !unreadable.is_empty() {
+        eprintln!(
+            "[history] tagged unions with no detectable discriminant: {}",
+            unreadable.join(", ")
+        );
+    }
+    Ok(RenderedProtocol {
+        contents,
+        fields,
+        variant_fields,
+    })
 }

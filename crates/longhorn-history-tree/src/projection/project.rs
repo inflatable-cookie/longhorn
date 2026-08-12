@@ -352,6 +352,7 @@ impl<P> ForkHistory<P> {
             // for a continuation run they are not, and reporting the root's
             // children on a run page is a fact about a different position.
             preceding_continuation_count: self.child_ids(preceding_anchor.as_ref()).len(),
+            preceding_entry_id: preceding_anchor,
             truncated_before: request.offset != 0,
             truncated_after: page_end < lineage.len(),
         })

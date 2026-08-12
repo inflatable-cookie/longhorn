@@ -393,3 +393,69 @@ fn empty_and_revision_exhausted_histories_fail_during_planning() {
         Err(HistoryNavigationPlanningError::RevisionOverflow)
     );
 }
+
+// --- Card 191: the origin is a position the operator can name ---------------
+
+/// Three entries, and the state the document was opened in. Reaching it meant
+/// one undo per entry, which for a real history is not a control an operator
+/// can use.
+#[test]
+fn checkout_root_unwinds_every_applied_entry_in_one_plan() {
+    let mut history = document_history(HistoryNavigationLimits::DEFAULT);
+    let plan = history
+        .plan_navigation(
+            request("plan:origin", 3, HistoryNavigationTarget::CheckoutRoot),
+            &DocumentPolicy,
+        )
+        .expect("the origin is reachable");
+    assert_eq!(plan.steps().len(), 3, "one inverse per applied entry");
+
+    let mut transaction = DocumentTransaction {
+        value: 3,
+        fail_at_step: None,
+        rollback_fails: false,
+        apply_calls: 0,
+    };
+    history
+        .execute_navigation(plan, &mut transaction)
+        .expect("origin commit");
+    assert_eq!(transaction.value, 0, "back to the state before entry:1");
+
+    let summary = history.project_summary().expect("summary");
+    assert_eq!(summary.current_entry_id(), None);
+    assert_eq!(summary.undo_depth(), 0);
+    assert_eq!(summary.redo_depth(), 3, "everything is redoable from here");
+}
+
+#[test]
+fn checkout_root_from_the_origin_is_refused() {
+    let mut history = document_history(HistoryNavigationLimits::DEFAULT);
+    let plan = history
+        .plan_navigation(
+            request("plan:first", 3, HistoryNavigationTarget::CheckoutRoot),
+            &DocumentPolicy,
+        )
+        .expect("first descent");
+    history
+        .execute_navigation(
+            plan,
+            &mut DocumentTransaction {
+                value: 3,
+                fail_at_step: None,
+                rollback_fails: false,
+                apply_calls: 0,
+            },
+        )
+        .expect("origin commit");
+
+    let error = history
+        .plan_navigation(
+            request("plan:again", 4, HistoryNavigationTarget::CheckoutRoot),
+            &DocumentPolicy,
+        )
+        .expect_err("already at the origin");
+    assert!(matches!(
+        error,
+        HistoryNavigationPlanningError::NothingToUndo
+    ));
+}

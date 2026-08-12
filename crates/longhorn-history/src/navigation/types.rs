@@ -16,6 +16,20 @@ pub enum HistoryNavigationTarget {
         /// Entry identity, never a presentation index.
         entry_id: HistoryEntryId,
     },
+    /// Return to the position before the oldest retained entry.
+    ///
+    /// The state the operator started from, and the only one with no entry to
+    /// name it -- so `Checkout` cannot express it and reaching it meant one
+    /// undo per entry. A separate variant rather than an optional `entry_id`,
+    /// for the reason the fork domain's `CheckoutBranchRoot` is separate: an
+    /// optional field makes every match site handle a combination that means
+    /// something for one state and nothing for the other.
+    ///
+    /// "Oldest retained", not "first ever". Retention prunes from the oldest
+    /// end and records what it took in the baseline projection, so after a
+    /// prune this is a baseline rather than the origin. The page says which;
+    /// this target only moves.
+    CheckoutRoot,
 }
 
 /// One injected, revision-bound navigation request.

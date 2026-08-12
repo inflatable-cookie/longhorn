@@ -187,6 +187,18 @@ export class HistoryController {
     return this.#navigate({ kind: "checkout", entryId });
   }
 
+  /**
+   * Return to the position before the oldest retained entry, in one navigation.
+   *
+   * The state the operator started from is the only one no entry names, so
+   * `checkout` cannot reach it and doing so meant one undo per entry. Whether
+   * that position is the true origin or a retention baseline is on the page,
+   * not here: this only moves.
+   */
+  checkoutRoot(): Promise<HistoryNavigationResult> {
+    return this.#navigate({ kind: "checkoutRoot" });
+  }
+
   async #navigate(
     target: HistoryNavigationTargetProjection,
   ): Promise<HistoryNavigationResult> {

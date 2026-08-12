@@ -2,9 +2,10 @@ use std::convert::Infallible;
 
 use longhorn_core::{HistoryGroupId, HistoryPlanId, HistoryRevision};
 use longhorn_history::{
-    HistoryCoalesce, HistoryCoalesceContext, HistoryEntry, HistoryEntrySequence,
-    HistoryLimitChangeError, HistoryLimits, HistoryNavigationRequest, HistoryNavigationTarget,
-    HistoryNavigationTransaction, HistoryNavigationTransactionFailure, HistoryPolicy,
+    HistoryAuthorityEpoch, HistoryCoalesce, HistoryCoalesceContext, HistoryEntry,
+    HistoryEntrySequence, HistoryLimitChangeError, HistoryLimits, HistoryNavigationRequest,
+    HistoryNavigationTarget, HistoryNavigationTransaction, HistoryNavigationTransactionFailure,
+    HistoryPageFloorProjection, HistoryPageRequest, HistoryPageSnapshot, HistoryPolicy,
     HistoryRecordError, HistoryRetainedBaseline, LinearHistory, LinearHistoryState,
 };
 
@@ -265,4 +266,67 @@ fn baseline_and_encoded_weight_overflow_fail_without_mutation() {
         ))
     ));
     assert_eq!(history, before);
+}
+
+// --- Card 191: what sits below the oldest entry -----------------------------
+
+/// The distinction that would have shipped wrong. Retention prunes from the
+/// oldest end, so after a prune the position below the oldest retained entry
+/// is where the surviving history begins -- not where the document did. A row
+/// drawn as the origin there claims data the authority discarded.
+#[test]
+fn a_pruned_page_reports_a_baseline_and_an_unpruned_one_reports_the_origin() {
+    let limits = HistoryLimits::new(3, 6, 1_024).unwrap();
+    let mut history = LinearHistory::new(history_id("history:floor"), limits);
+    let epoch = HistoryAuthorityEpoch::new(1).unwrap();
+
+    for revision in 0..3_u64 {
+        history
+            .record_applied(
+                record(
+                    revision,
+                    &format!("entry:{}", revision + 1),
+                    metadata("Weighted", "document:weighted"),
+                    value(u32::try_from(revision).unwrap(), 2),
+                ),
+                &WeightedPolicy,
+            )
+            .unwrap();
+    }
+    let page = HistoryPageSnapshot::from_page(
+        epoch,
+        &history
+            .project_page(HistoryPageRequest::new(0, 20).unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(page.floor, HistoryPageFloorProjection::Origin);
+    assert_eq!(page.retained_baseline.pruned_entry_count, 0);
+
+    // A fourth entry exceeds the three-entry budget and prunes the oldest.
+    history
+        .record_applied(
+            record(
+                3,
+                "entry:4",
+                metadata("Weighted", "document:weighted"),
+                value(3, 2),
+            ),
+            &WeightedPolicy,
+        )
+        .unwrap();
+    let page = HistoryPageSnapshot::from_page(
+        epoch,
+        &history
+            .project_page(HistoryPageRequest::new(0, 20).unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        page.floor,
+        HistoryPageFloorProjection::Baseline {
+            pruned_entry_count: 1
+        },
+        "the origin is gone and the page says so, with how much went"
+    );
 }

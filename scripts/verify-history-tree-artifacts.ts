@@ -144,11 +144,11 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
 
   const testOutput = await run(["cargo", "+1.95.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
-  // 49 since Card 186 made retention able to prune: a named unpinned branch
-  // is prunable, a pinned one survives any budget, and the budget is measured
-  // against the unprotected share. Those three replaced the single test that
-  // pinned the removed ProtectedBudget error.
-  if (testCount !== 49) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // 51 since Card 191 named the origin: the default path still reports it
+  // after a prune -- which is what protection guarantees and what a lying
+  // origin row would depend on -- and a continuation run reports its anchor
+  // instead.
+  if (testCount !== 51) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;

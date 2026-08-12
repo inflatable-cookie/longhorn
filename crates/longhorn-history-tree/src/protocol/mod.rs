@@ -23,7 +23,8 @@ pub use navigation::{
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
 };
 pub use path::{
-    ForkEntryRecord, ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection,
+    ForkEntryRecord, ForkPathFloorProjection, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkPathTargetProjection,
 };
 pub(crate) use summary::project_position;
 pub use summary::{

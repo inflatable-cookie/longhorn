@@ -11,9 +11,9 @@ use longhorn_history_tree::{
     ForkDeleteContinuationCommand, ForkEntryRecord, ForkHistoryProtocolVersion,
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
-    ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection, ForkProjectionPosition,
-    ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection, ForkRemovedEntryRecord,
-    ForkSnapshot, ForkSummaryProjection, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkPathFloorProjection, ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection,
+    ForkProjectionPosition, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
+    ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
@@ -62,6 +62,7 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let position = ForkProjectionPosition::decl();
     let path_target = ForkPathTargetProjection::decl();
+    let path_floor = ForkPathFloorProjection::decl();
     let navigation_target = ForkNavigationTargetProjection::decl();
     let rejection_code = ForkNavigationRejectionCode::decl();
     let navigation_result = ForkNavigationResult::decl();
@@ -83,6 +84,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         ForkSnapshot::decl(),
         HistoryRecordedAt::decl(),
         ForkEntryRecord::decl(),
+        path_floor.clone(),
         path_target.clone(),
         ForkPathPageCommand::decl(),
         ForkPathPageSnapshot::decl(),
@@ -115,6 +117,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const MAXIMUM_FORK_HISTORY_PAGE_SIZE = {MAXIMUM_FORK_PROJECTION_PAGE_SIZE} as const;\n\
          export const FORK_HISTORY_ENTRY_POSITIONS = {} as const;\n\
          export const FORK_HISTORY_PATH_TARGETS = {} as const;\n\
+         export const FORK_HISTORY_PATH_FLOORS = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_TARGETS = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_STATUSES = {} as const;\n\
@@ -123,6 +126,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          {}\n",
         serde_json::to_string(&string_union_variants(&position)?)?,
         serde_json::to_string(&tagged_variants(&path_target, "kind")?)?,
+        serde_json::to_string(&tagged_variants(&path_floor, "kind")?)?,
         serde_json::to_string(&tagged_variants(&navigation_target, "kind")?)?,
         serde_json::to_string(&string_union_variants(&rejection_code)?)?,
         serde_json::to_string(&tagged_variants(&navigation_result, "status")?)?,

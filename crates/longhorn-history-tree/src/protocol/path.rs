@@ -40,6 +40,33 @@ pub struct ForkEntryRecord {
     pub continuation_count: u64,
 }
 
+/// What sits below a path page's oldest entry.
+///
+/// Three cases, not two. A nested run's floor is the entry it forked from,
+/// which is already a row in the parent list, so drawing an origin row there
+/// would invent a second one.
+///
+/// The fork domain has no baseline case: `protected_lineage` covers the
+/// current branch root to head, so no entry on the default path is ever
+/// pruned and its origin is always the real one. That is asserted by a test
+/// rather than assumed, so a change to protection is caught here.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
+pub enum ForkPathFloorProjection {
+    /// The state the operator started from.
+    Origin,
+    /// The entry this run forked from. Already a row above; draw nothing.
+    Anchor {
+        /// The fork point.
+        entry_id: HistoryEntryId,
+    },
+}
+
 /// Explicit path selection. Alternate paths never load by default.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -117,6 +144,9 @@ pub struct ForkPathPageSnapshot {
     /// saturating at zero, on the same rule as an entry's own count.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub preceding_continuation_count: u64,
+    /// What sits below this page's oldest entry: the origin, or the entry the
+    /// run forked from.
+    pub floor: ForkPathFloorProjection,
     /// Full path length.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub total_entries: u64,
@@ -142,6 +172,12 @@ impl ForkPathPageSnapshot {
             branch_id: page.branch_id().cloned(),
             head_entry_id: page.head_entry_id().cloned(),
             preceding_continuation_count: count(page.preceding_continuation_count())?,
+            floor: match page.preceding_entry_id() {
+                Some(entry_id) => ForkPathFloorProjection::Anchor {
+                    entry_id: entry_id.clone(),
+                },
+                None => ForkPathFloorProjection::Origin,
+            },
             offset: count(page.offset())?,
             total_entries: count(page.total_entries())?,
             entries: page

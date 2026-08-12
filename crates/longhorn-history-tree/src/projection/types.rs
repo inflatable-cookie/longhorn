@@ -232,6 +232,7 @@ pub struct ForkPathPage {
     pub(crate) total_entries: usize,
     pub(crate) entries: Vec<ForkEntryProjection>,
     pub(crate) preceding_continuation_count: usize,
+    pub(crate) preceding_entry_id: Option<HistoryEntryId>,
     pub(crate) truncated_before: bool,
     pub(crate) truncated_after: bool,
 }
@@ -305,6 +306,17 @@ impl ForkPathPage {
     #[must_use]
     pub const fn preceding_continuation_count(&self) -> usize {
         self.preceding_continuation_count
+    }
+
+    /// Returns the entry immediately above this run's first, or `None` at the
+    /// history root.
+    ///
+    /// `None` is the origin -- the state the operator started from, which no
+    /// entry names. `Some` is the fork point a continuation run hangs off,
+    /// which is already a row in the list above.
+    #[must_use]
+    pub const fn preceding_entry_id(&self) -> Option<&HistoryEntryId> {
+        self.preceding_entry_id.as_ref()
     }
 }
 

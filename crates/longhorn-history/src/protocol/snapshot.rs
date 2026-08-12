@@ -10,6 +10,32 @@ use super::{
     HistoryProtocolProjectionError, HistoryProtocolVersion, project_count,
 };
 
+/// What sits below a page's oldest entry.
+///
+/// The renderer draws a row for it, and the row must not claim to be the
+/// origin when retention has taken everything before it. Tagged rather than a
+/// boolean: the two are different facts, and a boolean makes every caller
+/// remember which way round it reads.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
+pub enum HistoryPageFloorProjection {
+    /// The state the operator started from. Everything recorded is still here.
+    Origin,
+    /// Retention took entries older than this page's oldest, so the position
+    /// below it is where the surviving history begins -- not where the
+    /// document did.
+    Baseline {
+        /// How many entries were pruned before the oldest retained one.
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
+        pruned_entry_count: u64,
+    },
+}
+
 /// Payload-free durable baseline evidence.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -190,6 +216,11 @@ pub struct HistoryPageSnapshot {
     pub truncated_after: bool,
     /// Evidence for history pruned before retained entries.
     pub retained_baseline: HistoryBaselineProjection,
+    /// What sits below this page's oldest entry: the origin, or a baseline.
+    ///
+    /// On the page rather than the summary, because the row a renderer draws
+    /// for it belongs to the list.
+    pub floor: HistoryPageFloorProjection,
 }
 
 impl HistoryPageSnapshot {
@@ -235,6 +266,14 @@ impl HistoryPageSnapshot {
                     .retained_baseline()
                     .last_pruned_sequence()
                     .map(|sequence| sequence.get()),
+            },
+            // Derived from evidence the page already carries. A non-empty
+            // baseline means everything before the oldest retained entry is
+            // gone, so the position below it is where the surviving history
+            // begins rather than where the document did.
+            floor: match page.retained_baseline().pruned_entry_count() {
+                0 => HistoryPageFloorProjection::Origin,
+                pruned_entry_count => HistoryPageFloorProjection::Baseline { pruned_entry_count },
             },
         })
     }

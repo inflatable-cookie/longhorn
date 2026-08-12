@@ -8,9 +8,9 @@ use longhorn_history::{
     HistoryEntryRecord, HistoryNavigationCommand, HistoryNavigationDirectionProjection,
     HistoryNavigationPositionProjection, HistoryNavigationReceiptProjection,
     HistoryNavigationRejectionCode, HistoryNavigationRejectionProjection, HistoryNavigationResult,
-    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageSnapshot,
-    HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion, HistoryRecordedAt,
-    HistorySnapshot, HistorySummaryProjection,
+    HistoryNavigationTargetProjection, HistoryPageCommand, HistoryPageFloorProjection,
+    HistoryPageSnapshot, HistoryProjectionPosition, HistoryProtocolMode, HistoryProtocolVersion,
+    HistoryRecordedAt, HistorySnapshot, HistorySummaryProjection,
 };
 use serde_json::{json, to_value};
 
@@ -74,6 +74,9 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                 position: HistoryProjectionPosition::Current,
             },
         ],
+        // Nothing pruned, so the page's floor is the origin -- the state the
+        // operator started from, which no entry names.
+        floor: HistoryPageFloorProjection::Origin,
         truncated_before: false,
         truncated_after: true,
         retained_baseline: baseline,

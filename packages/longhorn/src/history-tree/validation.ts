@@ -5,6 +5,7 @@ import {
   FORK_HISTORY_NAVIGATION_STATUSES,
   FORK_HISTORY_NAVIGATION_TARGETS,
   FORK_HISTORY_NAVIGATION_REJECTION_CODES,
+  FORK_HISTORY_PATH_FLOORS,
   FORK_HISTORY_PATH_TARGETS,
   FORK_HISTORY_PRUNE_STATUSES,
   FORK_HISTORY_PROTOCOL_VERSION,
@@ -71,6 +72,12 @@ export function assertForkPathPage(value: unknown): asserts value is ForkPathPag
   optionalId(root.branchId, "$.branchId");
   optionalId(root.headEntryId, "$.headEntryId");
   integer(root.precedingContinuationCount, "$.precedingContinuationCount");
+  // Card 191. The floor tells a renderer whether to draw an origin row; a
+  // nested run says `anchor` and means "draw nothing, it is already above".
+  const floor = object(root.floor, "$.floor");
+  oneOf(floor.kind, "$.floor.kind", FORK_HISTORY_PATH_FLOORS);
+  exact(floor, "$.floor", variantFields("ForkPathFloorProjection", floor, "$.floor"));
+  if (floor.kind === "anchor") id(floor.entryId, "$.floor.entryId");
   integer(root.totalEntries, "$.totalEntries");
   array(root.entries, "$.entries").forEach((entry, index) => entryRecord(entry, `$.entries[${index}]`));
   boolean(root.truncatedBefore, "$.truncatedBefore");
