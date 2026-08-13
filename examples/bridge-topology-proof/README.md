@@ -18,8 +18,8 @@ topology matrix, bounded retry schedules, and authority checks.
 Run:
 
 ```sh
-effigy proof:bridge-topology
-effigy proof:bridge-topology-artifacts
+bun scripts/verify-bridge-topology-conformance.ts
+bun scripts/verify-bridge-topology-conformance.ts-artifacts
 ```
 
 The Tauri and service ports are deterministic injected fixtures. They make no

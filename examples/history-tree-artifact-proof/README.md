@@ -14,4 +14,4 @@ The proof checks:
 - path and branch reads return at most the requested 17 records
 - Tauri, Svelte, and Poodle remain removable optional edges
 
-Run `effigy proof:history-tree-artifacts`.
+Run `bun scripts/verify-history-tree-artifacts.ts`.

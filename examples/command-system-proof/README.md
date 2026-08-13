@@ -14,5 +14,5 @@ do not read or modify donor repositories.
 Run:
 
 ```sh
-effigy proof:command-system-artifacts
+bun scripts/verify-command-system-artifacts.ts
 ```

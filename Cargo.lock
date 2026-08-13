@@ -2510,37 +2510,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-native-content-backing-surface-proof"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "longhorn-native-content",
- "longhorn-native-content-backing-surface",
- "objc2",
- "objc2-app-kit",
- "objc2-core-foundation",
- "objc2-foundation",
- "objc2-quartz-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
-name = "longhorn-native-content-child-view-proof"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "longhorn-native-content",
- "longhorn-tauri-native-content-child-view",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "longhorn-native-content-isolated-window"
 version = "0.1.0"
 dependencies = [
@@ -2548,40 +2517,6 @@ dependencies = [
  "longhorn-native-content",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "longhorn-native-content-isolated-window-proof"
-version = "0.1.0"
-dependencies = [
- "longhorn-core",
- "longhorn-native-content",
- "longhorn-native-content-isolated-window",
- "longhorn-native-content-isolated-window-prototype",
- "longhorn-native-content-prototype",
- "longhorn-windowing",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
-name = "longhorn-native-content-isolated-window-prototype"
-version = "0.0.0"
-dependencies = [
- "longhorn-core",
- "longhorn-native-content-prototype",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "longhorn-native-content-prototype"
-version = "0.0.0"
-dependencies = [
- "longhorn-core",
- "serde",
 ]
 
 [[package]]
@@ -2829,25 +2764,6 @@ dependencies = [
  "longhorn-windowing",
  "serde_json",
  "tauri",
-]
-
-[[package]]
-name = "longhorn-tauri-transfer-proof"
-version = "0.1.0"
-dependencies = [
- "longhorn-config",
- "longhorn-core",
- "longhorn-surface-transfer",
- "longhorn-surfaces",
- "longhorn-surfaces-config",
- "longhorn-tauri-transfer",
- "longhorn-tauri-windowing",
- "longhorn-transfer",
- "longhorn-windowing",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
 ]
 
 [[package]]
@@ -3195,9 +3111,7 @@ dependencies = [
  "block2",
  "objc2",
  "objc2-core-foundation",
- "objc2-core-graphics",
  "objc2-foundation",
- "objc2-quartz-core",
 ]
 
 [[package]]
@@ -3228,9 +3142,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a180dd8642fa45cdb7dd721cd4c11b1cadd4929ce112ebd8b9f5803cc79d536"
 dependencies = [
  "bitflags 2.13.1",
- "block2",
  "dispatch2",
- "libc",
  "objc2",
 ]
 
@@ -3325,7 +3237,6 @@ dependencies = [
  "bitflags 2.13.1",
  "objc2",
  "objc2-core-foundation",
- "objc2-core-graphics",
  "objc2-foundation",
 ]
 

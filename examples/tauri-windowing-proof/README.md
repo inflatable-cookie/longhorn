@@ -7,7 +7,7 @@ Surface, Poodle, or Longhorn configuration dependency.
 Build the macOS application:
 
 ```sh
-effigy proof-windowing-build
+cd examples/tauri-windowing-proof/src-tauri && cargo tauri build
 ```
 
 The app writes structured evidence and staged placement data beneath its Tauri

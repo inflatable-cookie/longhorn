@@ -17,7 +17,7 @@ runs `svelte-check` and Vitest, and rejects sibling source resolution.
 Run:
 
 ```sh
-effigy proof:app-shells
+bun scripts/verify-app-shell-proof.ts
 ```
 
 The committed manifests are proof inputs. The verifier rewrites Longhorn and

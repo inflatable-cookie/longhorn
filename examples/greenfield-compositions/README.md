@@ -28,7 +28,7 @@ selected systems.
 Run:
 
 ```sh
-effigy qa:northstar:g01-greenfield-card125
+bun scripts/verify-greenfield-card125.ts
 ```
 
 Set `KEEP_GREENFIELD_COMPOSITION_PROOF=1` to retain the disposable artifact

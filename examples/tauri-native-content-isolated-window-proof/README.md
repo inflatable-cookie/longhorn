@@ -1,17 +1,18 @@
-# Tauri native-content isolated-window proof
+# Tauri Native Content Isolated Window Proof
 
-Packaged macOS proof for `longhorn-native-content-isolated-window`.
+**Retired 2026-08-13 — evidence retained, source removed.** See Card 198.
 
-The controller uses the production adapter over the frozen Card 084
-same-binary process fixture. The helper creates a real controlled `NSView`
-child, exchanges generation- and correlation-bound messages, and remains
-disposable. Raw AppKit pointers stay in the proof-only platform module.
+The packaged application that produced this evidence is gone. It could not be
+built (no icon, and no documented command built it), nothing invoked it, and
+its findings were already recorded in `docs/logs/2026-08/`.
 
-```sh
-effigy build:native-content-isolated-window-proof
-LONGHORN_ISOLATED_WINDOW_EVIDENCE_DIR="$PWD/examples/tauri-native-content-isolated-window-proof/evidence/runs/2026-08-01-macos-arm64" \
-  target/release/bundle/macos/Longhorn\ Isolated\ Window\ Proof.app/Contents/MacOS/longhorn-native-content-isolated-window-proof
-effigy verify:native-content-isolated-window-proof
-```
+What stays is `evidence/`, and it is **not** inert:
+`scripts/verify-native-content-artifacts.ts` reads `inventory.json` and the
+recorded run on every gate, so the finding is still checked even though the
+thing that produced it is not re-run.
 
-The committed run is macOS 26.5.2 arm64. Windows and Linux are unsupported.
+That distinction is the point. A recorded run is an artifact; the harness that
+produced it is a maintenance cost, and only one of the two was worth keeping.
+
+To produce fresh evidence, the packaged proof would have to be rebuilt —
+recover it from history at `examples/tauri-native-content-isolated-window-proof`.

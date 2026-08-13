@@ -1,19 +1,18 @@
-# Tauri native-content backing-surface proof
+# Tauri Native Content Backing Surface Proof
 
-Packaged macOS proof for `longhorn-native-content-backing-surface`.
+**Retired 2026-08-13 — evidence retained, source removed.** See Card 198.
 
-The production adapter owns generation checks, exact receipts, full-host
-storage evidence, clipping, renderer lifecycle, and physical input admission.
-The proof-only runtime owns the real AppKit `NSView`, deterministic renderer,
-and raw native pointers. Semantic input remains consumer code.
+The packaged application that produced this evidence is gone. It could not be
+built (no icon, and no documented command built it), nothing invoked it, and
+its findings were already recorded in `docs/logs/2026-08/`.
 
-```sh
-effigy build:native-content-backing-surface-production-proof
-LONGHORN_BACKING_SURFACE_PRODUCTION_EVIDENCE_DIR="$PWD/examples/tauri-native-content-backing-surface-proof/evidence/runs/2026-08-01-macos-arm64" \
-  target/release/bundle/macos/Longhorn\ Backing\ Surface\ Production\ Proof.app/Contents/MacOS/longhorn-native-content-backing-surface-proof
-effigy verify:native-content-backing-surface-production-proof
-```
+What stays is `evidence/`, and it is **not** inert:
+`scripts/verify-native-content-artifacts.ts` reads `inventory.json` and the
+recorded run on every gate, so the finding is still checked even though the
+thing that produced it is not re-run.
 
-The committed run is macOS arm64. A live scale transition is recorded as
-unmet when the available monitors expose only one scale. Windows and Linux are
-unsupported until a target-specific runtime and packaged proof exist.
+That distinction is the point. A recorded run is an artifact; the harness that
+produced it is a maintenance cost, and only one of the two was worth keeping.
+
+To produce fresh evidence, the packaged proof would have to be rebuilt —
+recover it from history at `examples/tauri-native-content-backing-surface-proof`.

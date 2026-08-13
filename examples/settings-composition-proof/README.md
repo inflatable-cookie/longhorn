@@ -24,7 +24,7 @@ The verifier:
 Run:
 
 ```sh
-effigy proof:settings-composition
+bun scripts/verify-settings-composition-proof.ts
 ```
 
 The manifests and capabilities are proof inputs. The verifier rewrites package

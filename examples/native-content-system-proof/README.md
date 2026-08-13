@@ -9,7 +9,7 @@ migration prerequisites.
 Run through Effigy:
 
 ```sh
-effigy proof:native-content-artifacts
+bun scripts/verify-native-content-artifacts.ts
 ```
 
 No donor repository is written. Temporary roots are removed unless

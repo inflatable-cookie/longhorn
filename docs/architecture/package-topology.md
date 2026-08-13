@@ -423,7 +423,6 @@ Examples arrive with the capability they prove:
 - `operation-notification-proof`: isolated minimal operation, Soundcheck scan,
   Loophole render/notification, and notification-only installs
 - `nucleus-no-surface-proof`: window-bound workspace without Surface packages
-- `tauri-transfer-proof`: direct and optional full Surface transfer hosting
 - optional local or remote service
 - installation from produced release artifacts
 

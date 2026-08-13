@@ -162,12 +162,7 @@ deliberately absent: relaunch is the claim, the install is only its setup, and
 Follows `examples/tauri-windowing-proof`. Evidence is recorded, not gated —
 these are claims CI cannot make.
 
-Its README documents `effigy proof-windowing-build`, which is not a task in
-`effigy.toml`. This one gives the `cargo tauri` invocation directly rather than
-inheriting a command that does not exist.
-
-Of the six Tauri proofs, only this one and the windowing proof carry an
-`icons/icon.png`. The other four cannot be bundled as they stand: `tauri build`
-fails on the missing icon, though `cargo check` and `clippy` pass because
-`generate_context!` only demands one when bundling. So `effigy qa` is green and
-four packaged proofs cannot be packaged.
+Two packaged Tauri proofs remain, this one and the windowing proof, and both
+build. Four others were retired on 2026-08-13 — see Card 198. They could not be
+bundled for want of an icon, no documented command built them, and their
+findings were already recorded in `docs/logs/2026-08/`.

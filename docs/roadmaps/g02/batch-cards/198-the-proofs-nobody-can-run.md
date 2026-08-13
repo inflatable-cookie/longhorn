@@ -1,6 +1,6 @@
 # 198 The Proofs Nobody Can Run
 
-Status: ready
+Status: complete — 2026-08-13
 Owner: Tom
 Roadmap: g02 cross-cutting
 Governing refs: contract 012; the packaged-proof convention
@@ -85,24 +85,24 @@ of the six anyone intends to run again.
 
 ## Steps
 
-- [ ] Decide the above for the six packaged proofs.
-- [ ] Correct the eight artifact-proof READMEs to a command that exists.
-- [ ] Whatever is chosen, make the drift catchable: a check that every
+- [x] Decide the above for the six packaged proofs.
+- [x] Correct the eight artifact-proof READMEs to a command that exists.
+- [x] Whatever is chosen, make the drift catchable: a check that every
       `effigy <task>` named in a README resolves. Nineteen dead commands
       accumulated silently, and only writing a twentieth surfaced it.
 
 ## Acceptance
 
-- [ ] Every `effigy` command in an `examples/` README resolves, or the README
+- [x] Every `effigy` command in an `examples/` README resolves, or the README
       no longer names one.
-- [ ] A new README naming a non-existent task fails the gate.
-- [ ] For each packaged proof: it builds and runs, or its README says plainly
+- [x] A new README naming a non-existent task fails the gate.
+- [x] For each packaged proof: it builds and runs, or its README says plainly
       that it does not and why.
 
 ## Evidence
 
-- [ ] The count before and after, by the same measurement.
-- [ ] For any proof retired, where its recorded evidence now lives.
+- [x] The count before and after, by the same measurement.
+- [x] For any proof retired, where its recorded evidence now lives.
 
 ## Stop Conditions
 
@@ -113,3 +113,59 @@ of the six anyone intends to run again.
 ## Continuation
 
 None. This is maintenance of the proof layer rather than a milestone step.
+
+## Outcome — 2026-08-13
+
+**Four packaged proofs retired, 6,752 lines removed.** `tauri-transfer-proof`
+and the three native-content proofs — child-view, isolated-window,
+backing-surface.
+
+The decision this card said not to take six times by momentum was taken once,
+on evidence:
+
+- **Their findings are already recorded.** Each has a "Packaged Evidence"
+  section in `docs/logs/2026-08/` with the concrete result — the isolated-window
+  log names a 74-event transcript with no proof failure. The finding is the
+  artifact; the source that produced it was not being re-run.
+- **None could be built.** No icon, so `tauri build` fails, and no documented
+  task to build them with.
+- **Nothing pointed at their source.** Zero references from `docs/` for the
+  three native-content proofs; `tauri-transfer-proof` had one line in
+  `package-topology.md`, removed with it.
+
+  **Corrected mid-retirement: something did point at their evidence.**
+  `scripts/verify-native-content-artifacts.ts` reads each proof's
+  `evidence/inventory.json` and its recorded run, and it is gated. Deleting the
+  directories wholesale broke `proof:artifacts`, which is how this surfaced —
+  by the gate, one command after the deletion. The `evidence/` trees were
+  restored and only the harnesses removed, which is the split the argument
+  wanted in the first place: the recorded run is the artifact, the thing that
+  produced it is the cost.
+- **None had been touched in anger since 2026-08-09**, and that commit was a
+  repository-wide docs sweep rather than work on the proof.
+
+Each retired directory keeps a README saying the source is gone, that the
+evidence is still gated, and where to recover the harness from history.
+
+**Kept: `tauri-windowing-proof` and `tauri-update-proof`.** Both carry an icon,
+both bundle, and both are cited by live documents. Every packaged proof that
+remains can actually be run, which is the state this card wanted to reach.
+
+The crates they proved are all still present and still tested headlessly. What
+was retired is the packaged re-verification of platform behaviour that has been
+verified once and recorded.
+
+### The README drift, and a guard against its return
+
+**Nineteen dead references, now zero.** Each artifact-proof README points at
+the `bun scripts/verify-<name>.ts` invocation its task became; the two Tauri
+READMEs give the `cargo tauri build` line directly.
+
+`scripts/verify-documented-commands.ts` runs in `proof:artifacts` and fails if
+any README names an `effigy` task that does not resolve. Verified both ways —
+it passes now, and it fails when a dead reference is planted.
+
+Its own comment records the measurement trap: task names appear in
+`effigy.toml` in two shapes, quoted keys under `[tasks]` and bare keys with
+array values for aggregates like `qa`. Reading only the first reports `qa` as
+missing, which is how the first count of this drift came out one too high.

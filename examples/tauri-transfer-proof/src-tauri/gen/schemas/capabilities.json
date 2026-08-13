@@ -1,1 +1,0 @@
-{"transfer-proof":{"identifier":"transfer-proof","description":"Minimal core capability for the packaged multi-window transfer proof.","local":true,"windows":["source","target","provisioned"],"permissions":["core:default"]}}
