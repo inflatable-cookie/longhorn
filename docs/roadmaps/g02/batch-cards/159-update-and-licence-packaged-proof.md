@@ -1,10 +1,12 @@
 # 159 Update And Licence Packaged Proof
 
-Status: in progress — headless batch complete; packaged proof deprioritized by operator decision (2026-08-08)
+Status: restarted 2026-08-13 by operator decision; scope corrected against the
+tree on the same day
 Owner: Tom
 Roadmap: g02.009 batch 3 / g02.010 batch 3 (shared)
 Governing refs: contracts 018 and 019; research memos 019 and 020
-Depends on: Cards 151, 152, 155, 156
+Depends on: Cards 151, 152, 155, 156, 196 (complete); Card 158 for the
+licence client half
 Auto-start next card: no
 
 ## Objective
@@ -113,7 +115,62 @@ remains an open composition decision (the licence crate's documented
 posture): a keyring-backed `CredentialStore` would live in the consumer app,
 not in a Longhorn crate.
 
-## Operator Decision — 2026-08-08
+## Restart — 2026-08-13
+
+Restarted by operator decision. The pause of 2026-08-08 held that the packaged
+application was more surface than the evidence was worth. What changed is not
+the cost — a signed bundle and a machine to replace it on cost the same — but
+what the run would exercise.
+
+**Two thirds of this card's own Progress section describe a division that no
+longer exists**, and restarting on it would have built against a fiction:
+
+> "Longhorn does not implement an installer — Tauri's updater plugin performs
+> check, download, verification, and bundle replacement. `longhorn-tauri-update`
+> is pure again (no tauri dependency)."
+
+Void since 2026-08-12. Longhorn is the update controller for both hosts, there
+is no plugin, `longhorn-update-install` performs verification and replacement,
+and `longhorn-tauri-update` was recreated on 2026-08-13 with a tauri dependency
+and four capabilities. The installer question this card recorded as "settled by
+architecture" was settled the other way.
+
+### What already exists, checked rather than assumed
+
+| Claim | Where | Status |
+| --- | --- | --- |
+| Update decision, rollout, interlock gate, licence verification, activation sources, usability, credential slots | `examples/update-licence-proof` | 20 headless claims pass |
+| Real `.app` bundle replacement, tamper rejection, executable bits preserved | `examples/packaged-update-proof` | passes against a real bundle |
+| Check → fetch → verify → gate → install as one sequence | `UpdateController`, Card 196 | headless, twelve tests |
+| Tauri commands and four capabilities | `longhorn-tauri-update`, Card 190 step 4 | nine tests |
+
+So the packaged half is not a green field: bundle replacement is already proved
+against a real application. That was the single hardest claim, and it landed
+while this card was paused.
+
+### What is still unmet, and what each needs
+
+1. **macOS relaunch, and tauri#11392 under Longhorn's close handling.**
+   `packaged-update-proof` records relaunch as "unmet by design — relaunch is
+   the host's". That is a correct division and *not* the finding this card
+   requires: the question is whether `prevent_close` interferes, and a host
+   that never relaunches cannot answer it.
+2. **The interlock against a genuinely open transfer session**, rather than a
+   `CountingProbe` that says one is open.
+3. **A non-writable installation reaching the manual-download fallback.**
+   `evaluate` returns `ManagedElsewhere` before any offer and Card 196 tests it
+   headlessly with a fetch adapter that fails if called; what is unproved is a
+   real administrator-installed copy classifying that way.
+4. **Platform credential persistence through a real keychain**, including the
+   locked path.
+5. **RFC 8252 through the system browser** with a real loopback listener.
+
+Claims 4 and 5 are the licence half and are blocked differently: the platform
+`CredentialStore` backend is still an open composition decision, and the
+licence client surface is Card 158, unbuilt. Splitting them is the honest
+sequence — the update half can run now, the licence half cannot.
+
+## Operator Decision — 2026-08-08 (superseded)
 
 The packaged proof application is **deprioritized**: it is more surface to
 maintain than the evidence it buys is worth right now. The machine-bound
@@ -133,4 +190,19 @@ harness output, never as passed.
 
 ## Next Task
 
-Finish Cards 153 and 157 against the proof, then Cards 154 and 158.
+The update half, in this order:
+
+1. Extend `packaged-update-proof` to drive the whole `UpdateController`
+   sequence rather than the installer alone — a static-JSON source over
+   loopback, a real fetch, verification, the gate, then install. Most of the
+   pieces exist; what is missing is a host that composes them.
+2. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
+   handling. If relaunch cannot be made reliable, the finding is the
+   deliverable and the interlock gains a documented manual-relaunch path —
+   this card's own stop condition, unchanged.
+3. The interlock against a genuinely open transfer session.
+4. Non-writable classification on a real administrator-installed copy.
+
+The licence half waits on two things that are not this card's: the platform
+credential backend decision, and Card 158. Recorded as unmet meanwhile, as the
+2026-08-08 decision established — that part of it was right and survives.

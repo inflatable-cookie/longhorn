@@ -183,14 +183,18 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 159, the packaged proof, and it is worth reconsidering rather than
-inheriting its pause.
+Card 159, restarted by operator decision 2026-08-13.
 
-It was paused by operator decision on 2026-08-08, when the only thing it could
-exercise was the installer. Since then the batch grew a controller, a host
-seam, a client surface and a verification relocation — so the proof would now
-run check, fetch, verify, gate and install end to end against a real bundle,
-which is a different and much larger claim than the one that was paused.
+Its scope was corrected on restart: two thirds of its Progress section
+described the Tauri-plugin division that the decision of 2026-08-12 voided, and
+`packaged-update-proof` had already proved real bundle replacement while the
+card was paused. What remains on the update half is driving the whole
+controller sequence from a packaged host, the relaunch finding under
+tauri#11392, the interlock against a genuinely open session, and non-writable
+classification on a real administrator-installed copy.
+
+The licence half stays unmet and is not this card's to unblock: it waits on the
+platform credential backend decision and on Card 158.
 
 Everything else in the batch is complete. Cards 150 to 154, 190 and 196 are
 closed; the update surface renders in Poodle and binds in Longhorn.
