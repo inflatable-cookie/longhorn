@@ -216,6 +216,54 @@ impl fmt::Display for LicenceKeyError {
 
 impl Error for LicenceKeyError {}
 
+/// The cases a second implementation of this format must agree on.
+///
+/// Emitted for `packages/longhorn/src/licence/key.ts`, which exists because
+/// key entry has to fail locally — see its module doc. Two implementations of
+/// one format is a drift risk, and this is what makes the drift fail a test
+/// rather than reach a customer.
+///
+/// Returned as data rather than written to disk here: the generator owns
+/// where artifacts land, and a crate that writes files during a test run is a
+/// crate that behaves differently under `cargo test`.
+#[must_use]
+pub fn key_conformance_cases() -> Vec<(String, String)> {
+    let mut cases = Vec::new();
+    let mut record = |input: &str| {
+        let outcome = match LicenceKey::parse(input) {
+            Ok(key) => format!("ok:{}", key.grouped()),
+            Err(LicenceKeyError::CheckFailed) => "checkFailed".to_owned(),
+            Err(LicenceKeyError::TooShort { minimum, actual }) => {
+                format!("tooShort:{minimum}:{actual}")
+            }
+            Err(LicenceKeyError::UnexpectedSymbol { symbol }) => {
+                format!("unexpectedSymbol:{symbol}")
+            }
+        };
+        cases.push((input.to_owned(), outcome));
+    };
+
+    let issued = LicenceKey::from_body("ABCDE12345FGHJK6789").expect("issues");
+    let key = issued.as_str().to_owned();
+    record(&key);
+    record(&key.to_lowercase());
+    record(&issued.grouped());
+    record(&format!("  {}  ", issued.grouped().replace('-', " ")));
+    // The confusions, which must be accepted rather than rejected.
+    let confusable = LicenceKey::from_body("1010123456789ABCDEF").expect("issues");
+    let check = &confusable.as_str()[19..];
+    record(&format!("IOIOI23456789ABCDEF{check}"));
+    record(&format!("LOLOL23456789ABCDEF{check}"));
+    // A transposition, which a position-weighted checksum must catch.
+    let mut swapped = key.clone();
+    swapped.replace_range(0..2, "BA");
+    record(&swapped);
+    record("");
+    record("ABCDE12345");
+    record("ABCDE!2345FGHJK6789X");
+    cases
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

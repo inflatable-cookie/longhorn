@@ -1,0 +1,42 @@
+[
+  {
+    "input": "ABCDE12345FGHJK67894",
+    "outcome": "ok:ABCDE-12345-FGHJK-67894"
+  },
+  {
+    "input": "abcde12345fghjk67894",
+    "outcome": "ok:ABCDE-12345-FGHJK-67894"
+  },
+  {
+    "input": "ABCDE-12345-FGHJK-67894",
+    "outcome": "ok:ABCDE-12345-FGHJK-67894"
+  },
+  {
+    "input": "  ABCDE 12345 FGHJK 67894  ",
+    "outcome": "ok:ABCDE-12345-FGHJK-67894"
+  },
+  {
+    "input": "IOIOI23456789ABCDEFP",
+    "outcome": "ok:10101-23456-789AB-CDEFP"
+  },
+  {
+    "input": "LOLOL23456789ABCDEFP",
+    "outcome": "ok:10101-23456-789AB-CDEFP"
+  },
+  {
+    "input": "BACDE12345FGHJK67894",
+    "outcome": "checkFailed"
+  },
+  {
+    "input": "",
+    "outcome": "tooShort:20:0"
+  },
+  {
+    "input": "ABCDE12345",
+    "outcome": "tooShort:20:10"
+  },
+  {
+    "input": "ABCDE!2345FGHJK6789X",
+    "outcome": "unexpectedSymbol:!"
+  }
+]

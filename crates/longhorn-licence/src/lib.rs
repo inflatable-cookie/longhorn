@@ -44,7 +44,7 @@ pub use credential::{
     MemoryCredentialStore,
 };
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};
-pub use key::{LicenceKey, LicenceKeyError};
+pub use key::{LicenceKey, LicenceKeyError, MINIMUM_KEY_SYMBOLS, key_conformance_cases};
 pub use licence::{GracePolicy, LicencePayload, TrustBasis, VerifiedLicence};
 pub use protocol::{
     HeldLicenceProjection, LICENCE_PROTOCOL_VERSION, LicenceActivateCommand, LicenceChangedEvent,

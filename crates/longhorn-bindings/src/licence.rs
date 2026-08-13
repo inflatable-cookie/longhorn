@@ -17,11 +17,18 @@ use crate::generation::{
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/licence/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/licence/generated/fields.ts";
 const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/licence/generated/variant-fields.ts";
+/// Cases the TypeScript key parser must agree with the Rust one on.
+///
+/// Generated rather than hand-kept: two implementations of one format drift,
+/// and the only defence is a fixture neither side authors.
+const GENERATED_KEY_CONFORMANCE: &str =
+    "packages/longhorn/src/licence/generated/key-conformance.json";
 
 struct RenderedProtocol {
     contents: String,
     fields: String,
     variant_fields: String,
+    key_conformance: String,
 }
 
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
@@ -42,6 +49,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             Artifact {
                 relative_path: GENERATED_VARIANT_FIELDS,
                 contents: protocol.variant_fields,
+            },
+            Artifact {
+                relative_path: GENERATED_KEY_CONFORMANCE,
+                contents: protocol.key_conformance,
             },
         ],
     )
@@ -101,9 +112,16 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let variant_fields =
         variant_field_map("generate:licence", "LICENCE_VARIANT_FIELDS", &declarations);
 
+    let cases: Vec<_> = longhorn_licence::key_conformance_cases()
+        .into_iter()
+        .map(|(input, outcome)| serde_json::json!({ "input": input, "outcome": outcome }))
+        .collect();
+    let key_conformance = format!("{}\n", serde_json::to_string_pretty(&cases)?);
+
     Ok(RenderedProtocol {
         contents,
         fields,
         variant_fields,
+        key_conformance,
     })
 }

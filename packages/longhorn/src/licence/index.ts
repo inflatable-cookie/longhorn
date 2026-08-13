@@ -5,6 +5,7 @@ export * from "./generated/protocol.ts";
 // when it drifts.
 export * from "./generated/fields.ts";
 export * from "./generated/variant-fields.ts";
+export * from "./key.ts";
 export * from "./validation.ts";
 export * from "./ports.ts";
 export * from "./client.ts";
