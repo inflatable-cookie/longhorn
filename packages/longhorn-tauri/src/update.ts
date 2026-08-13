@@ -3,7 +3,9 @@ import type {
   UpdateCheckCommand,
   UpdateDeferCommand,
   UpdateInstallCommand,
+  UpdatePort,
   UpdateSelectChannelCommand,
+  UpdateUnlisten,
 } from "@inflatable-cookie/longhorn/update";
 export const UPDATE_SNAPSHOT_COMMAND = "longhorn_update_snapshot";
 export const UPDATE_CHECK_COMMAND = "longhorn_update_check";
@@ -20,19 +22,11 @@ export const UPDATE_CHANGED_EVENT = "longhorn://update/changed";
  * running application are four different grants.
  *
  * Results are `unknown`, as every other raw port's are. What comes back over a
- * transport is untrusted until a validator says otherwise, and the checked
- * port that narrows these is Card 154's along with the validation that earns
- * it. Commands going *out* are typed, because those this side constructs.
+ * transport is untrusted until a validator says otherwise; `UpdateClient` is
+ * what narrows them. Commands going *out* are typed, because those this side
+ * constructs.
  */
-export interface TauriUpdatePort {
-  readonly snapshot: () => Promise<unknown>;
-  readonly check: (command: UpdateCheckCommand) => Promise<unknown>;
-  readonly selectChannel: (command: UpdateSelectChannelCommand) => Promise<unknown>;
-  readonly defer: (command: UpdateDeferCommand) => Promise<unknown>;
-  readonly install: (command: UpdateInstallCommand) => Promise<unknown>;
-  readonly listen?: (listener: (event: unknown) => void) => Promise<() => void>;
-}
-export function createTauriUpdatePort(options: { readonly transport: InvokeTransport }): TauriUpdatePort {
+export function createTauriUpdatePort(options: { readonly transport: InvokeTransport }): UpdatePort {
   const events = isEventTransport(options.transport) ? options.transport : undefined;
   return {
     snapshot: () => options.transport.invoke(UPDATE_SNAPSHOT_COMMAND, {}),
@@ -43,4 +37,4 @@ export function createTauriUpdatePort(options: { readonly transport: InvokeTrans
     listen: events === undefined ? undefined : (listener) => listen(events, listener),
   };
 }
-function listen(events: EventTransport, listener: (event: unknown) => void) { return events.listen(UPDATE_CHANGED_EVENT, listener); }
+function listen(events: EventTransport, listener: (event: unknown) => void): Promise<UpdateUnlisten> { return events.listen(UPDATE_CHANGED_EVENT, listener); }

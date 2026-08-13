@@ -115,8 +115,9 @@ source adapters are the only check path rather than a duplicate of one.
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010
-- [ ] [Card 154](batch-cards/154-update-client-surface.md) builds
-  `packages/update`: bindings and Svelte surface
+- [ ] [Card 154](batch-cards/154-update-client-surface.md) builds the update
+  client surface — Longhorn side complete 2026-08-13 (validation, checked port,
+  client, controller); the Svelte surface remains and is Poodle's
 
 ## Dependency Shape
 
@@ -181,15 +182,16 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 154, the client surface, rescoped to `packages/longhorn/src/update/` and
-`packages/longhorn-poodle-svelte/src/update/`. Card 190 step 4 landed the seam
-on 2026-08-13 and left the raw port returning `unknown`; the validation and the
-checked port that narrows it are the first thing 154 owes.
+The update surface in Poodle. Longhorn's side of Card 154 landed 2026-08-13 and
+`UpdateController` is the contract: `availability`, `progress`, `channel`,
+`deferral`, `lastRejection` and `aheadOfChannel`. What remains is rendering,
+and rendering is Poodle's.
 
-Card 159's packaged proof stays paused by operator decision. It is the only
-other open item in the batch.
+Two things gate closing this milestone, and neither is Longhorn's to do alone:
+that surface, and Card 159's packaged proof, which stays paused by operator
+decision.
 
-Previously: Card 190 step 4, then Card 196. Card 190 landed the protocol on 2026-08-12 and
+Previously: Card 154 Longhorn side, Card 190 step 4, Card 196. Card 190 landed the protocol on 2026-08-12 and
 stopped at step 4 for want of a host crate; Card 154 is blocked behind it; Card
 159 is paused by operator decision. The controller is the only unblocked work
 in the batch, and it is what the decision of 2026-08-12 made Longhorn's without
