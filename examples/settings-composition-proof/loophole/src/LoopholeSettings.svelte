@@ -120,9 +120,7 @@
 <UiPresentationProvider density="compact" sizeScale="sm">
   <SettingsShell
     {session}
-    host="panel"
     title="Loophole settings"
-    ariaLabel="Loophole settings"
     {resolveRenderer}
   />
 </UiPresentationProvider>

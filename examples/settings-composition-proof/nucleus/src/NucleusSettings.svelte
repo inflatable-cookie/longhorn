@@ -42,9 +42,7 @@
 <UiPresentationProvider density="compact" sizeScale="sm">
   <SettingsShell
     {session}
-    host="window"
     title="Nucleus settings"
-    ariaLabel="Nucleus settings"
     resolveRenderer={() => generalPage}
   />
 </UiPresentationProvider>

@@ -136,6 +136,9 @@
         "sequence": 4
       }
     ],
+    "floor": {
+      "kind": "origin"
+    },
     "historyId": "history:fixture",
     "offset": 0,
     "protocolVersion": 1,

@@ -17,30 +17,73 @@
       "import": "./src/bindings/index.ts",
       "default": "./src/bindings/index.ts"
     },
+    "./commands/poodle": {
+      "types": "./src/commands/poodle.ts",
+      "svelte": "./src/commands/poodle.ts",
+      "import": "./src/commands/poodle.ts",
+      "default": "./src/commands/poodle.ts"
+    },
+    "./commands/svelte": {
+      "types": "./src/commands/svelte.ts",
+      "svelte": "./src/commands/svelte.ts",
+      "import": "./src/commands/svelte.ts",
+      "default": "./src/commands/svelte.ts"
+    },
+    "./config/poodle": {
+      "types": "./src/config/poodle.ts",
+      "svelte": "./src/config/poodle.ts",
+      "import": "./src/config/poodle.ts",
+      "default": "./src/config/poodle.ts"
+    },
+    "./history-tree/svelte": {
+      "types": "./src/history-tree/svelte.ts",
+      "svelte": "./src/history-tree/svelte.ts",
+      "import": "./src/history-tree/svelte.ts",
+      "default": "./src/history-tree/svelte.ts"
+    },
+    "./history/svelte": {
+      "types": "./src/history/svelte.ts",
+      "svelte": "./src/history/svelte.ts",
+      "import": "./src/history/svelte.ts",
+      "default": "./src/history/svelte.ts"
+    },
     "./layout": {
       "types": "./src/bindings/layout.svelte.ts",
       "svelte": "./src/bindings/layout.svelte.ts",
       "import": "./src/bindings/layout.svelte.ts",
       "default": "./src/bindings/layout.svelte.ts"
     },
-    "./surfaces": {
-      "types": "./src/bindings/surfaces.svelte.ts",
-      "svelte": "./src/bindings/surfaces.svelte.ts",
-      "import": "./src/bindings/surfaces.svelte.ts",
-      "default": "./src/bindings/surfaces.svelte.ts"
+    "./native-content": {
+      "types": "./src/native-content/index.ts",
+      "svelte": "./src/native-content/index.ts",
+      "import": "./src/native-content/index.ts",
+      "default": "./src/native-content/index.ts"
     },
-    "./transfer": {
-      "types": "./src/bindings/transfer.svelte.ts",
-      "svelte": "./src/bindings/transfer.svelte.ts",
-      "import": "./src/bindings/transfer.svelte.ts",
-      "default": "./src/bindings/transfer.svelte.ts"
+    "./notifications/poodle": {
+      "types": "./src/notifications/poodle.ts",
+      "svelte": "./src/notifications/poodle.ts",
+      "import": "./src/notifications/poodle.ts",
+      "default": "./src/notifications/poodle.ts"
     },
-    "./surface-transfer": {
-      "types": "./src/bindings/surface-transfer.svelte.ts",
-      "svelte": "./src/bindings/surface-transfer.svelte.ts",
-      "import": "./src/bindings/surface-transfer.svelte.ts",
-      "default": "./src/bindings/surface-transfer.svelte.ts"
+    "./notifications/svelte": {
+      "types": "./src/notifications/svelte.ts",
+      "svelte": "./src/notifications/svelte.ts",
+      "import": "./src/notifications/svelte.ts",
+      "default": "./src/notifications/svelte.ts"
     },
+    "./operation/poodle": {
+      "types": "./src/operation/poodle.ts",
+      "svelte": "./src/operation/poodle.ts",
+      "import": "./src/operation/poodle.ts",
+      "default": "./src/operation/poodle.ts"
+    },
+    "./operation/svelte": {
+      "types": "./src/operation/svelte.ts",
+      "svelte": "./src/operation/svelte.ts",
+      "import": "./src/operation/svelte.ts",
+      "default": "./src/operation/svelte.ts"
+    },
+    "./package.json": "./package.json",
     "./poodle": {
       "types": "./src/poodle/index.ts",
       "svelte": "./src/poodle/index.ts",
@@ -59,65 +102,11 @@
       "import": "./src/poodle/transfer.ts",
       "default": "./src/poodle/transfer.ts"
     },
-    "./native-content": {
-      "types": "./src/native-content/index.ts",
-      "svelte": "./src/native-content/index.ts",
-      "import": "./src/native-content/index.ts",
-      "default": "./src/native-content/index.ts"
-    },
-    "./commands/svelte": {
-      "types": "./src/commands/svelte.ts",
-      "svelte": "./src/commands/svelte.ts",
-      "import": "./src/commands/svelte.ts",
-      "default": "./src/commands/svelte.ts"
-    },
-    "./commands/poodle": {
-      "types": "./src/commands/poodle.ts",
-      "svelte": "./src/commands/poodle.ts",
-      "import": "./src/commands/poodle.ts",
-      "default": "./src/commands/poodle.ts"
-    },
-    "./config/poodle": {
-      "types": "./src/config/poodle.ts",
-      "svelte": "./src/config/poodle.ts",
-      "import": "./src/config/poodle.ts",
-      "default": "./src/config/poodle.ts"
-    },
-    "./history/svelte": {
-      "types": "./src/history/svelte.ts",
-      "svelte": "./src/history/svelte.ts",
-      "import": "./src/history/svelte.ts",
-      "default": "./src/history/svelte.ts"
-    },
-    "./history-tree/svelte": {
-      "types": "./src/history-tree/svelte.ts",
-      "svelte": "./src/history-tree/svelte.ts",
-      "import": "./src/history-tree/svelte.ts",
-      "default": "./src/history-tree/svelte.ts"
-    },
-    "./notifications/svelte": {
-      "types": "./src/notifications/svelte.ts",
-      "svelte": "./src/notifications/svelte.ts",
-      "import": "./src/notifications/svelte.ts",
-      "default": "./src/notifications/svelte.ts"
-    },
-    "./notifications/poodle": {
-      "types": "./src/notifications/poodle.ts",
-      "svelte": "./src/notifications/poodle.ts",
-      "import": "./src/notifications/poodle.ts",
-      "default": "./src/notifications/poodle.ts"
-    },
-    "./operation/svelte": {
-      "types": "./src/operation/svelte.ts",
-      "svelte": "./src/operation/svelte.ts",
-      "import": "./src/operation/svelte.ts",
-      "default": "./src/operation/svelte.ts"
-    },
-    "./operation/poodle": {
-      "types": "./src/operation/poodle.ts",
-      "svelte": "./src/operation/poodle.ts",
-      "import": "./src/operation/poodle.ts",
-      "default": "./src/operation/poodle.ts"
+    "./settings/poodle": {
+      "types": "./src/settings/poodle.ts",
+      "svelte": "./src/settings/poodle.ts",
+      "import": "./src/settings/poodle.ts",
+      "default": "./src/settings/poodle.ts"
     },
     "./settings/svelte": {
       "types": "./src/settings/svelte.ts",
@@ -125,13 +114,30 @@
       "import": "./src/settings/svelte.ts",
       "default": "./src/settings/svelte.ts"
     },
-    "./settings/poodle": {
-      "types": "./src/settings/poodle.ts",
-      "svelte": "./src/settings/poodle.ts",
-      "import": "./src/settings/poodle.ts",
-      "default": "./src/settings/poodle.ts"
+    "./surface-transfer": {
+      "types": "./src/bindings/surface-transfer.svelte.ts",
+      "svelte": "./src/bindings/surface-transfer.svelte.ts",
+      "import": "./src/bindings/surface-transfer.svelte.ts",
+      "default": "./src/bindings/surface-transfer.svelte.ts"
     },
-    "./package.json": "./package.json"
+    "./surfaces": {
+      "types": "./src/bindings/surfaces.svelte.ts",
+      "svelte": "./src/bindings/surfaces.svelte.ts",
+      "import": "./src/bindings/surfaces.svelte.ts",
+      "default": "./src/bindings/surfaces.svelte.ts"
+    },
+    "./transfer": {
+      "types": "./src/bindings/transfer.svelte.ts",
+      "svelte": "./src/bindings/transfer.svelte.ts",
+      "import": "./src/bindings/transfer.svelte.ts",
+      "default": "./src/bindings/transfer.svelte.ts"
+    },
+    "./update/poodle": {
+      "types": "./src/update/poodle.ts",
+      "svelte": "./src/update/poodle.ts",
+      "import": "./src/update/poodle.ts",
+      "default": "./src/update/poodle.ts"
+    }
   },
   "files": [
     "src",

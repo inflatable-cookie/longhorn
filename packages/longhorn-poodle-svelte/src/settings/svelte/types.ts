@@ -88,6 +88,3 @@ export type SettingsRendererResolver = (
   rendererId: SettingsRendererId,
   page: SettingsPageDefinition,
 ) => SettingsPageRenderer | undefined;
-
-export type SettingsHostForm = "modal" | "window" | "panel";
-

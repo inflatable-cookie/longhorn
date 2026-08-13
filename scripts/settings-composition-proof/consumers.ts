@@ -33,7 +33,6 @@ const shapes: Record<string, ShapePolicy> = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    host: "modal",
     pages: ["Preferences"],
   },
   soundcheck: {
@@ -53,7 +52,6 @@ const shapes: Record<string, ShapePolicy> = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    host: "window",
     pages: ["Audio", "Storage", "Backups", "Restore & Recovery"],
   },
   loophole: {
@@ -72,7 +70,6 @@ const shapes: Record<string, ShapePolicy> = {
       "loophole:allow-hardware-probe",
       "loophole:allow-keybinding-editor",
     ],
-    host: "panel",
     pages: ["Application", "Appearance", "Hardware", "Keybindings"],
   },
   nucleus: {
@@ -89,7 +86,6 @@ const shapes: Record<string, ShapePolicy> = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    host: "window",
     pages: ["General"],
   },
 };
@@ -202,7 +198,6 @@ async function verifyConsumer(
 
   return {
     shape,
-    host: policy.host,
     pages: policy.pages,
     longhornPackages: policy.longhorn,
     forbiddenImportsAbsent: policy.forbiddenImports,

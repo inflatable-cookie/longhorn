@@ -112,6 +112,19 @@ export class SettingsSession {
     return this.currentPageSession?.busy ?? false;
   }
 
+  /**
+   * Whether leaving the current page would be refused.
+   *
+   * The same question `requestClose` and `navigate` answer, asked without
+   * raising a guard. A shell needs it *before* the attempt: Poodle's shell
+   * decides whether to close itself, then tells us, and by then setting the
+   * state back is too late -- the value has already gone false and true
+   * within one tick, so nothing downstream observes a change.
+   */
+  get canLeaveCurrent(): boolean {
+    return this.#canLeave();
+  }
+
   get draftCount(): number {
     return this.currentPageSession?.drafts.length ?? 0;
   }

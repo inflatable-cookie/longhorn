@@ -54,6 +54,9 @@
   let activity = $state<Activity>("idle");
   let error = $state<string | null>(null);
   let notice = $state<string | null>(null);
+  // Its own flag: `refresh` runs under `run("idle", ...)`, so `activity` says
+  // nothing about the first read being in flight.
+  let loading = $state(false);
   let failure = $state<RestoreExecutionFailureProjection | null>(null);
   let execution = $state<RestoreExecutionReceiptProjection | null>(null);
   let adapterReceipt = $state<RestoreAdapterReceiptProjection | null>(null);
@@ -92,6 +95,7 @@
   });
 
   async function refresh(): Promise<void> {
+    loading = true;
     await run("idle", async () => {
       acceptSnapshot(
         await client.snapshot({
@@ -100,6 +104,7 @@
         }),
       );
     });
+    loading = false;
   }
 
   async function inspect(): Promise<void> {
@@ -291,7 +296,24 @@
     <Callout tone="success" title="Restore operation complete" message={notice} announceMode="polite" />
   {/if}
 
-  {#if restore === null}
+  <!-- Three different situations used to render this one warning: the first
+       read still in flight, a read that failed, and a host that genuinely
+       composed no restore inspection. Only the third is what the message claims, and a
+       Retry beside the other two is either pointless or premature. The load
+       is now its own state, so what a reader sees is what happened. -->
+  {#if restore === null && snapshot === null && loading}
+    <Callout tone="pending" title="Loading restore inspection" announceMode="polite" />
+  {:else if snapshot === null}
+    <Callout
+      tone="warning"
+      title="Settings could not be read"
+      message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
+    >
+      {#snippet actions()}
+        <Button onClick={() => void refresh()}>Retry</Button>
+      {/snippet}
+    </Callout>
+  {:else if restore === null}
     <Callout
       tone="warning"
       title="Restore unavailable"

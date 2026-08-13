@@ -205,7 +205,24 @@
     <Callout tone="success" title="Storage operation complete" message={notice} announceMode="polite" />
   {/if}
 
-  {#if storage === null}
+  <!-- Three different situations used to render this one warning: the first
+       read still in flight, a read that failed, and a host that genuinely
+       composed no storage diagnostics. Only the third is what the message claims, and a
+       Retry beside the other two is either pointless or premature. The load
+       is now its own state, so what a reader sees is what happened. -->
+  {#if storage === null && snapshot === null && busy}
+    <Callout tone="pending" title="Loading storage diagnostics" announceMode="polite" />
+  {:else if snapshot === null}
+    <Callout
+      tone="warning"
+      title="Settings could not be read"
+      message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
+    >
+      {#snippet actions()}
+        <Button onClick={() => void refresh()}>Retry</Button>
+      {/snippet}
+    </Callout>
+  {:else if storage === null}
     <Callout
       tone="warning"
       title="Storage diagnostics unavailable"

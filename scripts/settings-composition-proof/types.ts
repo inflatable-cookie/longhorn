@@ -28,7 +28,6 @@ export interface ShapePolicy {
   readonly longhorn: readonly string[];
   readonly forbiddenImports: readonly string[];
   readonly permissions: readonly string[];
-  readonly host: "modal" | "window" | "panel";
   readonly pages: readonly string[];
 }
 

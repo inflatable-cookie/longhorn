@@ -1,18 +1,15 @@
 <script lang="ts">
   import {
     SettingsShell,
-    type SettingsHostForm,
     type SettingsPageRenderContext,
     type SettingsSession,
   } from "../../src/settings/poodle.ts";
 
   let {
     session,
-    host = "window",
     missingRenderer = false,
   }: {
     session: SettingsSession;
-    host?: SettingsHostForm;
     missingRenderer?: boolean;
   } = $props();
 </script>
@@ -50,7 +47,6 @@
 
 <SettingsShell
   {session}
-  {host}
   resolveRenderer={() => (missingRenderer ? undefined : page)}
 />
 

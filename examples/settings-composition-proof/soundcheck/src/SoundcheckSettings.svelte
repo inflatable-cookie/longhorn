@@ -108,9 +108,7 @@
 <UiPresentationProvider density="comfortable" sizeScale="md">
   <SettingsShell
     {session}
-    host="window"
     title="Soundcheck settings"
-    ariaLabel="Soundcheck settings"
     {resolveRenderer}
   />
 </UiPresentationProvider>

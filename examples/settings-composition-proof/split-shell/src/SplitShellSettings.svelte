@@ -59,9 +59,7 @@
 <UiPresentationProvider density="comfortable" sizeScale="md">
   <SettingsShell
     {session}
-    host="modal"
     title="Split-shell preferences"
-    ariaLabel="Split-shell preferences"
     resolveRenderer={() => preferencePage}
   />
 </UiPresentationProvider>

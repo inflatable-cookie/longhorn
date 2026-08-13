@@ -24,33 +24,33 @@ function createSession(
   });
 }
 
+/** Poodle's shell names the dialog's close from its own `closeLabel`, which
+ *  defaults to this. Named once so no test has to guess it. */
+const CLOSE = "Close settings";
+
 describe("SettingsShell", () => {
   // Card 192 step 1. The dialog's own close is the only one now; the page
   // header used to carry a second, so every page offered two affordances for
   // one action. `handleDialogOpen` runs the guard, so the close is still
   // refusable -- which the dirty test below proves.
-  it("offers exactly one close per host, whichever host it is", async () => {
-    // modal: the Dialog has one, so the page header must not add a second.
-    // window and panel: the Surface has none, so the page header is the only
-    // one and removing it outright would leave them unclosable.
-    for (const [host, dialogCloses, pageCloses] of [
-      ["modal", 1, 0],
-      ["window", 0, 1],
-      ["panel", 0, 1],
-    ] as const) {
-      const transport = new FakeSettingsTransport();
-      const mounted = render(SettingsShellHarness, {
-        props: { session: createSession(transport), host },
-      });
-      await mounted.findByTestId("consumer-page");
-      expect(
-        mounted.queryAllByRole("button", { name: "Close dialog" }),
-      ).toHaveLength(dialogCloses);
-      expect(
-        mounted.queryAllByRole("button", { name: "Close" }),
-      ).toHaveLength(pageCloses);
-      mounted.unmount();
-    }
+  // Card 192 step 1, and simpler than it was. The shell used to render three
+  // host forms -- modal drew a Dialog with its own close, window and panel
+  // drew a bare Surface with none -- so the page header carried a close for
+  // the two that lacked one and duplicated it for the one that did not.
+  //
+  // Poodle's shell is always a dialog, so there is one close and one place it
+  // lives. It stays refusable: `handleOpenChange` runs the guard, which the
+  // dirty test below proves.
+  it("offers exactly one close, and it is the dialog's", async () => {
+    const transport = new FakeSettingsTransport();
+    const mounted = render(SettingsShellHarness, {
+      props: { session: createSession(transport) },
+    });
+
+    await mounted.findByTestId("consumer-page");
+
+    expect(mounted.queryAllByRole("button", { name: CLOSE })).toHaveLength(1);
+    expect(mounted.queryAllByRole("button", { name: "Close" })).toHaveLength(0);
   });
 
   // The section's own label, never the module's prefixed onto it. The fixture
@@ -59,36 +59,30 @@ describe("SettingsShell", () => {
   it("labels a navigation group with its section alone", async () => {
     const transport = new FakeSettingsTransport();
     const mounted = render(SettingsShellHarness, {
-      props: { session: createSession(transport), host: "window" },
+      props: { session: createSession(transport) },
     });
     await mounted.findByTestId("consumer-page");
     const nav = document.querySelector('[aria-label="Settings pages"]');
     expect(nav?.textContent ?? "").not.toContain("·");
   });
 
-  it("mounts modal, window, and panel hosts over one controller", async () => {
-    for (const host of ["modal", "window", "panel"] as const) {
-      const transport = new FakeSettingsTransport();
-      const session = createSession(transport);
-      const mounted = render(SettingsShellHarness, {
-        props: { session, host },
-      });
+  // Was "mounts modal, window, and panel hosts over one controller". The
+  // three host forms are gone with the rewrite onto Poodle's shell, so what
+  // survives of the claim is that the nav and the consumer page both arrive
+  // over one controller and leave no listener behind.
+  it("mounts nav and page over one controller and leaves no listener", async () => {
+    const transport = new FakeSettingsTransport();
+    const session = createSession(transport);
+    const mounted = render(SettingsShellHarness, { props: { session } });
 
-      await waitFor(() => {
-        expect(
-          document.querySelector(`[data-host="${host}"]`),
-        ).not.toBeNull();
-        expect(
-          document.querySelector('[aria-label="Settings pages"]'),
-        ).not.toBeNull();
-        expect(
-          document.querySelector('[data-testid="consumer-page"]'),
-        ).not.toBeNull();
-      });
-      await mounted.unmount();
-      await session.stop();
-      expect(transport.activeListenerCount()).toBe(0);
-    }
+    await waitFor(() => {
+      expect(document.querySelector('[aria-label="Settings pages"]')).not.toBeNull();
+      expect(document.querySelector('[data-testid="consumer-page"]')).not.toBeNull();
+    });
+    await mounted.unmount();
+    await session.stop();
+
+    expect(transport.activeListenerCount()).toBe(0);
   });
 
   it("keeps dirty state behind the close guard", async () => {
@@ -98,7 +92,7 @@ describe("SettingsShell", () => {
       closes += 1;
     });
     const mounted = render(SettingsShellHarness, {
-      props: { session, host: "window" },
+      props: { session },
     });
     await mounted.findByTestId("change");
     await fireEvent.click(mounted.getByTestId("change"));
@@ -108,7 +102,7 @@ describe("SettingsShell", () => {
       );
     });
 
-    await fireEvent.click(mounted.getByRole("button", { name: "Close" }));
+    await fireEvent.click(mounted.getByRole("button", { name: CLOSE }));
     expect(
       await mounted.findByRole("alertdialog", {
         name: "Unsaved changes",
@@ -118,7 +112,7 @@ describe("SettingsShell", () => {
     expect(closes).toBe(0);
     expect(session.dirty).toBe(true);
 
-    await fireEvent.click(mounted.getByRole("button", { name: "Close" }));
+    await fireEvent.click(mounted.getByRole("button", { name: CLOSE }));
     await fireEvent.click(
       mounted.getByRole("button", { name: "Discard" }),
     );
@@ -132,15 +126,22 @@ describe("SettingsShell", () => {
     const transport = new FakeSettingsTransport();
     const session = createSession(transport);
     const mounted = render(SettingsShellHarness, {
-      props: { session, host: "panel" },
+      props: { session },
     });
     const search = await mounted.findByRole("searchbox", {
       name: "Search settings",
     });
     await fireEvent.input(search, { target: { value: "Output" } });
-    const result = await mounted.findByRole("button", {
-      name: "Audio · Output device",
+
+    // Search narrows the rail rather than drawing a second list over the
+    // page. The anchor is its own entry, so picking it lands on the control
+    // rather than on the page that contains it.
+    await waitFor(() => {
+      const nav = document.querySelector('[aria-label="Settings pages"]');
+      expect(nav?.textContent ?? "").toContain("Audio · Output device");
     });
+
+    const result = await mounted.findByText("Audio · Output device");
     await fireEvent.click(result);
 
     await waitFor(() => {
@@ -150,6 +151,10 @@ describe("SettingsShell", () => {
       expect(target).not.toBeNull();
       expect(document.activeElement).toBe(target);
     });
+
+    // The query survives. Clearing it on the first pick would throw away the
+    // filter at the moment it became useful.
+    expect((search as HTMLInputElement).value).toBe("Output");
     await mounted.unmount();
     await session.stop();
   });
@@ -161,7 +166,7 @@ describe("SettingsShell", () => {
     ) as typeof transport.mutationValue;
     const session = createSession(transport);
     const mounted = render(SettingsShellHarness, {
-      props: { session, host: "window" },
+      props: { session },
     });
     await fireEvent.click(await mounted.findByTestId("change"));
     await fireEvent.click(
@@ -184,7 +189,7 @@ describe("SettingsShell", () => {
     transport.mutationError = new Error("offline");
     const session = createSession(transport);
     const mounted = render(SettingsShellHarness, {
-      props: { session, host: "window" },
+      props: { session },
     });
     await fireEvent.click(await mounted.findByTestId("change"));
 
@@ -200,7 +205,7 @@ describe("SettingsShell", () => {
     const transport = new FakeSettingsTransport();
     const session = createSession(transport);
     const mounted = render(SettingsShellHarness, {
-      props: { session, host: "window" },
+      props: { session },
     });
     await fireEvent.click(await mounted.findByTestId("reset"));
     expect(
@@ -222,7 +227,6 @@ describe("SettingsShell", () => {
     const mounted = render(SettingsShellHarness, {
       props: {
         session,
-        host: "window",
         missingRenderer: true,
       },
     });
@@ -239,7 +243,7 @@ describe("SettingsShell", () => {
 
     for (let mount = 0; mount < 2; mount += 1) {
       const mounted = render(SettingsShellHarness, {
-        props: { session, host: "panel" },
+        props: { session },
       });
       await mounted.findByTestId("consumer-page");
       await mounted.unmount();
