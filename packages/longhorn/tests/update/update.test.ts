@@ -329,3 +329,81 @@ describe("update controller", () => {
     expect(notifications).toBeGreaterThan(0);
   });
 });
+
+describe("update presence", () => {
+  async function presence(state: UpdateSnapshot): Promise<string> {
+    const controller = new UpdateController({ port: new Port(state) });
+    await controller.start();
+    return controller.presence;
+  }
+
+  test("nothing to install collapses to nothing", async () => {
+    expect(await presence(snapshot())).toBe("hidden");
+  });
+
+  /**
+   * Three states have a newer version and no install this application can
+   * perform. An indicator for any of them offers something that cannot be
+   * taken; the settings panel is where they get explained.
+   */
+  test("withheld, ahead-of-channel and externally managed all stay hidden", async () => {
+    const cases: UpdateAvailabilityProjection[] = [
+      { state: "withheldByRollout", version: "1.4.0" },
+      { state: "aheadOfChannel", installed: "1.3.0-nightly.4", channel: "1.2.9" },
+      { state: "managedElsewhere", version: "1.4.0", manager: "homebrewCask" },
+    ];
+    for (const availability of cases) {
+      expect(await presence(snapshot({ availability }))).toBe("hidden");
+    }
+  });
+
+  test("an offer asks for attention", async () => {
+    const availability: UpdateAvailabilityProjection = {
+      state: "offer",
+      version: "1.4.0",
+      reason: "staged",
+      notes: null,
+    };
+    expect(await presence(snapshot({ availability }))).toBe("attention");
+  });
+
+  /** They said "not now", not "never". An indicator that vanishes gives them
+   * no way back to an update they postponed. */
+  test("a postponed offer stays, quietly", async () => {
+    const availability: UpdateAvailabilityProjection = {
+      state: "offer",
+      version: "1.4.0",
+      reason: "staged",
+      notes: null,
+    };
+    const deferral = { version: "1.4.0", cause: { cause: "userPostponed" } as DeferralCause };
+    expect(await presence(snapshot({ availability, deferral }))).toBe("quiet");
+  });
+
+  /** A gate deferral is transient -- the offer is still the answer once the
+   * transfer finishes -- so it does not quieten the way a decision does. */
+  test("a gate deferral does not quieten the offer", async () => {
+    const availability: UpdateAvailabilityProjection = {
+      state: "offer",
+      version: "1.4.0",
+      reason: "staged",
+      notes: null,
+    };
+    const cause = { cause: "workInFlight", detail: "1 open transfer" } as DeferralCause;
+    expect(await presence(snapshot({ availability, deferral: { version: "1.4.0", cause } }))).toBe(
+      "attention",
+    );
+  });
+
+  test("work in flight is quiet, and ready-to-install asks again", async () => {
+    const downloading: UpdateProgressProjection = { state: "downloading", fraction: null };
+    const ready: UpdateProgressProjection = { state: "readyToInstall", version: "1.4.0" };
+    expect(await presence(snapshot({ progress: downloading }))).toBe("quiet");
+    expect(await presence(snapshot({ progress: { state: "verifying" } }))).toBe("quiet");
+    expect(await presence(snapshot({ progress: ready }))).toBe("attention");
+  });
+
+  test("presence is hidden before the first read", () => {
+    expect(new UpdateController({ port: new Port() }).presence).toBe("hidden");
+  });
+});

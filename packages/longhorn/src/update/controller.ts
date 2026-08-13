@@ -21,6 +21,20 @@ export interface UpdateControllerOptions {
 }
 
 /**
+ * What an update indicator should do.
+ *
+ * A predicate rather than a rendering, and Longhorn's rather than a surface's:
+ * deriving it means reading five availability states against five progress
+ * states and a deferral, and two surfaces deriving it separately would drift.
+ *
+ * - `hidden` — collapse to nothing. There is nothing the operator can do here.
+ * - `quiet` — present, not insistent. Work is in flight, or they have already
+ *   been asked and postponed.
+ * - `attention` — something is waiting for a decision.
+ */
+export type UpdatePresence = "hidden" | "quiet" | "attention";
+
+/**
  * Holds update state for a surface and keeps the three outcomes apart.
  *
  * A command can end three ways, and collapsing any two of them produces a
@@ -85,6 +99,45 @@ export class UpdateController {
     const availability = this.#snapshot?.availability;
     if (availability?.state !== "aheadOfChannel") return undefined;
     return { installed: availability.installed, channel: availability.channel };
+  }
+
+  /**
+   * Whether an update indicator should show, and how loudly.
+   *
+   * Three availability states are deliberately `hidden`, because none of them
+   * is an install this application can perform:
+   *
+   * - `withheldByRollout` — a version exists and this install is not in the
+   *   stage yet. Showing it would offer something that cannot be taken.
+   * - `aheadOfChannel` — nothing to install. It needs explaining, and the
+   *   place to explain it is the settings panel, not a notification.
+   * - `managedElsewhere` — Homebrew or the App Store owns this install. There
+   *   is a version and the operator can act, but not through the
+   *   download-install-restart loop an indicator implies. Settings tells them
+   *   where to get it.
+   *
+   * A postponed offer stays `quiet` rather than disappearing. They said "not
+   * now", not "never", and an indicator that vanishes gives them no way back.
+   */
+  get presence(): UpdatePresence {
+    const snapshot = this.#snapshot;
+    if (snapshot === undefined) return "hidden";
+
+    switch (snapshot.progress.state) {
+      case "downloading":
+      case "verifying":
+      case "installing":
+        return "quiet";
+      case "readyToInstall":
+        return "attention";
+      case "idle":
+        break;
+    }
+
+    if (snapshot.availability.state !== "offer") return "hidden";
+    // Postponed by the operator, not by the gate. A gate deferral is transient
+    // and the offer is still the answer; `userPostponed` is a decision.
+    return snapshot.deferral?.cause.cause === "userPostponed" ? "quiet" : "attention";
   }
 
   observe(observer: () => void): () => void {
