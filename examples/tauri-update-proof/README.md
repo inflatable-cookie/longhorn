@@ -67,6 +67,17 @@ directory: written immediately before the request, read and cleared on the next
 start. Reaching the read at all is the finding. An in-memory flag cannot
 measure the thing that destroys it.
 
+### Rebuild from clean
+
+`build.rs` does not declare the frontend as a rerun trigger, so an earlier
+`cargo check` can bake stale assets into the binary and `tauri build` will
+happily reuse them — a changed `index.html` then does not appear in the app.
+Clean the package first:
+
+```sh
+cargo clean -p longhorn-tauri-update-proof
+```
+
 ### To complete it
 
 ```sh
@@ -108,10 +119,36 @@ Then:
    back, that silence is the finding tauri#11392 predicts, and the marker is
    left on disk as proof the request was made.
 
-Either outcome is a result. The card's stop condition already provides for the
-second: if relaunch cannot be made reliable under Longhorn's close handling,
-the finding is the deliverable and the interlock gains a documented
-manual-relaunch path.
+## Result — 2026-08-13
+
+Both claims met, in the packaged application.
+
+**Claim 2.** A session the coordinator accepted refused a real install:
+
+```json
+"aGenuinelyOpenSessionRefusesTheInstall": true,
+"openTransferSessions": 1,
+"installWouldBeAuthorized": false,
+"deferralCause": "WorkInFlight { detail: \"1 open transfer session\" }"
+```
+
+**Claim 1, and the tauri#11392 finding: relaunch works under a preventing
+close handler.**
+
+```json
+"relaunchClaim": "met - the process came back after request_restart",
+"requested": { "preventCloseInstalled": true, "requestedAt": 1786645946 }
+```
+
+Conditions, because the scope is the finding: macOS 26.5.2 (25F84) on arm64,
+Tauri 2.11.5, `request_restart` rather than `restart`, with
+`api.prevent_close()` installed on every close request.
+
+This does not refute tauri#11392 generally — it is one platform, one Tauri
+version, one restart entry point. What it does establish is that Longhorn's
+close handling is not on its own a barrier to relaunch, which is the question
+Card 159 asked and the reason the issue was ours rather than upstream's. The
+interlock needs no documented manual-relaunch path on this evidence.
 
 ### Not wired
 
