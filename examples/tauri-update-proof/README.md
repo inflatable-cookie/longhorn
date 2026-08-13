@@ -70,8 +70,17 @@ measure the thing that destroys it.
 ### To complete it
 
 ```sh
-cargo tauri build --config examples/tauri-update-proof/src-tauri/tauri.conf.json
+cd examples/tauri-update-proof/src-tauri && cargo tauri build
 ```
+
+**From this directory, not the repository root.** `cargo tauri build` at the
+root applies to the whole workspace, and four of the six Tauri proofs here ship
+no `icons/` at all — the first one reached fails `generate_context!` on a
+missing `icon.png` before this proof is touched. Nothing to do with this build;
+it just gets blamed for it.
+
+The bundle lands at
+`target/release/bundle/macos/Longhorn Update Proof.app`.
 
 Then:
 
@@ -102,3 +111,9 @@ these are claims CI cannot make.
 Its README documents `effigy proof-windowing-build`, which is not a task in
 `effigy.toml`. This one gives the `cargo tauri` invocation directly rather than
 inheriting a command that does not exist.
+
+Of the six Tauri proofs, only this one and the windowing proof carry an
+`icons/icon.png`. The other four cannot be bundled as they stand: `tauri build`
+fails on the missing icon, though `cargo check` and `clippy` pass because
+`generate_context!` only demands one when bundling. So `effigy qa` is green and
+four packaged proofs cannot be packaged.
