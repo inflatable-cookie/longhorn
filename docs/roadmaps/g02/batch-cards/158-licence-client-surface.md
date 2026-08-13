@@ -1,6 +1,7 @@
 # 158 Licence Client Surface
 
-Status: blocked — needs Card 193; scope corrected 2026-08-12
+Status: in progress — unblocked by Card 193; scope corrected again 2026-08-13,
+step 4 has no protocol behind it
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 010, and 013; research memo 020
@@ -25,13 +26,39 @@ TypeScript packages into three and is complete. The surface belongs in
 `protocol` module, no command envelope, no snapshot and no changed event.
 Card 193 supplies them; this card resumes after it.
 
+## Correction — 2026-08-13: step 4 cannot be built
+
+Checked against the tree before starting, as Cards 196 and 159 had to be.
+
+**There is no activation slot list in the protocol.** Card 193 gave the domain
+`LicenceDeactivateCommand`, which releases *this machine's* seat, and
+`NoSeatsFree` as a rejection code. Neither tells a client which machines hold
+seats, so the screen step 4 describes has nothing to render.
+
+`CredentialSlot` in `longhorn-licence` is not it. That is local credential
+storage — which keychain entry a secret lives in — and has no relationship to
+activated machines.
+
+This is the card's most emphasised step: "the dominant licensing support ticket
+… burying it converts every hardware change into a support conversation." It
+cannot be buried by this card because it is not here to bury.
+
+**The gap is real work, not an oversight to patch inline.** Listing seats means
+the authority reporting machines it has activated: an identity per seat, a
+label a human recognises, when it was activated, and which one is *this*
+machine. That is a protocol addition with a privacy question attached — a seat
+list is a list of a customer's computers — and it wants its own card.
+
+Steps 1, 2, 3, 5, 6 and 7 all have protocol behind them and proceed. Step 4 is
+carved out and carded.
+
 ## Scope
 
 - generated bindings for the licence domain, in
   `packages/longhorn/src/licence/` as g02.013 left the package graph
 - activation: serial key entry, account sign-in, licence-file import
 - current licence state, including entitlements and both windows
-- activation slot list with self-service release
+- releasing this machine's seat; the list of other machines is carved out
 - expiry and renewal surfacing
 
 ## Steps
@@ -43,10 +70,12 @@ Card 193 supplies them; this card resumes after it.
    message implying the key is invalid.
 3. Build account sign-in and licence-file import as peers of key entry, not
    as an advanced fallback. File import is what air-gapped customers use.
-4. **Build the activation slot list with self-service release.** "I got a
-   new laptop" is the dominant licensing support ticket; this screen is the
-   feature that answers it, and burying it converts every hardware change
-   into a support conversation.
+4. ~~**Build the activation slot list with self-service release.**~~ Carved
+   out 2026-08-13: no protocol exposes the seats. `LicenceDeactivateCommand`
+   releases this machine and stays in scope; the list of other machines is
+   its own card. "I got a new laptop" remains the dominant licensing support
+   ticket, and the answer to it is now explicitly owed rather than assumed
+   present.
 5. Surface both windows distinctly. "Your subscription lapsed" and "your
    updates lapsed but the app keeps working" are different messages, and
    conflating them on a perpetual licence reads as the app breaking.
@@ -59,7 +88,8 @@ Card 193 supplies them; this card resumes after it.
 ## Acceptance Criteria
 
 - a mistyped key fails locally with a message that says so
-- activation slot release is reachable without contacting support
+- releasing this machine's seat is reachable without contacting support. The
+  slot *list* moved to its own card and is not claimed here.
 - the use window and the update window are distinguishable in the surface
 - an in-lease renewal failure does not present as an error
 - bindings check clean against the Rust surface

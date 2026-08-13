@@ -136,6 +136,13 @@ pub struct LicenceEntitlementProjection {
     /// The entitlement id. Opaque: Longhorn enumerates no features.
     pub id: String,
     /// The most this entitlement permits, or absent for unlimited.
+    ///
+    /// Annotated as a number rather than left to bind as `bigint`. `u64` maps
+    /// to `bigint` by default, and `JSON.parse` never produces one -- so the
+    /// binding would describe a wire that cannot occur, and a validator
+    /// written against it would reject every real payload. A seat count is
+    /// small; the epochs above take the same annotation for the same reason.
+    #[cfg_attr(feature = "bindings", ts(type = "number | null"))]
     pub at_most: Option<u64>,
 }
 

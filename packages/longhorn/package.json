@@ -91,6 +91,16 @@
       "import": "./src/layout/generated/protocol.ts",
       "default": "./src/layout/generated/protocol.ts"
     },
+    "./licence": {
+      "types": "./src/licence/index.ts",
+      "import": "./src/licence/index.ts",
+      "default": "./src/licence/index.ts"
+    },
+    "./licence/protocol": {
+      "types": "./src/licence/generated/protocol.ts",
+      "import": "./src/licence/generated/protocol.ts",
+      "default": "./src/licence/generated/protocol.ts"
+    },
     "./native-content": {
       "types": "./src/native-content/index.ts",
       "import": "./src/native-content/index.ts",
