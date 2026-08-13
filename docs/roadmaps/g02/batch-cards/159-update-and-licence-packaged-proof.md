@@ -256,9 +256,30 @@ a `findings` entry explaining it. Failing the whole run would have buried four
 claims that hold behind one that did not — and the finding, not the failure,
 was the deliverable.
 
+## Progress — 2026-08-13, packaged host scaffolded
+
+`examples/tauri-update-proof` exists as a scaffold: manifest, build script,
+Tauri config, capability, and an operator frontend with three controls — open a
+transfer session, close it, attempt an install. **Not a workspace member**, so
+an incomplete host cannot fail the gate.
+
+`src/main.rs` is missing and the composition it needs is mostly settled.
+`TransferCoordinator::session_count()` is the real signal claim 2 wants, and
+`transfer_session_probe(|| coordinator.session_count())` wires it into
+`UpdateGate` with no double in the path.
+
+The part that stopped this being finished in one pass is worth naming, because
+it is the claim rather than the plumbing: **opening a session that is genuinely
+open**. `publish_lease` takes a `MonotonicClock` and a `LeasePublication` of
+seven parts — window id, client id, client epoch, lease generation, lifetime,
+window bounds, drop zones. Writing that carelessly produces a session that
+satisfies the type system and not the claim, which is the exact failure claim 2
+exists to close. It wants doing properly rather than quickly.
+
 ## Next Task
 
-The update half's remainder. Card 197 closed the cask detection finding.
+`src/main.rs` for the packaged host, then the two claims. Card 197 closed the
+cask detection finding that came out of the first packaged run.
 1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
    handling. If relaunch cannot be made reliable, the finding is the
    deliverable and the interlock gains a documented manual-relaunch path —

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "update-proof",
+  "description": "Exact core capability used by the packaged update-host proof.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

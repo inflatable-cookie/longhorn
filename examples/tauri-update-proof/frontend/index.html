@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Longhorn Update Proof</title>
+    <style>
+      body { background: #101318; color: #e6e9ef; font: 13px/1.5 -apple-system, sans-serif; padding: 2rem; }
+      button { font: inherit; padding: .4rem .8rem; margin-right: .5rem; }
+      pre { background: #0a0c10; padding: 1rem; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Longhorn Update Proof</h1>
+    <p>
+      Drives the packaged half of Card 159: relaunch under Longhorn's close
+      handling, and the restart interlock against a transfer session that is
+      genuinely open rather than reported open by a test double.
+    </p>
+    <button id="open">Open a transfer session</button>
+    <button id="close">Close it</button>
+    <button id="install">Install</button>
+    <pre id="evidence">no run yet</pre>
+    <script>
+      const invoke = window.__TAURI__.core.invoke;
+      const show = (value) => {
+        document.getElementById("evidence").textContent = JSON.stringify(value, null, 2);
+      };
+      const call = (command) => invoke(command).then(show).catch((error) => show({ error: String(error) }));
+      document.getElementById("open").onclick = () => call("open_transfer_session");
+      document.getElementById("close").onclick = () => call("close_transfer_sessions");
+      document.getElementById("install").onclick = () => call("attempt_install");
+      call("proof_state");
+    </script>
+  </body>
+</html>

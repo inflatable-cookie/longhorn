@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Longhorn Update Proof",
+  "version": "0.1.0",
+  "identifier": "audio.example.longhorn-update-proof",
+  "build": {
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Longhorn Update Proof",
+        "width": 900,
+        "height": 650,
+        "visible": true,
+        "resizable": true,
+        "backgroundColor": "#101318"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "icon": []
+  }
+}
