@@ -69,7 +69,13 @@ measure the thing that destroys it.
 
 ### To complete it
 
-1. Build and run the app.
+```sh
+cargo tauri build --config examples/tauri-update-proof/src-tauri/tauri.conf.json
+```
+
+Then:
+
+1. Open the built application.
 2. Press **Request relaunch**.
 3. If the application comes back, the evidence pane reports
    `relaunchClaim: met` with the request it recovered. If it does not come
@@ -92,3 +98,7 @@ deliberately absent: relaunch is the claim, the install is only its setup, and
 
 Follows `examples/tauri-windowing-proof`. Evidence is recorded, not gated —
 these are claims CI cannot make.
+
+Its README documents `effigy proof-windowing-build`, which is not a task in
+`effigy.toml`. This one gives the `cargo tauri` invocation directly rather than
+inheriting a command that does not exist.
