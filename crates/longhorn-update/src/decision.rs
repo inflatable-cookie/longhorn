@@ -29,6 +29,11 @@ impl CheckKind {
 }
 
 /// Why an update is being offered.
+///
+/// kebab-case, alone in this domain -- every other string union here is
+/// camelCase. Worth changing, and it cannot be changed here alone: Poodle
+/// mirrors this union structurally, so the two spellings must move together
+/// or `check:svelte` fails on the mismatch. Raised with Poodle 2026-08-13.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]

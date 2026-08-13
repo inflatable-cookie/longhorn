@@ -203,7 +203,7 @@ async function verifyConsumer(
     forbiddenImportsAbsent: policy.forbiddenImports,
     permissions: policy.permissions,
     artifactResolution: resolved,
-    poodleVersion: POODLE_RELEASE.version,
+    poodleVersion: context.poodle.version,
     svelte: svelte.manifest.version,
     mountedTests: testCount(testOutput),
     cleanInstall: true,
