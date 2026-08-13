@@ -4,6 +4,7 @@ import {
   type HeldLicenceProjection,
   type LicenceCredentialProjection,
   type LicenceRejectionCode,
+  type LicenceSeatProjection,
   type LicenceSnapshot,
   type LicenceTrustBasisProjection,
   type LicenceUsabilityProjection,
@@ -176,10 +177,53 @@ export class LicenceController {
     }
   }
 
-  /** Presents a credential. One command for all three routes, as Card 193 set. */
-  async activate(credential: LicenceCredentialProjection): Promise<void> {
+  /**
+   * Every seat held under this licence, this machine included.
+   *
+   * Empty when the authority does not account for seats, which is a different
+   * state from a licence with one seat.
+   */
+  get seats(): readonly LicenceSeatProjection[] { return this.licence?.seats ?? []; }
+
+  /** The seats that are not this machine — the ones a release would free. */
+  get otherSeats(): readonly LicenceSeatProjection[] {
+    return this.seats.filter((seat) => !seat.thisMachine);
+  }
+
+  /**
+   * Presents a credential. One command for all three routes, as Card 193 set.
+   *
+   * `label` is what the customer calls this machine in the seat list, asked
+   * for at the only moment it can be without inventing a settings screen.
+   */
+  async activate(
+    credential: LicenceCredentialProjection,
+    label: string | null = null,
+  ): Promise<void> {
     await this.#command((client, epoch) =>
-      client.activate({ protocolVersion: LICENCE_PROTOCOL_VERSION, authorityEpoch: epoch, credential }),
+      client.activate({
+        protocolVersion: LICENCE_PROTOCOL_VERSION,
+        authorityEpoch: epoch,
+        credential,
+        label,
+      }),
+    );
+  }
+
+  /**
+   * Releases another machine's seat.
+   *
+   * The answer to "I got a new laptop": free the seats that are not this one
+   * without a support conversation. Separate from `deactivate`, which leaves
+   * the machine you are sitting at.
+   */
+  async releaseSeat(machineId: string): Promise<void> {
+    await this.#command((client, epoch) =>
+      client.releaseSeat({
+        protocolVersion: LICENCE_PROTOCOL_VERSION,
+        authorityEpoch: epoch,
+        machineId,
+      }),
     );
   }
 

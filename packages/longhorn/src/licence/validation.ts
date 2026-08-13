@@ -12,6 +12,7 @@ import {
   type LicenceDeactivateCommand,
   type LicenceOutcomeProjection,
   type LicenceRefreshCommand,
+  type LicenceReleaseSeatCommand,
   type LicenceSnapshot,
 } from "./generated/protocol.ts";
 import {
@@ -77,6 +78,9 @@ export function assertLicenceActivateCommand(
   if (credential.kind === "licenceFile") {
     nonEmpty(credential.contentsBase64, "$.credential.contentsBase64");
   }
+  // The label a customer gives this machine, asked for at the only moment it
+  // can be without inventing a settings screen. Absent is fine.
+  if (root.label !== null) nonEmpty(root.label, "$.label");
 }
 
 export function assertLicenceDeactivateCommand(
@@ -91,6 +95,13 @@ export function assertLicenceRefreshCommand(
   commandBase(value, LICENCE_FIELDS.LicenceRefreshCommand);
 }
 
+export function assertLicenceReleaseSeatCommand(
+  value: unknown,
+): asserts value is LicenceReleaseSeatCommand {
+  const root = commandBase(value, LICENCE_FIELDS.LicenceReleaseSeatCommand);
+  nonEmpty(root.machineId, "$.machineId");
+}
+
 function held(value: unknown, path: string): void {
   const licence = object(value, path);
   exact(licence, path, LICENCE_FIELDS.HeldLicenceProjection);
@@ -101,6 +112,17 @@ function held(value: unknown, path: string): void {
   // runs, and one field cannot say that.
   optionalTimestamp(licence.useUntil, `${path}.useUntil`);
   optionalTimestamp(licence.updateUntil, `${path}.updateUntil`);
+  array(licence.seats, `${path}.seats`).forEach((entry, index) => {
+    const at = `${path}.seats[${index}]`;
+    const seat = object(entry, at);
+    exact(seat, at, LICENCE_FIELDS.LicenceSeatProjection);
+    // A `MachineId` is random and at least sixteen bytes by construction. This
+    // checks it is present and never what it says, because anything derived
+    // from the host would be a different value wearing the same field.
+    nonEmpty(seat.machineId, `${at}.machineId`);
+    if (seat.label !== null) nonEmpty(seat.label, `${at}.label`);
+    boolean(seat.thisMachine, `${at}.thisMachine`);
+  });
   array(licence.entitlements, `${path}.entitlements`).forEach((entry, index) => {
     const at = `${path}.entitlements[${index}]`;
     const entitlement = object(entry, at);
@@ -188,5 +210,6 @@ function nonEmpty(value: unknown, path: string): void { string(value, path); if 
 /** Unix seconds, and negative is a real point in time. */
 function timestamp(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value)) fail(path, "expected a unix-second timestamp"); }
 function optionalTimestamp(value: unknown, path: string): void { if (value !== null) timestamp(value, path); }
+function boolean(value: unknown, path: string): void { if (typeof value !== "boolean") fail(path, "expected boolean"); }
 function oneOf(value: unknown, path: string, values: readonly string[]): void { if (typeof value !== "string" || !values.includes(value)) fail(path, "unsupported value"); }
 function fail(path: string, message: string): never { throw new LicenceValidationError(path, message); }

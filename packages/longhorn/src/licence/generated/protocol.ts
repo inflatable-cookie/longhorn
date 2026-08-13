@@ -6,7 +6,7 @@ export const LICENCE_PROTOCOL_VERSION = 1 as const;
 export const LICENCE_USABILITY_STATES = ["active","inGrace","useWindowExpired","leaseLapsed","clockRefused"] as const;
 export const LICENCE_TRUST_BASIS_KINDS = ["offlineSignature","remoteAssertion"] as const;
 export const LICENCE_CREDENTIAL_KINDS = ["key","accountToken","licenceFile"] as const;
-export const LICENCE_REJECTION_CODES = ["malformed","notRecognised","noSeatsFree","revoked","clockRefused","staleAuthority","unreachable"] as const;
+export const LICENCE_REJECTION_CODES = ["malformed","notRecognised","noSeatsFree","revoked","clockRefused","staleAuthority","seatNotFound","unreachable"] as const;
 export const LICENCE_OUTCOME_STATUSES = ["committed","rejected"] as const;
 export const LICENCE_CHANGED_KINDS = ["activated","deactivated","refreshed","usabilityChanged"] as const;
 
@@ -50,6 +50,32 @@ id: string,
  */
 atMost: number | null, };
 
+export type LicenceSeatProjection = { 
+/**
+ * The installation's `MachineId`.
+ *
+ * Random and derived from nothing — not a MAC address, not a hardware
+ * serial, not anything about the user. `MachineId`'s own documentation
+ * makes that argument; this projection inherits it rather than restating
+ * it, and must never be widened to something derived.
+ */
+machineId: string, 
+/**
+ * What the customer called this machine when they activated it.
+ *
+ * Supplied by the operator, never sniffed from the host. A hostname would
+ * be the convenient answer and reads as a fact even when it is wrong or
+ * personal; an absent label reads as "unnamed machine", which is honest.
+ */
+label: string | null, 
+/**
+ * Whether this is the installation asking.
+ *
+ * Answered by the authority rather than left to the client to work out by
+ * comparing identifiers it had to be told separately.
+ */
+thisMachine: boolean, };
+
 export type HeldLicenceProjection = { 
 /**
  * The product this licence covers.
@@ -75,7 +101,16 @@ useUntil: Timestamp | null,
  * When updates stop being covered, when a window applies. Distinct from
  * `use_until`: a perpetual licence with a lapsed update window still runs.
  */
-updateUntil: Timestamp | null, };
+updateUntil: Timestamp | null, 
+/**
+ * Every machine holding a seat, this one included.
+ *
+ * Empty when the authority does not account for seats, which is a
+ * different thing from a licence with one seat and is why this is not an
+ * `Option`: a surface shows a list or shows nothing, and both are states
+ * rather than an absence of information.
+ */
+seats: Array<LicenceSeatProjection>, };
 
 export type LicenceSnapshot = { 
 /**
@@ -120,7 +155,14 @@ authorityEpoch: number,
 /**
  * What the customer presented.
  */
-credential: LicenceCredentialProjection, };
+credential: LicenceCredentialProjection, 
+/**
+ * What to call this machine in the seat list.
+ *
+ * Optional, and the only moment it can be asked for without inventing a
+ * separate settings screen. Absent is fine and shows as unnamed.
+ */
+label: string | null, };
 
 export type LicenceDeactivateCommand = { 
 /**
@@ -142,7 +184,21 @@ protocolVersion: LicenceProtocolVersion,
  */
 authorityEpoch: number, };
 
-export type LicenceRejectionCode = "malformed" | "notRecognised" | "noSeatsFree" | "revoked" | "clockRefused" | "staleAuthority" | "unreachable";
+export type LicenceReleaseSeatCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: LicenceProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: number, 
+/**
+ * The machine to release.
+ */
+machineId: string, };
+
+export type LicenceRejectionCode = "malformed" | "notRecognised" | "noSeatsFree" | "revoked" | "clockRefused" | "staleAuthority" | "seatNotFound" | "unreachable";
 
 export type LicenceOutcomeProjection = { "status": "committed", 
 /**

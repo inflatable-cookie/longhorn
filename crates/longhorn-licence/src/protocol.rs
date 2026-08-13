@@ -163,6 +163,38 @@ impl LicenceEntitlementProjection {
     }
 }
 
+/// One machine holding a seat under this licence.
+///
+/// Carries what releasing a seat needs and nothing else. No hostname, no
+/// last-seen, no platform: the task is "free a seat", not "identify the old
+/// laptop", and a customer with three seats releases the two that are not this
+/// one without needing to tell them apart. Every field beyond this is one the
+/// authority must retain, and a last-seen time in particular turns a seat list
+/// into a record of when someone was working.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LicenceSeatProjection {
+    /// The installation's `MachineId`.
+    ///
+    /// Random and derived from nothing — not a MAC address, not a hardware
+    /// serial, not anything about the user. `MachineId`'s own documentation
+    /// makes that argument; this projection inherits it rather than restating
+    /// it, and must never be widened to something derived.
+    pub machine_id: String,
+    /// What the customer called this machine when they activated it.
+    ///
+    /// Supplied by the operator, never sniffed from the host. A hostname would
+    /// be the convenient answer and reads as a fact even when it is wrong or
+    /// personal; an absent label reads as "unnamed machine", which is honest.
+    pub label: Option<String>,
+    /// Whether this is the installation asking.
+    ///
+    /// Answered by the authority rather than left to the client to work out by
+    /// comparing identifiers it had to be told separately.
+    pub this_machine: bool,
+}
+
 /// The licence held, when one is held.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -181,6 +213,13 @@ pub struct HeldLicenceProjection {
     /// When updates stop being covered, when a window applies. Distinct from
     /// `use_until`: a perpetual licence with a lapsed update window still runs.
     pub update_until: Option<Timestamp>,
+    /// Every machine holding a seat, this one included.
+    ///
+    /// Empty when the authority does not account for seats, which is a
+    /// different thing from a licence with one seat and is why this is not an
+    /// `Option`: a surface shows a list or shows nothing, and both are states
+    /// rather than an absence of information.
+    pub seats: Vec<LicenceSeatProjection>,
 }
 
 /// One licence state projection.
@@ -221,6 +260,22 @@ impl LicenceSnapshot {
     /// ambiently.
     #[must_use]
     pub fn held(authority_epoch: u64, licence: &VerifiedLicence, usability: &Usability) -> Self {
+        Self::held_with_seats(authority_epoch, licence, usability, Vec::new())
+    }
+
+    /// Projects a held licence together with the seats the authority accounts
+    /// for.
+    ///
+    /// Separate constructor rather than a parameter on `held`, because most
+    /// callers have no seat accounting and an empty vector at every call site
+    /// would read as "no seats" rather than "not accounted for".
+    #[must_use]
+    pub fn held_with_seats(
+        authority_epoch: u64,
+        licence: &VerifiedLicence,
+        usability: &Usability,
+        seats: Vec<LicenceSeatProjection>,
+    ) -> Self {
         let payload = licence.payload();
         Self {
             protocol_version: LicenceProtocolVersion::CURRENT,
@@ -234,6 +289,7 @@ impl LicenceSnapshot {
                 ),
                 use_until: payload.use_until,
                 update_until: payload.update_until,
+                seats,
             }),
         }
     }
@@ -286,6 +342,11 @@ pub struct LicenceActivateCommand {
     pub authority_epoch: u64,
     /// What the customer presented.
     pub credential: LicenceCredentialProjection,
+    /// What to call this machine in the seat list.
+    ///
+    /// Optional, and the only moment it can be asked for without inventing a
+    /// separate settings screen. Absent is fine and shows as unnamed.
+    pub label: Option<String>,
 }
 
 /// Release this machine's seat.
@@ -298,6 +359,29 @@ pub struct LicenceDeactivateCommand {
     /// Authority lifetime observed by the caller.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub authority_epoch: u64,
+}
+
+/// Release a named machine's seat.
+///
+/// Separate from [`LicenceDeactivateCommand`] rather than a widening of it.
+/// Leaving the machine you are sitting at and reaching across to end another
+/// machine's session are different acts, and one capability should not
+/// silently carry both — the same reasoning g02.018 applied to fork deletion.
+///
+/// No second proof beyond the standard envelope: whoever holds the licence
+/// already controls every seat under it, so a further check would defend
+/// against nobody who is not already inside.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LicenceReleaseSeatCommand {
+    /// Exact metadata protocol line.
+    pub protocol_version: LicenceProtocolVersion,
+    /// Authority lifetime observed by the caller.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub authority_epoch: u64,
+    /// The machine to release.
+    pub machine_id: String,
 }
 
 /// Re-check the lease now.
@@ -339,6 +423,8 @@ pub enum LicenceRejectionCode {
     ClockRefused,
     /// The caller's authority lifetime is behind the live one.
     StaleAuthority,
+    /// No seat is held by that machine. Already released, or never held.
+    SeatNotFound,
     /// The authority could not be reached. Not a licence problem, and a
     /// surface that reports it as one blames the customer for an outage.
     Unreachable,
@@ -374,7 +460,7 @@ pub enum LicenceOutcomeProjection {
 pub enum LicenceChangedKind {
     /// A licence was acquired.
     Activated,
-    /// A seat was released.
+    /// A seat was released — this machine's, or another's.
     Deactivated,
     /// A lease was re-checked.
     Refreshed,
@@ -439,6 +525,7 @@ mod tests {
             credential: LicenceCredentialProjection::Key {
                 key: "ABCDE12345FGHJK6789X".to_owned(),
             },
+            label: Some("Studio iMac".to_owned()),
         });
         round_trip(&LicenceActivateCommand {
             protocol_version: LicenceProtocolVersion::CURRENT,
@@ -446,6 +533,7 @@ mod tests {
             credential: LicenceCredentialProjection::AccountToken {
                 token: "opaque".to_owned(),
             },
+            label: None,
         });
         round_trip(&LicenceActivateCommand {
             protocol_version: LicenceProtocolVersion::CURRENT,
@@ -453,6 +541,7 @@ mod tests {
             credential: LicenceCredentialProjection::LicenceFile {
                 contents_base64: "AAEC".to_owned(),
             },
+            label: None,
         });
         round_trip(&LicenceDeactivateCommand {
             protocol_version: LicenceProtocolVersion::CURRENT,
@@ -562,6 +651,36 @@ mod tests {
                 },
             ]
         );
+    }
+
+    /// Card 199. A seat list carries what releasing a seat needs and nothing
+    /// else: no hostname, no last-seen, no platform. The task is "free a
+    /// seat", not "identify the old laptop".
+    #[test]
+    fn a_seat_carries_only_what_releasing_one_needs() {
+        let seat = LicenceSeatProjection {
+            machine_id: "m-random-sixteen-plus".to_owned(),
+            label: None,
+            this_machine: true,
+        };
+        let encoded = serde_json::to_string(&seat).expect("serialises");
+
+        assert_eq!(round_trip(&seat), seat);
+        for absent in ["hostname", "lastSeen", "platform", "ipAddress", "user"] {
+            assert!(!encoded.contains(absent), "`{absent}` reached the wire");
+        }
+    }
+
+    /// Releasing another machine is its own command, not a widening of
+    /// `LicenceDeactivateCommand`. Leaving the machine you are at and ending
+    /// another machine's session are different acts.
+    #[test]
+    fn releasing_a_named_seat_is_its_own_command() {
+        round_trip(&LicenceReleaseSeatCommand {
+            protocol_version: LicenceProtocolVersion::CURRENT,
+            authority_epoch: 7,
+            machine_id: "m-the-old-macbook-16".to_owned(),
+        });
     }
 
     /// The two windows answer different questions. A perpetual licence past

@@ -5,10 +5,12 @@
 
 export const LICENCE_FIELDS: Record<string, readonly string[]> = {
   "LicenceEntitlementProjection": ["id", "atMost"],
-  "HeldLicenceProjection": ["product", "usability", "trustBasis", "entitlements", "useUntil", "updateUntil"],
+  "LicenceSeatProjection": ["machineId", "label", "thisMachine"],
+  "HeldLicenceProjection": ["product", "usability", "trustBasis", "entitlements", "useUntil", "updateUntil", "seats"],
   "LicenceSnapshot": ["protocolVersion", "authorityEpoch", "licence"],
-  "LicenceActivateCommand": ["protocolVersion", "authorityEpoch", "credential"],
+  "LicenceActivateCommand": ["protocolVersion", "authorityEpoch", "credential", "label"],
   "LicenceDeactivateCommand": ["protocolVersion", "authorityEpoch"],
   "LicenceRefreshCommand": ["protocolVersion", "authorityEpoch"],
+  "LicenceReleaseSeatCommand": ["protocolVersion", "authorityEpoch", "machineId"],
   "LicenceChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
 };

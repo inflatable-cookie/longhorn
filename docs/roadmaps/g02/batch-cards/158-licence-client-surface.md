@@ -1,7 +1,7 @@
 # 158 Licence Client Surface
 
-Status: in progress — unblocked by Card 193; scope corrected again 2026-08-13,
-step 4 has no protocol behind it
+Status: Longhorn side complete 2026-08-13, step 4 included after Card 199; the
+Svelte rendering is Poodle's
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 010, and 013; research memo 020
@@ -70,12 +70,11 @@ carved out and carded.
    message implying the key is invalid.
 3. Build account sign-in and licence-file import as peers of key entry, not
    as an advanced fallback. File import is what air-gapped customers use.
-4. ~~**Build the activation slot list with self-service release.**~~ Carved
-   out 2026-08-13: no protocol exposes the seats. `LicenceDeactivateCommand`
-   releases this machine and stays in scope; the list of other machines is
-   its own card. "I got a new laptop" remains the dominant licensing support
-   ticket, and the answer to it is now explicitly owed rather than assumed
-   present.
+4. [x] **Build the activation slot list with self-service release.** Carved
+   out on 2026-08-13 because no protocol exposed the seats, then restored the
+   same day: Card 199 added `LicenceSeatProjection` and
+   `LicenceReleaseSeatCommand`, and the controller exposes `seats` and
+   `otherSeats`. The rendering is Poodle's.
 5. Surface both windows distinctly. "Your subscription lapsed" and "your
    updates lapsed but the app keeps working" are different messages, and
    conflating them on a perpetual licence reads as the app breaking.

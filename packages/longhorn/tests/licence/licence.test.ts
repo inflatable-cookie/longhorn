@@ -21,6 +21,7 @@ function held(overrides: Partial<HeldLicenceProjection> = {}): HeldLicenceProjec
     usability: { state: "active" },
     trustBasis: { kind: "offlineSignature" },
     entitlements: [{ id: "pro", atMost: null }],
+    seats: [],
     useUntil: null,
     updateUntil: null,
     ...overrides,
@@ -48,6 +49,7 @@ class Port implements LicencePort {
   async activate(): Promise<unknown> { return this.outcome(); }
   async deactivate(): Promise<unknown> { return this.outcome(); }
   async refresh(): Promise<unknown> { return this.outcome(); }
+  async releaseSeat(): Promise<unknown> { return this.outcome(); }
   async listen(): Promise<() => void> { return () => {}; }
 }
 
@@ -133,6 +135,7 @@ describe("licence client", () => {
         protocolVersion: LICENCE_PROTOCOL_VERSION,
         authorityEpoch: 2,
         credential: { kind: "key", key: "" },
+        label: null,
       }),
     ).rejects.toThrow(LicenceValidationError);
   });
@@ -143,6 +146,7 @@ describe("licence client", () => {
       activate: async () => committed(),
       deactivate: async () => committed(),
       refresh: async () => committed(),
+      releaseSeat: async () => committed(),
     });
 
     await expect(new LicenceClient(port).snapshot()).rejects.toThrow(LicenceValidationError);
@@ -252,5 +256,52 @@ describe("licence controller", () => {
 
     expect(controller.status.kind).toBe("failed");
     expect(String((controller.status as { error: unknown }).error)).toContain("has not been read");
+  });
+
+  /**
+   * Card 199, and the answer to "I got a new laptop": free the seats that are
+   * not this one, without a support conversation.
+   */
+  test("the seats that are not this machine are the ones a release would free", async () => {
+    const controller = await ready(
+      snapshot(
+        held({
+          seats: [
+            { machineId: "m-this-one-is-sixteen", label: "Studio iMac", thisMachine: true },
+            { machineId: "m-the-old-macbook-16", label: null, thisMachine: false },
+            { machineId: "m-a-third-machine-16", label: "Loaner", thisMachine: false },
+          ],
+        }),
+      ),
+    );
+
+    expect(controller.seats).toHaveLength(3);
+    expect(controller.otherSeats.map((seat) => seat.machineId)).toEqual([
+      "m-the-old-macbook-16",
+      "m-a-third-machine-16",
+    ]);
+  });
+
+  /**
+   * An empty list is "the authority does not account for seats", which is a
+   * different state from a licence with one seat. Neither is an absence of
+   * information, which is why `seats` is not optional.
+   */
+  test("no seat accounting is an empty list, not an absent one", async () => {
+    const controller = await ready(snapshot(held()));
+
+    expect(controller.seats).toEqual([]);
+    expect(controller.otherSeats).toEqual([]);
+  });
+
+  /** A label is the customer's word, and absent reads as unnamed. */
+  test("a seat may carry no label", async () => {
+    const controller = await ready(
+      snapshot(
+        held({ seats: [{ machineId: "m-unnamed-machine-16", label: null, thisMachine: true }] }),
+      ),
+    );
+
+    expect(controller.seats[0]?.label).toBeNull();
   });
 });

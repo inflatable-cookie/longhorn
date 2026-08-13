@@ -1,6 +1,6 @@
 # 199 Which Machines Hold A Seat
 
-Status: ready
+Status: complete — landed 2026-08-13
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contract 019; research memo 020
@@ -120,36 +120,36 @@ which is the licensing backend's.
 
 ## Steps
 
-- [ ] Confirm or reject the recommendation above. Three of the four questions
+- [x] Confirm or reject the recommendation above. Three of the four questions
       have answers already; the open one is whether a label ships in the first
       cut.
-- [ ] Add the projection: the seats held, which one is this machine, and
+- [x] Add the projection: the seats held, which one is this machine, and
       whatever identity and label survive the decisions above.
-- [ ] Add a command that releases a *named* seat, distinct from
+- [x] Add a command that releases a *named* seat, distinct from
       `LicenceDeactivateCommand`. Same reasoning as the fork-deletion
       capability in g02.018: destroying something you are not standing in is a
       different act from leaving.
-- [ ] Register in the bindings generator; the variant map already covers the
+- [x] Register in the bindings generator; the variant map already covers the
       domain's four unions and will cover a fifth.
-- [ ] Extend the client surface and the controller.
-- [ ] Resume Card 158 step 4.
+- [x] Extend the client surface and the controller.
+- [x] Resume Card 158 step 4.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes.
-- [ ] A test asserts the seat list carries no credential material, by the same
+- [x] `effigy qa` passes.
+- [x] A test asserts the seat list carries no credential material, by the same
       assertion the rest of the domain uses.
-- [ ] A test asserts this machine is identifiable in the list without the
+- [x] A test asserts this machine is identifiable in the list without the
       client comparing identifiers it had to be told separately.
-- [ ] Releasing a named seat is refused on a stale authority epoch, as every
+- [x] Releasing a named seat is refused on a stale authority epoch, as every
       other command in the domain is.
-- [ ] Whatever the privacy decisions were, they are recorded in the types
+- [x] Whatever the privacy decisions were, they are recorded in the types
       rather than in this card alone.
 
 ## Evidence
 
-- [ ] The tests above, named in the batch log.
-- [ ] The four decisions, with what was rejected and why.
+- [x] The tests above, named in the batch log.
+- [x] The four decisions, with what was rejected and why.
 
 ## Stop Conditions
 
@@ -161,3 +161,43 @@ which is the licensing backend's.
 ## Continuation
 
 Card 158 step 4, then g02.010's remaining batch-3 work.
+
+## Outcome — 2026-08-13
+
+The recommendation was taken, with the one open question answered: **a label
+ships in the first cut**, user-supplied at activation, and absent reads as
+unnamed.
+
+`LicenceSeatProjection` carries a `MachineId`, an optional label, and whether
+it is this machine. Nothing else. `LicenceReleaseSeatCommand` releases a named
+seat and is its own command rather than a widening of
+`LicenceDeactivateCommand`. `SeatNotFound` covers a seat already released or
+never held.
+
+**A test asserts what the projection must not carry.** It serialises a seat and
+checks the wire holds no `hostname`, `lastSeen`, `platform`, `ipAddress` or
+`user`. A restraint test rather than a behaviour test: that field list is easy
+to grow later under pressure to make a screen nicer, and this makes growing it
+break a test that names the reason instead of passing quietly.
+
+`seats` is a list and never optional. Empty means the authority does not
+account for seats, which is a different state from a licence with one seat, and
+neither is an absence of information.
+
+The client side reads `seats` and `otherSeats`. The second is the feature: the
+seats that are not this machine are the ones a release would free, which is the
+"I got a new laptop" answer without a support conversation.
+
+### One cost taken deliberately
+
+`label` is a required key on `LicenceActivateCommand`, nullable in value. The
+domain uses `deny_unknown_fields` throughout, so an absent key is a rejection
+rather than a default — which means every caller states the label, or states
+that there is none. Three round-trip fixtures needed updating, and that cost
+appearing immediately is the point: the alternative hides it until a consumer
+sends the old shape.
+
+## Continuation
+
+Card 158 step 4's Longhorn half is now unblocked and done; its rendering is
+Poodle's.
