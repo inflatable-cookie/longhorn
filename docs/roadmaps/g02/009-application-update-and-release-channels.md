@@ -112,6 +112,10 @@ source adapters are the only check path rather than a duplicate of one.
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
   — findings recorded, quiescence contract landed, and `longhorn-tauri-update`
   carries the probes and gate; the concrete installer awaits Card 159
+- [ ] [Card 197](batch-cards/197-cask-detection-is-backwards.md) fixes
+  Homebrew cask detection, which Card 159's packaged run proved is inverted —
+  a cask install classifies as self-managed and would be offered an in-place
+  update
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010
@@ -183,7 +187,16 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 159, restarted by operator decision 2026-08-13.
+Card 197, out of Card 159's first packaged run.
+
+Driving the whole controller against a real bundle proved four claims and
+broke one: `observe_install` believes a Homebrew cask symlinks
+`/Applications/Thing.app` into its Caskroom, and Homebrew does the reverse. So
+a cask install classifies as `SelfManaged` and Longhorn would replace a bundle
+the package manager owns — the exact desync `ManagedElsewhere` exists to
+prevent, in the one place this milestone claims to beat the plugin.
+
+Then Card 159's remainder, restarted by operator decision 2026-08-13.
 
 Its scope was corrected on restart: two thirds of its Progress section
 described the Tauri-plugin division that the decision of 2026-08-12 voided, and
