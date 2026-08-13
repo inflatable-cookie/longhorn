@@ -23,28 +23,40 @@ those are done.
 
 ## What is here
 
-- `Cargo.toml`, `build.rs`, `tauri.conf.json`, `capabilities/update-proof.json`
-- `frontend/index.html`: three operator controls — open a transfer session,
-  close it, attempt an install — and an evidence pane.
+Claim 2, and the mechanism for it, with no double anywhere in the path. The
+gate reads `TransferCoordinator::session_count()` through
+`transfer_session_probe`, and the session it counts is one the coordinator
+accepted through its own validation.
 
-## What is missing, and the one thing that is not obvious
+Run it and use the three controls: open a session, close it, attempt an
+install. Two unit tests make the same claims without the window, so a
+regression is caught by `cargo test` rather than only by a human opening the
+app.
 
-`src/main.rs`. The composition it needs is mostly settled:
+**A lease is not a session, and that distinction cost a build.** The first
+version published a lease — client epoch bound, drop zone, lifetime, all
+accepted — and `session_count()` stayed at zero. A lease advertises where a
+transfer *could* land; a session is a transfer actually in flight, and the
+interlock is about work in flight. `create_session` with a real
+`TransferSourceAuthority` is what opens one.
 
-- `TransferCoordinator::session_count()` is the real signal claim 2 wants, and
-  `transfer_session_probe(|| coordinator.session_count())` wires it straight
-  into `UpdateGate`. No test double anywhere in that path.
-- `UpdateController` composes as it does in `packaged-update-proof`: a
-  `StaticJsonSource`, an `ArtifactFetch`, an `ArtifactKey`, and
-  `NativeInstaller`.
+That is exactly the failure this claim exists to close: a session that
+satisfies the type system and not the coordinator would leave the gate
+approving and the proof green. The assertion `opened == 1` is what caught it,
+and it is why the tests assert the count rather than only the refusal.
 
-The awkward part is **opening a session that is genuinely open**.
-`TransferCoordinator::publish_lease` takes a `MonotonicClock` and a
-`LeasePublication` of seven parts — window id, client id, client epoch, lease
-generation, lifetime, window bounds, drop zones. That is a real composition
-rather than a call, and it is the reason this file exists instead of a working
-host: writing it badly would produce a session that satisfies the type system
-and not the claim, which is exactly the failure claim 2 is meant to close.
+## What is missing
+
+**Claim 1: relaunch, and the tauri#11392 finding.** `attempt_install` reports
+the gate's answer and records `relaunchClaim` as not yet exercised.
+`packaged-update-proof` performs the replacement; what is still owed is a host
+that quits and comes back under Longhorn's close handling, and an explicit
+finding on whether `prevent_close` interferes.
+
+The install path itself — `StaticJsonSource`, `ArtifactFetch`, `ArtifactKey`,
+`NativeInstaller` — composes as it does in `packaged-update-proof` and is not
+yet wired here, because relaunch is the claim and the install is only its
+setup.
 
 ## Convention
 

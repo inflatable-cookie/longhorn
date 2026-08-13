@@ -1,0 +1,1 @@
+{"update-proof":{"identifier":"update-proof","description":"Exact core capability used by the packaged update-host proof.","local":true,"windows":["main"],"permissions":["core:default"]}}
