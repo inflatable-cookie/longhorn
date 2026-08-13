@@ -79,8 +79,25 @@ no `icons/` at all — the first one reached fails `generate_context!` on a
 missing `icon.png` before this proof is touched. Nothing to do with this build;
 it just gets blamed for it.
 
-The bundle lands at
-`target/release/bundle/macos/Longhorn Update Proof.app`.
+The bundle lands at `target/release/bundle/macos/Longhorn Update Proof.app`.
+Run it from the repository root:
+
+```sh
+open "target/release/bundle/macos/Longhorn Update Proof.app"
+```
+
+Or launch the executable directly to keep stdout attached, which is worth
+doing here — a relaunch that fails does so quietly, and that is the outcome
+tauri#11392 predicts:
+
+```sh
+"target/release/bundle/macos/Longhorn Update Proof.app/Contents/MacOS/longhorn-tauri-update-proof"
+```
+
+**Not `cargo tauri dev`.** `request_restart` restarts the process from its own
+executable path, so under dev you would be asking whether the dev binary
+relaunches rather than whether a packaged macOS application does. That is a
+different question from the one this claim asks.
 
 Then:
 
