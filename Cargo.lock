@@ -2862,6 +2862,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-tauri-update-proof"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-tauri-update",
+ "longhorn-transfer",
+ "longhorn-update",
+ "longhorn-update-install",
+ "semver",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
+
+[[package]]
 name = "longhorn-tauri-windowing"
 version = "0.1.0"
 dependencies = [
