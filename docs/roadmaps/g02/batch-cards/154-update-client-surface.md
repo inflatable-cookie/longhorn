@@ -1,7 +1,6 @@
 # 154 Update Client Surface
 
-Status: in progress — Longhorn side complete 2026-08-13; the Svelte
-surface remains and is rescoped to Poodle
+Status: complete — 2026-08-13
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contracts 018, 010, and 013; research memo 019
@@ -44,12 +43,16 @@ Card 190 supplies that. This card resumes after it.
 
 1. [x] Generate and check bindings for the update domain types. Landed with
    Card 190; this card added the validation, the checked port and the client.
-2. [ ] Build the available-update surface: version, notes, and the actions.
+2. [x] Build the available-update surface: version, notes, and the actions.
+   Poodle's `UpdateStatus` renders all five availability states; Longhorn
+   binds a controller to it.
 3. [x] Build progress presentation for download and install. The *behaviour*:
    the controller exposes progress and keeps the absent fraction absent. The
    rendering is step 2's.
-4. [ ] Build channel selection against the persisted setting. The controller
-   has `selectChannel`; binding it to the persisted setting is the surface's.
+4. [x] Build channel selection against the persisted setting. `UpdateSettings`
+   is the composition. The client does not persist anything: `selectChannel`
+   commands the authority, and the authority owns where the choice lives —
+   which is the same division every other command in the domain keeps.
 5. [x] **Surface the ahead-of-channel state explicitly.** An install on
    `1.3.0-nightly.x` that selects production sits ahead of production
    `1.2.9` and receives nothing until `1.3.0` ships. That is correct
@@ -57,9 +60,11 @@ Card 190 supplies that. This card resumes after it.
    is the single most likely support question the feature generates.
 6. [x] Surface a refused restart with its reason, not as a failure.
 7. [x] Follow contract 013 for adapter lifetime; Svelte and Tauri stay peers.
-8. [ ] Tests: each state *renders* distinctly, including ahead-of-channel and
-   deferred-with-reason. Each state is *readable* distinctly and tested; the
-   rendering half waits on step 2.
+8. [x] Tests: each state renders distinctly, including ahead-of-channel and
+   deferred-with-reason. Split by ownership rather than duplicated — Poodle's
+   suite asserts the rendering, Longhorn's asserts that each state is
+   *readable* distinctly and that the binding is reactive. Neither repo can
+   make the other's claim.
 
 ## Acceptance Criteria
 
@@ -123,3 +128,44 @@ The controller is the contract between them: `availability`, `progress`,
 needs and all it needs. Poodle cannot depend on Longhorn, so it mirrors the
 generated types structurally — which is why the field maps are exported from
 this root, so whoever sees both can assert against them and fail on drift.
+
+## Outcome — 2026-08-13
+
+Closed. Longhorn holds the behaviour, Poodle holds the rendering, and three
+binding components join them: `UpdateCentre`, `UpdateStatus`, `UpdateSettings`
+in `longhorn-poodle-svelte/src/update/poodle/`.
+
+`UpdateSettings` is the composition this card owed and is deliberately not a
+component: a channel select beside the status surface, owning no state and no
+rendering of its own. It sits in Longhorn rather than in each application
+because writing the same twenty lines per consumer is how surfaces drift.
+
+**One read was added that the card did not ask for, and it turned out to be
+the load-bearing one.** `UpdateController.presence` — hidden, quiet or
+attention — because the update icon collapses to nothing unless there is
+something to act on, and deriving that means reading five availability states
+against five progress states and a deferral. Two surfaces deriving it
+separately would disagree. Three states are hidden on purpose:
+`withheldByRollout`, `aheadOfChannel` and `managedElsewhere` each have a newer
+version and none is an install this application can perform. The third of those
+is under review with Poodle.
+
+**The binding samples the controller rather than passing reads straight
+through, and the reason is measured.** Poodle's `observe` prop is sufficient
+on its own — Svelte 5 re-reads props lazily — but it was not, for two of them:
+`presence` was read directly in `UpdateCenter`'s template and `pending` at two
+`disabled=` sites, both outside the notify-tracked derived, so the icon never
+appeared. Poodle fixed both. The sampler stays anyway, because `UpdateSettings`
+draws its own `Select` bound to `controller.channel` and delegation cannot make
+that reactive; given one of three components needs a subscription, all three
+use one. A test asserts Poodle's `observe` is sufficient, so the
+simplification stays available and their regression would be visible here.
+
+Poodle reports that `observe` plus plain reads is structurally impossible in
+React — props are by value, so the re-render it triggers re-runs with the
+values the parent last rendered. Longhorn ships no React surface, so it does
+not bite; recorded because the sampler is the Svelte shape of the same answer.
+
+`OfferReason` remains kebab-case alone in a camelCase domain. Changing it turned
+`check:svelte` red because Poodle mirrors the union structurally, so both sides
+must move together. Raised with Poodle 2026-08-13.

@@ -115,9 +115,10 @@ source adapters are the only check path rather than a duplicate of one.
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010
-- [ ] [Card 154](batch-cards/154-update-client-surface.md) builds the update
-  client surface — Longhorn side complete 2026-08-13 (validation, checked port,
-  client, controller); the Svelte surface remains and is Poodle's
+- [x] [Card 154](batch-cards/154-update-client-surface.md) (complete
+  2026-08-13) builds the update client surface: validation, checked port,
+  client, controller, and the three binding components over Poodle's
+  rendering
 
 ## Dependency Shape
 
@@ -182,22 +183,26 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-The update surface in Poodle. Longhorn's side of Card 154 landed 2026-08-13 and
-`UpdateController` is the contract: `availability`, `progress`, `channel`,
-`deferral`, `lastRejection` and `aheadOfChannel`. What remains is rendering,
-and rendering is Poodle's.
+Card 159, the packaged proof, and it is worth reconsidering rather than
+inheriting its pause.
 
-Two things gate closing this milestone, and neither is Longhorn's to do alone:
-that surface, and Card 159's packaged proof, which stays paused by operator
-decision.
+It was paused by operator decision on 2026-08-08, when the only thing it could
+exercise was the installer. Since then the batch grew a controller, a host
+seam, a client surface and a verification relocation — so the proof would now
+run check, fetch, verify, gate and install end to end against a real bundle,
+which is a different and much larger claim than the one that was paused.
 
-Previously: Card 154 Longhorn side, Card 190 step 4, Card 196. Card 190 landed the protocol on 2026-08-12 and
-stopped at step 4 for want of a host crate; Card 154 is blocked behind it; Card
-159 is paused by operator decision. The controller is the only unblocked work
-in the batch, and it is what the decision of 2026-08-12 made Longhorn's without
-anything then being written down that builds it.
+Everything else in the batch is complete. Cards 150 to 154, 190 and 196 are
+closed; the update surface renders in Poodle and binds in Longhorn.
 
-Two corrections are recorded here rather than silently applied. This section
-said "Open Card 150" while 150 to 153 were all complete. And the goal
-"signature verification stays entirely inside the Tauri plugin" survived the
-decision that voided it by nine days.
+Two open questions, both raised with Poodle 2026-08-13 and neither blocking:
+whether `managedElsewhere` should show a quiet icon rather than none, and the
+`OfferReason` wire spelling, which is kebab-case alone in a camelCase domain
+and cannot move on one side alone.
+
+One thing to undo when Poodle publishes: `LONGHORN_PROOF_ACCEPT_LINKED_POODLE`
+in `effigy.toml`. The settings composition proof installs Poodle from the
+sibling checkout while `SettingsShell`, `UpdateCenter` and `UpdateStatus` are
+unreleased, and every run under it records the exemption in its artifact.
+
+Previously: Card 154, Card 190 step 4, Card 196.
