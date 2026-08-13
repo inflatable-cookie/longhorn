@@ -188,20 +188,87 @@ credentials surviving a restart, an RFC 8252 sign-in through the system
 browser, and the non-writable fallback — are recorded as pending in the
 harness output, never as passed.
 
+## Progress — 2026-08-13, update half item 1
+
+Done. `packaged-update-proof` drives the whole controller sequence against a
+real application bundle, and passes: eight claims, four of them new.
+
+| Claim | What it establishes |
+| --- | --- |
+| `aLoopbackManifestYieldsAnOffer` | `StaticJsonSource` composes the request, a host serves it over loopback, `evaluate` offers |
+| `theArtifactArrivesOverARealSocket` | A genuine HTTP transfer, not a file copy |
+| `workInFlightDefersTheInstallAfterTheTransfer` | The gate refuses *after* the bytes arrive |
+| `aQuiescentHostInstallsTheOfferedVersion` | The sequence lands the offered version on disk |
+
+The third is the one worth having. Card 196 put the gate between verify and
+install rather than before fetch, on the argument that downloading while the
+user has work in flight is harmless and gating early makes them wait for a
+transfer that could have happened in the background. That was a design
+decision defended in a comment; it is now a claim checked against a real
+transfer of a real bundle.
+
+The loopback server is hand-rolled over `TcpListener` — two routes and one
+verb, where a server crate would be more surface than the thing it serves.
+`EndpointUrl` accepts plain HTTP for loopback and nothing else, which is what
+makes it addressable.
+
+**One finding, recorded because the symptom lied.** The listener is
+non-blocking so its accept loop can poll a stop flag, and on macOS the accepted
+socket inherits that. `write_all` on a large body then returns `WouldBlock`
+partway and delivers a truncated artifact — which fails verification, so both
+installs reported `SignatureRejected`. A transport fault wearing a security
+fault's clothes. It was found by recording the rejection codes in the evidence
+rather than reasoning about which claim was false, and the fix carries the
+explanation.
+
+## Finding — 2026-08-13: cask detection is backwards
+
+Item 3 was attempted and **the claim is false**, which is the finding.
+
+`observe_install` reads the bundle as a symlink and treats the target as the
+signal, on the recorded belief that "a Homebrew cask links
+`/Applications/Thing.app` into its Caskroom". Homebrew lays it out the other
+way round. Observed on this machine:
+
+```
+/Applications/LinearMouse.app                      drwxr-xr-x   (a real directory)
+/opt/homebrew/Caskroom/linearmouse/0.11.2/LinearMouse.app -> /Applications/LinearMouse.app
+```
+
+The cask moves the bundle into `/Applications` and keeps the symlink in the
+Caskroom pointing at it. So `fs::read_link` on the bundle fails, no link target
+is recorded, and a cask install classifies as `SelfManaged`.
+
+**The consequence is the one `ManagedElsewhere` exists to prevent.** A Homebrew
+install would be offered an in-place update and Longhorn would replace a bundle
+the package manager owns, desyncing it. The milestone names non-writable
+handling as where "as well or better than the plugin" has concrete meaning;
+this is that case, and it is currently wrong.
+
+Not fixed here. A reverse lookup from a bundle to a Caskroom entry is a
+different piece of work from running a proof, and it wants its own card with a
+decision about how far to go — scanning the Caskroom, reading Homebrew's
+receipts, or asking the host to declare its provenance. Recorded as unmet with
+the reproduction, which is what this card's stop condition provides for.
+
+The proof reports `outcome: pass` with this claim false and a `findings` entry
+explaining it. Failing the whole run would bury four claims that do hold behind
+one that does not.
+
 ## Next Task
 
-The update half, in this order:
-
-1. Extend `packaged-update-proof` to drive the whole `UpdateController`
-   sequence rather than the installer alone — a static-JSON source over
-   loopback, a real fetch, verification, the gate, then install. Most of the
-   pieces exist; what is missing is a host that composes them.
-2. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
+A card for cask detection, out of the finding above. Then the update half's
+remainder:
+1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
    handling. If relaunch cannot be made reliable, the finding is the
    deliverable and the interlock gains a documented manual-relaunch path —
    this card's own stop condition, unchanged.
-3. The interlock against a genuinely open transfer session.
-4. Non-writable classification on a real administrator-installed copy.
+2. The interlock against a genuinely open transfer session. The sequence
+   above uses a `BusyProbe`, which proves the ordering but not that a real
+   session reports itself.
+3. ~~Non-writable classification on a real administrator-installed copy.~~
+   Attempted 2026-08-13; the claim is false and the finding above is the
+   deliverable.
 
 The licence half waits on two things that are not this card's: the platform
 credential backend decision, and Card 158. Recorded as unmet meanwhile, as the
