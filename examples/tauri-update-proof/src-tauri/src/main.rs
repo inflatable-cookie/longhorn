@@ -25,7 +25,12 @@
 
 use std::{
     cell::Cell,
-    sync::{Mutex, MutexGuard},
+    fs,
+    path::PathBuf,
+    sync::{
+        Mutex, MutexGuard,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -41,7 +46,7 @@ use longhorn_transfer::{
 };
 use longhorn_update::{InstallAuthorization, UpdateGate, transfer_session_probe};
 use serde_json::{Value, json};
-use tauri::State;
+use tauri::{Manager, State, WindowEvent};
 
 /// Wall clock in the coordinator's tick space.
 ///
@@ -90,6 +95,22 @@ impl DragSessionIdAllocator for CountingAllocator {
         Ok(bytes)
     }
 }
+
+/// Whether a close request is refused, as Longhorn's windowing host refuses
+/// one when its lifecycle receipt reports a user close.
+///
+/// tauri#11392 names that refusal as a contributing factor in relaunch failing
+/// on macOS, and Longhorn owns close handling — so this is ours to answer
+/// rather than an upstream curiosity. A process-wide flag because the window
+/// event handler cannot reach managed state before the app is built.
+static PREVENT_CLOSE: AtomicBool = AtomicBool::new(true);
+
+/// A marker written immediately before a relaunch is requested.
+///
+/// The only way to answer "did it come back" is to record the intent, die, and
+/// look for the record on the next start. An in-memory flag cannot survive the
+/// thing it is measuring.
+const RELAUNCH_MARKER: &str = "relaunch-requested.json";
 
 const WINDOW: &str = "main";
 const CLIENT: &str = "client:update-proof";
@@ -297,15 +318,91 @@ fn attempt_install(state: State<'_, Shared>) -> Result<Value, String> {
     }))
 }
 
+fn marker_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("app data dir: {error}"))?;
+    fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+    Ok(directory.join(RELAUNCH_MARKER))
+}
+
+/// Records the intent to relaunch, then relaunches.
+///
+/// `request_restart` rather than `restart`: the first triggers
+/// `ExitRequested` and `Exit` reliably, which is the path a close handler
+/// could interfere with. `restart` skips them when called on the main thread,
+/// which would answer an easier question than the one asked.
+#[tauri::command]
+fn request_relaunch(app: tauri::AppHandle) -> Result<Value, String> {
+    let path = marker_path(&app)?;
+    let requested_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.as_secs());
+    fs::write(
+        &path,
+        json!({
+            "requestedAt": requested_at,
+            "preventCloseInstalled": PREVENT_CLOSE.load(Ordering::Relaxed),
+        })
+        .to_string(),
+    )
+    .map_err(|error| error.to_string())?;
+    app.request_restart();
+    // Unreachable in practice; returned so the command has a type and so a
+    // relaunch that silently does nothing is visible as a returned value.
+    Ok(json!({ "requestedRestart": true, "marker": path.to_string_lossy() }))
+}
+
+/// Whether a relaunch was requested last run, and whether it came back.
+///
+/// Reaching this at all is the evidence: the marker was written by a process
+/// that then asked to die, and this one is reading it.
+fn relaunch_evidence(app: &tauri::AppHandle) -> Value {
+    let Ok(path) = marker_path(app) else {
+        return json!({ "relaunchClaim": "app data dir unavailable" });
+    };
+    match fs::read_to_string(&path) {
+        Ok(recorded) => {
+            drop(fs::remove_file(&path));
+            let requested: Value = serde_json::from_str(&recorded).unwrap_or(Value::Null);
+            json!({
+                "relaunchClaim": "met - the process came back after request_restart",
+                "requested": requested,
+            })
+        }
+        Err(_) => json!({
+            "relaunchClaim": "not exercised this run - use the relaunch control",
+        }),
+    }
+}
+
+#[tauri::command]
+fn relaunch_state(app: tauri::AppHandle) -> Value {
+    relaunch_evidence(&app)
+}
+
 fn main() {
     let proof = Proof::new().expect("transfer limits are valid");
     tauri::Builder::default()
         .manage(Mutex::new(proof))
+        .on_window_event(|_window, event| {
+            // The tauri#11392 contributing factor, reproduced rather than
+            // imported: Longhorn's windowing host refuses a user close the
+            // same way, and the question is whether a relaunch survives it.
+            if PREVENT_CLOSE.load(Ordering::Relaxed)
+                && let WindowEvent::CloseRequested { api, .. } = event
+            {
+                api.prevent_close();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             proof_state,
             open_transfer_session,
             close_transfer_sessions,
-            attempt_install
+            attempt_install,
+            request_relaunch,
+            relaunch_state
         ])
         .run(tauri::generate_context!())
         .expect("packaged update proof failed to run");

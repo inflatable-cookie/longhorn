@@ -45,18 +45,48 @@ satisfies the type system and not the coordinator would leave the gate
 approving and the proof green. The assertion `opened == 1` is what caught it,
 and it is why the tests assert the count rather than only the refusal.
 
-## What is missing
+## Claim 1: the relaunch harness
 
-**Claim 1: relaunch, and the tauri#11392 finding.** `attempt_install` reports
-the gate's answer and records `relaunchClaim` as not yet exercised.
-`packaged-update-proof` performs the replacement; what is still owed is a host
-that quits and comes back under Longhorn's close handling, and an explicit
-finding on whether `prevent_close` interferes.
+Built, and **only an operator can complete it** — it needs a packaged build, a
+window, and a human to press the control.
 
-The install path itself — `StaticJsonSource`, `ArtifactFetch`, `ArtifactKey`,
-`NativeInstaller` — composes as it does in `packaged-update-proof` and is not
-yet wired here, because relaunch is the claim and the install is only its
-setup.
+The contributing factor tauri#11392 names is reproduced rather than imported:
+the window event handler calls `api.prevent_close()` on every close request,
+which is what Longhorn's windowing host does when its lifecycle receipt reports
+a user close. Reproduced rather than composed because the mechanism is what the
+issue is about, and pulling `longhorn-tauri-windowing` in would add a lifecycle
+model to a question that does not need one.
+
+`request_relaunch` uses `request_restart`, not `restart`. The first triggers
+`ExitRequested` and `Exit` reliably; the second skips them when called on the
+main thread, which would answer an easier question than the one asked — and
+`ExitRequested` is the path a close handler could interfere with.
+
+Evidence has to survive the process, so it is a marker file in the app data
+directory: written immediately before the request, read and cleared on the next
+start. Reaching the read at all is the finding. An in-memory flag cannot
+measure the thing that destroys it.
+
+### To complete it
+
+1. Build and run the app.
+2. Press **Request relaunch**.
+3. If the application comes back, the evidence pane reports
+   `relaunchClaim: met` with the request it recovered. If it does not come
+   back, that silence is the finding tauri#11392 predicts, and the marker is
+   left on disk as proof the request was made.
+
+Either outcome is a result. The card's stop condition already provides for the
+second: if relaunch cannot be made reliable under Longhorn's close handling,
+the finding is the deliverable and the interlock gains a documented
+manual-relaunch path.
+
+### Not wired
+
+The install path — `StaticJsonSource`, `ArtifactFetch`, `ArtifactKey`,
+`NativeInstaller` — composes as it does in `packaged-update-proof`. It is
+deliberately absent: relaunch is the claim, the install is only its setup, and
+`packaged-update-proof` already proves the replacement against a real bundle.
 
 ## Convention
 

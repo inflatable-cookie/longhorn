@@ -256,6 +256,38 @@ a `findings` entry explaining it. Failing the whole run would have buried four
 claims that hold behind one that did not — and the finding, not the failure,
 was the deliverable.
 
+## Progress — 2026-08-13, claim 2 met and claim 1 harnessed
+
+**Claim 2 is met.** `examples/tauri-update-proof` reads
+`TransferCoordinator::session_count()` through `transfer_session_probe` into
+`UpdateGate`, and the session it counts is one the coordinator accepted
+through its own validation. No double in the path. Two unit tests assert it
+without the window, so a regression fails `cargo test`.
+
+**A lease is not a session, and getting that wrong cost a build.** The first
+version published a lease — client epoch bound, drop zone, lifetime, all
+accepted without error — and `session_count()` stayed at zero. A lease
+advertises where a transfer could land; a session is a transfer in flight, and
+the interlock is about work in flight.
+
+That is exactly the failure this claim exists to close: a session that
+satisfies the type system and not the coordinator leaves the gate approving and
+the proof green while proving nothing. It was caught by asserting the *count*
+rather than only the refusal — the refusal alone passes for the wrong reason,
+because zero sessions and a broken gate look identical from that angle.
+
+**Claim 1 is harnessed, not met.** The window handler calls
+`api.prevent_close()` on every close request, reproducing what Longhorn's
+windowing host does when its lifecycle receipt reports a user close — the
+contributing factor tauri#11392 names. `request_relaunch` uses
+`request_restart` rather than `restart`, because the second skips
+`ExitRequested` on the main thread and that is the path a close handler could
+interfere with. Evidence is a marker file written before the request and read
+on the next start; an in-memory flag cannot measure the thing that destroys it.
+
+Completing it needs a packaged build, a window and a human. Either outcome is a
+result, and the stop condition already covers the negative one.
+
 ## Progress — 2026-08-13, packaged host scaffolded
 
 `examples/tauri-update-proof` exists as a scaffold: manifest, build script,
