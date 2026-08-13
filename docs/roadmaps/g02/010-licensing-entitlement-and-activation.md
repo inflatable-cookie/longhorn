@@ -46,13 +46,16 @@ whether a release may be taken.
   persistence need a packaged proof application
 - [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
   builds the shared packaged proof application both host cards wait on
-- [ ] [Card 193](batch-cards/193-licence-protocol-surface.md) gives the licence
-  domain a wire protocol — snapshot, commands, rejection codes, changed event —
+- [x] [Card 193](batch-cards/193-licence-protocol-surface.md) (complete
+  2026-08-12) gives the licence domain a wire protocol — snapshot, commands, rejection codes, changed event —
   which Card 158 assumed existed
 - [ ] [Card 158](batch-cards/158-licence-client-surface.md) builds the licence
-  client surface: activation, seat management, expiry. Blocked on Card 193 and
-  rescoped: `packages/licence` cannot be built, because g02.013 consolidated
-  eighteen packages into three
+  client surface: activation, expiry, entitlement reads. Longhorn side complete
+  2026-08-13; step 4 carved out because no protocol exposes the seats, and the
+  Svelte rendering is Poodle's
+- [ ] [Card 199](batch-cards/199-which-machines-hold-a-seat.md) gives the
+  protocol a seat list, so a customer who has changed laptop can release the
+  old one without a support conversation
 
 ## Dependency Shape
 
@@ -97,9 +100,20 @@ reads.
 
 ## Next Task
 
-Card 193, the licence protocol. Cards 155 and 156 are complete, Card 157's pure
-half is done and its host wiring waits on Card 159, and Card 159 is
-deprioritized by operator decision — so Card 193 is the only unblocked work in
-this milestone.
+Card 199, the seat list, and it opens with a decision rather than a field.
 
-This section said "Open Card 155" while 155 and 156 were both complete.
+Card 158's Longhorn side landed 2026-08-13 and six of its seven steps are done.
+The seventh — an activation slot list with self-service release — had no
+protocol behind it: the domain can release *this* machine's seat and can say
+every seat is taken, and cannot show a customer the laptop they no longer own.
+That is the dominant licensing support ticket, and answering it means deciding
+how much of a customer's fleet the authority should retain and return. A seat
+list is easy to design and hard to un-ship.
+
+Then Card 158 step 4, and the Svelte surface, which is Poodle's.
+
+Card 159's licence half — keychain persistence and the RFC 8252 browser flow —
+waits on the platform `CredentialStore` composition decision, still open.
+
+Previously: Card 193, then Card 158's Longhorn side. This section once said
+"Open Card 155" while 155 and 156 were both complete.
