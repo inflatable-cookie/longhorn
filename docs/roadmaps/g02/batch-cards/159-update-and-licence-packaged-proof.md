@@ -1,7 +1,7 @@
 # 159 Update And Licence Packaged Proof
 
-Status: restarted 2026-08-13 by operator decision; scope corrected against the
-tree on the same day
+Status: update half complete 2026-08-13; licence half remains unmet and is not
+this card's to unblock
 Owner: Tom
 Roadmap: g02.009 batch 3 / g02.010 batch 3 (shared)
 Governing refs: contracts 018 and 019; research memos 019 and 020
@@ -276,7 +276,9 @@ the proof green while proving nothing. It was caught by asserting the *count*
 rather than only the refusal — the refusal alone passes for the wrong reason,
 because zero sessions and a broken gate look identical from that angle.
 
-**Claim 1 is harnessed, not met.** The window handler calls
+**Claim 1 is met.** Recorded below.
+
+**How it was harnessed.** The window handler calls
 `api.prevent_close()` on every close request, reproducing what Longhorn's
 windowing host does when its lifecycle receipt reports a user close — the
 contributing factor tauri#11392 names. `request_relaunch` uses
@@ -285,8 +287,33 @@ contributing factor tauri#11392 names. `request_relaunch` uses
 interfere with. Evidence is a marker file written before the request and read
 on the next start; an in-memory flag cannot measure the thing that destroys it.
 
-Completing it needs a packaged build, a window and a human. Either outcome is a
-result, and the stop condition already covers the negative one.
+## Result — 2026-08-13: both update claims met in the packaged application
+
+**Claim 2.** A session the coordinator accepted refused a real install:
+`openTransferSessions: 1`, `installWouldBeAuthorized: false`, cause
+`WorkInFlight { detail: "1 open transfer session" }`.
+
+**Claim 1, and the tauri#11392 finding this card required as evidence:
+relaunch works under a preventing close handler.** The process came back after
+`request_restart` with `preventCloseInstalled: true`.
+
+Conditions, because they are the scope of the finding: macOS 26.5.2 (25F84) on
+arm64, Tauri 2.11.5, `request_restart` rather than `restart`, with
+`api.prevent_close()` installed on every close request.
+
+This does not refute tauri#11392 generally — one platform, one Tauri version,
+one restart entry point. What it establishes is the thing the card asked:
+**Longhorn's close handling is not on its own a barrier to relaunch.** The
+issue was ours to answer because we own close handling, and the answer is that
+the interlock needs no documented manual-relaunch path. The stop condition
+provided for the opposite result and did not have to fire.
+
+Two mechanical traps cost a build cycle each and are recorded in the proof's
+README so the next person does not pay them again: `build.rs` declares no
+rerun trigger for the frontend, so an earlier `cargo check` bakes stale assets
+into the binary and `tauri build` reuses them; and `cargo tauri build` at the
+repository root applies to the whole workspace, where four of the six Tauri
+proofs ship no `icons/` and fail first.
 
 ## Progress — 2026-08-13, packaged host scaffolded
 
@@ -310,8 +337,14 @@ exists to close. It wants doing properly rather than quickly.
 
 ## Next Task
 
-`src/main.rs` for the packaged host, then the two claims. Card 197 closed the
-cask detection finding that came out of the first packaged run.
+The licence half, and it is not this card's to unblock. Claims 4 and 5 —
+platform credential persistence through a real keychain including the locked
+path, and RFC 8252 through the system browser — wait on the platform
+`CredentialStore` backend decision and on Card 158. They stay recorded as
+unmet, which is the part of the 2026-08-08 decision that was right and
+survives its supersession.
+
+The update half is complete.
 1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
    handling. If relaunch cannot be made reliable, the finding is the
    deliverable and the interlock gains a documented manual-relaunch path —

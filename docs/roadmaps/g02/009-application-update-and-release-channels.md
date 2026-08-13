@@ -1,6 +1,6 @@
 # g02.009 Application Update And Release Channels
 
-Status: ready
+Status: complete — 2026-08-13
 Owner: Tom
 Updated: 2026-08-07
 Governing refs: contract 018; contracts 004, 012, and 017; research memo 019
@@ -116,7 +116,8 @@ source adapters are the only check path rather than a duplicate of one.
   2026-08-13) fixes Homebrew cask detection, which Card 159's packaged run
   proved was inverted — a cask install classified as self-managed and would
   have been offered an in-place update
-- [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
+- [x] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
+  (update half complete 2026-08-13; the licence half belongs to g02.010)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010
 - [x] [Card 154](batch-cards/154-update-client-surface.md) (complete
@@ -162,12 +163,12 @@ classification to explain a channel rejoin.
 
 ## Acceptance Criteria
 
-- [ ] a store written under a newer schema is refused with a typed error,
+- [x] a store written under a newer schema is refused with a typed error,
   never partially parsed, never written back
-- [ ] rollout eligibility is deterministic per install and release
-- [ ] an install ahead of its selected channel reports that state distinctly
+- [x] rollout eligibility is deterministic per install and release
+- [x] an install ahead of its selected channel reports that state distinctly
   from "no update available"
-- [ ] a refused restart defers with a reason rather than cancelling
+- [x] a refused restart defers with a reason rather than cancelling
 
 ## Explicit Non-goals
 
@@ -187,44 +188,34 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-Card 159's two remaining update claims:
+None. The milestone is complete.
 
-1. **Relaunch, and the tauri#11392 finding** under Longhorn's close handling.
-   The packaged proof records relaunch as "unmet by design — relaunch is the
-   host's", which is a correct division and not the finding this needs: a host
-   that never relaunches cannot say whether `prevent_close` interferes.
-2. **The interlock against a genuinely open transfer session**, rather than the
-   `BusyProbe` the sequence uses today. The ordering is proved; that a real
-   session reports itself is not.
+An application can follow a channel, be offered a release, download and verify
+it, refuse to install while work is in flight, install it, and come back — and
+every one of those is proved rather than asserted, the last four against a real
+bundle on a real machine.
 
-Both need a packaged host that runs rather than a binary that inspects, which
-is a larger step than the first three claims took.
+**Two things leave it, neither blocking.**
 
-Card 197 came out of the first packaged run and closed the same day: the
-proof's value was demonstrated before its remaining claims were.
+`LONGHORN_PROOF_ACCEPT_LINKED_POODLE` comes out of `effigy.toml` when Poodle
+publishes `SettingsShell`, `UpdateCenter` and `UpdateStatus`. Until then the
+settings composition proof installs Poodle from the sibling checkout and every
+run records `linkedPoodleAccepted: true`, so a green run is never mistaken for
+one that proved registry resolution.
 
-Its scope was corrected on restart: two thirds of its Progress section
-described the Tauri-plugin division that the decision of 2026-08-12 voided, and
-`packaged-update-proof` had already proved real bundle replacement while the
-card was paused. What remains on the update half is driving the whole
-controller sequence from a packaged host, the relaunch finding under
-tauri#11392, the interlock against a genuinely open session, and non-writable
-classification on a real administrator-installed copy.
+Whether `managedElsewhere` should show a quiet update icon rather than none is
+with Poodle. `presence` hides it today, on the argument that an icon promises a
+button that installs; the counter is that a real actionable update currently
+reaches nobody who is not already in settings.
 
-The licence half stays unmet and is not this card's to unblock: it waits on the
-platform credential backend decision and on Card 158.
+**Four of the six Tauri proofs cannot be bundled.** Only the windowing and
+update proofs carry an `icons/icon.png`; `cargo check` and `clippy` pass on the
+rest because `generate_context!` only demands one when bundling. So `effigy qa`
+is green while four packaged proofs cannot be packaged, and their purpose is to
+be run. Not this milestone's to fix, and it should not stay unrecorded.
 
-Everything else in the batch is complete. Cards 150 to 154, 190 and 196 are
-closed; the update surface renders in Poodle and binds in Longhorn.
+Card 159's licence half — keychain persistence and the RFC 8252 browser flow —
+belongs to g02.010 and waits on the platform `CredentialStore` decision and
+Card 158.
 
-Two open questions, both raised with Poodle 2026-08-13 and neither blocking:
-whether `managedElsewhere` should show a quiet icon rather than none, and the
-`OfferReason` wire spelling, which is kebab-case alone in a camelCase domain
-and cannot move on one side alone.
-
-One thing to undo when Poodle publishes: `LONGHORN_PROOF_ACCEPT_LINKED_POODLE`
-in `effigy.toml`. The settings composition proof installs Poodle from the
-sibling checkout while `SettingsShell`, `UpdateCenter` and `UpdateStatus` are
-unreleased, and every run under it records the exemption in its artifact.
-
-Previously: Card 154, Card 190 step 4, Card 196.
+Previously: Card 159, Card 197, Card 154, Card 190 step 4, Card 196.
