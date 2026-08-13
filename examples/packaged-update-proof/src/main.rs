@@ -729,7 +729,14 @@ fn observed_cask_provenance() -> Option<(String, bool)> {
                 .filter_map(Result::ok)
                 .find_map(|entry| {
                     let path = entry.path();
-                    (path.extension()? == "app").then_some(path)
+                    if path.extension()? != "app" {
+                        return None;
+                    }
+                    // Resolve to where the application actually runs from.
+                    // The Caskroom holds a symlink; a launched application
+                    // reports the bundle in /Applications, and that is the
+                    // path `detect_provenance` has to classify.
+                    Some(fs::read_link(&path).unwrap_or(path))
                 })
         })?;
 

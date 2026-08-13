@@ -1,6 +1,6 @@
 # 197 Cask Detection Is Backwards
 
-Status: ready
+Status: complete — landed 2026-08-13
 Owner: Tom
 Roadmap: g02.009 batch 3
 Governing refs: contract 018; research memo 019
@@ -65,30 +65,30 @@ supported.
 
 ## Steps
 
-- [ ] Reproduce in a test, with a fixture laid out the way Homebrew actually
+- [x] Reproduce in a test, with a fixture laid out the way Homebrew actually
       lays one out — bundle in place, symlink in the Caskroom pointing at it.
       The existing tests encode the inverted belief and will need correcting
       rather than extending.
-- [ ] Fix the detection by the chosen route.
-- [ ] Keep the old direction working if it ever occurs. A symlinked bundle is
+- [x] Fix the detection by the chosen route.
+- [x] Keep the old direction working if it ever occurs. A symlinked bundle is
       still evidence of something external, and removing that branch trades one
       false negative for another.
-- [ ] Re-run `packaged-update-proof` and see the claim turn true.
+- [x] Re-run `packaged-update-proof` and see the claim turn true.
 
 ## Acceptance
 
-- [ ] `effigy qa` passes.
-- [ ] A real Homebrew cask on a real machine classifies as
+- [x] `effigy qa` passes.
+- [x] A real Homebrew cask on a real machine classifies as
       `ExternallyManaged { HomebrewCask }`, proved by
       `packaged-update-proof`'s claim rather than by a fixture alone.
-- [ ] The prefix is not hard-coded to `/opt/homebrew`.
-- [ ] A self-managed install in `/Applications` still classifies as
+- [x] The prefix is not hard-coded to `/opt/homebrew`.
+- [x] A self-managed install in `/Applications` still classifies as
       `SelfManaged`. The fix must not make everything look external.
 
 ## Evidence
 
-- [ ] The corrected fixture test, and what its predecessor asserted.
-- [ ] The proof's claim flipping from false to true, with the finding entry
+- [x] The corrected fixture test, and what its predecessor asserted.
+- [x] The proof's claim flipping from false to true, with the finding entry
       gone from its output.
 
 ## Stop Conditions
@@ -101,3 +101,39 @@ supported.
 
 Card 159's remaining update claims: relaunch and tauri#11392, and the interlock
 against a genuinely open transfer session.
+
+## Outcome — 2026-08-13
+
+Fixed in the observation, not the classification. `classify_install` always
+asked the right question — is a Caskroom path associated with this bundle —
+and only the direction of the evidence was missing. `observe_install` now looks
+for a Caskroom entry that resolves *to* the bundle when the bundle is not
+itself a link, and both directions set the same field through a builder named
+for what was observed.
+
+**Route chosen: reverse lookup, targeted.** Of the three candidates, host
+declaration moves the cost to every consumer for a problem Longhorn can answer,
+and Homebrew's receipts need the cask token, which is not derivable from a
+bundle name. The lookup only reads entries whose filename already matches, and
+only when the bundle is not itself a link, so an install already explained by
+the first shape costs nothing and a self-managed one costs a `read_dir` per
+prefix.
+
+`HOMEBREW_PREFIX`, then `/opt/homebrew`, then `/usr/local`. Hard-coding one
+would have fixed the machine it was written on and no Intel Mac.
+
+**The old test asserted the wrong belief in its own comment** — "the shape
+Homebrew actually creates". Corrected rather than deleted: that shape does
+occur, and removing the branch would trade one false negative for another. Two
+tests added — the real direction, and a bundle with no Caskroom entry staying
+self-managed, so the fix cannot make everything look external.
+
+Proved on a real machine rather than a fixture alone.
+`packaged-update-proof` now reports
+`aRealCaskInstallClassifiesAsExternallyManaged: true` against
+`/Applications/LinearMouse.app`, with the findings list empty.
+
+**One correction to the proof itself.** It was observing the `.app` inside the
+Caskroom, which is the symlink. A launched application reports the bundle in
+`/Applications`, and that is the path `detect_provenance` has to classify, so
+the proof resolves the link before observing.

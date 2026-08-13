@@ -221,7 +221,7 @@ fault's clothes. It was found by recording the rejection codes in the evidence
 rather than reasoning about which claim was false, and the fix carries the
 explanation.
 
-## Finding — 2026-08-13: cask detection is backwards
+## Finding — 2026-08-13: cask detection is backwards (resolved same day, Card 197)
 
 Item 3 was attempted and **the claim is false**, which is the finding.
 
@@ -245,20 +245,20 @@ the package manager owns, desyncing it. The milestone names non-writable
 handling as where "as well or better than the plugin" has concrete meaning;
 this is that case, and it is currently wrong.
 
-Not fixed here. A reverse lookup from a bundle to a Caskroom entry is a
-different piece of work from running a proof, and it wants its own card with a
-decision about how far to go — scanning the Caskroom, reading Homebrew's
-receipts, or asking the host to declare its provenance. Recorded as unmet with
-the reproduction, which is what this card's stop condition provides for.
+Carded rather than patched in place, because the fix carried a decision about
+how a bundle proves external ownership when the evidence lives outside it.
+Card 197 took the targeted reverse lookup and landed the same day; the claim is
+now true against `/Applications/LinearMouse.app` and the findings list is
+empty.
 
-The proof reports `outcome: pass` with this claim false and a `findings` entry
-explaining it. Failing the whole run would bury four claims that do hold behind
-one that does not.
+While it was unmet the proof reported `outcome: pass` with the claim false and
+a `findings` entry explaining it. Failing the whole run would have buried four
+claims that hold behind one that did not — and the finding, not the failure,
+was the deliverable.
 
 ## Next Task
 
-A card for cask detection, out of the finding above. Then the update half's
-remainder:
+The update half's remainder. Card 197 closed the cask detection finding.
 1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
    handling. If relaunch cannot be made reliable, the finding is the
    deliverable and the interlock gains a documented manual-relaunch path —
@@ -267,8 +267,7 @@ remainder:
    above uses a `BusyProbe`, which proves the ordering but not that a real
    session reports itself.
 3. ~~Non-writable classification on a real administrator-installed copy.~~
-   Attempted 2026-08-13; the claim is false and the finding above is the
-   deliverable.
+   Done 2026-08-13, via the finding above and Card 197.
 
 The licence half waits on two things that are not this card's: the platform
 credential backend decision, and Card 158. Recorded as unmet meanwhile, as the

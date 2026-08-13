@@ -155,12 +155,30 @@ impl InstallLocation {
 
     /// Records what the bundle path resolves to, when it is a symlink.
     ///
-    /// The Homebrew signal. A cask links `/Applications/Thing.app` to a path
-    /// inside `Caskroom`, and the link is what distinguishes it from a copy
-    /// the user dragged there themselves.
+    /// One of the two shapes a cask can leave. See
+    /// [`Self::with_caskroom_entry`] for the other, which is the one current
+    /// Homebrew actually produces.
     #[must_use]
     pub fn with_bundle_link_target(mut self, target: impl Into<String>) -> Self {
         self.bundle_link_target = Some(target.into());
+        self
+    }
+
+    /// Records a Caskroom entry that resolves to this bundle.
+    ///
+    /// The association runs the other way from
+    /// [`Self::with_bundle_link_target`], and this is the direction current
+    /// Homebrew uses: the cask **moves** the bundle into `/Applications` and
+    /// leaves the symlink in the Caskroom pointing back at it. Detecting only
+    /// the first direction classified every cask install as self-managed,
+    /// which Card 159's packaged run caught on a real machine.
+    ///
+    /// Both set the same field because the question is the same one — is a
+    /// Caskroom path associated with this bundle — and only the direction of
+    /// the evidence differs.
+    #[must_use]
+    pub fn with_caskroom_entry(mut self, entry: impl Into<String>) -> Self {
+        self.bundle_link_target = Some(entry.into());
         self
     }
 
@@ -205,7 +223,9 @@ pub fn classify_install(location: &InstallLocation) -> InstallProvenance {
         return managed(manager);
     }
 
-    // Strong: a symlink into a Caskroom is what a cask looks like.
+    // Strong: a Caskroom path associated with this bundle, in either
+    // direction -- the bundle linking into the Caskroom, or a Caskroom entry
+    // linking back at the bundle.
     if let Some(target) = &location.bundle_link_target
         && target.contains("/Caskroom/")
     {
