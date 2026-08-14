@@ -1,7 +1,7 @@
 # 157 Tauri Licence Host And Secure Storage
 
-Status: in progress — pure half complete; secure storage landed 2026-08-14
-(`longhorn-credential-keyring`); the loopback listener and host wiring remain
+Status: in progress — secure storage and the loopback listener landed
+2026-08-14; only the host wiring remains
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 004, and 017; research memo 020
@@ -115,9 +115,15 @@ architectural.
    recorded. Two tests run against the real platform store, and the headless
    harness's `restartPersistence` claim is now proved across real processes —
    a keychain entry written by one run and read by the next.
-3. Implement the account flow per RFC 8252: system browser, loopback
-   redirect, PKCE. Embedded webviews are not an accepted flow — they break
-   password managers and SSO, and users are right to distrust them.
+3. [x] Implement the account flow per RFC 8252: system browser, loopback
+   redirect, PKCE. All three parts exist and the composition is proved:
+   `AccountFlow` (PKCE, pure), `longhorn-browser::LoopbackRedirect` (landed
+   2026-08-14 — ephemeral loopback port, bounded head, static response page,
+   extraction without validation so state stays `accept_callback`'s in
+   constant time), and `longhorn-browser`'s launch. The harness drives flow →
+   listener → real socket redirect → acceptance and reports
+   `loopbackRedirectRoundTrips: proved`. What no harness can prove is the
+   human in the system browser, which is the packaged run's step.
 4. Generate machine identity as a random per-installation value. Not a MAC
    address, not a hardware serial, not anything derived from user identity.
    The updater's install identity is the same shape for the same reasons;

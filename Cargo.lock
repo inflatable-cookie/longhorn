@@ -2382,6 +2382,7 @@ dependencies = [
 name = "longhorn-browser"
 version = "0.1.0"
 dependencies = [
+ "longhorn-licence",
  "serde",
  "serde_json",
 ]
@@ -2899,6 +2900,7 @@ name = "longhorn-update-licence-proof"
 version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
+ "longhorn-browser",
  "longhorn-credential-keyring",
  "longhorn-licence",
  "longhorn-update",

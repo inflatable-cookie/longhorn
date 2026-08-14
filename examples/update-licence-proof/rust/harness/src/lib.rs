@@ -2,15 +2,17 @@
 //!
 //! Exercises every pure decision, gate authorization, verification,
 //! activation, usability, and credential claim that can be proved without a
-//! packaged application. Installation is the Tauri updater plugin's job;
-//! this harness proves the interlock decides correctly, not that any
-//! installer works.
+//! packaged application. Longhorn is the update controller for both hosts
+//! (operator decision, 2026-08-12); the packaged claims this harness cannot
+//! make live in `packaged-update-proof` and `tauri-update-proof`, and the
+//! claims block in `main.rs` says where each one's evidence is.
 
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use longhorn_browser::LoopbackRedirect;
 use longhorn_licence::{
-    Activation, ActivationSource, ActivationUrl, ClockGuard, Credential, CredentialSlot,
-    CredentialStore, GracePolicy, LicencePayload, MemoryCredentialStore, SignedFileSource,
-    SignedLicence, Span, Timestamp, TokenRedemptionSource, TrustBasis, Usability,
+    AccountFlow, Activation, ActivationSource, ActivationUrl, ClockGuard, CodeVerifier, Credential,
+    CredentialSlot, CredentialStore, GracePolicy, LicencePayload, MemoryCredentialStore,
+    SignedFileSource, SignedLicence, Span, Timestamp, TokenRedemptionSource, TrustBasis, Usability,
     asserted_remotely, usability, verify,
 };
 use longhorn_update::{
@@ -330,6 +332,9 @@ pub fn licence_evidence() -> Value {
             "lapsedLeaseBlocks": "proved",
             "clockRollbackRefuses": "proved",
         },
+        "account": {
+            "loopbackRedirectRoundTrips": loopback_account_claim(),
+        },
         "credentials": {
             "slotsRoundTripAndRemovalIsIdempotent": "proved",
             "restartPersistence": restart_persistence,
@@ -379,5 +384,58 @@ fn platform_persistence_claim() -> String {
             format!("proved - this run read `{earlier}` written by an earlier process")
         }
         None => "stored by this run - proved on the next".to_owned(),
+    }
+}
+
+/// The RFC 8252 chain minus the human: flow, listener, redirect, acceptance.
+///
+/// `AccountFlow` builds the PKCE challenge and the redirect URI against the
+/// listener's real port; a thread plays the browser's part by delivering the
+/// redirect over an actual socket; `accept_callback` checks state in constant
+/// time and yields the authorization. What remains for a packaged run is only
+/// the system browser itself -- `longhorn-browser` owns the launch, and an
+/// operator owns the click.
+fn loopback_account_claim() -> String {
+    let listener = match LoopbackRedirect::bind() {
+        Ok(listener) => listener,
+        Err(error) => return format!("bind failed: {error}"),
+    };
+    let port = listener.port();
+    // A fixed verifier is fine here: the claim is composition, not entropy,
+    // and `CodeVerifier` enforces RFC 7636's own length floor.
+    let verifier = match CodeVerifier::new("proof-verifier-0123456789-0123456789-0123456789") {
+        Ok(verifier) => verifier,
+        Err(error) => return format!("verifier refused: {error}"),
+    };
+    let flow = match AccountFlow::begin(verifier, "proof-state-sixteen-bytes", port) {
+        Ok(flow) => flow,
+        Err(error) => return format!("flow refused: {error}"),
+    };
+
+    let redirect = std::thread::spawn(move || {
+        use std::io::{Read, Write};
+        let mut stream =
+            std::net::TcpStream::connect(("127.0.0.1", port)).expect("the listener is bound");
+        stream
+            .write_all(
+                b"GET /callback?state=proof-state-sixteen-bytes&code=proof-code HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+            )
+            .expect("redirect delivered");
+        let mut page = String::new();
+        drop(stream.read_to_string(&mut page));
+        page
+    });
+
+    let callback = match listener.receive(std::time::Duration::from_secs(5)) {
+        Ok(callback) => callback,
+        Err(error) => return format!("no callback: {error}"),
+    };
+    let page = redirect.join().expect("redirect thread");
+    if !page.contains("200 OK") {
+        return "the browser page did not come back".to_owned();
+    }
+    match flow.accept_callback(&callback) {
+        Ok(_) => "proved - flow, listener, socket redirect and state acceptance compose".to_owned(),
+        Err(error) => format!("callback refused: {error}"),
     }
 }

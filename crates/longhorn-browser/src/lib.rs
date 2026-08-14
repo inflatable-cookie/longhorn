@@ -16,7 +16,9 @@
 //! Either alone would probably be enough. Neither alone is the design.
 
 mod launch;
+mod loopback;
 mod url;
 
 pub use launch::{BrowserLaunchError, DecliningSystemBrowser, NativeSystemBrowser, SystemBrowser};
+pub use loopback::{LoopbackError, LoopbackRedirect};
 pub use url::{BrowserUrl, BrowserUrlError};
