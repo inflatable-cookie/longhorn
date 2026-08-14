@@ -119,6 +119,10 @@ fn encrypt_bytes(
             limit: limits.max_ciphertext_bytes(),
         });
     }
+    // The underlying io error is dropped on purpose: at a crypto boundary the
+    // failure detail can name recipient material, and the caller's remedy —
+    // retry or check the destination — is the same either way. Recorded so a
+    // field-diagnosis need can weigh it deliberately rather than silently.
     result.map_err(|_| AgeEncryptionError::EncryptionFailed)?;
     let bytes = output.into_bytes();
     let receipt = AgeEnvelopeReceipt::new(AgeEnvelopeEvidence::new(&bytes), mode, inner_sha256);

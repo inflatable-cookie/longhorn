@@ -1,6 +1,7 @@
 # 208 Secret Hygiene And Tamper Truth
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.023 batch 2
 Governing refs: contract 019; contract 004; memo 023 (L-debug, L-locked,
@@ -62,12 +63,44 @@ Three consistency findings against the sibling crate's deliberate discipline:
   boundary; this card hardens what crosses it.
 - Change `MemoryCredentialStore`'s no-persistence contract.
 
+## Result
+
+The licence crate now holds its secrets the way config-age holds its age
+material: `Credential::AccountToken`, `CodeVerifier`, and `AccountFlow.state`
+are `SecretString` (secrecy 0.10.3, already in the tree via age — added as a
+direct workspace dependency), zeroized on drop and redacted in `Debug` by
+construction. Equality on those types is constant-time, matching the
+callback-state comparison's precedent. `LicenceCredentialProjection` keeps
+its wire `String` (it crosses inward) and redacts `Debug` by hand. A test
+asserts no secret survives a `{:?}` on any of the four types.
+
+**The tamper finding was investigated and disproven as fixable, and the
+record now says why.** The audit read `DecryptError::DecryptionFailed` as
+"stanza matched, then tampering detected". In age's implementation a
+tampered header stanza yields `NoMatchingKeys` — indistinguishable from a
+wrong key (verified with a live probe: flipping one stanza character with
+the correct identity present produces `Locked`). A tampered *payload* does
+surface as `Corrupt`, via the stream read path, and the existing test covers
+it. So the classifier stands, and `classify_decrypt_error` now documents
+what `Locked` honestly means: "this key did not open this file", not "the
+key is wrong". The classifier change was written, probed, and reverted; the
+doc is the fix.
+
+`EncryptionFailed` keeps the underlying io error redacted, now with the
+reason written at the site (boundary detail can name recipient material;
+the remedy is the same either way) rather than as a silent drop.
+
+**Residual, recorded:** the `CredentialStore` trait keeps plain `String` at
+the OS-keychain boundary — the keychain is the boundary, and changing the
+trait's types is a consumer-coordinated change, not this card's.
+
 ## Acceptance Criteria
 
-- [ ] no `Debug` impl in the tree can print a credential, with tests
-- [ ] secrets on the credential path are zeroized on drop
-- [ ] header tampering classifies as `Corrupt` with a regression test
-- [ ] the `EncryptionFailed` fidelity decision is recorded
+- [x] no `Debug` impl in the tree can print a credential, with tests
+- [x] secrets on the credential path are zeroized on drop
+- [x] header tampering investigated: indistinguishable at age's error
+  surface; the honest meaning of `Locked` is documented (see Result)
+- [x] the `EncryptionFailed` fidelity decision is recorded
 
 ## Evidence Required
 

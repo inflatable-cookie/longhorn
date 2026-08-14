@@ -17,6 +17,8 @@ ed25519-dalek.workspace = true
 longhorn-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+secrecy.workspace = true
+getrandom.workspace = true
 sha2.workspace = true
 ts-rs = { workspace = true, optional = true }
 

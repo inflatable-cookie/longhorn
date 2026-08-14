@@ -37,23 +37,29 @@ noninteractive identity authority Card 210 provides.
 
 ### Batch 1. The wire
 
-- [ ] [Card 207](batch-cards/207-activation-payload-safety.md): redemption
+- [x] [Card 207](batch-cards/207-activation-payload-safety.md): redemption
   bodies built with `serde_json::json!`; metacharacter tests for token and
-  `activation_id`; the `key_id` binding decision recorded.
+  `activation_id`; the `key_id` binding decision recorded. **Landed
+  2026-08-14** — claim-not-evidence, pinned by a retired-key test.
 
 ### Batch 2. The memory and the message
 
-- [ ] [Card 208](batch-cards/208-secret-hygiene-and-tamper-truth.md):
+- [x] [Card 208](batch-cards/208-secret-hygiene-and-tamper-truth.md):
   `Zeroizing<String>` on the credential path; `Debug` redaction across licence
   types with tests; header-MAC tampering reports `Corrupt`, not `Locked`;
   `EncryptionFailed` keeps or drops the underlying `io::Error` by recorded
-  decision.
+  decision. **Landed 2026-08-14** — `SecretString` throughout the licence
+  secret path; the tamper split was written, probed, and reverted: age's
+  error model cannot distinguish header tampering from a wrong key, and the
+  honest meaning of `Locked` is now documented at the classifier.
 
 ### Batch 3. The operator-facing flow
 
-- [ ] [Card 209](batch-cards/209-pkce-generation-and-loopback-robustness.md):
+- [x] [Card 209](batch-cards/209-pkce-generation-and-loopback-robustness.md):
   CSPRNG `CodeVerifier::generate()`; the loopback listener survives a dead
-  probe connection and enforces a total-connection deadline.
+  probe connection and enforces a total-connection deadline. **Landed
+  2026-08-14** — plus `AccountFlow::generate`; the proof's timestamp stub is
+  gone, and `getrandom` joined the workspace dependencies.
 - [ ] [Card 210](batch-cards/210-age-identity-persistence.md): a Longhorn-owned
   persistence path for the operational age identity, satisfying contract
   004:403 without every consumer re-implementing the storage decision.

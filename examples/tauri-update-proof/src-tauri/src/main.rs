@@ -393,26 +393,11 @@ fn relaunch_state(app: tauri::AppHandle) -> Value {
 #[tauri::command]
 fn attempt_sign_in() -> Result<Value, String> {
     use longhorn_browser::{BrowserUrl, LoopbackRedirect, NativeSystemBrowser, SystemBrowser};
-    use longhorn_licence::{AccountFlow, CodeVerifier};
-
-    // Uniqueness is what the proof needs from these, not secrecy: the state
-    // binds the callback to this flow, and a proof run is its own audience.
-    let stamp = format!(
-        "{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |elapsed| elapsed.as_millis())
-    );
-    let state = format!("proof-state-{stamp}");
-    let verifier = CodeVerifier::new(format!(
-        "proof-verifier-{stamp}-padding-to-forty-three-chars"
-    ))
-    .map_err(|error| error.to_string())?;
+    use longhorn_licence::AccountFlow;
 
     let listener = LoopbackRedirect::bind().map_err(|error| error.to_string())?;
-    let flow = AccountFlow::begin(verifier, state.clone(), listener.port())
-        .map_err(|error| error.to_string())?;
+    let flow = AccountFlow::generate(listener.port()).map_err(|error| error.to_string())?;
+    let state = flow.state().to_owned();
 
     // The approve page: one human-sized decision, whose link is the
     // authorization redirect a real server would answer with.

@@ -2,10 +2,10 @@
 
 use ed25519_dalek::{Signer, SigningKey};
 use longhorn_licence::{
-    Activation, ActivationError, ActivationSource, ActivationUrl, ActivationUrlError, ClockGuard,
-    Credential, GracePolicy, LicenceKey, LicencePayload, SignedFileSource, SignedLicence,
-    Timestamp, TokenRedemptionSource, TrustBasis, Usability, VerifiedLicence, asserted_remotely,
-    usability,
+    AccountFlow, Activation, ActivationError, ActivationSource, ActivationUrl, ActivationUrlError,
+    ClockGuard, CodeVerifier, Credential, GracePolicy, LicenceCredentialProjection, LicenceKey,
+    LicencePayload, SignedFileSource, SignedLicence, Timestamp, TokenRedemptionSource, TrustBasis,
+    Usability, VerifiedLicence, asserted_remotely, usability,
 };
 
 const DAY: i64 = 86_400;
@@ -186,7 +186,9 @@ fn json_metacharacters_in_a_token_cannot_reshape_the_request() {
     let hostile = r#"x","action":"release"#;
 
     let Activation::Exchange(request) = source
-        .acquire(&Credential::AccountToken(hostile.to_owned()))
+        .acquire(&Credential::AccountToken(secrecy::SecretString::from(
+            hostile.to_owned(),
+        )))
         .unwrap()
     else {
         panic!("activation composes an exchange");
@@ -213,6 +215,42 @@ fn a_backend_issued_activation_id_with_metacharacters_stays_data() {
     }
 }
 
+#[test]
+fn debug_on_the_credential_path_prints_no_secret() {
+    // One `{:?}` in a handler must not be a way to carry a bearer token out.
+    // The wire projection keeps `String` (it crosses inward) and redacts;
+    // the domain types hold `SecretString` and redact by construction.
+    let token = "bearer-token-0123456789";
+    let credential = Credential::AccountToken(secrecy::SecretString::from(token.to_owned()));
+    assert!(!format!("{credential:?}").contains(token));
+
+    let verifier_secret = "proof-verifier-0123456789-0123456789-0123456789";
+    let state_secret = "proof-state-sixteen-bytes";
+    let verifier = CodeVerifier::new(verifier_secret).unwrap();
+    assert!(!format!("{verifier:?}").contains(verifier_secret));
+    let flow = AccountFlow::begin(verifier, state_secret, 9876).unwrap();
+    let printed = format!("{flow:?}");
+    assert!(!printed.contains(state_secret));
+    assert!(!printed.contains(verifier_secret));
+
+    for projection in [
+        LicenceCredentialProjection::Key {
+            key: "ABCDE12345FGHJK6789X".to_owned(),
+        },
+        LicenceCredentialProjection::AccountToken {
+            token: token.to_owned(),
+        },
+        LicenceCredentialProjection::LicenceFile {
+            contents_base64: "AAEC".to_owned(),
+        },
+    ] {
+        let printed = format!("{projection:?}");
+        assert!(!printed.contains("ABCDE12345"));
+        assert!(!printed.contains(token));
+        assert!(!printed.contains("AAEC"));
+    }
+}
+
 // -- consumer adapters ------------------------------------------------------
 
 /// A backend returning its own shape rather than a signed licence — the
@@ -229,7 +267,10 @@ impl ActivationSource for HostedServiceSource {
                 ActivationUrl::new("https://hosted.example.com/activate").unwrap(),
                 Vec::new(),
             )
-            .with_header("Authorization", format!("Bearer {token}")),
+            .with_header(
+                "Authorization",
+                format!("Bearer {}", secrecy::ExposeSecret::expose_secret(token)),
+            ),
         ))
     }
 

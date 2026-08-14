@@ -1,6 +1,7 @@
 # 209 PKCE Generation And Loopback Robustness
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.023 batch 3
 Governing refs: contract 019; memo 023 (opp-pkce, loopback findings)
@@ -57,11 +58,32 @@ deadline (`:142-165`).
 - Leave the stub in the proof "because it is a proof". The audit's point is
   that proofs are the template consumers copy.
 
+## Result
+
+Generation moved into the crate: `CodeVerifier::generate()` (32 bytes from
+`getrandom`, base64url — exactly the RFC 7636 floor) and
+`AccountFlow::generate(port)` for the common both-fresh case. The purity
+claim narrowed honestly rather than staying absolute: the crate still holds
+no clock, filesystem, or network, and OS entropy is the one ambient source a
+PKCE implementation cannot inject without pushing the footgun back onto
+consumers. The update proof's timestamp/PID stub is gone — it now calls
+`AccountFlow::generate`, so the pattern a consumer copies is the safe one.
+The licence harness's fixed strings stay: deterministic evidence is what a
+harness is for.
+
+The loopback listener now treats probe traffic as noise: a connection that
+dies before completing a request, a long garbage head not addressed at the
+callback, and a 404 write that fails because the probe hung up all leave the
+wait running. The callback path still fails closed. And every read is
+bounded by the flow's remaining deadline, so a byte-at-a-time peer cannot
+hold the flow open past it. Three new tests: disconnect-mid-request,
+trickle-past-deadline, and the existing well-behaved probe still passes.
+
 ## Acceptance Criteria
 
-- [ ] PKCE generation is CSPRNG-backed and the proof uses it
-- [ ] a disconnecting probe does not kill the sign-in wait, with a test
-- [ ] no connection outlives the flow deadline, with a test
+- [x] PKCE generation is CSPRNG-backed and the proof uses it
+- [x] a disconnecting probe does not kill the sign-in wait, with a test
+- [x] no connection outlives the flow deadline, with a test
 
 ## Evidence Required
 

@@ -2,6 +2,7 @@ use core::fmt;
 use std::error::Error;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 
 /// Shortest verifier RFC 7636 permits.
@@ -16,11 +17,24 @@ const MAXIMUM_VERIFIER_BYTES: usize = 128;
 /// request. That is what stops an attacker who intercepts the redirect from
 /// completing the exchange.
 ///
-/// Generating the random value belongs to the host — this crate is pure —
-/// but the length and alphabet rules are enforced here so a weak verifier
-/// cannot be constructed at all.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodeVerifier(String);
+/// Generate with [`CodeVerifier::generate`]; construct by hand only to load
+/// one back. The length and alphabet rules are enforced either way, so a
+/// weak verifier cannot exist.
+#[derive(Clone, Debug)]
+pub struct CodeVerifier(SecretString);
+
+impl PartialEq for CodeVerifier {
+    /// Secret comparison; the timing signal is small and the mitigation is
+    /// the same four lines the callback state gets.
+    fn eq(&self, other: &Self) -> bool {
+        constant_time_eq(
+            self.0.expose_secret().as_bytes(),
+            other.0.expose_secret().as_bytes(),
+        )
+    }
+}
+
+impl Eq for CodeVerifier {}
 
 impl CodeVerifier {
     /// Validates and records a verifier.
@@ -36,13 +50,25 @@ impl CodeVerifier {
         if let Some(offending) = value.chars().find(|character| !is_unreserved(*character)) {
             return Err(AccountFlowError::VerifierSymbol { symbol: offending });
         }
-        Ok(Self(value))
+        Ok(Self(SecretString::from(value)))
     }
 
     /// Returns the verifier.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.0.expose_secret()
+    }
+
+    /// Generates a fresh verifier from the operating system's CSPRNG.
+    ///
+    /// 32 random bytes, base64url — 43 characters, exactly at the RFC 7636
+    /// floor. Generation lives here rather than in each consumer: the only
+    /// in-repo example used to be a proof's timestamp stub, and the proof is
+    /// the pattern a consumer copies.
+    pub fn generate() -> Result<Self, AccountFlowError> {
+        let mut bytes = [0_u8; 32];
+        getrandom::fill(&mut bytes).map_err(|_| AccountFlowError::EntropyUnavailable)?;
+        Self::new(URL_SAFE_NO_PAD.encode(bytes))
     }
 
     /// Returns the S256 challenge sent in the authorization request.
@@ -52,7 +78,7 @@ impl CodeVerifier {
     /// intercepted redirect; there is no reason to offer it.
     #[must_use]
     pub fn challenge(&self) -> String {
-        let digest = Sha256::digest(self.0.as_bytes());
+        let digest = Sha256::digest(self.0.expose_secret().as_bytes());
         URL_SAFE_NO_PAD.encode(digest)
     }
 }
@@ -66,12 +92,25 @@ const fn is_unreserved(character: char) -> bool {
 ///
 /// Holds the two secrets the callback is checked against. Constructed before
 /// the browser opens and consumed when it returns.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct AccountFlow {
     verifier: CodeVerifier,
-    state: String,
+    state: SecretString,
     redirect_port: u16,
 }
+
+impl PartialEq for AccountFlow {
+    fn eq(&self, other: &Self) -> bool {
+        self.redirect_port == other.redirect_port
+            && self.verifier == other.verifier
+            && constant_time_eq(
+                self.state.expose_secret().as_bytes(),
+                other.state.expose_secret().as_bytes(),
+            )
+    }
+}
+
+impl Eq for AccountFlow {}
 
 impl AccountFlow {
     /// Begins a flow against a loopback redirect on `redirect_port`.
@@ -92,9 +131,20 @@ impl AccountFlow {
         }
         Ok(Self {
             verifier,
-            state,
+            state: SecretString::from(state),
             redirect_port,
         })
+    }
+
+    /// Begins a flow with freshly generated verifier and state.
+    ///
+    /// The common case: both secrets come from the operating system's CSPRNG
+    /// and only the callback check ever compares them.
+    pub fn generate(redirect_port: u16) -> Result<Self, AccountFlowError> {
+        let verifier = CodeVerifier::generate()?;
+        let mut bytes = [0_u8; 32];
+        getrandom::fill(&mut bytes).map_err(|_| AccountFlowError::EntropyUnavailable)?;
+        Self::begin(verifier, URL_SAFE_NO_PAD.encode(bytes), redirect_port)
     }
 
     /// Returns the loopback redirect URI for this flow.
@@ -117,7 +167,7 @@ impl AccountFlow {
     /// Returns the opaque state for the authorization request.
     #[must_use]
     pub fn state(&self) -> &str {
-        &self.state
+        self.state.expose_secret()
     }
 
     /// Checks a callback and yields the authorization code.
@@ -127,7 +177,10 @@ impl AccountFlow {
     pub fn accept_callback(self, callback: &Callback) -> Result<Authorization, AccountFlowError> {
         // State is compared before anything else is read. A callback that
         // did not come from this flow gets nothing, including error detail.
-        if !constant_time_eq(callback.state.as_bytes(), self.state.as_bytes()) {
+        if !constant_time_eq(
+            callback.state.as_bytes(),
+            self.state.expose_secret().as_bytes(),
+        ) {
             return Err(AccountFlowError::StateMismatch);
         }
         let redirect_uri = self.redirect_uri();
@@ -197,7 +250,7 @@ impl Authorization {
 ///
 /// State comparison is a secret comparison. The timing signal from a naive
 /// compare is small, but the mitigation is four lines.
-fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+pub(crate) fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
     if left.len() != right.len() {
         return false;
     }
@@ -238,6 +291,8 @@ pub enum AccountFlowError {
         /// Server-supplied reason.
         reason: String,
     },
+    /// The operating system's random source did not answer.
+    EntropyUnavailable,
 }
 
 impl fmt::Display for AccountFlowError {
@@ -260,6 +315,9 @@ impl fmt::Display for AccountFlowError {
             ),
             Self::StateMismatch => formatter.write_str("callback did not match the request"),
             Self::Denied { reason } => write!(formatter, "authorization declined: {reason}"),
+            Self::EntropyUnavailable => {
+                formatter.write_str("the operating system's random source did not answer")
+            }
         }
     }
 }
@@ -276,6 +334,21 @@ mod tests {
 
     fn flow() -> AccountFlow {
         AccountFlow::begin(verifier(), "state-value-long-enough", 51_234).unwrap()
+    }
+
+    #[test]
+    fn generated_material_is_valid_fresh_and_distinct() {
+        let first = CodeVerifier::generate().expect("CSPRNG");
+        let second = CodeVerifier::generate().expect("CSPRNG");
+        assert_eq!(first.as_str().len(), 43, "32 bytes base64url");
+        assert!(first != second, "two generations must differ");
+
+        let flow = AccountFlow::generate(51_235).expect("CSPRNG");
+        assert!(flow.state().len() >= 16);
+        assert!(
+            AccountFlow::generate(51_235).unwrap().state() != flow.state(),
+            "two flows must not share state"
+        );
     }
 
     #[test]

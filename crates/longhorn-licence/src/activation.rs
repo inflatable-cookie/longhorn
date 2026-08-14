@@ -2,6 +2,7 @@ use core::fmt;
 use std::error::Error;
 
 use ed25519_dalek::VerifyingKey;
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
 use crate::{LicenceKey, SignedLicence, Timestamp, VerificationError, VerifiedLicence, verify};
@@ -122,14 +123,33 @@ pub enum Activation {
 }
 
 /// What a customer supplies to obtain a licence.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Credential {
     /// A redemption token typed by the customer.
     Key(LicenceKey),
     /// A bearer token from a completed account sign-in.
-    AccountToken(String),
+    ///
+    /// A `SecretString`: zeroized on drop, redacted in `Debug` — the same
+    /// discipline config-age applies to its age secrets.
+    AccountToken(SecretString),
     /// The bytes of a licence file the customer was sent.
     LicenceFile(Vec<u8>),
+}
+
+impl PartialEq for Credential {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Key(left), Self::Key(right)) => left == right,
+            (Self::AccountToken(left), Self::AccountToken(right)) => {
+                crate::account::constant_time_eq(
+                    left.expose_secret().as_bytes(),
+                    right.expose_secret().as_bytes(),
+                )
+            }
+            (Self::LicenceFile(left), Self::LicenceFile(right)) => left == right,
+            _ => false,
+        }
+    }
 }
 
 /// Describes how licences are acquired, renewed, and released.
@@ -292,7 +312,7 @@ impl ActivationSource for TokenRedemptionSource {
     fn acquire(&self, credential: &Credential) -> Result<Activation, ActivationError> {
         match credential {
             Credential::Key(key) => Ok(self.exchange("redeem", key.as_str())),
-            Credential::AccountToken(token) => Ok(self.exchange("activate", token)),
+            Credential::AccountToken(token) => Ok(self.exchange("activate", token.expose_secret())),
             Credential::LicenceFile(_) => Err(ActivationError::UnsupportedCredential),
         }
     }

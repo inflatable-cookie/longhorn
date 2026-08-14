@@ -110,16 +110,19 @@ impl LoopbackRedirect {
     /// Blocks the calling thread up to `timeout`; a host runs it on a worker
     /// while the operator is in the browser. Consumes the listener — one
     /// flow, one callback, and the port closes either way.
+    ///
+    /// Probe traffic — a local scanner connecting and hanging up, a request
+    /// to any other path — is answered and ignored, not fatal. Only the
+    /// callback path fails closed.
     pub fn receive(self, timeout: Duration) -> Result<Callback, LoopbackError> {
         let deadline = Instant::now() + timeout;
         loop {
             match self.listener.accept() {
-                Ok((stream, _)) => {
-                    if let Some(callback) = answer(stream)? {
-                        return Ok(callback);
-                    }
+                Ok((stream, _)) => match answer(stream, deadline)? {
+                    Answer::Callback(callback) => return Ok(callback),
                     // A non-callback path: answered 404, keep waiting.
-                }
+                    Answer::Probe => {}
+                },
                 Err(ref error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     if Instant::now() >= deadline {
                         return Err(LoopbackError::TimedOut);
@@ -138,8 +141,21 @@ fn io_error(error: std::io::Error) -> LoopbackError {
     }
 }
 
-/// Answers one connection; `Some` when it carried the callback.
-fn answer(mut stream: TcpStream) -> Result<Option<Callback>, LoopbackError> {
+/// What one connection turned out to be.
+enum Answer {
+    /// It carried the callback.
+    Callback(Callback),
+    /// Probe traffic: answered 404 where possible, then closed. A dead
+    /// connection or a long garbage head is noise, and killing the sign-in
+    /// flow over it would let any local process cancel logins.
+    Probe,
+}
+
+/// Answers one connection, returning what it carried.
+///
+/// The per-read timeout bounds a slow peer; `deadline` bounds the whole
+/// connection, so a byte at a time cannot hold the flow open past it.
+fn answer(mut stream: TcpStream, deadline: Instant) -> Result<Answer, LoopbackError> {
     // The listener is non-blocking so the accept loop can watch its deadline,
     // and on macOS the accepted socket inherits that -- the packaged update
     // proof paid a build cycle to learn it. Reads and writes here must block.
@@ -151,16 +167,37 @@ fn answer(mut stream: TcpStream) -> Result<Option<Callback>, LoopbackError> {
     let mut head = Vec::new();
     let mut buffer = [0_u8; 1024];
     loop {
-        let count = stream.read(&mut buffer).map_err(io_error)?;
-        if count == 0 {
-            break;
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(LoopbackError::TimedOut);
         }
-        head.extend_from_slice(&buffer[..count]);
+        // Each read is bounded by the flow's own deadline, so a peer
+        // dribbling a byte at a time cannot hold the connection past it.
+        stream
+            .set_read_timeout(Some(remaining.min(Duration::from_secs(5))))
+            .map_err(io_error)?;
+        match stream.read(&mut buffer) {
+            Ok(0) => return Ok(Answer::Probe),
+            Ok(count) => head.extend_from_slice(&buffer[..count]),
+            // A connection that dies before completing a request is a probe;
+            // a read that outlives the deadline ends the flow.
+            Err(error) => {
+                if Instant::now() >= deadline {
+                    return Err(LoopbackError::TimedOut);
+                }
+                return Err(io_error(error));
+            }
+        }
         if head.windows(4).any(|window| window == b"\r\n\r\n") {
             break;
         }
         if head.len() > MAXIMUM_HEAD_BYTES {
-            return Err(LoopbackError::MalformedCallback);
+            // An oversized head that was never a callback is a probe. One
+            // addressed at the callback fails closed.
+            if head.starts_with(b"GET /callback") {
+                return Err(LoopbackError::MalformedCallback);
+            }
+            return Ok(Answer::Probe);
         }
     }
 
@@ -175,15 +212,19 @@ fn answer(mut stream: TcpStream) -> Result<Option<Callback>, LoopbackError> {
     };
 
     if method != "GET" || path != "/callback" {
-        respond(&mut stream, "404 Not Found", "")?;
-        return Ok(None);
+        // The 404 is courtesy; a probe that hung up already must not turn
+        // the write failure into a flow failure.
+        drop(respond(&mut stream, "404 Not Found", ""));
+        return Ok(Answer::Probe);
     }
 
     let callback = parse_callback(query);
     // The browser gets its page whether or not the query parsed: the
     // operator's tab is not the place to debug a malformed redirect.
     respond(&mut stream, "200 OK", RESPONSE_PAGE)?;
-    callback.map(Some).ok_or(LoopbackError::MalformedCallback)
+    callback
+        .map(Answer::Callback)
+        .ok_or(LoopbackError::MalformedCallback)
 }
 
 /// Reads a callback out of the redirect's query string.
@@ -350,6 +391,46 @@ mod tests {
             handle.join().expect("join").expect("callback").outcome,
             CallbackOutcome::Code("after-probe".to_owned())
         );
+    }
+
+    /// A scanner that connects and dies mid-request must not kill the wait.
+    #[test]
+    fn a_probe_disconnecting_mid_request_does_not_end_the_wait() {
+        let listener = LoopbackRedirect::bind().expect("bind");
+        let port = listener.port();
+        let handle = receive_in_background(listener);
+
+        let mut probe = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        probe.write_all(b"GET /fav").expect("write");
+        drop(probe);
+
+        exchange(port, "/callback?state=sixteen-byte-state&code=after-rst");
+        assert_eq!(
+            handle.join().expect("join").expect("callback").outcome,
+            CallbackOutcome::Code("after-rst".to_owned())
+        );
+    }
+
+    /// A peer dribbling a byte at a time must not outlive the flow deadline.
+    #[test]
+    fn a_trickling_connection_cannot_outlive_the_deadline() {
+        let listener = LoopbackRedirect::bind().expect("bind");
+        let port = listener.port();
+        let handle = std::thread::spawn(move || listener.receive(Duration::from_millis(400)));
+
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        let started = Instant::now();
+        while started.elapsed() < Duration::from_millis(900) {
+            if stream.write_all(b"x").is_err() {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+
+        assert!(matches!(
+            handle.join().expect("join"),
+            Err(LoopbackError::TimedOut)
+        ));
     }
 
     /// The page must not reflect anything from the request. A state carrying

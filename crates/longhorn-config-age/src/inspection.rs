@@ -181,6 +181,12 @@ fn classify_parse_error(error: DecryptError, evidence: AgeEnvelopeEvidence) -> D
     }
 }
 
+/// age's error surface deliberately cannot say "tampered". A header whose
+/// stanza no longer authenticates unwraps no file key, which arrives as
+/// `NoMatchingKeys` — the same error a wrong key gives — and a tampered
+/// payload surfaces later as a stream io error, which `read_plaintext`
+/// already reports as `Corrupt`. So `Locked` here means "this key did not
+/// open this file", and the operator-facing copy must not claim to know why.
 fn classify_decrypt_error(error: DecryptError, evidence: AgeEnvelopeEvidence) -> DecryptionFailure {
     match error {
         DecryptError::NoMatchingKeys

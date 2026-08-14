@@ -14,6 +14,8 @@
 //! no features, so an entitlement is an id and a bound. A protocol that named
 //! features would be the place the milestone's line got crossed permanently.
 
+use core::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{Entitlements, Limit, Timestamp, TrustBasis, Usability, VerifiedLicence};
@@ -303,7 +305,7 @@ impl LicenceSnapshot {
 ///
 /// This is the one place credential material crosses, and it crosses **inward**
 /// only. Nothing in a projection carries it back.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
     rename_all = "camelCase",
@@ -328,6 +330,18 @@ pub enum LicenceCredentialProjection {
         /// numbers, which is a poor way to move a file across a boundary.
         contents_base64: String,
     },
+}
+
+impl fmt::Debug for LicenceCredentialProjection {
+    /// Credential material crosses inward on this type; a debug print must
+    /// not be a way to carry it back out.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Key { .. } => "LicenceCredentialProjection::Key(<redacted>)",
+            Self::AccountToken { .. } => "LicenceCredentialProjection::AccountToken(<redacted>)",
+            Self::LicenceFile { .. } => "LicenceCredentialProjection::LicenceFile(<redacted>)",
+        })
+    }
 }
 
 /// Present a credential and ask for a licence.
