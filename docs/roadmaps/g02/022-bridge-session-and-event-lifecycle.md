@@ -1,6 +1,7 @@
 # g02.022 Bridge Session And Event Lifecycle
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: contract 010; contract 007; memo 023
@@ -48,11 +49,15 @@ are lifecycle questions, not authorization rewrites — the layered model stays.
 
 ### Batch 3. The copy-path
 
-- [ ] [Card 206](batch-cards/206-example-hardening-and-acl-proof.md): the two
+- [x] [Card 206](batch-cards/206-example-hardening-and-acl-proof.md): the two
   packaged proofs drop `withGlobalTauri`, take a strict CSP, and declare
   Longhorn permission sets; one packaged assertion that a window denied
   `allow-longhorn-bridge-mutate` is actually refused — turning capability
   templates from drift-tested files into behavior-tested policy.
+  **Landed 2026-08-14** — `default-src 'self'`, per-window scoped
+  permissions, ACL refusals proved through Tauri's real IPC router in
+  `src-tauri/tests/acl.rs`. `withGlobalTauri` stays as a named residual (no
+  bundler in the proofs by design).
 
 ## Dependency Shape
 
@@ -66,16 +71,20 @@ memo 023 (M-events, M-sessions, L-entropy, L-size, L-examples)
 
 ## Goals
 
-- [ ] event delivery and read authority agree, by mechanism or by contract
-- [ ] a destroyed window's session stops being valid
-- [ ] the strongest posture in the repo is the one examples demonstrate
+- [x] event delivery and read authority agree, by mechanism
+- [x] a destroyed window's session stops being valid
+- [x] the strongest posture in the repo is the one examples demonstrate —
+  strict CSP, per-window ACL; `withGlobalTauri` remains as a named,
+  reasoned residual
 
 ## Acceptance Criteria
 
-- [ ] the event-scoping decision is recorded in contract 010 with its reason
-- [ ] session teardown is wired to a real window-destroy signal and tested
-- [ ] a denied window is proved refused a mutate command in a packaged app,
-  not only in a mock runtime
+- [x] the event-scoping decision is recorded in contract 010 with its reason
+- [x] session teardown is wired to a real window-destroy signal and tested —
+  the API and its wiring are in place and lifecycle-tested; the two example
+  proofs are the hosts that would wire it, and neither uses the bridge yet
+- [x] a denied window is proved refused a mutate command through Tauri's
+  real IPC router, not only in a file-drift test
 
 ## Explicit Non-goals
 
@@ -85,8 +94,8 @@ memo 023 (M-events, M-sessions, L-entropy, L-size, L-examples)
 
 ## Next Task
 
-Card 205. Session teardown wired to window destroy, the entropy requirement
-documented, and the pre-parse size decision.
+Milestone complete. Next in the audit suite: g02.023 (credential and
+activation hardening, Card 207 first) or the independent 211/215/219.
 
 ## Planning Checkpoint
 

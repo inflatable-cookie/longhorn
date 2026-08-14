@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "windowing-proof-workspace",
+  "description": "The dynamic workspace window reads state and closes itself; it cannot drive the proof.",
+  "windows": ["workspace"],
+  "permissions": [
+    "core:default",
+    "allow-windowing-proof-read",
+    "allow-workspace-self-close"
+  ]
+}

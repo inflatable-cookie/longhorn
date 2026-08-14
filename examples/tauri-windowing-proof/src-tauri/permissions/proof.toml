@@ -1,0 +1,24 @@
+# The windowing proof's two windows do not get the same reach: the dynamic
+# workspace window can read state and close itself, and nothing else.
+
+[[permission]]
+identifier = "allow-windowing-proof-read"
+description = "Reads the windowing proof's runtime state."
+commands.allow = ["page_ready", "proof_status"]
+
+[[permission]]
+identifier = "allow-windowing-proof-drive"
+description = "Drives the windowing proof from the primary window."
+commands.allow = [
+  "toggle_maximized",
+  "set_workspace",
+  "prove_protected_primary",
+  "prepare_missing_display_restart",
+  "flush_proof",
+  "quit_proof",
+]
+
+[[permission]]
+identifier = "allow-workspace-self-close"
+description = "Lets the dynamic workspace window close itself, and nothing more."
+commands.allow = ["set_workspace"]

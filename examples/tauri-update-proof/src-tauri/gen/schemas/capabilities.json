@@ -1,1 +1,1 @@
-{"update-proof":{"identifier":"update-proof","description":"Exact core capability used by the packaged update-host proof.","local":true,"windows":["main"],"permissions":["core:default"]}}
+{"update-proof":{"identifier":"update-proof","description":"The packaged update proof's only window, scoped to its own commands.","local":true,"windows":["main"],"permissions":["core:default","allow-update-proof-read","allow-update-proof-drive"]}}

@@ -1,0 +1,20 @@
+# Proof commands are scoped, not default-allowed. Once an app defines any
+# permission for its own commands, Tauri subjects every app command to the
+# ACL — which is the point: a webview compromise meets the capability list,
+# not the whole handler surface.
+
+[[permission]]
+identifier = "allow-update-proof-read"
+description = "Reads the packaged update proof's state."
+commands.allow = ["proof_state", "relaunch_state"]
+
+[[permission]]
+identifier = "allow-update-proof-drive"
+description = "Drives the packaged update proof: transfer session, install, relaunch, sign-in."
+commands.allow = [
+  "open_transfer_session",
+  "close_transfer_sessions",
+  "attempt_install",
+  "attempt_sign_in",
+  "request_relaunch",
+]

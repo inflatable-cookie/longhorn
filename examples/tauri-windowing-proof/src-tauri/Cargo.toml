@@ -19,5 +19,8 @@ serde.workspace = true
 serde_json.workspace = true
 tauri = { workspace = true, features = ["wry"] }
 
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
+
 [lints]
 workspace = true

@@ -1,7 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "update-proof",
-  "description": "Exact core capability used by the packaged update-host proof.",
+  "description": "The packaged update proof's only window, scoped to its own commands.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "allow-update-proof-read",
+    "allow-update-proof-drive"
+  ]
 }

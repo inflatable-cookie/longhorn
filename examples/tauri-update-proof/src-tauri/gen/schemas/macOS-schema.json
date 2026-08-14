@@ -177,6 +177,18 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Drives the packaged update proof: transfer session, install, relaunch, sign-in.",
+          "type": "string",
+          "const": "allow-update-proof-drive",
+          "markdownDescription": "Drives the packaged update proof: transfer session, install, relaunch, sign-in."
+        },
+        {
+          "description": "Reads the packaged update proof's state.",
+          "type": "string",
+          "const": "allow-update-proof-read",
+          "markdownDescription": "Reads the packaged update proof's state."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",

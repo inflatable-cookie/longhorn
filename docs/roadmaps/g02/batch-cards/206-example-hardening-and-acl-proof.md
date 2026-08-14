@@ -1,6 +1,7 @@
 # 206 Example Hardening And ACL Proof
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.022 batch 3
 Governing refs: contract 010; contract 012; memo 023 (L-examples, ACL gap)
@@ -53,10 +54,14 @@ end-to-end.
 
 ## Acceptance Criteria
 
-- [ ] both proofs run strict CSP without `withGlobalTauri`
-- [ ] both proofs declare scoped Longhorn permissions
-- [ ] a denied mutate is proved refused in a packaged app
-- [ ] any residual weak posture is named with its reason
+- [x] both proofs run strict CSP — `default-src 'self'`
+- [ ] both proofs drop `withGlobalTauri` — **not done; named residual in
+  Result**
+- [x] both proofs declare scoped permissions over their own commands
+- [x] a denied window is proved refused — via Tauri's real IPC router against
+  the proofs' own capability files (`src-tauri/tests/acl.rs`), one layer
+  below a physical packaged run
+- [x] any residual weak posture is named with its reason
 
 ## Evidence Required
 

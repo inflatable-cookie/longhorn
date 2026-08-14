@@ -177,6 +177,24 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Drives the windowing proof from the primary window.",
+          "type": "string",
+          "const": "allow-windowing-proof-drive",
+          "markdownDescription": "Drives the windowing proof from the primary window."
+        },
+        {
+          "description": "Reads the windowing proof's runtime state.",
+          "type": "string",
+          "const": "allow-windowing-proof-read",
+          "markdownDescription": "Reads the windowing proof's runtime state."
+        },
+        {
+          "description": "Lets the dynamic workspace window close itself, and nothing more.",
+          "type": "string",
+          "const": "allow-workspace-self-close",
+          "markdownDescription": "Lets the dynamic workspace window close itself, and nothing more."
+        },
+        {
           "description": "Default core plugins set.\n#### This default permission set includes:\n\n- `core:path:default`\n- `core:event:default`\n- `core:window:default`\n- `core:webview:default`\n- `core:app:default`\n- `core:image:default`\n- `core:resources:default`\n- `core:menu:default`\n- `core:tray:default`",
           "type": "string",
           "const": "core:default",

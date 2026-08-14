@@ -25,3 +25,6 @@ tauri = { workspace = true, features = ["wry"] }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
