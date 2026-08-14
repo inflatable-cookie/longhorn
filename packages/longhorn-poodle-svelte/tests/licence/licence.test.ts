@@ -43,6 +43,11 @@ class Port implements LicencePort {
     this.released.push((command as { machineId: string }).machineId);
     return this.#committed();
   }
+  renamed: { machineId: string; label: string | null }[] = [];
+  async renameSeat(command: unknown): Promise<unknown> {
+    this.renamed.push(command as { machineId: string; label: string | null });
+    return this.#committed();
+  }
   #listeners: ((event: unknown) => void)[] = [];
   listen(listener: (event: unknown) => void) {
     this.#listeners.push(listener);
@@ -152,5 +157,37 @@ describe("licence surface bindings", () => {
     });
     expect(document.body.textContent?.toLowerCase()).not.toContain("invalid");
     mounted.unmount();
+  });
+
+  /**
+   * The seam Card 158 left unwired on purpose while the protocol had no
+   * rename command. It has one now, and the binding normalises the one
+   * disagreement between the sides: Poodle's editor can commit an empty
+   * string for a cleared field, and the protocol treats empty as a mistake
+   * and null as "unnamed".
+   */
+  it("renames a seat through the controller, clearing to null", async () => {
+    const port = new Port(
+      snapshot(
+        held({
+          seats: [{ machineId: "m-this-machine-16chars", label: "Studio", thisMachine: true }],
+        }),
+      ),
+    );
+    const mounted = render(LicenceHarness, {
+      props: { controller: await ready(port), surface: "seats" },
+    });
+
+    const editor = await mounted.findByLabelText("Rename Studio");
+    await fireEvent.click(editor);
+    const input = await mounted.findByRole("textbox");
+    await fireEvent.input(input, { target: { value: "Studio iMac" } });
+    await fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(
+        port.renamed.map(({ machineId, label }) => ({ machineId, label })),
+      ).toEqual([{ machineId: "m-this-machine-16chars", label: "Studio iMac" }]),
+    );
   });
 });

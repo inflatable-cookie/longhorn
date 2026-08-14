@@ -4,8 +4,9 @@ use longhorn_licence::{
     HeldLicenceProjection, LICENCE_PROTOCOL_VERSION, LicenceActivateCommand, LicenceChangedEvent,
     LicenceChangedKind, LicenceCredentialProjection, LicenceDeactivateCommand,
     LicenceEntitlementProjection, LicenceOutcomeProjection, LicenceProtocolVersion,
-    LicenceRefreshCommand, LicenceRejectionCode, LicenceReleaseSeatCommand, LicenceSeatProjection,
-    LicenceSnapshot, LicenceTrustBasisProjection, LicenceUsabilityProjection, Timestamp,
+    LicenceRefreshCommand, LicenceRejectionCode, LicenceReleaseSeatCommand,
+    LicenceRenameSeatCommand, LicenceSeatProjection, LicenceSnapshot, LicenceTrustBasisProjection,
+    LicenceUsabilityProjection, Timestamp,
 };
 use ts_rs::TS;
 
@@ -80,6 +81,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         LicenceDeactivateCommand::decl(),
         LicenceRefreshCommand::decl(),
         LicenceReleaseSeatCommand::decl(),
+        LicenceRenameSeatCommand::decl(),
         rejection_code.clone(),
         outcome.clone(),
         changed_kind.clone(),

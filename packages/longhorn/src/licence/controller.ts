@@ -241,6 +241,23 @@ export class LicenceController {
     );
   }
 
+  /**
+   * Renames a seat — this machine's or another's.
+   *
+   * `null` clears the label back to unnamed. The label stays the customer's
+   * word: this is the one write that can change it after activation.
+   */
+  async renameSeat(machineId: string, label: string | null): Promise<void> {
+    await this.#command((client, epoch) =>
+      client.renameSeat({
+        protocolVersion: LICENCE_PROTOCOL_VERSION,
+        authorityEpoch: epoch,
+        machineId,
+        label,
+      }),
+    );
+  }
+
   async #command(
     run: (
       client: LicenceClient,

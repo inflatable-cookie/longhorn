@@ -5,6 +5,7 @@ import type {
   LicenceOutcomeProjection,
   LicenceRefreshCommand,
   LicenceReleaseSeatCommand,
+  LicenceRenameSeatCommand,
   LicenceSnapshot,
 } from "./generated/protocol.ts";
 
@@ -22,6 +23,7 @@ export interface LicencePort {
   deactivate(command: LicenceDeactivateCommand): Promise<unknown>;
   refresh(command: LicenceRefreshCommand): Promise<unknown>;
   releaseSeat(command: LicenceReleaseSeatCommand): Promise<unknown>;
+  renameSeat(command: LicenceRenameSeatCommand): Promise<unknown>;
   listen?(listener: (event: unknown) => void): LicenceUnlisten | Promise<LicenceUnlisten>;
 }
 
@@ -32,5 +34,6 @@ export interface CheckedLicencePort {
   deactivate(command: LicenceDeactivateCommand): Promise<LicenceOutcomeProjection>;
   refresh(command: LicenceRefreshCommand): Promise<LicenceOutcomeProjection>;
   releaseSeat(command: LicenceReleaseSeatCommand): Promise<LicenceOutcomeProjection>;
+  renameSeat(command: LicenceRenameSeatCommand): Promise<LicenceOutcomeProjection>;
   listen(listener: (event: LicenceChangedEvent) => void): Promise<LicenceUnlisten>;
 }

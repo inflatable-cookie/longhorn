@@ -10,11 +10,10 @@
    * The answer to "I got a new laptop": the seats that are not this machine
    * are the ones a release frees, without a support conversation.
    *
-   * Poodle's component offers `onRename`, and it is deliberately not wired.
-   * The protocol has no rename command — a label is set at activation and
-   * nowhere else — so wiring it would invent a capability the authority does
-   * not have. If renaming earns a command it gets carded first, as the seat
-   * list itself did.
+   * `onRename` is wired since 2026-08-14: the protocol gained
+   * `LicenceRenameSeatCommand`, so the capability the component offered now
+   * exists. The label stays the customer's word, and clearing it renames to
+   * null rather than to an empty string.
    */
   interface Props {
     controller: LicenceController;
@@ -26,6 +25,14 @@
 
   const licence = sampleLicenceController(controller);
   let releasing = $state<string | null>(null);
+
+  function rename(detail: { machineId: string; label: string | null }): void {
+    // Poodle's editor can hand back an empty string for a cleared field; the
+    // protocol treats empty as a mistake and null as "unnamed", so the
+    // normalisation happens here, at the seam.
+    const label = detail.label !== null && detail.label.trim().length === 0 ? null : detail.label;
+    void controller.renameSeat(detail.machineId, label);
+  }
 
   function release(detail: { machineId: string }): void {
     releasing = detail.machineId;
@@ -45,5 +52,6 @@
     {title}
     {confirmRelease}
     onRelease={release}
+    onRename={rename}
   />
 {/if}

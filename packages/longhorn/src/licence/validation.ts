@@ -13,6 +13,7 @@ import {
   type LicenceOutcomeProjection,
   type LicenceRefreshCommand,
   type LicenceReleaseSeatCommand,
+  type LicenceRenameSeatCommand,
   type LicenceSnapshot,
 } from "./generated/protocol.ts";
 import {
@@ -100,6 +101,16 @@ export function assertLicenceReleaseSeatCommand(
 ): asserts value is LicenceReleaseSeatCommand {
   const root = commandBase(value, LICENCE_FIELDS.LicenceReleaseSeatCommand);
   nonEmpty(root.machineId, "$.machineId");
+}
+
+export function assertLicenceRenameSeatCommand(
+  value: unknown,
+): asserts value is LicenceRenameSeatCommand {
+  const root = commandBase(value, LICENCE_FIELDS.LicenceRenameSeatCommand);
+  nonEmpty(root.machineId, "$.machineId");
+  // Null clears the label back to unnamed; an empty string is a mistake
+  // wearing null's clothes and is refused rather than stored.
+  if (root.label !== null) nonEmpty(root.label, "$.label");
 }
 
 function held(value: unknown, path: string): void {

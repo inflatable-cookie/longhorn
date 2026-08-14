@@ -8,7 +8,7 @@ export const LICENCE_TRUST_BASIS_KINDS = ["offlineSignature","remoteAssertion"] 
 export const LICENCE_CREDENTIAL_KINDS = ["key","accountToken","licenceFile"] as const;
 export const LICENCE_REJECTION_CODES = ["malformed","notRecognised","noSeatsFree","revoked","clockRefused","staleAuthority","seatNotFound","unreachable"] as const;
 export const LICENCE_OUTCOME_STATUSES = ["committed","rejected"] as const;
-export const LICENCE_CHANGED_KINDS = ["activated","deactivated","refreshed","usabilityChanged"] as const;
+export const LICENCE_CHANGED_KINDS = ["activated","deactivated","seatRelabelled","refreshed","usabilityChanged"] as const;
 
 export type LicenceProtocolVersion = number;
 
@@ -198,6 +198,24 @@ authorityEpoch: number,
  */
 machineId: string, };
 
+export type LicenceRenameSeatCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: LicenceProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: number, 
+/**
+ * The machine to rename.
+ */
+machineId: string, 
+/**
+ * What to call it, or `None` for unnamed.
+ */
+label: string | null, };
+
 export type LicenceRejectionCode = "malformed" | "notRecognised" | "noSeatsFree" | "revoked" | "clockRefused" | "staleAuthority" | "seatNotFound" | "unreachable";
 
 export type LicenceOutcomeProjection = { "status": "committed", 
@@ -214,7 +232,7 @@ code: LicenceRejectionCode,
  */
 snapshot: LicenceSnapshot, };
 
-export type LicenceChangedKind = "activated" | "deactivated" | "refreshed" | "usabilityChanged";
+export type LicenceChangedKind = "activated" | "deactivated" | "seatRelabelled" | "refreshed" | "usabilityChanged";
 
 export type LicenceChangedEvent = { 
 /**

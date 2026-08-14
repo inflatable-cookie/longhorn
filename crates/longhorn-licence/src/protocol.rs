@@ -384,6 +384,31 @@ pub struct LicenceReleaseSeatCommand {
     pub machine_id: String,
 }
 
+/// Rename a machine's seat.
+///
+/// The label follows activation's rules: the customer's word, never sniffed
+/// from the host, and `None` clears it back to unnamed. Any seat under the
+/// licence may be renamed, this machine's included, on the same authority
+/// argument as release — whoever holds the credential already controls every
+/// seat under it.
+///
+/// Its own command rather than a field on release or a widening of activate:
+/// changing what a seat is called and ending its session are different acts.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LicenceRenameSeatCommand {
+    /// Exact metadata protocol line.
+    pub protocol_version: LicenceProtocolVersion,
+    /// Authority lifetime observed by the caller.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub authority_epoch: u64,
+    /// The machine to rename.
+    pub machine_id: String,
+    /// What to call it, or `None` for unnamed.
+    pub label: Option<String>,
+}
+
 /// Re-check the lease now.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -462,6 +487,8 @@ pub enum LicenceChangedKind {
     Activated,
     /// A seat was released — this machine's, or another's.
     Deactivated,
+    /// A seat's label changed. Nothing about entitlement or usability moved.
+    SeatRelabelled,
     /// A lease was re-checked.
     Refreshed,
     /// Time passed and the usability state moved with it — into grace, out of
@@ -669,6 +696,23 @@ mod tests {
         for absent in ["hostname", "lastSeen", "platform", "ipAddress", "user"] {
             assert!(!encoded.contains(absent), "`{absent}` reached the wire");
         }
+    }
+
+    /// A rename carries the customer's word or clears it; both round-trip.
+    #[test]
+    fn renaming_a_seat_round_trips_with_and_without_a_label() {
+        round_trip(&LicenceRenameSeatCommand {
+            protocol_version: LicenceProtocolVersion::CURRENT,
+            authority_epoch: 7,
+            machine_id: "m-the-old-macbook-16".to_owned(),
+            label: Some("Studio".to_owned()),
+        });
+        round_trip(&LicenceRenameSeatCommand {
+            protocol_version: LicenceProtocolVersion::CURRENT,
+            authority_epoch: 7,
+            machine_id: "m-the-old-macbook-16".to_owned(),
+            label: None,
+        });
     }
 
     /// Releasing another machine is its own command, not a widening of

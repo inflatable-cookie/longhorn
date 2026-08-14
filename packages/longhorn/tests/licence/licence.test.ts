@@ -50,6 +50,7 @@ class Port implements LicencePort {
   async deactivate(): Promise<unknown> { return this.outcome(); }
   async refresh(): Promise<unknown> { return this.outcome(); }
   async releaseSeat(): Promise<unknown> { return this.outcome(); }
+  async renameSeat(): Promise<unknown> { return this.outcome(); }
   async listen(): Promise<() => void> { return () => {}; }
 }
 
@@ -147,6 +148,7 @@ describe("licence client", () => {
       deactivate: async () => committed(),
       refresh: async () => committed(),
       releaseSeat: async () => committed(),
+      renameSeat: async () => committed(),
     });
 
     await expect(new LicenceClient(port).snapshot()).rejects.toThrow(LicenceValidationError);
@@ -303,5 +305,27 @@ describe("licence controller", () => {
     );
 
     expect(controller.seats[0]?.label).toBeNull();
+  });
+
+  /** Renaming follows activation's label rules: the customer's word, and null
+   * clears back to unnamed. An empty string is refused before any round trip
+   * -- a mistake wearing null's clothes. */
+  test("renaming a seat validates the label before it is sent", async () => {
+    const controller = await ready(snapshot());
+
+    await controller.renameSeat("m-the-old-macbook-16", "Studio");
+    expect(controller.status).toEqual({ kind: "ready" });
+
+    await controller.renameSeat("m-the-old-macbook-16", null);
+    expect(controller.status).toEqual({ kind: "ready" });
+
+    await expect(
+      new LicenceClient(new Port()).renameSeat({
+        protocolVersion: LICENCE_PROTOCOL_VERSION,
+        authorityEpoch: 2,
+        machineId: "m-the-old-macbook-16",
+        label: "",
+      }),
+    ).rejects.toThrow(LicenceValidationError);
   });
 });

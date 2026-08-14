@@ -50,8 +50,9 @@ pub use protocol::{
     HeldLicenceProjection, LICENCE_PROTOCOL_VERSION, LicenceActivateCommand, LicenceChangedEvent,
     LicenceChangedKind, LicenceCredentialProjection, LicenceDeactivateCommand,
     LicenceEntitlementProjection, LicenceOutcomeProjection, LicenceProtocolVersion,
-    LicenceRefreshCommand, LicenceRejectionCode, LicenceReleaseSeatCommand, LicenceSeatProjection,
-    LicenceSnapshot, LicenceTrustBasisProjection, LicenceUsabilityProjection,
+    LicenceRefreshCommand, LicenceRejectionCode, LicenceReleaseSeatCommand,
+    LicenceRenameSeatCommand, LicenceSeatProjection, LicenceSnapshot, LicenceTrustBasisProjection,
+    LicenceUsabilityProjection,
 };
 pub use status::{ClockGuard, Usability, usability};
 pub use time::{Span, Timestamp};

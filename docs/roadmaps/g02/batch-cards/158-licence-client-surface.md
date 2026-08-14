@@ -126,10 +126,16 @@ mapping.
 
 **Three binding decisions, each the honest side of a gap:**
 
-- `onRename` is offered by Poodle's seat list and deliberately unwired. The
-  protocol has no rename command — a label is set at activation and nowhere
-  else — and wiring it would invent a capability the authority does not have.
-  If renaming earns a command it gets carded first.
+- ~~`onRename` is offered by Poodle's seat list and deliberately unwired.~~
+  Closed 2026-08-14 by operator decision: the protocol gained
+  `LicenceRenameSeatCommand` — machine id plus a nullable label, following
+  activation's rules, with `seatRelabelled` as its changed kind — and the
+  binding wires it. One normalisation lives at the seam on purpose: Poodle's
+  editor can commit an empty string for a cleared field, the protocol refuses
+  empty as a mistake wearing null's clothes, and the binding maps
+  whitespace-and-empty to null so each side keeps its own honest rule.
+  The seam went from flagged to closed in a day, in the right order:
+  capability offered, protocol caught up, binding wired.
 - The account route's token provider rejects with "account sign-in is not
   composed yet" rather than silently doing nothing. It waits on the platform
   `CredentialStore` decision, as Card 159's licence half does.

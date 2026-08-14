@@ -12,5 +12,6 @@ export const LICENCE_FIELDS: Record<string, readonly string[]> = {
   "LicenceDeactivateCommand": ["protocolVersion", "authorityEpoch"],
   "LicenceRefreshCommand": ["protocolVersion", "authorityEpoch"],
   "LicenceReleaseSeatCommand": ["protocolVersion", "authorityEpoch", "machineId"],
+  "LicenceRenameSeatCommand": ["protocolVersion", "authorityEpoch", "machineId", "label"],
   "LicenceChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
 };
