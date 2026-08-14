@@ -100,20 +100,25 @@ reads.
 
 ## Next Task
 
-Card 199, the seat list, and it opens with a decision rather than a field.
+Two operator steps, and then this milestone is a closure note.
 
-Card 158's Longhorn side landed 2026-08-13 and six of its seven steps are done.
-The seventh — an activation slot list with self-service release — had no
-protocol behind it: the domain can release *this* machine's seat and can say
-every seat is taken, and cannot show a customer the laptop they no longer own.
-That is the dominant licensing support ticket, and answering it means deciding
-how much of a customer's fleet the authority should retain and return. A seat
-list is easy to design and hard to un-ship.
+Cards 155, 156, 157, 158, 193 and 199 are complete. The licence system runs
+end to end: rules, protocol, seat list, key format twice-and-bound, client
+surface both sides, keychain storage with cross-process persistence proved,
+the RFC 8252 chain composed over a real socket, and the Tauri seam with
+activation as its own credential-bearing grant.
 
-Then Card 158 step 4, and the Svelte surface, which is Poodle's.
+What remains is Card 159's licence half, and both items are operator actions
+rather than code:
 
-Card 159's licence half — keychain persistence and the RFC 8252 browser flow —
-waits on the platform `CredentialStore` composition decision, still open.
+1. **The locked-keychain path.** `security lock-keychain`, then open the
+   licence surface: it must say the store is unavailable, not that the machine
+   is unactivated. One minute, and it is the seat-churn defence observed
+   rather than asserted.
+2. **A sign-in through the real system browser.** Every piece below the click
+   is proved; the click needs a packaged run and a human.
 
-Previously: Card 193, then Card 158's Longhorn side. This section once said
-"Open Card 155" while 155 and 156 were both complete.
+Consumer adoption — Soundcheck or Nucleus composing the authority behind
+`LicenceHostAuthority` — follows separately, as update adoption does.
+
+Previously: Card 199, then Cards 158 and 157.
