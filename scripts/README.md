@@ -15,7 +15,7 @@ Every script here is reachable from a selector. Nothing in this directory is
 meant to be run by remembering it exists — if something is worth keeping, it is
 worth wiring, and if it is not wired it should be deleted.
 
-`proof:artifacts`, a member of `qa`, runs twelve of them in order:
+`proof:artifacts`, a member of `qa`, runs thirteen of them in order:
 
 | script | proves |
 | --- | --- |
@@ -31,20 +31,22 @@ worth wiring, and if it is not wired it should be deleted.
 | `verify-poodle-preview.ts` | the Poodle projection renders under both backends |
 | `verify-greenfield-card125.ts` | the greenfield compositions carry no donor vocabulary |
 | `verify-guides-card126.ts` | the guides match the generated API surface |
+| `verify-documented-commands.ts` | every command the examples' READMEs name exists |
 
 The rest are wired individually: `check:api-reference` runs
 `generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
-each their own selector. `consumer-absence.ts` and `poodle-evidence.ts` are
+each their own selector. `consumer-absence.ts` and `poodle-release.ts` are
 shared modules, not entry points.
 
 ## No consumer knowledge
 
 Longhorn keeps no code with direct knowledge of a consuming application. No
-script resolves a sibling repository, reads a consumer's manifest, or takes a
-`*_REPO` environment override. Twenty-three verifiers that did were deleted on
-2026-08-10, along with the frozen receipts they asserted against; both remain
-in git history.
+script resolves a sibling repository or reads a consumer's manifest, and only
+`verify-greenfield-card125.ts` takes a `*_REPO` environment override
+(`POODLE_REPO`, for the admitted Poodle-pack escape). Twenty-three verifiers
+that did were deleted on 2026-08-10, along with the frozen receipts they
+asserted against; both remain in git history.
 
 Consumer *names* may still appear as vocabulary — a test graph shaped like a
 real application's, an example named for the topology it exercises. What may
@@ -69,7 +71,9 @@ should be argued for.
 `path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
 inside this tree. The only admitted escape is
 `scripts/verify-greenfield-card125.ts`, which packs Poodle from source under
-the release workflow.
+the release workflow. That script reads `POODLE_REPO` to locate the Poodle
+checkout (defaulting to the `../poodle` sibling); no other script takes a
+`*_REPO` override.
 
 `verify-greenfield-card125.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.

@@ -6,6 +6,7 @@ import {
   readdir,
   writeFile,
 } from "node:fs/promises";
+import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
 import { assertExactSet, digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
@@ -391,7 +392,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

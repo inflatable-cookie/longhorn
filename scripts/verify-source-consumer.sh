@@ -8,6 +8,10 @@ set -euo pipefail
 release_repo_root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$release_repo_root"
 
+# The floor is declared once and read everywhere, generated manifests included.
+source release-baselines/rust-toolchains.env
+release_msrv="${LONGHORN_GENERAL_MSRV%.*}"
+
 release_tmp=$(mktemp -d)
 trap 'rm -rf "$release_tmp"' EXIT
 
@@ -79,7 +83,7 @@ name = "longhorn-source-consumer"
 version = "0.0.0"
 edition = "2024"
 publish = false
-rust-version = "1.95"
+rust-version = "$release_msrv"
 
 [dependencies]
 EOF

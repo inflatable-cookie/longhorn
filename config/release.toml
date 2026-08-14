@@ -3,10 +3,13 @@
 # The repository root is a virtual Cargo workspace: it has no `[package]`, so
 # effigy's default version probe cannot find the version. The field is named
 # explicitly, matching Signal's shape.
+#
+# This file is the only `[release]` definition; effigy.toml includes it.
 [release]
 version-file = "Cargo.toml"
 version-path = "workspace.package.version"
 changelog = "CHANGELOG.md"
+pre-1-0 = true
 # Effigy owns the lockfile sync from 0.9.1. It runs `cargo update --workspace`
 # (not `cargo generate-lockfile`, which re-resolves the whole graph), applies it
 # *before* the gates, and refuses if any line other than the bumped workspace
@@ -34,11 +37,13 @@ initial-tag-current-version = true
 # `manual_clamp` errors in the transfer proof's `surface-mode` module that had
 # never been linted.
 [release.gates]
+# Cheapest first: the docs-level candidate assertion fails in milliseconds;
+# the floor takes most of a minute.
+private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
 fmt = "cargo fmt --all --check"
 lint = "nice -n 5 cargo clippy --workspace --all-targets --locked -- -D warnings"
 "lint:features" = "nice -n 5 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 test = "nice -n 5 cargo test --workspace --locked"
-qa = "effigy qa"
 # Enforces the declared MSRV with real Clippy and tests at the floor
 # toolchain, not a bare check -- the 1.90 floor was false for weeks because a
 # transitive build script only failed under --all-targets.

@@ -28,6 +28,9 @@ exclude = ["history/**"]
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
+# `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
+# tests. The gate runner is this task — `cargo test` — because the doc tests
+# are part of the claim. The built-in remains a convenience for iteration.
 "docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
@@ -112,6 +115,7 @@ health = [
 ]
 qa = [
   { task = "fmt:rust" },
+  { task = "check:runner-tools" },
   { task = "lint:rust" },
   { task = "lint:rust:features" },
   { task = "test:rust" },
@@ -129,14 +133,8 @@ qa = [
   { task = "qa:northstar" },
 ]
 
-[release]
-version-file = "Cargo.toml"
-version-path = "workspace.package.version"
-changelog = "CHANGELOG.md"
-pre-1-0 = true
-tag-format = "v{version}"
-
 [release.gates]
-private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
+rustdoc = "effigy docs:rust"
+advisories = "cargo deny check advisories"
 workspace = "effigy qa"
 prototypes = "effigy check:prototypes"

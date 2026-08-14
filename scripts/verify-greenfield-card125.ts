@@ -12,6 +12,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 
 type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
 type ShapePolicy = {
@@ -488,12 +489,12 @@ async function verifyRustArtifacts() {
   const shapes = [];
   for (const shape of Object.keys(policies) as ShapeName[]) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
-    const output = await run(["cargo", "+1.95.0", "run", "-p", packageName, "--offline", "--quiet"], workspace);
+    const output = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packageName, "--offline", "--quiet"], workspace);
     const trace = JSON.parse(output.trim()) as Record<string, unknown>;
     if (trace.firstLoad !== "compiled-default" || trace.mutation !== "atomic-published" || trace.reload !== "file" || trace.mutationPathConfined !== true) {
       throw new Error(`${shape} config lifecycle trace failed`);
     }
-    const tree = await run(["cargo", "+1.95.0", "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"], workspace);
+    const tree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"], workspace);
     const graph = rustLonghornPackages(tree);
     equalSet(graph, policies[shape].rust, `${shape} Rust graph`);
     for (const forbidden of policies[shape].forbiddenRust) {
@@ -501,9 +502,9 @@ async function verifyRustArtifacts() {
     }
     shapes.push({ shape, rustPackages: graph, trace });
   }
-  const localOutput = await run(["cargo", "+1.95.0", "run", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--quiet"], workspace);
+  const localOutput = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--quiet"], workspace);
   const localTrace = JSON.parse(localOutput.trim()) as Record<string, unknown>;
-  const localTree = await run(["cargo", "+1.95.0", "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"], workspace);
+  const localTree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"], workspace);
   const localGraph = rustLonghornPackages(localTree);
   equalSet(localGraph, baseRust, "optional-server local Rust graph");
   if (localTrace.service !== "absent-local-authority-ready" || localTrace.reload !== "file") throw new Error("optional server local authority failed");

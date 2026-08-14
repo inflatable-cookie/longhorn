@@ -46,21 +46,32 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 
 ### Batch 2. One declaration per fact
 
-- [ ] [Card 219](batch-cards/219-gate-hygiene-and-single-sourcing.md): lazy
+- [x] [Card 219](batch-cards/219-gate-hygiene-and-single-sourcing.md): lazy
   `poodleRoot` plus documented `POODLE_REPO`; `check:runner-tools` joins `qa`;
   `ci.yml` routes through effigy selectors; MSRV single-sourced from
   `rust-toolchains.env` with a `Cargo.toml` cross-check; duplicate
   `[release]`/`[release.gates]` collapsed, ordered cheap-first; `docs:rust`
   joins a gate; doctor made cheap again; release-runner effigy pinned in
-  lockstep; pack tooling converged; stale scripts docs fixed.
+  lockstep; pack tooling converged; stale scripts docs fixed. **Landed
+  2026-08-14, with holds**: the gate passes without `POODLE_REPO` (a stacked
+  doc-drift failure under the import crash was fixed too), runner-tools is in
+  qa with a widened scan, the MSRV is single-sourced, release config has one
+  home, and rustdoc is gated. The `ci.yml` selector routing, action pins,
+  `npm@latest`, and effigy-pin lockstep are workflow edits, held for
+  approval. Doctor keeps its floor deliberately; the pack split and the
+  hand-maintained docs path lists are recorded as chosen.
 
 ### Batch 3. Seeing the supply chain
 
-- [ ] [Card 220](batch-cards/220-supply-chain-visibility.md): `deny.toml` with
+- [x] [Card 220](batch-cards/220-supply-chain-visibility.md): `deny.toml` with
   the 13 known unmaintained advisories explicitly allowed and dated, wired to
   CI; committed `gen/schemas` policy decided and gated; CI toolchain pinned;
   workflow actions pinned; `npm install -g npm@latest` out of the
-  publish-rights step.
+  publish-rights step. **Landed 2026-08-14, with holds**: `deny.toml` carries
+  the full known set (14 advisories — the audit undercounted), gated in
+  `[release.gates]`; gen/schemas stay committed by recorded decision; the
+  redundant workspace excludes were removed. Toolchain/action pins and the
+  `npm@latest` removal are workflow edits, held for approval.
 
 ## Dependency Shape
 

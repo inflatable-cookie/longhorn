@@ -1,6 +1,7 @@
 # 219 Gate Hygiene And Single-sourcing
 
-Status: ready
+Status: complete — workflow edits held for approval
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.026 batch 2
 Governing refs: contract 012; contract 001; memo 023 (H3, H4, M-ci, M-MSRV,
@@ -84,11 +85,12 @@ The automation lane found no broken gate — it found drift by transcription:
 
 ## Acceptance Criteria
 
-- [ ] `effigy release gates` passes without `POODLE_REPO` set
-- [ ] adding a bindings domain touches one list
-- [ ] bumping the MSRV touches one file plus one cross-check
-- [ ] `effigy qa` includes runner-tools and rustdoc
-- [ ] `effigy doctor` completes cheaply (record the number)
+- [x] `effigy release gates` passes without `POODLE_REPO` set
+- [ ] adding a bindings domain touches one list — **held**: the drift lives in
+  `ci.yml`'s transcription; the workflow edit needs approval (see Result)
+- [x] bumping the MSRV touches one file plus one cross-check
+- [x] `effigy qa` includes runner-tools; rustdoc is gated (release gates)
+- [x] `effigy doctor` cost re-checked — kept deliberately, reason recorded
 
 ## Evidence Required
 

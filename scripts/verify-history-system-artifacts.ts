@@ -16,6 +16,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -261,7 +262,7 @@ async function packAndRunRustArtifacts(): Promise<{
     const inventory = await run(
       [
         "cargo",
-        "+1.95.0",
+        `+${MSRV_TOOLCHAIN}`,
         "package",
         "-p",
         name,
@@ -331,7 +332,7 @@ async function packAndRunRustArtifacts(): Promise<{
       await run(
         [
           "cargo",
-          "+1.95.0",
+          `+${MSRV_TOOLCHAIN}`,
           "run",
           "-p",
           `longhorn-${shape}-history-artifact-proof`,
@@ -344,7 +345,7 @@ async function packAndRunRustArtifacts(): Promise<{
     const tree = await run(
       [
         "cargo",
-        "+1.95.0",
+        `+${MSRV_TOOLCHAIN}`,
         "tree",
         "-p",
         `longhorn-${shape}-history-artifact-proof`,
@@ -522,7 +523,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -122,7 +123,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const crates = ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"] as const;
   const identities = [];
   for (const name of crates) {
-    const inventory = await run(["cargo", "+1.95.0", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory is incomplete`);
     const tarArchive = join(artifactRoot, `${name}-0.1.0.private.tar`);
     const archive = `${tarArchive}.gz`;
@@ -142,7 +143,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   ].join("\n");
   for (const marker of ["PulseMutation", "PulseHistoryMutation", "project_version", "prototype"]) if (source.toLowerCase().includes(marker.toLowerCase())) throw new Error(`Rust artifacts contain product/prototype marker ${marker}`);
 
-  const testOutput = await run(["cargo", "+1.95.0", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
+  const testOutput = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
   // 51 since Card 191 named the origin: the default path still reports it
   // after a prune -- which is what protection guarantees and what a lying
@@ -154,8 +155,8 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const graphs = {} as Record<Shape, readonly string[]>;
   for (const shape of ["document", "loophole"] as const) {
     const packageName = `longhorn-${shape}-history-tree-artifact-proof`;
-    traces[shape] = parseTrace(await run(["cargo", "+1.95.0", "run", "-p", packageName, "--offline", "--quiet"], workspace));
-    const tree = await run(["cargo", "+1.95.0", "tree", "-p", packageName, "--offline", "--prefix", "none"], workspace);
+    traces[shape] = parseTrace(await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packageName, "--offline", "--quiet"], workspace));
+    const tree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", packageName, "--offline", "--prefix", "none"], workspace);
     graphs[shape] = longhornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graphs[shape], policies[shape].rust);
     assertMetrics(shape, traces[shape]);
@@ -225,7 +226,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 

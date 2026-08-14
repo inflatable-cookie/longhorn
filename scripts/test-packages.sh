@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Runs the bun-native package suites.
 #
-# Package test layout is not uniform: most packages keep bun tests in tests/
-# and Svelte/vitest suites in tests-svelte/, but a few (svelte, poodle,
-# native-content-svelte, history-tree) have vitest configs that claim tests/
-# outright. Rather than hardcode that list, derive it from the configs.
+# Vitest suites live beside them under per-package vitest configs, so the
+# split is derived from the configs rather than a hardcoded package list.
 #
 # Note also that `bun test <dir>` treats its argument as a substring filter,
 # not a path, so a bare tests/ argument would also match tests-svelte/.

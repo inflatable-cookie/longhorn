@@ -142,19 +142,22 @@ runs is how that happened in the first place.
 ## Memo 023 Release-audit Suite
 
 Research memo 023 (full-repo release audit, 2026-08-14) compiles into
-milestones [g02.021-027](g02/README.md) — cards 200-223, all ready except
-Card 218, which is operator-held on the Poodle v0.2.0 release that unblocks
-g02.014. The suite is independent of the in-progress milestones (015, 017,
-018, 019) and of Card 149's held receipt.
+milestones [g02.021-027](g02/README.md) — cards 200-223. The suite is
+independent of the in-progress milestones (015, 017, 018, 019) and of Card
+149's held receipt.
 
-Ready entry points, by release risk: [Card 200](g02/batch-cards/200-extraction-that-is-bounded.md)
-(bounded extraction claim is false for link entries),
-[Card 219](g02/batch-cards/219-gate-hygiene-and-single-sourcing.md) (gates
-that fail for the wrong reason or run nowhere),
+Executed 2026-08-14: **g02.021** (cards 200-203, supply chain) and
+**g02.022** (204-206, bridge lifecycle) are complete; g02.023's 207-209 are
+complete and **210 is blocked on an operator decision** (where the
+credential-store vocabulary lives — the card carries the options);
+g02.026's 219-220 landed with workflow-edit items held for approval and
+**218 stays operator-held on Poodle v0.2.0**.
+
+Next ready entry points: [Card 211](g02/batch-cards/211-port-the-layout-suites.md)
+(the post-179 layout suites, the largest coverage hole),
 [Card 215](g02/batch-cards/215-post-179-architecture-sweep.md) (contract 002
-currently asserts deleted architecture), and
-[Card 211](g02/batch-cards/211-port-the-layout-suites.md) (specified layout
-behavior with zero tests).
+asserts deleted architecture), or
+[Card 212](g02/batch-cards/212-licence-update-fixtures-and-seam-strings.md).
 
 This index's own staleness — three competing pointers above, and the
 publication self-contradiction — is a named finding; Card 216 owns the fix

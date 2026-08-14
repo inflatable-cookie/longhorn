@@ -7,6 +7,17 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-14
+- Friction: adding `secrecy`/`getrandom` to `longhorn-licence` left
+  `prototypes/gpui-*/Cargo.lock` stale; nothing local saw it until
+  `effigy release gates` ran `check:prototypes --locked`.
+- Impact: a routine dependency addition surfaces as a release-gate failure
+  days later; the fix is `cargo update --offline --workspace` per prototype.
+- Possible fix: `check:prototypes` in a scheduled lane, or a lockfile-sync
+  note on the dependency-sweep card (Card 223 does sweeps — teach it the
+  prototype lockfile step).
+- Surface: `prototypes/*/Cargo.lock`, `effigy.toml` `check:prototypes`.
+
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose

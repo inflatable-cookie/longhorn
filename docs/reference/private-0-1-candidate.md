@@ -77,7 +77,7 @@ public-release gate.
 | --- | ---: | ---: | ---: | --- |
 | minimal | 4 | 6 | 6 | config/settings only |
 | Nucleus | 11 | 24 | 24 | workspace and child view; no Surface/transfer graph |
-| Loophole | 12 | 23 | 23 | full layout/Surface/transfer and linear history |
+| Loophole | 11 | 21 | 21 | full layout/Surface/transfer and linear history |
 | Soundcheck | 6 | 14 | 14 | storage/settings/window/operation/isolated window |
 | Split-shell | 4 | 6 | 6 | minimal config/settings graph |
 | Jetstream | 6 | 6 | 6 | bridge/commands/backing surface |

@@ -20,8 +20,8 @@ const SKIPPED = new Set([
   ".svelte-kit",
   ".vite",
 ]);
-const ROOTS = ["scripts", ".github"];
-const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs", ".sh", ".yml", ".yaml"]);
+const ROOTS = ["scripts", ".github", "config"];
+const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs", ".sh", ".yml", ".yaml", ".toml"]);
 
 // Word-boundary forms that are invocations, not prose. Comments are stripped
 // before matching so "prefer grep, not rg" in a header stays allowed.
@@ -36,6 +36,8 @@ const findings: Finding[] = [];
 for (const root of ROOTS) {
   await scan(join(repoRoot, root));
 }
+// The task surface itself: task commands invoke tools too.
+inspect("effigy.toml", await readFile(join(repoRoot, "effigy.toml"), "utf8"));
 
 if (findings.length > 0) {
   const lines = findings.map(

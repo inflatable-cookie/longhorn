@@ -21,7 +21,7 @@ const receipt = JSON.parse(await readFile(join(repoRoot, "fixtures/release/card1
 const reference = await readFile(join(repoRoot, "docs/reference/private-0-1-candidate.md"), "utf8");
 const compatibility = await readFile(join(repoRoot, "docs/guides/compatibility-and-upgrades.md"), "utf8");
 const changelog = await readFile(join(repoRoot, "CHANGELOG.md"), "utf8");
-const effigy = await readFile(join(repoRoot, "effigy.toml"), "utf8");
+const effigy = `${await readFile(join(repoRoot, "effigy.toml"), "utf8")}\n${await readFile(join(repoRoot, "config/release.toml"), "utf8")}`;
 
 requireAll(reference, [
   receipt.version,

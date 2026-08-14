@@ -4,16 +4,6 @@ import { resolve } from "node:path";
 import type { ArtifactIdentity, FrozenSource } from "./types";
 
 export const repoRoot = resolve(import.meta.dir, "../..");
-// No sibling default: a path above the repository root is exactly what made
-// local gates lie. Card 125 greenfield is the only admitted escape.
-export const poodleRoot = resolve(
-  process.env.POODLE_REPO ||
-    (() => {
-      throw new Error(
-        "POODLE_REPO must point at a Poodle checkout; sibling defaults are forbidden",
-      );
-    })(),
-);
 export const candidateVersion = "0.1.0";
 
 export function assert(condition: unknown, message: string): asserts condition {

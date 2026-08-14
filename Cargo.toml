@@ -51,10 +51,9 @@ members = [
   "examples/tauri-windowing-proof/src-tauri",
   "examples/update-licence-proof/rust/harness",
 ]
-exclude = [
-  "prototypes/native-content",
-  "prototypes/native-content-isolated-window",
-]
+
+# Prototypes are not workspace members: each carries its own `[workspace]`
+# table, which is also why no `exclude` list is needed here.
 resolver = "2"
 
 [workspace.package]
