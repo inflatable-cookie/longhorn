@@ -1,6 +1,7 @@
 # 200 Extraction That Is Bounded
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.021 batch 1
 Governing refs: contract 018; memo 023 (H1)
@@ -56,13 +57,36 @@ existing escape test (`tests/install.rs:192-211`) covers only textual `../`.
   signing key, but the design's own premise is that a signature proves origin,
   not good intent (`lib.rs:238-239`).
 
+## Result
+
+The mechanism: keep `bounded` as the pre-write check and apply it to link
+*targets* as well as names (links stay relative and in-tree — all a bundle
+needs), add `assert_inside` to refuse a destination whose existing ancestors
+resolve outside staging, and delegate the write to tar's `unpack_in`, whose
+canonicalizing parent check is the backstop. The root must be a real
+directory (a symlink root would rename onto the target as a pointer), and
+entry types a bundle cannot contain are refused.
+
+Staging is now a `tempfile` exclusive create with a random suffix, so a
+pre-planted path cannot redirect extraction; `apply` sweeps stale
+`.longhorn-update-*` directories first, without following links. Leftover
+backups are deliberately not swept — beside a missing target one is recovery
+material, and that restore path is Card 202's.
+
+The shared conformance suite grew `signed_but_escaping` — four signed
+hostile archives (write-through symlink, absolute symlink, escaping hard
+link, symlink root) that every installer implementation now inherits, next to
+the textual-traversal case that was already there. A positive case keeps real
+bundles working: an in-tree relative symlink (`Contents/Current ->
+Versions/A`) installs and survives the swap.
+
 ## Acceptance Criteria
 
-- [ ] no archive entry of any type can cause a write outside staging
-- [ ] the hostile fixtures live in the shared conformance suite, not one
+- [x] no archive entry of any type can cause a write outside staging
+- [x] the hostile fixtures live in the shared conformance suite, not one
   installer's private tests
-- [ ] a pre-created staging path cannot redirect extraction
-- [ ] a failed install leaves nothing behind after the next apply
+- [x] a pre-created staging path cannot redirect extraction
+- [x] a failed install leaves nothing behind after the next apply
 
 ## Evidence Required
 

@@ -32,9 +32,12 @@ signed-downgrade mechanism (minisign trusted comment) is already identified in
 
 ### Batch 1. Input boundaries
 
-- [ ] [Card 200](batch-cards/200-extraction-that-is-bounded.md): link-target
+- [x] [Card 200](batch-cards/200-extraction-that-is-bounded.md): link-target
   validation or `unpack_in` semantics; hostile symlink/hardlink fixtures join
   the shared conformance suite; random staging suffix; orphan sweep.
+  **Landed 2026-08-14** — all three layers: `bounded` on names *and* link
+  targets, `assert_inside` canonical ancestor checks, tar's `unpack_in` as
+  backstop; four hostile fixtures in the shared suite.
 - [ ] [Card 201](batch-cards/201-endpoint-authority-parsing.md): userinfo
   stripped before the loopback match; `manifest.channel == build.channel`
   checked at evaluate; the licence `ActivationUrl` parsing reviewed against
@@ -94,8 +97,9 @@ amends the contract the others conform to.
 
 ## Next Task
 
-Card 200. It fixes the only finding where the crate's own header advertises a
-security property the code does not have.
+Card 201. Endpoint authority parsing is the other input boundary: userinfo
+must not classify a remote host as loopback, and a mislabeled manifest
+channel must refuse rather than restage.
 
 ## Planning Checkpoint
 

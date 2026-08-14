@@ -32,7 +32,15 @@
 //!    requires `NotWritable` to be distinguishable from a transient fault,
 //!    because one needs a manual download and the other can retry.
 //! 3. **Bounded extraction.** Archive entries are checked before they are
-//!    written, so a crafted archive cannot escape the destination.
+//!    written, so a crafted archive cannot escape the destination. Entry
+//!    *names* reject absolute and `..` components (`bounded`); link entries
+//!    additionally reject absolute or `..` *targets*, so a planted symlink or
+//!    hard link cannot point outside staging; and the write itself goes
+//!    through tar's `unpack_in`, which canonicalizes the destination's parent
+//!    and refuses anything resolving outside — defence in depth behind this
+//!    crate's own checks. The bundle root must be a real directory, and entry
+//!    types an application bundle cannot contain (devices, fifos) are
+//!    refused.
 //!
 //! Not diverging on quarantine: Tauri does not strip
 //! `com.apple.quarantine`, and it is right not to. The attribute is applied
@@ -50,6 +58,10 @@ use std::{
 
 use flate2::read::GzDecoder;
 use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact};
+
+/// Staging directories carry this prefix so a later apply can sweep the ones
+/// a crashed or failed install left behind.
+const STAGING_PREFIX: &str = ".longhorn-update-";
 
 /// Escalates a replacement the current user cannot perform.
 ///
@@ -122,19 +134,21 @@ impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
         let parent = self.target.parent().ok_or_else(|| InstallFailure::Failed {
             detail: "install target has no parent directory".to_owned(),
         })?;
-        let staging = parent.join(format!(".longhorn-update-{version}"));
+        sweep_staging(parent);
 
-        drop(fs::remove_dir_all(&staging));
-        fs::create_dir_all(&staging).map_err(|error| classify(&error, &staging))?;
+        // A unique, exclusively-created staging directory: a pre-planted
+        // symlink at a predictable path cannot redirect the extraction.
+        let staging = tempfile::Builder::new()
+            .prefix(&format!("{STAGING_PREFIX}{version}-"))
+            .tempdir_in(parent)
+            .map_err(|error| classify(&error, parent))?;
 
-        let unpacked = unpack(artifact, &staging).inspect_err(|_| {
-            drop(fs::remove_dir_all(&staging));
-        })?;
+        let unpacked = unpack(artifact, staging.path())?;
 
-        self.swap(&unpacked).inspect_err(|_| {
-            drop(fs::remove_dir_all(&staging));
-        })?;
-        drop(fs::remove_dir_all(&staging));
+        self.swap(&unpacked)?;
+        // The swapped-in root has been renamed out; whatever else remains is
+        // removed when `staging` drops, and the next apply sweeps regardless.
+        drop(staging);
 
         Ok(Applied {
             version: version.clone(),
@@ -186,11 +200,16 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
     }
 }
 
-/// Verifies a detached minisign signature over the artifact.
 /// Extracts a gzip tar into `staging`, returning the unpacked root.
 ///
 /// Matches Tauri's archive shape — a gzip tar whose single top-level entry
 /// is the application — so one release unpacks identically on both hosts.
+///
+/// Three layers keep the archive inside `staging`: `bounded` rejects
+/// escaping entry names and link targets before anything is written,
+/// `assert_inside` refuses a destination whose existing ancestors resolve
+/// outside staging (a link an earlier entry planted), and tar's own
+/// `unpack_in` canonicalizes the destination's parent as the backstop.
 fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
     let mut archive = tar::Archive::new(GzDecoder::new(artifact));
     let entries = archive
@@ -211,32 +230,80 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
             })?
             .into_owned();
 
+        // Global pax headers carry archive-wide metadata, not content; the
+        // iterator hands them through rather than consuming them, and there
+        // is nothing to unpack.
+        if entry.header().entry_type().is_pax_global_extensions() {
+            continue;
+        }
+
         let safe = bounded(&path)?;
+
+        // An application bundle contains files, directories, and links.
+        // Anything else — devices, fifos — is not an update, it is a crafted
+        // archive.
+        let kind = entry.header().entry_type();
+        if !(kind.is_file() || kind.is_dir() || kind.is_symlink() || kind.is_hard_link()) {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: format!("archive entry has an unsupported type: {}", path.display()),
+            });
+        }
+
+        // A link's *name* was checked by `bounded`; its target is data too.
+        // Links stay relative and in-tree, which is all a bundle needs —
+        // absolute or `..` targets exist only to point outside staging.
+        if kind.is_symlink() || kind.is_hard_link() {
+            let target = entry
+                .link_name()
+                .map_err(|error| InstallFailure::MalformedArtifact {
+                    detail: error.to_string(),
+                })?
+                .ok_or_else(|| InstallFailure::MalformedArtifact {
+                    detail: format!("archive link has no target: {}", path.display()),
+                })?;
+            bounded(&target)?;
+        }
+
         if root.is_none() {
             root = safe.components().next().map(|first| staging.join(first));
         }
 
         let destination = staging.join(&safe);
-        // `unpack` does not create parent directories, and a tar may list a
-        // nested file before the directory holding it.
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent).map_err(|error| classify(&error, parent))?;
+        assert_inside(staging, &destination)?;
+        // `unpack_in` creates parents and re-validates canonically. A `false`
+        // is tar skipping an entry it considers unsafe; after `bounded` that
+        // should be unreachable, and it is refused rather than trusted.
+        if !entry
+            .unpack_in(staging)
+            .map_err(|error| classify(&error, &destination))?
+        {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: format!("archive entry was skipped as unsafe: {}", path.display()),
+            });
         }
-        entry
-            .unpack(&destination)
-            .map_err(|error| classify(&error, &destination))?;
     }
 
-    root.ok_or_else(|| InstallFailure::MalformedArtifact {
+    let root = root.ok_or_else(|| InstallFailure::MalformedArtifact {
         detail: "archive contained no entries".to_owned(),
-    })
+    })?;
+    // The root is renamed onto the install target, so it must be a real
+    // directory — a symlink here would make the application a pointer at
+    // wherever the archive's author chose.
+    let metadata = fs::symlink_metadata(&root).map_err(|error| classify(&error, &root))?;
+    if !metadata.file_type().is_dir() {
+        return Err(InstallFailure::MalformedArtifact {
+            detail: "archive root is not a directory".to_owned(),
+        });
+    }
+    Ok(root)
 }
 
 /// Rejects any path that could escape the destination.
 ///
 /// Tauri strips the first component and unpacks; this checks first. An
 /// archive is untrusted input even after its signature verifies, because a
-/// signature proves origin, not good intent.
+/// signature proves origin, not good intent. Applied to entry names and to
+/// link targets alike.
 fn bounded(path: &Path) -> Result<PathBuf, InstallFailure> {
     let mut safe = PathBuf::new();
     for component in path.components() {
@@ -256,6 +323,59 @@ fn bounded(path: &Path) -> Result<PathBuf, InstallFailure> {
         });
     }
     Ok(safe)
+}
+
+/// Refuses a destination whose existing ancestors resolve outside `staging`.
+///
+/// `bounded` checks the path as written; this checks it as the filesystem
+/// will resolve it, so an entry cannot write through a link an earlier entry
+/// planted. Walks up to the deepest ancestor that exists — the destination
+/// itself usually does not yet — and canonicalizes from there.
+fn assert_inside(staging: &Path, destination: &Path) -> Result<(), InstallFailure> {
+    let canonical_root = staging
+        .canonicalize()
+        .map_err(|error| classify(&error, staging))?;
+    let mut probe = destination;
+    loop {
+        match probe.canonicalize() {
+            Ok(canonical) => {
+                if canonical.starts_with(&canonical_root) {
+                    return Ok(());
+                }
+                return Err(InstallFailure::MalformedArtifact {
+                    detail: format!(
+                        "archive entry escapes the destination through a link: {}",
+                        destination.display()
+                    ),
+                });
+            }
+            Err(_) => match probe.parent() {
+                Some(parent) if parent.starts_with(staging) => probe = parent,
+                _ => return Ok(()),
+            },
+        }
+    }
+}
+
+/// Removes staging directories a crashed or failed install left behind.
+///
+/// Best-effort, and `remove_dir_all` does not follow symlinks: a planted
+/// link is removed, not its target. Leftover `*.longhorn-previous` backups
+/// are the swap's own concern — it clears one before displacing, and a
+/// backup beside a *missing* target is recovery material, not litter.
+fn sweep_staging(parent: &Path) {
+    let Ok(entries) = fs::read_dir(parent) else {
+        return;
+    };
+    for entry in entries.filter_map(Result::ok) {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(STAGING_PREFIX)
+        {
+            drop(fs::remove_dir_all(entry.path()));
+        }
+    }
 }
 
 /// Maps an IO error onto the contract's failure classes.

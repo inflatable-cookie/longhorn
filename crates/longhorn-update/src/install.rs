@@ -140,6 +140,17 @@ pub trait ConformanceFixtures {
     fn signed_but_unusable(&self) -> Option<(Vec<u8>, String)> {
         None
     }
+
+    /// Signed archives crafted to escape the install destination.
+    ///
+    /// Each archive verifies; each must still be refused as
+    /// `MalformedArtifact`. A signature proves origin, not good intent, so
+    /// extraction safety is a per-implementation claim and lives here rather
+    /// than in any one installer's tests. The default is empty; an installer
+    /// whose format cannot express an escaping entry leaves it so.
+    fn signed_but_escaping(&self) -> Vec<(Vec<u8>, String)> {
+        Vec::new()
+    }
 }
 
 /// One conformance check and its outcome.
@@ -221,6 +232,26 @@ where
                 "a signed but unusable artifact is not a signature failure",
                 false,
                 "the artifact was applied".to_owned(),
+            )),
+        }
+    }
+
+    for (index, (artifact, signature)) in fixtures.signed_but_escaping().into_iter().enumerate() {
+        let outcome = verify_artifact(&key, &version, artifact, &signature)
+            .and_then(|verified| installer.apply(&verified));
+        match outcome {
+            Err(InstallFailure::MalformedArtifact { .. }) => outcomes.push(satisfied(
+                "a signed archive escaping the destination is refused as malformed",
+            )),
+            Err(other) => outcomes.push(check(
+                "a signed archive escaping the destination is refused as malformed",
+                false,
+                format!("fixture {index}: reported as {other}"),
+            )),
+            Ok(_) => outcomes.push(check(
+                "a signed archive escaping the destination is refused as malformed",
+                false,
+                format!("fixture {index}: the archive was applied"),
             )),
         }
     }
