@@ -1,7 +1,6 @@
 # 158 Licence Client Surface
 
-Status: Longhorn side complete 2026-08-13, step 4 included after Card 199; the
-Svelte rendering is Poodle's
+Status: complete — 2026-08-13
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 010, and 013; research memo 020
@@ -107,3 +106,37 @@ carved out and carded.
 ## Next Task
 
 Close g02.010.
+
+## Outcome — 2026-08-13
+
+Complete on both sides. Longhorn holds validation, ports, client, controller
+and the key-format helpers; Poodle renders `LicenceStatus`, `LicenceSeats` and
+`LicenceActivation`; and three binding components join them in
+`longhorn-poodle-svelte/src/licence/poodle/`, over the same sampler the update
+surface uses.
+
+**The key format exists exactly twice, and Poodle is not one of them.** Their
+`LicenceActivation` takes a `LicenceKeyFormat` interface and the binding
+injects Longhorn's `parseLicenceKey` and `isProbablyATypo` — so a mistyped key
+fails locally, on submit, with their copy: "Check the key for a typing
+mistake.", documented in their source as never `invalid`, `fake`, or
+`not recognised`. The generated conformance fixture binds the Rust and
+TypeScript implementations, and was verified to bite by breaking one confusable
+mapping.
+
+**Three binding decisions, each the honest side of a gap:**
+
+- `onRename` is offered by Poodle's seat list and deliberately unwired. The
+  protocol has no rename command — a label is set at activation and nowhere
+  else — and wiring it would invent a capability the authority does not have.
+  If renaming earns a command it gets carded first.
+- The account route's token provider rejects with "account sign-in is not
+  composed yet" rather than silently doing nothing. It waits on the platform
+  `CredentialStore` decision, as Card 159's licence half does.
+- Unlicensed renders no status panel and no seat accounting renders no list.
+  "0 machines" would imply an accounting that is not happening.
+
+Two test corrections were mine, not theirs: their expired copy is "use coverage
+ended" rather than "expired", and they validate on submit rather than on input
+— which is right, because mid-typing validation flags every key as mistyped
+until its final character.

@@ -53,6 +53,12 @@
       "import": "./src/bindings/layout.svelte.ts",
       "default": "./src/bindings/layout.svelte.ts"
     },
+    "./licence/poodle": {
+      "types": "./src/licence/poodle.ts",
+      "svelte": "./src/licence/poodle.ts",
+      "import": "./src/licence/poodle.ts",
+      "default": "./src/licence/poodle.ts"
+    },
     "./native-content": {
       "types": "./src/native-content/index.ts",
       "svelte": "./src/native-content/index.ts",
