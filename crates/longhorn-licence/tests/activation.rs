@@ -68,6 +68,36 @@ fn a_licence_file_signed_by_another_key_is_refused() {
 }
 
 #[test]
+fn a_claimed_key_id_is_recorded_as_a_claim_not_evidence() {
+    // The envelope key id is not covered by the signature: a licence naming
+    // a retired key still verifies against the right key, and the trust
+    // basis keeps the claim visibly a claim. Pinned so the behavior is
+    // chosen, not accidental.
+    let source = SignedFileSource::new(signing_key().verifying_key());
+    let key = signing_key();
+    let bytes = serde_json::to_vec(&payload()).unwrap();
+    let signature = key.sign(&bytes);
+    let named_otherwise = serde_json::to_vec(&SignedLicence::new(
+        "retired-key",
+        bytes,
+        signature.to_bytes().to_vec(),
+    ))
+    .unwrap();
+
+    let Activation::Settled(licence) = source
+        .acquire(&Credential::LicenceFile(named_otherwise))
+        .unwrap()
+    else {
+        panic!("a licence naming any key id verifies against the real key");
+    };
+
+    assert!(matches!(
+        licence.basis(),
+        TrustBasis::OfflineSignature { key_id } if key_id == "retired-key"
+    ));
+}
+
+#[test]
 fn a_file_source_refuses_credentials_it_does_not_handle() {
     let source = SignedFileSource::new(signing_key().verifying_key());
     let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
@@ -145,6 +175,42 @@ fn renew_carries_the_activation_slot() {
     };
 
     assert!(String::from_utf8(request.body).unwrap().contains("renew"));
+}
+
+#[test]
+fn json_metacharacters_in_a_token_cannot_reshape_the_request() {
+    // The body is built with a serializer, not interpolation: a token
+    // containing a quote must survive as data, not become structure. An
+    // injection attempt is the same test, because it is the same bytes.
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let hostile = r#"x","action":"release"#;
+
+    let Activation::Exchange(request) = source
+        .acquire(&Credential::AccountToken(hostile.to_owned()))
+        .unwrap()
+    else {
+        panic!("activation composes an exchange");
+    };
+
+    let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+    assert_eq!(body["action"], "activate");
+    assert_eq!(body["value"], hostile);
+}
+
+#[test]
+fn a_backend_issued_activation_id_with_metacharacters_stays_data() {
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let mut shaped = payload();
+    shaped.activation_id = Some(r#"slot-7\"""#.to_owned());
+    let licence = asserted_remotely(shaped, at(0));
+
+    for exchange in [source.renew(&licence), source.release(&licence)] {
+        let Activation::Exchange(request) = exchange.unwrap() else {
+            panic!("renew and release compose exchanges");
+        };
+        let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+        assert_eq!(body["value"], r#"slot-7\"""#);
+    }
 }
 
 // -- consumer adapters ------------------------------------------------------

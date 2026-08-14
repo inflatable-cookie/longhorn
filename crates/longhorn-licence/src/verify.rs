@@ -42,6 +42,10 @@ impl SignedLicence {
 /// The order is deliberate: check the signature over the received bytes
 /// **first**, and only then parse them. Parsing before verifying would run a
 /// deserialiser over unauthenticated input.
+///
+/// The envelope `key_id` is not covered by the signature and is recorded as
+/// the claim it is — see `TrustBasis::OfflineSignature`. Verification keys on
+/// the caller-supplied key alone.
 pub fn verify(
     signed: &SignedLicence,
     key: &VerifyingKey,

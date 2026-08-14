@@ -1,6 +1,7 @@
 # 207 Activation Payload Safety
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.023 batch 1
 Governing refs: contract 019; memo 023 (M-json, L-keyid)
@@ -52,11 +53,27 @@ against the caller-supplied key — correct — but the projection treats
 - Treat the Key path's incidental safety as coverage — test the AccountToken
   path directly.
 
+## Result
+
+The three exchange bodies (redeem, activate, renew, release — one builder)
+are `serde_json::json!`-constructed. Tests prove a hostile token
+(`x","action":"release`) arrives as data with `action` still `activate`, and
+a metacharacter-carrying `activation_id` round-trips through both renew and
+release.
+
+`key_id` decision: **opaque claim, not evidence.** The envelope field is not
+covered by the signature and there is no in-payload key id to bind it to, so
+binding would need a consumer-owned key registry — adapter-domain, out of
+this crate. The types now say so (`TrustBasis::OfflineSignature`,
+`SignedLicence`, `verify`), and a test pins the behavior: a licence naming a
+retired key still verifies against the right key, with the claim recorded
+visibly as a claim.
+
 ## Acceptance Criteria
 
-- [ ] all three bodies are serializer-built
-- [ ] metacharacter and injection-attempt tests pass
-- [ ] the `key_id` decision is recorded with its negative test
+- [x] all three bodies are serializer-built
+- [x] metacharacter and injection-attempt tests pass
+- [x] the `key_id` decision is recorded with its negative test
 
 ## Evidence Required
 

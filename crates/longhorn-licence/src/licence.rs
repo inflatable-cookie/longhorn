@@ -16,7 +16,13 @@ use crate::{Entitlements, Span, Timestamp};
 pub enum TrustBasis {
     /// Verified against an embedded public key, re-verifiable at any time.
     OfflineSignature {
-        /// Which key verified it, so rotation can be reasoned about.
+        /// The key id the licence *claims* — envelope metadata, not evidence.
+        ///
+        /// The signature verifies against the caller-supplied key whatever
+        /// this string says; the field is not covered by the signature. It is
+        /// display and diagnostic material. Rotation decisions must key on
+        /// which verifying key the consumer configured, never on this claim —
+        /// a licence can name a retired key and still verify.
         key_id: String,
     },
     /// Asserted by a backend over an authenticated transport, then cached.

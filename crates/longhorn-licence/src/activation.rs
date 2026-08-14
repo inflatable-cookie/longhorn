@@ -275,7 +275,12 @@ impl TokenRedemptionSource {
     }
 
     fn exchange(&self, action: &str, payload: &str) -> Activation {
-        let body = format!(r#"{{"action":"{action}","value":"{payload}"}}"#).into_bytes();
+        // Built, not interpolated: the payload is an arbitrary client-boundary
+        // string (an account token, a backend-issued activation id), and JSON
+        // metacharacters in it must not reshape the request.
+        let body = serde_json::json!({ "action": action, "value": payload })
+            .to_string()
+            .into_bytes();
         Activation::Exchange(
             ActivationRequest::new(self.endpoint.clone(), body)
                 .with_header("Content-Type", "application/json"),
