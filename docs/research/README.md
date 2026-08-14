@@ -22,5 +22,11 @@ contracts.
 - [History Kernel And Fork Boundary](translation-memos/015-history-kernel-and-fork-boundary.md)
 - [Async Operation And Notification Boundary](translation-memos/016-async-operation-and-notification-boundary.md)
 - [Native Content Island Boundary](translation-memos/017-native-content-island-boundary.md)
+- [Workspace Integrity Audit](translation-memos/018-workspace-integrity-audit.md)
+- [Application Update And Release Channels](translation-memos/019-application-update-and-release-channels.md)
+- [Licensing, Entitlement, And Activation](translation-memos/020-licensing-entitlement-and-activation.md)
+- [Dual-backend Host Positioning](translation-memos/021-dual-backend-host-positioning.md)
+- [Cross-backend Projection Divergence](translation-memos/022-cross-backend-projection-divergence.md)
+- [Full-repo Release Audit](translation-memos/023-full-repo-release-audit.md)
 
 Start from a problem. Promote stable conclusions before roadmap execution.

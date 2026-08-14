@@ -24,6 +24,13 @@
 | [g02.020](020-no-design-in-the-authority.md) | ready | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | in progress | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | in progress | the 181 tagged unions validate per variant, from the Rust enums |
+| [g02.021](021-update-supply-chain-hardening.md) | ready | the update install path's stated properties are true |
+| [g02.022](022-bridge-session-and-event-lifecycle.md) | ready | events respect read authority; sessions end with their window |
+| [g02.023](023-credential-and-activation-hardening.md) | ready | the credential path matches the config-age discipline |
+| [g02.024](024-coverage-restoration.md) | ready | the test surface matches the code surface again |
+| [g02.025](025-docs-spine-reconciliation.md) | ready | the handwritten spine describes the system that exists |
+| [g02.026](026-automation-and-gate-convergence.md) | ready — 218 operator-held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |
+| [g02.027](027-structural-consolidation-and-dependency-sweep.md) | ready | rules stated once are implemented once |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -81,6 +88,23 @@ memo 021 dual-backend positioning
      └─ 163 GPUI host adapter            (validates 161's contract)
 ```
 
+```text
+memo 023 full-repo release audit (cards 200-223)
+ ├─ 021 update supply-chain hardening      (200-203; 203 last, amends 018)
+ ├─ 022 bridge session and event lifecycle (204 decision → 205, 206)
+ ├─ 023 credential and activation hardening(207-209 independent, 210 after 208)
+ ├─ 024 coverage restoration               (211-214 independent)
+ ├─ 025 docs spine reconciliation          (215 → 216, 217)
+ ├─ 026 automation and gate convergence    (218 held on Poodle v0.2.0;
+ │                                            219, 220 independent)
+ └─ 027 consolidation and dependency sweep (221, 222 independent; 223 after 222)
+```
+
+021-027 are independent of each other and of 014-020; all execute inside
+existing contracts. The audit found the engineering core sound — these
+milestones harden the evidence envelope and the surfaces that grew faster
+than their proof.
+
 009, 010 and 011 are independent of 001-008 and of the poodle release
 blocking the v0.1.0 tag. 009 and 010 meet at the update window: the updater
 asks the licence whether a release may be taken. 011 touches neither.
@@ -125,6 +149,17 @@ established that the Tauri updater plugin cannot implement the shared
 conformance suite at all — its verification is welded to its own downloader,
 and its `install` takes caller-supplied bytes unverified. One installer now
 serves both hosts, proved against a real packaged application bundle.
+
+Research memo 023 compiles the full-repo release audit of 2026-08-14: nine
+lanes over every crate, package, script, workflow, and the docs spine. The
+engineering core held (type-forced verification, per-caller authorization,
+zero reachable panic on untrusted input); the findings concentrate in the
+evidence envelope — extraction that is not bounded against link entries, a
+docs spine still specifying the Card 179 deletion, deleted-not-ported layout
+test suites, and gates that drift by hand-transcription. Cards 200-223
+compile the remediation into milestones g02.021-027, all inside existing
+contracts. Card 218's closure is operator-held on the Poodle v0.2.0 release
+that unblocks g02.014.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

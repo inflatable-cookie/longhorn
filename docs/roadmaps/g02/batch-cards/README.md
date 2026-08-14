@@ -6,10 +6,36 @@ None.
 
 ## Ready
 
-None.
+- [223 Dependency Sweep And Measured Costs](223-dependency-sweep-and-measured-costs.md)
+- [222 Shared Primitives And Idiom Codification](222-shared-primitives-and-idiom-codification.md)
+- [221 Native-content Generation Hoist](221-native-content-generation-hoist.md)
+- [220 Supply-chain Visibility](220-supply-chain-visibility.md)
+- [219 Gate Hygiene And Single-sourcing](219-gate-hygiene-and-single-sourcing.md)
+- [217 Guide Repair](217-guide-repair.md)
+- [216 Front-door Truth And Register Freshness](216-front-door-truth-and-register-freshness.md)
+- [215 Post-179 Architecture Sweep](215-post-179-architecture-sweep.md)
+- [214 Port, Parity, And Keyring Coverage](214-port-parity-and-keyring-coverage.md)
+- [213 Fuzz The Three Parsers](213-fuzz-the-three-parsers.md)
+- [212 Licence/update Fixtures And Seam Strings](212-licence-update-fixtures-and-seam-strings.md)
+- [211 Port The Layout Suites](211-port-the-layout-suites.md)
+- [210 Age-identity Persistence](210-age-identity-persistence.md)
+- [209 PKCE Generation And Loopback Robustness](209-pkce-generation-and-loopback-robustness.md)
+- [208 Secret Hygiene And Tamper Truth](208-secret-hygiene-and-tamper-truth.md)
+- [207 Activation Payload Safety](207-activation-payload-safety.md)
+- [206 Example Hardening And ACL Proof](206-example-hardening-and-acl-proof.md)
+- [205 Session Teardown And Entropy](205-session-teardown-and-entropy.md)
+- [204 Event Scoping Decision](204-event-scoping-decision.md)
+- [203 Escalation Contract And Downgrade Binding](203-escalation-contract-and-downgrade-binding.md)
+- [202 Install Atomicity And Recovery](202-install-atomicity-and-recovery.md)
+- [201 Endpoint Authority Parsing](201-endpoint-authority-parsing.md)
+- [200 Extraction That Is Bounded](200-extraction-that-is-bounded.md)
+
+(Cards 150-199 predate this index's last update; see the milestone files.)
 
 ## Operator-held
 
+- [218 Linked-poodle Exit Gate](218-linked-poodle-exit-gate.md) — machinery
+  lands now; closure waits on the Poodle v0.2.0 release
 - [149 Distribution Candidate V2](149-distribution-candidate-v2.md) —
   receipt generation waits on nucleus manifest quiescence
 
