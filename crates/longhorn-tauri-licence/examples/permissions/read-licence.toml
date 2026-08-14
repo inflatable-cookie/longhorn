@@ -1,0 +1,6 @@
+[[permission]]
+identifier = "allow-longhorn-licence-read"
+description = "Allows reading Longhorn licence state: usability, entitlements, windows, seats."
+commands.allow = [
+  "longhorn_licence_snapshot",
+]

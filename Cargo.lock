@@ -2743,6 +2743,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-tauri-licence"
+version = "0.1.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-licence",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
 name = "longhorn-tauri-native-content-child-view"
 version = "0.1.0"
 dependencies = [

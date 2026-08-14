@@ -1,0 +1,11 @@
+# Seat management: ending sessions -- this machine's or another's -- and
+# renaming. Grouped because all three act on the seat list; separate from
+# activation because none of them carries a credential.
+[[permission]]
+identifier = "allow-longhorn-licence-seats"
+description = "Allows Longhorn seat management: deactivate, release a named seat, rename."
+commands.allow = [
+  "longhorn_licence_deactivate",
+  "longhorn_licence_release_seat",
+  "longhorn_licence_rename_seat",
+]

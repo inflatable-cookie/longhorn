@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "licence-activate",
+  "description": "Carries credentials inward and writes the keychain. Grant to the activation surface, and no other.",
+  "windows": ["settings"],
+  "permissions": [
+    "allow-longhorn-licence-activate"
+  ]
+}

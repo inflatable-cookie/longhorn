@@ -1,0 +1,8 @@
+# Separate from read deliberately. Reading the last answer is local; a refresh
+# reaches the licensing backend on the operator's behalf.
+[[permission]]
+identifier = "allow-longhorn-licence-refresh"
+description = "Allows Longhorn to re-check the licence lease with the backend."
+commands.allow = [
+  "longhorn_licence_refresh",
+]

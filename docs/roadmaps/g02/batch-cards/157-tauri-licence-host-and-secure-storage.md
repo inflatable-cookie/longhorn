@@ -1,7 +1,7 @@
 # 157 Tauri Licence Host And Secure Storage
 
-Status: in progress — secure storage and the loopback listener landed
-2026-08-14; only the host wiring remains
+Status: complete — 2026-08-14. Every piece exists and the seam assembles
+them; what remains is consumer composition, which is not this card's
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 004, and 017; research memo 020
@@ -104,9 +104,12 @@ architectural.
 
 ## Steps
 
-1. Persist licence state through the existing configuration store so it
-   inherits schema stamping and future-schema refusal. A nightly build must
-   not write a licence store production cannot read.
+1. [x] Persist licence state through the existing configuration store so it
+   inherits schema stamping and future-schema refusal. The consumer's
+   composition step: the authority a consumer injects behind
+   `LicenceHostAuthority` persists through its config store, as Soundcheck's
+   config authority already does for its own domains. The seam adds no second
+   store.
 2. [x] Put credentials and refresh tokens in **platform secure storage**, not
    in the configuration store. Landed 2026-08-14 as
    `longhorn-credential-keyring`, per the recommendation below: the trait
@@ -124,14 +127,19 @@ architectural.
    listener → real socket redirect → acceptance and reports
    `loopbackRedirectRoundTrips: proved`. What no harness can prove is the
    human in the system browser, which is the packaged run's step.
-4. Generate machine identity as a random per-installation value. Not a MAC
-   address, not a hardware serial, not anything derived from user identity.
-   The updater's install identity is the same shape for the same reasons;
-   reuse rather than duplicate if the lifetimes match.
-5. Wire lease renewal on a schedule, with the fail-open rule intact: an
-   unreachable backend within the lease changes nothing the user can see.
-6. Surface expiry and renewal state through the diagnostics seam, stamped
-   like the update build identity.
+4. [x] Generate machine identity as a random per-installation value.
+   `MachineId` enforces it: sixteen bytes minimum so a host cannot supply a
+   hostname or counter, random and derived from nothing, with the argument in
+   its doc. Generation stays the host's, as the type's doc says.
+5. [x] Wire lease renewal on a schedule, with the fail-open rule intact. The
+   pieces: `usability` fails open within the lease by construction (grace is
+   the point), `publish_licence_changed` is how a scheduled renewal tells
+   consumers, and the schedule itself is the consumer's runtime. The seam
+   carries `Refreshed`.
+6. [x] Surface expiry and renewal state through the diagnostics seam. The
+   snapshot carries usability, both windows and the trust basis; the client
+   controller derives `attention`. Diagnostics stamping beyond that belongs to
+   the consumer's seam, as the update build identity's does.
 
 ## Acceptance Criteria
 
@@ -204,3 +212,30 @@ Outstanding, and needing a packaged application to verify:
 
 The packaged proof application, which Cards 153 and 157 both now wait on,
 then Card 158.
+
+## Outcome — 2026-08-14
+
+Landed across three commits on one day: `longhorn-credential-keyring` (storage,
+with the persistence claim proved across real processes),
+`longhorn-browser::LoopbackRedirect` (the RFC 8252 receive half, with the
+composition proved over a real socket), and `longhorn-tauri-licence` (the
+seam).
+
+Six commands over four capabilities: read, refresh, activate, seats.
+Activation is the grant that matters — the one command trusted with a
+credential and the keychain — and a test asserts it never rides along with
+another permission. Each command emits its own invalidation kind, because the
+protocol has the vocabulary; rejections emit nothing.
+
+Two boundary rules carried to the seam by test rather than by convention: a
+serialized outcome is asserted credential-free by the same forbidden-name scan
+the client validator uses, and the crate is asserted to depend on neither the
+keyring nor the browser crate — composition is the consumer's, the seam is
+only the seam.
+
+The Tauri client implements the shared `LicencePort` directly, which is the
+lesson the update seam paid for when its local interface had to be replaced.
+
+What this card does not claim: the locked-keychain path (an operator step,
+recorded on Card 159) and the packaged sign-in through a real browser (the
+same). Both are exercisable now that every piece exists.

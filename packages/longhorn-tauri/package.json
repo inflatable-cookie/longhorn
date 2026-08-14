@@ -41,6 +41,11 @@
       "import": "./src/history-tree.ts",
       "default": "./src/history-tree.ts"
     },
+    "./licence": {
+      "types": "./src/licence.ts",
+      "import": "./src/licence.ts",
+      "default": "./src/licence.ts"
+    },
     "./native-content": {
       "types": "./src/native-content.ts",
       "import": "./src/native-content.ts",

@@ -1,0 +1,10 @@
+# The credential-bearing grant. Activation is the one command that carries a
+# key, token or licence file inward, and the one that writes the platform
+# keychain. A window that displays licence state has not thereby been trusted
+# with either. Grant to the activation surface, and to no other.
+[[permission]]
+identifier = "allow-longhorn-licence-activate"
+description = "Allows presenting a licence credential and writing platform secure storage."
+commands.allow = [
+  "longhorn_licence_activate",
+]

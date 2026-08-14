@@ -28,6 +28,7 @@ members = [
   "crates/longhorn-tauri-command",
   "crates/longhorn-tauri-history",
   "crates/longhorn-tauri-history-tree",
+  "crates/longhorn-tauri-licence",
   "crates/longhorn-tauri-notifications",
   "crates/longhorn-tauri-operation",
   "crates/longhorn-tauri-settings",
@@ -98,6 +99,7 @@ longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "0.
 longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.1.0" }
 longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "0.1.0" }
 longhorn-tauri-history-tree = { path = "crates/longhorn-tauri-history-tree", version = "0.1.0" }
+longhorn-tauri-licence = { path = "crates/longhorn-tauri-licence", version = "0.1.0" }
 longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications", version = "0.1.0" }
 longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation", version = "0.1.0" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "0.1.0" }
