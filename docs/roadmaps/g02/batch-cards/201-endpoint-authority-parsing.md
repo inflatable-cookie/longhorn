@@ -1,6 +1,7 @@
 # 201 Endpoint Authority Parsing
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.021 batch 1
 Governing refs: contract 018; memo 023 (H2); PAPERCUTS (duplicated URL
@@ -50,12 +51,34 @@ staging.
 - Reach for a full URL crate without checking what it does to the workspace
   dependency set — a hand fix on one function may be the right size.
 
+## Result
+
+One function, no new dependency. `is_loopback_host` now strips userinfo at
+the last `@` before the host parse — the WHATWG rule — so
+`127.0.0.1:80@evil.example` and `[::1]@evil.example` are refused, while
+userinfo on a genuine loopback host still passes (the exception binds to the
+host, not to the absence of userinfo). Six adversarial cases plus four
+positive ones pin the behavior.
+
+The channel check landed in `Controller::check`, before evaluate: a manifest
+whose channel differs from the selected one is refused with a new
+`UpdateRejectionCode::ChannelMismatch` and never stored. The refusal is
+named, so a surface can say "the update feed is misconfigured" instead of
+nothing. Bindings regenerated; the TS controller passes the code through and
+no hand-written validator enumerates codes, so nothing else moved.
+
+Licence-side review: `ActivationUrl` (`longhorn-licence/src/activation.rs:31`)
+requires HTTPS unconditionally and parses no host at all, so the userinfo
+class does not reach it — TLS is the boundary there. The duplication the
+papercut records stays duplicated on purpose: the two types validate
+different rules, and the fix touched only the loopback branch.
+
 ## Acceptance Criteria
 
-- [ ] every userinfo variant above is rejected or correctly classified, with
+- [x] every userinfo variant above is rejected or correctly classified, with
   tests
-- [ ] manifest/build channel mismatch is a named refusal
-- [ ] the licence-side parsing is reviewed and the result recorded
+- [x] manifest/build channel mismatch is a named refusal
+- [x] the licence-side parsing is reviewed and the result recorded
 
 ## Evidence Required
 

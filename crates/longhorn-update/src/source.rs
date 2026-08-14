@@ -50,14 +50,21 @@ impl EndpointUrl {
 
 fn is_loopback_host(rest: &str) -> bool {
     let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    // Userinfo ends at the last '@'. Without stripping it,
+    // `127.0.0.1:80@evil.example` parses as host `127.0.0.1` while the fetch
+    // goes to `evil.example` — over plaintext, since this check is what
+    // licenses plain HTTP.
+    let host_part = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
     // IPv6 authorities bracket the address, so the port separator cannot be
     // found by splitting on the first colon.
-    let host = match authority.strip_prefix('[') {
+    let host = match host_part.strip_prefix('[') {
         Some(bracketed) => match bracketed.split_once(']') {
             Some((address, _port)) => address,
             None => return false,
         },
-        None => authority.split(':').next().unwrap_or_default(),
+        None => host_part.split(':').next().unwrap_or_default(),
     };
     matches!(host, "127.0.0.1" | "localhost" | "::1")
 }
@@ -360,6 +367,39 @@ mod tests {
             EndpointUrl::new("http://127.0.0.1.example.com/x.json"),
             Err(EndpointUrlError::InsecureScheme)
         );
+    }
+
+    #[test]
+    fn userinfo_cannot_make_a_remote_host_look_like_loopback() {
+        // The host begins after the last '@'. Parsing the authority without
+        // stripping userinfo would accept these as loopback while the fetch
+        // goes to a remote host over plaintext.
+        for url in [
+            "http://127.0.0.1:80@evil.example/x",
+            "http://[::1]@evil.example/",
+            "http://localhost@evil.example/x",
+            "http://@evil.example/x",
+        ] {
+            assert_eq!(
+                EndpointUrl::new(url),
+                Err(EndpointUrlError::InsecureScheme),
+                "{url} should be refused"
+            );
+        }
+    }
+
+    #[test]
+    fn userinfo_on_a_genuine_loopback_host_is_still_loopback() {
+        // Credentials in the authority are unusual but legal; the exception
+        // binds to the host, not to the absence of userinfo.
+        for url in [
+            "http://user@127.0.0.1:8000/x",
+            "http://user:pass@localhost:9/x",
+            "http://evil.example@127.0.0.1/x",
+            "http://user@[::1]:80/x",
+        ] {
+            assert!(EndpointUrl::new(url).is_ok(), "{url} should be accepted");
+        }
     }
 
     #[test]

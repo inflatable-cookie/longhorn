@@ -38,10 +38,12 @@ signed-downgrade mechanism (minisign trusted comment) is already identified in
   **Landed 2026-08-14** — all three layers: `bounded` on names *and* link
   targets, `assert_inside` canonical ancestor checks, tar's `unpack_in` as
   backstop; four hostile fixtures in the shared suite.
-- [ ] [Card 201](batch-cards/201-endpoint-authority-parsing.md): userinfo
+- [x] [Card 201](batch-cards/201-endpoint-authority-parsing.md): userinfo
   stripped before the loopback match; `manifest.channel == build.channel`
   checked at evaluate; the licence `ActivationUrl` parsing reviewed against
-  the same fix.
+  the same fix. **Landed 2026-08-14** — last-`@` userinfo strip, new
+  `ChannelMismatch` rejection code, licence side confirmed unreachable by the
+  class.
 
 ### Batch 2. Crash honesty
 
@@ -97,9 +99,8 @@ amends the contract the others conform to.
 
 ## Next Task
 
-Card 201. Endpoint authority parsing is the other input boundary: userinfo
-must not classify a remote host as loopback, and a mislabeled manifest
-channel must refuse rather than restage.
+Card 202. Crash honesty: recovery for a kill mid-swap, byte bounds on fetch
+and extraction, and the `authority_epoch` decision.
 
 ## Planning Checkpoint
 

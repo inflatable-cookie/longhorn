@@ -137,6 +137,13 @@ impl<'port> UpdateController<'port> {
             return stale;
         }
 
+        // The endpoint for the selected channel served a manifest claiming a
+        // different one. Evaluating it would let a mislabel silently restage
+        // a rollout, so the manifest is refused and nothing is stored.
+        if manifest.channel != self.build.channel {
+            return self.reject(UpdateRejectionCode::ChannelMismatch);
+        }
+
         self.availability = evaluate(&self.build, manifest, &self.install, kind, self.provenance);
         self.manifest = Some(manifest.clone());
         self.commit()

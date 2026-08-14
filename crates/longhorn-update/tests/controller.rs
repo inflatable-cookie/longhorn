@@ -182,6 +182,27 @@ fn check(signing: &Signing) -> (UpdateCheckCommand, ChannelManifest) {
 }
 
 #[test]
+fn a_manifest_for_the_wrong_channel_is_refused_and_not_stored() {
+    // The endpoint for the selected channel answered with a manifest claiming
+    // another. Evaluating it would let a mislabel silently restage a rollout.
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, _) = check(&signing);
+    let mut mislabeled = manifest(&signing.signature(ARTIFACT));
+    mislabeled.channel = Channel::Nightly;
+
+    let outcome = controller.check(&command, &mislabeled, CheckKind::UserInitiated);
+
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::ChannelMismatch);
+    let snapshot = controller.snapshot();
+    assert!(matches!(
+        snapshot.availability,
+        longhorn_update::UpdateAvailabilityProjection::UpToDate
+    ));
+}
+
+#[test]
 fn a_check_records_an_offer_and_projects_it() {
     let signing = Signing::new();
     let (source, fetch) = (Source, Fetch::serving(ARTIFACT));

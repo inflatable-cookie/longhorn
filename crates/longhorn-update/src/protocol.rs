@@ -321,6 +321,10 @@ pub enum UpdateRejectionCode {
     NoOffer,
     /// The source answered, and not with the artifact the manifest promised.
     Unavailable,
+    /// The manifest fetched for the selected channel claims a different one.
+    /// A mislabel silently restaging a rollout is an operational-integrity
+    /// fault, so the manifest is refused rather than evaluated.
+    ChannelMismatch,
     /// The transfer did not complete. Retryable.
     Unreachable,
     /// The artifact did not come from the signing key. Terminal, never

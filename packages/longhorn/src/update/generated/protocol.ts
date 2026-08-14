@@ -10,7 +10,7 @@ export const UPDATE_DEFERRAL_CAUSES = ["userPostponed","workInFlight","installat
 export const UPDATE_AVAILABILITY_STATES = ["offer","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
 export const UPDATE_PROGRESS_STATES = ["idle","downloading","verifying","readyToInstall","installing"] as const;
 export const UPDATE_INSTALL_AUTHORIZATION_STATUSES = ["approved","deferred"] as const;
-export const UPDATE_REJECTION_CODES = ["staleAuthority","noOffer","unavailable","unreachable","signatureRejected","notWritable","installFailed"] as const;
+export const UPDATE_REJECTION_CODES = ["staleAuthority","noOffer","unavailable","channelMismatch","unreachable","signatureRejected","notWritable","installFailed"] as const;
 export const UPDATE_OUTCOME_STATUSES = ["committed","rejected"] as const;
 export const UPDATE_CHANGED_KINDS = ["checked","channelSelected","deferred","progressed"] as const;
 
@@ -202,7 +202,7 @@ export type UpdateInstallAuthorizationProjection = { "status": "approved" } | { 
  */
 cause: DeferralCause, };
 
-export type UpdateRejectionCode = "staleAuthority" | "noOffer" | "unavailable" | "unreachable" | "signatureRejected" | "notWritable" | "installFailed";
+export type UpdateRejectionCode = "staleAuthority" | "noOffer" | "unavailable" | "channelMismatch" | "unreachable" | "signatureRejected" | "notWritable" | "installFailed";
 
 export type UpdateOutcomeProjection = { "status": "committed", 
 /**
