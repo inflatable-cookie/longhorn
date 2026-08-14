@@ -1,6 +1,6 @@
 # 210 Age-identity Persistence
 
-Status: ready
+Status: blocked — operator decision on the store's home
 Owner: Tom
 Roadmap: g02.023 batch 3
 Governing refs: contract 004 (§ noninteractive identity authority); memo 023
@@ -30,6 +30,32 @@ today that requirement has no mechanism.
 - `crates/longhorn-config-age` — the authority side of the seam
 - contract 004 — name the mechanism against the requirement
 - one consumer-shaped example or test proving the noninteractive path
+
+## The decision, with evidence (2026-08-14)
+
+Execution stopped at the boundary choice, per contract 001. The mechanism is
+not in doubt — get-or-generate through the keychain is fifteen lines — but
+every placement of it changes what consumers compose:
+
+1. **Move `CredentialStore`/`CredentialSlot` to `longhorn-core`, then add the
+   age-identity slot there.** Architecturally cleanest: credential storage is
+   host plumbing, not licence domain — it sits in licence only because
+   licensing needed it first. Cost: a material consumer break
+   (`longhorn_licence::CredentialStore` re-imports from core) across all five
+   consumers, inside the 0.1.0 candidate surface.
+2. **Add the slot in licence and the provider in the keyring crate.** No
+   consumer break, but the platform-backend crate then knows backup-domain
+   shapes — off its stated mission.
+3. **Add the slot in licence and let config-age depend on licence.** The
+   PAPERCUTS precedent says this coupling (two optional capability crates
+   that cannot compose separately) is worse than duplication.
+4. **Status quo plus a documented recipe.** Consumers keep owning the
+   storage decision; Longhorn documents the get-or-generate pattern. Contract
+   004:403's "noninteractive identity authority" stays consumer-satisfied.
+
+Recommendation: option 1, coordinated with the next consumer-facing bump —
+but it is the operator's call, because it prices a consumer break against a
+boundary correction right before the candidate freeze.
 
 ## Steps
 

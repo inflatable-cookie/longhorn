@@ -24,14 +24,12 @@ noninteractive identity authority Card 210 provides.
 
 ## Planning Gaps
 
-- **`key_id` binding is a decision, not a fix.** A signed licence can claim
-  any `key_id`; the signature verifies against the caller-supplied key either
-  way. Whether projections should treat the field as rotation evidence is an
-  adapter-domain call — Card 207 records it.
-- **Age-identity storage shape.** `CredentialSlot` carries refresh tokens and
-  licence keys only. Where the age identity lives (keyring slot vs config-age
-  sidecar) is a boundary choice Card 210 makes against contract 004, not
-  around it.
+- **`key_id` binding is a decision, not a fix.** Resolved by Card 207: the
+  envelope field is an unauthenticated claim, recorded as such; rotation keys
+  on the consumer-configured verifying key.
+- **Age-identity storage shape.** Not resolved — Card 210 is blocked on it.
+  The card carries the four placements with evidence and a recommendation;
+  the choice changes what consumers compose, so it is the operator's.
 
 ## Execution Plan
 
@@ -63,6 +61,10 @@ noninteractive identity authority Card 210 provides.
 - [ ] [Card 210](batch-cards/210-age-identity-persistence.md): a Longhorn-owned
   persistence path for the operational age identity, satisfying contract
   004:403 without every consumer re-implementing the storage decision.
+  **Blocked 2026-08-14** — the mechanism is settled (get-or-generate through
+  the keychain); where the store vocabulary lives is the operator's call.
+  The card carries the four options with evidence and a recommendation
+  (move `CredentialStore` to `longhorn-core`).
 
 ## Dependency Shape
 
