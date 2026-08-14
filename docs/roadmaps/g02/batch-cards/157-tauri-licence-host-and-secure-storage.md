@@ -1,6 +1,7 @@
 # 157 Tauri Licence Host And Secure Storage
 
-Status: in progress — pure half complete, host wiring outstanding
+Status: in progress — pure half complete; secure storage landed 2026-08-14
+(`longhorn-credential-keyring`); the loopback listener and host wiring remain
 Owner: Tom
 Roadmap: g02.010 batch 3
 Governing refs: contracts 019, 004, and 017; research memo 020
@@ -106,9 +107,14 @@ architectural.
 1. Persist licence state through the existing configuration store so it
    inherits schema stamping and future-schema refusal. A nightly build must
    not write a licence store production cannot read.
-2. Put credentials and refresh tokens in **platform secure storage**, not in
-   the configuration store. Longhorn owns this so that consumers do not each
-   reimplement it, badly, in their own way.
+2. [x] Put credentials and refresh tokens in **platform secure storage**, not
+   in the configuration store. Landed 2026-08-14 as
+   `longhorn-credential-keyring`, per the recommendation below: the trait
+   stays agnostic, one opt-in crate is composed by both hosts, `keyring` v3
+   with macOS and Windows features only, and Linux deferred with the reason
+   recorded. Two tests run against the real platform store, and the headless
+   harness's `restartPersistence` claim is now proved across real processes —
+   a keychain entry written by one run and read by the next.
 3. Implement the account flow per RFC 8252: system browser, loopback
    redirect, PKCE. Embedded webviews are not an accepted flow — they break
    password managers and SSO, and users are right to distrust them.

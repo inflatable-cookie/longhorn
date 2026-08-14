@@ -222,7 +222,7 @@ pub fn licence_evidence() -> Value {
         ActivationUrl::new("https://stub.example/redeem").unwrap(),
         verifying_key,
     );
-    let redemption_key = longhorn_licence::LicenceKey::from_body("ABCDE12345FGHJK")
+    let redemption_key = longhorn_licence::LicenceKey::from_body("ABCDE12345FGHJK6789")
         .expect("a well-formed redemption key parses");
     let Activation::Exchange(request) = token_source
         .acquire(&Credential::Key(redemption_key))
@@ -286,6 +286,17 @@ pub fn licence_evidence() -> Value {
         Usability::ClockRefused
     ));
 
+    // The platform half of the credential claims, pending since 2026-08-08
+    // and unblocked by the CredentialStore decision of 2026-08-14: a real
+    // keychain entry, stored by one process and read by a later one.
+    //
+    // Restart persistence cannot be proved inside a single run -- the claim
+    // is precisely that the value outlives the process -- so the harness
+    // leaves a marker behind and each run reports what it found. The first
+    // run stores and says so; every later run finds the previous run's marker
+    // and the claim is met.
+    let restart_persistence = platform_persistence_claim();
+
     let store = MemoryCredentialStore::new();
     store.store(CredentialSlot::RefreshToken, "token").unwrap();
     store.store(CredentialSlot::LicenceKey, "key").unwrap();
@@ -321,7 +332,52 @@ pub fn licence_evidence() -> Value {
         },
         "credentials": {
             "slotsRoundTripAndRemovalIsIdempotent": "proved",
-            "restartPersistence": "platform-backend claim, pending Card 159 dependency decision",
+            "restartPersistence": restart_persistence,
         },
     })
+}
+
+/// One real-keychain round trip, plus the cross-run marker.
+///
+/// Uses a proof-specific service name so it can never touch a consumer's
+/// entries. The marker is deliberately not a secret -- it is the run stamp of
+/// whichever run wrote it, so a reader of the evidence can see how far apart
+/// the two processes were.
+fn platform_persistence_claim() -> String {
+    use longhorn_credential_keyring::KeyringCredentialStore;
+
+    let store = KeyringCredentialStore::new("audio.example.longhorn-update-licence-proof");
+    let slot = CredentialSlot::RefreshToken;
+
+    // The in-process contract first: store, read back, replace. A backend
+    // that cannot do this much has no persistence to claim.
+    if let Err(error) = store.store(slot, "proof-round-trip") {
+        return format!("unavailable: {error}");
+    }
+    match store.retrieve(slot) {
+        Ok(Some(value)) if value == "proof-round-trip" => {}
+        Ok(other) => return format!("round trip returned {other:?}"),
+        Err(error) => return format!("unavailable: {error}"),
+    }
+
+    // The cross-run marker, in the other slot so the round trip above cannot
+    // be mistaken for it.
+    let marker = CredentialSlot::LicenceKey;
+    let previous = match store.retrieve(marker) {
+        Ok(found) => found,
+        Err(error) => return format!("unavailable: {error}"),
+    };
+    let stamp = format!("run:{}", std::process::id());
+    if let Err(error) = store.store(marker, &stamp) {
+        return format!("unavailable: {error}");
+    }
+    // The round-trip slot is cleaned; the marker stays for the next run.
+    drop(store.remove(slot));
+
+    match previous {
+        Some(earlier) => {
+            format!("proved - this run read `{earlier}` written by an earlier process")
+        }
+        None => "stored by this run - proved on the next".to_owned(),
+    }
 }

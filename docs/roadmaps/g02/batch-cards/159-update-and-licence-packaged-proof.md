@@ -337,12 +337,14 @@ exists to close. It wants doing properly rather than quickly.
 
 ## Next Task
 
-The licence half, and it is not this card's to unblock. Claims 4 and 5 —
-platform credential persistence through a real keychain including the locked
-path, and RFC 8252 through the system browser — wait on the platform
-`CredentialStore` backend decision and on Card 158. They stay recorded as
-unmet, which is the part of the 2026-08-08 decision that was right and
-survives its supersession.
+The licence half, part-met 2026-08-14. The `CredentialStore` decision landed
+as `longhorn-credential-keyring`, and claim 4's persistence half is proved:
+the headless harness stores a keychain entry in one process and reads it in
+the next, reported in its evidence with the writing run's stamp. Still unmet:
+the **locked-keychain path** — exercising it means locking the login keychain
+mid-run, which is an operator action, not something a harness should do to a
+live session — and claim 5, RFC 8252 through the system browser, which waits
+on the loopback listener and Card 157's host wiring.
 
 The update half is complete.
 1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
