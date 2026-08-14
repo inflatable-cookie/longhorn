@@ -31,7 +31,17 @@ where
                 false,
             ));
         }
-        self.emit(BRIDGE_DOMAIN_EVENT, event)
+        // Delivery is targeted at the session's own window, so a full
+        // payload crosses only where the session may read.
+        if authority.read_authority() == longhorn_bridge::ReadAuthority::None {
+            return Err(BridgeHostError::new(
+                BridgeHostErrorCode::ReadDenied,
+                "session holds no read authority for the domain",
+                false,
+            ));
+        }
+        let target = record.caller.clone();
+        self.emit(&target, BRIDGE_DOMAIN_EVENT, event)
     }
 
     /// Publishes one request-correlated progress event for current execution authority.
@@ -43,7 +53,8 @@ where
     ) -> Result<(), BridgeHostError> {
         let record = self.session_by_id(session_id)?;
         ensure_execution(authority_for(&record.receipt, domain_id)?)?;
-        self.emit(BRIDGE_PROGRESS_EVENT, event)
+        let target = record.caller.clone();
+        self.emit(&target, BRIDGE_PROGRESS_EVENT, event)
     }
 
     /// Publishes one request-correlated terminal event for current execution authority.
@@ -55,11 +66,13 @@ where
     ) -> Result<(), BridgeHostError> {
         let record = self.session_by_id(session_id)?;
         ensure_execution(authority_for(&record.receipt, domain_id)?)?;
-        self.emit(BRIDGE_TERMINAL_EVENT, event)
+        let target = record.caller.clone();
+        self.emit(&target, BRIDGE_TERMINAL_EVENT, event)
     }
 
     fn emit<Payload: Serialize>(
         &self,
+        target: &str,
         event: &'static str,
         payload: &Payload,
     ) -> Result<(), BridgeHostError> {
@@ -73,6 +86,6 @@ where
         let value = serde_json::to_value(payload).map_err(|error| {
             BridgeHostError::new(BridgeHostErrorCode::PayloadCodec, error.to_string(), false)
         })?;
-        sink.emit(event, value)
+        sink.emit(target, event, value)
     }
 }

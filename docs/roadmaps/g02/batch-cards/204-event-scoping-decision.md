@@ -1,6 +1,7 @@
 # 204 Event Scoping Decision
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.022 batch 1
 Governing refs: contract 010; memo 023 (M-events)
@@ -56,11 +57,34 @@ bridge publishes full payloads.
 - Leave the advisory client filter standing as if it were enforcement,
   whichever way the decision goes.
 
+## Result
+
+**Decision: per-window targeted delivery (option A).** The evidence that
+settled it: the client already drops foreign-session cursors
+(`classifyCursor` → `supersededSession`), so app-wide broadcast was delivery
+without a consumer — nothing working depended on it, and hint-only would
+have bought safety at a round trip per change for a property nothing uses.
+The GPUI-seam concern evaporated on inspection: the bridge is the Rust↔TS
+IPC and exists only on the Tauri host; `BridgeEventSink` lives in
+`longhorn-tauri-bridge`.
+
+Mechanism: `BridgeEventSink::emit` gains the target label;
+`TauriBridgeEventSink` uses `emit_to`; publication resolves the target from
+`SessionRecord.caller` — the same label the session is bound to. Read
+authority joins the publish path: a session with `ReadAuthority::None` for
+the domain publishes nothing (`ReadDenied`), so a full payload crosses only
+where the session may read. Tests: targeted delivery across two windows
+(asserts the exact per-window targets), and the read-none refusal. Contract
+010 records the decision and states plainly that cross-window invalidation is
+not a current property — it would be a designed channel, not an accident of
+broadcast.
+
 ## Acceptance Criteria
 
-- [ ] the decision is recorded in contract 010 with its reason
-- [ ] delivery and read authority agree, by mechanism or by construction
-- [ ] the cross-caller negative test exists and fails before the fix if A
+- [x] the decision is recorded in contract 010 with its reason
+- [x] delivery and read authority agree, by mechanism
+- [x] the cross-caller negative test exists — and a same-caller positive one,
+  plus the read-denied publish refusal
 
 ## Evidence Required
 

@@ -64,6 +64,30 @@ Teardown is idempotent and safe when an asynchronous listener registration
 completes after disposal. Events are projections and invalidation hints, not
 durable delivery. Query-only domains do not require an event transport.
 
+## Session Lifecycle
+
+- A session ends when its window does. Hosts wire
+  `TauriBridgeState::teardown_window` from the window-destroyed hook; a
+  destroyed window's session must stop validating, not linger.
+- Session ids are per-session secrets. The authority provider must mint an
+  unguessable id (128-bit random or better): session use requires only the id
+  and the window label, and labels are predictable. Fixture-style ids
+  (`session:fixture-*`) are for fixtures, never shipped providers.
+- Tauri's transport deserializes before Longhorn sees bytes, so pre-parse
+  size caps are the transport's ceiling, by recorded reliance. Longhorn's
+  discipline is that every bound lands before work: collection and payload
+  limits are validated after parse and before any effect, never after
+  mutation.
+
+Event delivery is scoped to the window that owns the publishing session
+(`emit_to` the session's caller, never app-wide). A full payload crosses only
+to a window whose session carries read authority for the domain; the client
+drops foreign-session cursors, so targeting changes no consumer behavior and
+removes the one channel where read authority was advisory. Cross-window
+invalidation is not a current property — if a product needs it, it is a
+designed channel (hint events plus authorized refetch), not an accident of
+broadcast.
+
 ## Handler And Client Shape
 
 - One handler assembly function is used by the real Tauri app and mock-runtime

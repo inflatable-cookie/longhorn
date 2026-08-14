@@ -157,7 +157,7 @@ fn query_only_rejects_events_while_subscription_assembly_emits_checked_payloads(
             receipt: authority_receipt(descriptor, WriteAuthority::None),
         },
         registered_domains(Arc::new(AtomicUsize::new(0))),
-        Arc::new(move |name: &'static str, payload: Value| {
+        Arc::new(move |_target: &str, name: &'static str, payload: Value| {
             captured.lock().unwrap().push((name, payload));
             Ok(())
         }),
@@ -165,6 +165,202 @@ fn query_only_rejects_events_while_subscription_assembly_emits_checked_payloads(
     subscription.hello("main", hello()).unwrap();
     subscription.publish_domain_event(&event).unwrap();
     assert_eq!(emissions.lock().unwrap()[0].0, BRIDGE_DOMAIN_EVENT);
+}
+
+#[test]
+fn a_torn_down_callers_sessions_stop_validating() {
+    // Sessions end with their window. After teardown the old session refuses,
+    // a second teardown is not an error, and a fresh hello negotiates clean.
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let assembly = query_only_assembly(Arc::clone(&dispatches), WriteAuthority::None);
+    let receipt = assembly.hello("main", hello()).unwrap();
+    let session = receipt.session_id().as_str();
+
+    assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:before", session, DOMAIN),
+        )
+        .unwrap();
+
+    assembly.teardown("main");
+    assert_eq!(
+        assembly
+            .query(
+                "main",
+                "workspace.read",
+                query_request("request:after", session, DOMAIN),
+            )
+            .unwrap_err()
+            .code,
+        BridgeHostErrorCode::InvalidSession
+    );
+    assert_eq!(
+        dispatches.load(Ordering::SeqCst),
+        1,
+        "the stale query did not dispatch"
+    );
+
+    assembly.teardown("main");
+    let renegotiated = assembly.hello("main", hello()).unwrap();
+    assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:fresh", renegotiated.session_id().as_str(), DOMAIN),
+        )
+        .unwrap();
+}
+
+#[test]
+fn events_are_delivered_to_the_session_owning_window_only() {
+    // Two windows, two sessions, one domain. An event published under one
+    // session must reach that session's window and no other — broadcast was
+    // delivery without a consumer (the client drops foreign-session cursors)
+    // and a read-authority hole beside the per-caller model.
+    struct PerCaller {
+        descriptor: DomainCapabilityDescriptor,
+    }
+
+    impl BridgeAuthorityProvider for PerCaller {
+        fn negotiate(
+            &mut self,
+            caller: &str,
+            _request: &BridgeHelloRequest,
+            _registered_domains: &[DomainCapabilityDescriptor],
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(authority_receipt_for(
+                &format!("session:{caller}"),
+                self.descriptor.clone(),
+                ReadAuthority::Authoritative,
+                WriteAuthority::None,
+            ))
+        }
+
+        fn refresh(
+            &mut self,
+            caller: &str,
+            _current: &BridgeNegotiationReceipt,
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(authority_receipt_for(
+                &format!("session:{caller}"),
+                self.descriptor.clone(),
+                ReadAuthority::Authoritative,
+                WriteAuthority::None,
+            ))
+        }
+    }
+
+    let emissions = Arc::new(std::sync::Mutex::new(Vec::<(String, &'static str)>::new()));
+    let captured = Arc::clone(&emissions);
+    let assembly = BridgeHandlerAssembly::with_event_sink(
+        PerCaller {
+            descriptor: capabilities(),
+        },
+        registered_domains(Arc::new(AtomicUsize::new(0))),
+        Arc::new(move |target: &str, name: &'static str, _payload: Value| {
+            captured.lock().unwrap().push((target.to_owned(), name));
+            Ok(())
+        }),
+    );
+
+    let main = assembly.hello("main", hello()).unwrap();
+    let secondary = assembly.hello("secondary", hello()).unwrap();
+    let cursor_for = |receipt: &BridgeNegotiationReceipt, sequence: u64| {
+        BridgeStreamCursor::new(
+            receipt.session_id().clone(),
+            domain(),
+            AuthorityEpoch::new(1).unwrap(),
+            BridgeStreamSequence::new(sequence),
+        )
+    };
+
+    assembly
+        .publish_domain_event(&BridgeEventEnvelope::new(
+            cursor_for(&main, 1),
+            json!({ "changed": true }),
+        ))
+        .unwrap();
+    assembly
+        .publish_domain_event(&BridgeEventEnvelope::new(
+            cursor_for(&secondary, 1),
+            json!({ "changed": true }),
+        ))
+        .unwrap();
+
+    let seen = emissions.lock().unwrap();
+    assert_eq!(seen.len(), 2);
+    assert_eq!(seen[0], ("main".to_owned(), BRIDGE_DOMAIN_EVENT));
+    assert_eq!(seen[1], ("secondary".to_owned(), BRIDGE_DOMAIN_EVENT));
+}
+
+#[test]
+fn a_session_without_read_authority_publishes_nothing() {
+    // Delivery is targeted at the session's own window, so a full payload
+    // may cross only where the session may read.
+    struct NoRead {
+        descriptor: DomainCapabilityDescriptor,
+    }
+
+    impl BridgeAuthorityProvider for NoRead {
+        fn negotiate(
+            &mut self,
+            _caller: &str,
+            _request: &BridgeHelloRequest,
+            _registered_domains: &[DomainCapabilityDescriptor],
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(authority_receipt_for(
+                "session:no-read",
+                self.descriptor.clone(),
+                ReadAuthority::None,
+                WriteAuthority::None,
+            ))
+        }
+
+        fn refresh(
+            &mut self,
+            _caller: &str,
+            _current: &BridgeNegotiationReceipt,
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(authority_receipt_for(
+                "session:no-read",
+                self.descriptor.clone(),
+                ReadAuthority::None,
+                WriteAuthority::None,
+            ))
+        }
+    }
+
+    let emissions = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let captured = Arc::clone(&emissions);
+    let assembly = BridgeHandlerAssembly::with_event_sink(
+        NoRead {
+            descriptor: capabilities(),
+        },
+        registered_domains(Arc::new(AtomicUsize::new(0))),
+        Arc::new(move |target: &str, _name: &'static str, _payload: Value| {
+            captured.lock().unwrap().push(target.to_owned());
+            Ok(())
+        }),
+    );
+
+    assembly.hello("main", hello()).unwrap();
+    let event = BridgeEventEnvelope::new(
+        BridgeStreamCursor::new(
+            BridgeSessionId::new("session:no-read").unwrap(),
+            domain(),
+            AuthorityEpoch::new(1).unwrap(),
+            BridgeStreamSequence::new(1),
+        ),
+        json!({ "changed": true }),
+    );
+
+    assert_eq!(
+        assembly.publish_domain_event(&event).unwrap_err().code,
+        BridgeHostErrorCode::ReadDenied
+    );
+    assert!(emissions.lock().unwrap().is_empty());
 }
 
 #[test]
@@ -322,12 +518,26 @@ fn authority_receipt(
     capabilities: DomainCapabilityDescriptor,
     write: WriteAuthority,
 ) -> BridgeNegotiationReceipt {
+    authority_receipt_for(
+        "session:current",
+        capabilities,
+        ReadAuthority::Authoritative,
+        write,
+    )
+}
+
+fn authority_receipt_for(
+    session: &str,
+    capabilities: DomainCapabilityDescriptor,
+    read: ReadAuthority,
+    write: WriteAuthority,
+) -> BridgeNegotiationReceipt {
     BridgeNegotiationReceipt::new(
         BridgeHostDescriptor {
             host_instance_id: HostInstanceId::new("host:tauri-fixture").unwrap(),
             form: BridgeHostForm::TauriLocal,
         },
-        BridgeSessionId::new("session:current").unwrap(),
+        BridgeSessionId::new(session).unwrap(),
         BridgeConnectionStatus::new(
             BridgeConnectionState::Ready,
             Some(BridgeConnectionReason::NegotiationAccepted),
@@ -341,11 +551,13 @@ fn authority_receipt(
                 domain(),
                 AuthorityScopeId::new("scope:workspace").unwrap(),
                 DomainAvailability::Available,
-                ReadAuthority::Authoritative,
+                read,
                 write,
                 ExecutionAuthority::Executor,
                 AuthorityEpoch::new(1).unwrap(),
-                Some(AuthorityRevision::new(1)),
+                // A revision exists only when something is authoritative.
+                (read == ReadAuthority::Authoritative || write == WriteAuthority::Authoritative)
+                    .then(|| AuthorityRevision::new(1)),
             )
             .unwrap(),
         ],

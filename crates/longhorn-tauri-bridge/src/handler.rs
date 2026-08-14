@@ -108,6 +108,20 @@ where
         Ok(receipt)
     }
 
+    /// Drops every session a caller owns.
+    ///
+    /// Sessions end with their window: the host calls this from its
+    /// window-destroyed hook. Without it a destroyed window's session stays
+    /// valid indefinitely, and each distinct caller label grows the map
+    /// forever. Idempotent — tearing down a caller with no sessions is not
+    /// an error, because destroy ordering against in-flight hellos is the
+    /// host's to race.
+    pub fn teardown(&self, caller: &str) {
+        if let Ok(mut sessions) = self.sessions.lock() {
+            sessions.retain(|_, record| record.caller != caller);
+        }
+    }
+
     /// Refreshes current capability and authority facts for one caller session.
     pub fn authority(
         &self,

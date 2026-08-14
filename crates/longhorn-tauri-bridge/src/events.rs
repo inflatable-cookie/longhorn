@@ -11,17 +11,33 @@ pub const BRIDGE_PROGRESS_EVENT: &str = "longhorn://bridge/progress";
 pub const BRIDGE_TERMINAL_EVENT: &str = "longhorn://bridge/terminal";
 
 /// Injected event publication edge shared by real and mock hosts.
+///
+/// Delivery is targeted: an event goes to the window that owns the session
+/// it was published under, not to every webview in the application. The
+/// client already drops foreign-session cursors, so app-wide broadcast was
+/// delivery without a consumer — and a read-authority hole beside the rest
+/// of the per-caller model.
 pub trait BridgeEventSink: Send + Sync {
-    /// Publishes one checked generic bridge payload.
-    fn emit(&self, event: &'static str, payload: Value) -> Result<(), BridgeHostError>;
+    /// Publishes one checked generic bridge payload to `target`.
+    fn emit(
+        &self,
+        target: &str,
+        event: &'static str,
+        payload: Value,
+    ) -> Result<(), BridgeHostError>;
 }
 
 impl<F> BridgeEventSink for F
 where
-    F: Fn(&'static str, Value) -> Result<(), BridgeHostError> + Send + Sync,
+    F: Fn(&str, &'static str, Value) -> Result<(), BridgeHostError> + Send + Sync,
 {
-    fn emit(&self, event: &'static str, payload: Value) -> Result<(), BridgeHostError> {
-        self(event, payload)
+    fn emit(
+        &self,
+        target: &str,
+        event: &'static str,
+        payload: Value,
+    ) -> Result<(), BridgeHostError> {
+        self(target, event, payload)
     }
 }
 
@@ -39,8 +55,13 @@ impl<R: Runtime> TauriBridgeEventSink<R> {
 }
 
 impl<R: Runtime> BridgeEventSink for TauriBridgeEventSink<R> {
-    fn emit(&self, event: &'static str, payload: Value) -> Result<(), BridgeHostError> {
-        self.app.emit(event, payload).map_err(|error| {
+    fn emit(
+        &self,
+        target: &str,
+        event: &'static str,
+        payload: Value,
+    ) -> Result<(), BridgeHostError> {
+        self.app.emit_to(target, event, payload).map_err(|error| {
             BridgeHostError::new(
                 BridgeHostErrorCode::EventPublication,
                 error.to_string(),

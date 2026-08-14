@@ -1,6 +1,7 @@
 # 205 Session Teardown And Entropy
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.022 batch 2
 Governing refs: contract 010; contract 007; memo 023 (M-sessions, L-entropy,
@@ -58,12 +59,35 @@ payloads are unbounded `serde_json::Value`.
 - Push entropy generation into fixtures. Predictable ids in tests are fine;
   the requirement binds producers, not fixtures.
 
+## Result
+
+Teardown landed as `BridgeHandlerAssembly::teardown(caller)` —
+caller-scoped, idempotent, lock-poison-tolerant — surfaced through
+`BridgeCommandService` and `TauriBridgeState::teardown_window`, with the
+window-destroyed wiring shown in the doc. The test proves the lifecycle:
+query works, teardown, the old session refuses as `InvalidSession` without
+dispatching, a second teardown is fine, a fresh hello negotiates clean.
+Distinct-label growth is bounded by the same mechanism — a label's sessions
+end when its window does.
+
+The entropy requirement is written into contract 010's new Session Lifecycle
+section: providers mint unguessable ids, because an id plus a predictable
+window label is all session use takes.
+
+The size-discipline decision is recorded rather than implemented: Tauri's
+transport deserializes before Longhorn sees bytes, so pre-parse caps are not
+reachable at this layer — the reliance is stated, and the rule that binds
+Longhorn is bounds-before-work, which the audited limits (hello domain cap,
+keymap directive ceiling) already satisfy.
+
 ## Acceptance Criteria
 
-- [ ] a destroyed window's session fails authorization, with a test
-- [ ] the session map cannot grow without bound
-- [ ] the entropy requirement is written where a consumer will read it
-- [ ] the pre-parse discipline decision is recorded, implemented or reasoned
+- [x] a destroyed window's session fails authorization, with a test
+- [x] the session map cannot grow without bound — teardown bounds it per
+  label lifetime
+- [x] the entropy requirement is written where a consumer will read it
+- [x] the pre-parse discipline decision is recorded — reliance on Tauri's
+  ceiling, bounds-before-work as the Longhorn rule
 
 ## Evidence Required
 

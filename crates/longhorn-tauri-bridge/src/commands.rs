@@ -58,6 +58,10 @@ pub trait BridgeCommandService: Send + Sync {
         session_id: &BridgeSessionId,
         domain_id: &DomainId,
     ) -> Result<BridgeSnapshotEnvelope<Value>, BridgeHostError>;
+
+    /// Drops every session a caller owns. Sessions end with their window:
+    /// the host calls this from its window-destroyed hook.
+    fn teardown(&self, caller: &str);
 }
 
 impl<A> BridgeCommandService for BridgeHandlerAssembly<A>
@@ -115,6 +119,10 @@ where
     ) -> Result<BridgeSnapshotEnvelope<Value>, BridgeHostError> {
         Self::resync(self, caller, session_id, domain_id)
     }
+
+    fn teardown(&self, caller: &str) {
+        Self::teardown(self, caller);
+    }
 }
 
 /// Type-erased bridge commands installed once in Tauri managed state.
@@ -127,6 +135,21 @@ impl TauriBridgeState {
     #[must_use]
     pub fn new(service: Arc<dyn BridgeCommandService>) -> Self {
         Self { service }
+    }
+
+    /// Ends every session a destroyed window owned.
+    ///
+    /// Wire from the host's window-event hook:
+    ///
+    /// ```ignore
+    /// .on_window_event(|window, event| {
+    ///     if matches!(event, WindowEvent::Destroyed) {
+    ///         window.state::<TauriBridgeState>().teardown_window(window.label());
+    ///     }
+    /// })
+    /// ```
+    pub fn teardown_window(&self, label: &str) {
+        self.service.teardown(label);
     }
 }
 

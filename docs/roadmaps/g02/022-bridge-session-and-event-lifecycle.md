@@ -21,27 +21,30 @@ are lifecycle questions, not authorization rewrites — the layered model stays.
 
 ## Planning Gaps
 
-- **Event scoping is an unrecorded decision, not an obvious defect.** Contract
-  010 calls events "projections and invalidation hints" while the bridge
-  publishes full payloads app-wide. Card 204 takes the decision (per-window
-  `emit_to` vs hint-only contract) before any code moves. This gap governs
-  Card 204's scope the way a decision card governs its own: the card *is* the
-  decision, recorded.
+- ~~**Event scoping is an unrecorded decision, not an obvious defect.**~~
+  Closed by Card 204: per-window targeted delivery, because the client
+  already dropped foreign-session cursors — broadcast was delivery without a
+  consumer.
 
 ## Execution Plan
 
 ### Batch 1. Events
 
-- [ ] [Card 204](batch-cards/204-event-scoping-decision.md): decide per-window
+- [x] [Card 204](batch-cards/204-event-scoping-decision.md): decide per-window
   targeting vs hint-only events; implement; add the cross-caller receipt
-  negative test either way.
+  negative test either way. **Landed 2026-08-14** — targeted delivery: the
+  client already dropped foreign sessions, so broadcast had no consumer;
+  `emit_to` the session's caller, read authority enforced at publish.
 
 ### Batch 2. Sessions
 
-- [ ] [Card 205](batch-cards/205-session-teardown-and-entropy.md): teardown API
+- [x] [Card 205](batch-cards/205-session-teardown-and-entropy.md): teardown API
   wired to window destroy; unguessable-session-id requirement documented (the
   transfer domain already has one); pre-parse byte caps on mutation-reachable
   commands or a recorded reliance on Tauri's transport ceiling.
+  **Landed 2026-08-14** — `teardown_window` from the destroyed hook, entropy
+  requirement in contract 010, reliance recorded with the bounds-before-work
+  rule.
 
 ### Batch 3. The copy-path
 
@@ -82,7 +85,8 @@ memo 023 (M-events, M-sessions, L-entropy, L-size, L-examples)
 
 ## Next Task
 
-Card 204. It is the decision the other two cards' shapes lean on.
+Card 205. Session teardown wired to window destroy, the entropy requirement
+documented, and the pre-parse size decision.
 
 ## Planning Checkpoint
 
