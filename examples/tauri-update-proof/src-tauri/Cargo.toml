@@ -11,7 +11,9 @@ publish = false
 tauri-build.workspace = true
 
 [dependencies]
+longhorn-browser.workspace = true
 longhorn-core.workspace = true
+longhorn-licence.workspace = true
 longhorn-transfer.workspace = true
 longhorn-update.workspace = true
 longhorn-update-install.workspace = true

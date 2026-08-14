@@ -2825,7 +2825,9 @@ dependencies = [
 name = "longhorn-tauri-update-proof"
 version = "0.1.0"
 dependencies = [
+ "longhorn-browser",
  "longhorn-core",
+ "longhorn-licence",
  "longhorn-tauri-update",
  "longhorn-transfer",
  "longhorn-update",

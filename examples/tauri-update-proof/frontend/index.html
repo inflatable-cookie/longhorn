@@ -20,6 +20,7 @@
     <button id="close">Close it</button>
     <button id="install">Install</button>
     <button id="relaunch">Request relaunch</button>
+    <button id="signin">Sign in (RFC 8252)</button>
     <pre id="evidence">no run yet</pre>
     <script>
       const invoke = window.__TAURI__.core.invoke;
@@ -31,6 +32,10 @@
       document.getElementById("close").onclick = () => call("close_transfer_sessions");
       document.getElementById("install").onclick = () => call("attempt_install");
       document.getElementById("relaunch").onclick = () => call("request_relaunch");
+      document.getElementById("signin").onclick = () => {
+        show({ signIn: "waiting - approve in the browser tab that opens" });
+        call("attempt_sign_in");
+      };
       // The relaunch answer is read on start, because the process that asked
       // for it is gone. Reaching this line at all is half the evidence.
       Promise.all([invoke("proof_state"), invoke("relaunch_state")])

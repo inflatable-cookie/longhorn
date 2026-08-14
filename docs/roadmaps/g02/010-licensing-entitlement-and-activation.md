@@ -1,6 +1,6 @@
 # g02.010 Licensing, Entitlement, And Activation
 
-Status: ready
+Status: complete — 2026-08-14
 Owner: Tom
 Updated: 2026-08-07
 Governing refs: contract 019; contracts 004 and 018; research memo 020
@@ -100,25 +100,18 @@ reads.
 
 ## Next Task
 
-Two operator steps, and then this milestone is a closure note.
+None. The milestone is complete.
 
-Cards 155, 156, 157, 158, 193 and 199 are complete. The licence system runs
-end to end: rules, protocol, seat list, key format twice-and-bound, client
-surface both sides, keychain storage with cross-process persistence proved,
-the RFC 8252 chain composed over a real socket, and the Tauri seam with
-activation as its own credential-bearing grant.
+An application can hold a licence and answer "entitled?" without enforcing;
+activate by key, account sign-in or file with a mistyped key never reading as
+an invalid one; keep credentials in the platform keychain with locked never
+reading as absent; renew a lease that fails open within grace; and show a
+customer their seats and free the old laptop without a support conversation.
+The claims that needed a machine and a human were observed rather than
+asserted: cross-process keychain persistence, the locked-keychain denial, and
+a sign-in through the real system browser.
 
-What remains is Card 159's licence half, and both items are operator actions
-rather than code:
+Consumer adoption — composing the authority behind `LicenceHostAuthority` in
+Soundcheck or Nucleus — follows separately, as update adoption does.
 
-1. **The locked-keychain path.** `security lock-keychain`, then open the
-   licence surface: it must say the store is unavailable, not that the machine
-   is unactivated. One minute, and it is the seat-churn defence observed
-   rather than asserted.
-2. **A sign-in through the real system browser.** Every piece below the click
-   is proved; the click needs a packaged run and a human.
-
-Consumer adoption — Soundcheck or Nucleus composing the authority behind
-`LicenceHostAuthority` — follows separately, as update adoption does.
-
-Previously: Card 199, then Cards 158 and 157.
+Previously: the two operator steps, Cards 157/158/199, Card 193.

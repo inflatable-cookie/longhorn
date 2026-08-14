@@ -382,6 +382,76 @@ fn relaunch_state(app: tauri::AppHandle) -> Value {
     relaunch_evidence(&app)
 }
 
+/// Card 159's last claim: an account sign-in through the real system browser.
+///
+/// Everything below the click is proved headlessly; this exercises the click.
+/// A stub authorization server runs on loopback, `longhorn-browser` launches
+/// the operator's actual browser at its approve page, the approve link is the
+/// authorization redirect, `LoopbackRedirect` receives it, and the flow
+/// accepts the callback in constant time. The stub stands where a real
+/// identity provider would; every other piece is the production code.
+#[tauri::command]
+fn attempt_sign_in() -> Result<Value, String> {
+    use longhorn_browser::{BrowserUrl, LoopbackRedirect, NativeSystemBrowser, SystemBrowser};
+    use longhorn_licence::{AccountFlow, CodeVerifier};
+
+    // Uniqueness is what the proof needs from these, not secrecy: the state
+    // binds the callback to this flow, and a proof run is its own audience.
+    let stamp = format!(
+        "{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_millis())
+    );
+    let state = format!("proof-state-{stamp}");
+    let verifier = CodeVerifier::new(format!(
+        "proof-verifier-{stamp}-padding-to-forty-three-chars"
+    ))
+    .map_err(|error| error.to_string())?;
+
+    let listener = LoopbackRedirect::bind().map_err(|error| error.to_string())?;
+    let flow = AccountFlow::begin(verifier, state.clone(), listener.port())
+        .map_err(|error| error.to_string())?;
+
+    // The approve page: one human-sized decision, whose link is the
+    // authorization redirect a real server would answer with.
+    let approve = format!(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>Stub authorization</title>\
+         </head><body style=\"font-family:sans-serif;margin:4rem auto;max-width:30rem\">\
+         <h1>Stub authorization server</h1>\
+         <p>This page stands where an identity provider would. Approving sends \
+         the authorization redirect to the application's loopback listener.</p>\
+         <p><a href=\"{}?state={state}&code=proof-authorization-code\">Approve sign-in</a></p>\
+         </body></html>",
+        flow.redirect_uri()
+    );
+    let stub_port = serve_stub_authorization(approve).map_err(|error| error.to_string())?;
+
+    NativeSystemBrowser
+        .open(
+            &BrowserUrl::new(format!("http://127.0.0.1:{stub_port}/authorize"))
+                .map_err(|error| error.to_string())?,
+        )
+        .map_err(|error| format!("browser launch: {error}"))?;
+
+    // Blocking is correct here: a sync Tauri command runs off the main
+    // thread, and the operator is in the browser for the duration.
+    let callback = listener
+        .receive(std::time::Duration::from_secs(120))
+        .map_err(|error| format!("no redirect arrived: {error}"))?;
+    let authorization = flow
+        .accept_callback(&callback)
+        .map_err(|error| format!("callback refused: {error}"))?;
+    drop(authorization);
+
+    Ok(json!({
+        "schema": "longhorn.tauri-update-proof.v1",
+        "rfc8252SignIn": "met - the system browser carried the flow: launch, approve, loopback redirect, constant-time acceptance",
+        "state": state,
+    }))
+}
+
 fn main() {
     let proof = Proof::new().expect("transfer limits are valid");
     tauri::Builder::default()
@@ -401,11 +471,36 @@ fn main() {
             open_transfer_session,
             close_transfer_sessions,
             attempt_install,
+            attempt_sign_in,
             request_relaunch,
             relaunch_state
         ])
         .run(tauri::generate_context!())
         .expect("packaged update proof failed to run");
+}
+
+/// Serves one authorization page on loopback until the process ends.
+///
+/// A stub, not a server: one route, one verb, dropped when the proof exits.
+/// The thread is deliberately leaked -- the page must stay reachable while
+/// the operator's browser tab is open, and the process's end is its cleanup.
+fn serve_stub_authorization(page: String) -> std::io::Result<u16> {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+    let port = listener.local_addr()?.port();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut request = [0_u8; 2048];
+            drop(stream.read(&mut request));
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
+                page.len()
+            );
+            drop(stream.write_all(response.as_bytes()));
+        }
+    });
+    Ok(port)
 }
 
 #[cfg(test)]

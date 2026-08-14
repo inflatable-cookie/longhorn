@@ -36,8 +36,20 @@ impl BrowserUrl {
         // Scheme first. Everything below assumes the rest is a URL body, and
         // rejecting `javascript:` or `file:` after parsing a host would be a
         // denylist by another name.
-        let Some(rest) = value.strip_prefix("https://") else {
-            return Err(BrowserUrlError::NotHttps);
+        //
+        // HTTPS, with one exception mirrored from `EndpointUrl` in the update
+        // domain: plain HTTP is accepted for loopback and nothing else. A
+        // packaged proof's stub authorization server lives on 127.0.0.1, and
+        // loopback traffic cannot be intercepted off-host. Every rule below
+        // -- ASCII, no control characters, no credentials in the authority --
+        // still applies to a loopback URL, because the launcher is still
+        // handing a string to the operating system.
+        let rest = match value.strip_prefix("https://") {
+            Some(rest) => rest,
+            None => match value.strip_prefix("http://") {
+                Some(rest) if is_loopback_host(rest) => rest,
+                _ => return Err(BrowserUrlError::NotHttps),
+            },
         };
 
         if let Some((index, character)) = rest
@@ -266,5 +278,49 @@ mod tests {
     fn serde_refuses_the_same_urls_the_constructor_does() {
         assert!(serde_json::from_str::<BrowserUrl>("\"https://example.com/\"").is_ok());
         assert!(serde_json::from_str::<BrowserUrl>("\"file:///etc/passwd\"").is_err());
+    }
+}
+
+/// Whether an `http://` remainder addresses loopback and only loopback.
+///
+/// Mirrored from the update domain's `EndpointUrl`, including the IPv6
+/// bracket handling: the authority brackets the address, so the port
+/// separator cannot be found by splitting on the first colon.
+fn is_loopback_host(rest: &str) -> bool {
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = match authority.strip_prefix('[') {
+        Some(bracketed) => match bracketed.split_once(']') {
+            Some((address, _port)) => address,
+            None => return false,
+        },
+        None => authority.split(':').next().unwrap_or_default(),
+    };
+    matches!(host, "127.0.0.1" | "localhost" | "::1")
+}
+
+#[cfg(test)]
+mod loopback_tests {
+    use super::*;
+
+    /// The one exception: plain HTTP addresses loopback and nothing else.
+    #[test]
+    fn loopback_http_is_accepted_and_only_loopback() {
+        assert!(BrowserUrl::new("http://127.0.0.1:8000/authorize?state=x").is_ok());
+        assert!(BrowserUrl::new("http://localhost:8000/authorize").is_ok());
+        assert!(BrowserUrl::new("http://[::1]:8000/").is_ok());
+
+        assert!(BrowserUrl::new("http://example.com/").is_err());
+        // The lookalikes a hostile URL would try: loopback as a prefix, a
+        // suffix, or a userinfo disguise.
+        assert!(BrowserUrl::new("http://127.0.0.1.evil.example/").is_err());
+        assert!(BrowserUrl::new("http://localhost.evil.example/").is_err());
+        assert!(BrowserUrl::new("http://evil.example@127.0.0.1/").is_err());
+    }
+
+    /// Every containment rule still applies to a loopback URL.
+    #[test]
+    fn loopback_http_keeps_the_other_rules() {
+        assert!(BrowserUrl::new("http://127.0.0.1/a b").is_err());
+        assert!(BrowserUrl::new("http://127.0.0.1/\u{9}tab").is_err());
     }
 }

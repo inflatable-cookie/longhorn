@@ -1,7 +1,6 @@
 # 159 Update And Licence Packaged Proof
 
-Status: update half complete 2026-08-13; licence half remains unmet and is not
-this card's to unblock
+Status: complete — update half 2026-08-13, licence half 2026-08-14
 Owner: Tom
 Roadmap: g02.009 batch 3 / g02.010 batch 3 (shared)
 Governing refs: contracts 018 and 019; research memos 019 and 020
@@ -340,11 +339,46 @@ exists to close. It wants doing properly rather than quickly.
 The licence half, part-met 2026-08-14. The `CredentialStore` decision landed
 as `longhorn-credential-keyring`, and claim 4's persistence half is proved:
 the headless harness stores a keychain entry in one process and reads it in
-the next, reported in its evidence with the writing run's stamp. Still unmet:
-the **locked-keychain path** — exercising it means locking the login keychain
-mid-run, which is an operator action, not something a harness should do to a
-live session — and claim 5, RFC 8252 through the system browser, which waits
-on the loopback listener and Card 157's host wiring.
+the next, reported in its evidence with the writing run's stamp.
+
+**The locked-keychain path was observed 2026-08-14.** The operator locked the
+login keychain, ran the harness, and denied the unlock prompt:
+
+```
+"restartPersistence": "unavailable: credential store unavailable:
+    Platform secure storage failure: User canceled the operation."
+```
+
+Unavailable, not empty — the credential may exist and cannot be read, which is
+what stops a locked screen reading as "not activated" and turning every
+locked-screen renewal into re-authentication and seat churn. After unlocking,
+the harness returned to `proved`.
+
+**RFC 8252 through the system browser was observed 2026-08-14**, in the
+packaged proof: `longhorn-browser` launched the operator's real browser at a
+loopback stub authorization server, the operator clicked Approve, the approve
+link delivered the authorization redirect to `LoopbackRedirect`, and the flow
+accepted the callback in constant time.
+
+```
+"rfc8252SignIn": "met - the system browser carried the flow: launch, approve,
+                  loopback redirect, constant-time acceptance",
+"state": "proof-state-55882-1786718770026"
+```
+
+Only the stub stood in for an identity provider; the launch, the listener and
+the acceptance were the production code. One widening was needed and is
+tested: `BrowserUrl` accepts plain HTTP for loopback and nothing else,
+mirrored from `EndpointUrl`'s documented exception, with the hostile
+lookalikes — `127.0.0.1.evil.example`, `localhost.evil.example`,
+`evil.example@127.0.0.1` — refused.
+
+Every claim this card opened with is now met or superseded, each with recorded
+evidence. The card that was paused as "more surface than the evidence is
+worth" ended up producing: a real-bundle install chain, the tauri#11392
+finding, the cask-detection defect and its fix, the interlock against a
+coordinator-accepted session, cross-process keychain persistence, the
+locked-keychain observation, and this sign-in.
 
 The update half is complete.
 1. Relaunch, and the explicit tauri#11392 finding under Longhorn's close
