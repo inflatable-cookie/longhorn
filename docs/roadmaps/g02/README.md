@@ -24,7 +24,7 @@
 | [g02.020](020-no-design-in-the-authority.md) | ready | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | in progress | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | in progress | the 181 tagged unions validate per variant, from the Rust enums |
-| [g02.021](021-update-supply-chain-hardening.md) | ready | the update install path's stated properties are true |
+| [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
 | [g02.022](022-bridge-session-and-event-lifecycle.md) | ready | events respect read authority; sessions end with their window |
 | [g02.023](023-credential-and-activation-hardening.md) | ready | the credential path matches the config-age discipline |
 | [g02.024](024-coverage-restoration.md) | ready | the test surface matches the code surface again |

@@ -165,8 +165,8 @@ fn an_unparseable_signature_is_a_signature_rejection() {
 }
 
 /// The verified artifact carries the version the caller asked for, not one
-/// read out of the bytes. `verify_artifact`'s doc records why: minisign does
-/// not bind a version, and pretending otherwise would be worse than saying so.
+/// read out of the bytes. Unless the signature's trusted comment binds one —
+/// then the binding must match, which the next test proves.
 #[test]
 fn a_verified_artifact_carries_the_requested_version() {
     let fixtures = Fixtures::new();
@@ -176,6 +176,72 @@ fn a_verified_artifact_carries_the_requested_version() {
 
     assert_eq!(verified.version(), &fixtures.version());
     assert_eq!(verified.bytes(), VALID);
+}
+
+/// The downgrade defence, enforced when present: a trusted comment of
+/// `version:<semver>` is bound to the artifact by minisign's global
+/// signature, so it must equal the version being fetched.
+#[test]
+fn a_version_bound_signature_must_match_the_requested_version() {
+    let fixtures = Fixtures::new();
+    let sign_bound = |comment: &str| {
+        minisign::sign(
+            None,
+            &fixtures.keys.sk,
+            Cursor::new(VALID),
+            Some(comment),
+            None,
+        )
+        .expect("signs")
+        .to_string()
+    };
+
+    // Matching binds verify.
+    let matching = sign_bound("version:1.3.0");
+    verify_artifact(
+        &fixtures.key(),
+        &fixtures.version(),
+        VALID.to_vec(),
+        &matching,
+    )
+    .expect("a signature bound to this version verifies");
+
+    // A genuine signature over the right bytes, bound to an older version,
+    // is the downgrade: refused as a signature failure, not applied.
+    let downgraded = sign_bound("version:1.2.0");
+    assert_eq!(
+        verify_artifact(
+            &fixtures.key(),
+            &fixtures.version(),
+            VALID.to_vec(),
+            &downgraded
+        ),
+        Err(InstallFailure::SignatureRejected)
+    );
+
+    // A bound that is not a version at all is malformed, not ignored.
+    let nonsense = sign_bound("version:not-a-version");
+    assert_eq!(
+        verify_artifact(
+            &fixtures.key(),
+            &fixtures.version(),
+            VALID.to_vec(),
+            &nonsense
+        ),
+        Err(InstallFailure::SignatureRejected)
+    );
+
+    // And a signature without a version comment — Tauri's signing emits a
+    // timestamp — verifies as before. The residual is recorded in the
+    // verifier's doc and contract 018.
+    let unbound = fixtures.valid_signature();
+    verify_artifact(
+        &fixtures.key(),
+        &fixtures.version(),
+        VALID.to_vec(),
+        &unbound,
+    )
+    .expect("an unbound signature still verifies");
 }
 
 #[test]

@@ -1,6 +1,7 @@
 # g02.021 Update Supply-chain Hardening
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: contract 018; memo 023; memo 019
@@ -56,10 +57,13 @@ signed-downgrade mechanism (minisign trusted comment) is already identified in
 
 ### Batch 3. Escalation and downgrade
 
-- [ ] [Card 203](batch-cards/203-escalation-contract-and-downgrade-binding.md):
+- [x] [Card 203](batch-cards/203-escalation-contract-and-downgrade-binding.md):
   the `PrivilegedReplace` implementor's contract (re-verify or protected
   staging) written before any host implements the port; version bound into the
-  signed payload via minisign trusted comment.
+  signed payload via minisign trusted comment. **Landed 2026-08-14** — the
+  port takes the `VerifiedArtifact`, `extract_bundle` is the shared bounded
+  extraction, escalation is reachable from staging-creation refusal, and the
+  trusted-comment binding is enforced when present.
 
 ## Dependency Shape
 
@@ -77,21 +81,21 @@ amends the contract the others conform to.
 
 ## Goals
 
-- [ ] contract 018:51's bounded-extraction claim is true for link entries
-- [ ] no authority string classifies a remote host as loopback
-- [ ] a kill between the two renames is recoverable on next launch
-- [ ] `PrivilegedReplace`'s first implementor inherits a re-verification duty,
-  not a gap
+- [x] contract 018:51's bounded-extraction claim is true for link entries
+- [x] no authority string classifies a remote host as loopback
+- [x] a kill between the two renames is recoverable on next launch
+- [x] `PrivilegedReplace`'s first implementor inherits a re-verification duty,
+  not a gap — the port takes the artifact itself
 
 ## Acceptance Criteria
 
-- [ ] the shared install conformance suite includes hostile symlink, hardlink,
+- [x] the shared install conformance suite includes hostile symlink, hardlink,
   and absolute-link-name fixtures and any second installer inherits them
-- [ ] `http://127.0.0.1:80@evil.example/` and `http://[::1]@evil.example/` are
+- [x] `http://127.0.0.1:80@evil.example/` and `http://[::1]@evil.example/` are
   rejected, with tests
-- [ ] fetch and extraction carry byte bounds; a hostile host cannot exhaust
+- [x] fetch and extraction carry byte bounds; a hostile host cannot exhaust
   memory or disk pre-verification
-- [ ] the Card 196 open decision is closed and recorded in contract 018
+- [x] the Card 196 open decision is closed and recorded in contract 018
 
 ## Explicit Non-goals
 
@@ -102,9 +106,8 @@ amends the contract the others conform to.
 
 ## Next Task
 
-Card 203. The last card in the milestone: the `PrivilegedReplace`
-implementor's contract and the signed-downgrade decision, amending contract
-018 over what 200-202 landed.
+Milestone complete. The suite's next entry points: Card 204 (g02.022 event
+scoping decision) or the independent 211/215/219.
 
 ## Planning Checkpoint
 

@@ -107,15 +107,15 @@ impl VerifiedArtifact {
 ///
 /// A signature proves the bytes came from the signing key. It does not prove
 /// they are the *current* release: an old artifact with its own valid
-/// signature verifies. Defending that needs the version bound into something
-/// signed, which minisign has room for in the trusted comment and Tauri's
-/// signing does not populate with a version today.
-///
-/// The manifest carries the version and travels over HTTPS, and `source.rs`
-/// already records the residual — "a tampered manifest cannot forge an
-/// artifact, though it can withhold one or pin an install to a stale version".
-/// This is that same residual, unchanged. Closing it is a signing-side change
-/// and is recorded as an open decision on Card 196 rather than taken here.
+/// signature verifies. The defence minisign offers is the trusted comment,
+/// which the global signature binds to the artifact — so this verifier
+/// honours it: a trusted comment of the form `version:<semver>` must equal
+/// the version being fetched, or the artifact is refused as a signature
+/// failure. An artifact signed without a version comment (Tauri's signing
+/// emits a timestamp) verifies as before; the residual that remains is
+/// exactly those signatures, and making the comment mandatory is a
+/// distribution-format decision — it changes what the consumer's signing
+/// step must produce — recorded in contract 018.
 pub fn verify_artifact(
     key: &ArtifactKey,
     version: &Version,
@@ -126,6 +126,18 @@ pub fn verify_artifact(
     key.0
         .verify(&artifact, &decoded, false)
         .map_err(|_| InstallFailure::SignatureRejected)?;
+
+    if let Some(claimed) = decoded
+        .trusted_comment()
+        .strip_prefix("version:")
+        .map(str::trim)
+    {
+        // A version-bound signature that names another version is a
+        // downgrade attempt, not a malformed comment.
+        if claimed.parse::<Version>().ok().as_ref() != Some(version) {
+            return Err(InstallFailure::SignatureRejected);
+        }
+    }
 
     Ok(VerifiedArtifact {
         version: version.clone(),

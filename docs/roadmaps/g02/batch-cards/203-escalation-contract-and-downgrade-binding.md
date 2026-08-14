@@ -1,6 +1,7 @@
 # 203 Escalation Contract And Downgrade Binding
 
-Status: ready
+Status: complete
+Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.021 batch 3
 Governing refs: contract 018; memo 023 (M-escalation); Card 196 open decision
@@ -57,12 +58,36 @@ trusted comment — but the decision was deferred to Card 196 and never taken.
 - Let "no implementation exists" read as "no problem exists". The first
   implementor inherits whatever the trait doc fails to say.
 
+## Result
+
+The contract landed in the type, not just in prose: `PrivilegedReplace::
+replace` now takes the `VerifiedArtifact` itself. The signature covers the
+archive bytes, so the escalated side re-extracts — into its own protected
+staging, through the now-public `extract_bundle`, which is the same bounded
+extraction the unprivileged path gets. A privileged move of user-writable
+content is no longer expressible through this port. The audit's sequencing
+flaw came out with it: staging creation hits the unwritable parent *before*
+the swap's rename does, so `apply` now escalates on `PermissionDenied` at
+staging creation too — the port is reachable at all.
+
+The downgrade decision: minisign's trusted comment is bound to the artifact
+by the global signature (verified against the vendored `minisign-verify`),
+so `verify_artifact` now enforces a `version:<semver>` trusted comment when
+one is present — a mismatch or a malformed bound is `SignatureRejected`.
+Unbound signatures (Tauri's signing emits a timestamp) verify as before;
+making the comment mandatory changes what a consumer's signing step must
+produce, so that mandate stays deferred and is now recorded in contract 018
+with the mechanism behind it. Card 196's open decision is closed: the
+mechanism is landed, enforced-when-present.
+
 ## Acceptance Criteria
 
-- [ ] the trait doc states the re-verification duty and the type carries the
-  metadata it needs
-- [ ] contract 018 describes escalation and the downgrade decision as amended
-- [ ] the Card 196 open decision is recorded as closed, either way
+- [x] the trait doc states the re-verification duty and the type carries the
+  metadata it needs — the port takes the artifact, and `extract_bundle` is
+  the shared bounded extraction
+- [x] contract 018 describes escalation and the downgrade decision as amended
+- [x] the Card 196 open decision is recorded as closed — enforced-when-present,
+  mandate deferred with its reason
 
 ## Evidence Required
 

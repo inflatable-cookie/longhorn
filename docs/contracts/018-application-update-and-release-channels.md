@@ -73,6 +73,18 @@ terms as the macOS path.
   `MAX_ARTIFACT_BYTES` (2 GiB) and extraction at a 4 GiB declared-size quota.
   A signature proves origin, not intent, and size is a resource dimension the
   signature does not cover.
+- The signature may bind the release version through minisign's trusted
+  comment (`version:<semver>`), which the global signature covers. The
+  verifier enforces the binding when present and refuses a mismatch as a
+  signature failure — that is the downgrade defence. Signatures without the
+  comment (Tauri's signing emits a timestamp) still verify; making the
+  comment mandatory is a distribution-format decision, deferred because it
+  changes what the consumer's signing step must produce.
+- Privileged replacement receives the verified artifact, never a staged
+  tree. The signature covers the archive bytes, and a tree staged where the
+  user can write is mutable between unpack and the privileged move. An
+  escalation implementor extracts the artifact itself, into protected
+  staging, with the same bounded extraction (`extract_bundle`).
 - An update whose signature does not verify is not an error to be reported
   and retried. It is discarded.
 

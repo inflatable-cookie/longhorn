@@ -483,7 +483,7 @@ fn escalation_is_not_attempted_when_the_target_is_writable() {
     struct Forbidden;
 
     impl PrivilegedReplace for Forbidden {
-        fn replace(&self, _staged: &Path, _target: &Path) -> Result<(), String> {
+        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
             panic!("escalation must not be attempted on a writable target");
         }
     }
@@ -500,11 +500,60 @@ fn escalation_is_not_attempted_when_the_target_is_writable() {
 
 #[test]
 fn the_default_escalation_declines_rather_than_prompting() {
+    let fixture = Fixture::new();
+    let (bytes, signature) = fixture.fixtures.valid();
+    let artifact = verified(&fixture, bytes, &signature);
     assert!(
         NoPrivilegedReplace
-            .replace(Path::new("/staged"), Path::new("/target"))
+            .replace(&artifact, Path::new("/target"))
             .is_err()
     );
+}
+
+/// The escalation contract: the port receives the verified artifact, never a
+/// user-writable staged tree, and an unwritable target reaches it.
+#[cfg(unix)]
+#[test]
+fn escalation_receives_the_verified_artifact_not_a_staged_path() {
+    use std::os::unix::fs::PermissionsExt;
+
+    struct Spy;
+
+    impl PrivilegedReplace for Spy {
+        fn replace(&self, artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+            // The implementor's side of the contract: extract the artifact
+            // itself, into its own protected staging, via the same bounded
+            // extraction the unprivileged path gets.
+            let protected = TempDir::new().map_err(|error| error.to_string())?;
+            let root = longhorn_update_install::extract_bundle(artifact, protected.path())
+                .map_err(|error| error.to_string())?;
+            let marker = fs::read_to_string(root.join("Contents/marker"))
+                .map_err(|error| error.to_string())?;
+            assert_eq!(marker, "new", "the artifact extracts under the port");
+            assert_eq!(artifact.version(), &Version::parse("1.3.0").unwrap());
+            Ok(())
+        }
+    }
+
+    let fixture = Fixture::new();
+    let (bytes, signature) = fixture.fixtures.valid();
+
+    // An unwritable install directory: staging cannot be created, which is
+    // exactly the case escalation exists for.
+    let parent = fixture.target.parent().unwrap();
+    let original = fs::metadata(parent).unwrap().permissions();
+    fs::set_permissions(parent, fs::Permissions::from_mode(0o555)).unwrap();
+    let outcome = fixture
+        .installer()
+        .with_escalation(Spy)
+        .apply(&verified(&fixture, bytes, &signature));
+    fs::set_permissions(parent, original).unwrap();
+
+    let applied = outcome.expect("the escalated path applies");
+    assert_eq!(applied.version, fixture.fixtures.version());
+    // The target was never writable, so the marker is unchanged — the spy
+    // proved extraction, and a real implementor would also move.
+    assert_eq!(fixture.marker(), "old");
 }
 
 #[test]

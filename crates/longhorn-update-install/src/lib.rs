@@ -77,9 +77,20 @@ const MAX_EXTRACTED_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 /// Longhorn constructing privileged shell commands from paths is how command
 /// injection happens. A host that cannot escalate returns `NotWritable` and
 /// the surface offers a manual download.
+///
+/// # The artifact, not a staged path
+///
+/// The signature covers the archive bytes — not an extracted tree — and a
+/// tree staged in a user-writable directory can be modified between unpack
+/// and the privileged move. So the port receives the [`VerifiedArtifact`]
+/// itself: an implementor extracts it into a location the user cannot write
+/// ([`extract_bundle`] is that extraction, with the same bounds the
+/// unprivileged path gets) and moves the result onto the target. A
+/// privileged move of user-writable content is the exact hole this shape
+/// closes.
 pub trait PrivilegedReplace {
-    /// Replaces `target` with `staged`, with elevated privileges.
-    fn replace(&self, staged: &Path, target: &Path) -> Result<(), String>;
+    /// Replaces `target` with `artifact`, with elevated privileges.
+    fn replace(&self, artifact: &VerifiedArtifact, target: &Path) -> Result<(), String>;
 }
 
 /// Escalation that always declines.
@@ -91,9 +102,23 @@ pub trait PrivilegedReplace {
 pub struct NoPrivilegedReplace;
 
 impl PrivilegedReplace for NoPrivilegedReplace {
-    fn replace(&self, _staged: &Path, _target: &Path) -> Result<(), String> {
+    fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
         Err("privileged replacement is not configured".to_owned())
     }
+}
+
+/// Extracts a verified artifact into `staging`, bounded, returning the
+/// unpacked bundle root.
+///
+/// Public so a [`PrivilegedReplace`] implementor performs the same bounded
+/// extraction in its own protected staging rather than trusting a tree the
+/// user could have modified. `staging` must already exist, and should be a
+/// directory the invoking user cannot write.
+pub fn extract_bundle(
+    artifact: &VerifiedArtifact,
+    staging: &Path,
+) -> Result<PathBuf, InstallFailure> {
+    unpack(artifact.bytes(), staging)
 }
 
 /// Installs updates by extracting and replacing in place.
@@ -137,7 +162,6 @@ impl<E> NativeInstaller<E> {
 impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
     fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
         let version = artifact.version();
-        let artifact = artifact.bytes();
 
         let parent = self.target.parent().ok_or_else(|| InstallFailure::Failed {
             detail: "install target has no parent directory".to_owned(),
@@ -147,14 +171,28 @@ impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
 
         // A unique, exclusively-created staging directory: a pre-planted
         // symlink at a predictable path cannot redirect the extraction.
-        let staging = tempfile::Builder::new()
+        //
+        // An unwritable parent is exactly the case escalation exists for, so
+        // it escalates here — with the artifact, not a staged tree — rather
+        // than failing before the port is ever reached.
+        let staging = match tempfile::Builder::new()
             .prefix(&format!("{STAGING_PREFIX}{version}-"))
             .tempdir_in(parent)
-            .map_err(|error| classify(&error, parent))?;
+        {
+            Ok(staging) => staging,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                self.escalated_swap(artifact)?;
+                return Ok(Applied {
+                    version: version.clone(),
+                    relaunched: false,
+                });
+            }
+            Err(error) => return Err(classify(&error, parent)),
+        };
 
-        let unpacked = unpack(artifact, staging.path())?;
+        let unpacked = unpack(artifact.bytes(), staging.path())?;
 
-        self.swap(&unpacked)?;
+        self.swap(&unpacked, artifact)?;
         // The swapped-in root has been renamed out; whatever else remains is
         // removed when `staging` drops, and the next apply sweeps regardless.
         drop(staging);
@@ -170,7 +208,7 @@ impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
 }
 
 impl<E: PrivilegedReplace> NativeInstaller<E> {
-    fn swap(&self, staged: &Path) -> Result<(), InstallFailure> {
+    fn swap(&self, staged: &Path, artifact: &VerifiedArtifact) -> Result<(), InstallFailure> {
         let backup = self.target.with_extension("longhorn-previous");
         drop(fs::remove_dir_all(&backup));
 
@@ -180,7 +218,7 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
             Ok(()) => true,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
             Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-                return self.escalated_swap(staged);
+                return self.escalated_swap(artifact);
             }
             Err(error) => return Err(classify(&error, &self.target)),
         };
@@ -202,9 +240,11 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         }
     }
 
-    fn escalated_swap(&self, staged: &Path) -> Result<(), InstallFailure> {
+    /// Escalation re-extracts from the verified artifact in the privileged
+    /// context — the user-writable staging tree is never what gets moved.
+    fn escalated_swap(&self, artifact: &VerifiedArtifact) -> Result<(), InstallFailure> {
         self.escalate
-            .replace(staged, &self.target)
+            .replace(artifact, &self.target)
             .map_err(|detail| InstallFailure::NotWritable { detail })
     }
 
