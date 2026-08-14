@@ -19,6 +19,88 @@ RFC 8252 loopback account flow, and licence persistence.
 - system-browser account flow with loopback redirect and PKCE
 - machine identity as a random per-installation value
 
+## Recommendation — 2026-08-14: the CredentialStore composition
+
+Researched against the tree, as the seat list was. Most of the question is
+already answered by precedents this repository has set; one piece of it is
+genuinely open and one tension between documents needs resolving.
+
+### The tension, and the precedent that resolves it
+
+Step 2 below says "Longhorn owns this so that consumers do not each
+reimplement it, badly". `credential.rs` says "the backend is composed" and the
+trait must not bind to one keychain crate. These read as opposites and are not:
+**`longhorn-browser` is the resolution, already made once.** Its own doc:
+
+> Neither backend supplies this — Tauri has a plugin Longhorn does not take,
+> GPUI has nothing — so Longhorn implements it once and both hosts compose the
+> same crate.
+
+Same for credentials: the trait stays agnostic in the pure crate, and Longhorn
+ships **one opt-in implementation crate** consumers compose — the shape
+`longhorn-update-install` already has against `UpdateInstaller`. Consumers do
+not each reimplement it, and nothing forces the dependency on a consumer that
+composes `MemoryCredentialStore` or its own.
+
+**Proposed: `longhorn-credential-keyring`**, host-agnostic (not
+`longhorn-tauri-licence` — a GPUI application needs the same backend, which is
+the browser crate's argument verbatim).
+
+### The backend crate: `keyring` v3, with narrow features
+
+Nothing keyring-shaped exists in any of the three dependency trees today —
+Longhorn, Soundcheck, Nucleus — so this is a genuinely new dependency, chosen
+rather than inherited.
+
+`keyring` v3 is the standard cross-platform answer and its feature flags keep
+the cost low where we ship:
+
+- **macOS** (`apple-native`): Security.framework via `security-framework`.
+  `core-foundation` is already in the tree through Tauri.
+- **Windows** (`windows-native`): the credential manager via `windows-sys`,
+  already in the tree.
+- **Linux is the real cost, and the recommendation is to defer it.** The
+  persistent backend is secret-service over D-Bus, which drags `zbus` in — a
+  large dependency none of the trees carry. The alternative, kernel keyutils,
+  is **not persistent across reboots**, which silently violates Card 159's
+  "credentials survive a restart" claim. Linux is unproved across the packaged
+  proofs already; compile the crate there with the memory store and record the
+  gap rather than paying for zbus before anything ships on Linux.
+
+### The locked-keychain rule is already encoded in the trait
+
+`CredentialError` has one variant, `Unavailable`, and `retrieve` returns
+`Option<String>` — which is exactly the distinction that matters:
+
+- **Absent** is `Ok(None)`: no credential stored, re-authentication is right.
+- **Locked** is `Err(Unavailable)`: the credential may exist and cannot be
+  read. Mapping a locked keychain to `Ok(None)` would read as "not activated"
+  and trigger re-auth and seat churn on every locked-screen renewal — the
+  quiet failure Card 159's locked-path claim exists to catch.
+
+macOS reports a locked keychain as an interaction-not-allowed error; the
+implementation maps every platform failure to `Unavailable` and never to an
+empty slot. This is the one behaviour the packaged proof must exercise for the
+claim to mean anything.
+
+### Naming, so the entry belongs to the consumer
+
+A keyring entry needs a service and a user. The service must be
+**host-supplied** (the application identifier, e.g.
+`com.inflatablecookie.soundcheck`) and the user is `CredentialSlot::as_str()`.
+Longhorn hard-coding a service name would put every consumer's secrets under
+one identity, and consumer identity belongs to the consumer.
+
+### What this leaves
+
+The RFC 8252 half is further along than this card implies: `AccountFlow` owns
+PKCE and the loopback redirect URI (pure), `longhorn-browser` owns the system
+browser launch with its two-defence URL rule. The missing piece is the
+**loopback listener** that receives the redirect — and
+`examples/tauri-update-proof` already hand-rolls a loopback server whose
+`EndpointUrl` posture matches. The remaining decisions are mechanical, not
+architectural.
+
 ## Steps
 
 1. Persist licence state through the existing configuration store so it
