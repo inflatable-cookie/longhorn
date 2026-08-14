@@ -29,7 +29,7 @@ pub use channel::{BuildIdentity, Channel};
 pub use controller::UpdateController;
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
 pub use deferral::{Deferral, DeferralCause};
-pub use fetch::{ArtifactFetch, FetchError, FetchProgress};
+pub use fetch::{ArtifactFetch, FetchError, FetchProgress, MAX_ARTIFACT_BYTES};
 pub use gate::{InstallAuthorization, UpdateGate};
 pub use install::{
     Applied, ConformanceFixtures, ConformanceOutcome, InstallFailure, UpdateInstaller,

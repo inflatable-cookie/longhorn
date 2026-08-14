@@ -95,6 +95,7 @@ impl ArtifactFetch for Fetch {
     fn fetch(
         &self,
         _request: &SourceRequest,
+        _limit: u64,
         report: &mut dyn FnMut(FetchProgress),
     ) -> Result<Vec<u8>, FetchError> {
         *self.calls.borrow_mut() += 1;
@@ -432,4 +433,41 @@ fn selecting_a_channel_clears_the_previous_offer() {
         snapshot.availability,
         longhorn_update::UpdateAvailabilityProjection::UpToDate
     ));
+}
+
+/// The epoch is real now: a channel switch replaces the authority context,
+/// so commands issued against the pre-switch snapshot refuse as stale.
+#[test]
+fn a_channel_switch_advances_the_epoch_and_refuses_pre_switch_commands() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let switched = controller.select_channel(&UpdateSelectChannelCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+        channel: Channel::Beta,
+    });
+    assert_eq!(committed(&switched).authority_epoch, 2);
+
+    // A command still carrying the pre-switch epoch is stale...
+    let outdated = controller.check(&command, &manifest, CheckKind::Automatic);
+    assert_eq!(rejection(&outdated), UpdateRejectionCode::StaleAuthority);
+
+    // ...and one carrying the new epoch commits. The manifest is Production
+    // while the build now follows Beta — the Card 201 refusal — so use a
+    // manifest matching the selected channel.
+    let mut beta = manifest;
+    beta.channel = Channel::Beta;
+    let current = controller.check(
+        &UpdateCheckCommand {
+            protocol_version: UpdateProtocolVersion::CURRENT,
+            authority_epoch: 2,
+        },
+        &beta,
+        CheckKind::Automatic,
+    );
+    committed(&current);
 }

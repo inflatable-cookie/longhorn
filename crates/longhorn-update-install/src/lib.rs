@@ -63,6 +63,14 @@ use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact
 /// a crashed or failed install left behind.
 const STAGING_PREFIX: &str = ".longhorn-update-";
 
+/// The most one artifact may unpack to.
+///
+/// The archive is gzip: a small download can expand without bound, and the
+/// signature over it proves origin, not intent. Four GiB is far past any
+/// desktop application bundle this crate will meet and still finite, which
+/// is the whole point.
+const MAX_EXTRACTED_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+
 /// Escalates a replacement the current user cannot perform.
 ///
 /// Injected because escalation is host and platform policy, and because
@@ -134,6 +142,7 @@ impl<E: PrivilegedReplace> UpdateInstaller for NativeInstaller<E> {
         let parent = self.target.parent().ok_or_else(|| InstallFailure::Failed {
             detail: "install target has no parent directory".to_owned(),
         })?;
+        self.restore_if_displaced()?;
         sweep_staging(parent);
 
         // A unique, exclusively-created staging directory: a pre-planted
@@ -198,6 +207,22 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
             .replace(staged, &self.target)
             .map_err(|detail| InstallFailure::NotWritable { detail })
     }
+
+    /// Puts back an install a crash displaced.
+    ///
+    /// `swap` renames the target aside before the staged bundle moves in. A
+    /// kill between the two renames leaves the application missing and a
+    /// `*.longhorn-previous` backup beside the gap; the next apply restores
+    /// it before attempting anything new, so a crashed update can never cost
+    /// the install it was replacing. A backup beside an *existing* target is
+    /// leftover from after a successful swap and is cleared there instead.
+    fn restore_if_displaced(&self) -> Result<(), InstallFailure> {
+        let backup = self.target.with_extension("longhorn-previous");
+        if self.target.exists() || !backup.exists() {
+            return Ok(());
+        }
+        fs::rename(&backup, &self.target).map_err(|error| classify(&error, &self.target))
+    }
 }
 
 /// Extracts a gzip tar into `staging`, returning the unpacked root.
@@ -219,6 +244,7 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
         })?;
 
     let mut root: Option<PathBuf> = None;
+    let mut declared_bytes: u64 = 0;
     for entry in entries {
         let mut entry = entry.map_err(|error| InstallFailure::MalformedArtifact {
             detail: error.to_string(),
@@ -266,6 +292,20 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
 
         if root.is_none() {
             root = safe.components().next().map(|first| staging.join(first));
+        }
+
+        // The declared sizes are the archive's own claim — the only bound
+        // available before a byte is written. A header understating its
+        // payload desyncs the entry stream and fails as malformed.
+        declared_bytes = declared_bytes.saturating_add(entry.header().size().map_err(|error| {
+            InstallFailure::MalformedArtifact {
+                detail: error.to_string(),
+            }
+        })?);
+        if declared_bytes > MAX_EXTRACTED_BYTES {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: format!("archive exceeds the {MAX_EXTRACTED_BYTES}-byte extraction quota"),
+            });
         }
 
         let destination = staging.join(&safe);

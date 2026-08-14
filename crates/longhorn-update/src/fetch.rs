@@ -61,6 +61,16 @@ impl FetchProgress {
     }
 }
 
+/// The most one artifact transfer may deliver.
+///
+/// The artifact host is untrusted infrastructure (contract 018) and the
+/// signature is checked only after the bytes arrive, so the transfer itself
+/// must be finite. Two GiB is far past any desktop application bundle and
+/// still bounded, which is the whole point. A host that hits the limit
+/// reports [`FetchError::Unavailable`]: the source answered, and not with a
+/// usable artifact.
+pub const MAX_ARTIFACT_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+
 /// Performs one artifact transfer.
 ///
 /// Implemented by the host, called by the controller — the same shape as
@@ -79,9 +89,14 @@ pub trait ArtifactFetch {
     /// `report` is called as bytes arrive. How often is the host's business:
     /// the controller records whatever it is told and does not require a
     /// cadence, because a source that delivers in one chunk cannot invent one.
+    ///
+    /// The transfer must stop at `limit` bytes — the controller passes
+    /// [`MAX_ARTIFACT_BYTES`]. Past it, fail with [`FetchError::Unavailable`]
+    /// rather than buffering further.
     fn fetch(
         &self,
         request: &SourceRequest,
+        limit: u64,
         report: &mut dyn FnMut(FetchProgress),
     ) -> Result<Vec<u8>, FetchError>;
 }

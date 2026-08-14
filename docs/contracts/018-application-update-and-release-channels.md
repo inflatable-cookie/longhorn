@@ -69,6 +69,10 @@ terms as the macOS path.
 - Because every artifact is verified against a key compiled into the
   application, the artifact host is untrusted infrastructure. No adapter may
   claim a security property on the basis of its transport.
+- Untrusted infrastructure bounds resources too: the transfer stops at
+  `MAX_ARTIFACT_BYTES` (2 GiB) and extraction at a 4 GiB declared-size quota.
+  A signature proves origin, not intent, and size is a resource dimension the
+  signature does not cover.
 - An update whose signature does not verify is not an error to be reported
   and retried. It is discarded.
 
@@ -165,6 +169,10 @@ terms as the macOS path.
   reporting failure is false and invites retrying an update they already
   have. This is not hypothetical — macOS relaunch is known to fail
   (tauri#11392).
+- A crash between the swap's two renames is recovered, not reported: the
+  next apply restores the displaced `*.longhorn-previous` install before
+  attempting anything new. Rollback as a user-facing feature stays a
+  non-goal; never bricking the install is a mechanism property.
 - A refused install is deferred, never cancelled, and carries its reason.
 
 ## Diagnostics

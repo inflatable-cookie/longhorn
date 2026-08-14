@@ -51,6 +51,14 @@ pub struct UpdateController<'port> {
     key: ArtifactKey,
     source: &'port dyn UpdateSource,
     fetch: &'port dyn ArtifactFetch,
+    /// Optimistic concurrency for commands, not a replay ledger.
+    ///
+    /// Advances when the controller's authority context is replaced —
+    /// today that is `select_channel`. A command carries the epoch from the
+    /// snapshot it was issued against, so one issued before a channel switch
+    /// is refused as stale rather than applied to state it never saw. A
+    /// process restart resets the epoch to 1, which is honest: commands do
+    /// not survive a restart, and re-executing a check is idempotent.
     authority_epoch: u64,
     manifest: Option<ChannelManifest>,
     availability: UpdateAvailability,
@@ -163,6 +171,10 @@ impl<'port> UpdateController<'port> {
         }
 
         self.build.channel = command.channel;
+        // The authority context was replaced: commands issued against the
+        // pre-switch snapshot must refuse rather than act on state they
+        // never saw. This is what makes `StaleAuthority` fireable.
+        self.authority_epoch += 1;
         self.manifest = None;
         self.availability = UpdateAvailability::UpToDate;
         self.deferral = None;
@@ -216,8 +228,9 @@ impl<'port> UpdateController<'port> {
         let mut observed: Option<FetchProgress> = None;
         let bytes = match self
             .fetch
-            .fetch(&request, &mut |progress| observed = Some(progress))
-        {
+            .fetch(&request, crate::MAX_ARTIFACT_BYTES, &mut |progress| {
+                observed = Some(progress);
+            }) {
             Ok(bytes) => bytes,
             Err(error) => {
                 self.progress = UpdateProgressProjection::Idle;

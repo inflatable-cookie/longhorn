@@ -379,6 +379,73 @@ fn an_in_tree_symlink_is_part_of_a_valid_bundle() {
 }
 
 #[test]
+fn a_crash_mid_swap_is_recovered_and_the_update_completes() {
+    // The swap renamed the target aside and died before the staged bundle
+    // moved in: the application is missing and a backup sits beside the gap.
+    let fixture = Fixture::new();
+    let backup = fixture.target.with_extension("longhorn-previous");
+    fs::rename(&fixture.target, &backup).unwrap();
+    assert!(!fixture.target.exists());
+
+    let (bytes, signature) = fixture.fixtures.valid();
+    fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature))
+        .expect("the displaced install is restored, then replaced");
+
+    assert_eq!(fixture.marker(), "new");
+    assert!(!backup.exists(), "the backup was consumed by the recovery");
+}
+
+#[test]
+fn a_displaced_install_is_restored_even_when_the_new_artifact_fails() {
+    // Recovery is not conditional on the new attempt succeeding — a crashed
+    // update must never cost the install it was replacing.
+    let fixture = Fixture::new();
+    let backup = fixture.target.with_extension("longhorn-previous");
+    fs::rename(&fixture.target, &backup).unwrap();
+
+    let (bytes, signature) = fixture.fixtures.signed_but_unusable().unwrap();
+    drop(
+        fixture
+            .installer()
+            .apply(&verified(&fixture, bytes, &signature)),
+    );
+
+    assert_eq!(fixture.marker(), "old");
+    assert!(!backup.exists());
+}
+
+#[test]
+fn an_archive_overstaying_the_extraction_quota_is_refused() {
+    // The quota reads declared sizes, so a header claiming five gigabytes for
+    // a four-byte payload trips it before a byte is unpacked.
+    let fixture = Fixture::new();
+    let contents = b"tiny";
+    let mut header = tar::Header::new_gnu();
+    header.set_size(5 * 1024 * 1024 * 1024 + 1);
+    header.set_mode(0o644);
+    header.set_entry_type(tar::EntryType::Regular);
+    let name = b"Example.app/Contents/big";
+    header.as_gnu_mut().unwrap().name[..name.len()].copy_from_slice(name);
+    header.set_cksum();
+    let mut builder = tar::Builder::new(GzEncoder::new(Vec::new(), Compression::default()));
+    builder.append(&header, &contents[..]).unwrap();
+    let overstating = builder.into_inner().unwrap().finish().unwrap();
+    let signature = sign(&fixture.fixtures.pair, &overstating);
+
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, overstating, &signature));
+
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+        "expected a quota refusal, found {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
 #[cfg(unix)]
 fn a_stale_staging_directory_and_a_planted_link_are_swept_on_apply() {
     let fixture = Fixture::new();

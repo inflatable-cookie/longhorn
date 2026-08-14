@@ -454,6 +454,7 @@ impl ArtifactFetch for LoopbackFetch {
     fn fetch(
         &self,
         request: &SourceRequest,
+        limit: u64,
         report: &mut dyn FnMut(FetchProgress),
     ) -> Result<Vec<u8>, FetchError> {
         self.calls.set(self.calls.get() + 1);
@@ -502,6 +503,11 @@ impl ArtifactFetch for LoopbackFetch {
             }
             if let Some(start) = header_end {
                 let received = (raw.len() - start) as u64;
+                if received > limit {
+                    return Err(FetchError::Unavailable {
+                        detail: format!("artifact exceeded the {limit}-byte transfer bound"),
+                    });
+                }
                 let progress = match expected {
                     Some(total) => FetchProgress::of(received, total),
                     None => FetchProgress::unbounded(received),
@@ -625,7 +631,11 @@ fn drive_controller(
         .map_err(|error| error.to_string())?;
     let mut discard = |_: FetchProgress| {};
     let served_manifest = fetch
-        .fetch(&manifest_request, &mut discard)
+        .fetch(
+            &manifest_request,
+            longhorn_update::MAX_ARTIFACT_BYTES,
+            &mut discard,
+        )
         .map_err(|error| error.to_string())?;
     let parsed: ChannelManifest =
         serde_json::from_slice(&served_manifest).map_err(|error| error.to_string())?;

@@ -47,9 +47,12 @@ signed-downgrade mechanism (minisign trusted comment) is already identified in
 
 ### Batch 2. Crash honesty
 
-- [ ] [Card 202](batch-cards/202-install-atomicity-and-recovery.md): startup
+- [x] [Card 202](batch-cards/202-install-atomicity-and-recovery.md): startup
   recovery sweep for `*.longhorn-previous`; a mid-swap kill test; resource
   bounds on fetch and extraction; `authority_epoch` made real or removed.
+  **Landed 2026-08-14** — unconditional restore in `apply`,
+  `MAX_ARTIFACT_BYTES` on the fetch signature, 4 GiB extraction quota, epoch
+  advances on `select_channel`; contract 018 amended.
 
 ### Batch 3. Escalation and downgrade
 
@@ -99,8 +102,9 @@ amends the contract the others conform to.
 
 ## Next Task
 
-Card 202. Crash honesty: recovery for a kill mid-swap, byte bounds on fetch
-and extraction, and the `authority_epoch` decision.
+Card 203. The last card in the milestone: the `PrivilegedReplace`
+implementor's contract and the signed-downgrade decision, amending contract
+018 over what 200-202 landed.
 
 ## Planning Checkpoint
 
