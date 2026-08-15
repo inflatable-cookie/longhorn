@@ -15,9 +15,12 @@ use crate::generation::{
     tagged_variants, variant_field_map,
 };
 
+mod fixture;
+
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/licence/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/licence/generated/fields.ts";
 const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/licence/generated/variant-fields.ts";
+const GOLDEN_FIXTURE: &str = "fixtures/licence/protocol-v1.json";
 /// Cases the TypeScript key parser must agree with the Rust one on.
 ///
 /// Generated rather than hand-kept: two implementations of one format drift,
@@ -54,6 +57,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             Artifact {
                 relative_path: GENERATED_KEY_CONFORMANCE,
                 contents: protocol.key_conformance,
+            },
+            Artifact {
+                relative_path: GOLDEN_FIXTURE,
+                contents: fixture::render()?,
             },
         ],
     )

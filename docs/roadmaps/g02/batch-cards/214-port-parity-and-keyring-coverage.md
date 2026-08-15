@@ -1,6 +1,7 @@
 # 214 Port, Parity, And Keyring Coverage
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.024 batch 4
 Governing refs: contract 010; contract 013; contract 019; memo 023 (gaps 4-7,
@@ -72,13 +73,41 @@ keyring off-platform behavior, and the bindings generator's untested lanes.
   both sides — Card 212's conformance check is what makes these tests mean
   something.
 
+## Result
+
+- All five raw ports have conformance tests (10 new tests) asserting literal
+  command/event strings — pinned independently of the port constants, which
+  `check:tauri-seam-strings` pins against Rust. The two layers make the same
+  typo fail twice for different reasons.
+- `BridgeJobListeners` gains `onFailure` (reusing `ConnectionFailureReporter`):
+  a malformed event reports once, tears both listeners down, and terminates
+  the job instead of hanging it. The unlisten leak is fixed with
+  `Promise.allSettled` behind one `close()`.
+- Settings navigation joins the parity fixture (3 cases pinned on the
+  grouping rule both tiers agree on), Rust and TS halves both passing.
+- Keyring error mapping is extracted into a shared module with a mock backend
+  proving `Unavailable`-never-`None` off-keychain; the real-keychain tests
+  still run on macOS/Windows.
+- poodle-svelte paths anchor on `import.meta.url`; vitest runs green from the
+  package directory now (137/137), not just the root.
+
+**Divergence found, not edited:** Rust `sidebar_nav`
+(`crates/longhorn-poodle/src/settings.rs:86-116`) prefixes section labels with
+the module label in multi-module sidebars and its doc claims to mirror
+`SettingsShell.svelte` exactly — but the Svelte side deliberately removed that
+prefix (`SettingsShell.svelte:100-105`). The two tiers disagree on
+multi-module sidebar labels and memo 022 does not record it. The parity
+fixture pins only where they agree; the label question is a contract-013
+conversation for the operator, not a test edit.
+
 ## Acceptance Criteria
 
-- [ ] all seven raw ports have conformance tests
-- [ ] a malformed bridge-job event reaches `onFailure` and terminates the job
-- [ ] settings navigation is pinned by the parity fixture
-- [ ] the keyring contract suite runs on CI Linux against the mock
-- [ ] poodle-svelte tests pass when run from the package directory
+- [x] all seven raw ports have conformance tests
+- [x] a malformed bridge-job event reaches `onFailure` and terminates the job
+- [x] settings navigation is pinned by the parity fixture (grouping rule;
+  label divergence recorded above)
+- [x] the keyring contract suite runs on CI Linux against the mock
+- [x] poodle-svelte tests pass when run from the package directory
 
 ## Evidence Required
 

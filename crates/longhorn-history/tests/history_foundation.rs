@@ -12,6 +12,8 @@ mod navigation_failures;
 mod navigation_pulse_shaped;
 #[path = "history_foundation/persistence.rs"]
 mod persistence;
+#[path = "history_foundation/persistence_fuzz.rs"]
+mod persistence_fuzz;
 #[path = "history_foundation/persistence_pulse_shaped.rs"]
 mod persistence_pulse_shaped;
 #[path = "history_foundation/projection.rs"]

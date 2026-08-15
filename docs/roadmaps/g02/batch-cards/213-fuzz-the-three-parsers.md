@@ -1,6 +1,7 @@
 # 213 Fuzz The Three Parsers
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.024 batch 3
 Governing refs: contract 004; contract 008; memo 023 (coverage gap 2)
@@ -52,12 +53,32 @@ it in scope.
   a heavier commitment this card does not take.
 - Tune properties until they pass. A failing property is the card working.
 
+## Result
+
+All three parsers have proptest suites at 64 fixed cases each; **the findings
+list is empty** — zero panics, zero misclassifications, zero
+non-determinism across six properties. The audit's read held under generated
+input, which is the strongest evidence the parsers now have.
+
+- Zip inspector (`longhorn-config/.../archive/tests.rs`): arbitrary and
+  mutated archives (bit flips, truncation, EOCD/central-header length lies)
+  inspect deterministically, failures stay typed, and any accepted output
+  hashes back to the exact input.
+- `parse_utc_timestamp`: calendar-valid generated timestamps round-trip
+  against an independent reference computation; arbitrary strings accept only
+  the documented grammar and never panic.
+- History envelope decoders (both crates): mutated envelopes fail classified
+  or re-encode cleanly.
+
+Measured added cost: ~0.2s across all suites. One gate pin followed the work:
+`verify-history-tree-artifacts.ts`'s test-count assertion moved 51 → 53 with
+its comment extended (the pin is deliberate; the bump is the recorded kind).
+
 ## Acceptance Criteria
 
-- [ ] all three parsers have property suites running in `qa`
-- [ ] every crash or misclassification found is fixed or recorded as a
-  contract issue
-- [ ] the added gate cost is measured and under a recorded bound
+- [x] all three parsers have property suites running in `qa`
+- [x] every crash or misclassification found is fixed or recorded — none found
+- [x] the added gate cost is measured and under a recorded bound (~0.2s)
 
 ## Evidence Required
 

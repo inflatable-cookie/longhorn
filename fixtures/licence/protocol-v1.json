@@ -1,0 +1,505 @@
+{
+  "activateCommands": [
+    {
+      "authorityEpoch": 7,
+      "credential": {
+        "key": "ABCDE-12345-FGHJK-6789X",
+        "kind": "key"
+      },
+      "label": "Studio iMac",
+      "protocolVersion": 1
+    },
+    {
+      "authorityEpoch": 7,
+      "credential": {
+        "kind": "accountToken",
+        "token": "account-token-fixture"
+      },
+      "label": null,
+      "protocolVersion": 1
+    },
+    {
+      "authorityEpoch": 7,
+      "credential": {
+        "contentsBase64": "AAECAwQ=",
+        "kind": "licenceFile"
+      },
+      "label": null,
+      "protocolVersion": 1
+    }
+  ],
+  "changedEvent": {
+    "authorityEpoch": 7,
+    "kind": "activated",
+    "protocolVersion": 1
+  },
+  "deactivateCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1
+  },
+  "graceSnapshot": {
+    "authorityEpoch": 7,
+    "licence": {
+      "entitlements": [
+        {
+          "atMost": null,
+          "id": "pro"
+        },
+        {
+          "atMost": 5,
+          "id": "seats"
+        }
+      ],
+      "product": "longhorn",
+      "seats": [],
+      "trustBasis": {
+        "checked": 1784999400,
+        "kind": "remoteAssertion"
+      },
+      "updateUntil": 1790000000,
+      "usability": {
+        "state": "inGrace",
+        "until": 1785000000
+      },
+      "useUntil": 1800000000
+    },
+    "protocolVersion": 1
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownChangedKind": "futureKind",
+    "unknownCredentialKind": "passkey",
+    "unknownOutcomeStatus": "uncertain",
+    "unknownRejectionCode": "futureRejection",
+    "unknownTrustBasisKind": "notarized",
+    "unknownUsabilityState": "suspended"
+  },
+  "outcomes": [
+    {
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "committed"
+    },
+    {
+      "code": "malformed",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "notRecognised",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "noSeatsFree",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "revoked",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "clockRefused",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "staleAuthority",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "seatNotFound",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "unreachable",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "licence": {
+          "entitlements": [
+            {
+              "atMost": null,
+              "id": "pro"
+            },
+            {
+              "atMost": 5,
+              "id": "seats"
+            }
+          ],
+          "product": "longhorn",
+          "seats": [
+            {
+              "label": "Studio iMac",
+              "machineId": "m-fixture-this-machine",
+              "thisMachine": true
+            },
+            {
+              "label": null,
+              "machineId": "m-fixture-old-macbook",
+              "thisMachine": false
+            }
+          ],
+          "trustBasis": {
+            "kind": "offlineSignature"
+          },
+          "updateUntil": 1790000000,
+          "usability": {
+            "state": "active"
+          },
+          "useUntil": 1800000000
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    }
+  ],
+  "protocolVersion": 1,
+  "refreshCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1
+  },
+  "releaseSeatCommand": {
+    "authorityEpoch": 7,
+    "machineId": "m-fixture-old-macbook",
+    "protocolVersion": 1
+  },
+  "renameSeatCommand": {
+    "authorityEpoch": 7,
+    "label": "The old MacBook",
+    "machineId": "m-fixture-old-macbook",
+    "protocolVersion": 1
+  },
+  "snapshot": {
+    "authorityEpoch": 7,
+    "licence": {
+      "entitlements": [
+        {
+          "atMost": null,
+          "id": "pro"
+        },
+        {
+          "atMost": 5,
+          "id": "seats"
+        }
+      ],
+      "product": "longhorn",
+      "seats": [
+        {
+          "label": "Studio iMac",
+          "machineId": "m-fixture-this-machine",
+          "thisMachine": true
+        },
+        {
+          "label": null,
+          "machineId": "m-fixture-old-macbook",
+          "thisMachine": false
+        }
+      ],
+      "trustBasis": {
+        "kind": "offlineSignature"
+      },
+      "updateUntil": 1790000000,
+      "usability": {
+        "state": "active"
+      },
+      "useUntil": 1800000000
+    },
+    "protocolVersion": 1
+  },
+  "unlicensedSnapshot": {
+    "authorityEpoch": 7,
+    "licence": null,
+    "protocolVersion": 1
+  }
+}

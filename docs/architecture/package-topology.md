@@ -10,7 +10,6 @@ Contract: `../contracts/012-distribution-and-compatibility.md`
 ```text
 crates/       Rust domain libraries and host adapters
 packages/     TypeScript, Svelte, and Poodle packages
-tools/        binding and repository tools
 examples/     composition and artifact-install proofs
 fixtures/     cross-language and consumer-neutral fixtures
 ```
@@ -28,13 +27,11 @@ discovery and validation entry points.
 | `longhorn-display` | known/observed displays and correlation | core |
 | `longhorn-windowing` | placement, desired/apply plans, pure event attribution and settling, host-agnostic capture/flush model and placement port | core, display |
 | `longhorn-windowing-config` | consumer-domain placement staging and coordinated flush | core, config, windowing |
-| `longhorn-layout` | containers, regions, panels, normalization | core |
-| `longhorn-layout-config` | registered layout domains, coordinated mutation, debounce, and flush | core, config, layout |
-| `longhorn-surfaces` | optional Surface identity, topology, lifecycle, and pure host resolution | core |
-| `longhorn-surfaces-config` | registered Surface domains and coordinated lifecycle publication | core, config, layout, surfaces |
+| `longhorn-surfaces` | optional Surface identity, topology, lifecycle, pure host resolution, and the layout engine (regions, panels, normalization); a Surface is the layout | core |
+| `longhorn-surfaces-config` | registered Surface and layout domains, coordinated lifecycle publication, layout mutation, debounce, and digest | core, config, surfaces |
 | `longhorn-surface-windowing` | optional pure Surface/window plan projection and ordered shutdown | core, surfaces, windowing |
-| `longhorn-transfer` | bounded sessions, leased targets, deterministic target resolution, and same-document panel commit | core, config, layout, layout-config |
-| `longhorn-surface-transfer` | optional whole-Surface transfer and receipted provision coordination | core, config, layout, surfaces, surfaces-config, transfer |
+| `longhorn-transfer` | bounded sessions, leased targets, deterministic target resolution, and same-document panel commit | core, config, surfaces, surfaces-config |
+| `longhorn-surface-transfer` | optional whole-Surface transfer and receipted provision coordination | core, config, surfaces, surfaces-config, transfer |
 | `longhorn-settings` | optional sealed settings registry, authority protocol, snapshots, commands, and receipts | core |
 | `longhorn-settings-config` | registered config-domain apply units plus storage, backup, restore, and recovery modules | core, config, settings |
 | `longhorn-command` | optional sealed command/context registry, admission, keyboard/keymap resolution, search, and projections | core |
@@ -51,9 +48,11 @@ discovery and validation entry points.
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
 | `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
+| `longhorn-credential-keyring` | opt-in host-agnostic platform keychain backend for the licence `CredentialStore`; locked is not absent | licence, `keyring` |
 | `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, the restart interlock (gate plus quiescence probes), and installation-provenance classification | core, semver, sha2 |
 | `longhorn-update-install` | Longhorn's update installer, one implementation for every host: minisign verification, bounded extraction, atomic replacement, injected escalation, and the installation-provenance probe | update, minisign-verify, tar, flate2 |
 | `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | serde |
+| `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
 | `longhorn-tauri-windowing` | checked Tauri observation, managed identity, native mutation, lifecycle, capture, reveal, and flush | core, display, windowing, Tauri |
@@ -61,8 +60,10 @@ discovery and validation entry points.
 | `longhorn-tauri-settings` | settings command/event handler assembly over injected authorities | core, settings, Tauri |
 | `longhorn-tauri-command` | command catalogue/keymap query, preview, and mutation assembly; no generic execution | core, command, command-config, Tauri |
 | `longhorn-tauri-history` | registered metadata query and navigation assembly over injected history authorities | core, history, Tauri |
+| `longhorn-tauri-licence` | narrow Tauri seam for the injected licence authority; credential material crosses inward only | core, licence, Tauri |
 | `longhorn-tauri-operation` | read, manage, and cancel handlers over injected operation authority and executor ports | core, operation, Tauri |
 | `longhorn-tauri-notifications` | bounded page and mutation handlers over an injected notification authority; app-wide invalidation hints | notifications, Tauri |
+| `longhorn-tauri-update` | narrow Tauri seam for the injected update controller: commands, capability split, invalidation hint | core, update, Tauri |
 | `longhorn-gpui-windowing` | GPUI host adapter: window create/destroy/observe, creation-time placement, lifecycle translation, synchronous close decision, quiescence probe, and refusal-typed display facts. Takes no `gpui` dependency — the backend is an injected seam, bound to real GPUI in `prototypes/gpui-windowing` | core, display, update, windowing |
 | `longhorn-bindings` | checked TypeScript generation | publishable domains |
 
@@ -72,8 +73,11 @@ there is no all-capabilities `longhorn-tauri` crate.
 A `tauri-*` prefix means a Tauri dependency, not a role. `longhorn-tauri-update`
 carried the prefix without the dependency and was absorbed into
 `longhorn-update` on 2026-08-09: its restart interlock is pure policy and
-belonged with the rest of it. `longhorn-update-native` became
-`longhorn-update-install` in the same pass, because `-native` implied a
+belonged with the rest of it. The name returned on 2026-08-12 with the
+dependency to match — the crate now holds only the Tauri seam (commands,
+capability split, invalidation hint) for the `UpdateController` that stays in
+`longhorn-update`. `longhorn-update-native` became
+`longhorn-update-install` in the same 2026-08-09 pass, because `-native` implied a
 fallback to a plugin path that contract 018 no longer has.
 
 Host adapters are per-backend and an application composes exactly one.
@@ -355,12 +359,10 @@ authority seams. See
 core
 ├─ config
 ├─ display ─ windowing
-├─ layout ─ layout-config ─ config
-├─ surfaces ┬─ surfaces-config ─ config
-│           └─ surface-windowing ─ windowing
+├─ surfaces (layout engine) ─ surfaces-config ─ config
+│    └─ surface-windowing ─ windowing
 ├─ transfer ─ surface-transfer
-│    ├─ windowing
-│    └─ layout-config
+│    └─ surfaces-config
 ├─ settings ┬─ settings-config ─ config
 │           └─ command-settings
 ├─ command ─ command-config
@@ -401,7 +403,7 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
   promotion gate passes.
 - Service supervision and production network transports are optional adapter
   edges. Removing them leaves direct and Tauri-local compositions intact.
-- The settings root imports no layout, Surface, command, history, backend,
+- The settings root imports no Surface, command, history, backend,
   Svelte, or Poodle package.
 - `longhorn-settings-config` binds one built-in apply unit to one config domain;
   broader atomicity requires an explicit consumer transaction authority.

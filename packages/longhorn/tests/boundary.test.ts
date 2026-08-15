@@ -7,22 +7,15 @@ const metadata = JSON.parse(
   readFileSync(new URL("package.json", packageRoot), "utf8"),
 ) as Record<string, unknown>;
 
-const DOMAINS = [
-  "bridge",
-  "commands",
-  "config",
-  "core",
-  "history",
-  "history-tree",
-  "layout",
-  "native-content",
-  "notifications",
-  "operation",
-  "settings",
-  "surface-transfer",
-  "surfaces",
-  "transfer",
-];
+// Derived, not enumerated: a hand-kept list drifts the moment a domain is
+// added without editing this test, which is exactly the failure the export
+// loop below exists to catch. Every `src/` subdirectory is a domain root.
+const DOMAINS = readdirSync(new URL("../src", import.meta.url), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -61,6 +54,7 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
     const forbidden = [
       "@tauri-apps",
       'from "svelte"',
+      "/// <reference types=\"svelte\"",
       "@inflatable-cookie/poodle-",
       "@inflatable-cookie/longhorn-poodle-svelte",
       "@inflatable-cookie/longhorn-tauri",
@@ -76,6 +70,10 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
 
   test("domain roots expose their clients and hide their adapters", async () => {
     const table: Record<string, { present: string[]; absent: string[] }> = {
+      licence: {
+        present: ["LicenceClient", "LicenceController"],
+        absent: ["createTauriLicencePort"],
+      },
       "native-content": {
         present: ["NativeContentClient", "SerializedNativeContentPort"],
         absent: [],
@@ -96,6 +94,10 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
           "OperationSession",
           "OperationPanel",
         ],
+      },
+      update: {
+        present: ["UpdateClient", "UpdateController"],
+        absent: ["createTauriUpdatePort"],
       },
     };
     for (const [domain, { present, absent }] of Object.entries(table)) {

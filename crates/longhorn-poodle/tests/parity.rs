@@ -249,6 +249,92 @@ fn a_toast_carries_the_first_action_and_no_more() {
     }
 }
 
+#[test]
+fn settings_navigation_groups_as_the_fixture_states() {
+    use longhorn_core::{SettingsModuleId, SettingsPageId, SettingsRendererId, SettingsSectionId};
+    use longhorn_settings::{
+        SettingsLimits, SettingsModuleDefinition, SettingsPageDefinition, SettingsPageFeatures,
+        SettingsRegistryBuilder, SettingsRegistryGeneration, SettingsRendererDefinition,
+        SettingsSectionDefinition,
+    };
+
+    fn order(value: &Value) -> i32 {
+        i32::try_from(value["order"].as_i64().expect("order")).expect("order fits i32")
+    }
+
+    for case in cases("settingsNavigation") {
+        let mut builder = SettingsRegistryBuilder::new(
+            SettingsRegistryGeneration::new(1),
+            SettingsLimits::default(),
+        );
+        for module in case["modules"].as_array().expect("modules") {
+            let id = text(module, "id");
+            builder
+                .register_module(SettingsModuleDefinition {
+                    id: SettingsModuleId::new(id.clone()).expect("module id"),
+                    label: text(module, "label"),
+                    order: order(module),
+                })
+                .expect("module");
+            builder
+                .register_renderer(SettingsRendererDefinition {
+                    id: SettingsRendererId::new(format!("{id}:renderer")).expect("renderer id"),
+                    module_id: SettingsModuleId::new(id).expect("module id"),
+                })
+                .expect("renderer");
+        }
+        for section in case["sections"].as_array().expect("sections") {
+            builder
+                .register_section(SettingsSectionDefinition {
+                    id: SettingsSectionId::new(text(section, "id")).expect("section id"),
+                    module_id: SettingsModuleId::new(text(section, "moduleId")).expect("module id"),
+                    label: text(section, "label"),
+                    order: order(section),
+                })
+                .expect("section");
+        }
+        for page in case["pages"].as_array().expect("pages") {
+            let module_id = text(page, "moduleId");
+            builder
+                .register_page(SettingsPageDefinition {
+                    id: SettingsPageId::new(text(page, "id")).expect("page id"),
+                    module_id: SettingsModuleId::new(module_id.clone()).expect("module id"),
+                    section_id: SettingsSectionId::new(text(page, "sectionId"))
+                        .expect("section id"),
+                    renderer_id: SettingsRendererId::new(format!("{module_id}:renderer"))
+                        .expect("renderer id"),
+                    label: text(page, "label"),
+                    keywords: Vec::new(),
+                    order: order(page),
+                    anchors: Vec::new(),
+                    required_capabilities: Vec::new(),
+                    readable_scope_ids: Vec::new(),
+                    writable_apply_unit_ids: Vec::new(),
+                    features: SettingsPageFeatures::default(),
+                })
+                .expect("page");
+        }
+        let registry = builder.seal(Vec::new()).expect("seal");
+
+        let rendered: Vec<Value> = longhorn_poodle::settings::navigation(&registry)
+            .iter()
+            .map(|module| {
+                serde_json::json!({
+                    "module": module.module.id.as_str(),
+                    "sections": module.sections.iter().map(|section| {
+                        serde_json::json!({
+                            "section": section.section.id.as_str(),
+                            "pages": section.pages.iter().map(|page| page.id.as_str()).collect::<Vec<_>>(),
+                        })
+                    }).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+
+        assert_eq!(serde_json::json!(rendered), case["expect"], "{case}");
+    }
+}
+
 fn domain_with(
     compatibility: RestoreDomainCompatibilityProjection,
 ) -> longhorn_config::RestoreDomainInspectionProjection {

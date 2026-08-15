@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { URL as NodeURL, fileURLToPath } from "node:url";
 
 import type {
   LayoutMutationRequest,
@@ -33,9 +33,13 @@ export function deferred<T>(): Deferred<T> {
 }
 
 export function loadShape(name: "window-bound" | "surface-bound"): Shape {
-  const path = resolve(
-    process.cwd(),
-    `fixtures/layout/${name}-conformance-v1.json`,
+  // Node's URL, not the global: happy-dom shadows `URL` with a window
+  // implementation that resolves a file-scheme base against the page location.
+  const path = fileURLToPath(
+    new NodeURL(
+      `../../../../fixtures/layout/${name}-conformance-v1.json`,
+      import.meta.url,
+    ),
   );
   const fixture = JSON.parse(readFileSync(path, "utf8")) as {
     definitions: {

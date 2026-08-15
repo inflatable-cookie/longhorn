@@ -13,7 +13,7 @@ fn panel(value: &str) -> PanelDefinitionId {
     PanelDefinitionId::new(value).unwrap()
 }
 
-// The engine borrows its container inventory, so it is built per call rather
+// The engine borrows its definition registry, so it is built per call rather
 // than returned from a helper.
 fn attempt(
     document: &SurfaceDocument,

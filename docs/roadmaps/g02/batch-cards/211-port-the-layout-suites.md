@@ -1,6 +1,7 @@
 # 211 Port The Layout Suites
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.024 batch 1
 Governing refs: contract 002 (absorbed sections); memo 023 (coverage gap 1)
@@ -53,13 +54,42 @@ deleted with the crate and the store has zero references repo-wide.
   The contract's absorbed sections are the arbiter.
 - Port test *volume* for its own sake — port the specified behaviors.
 
+## Result
+
+All 56 deleted tests ported, and the port was mechanical in the way that
+matters: **the divergence list is empty.** Every recovered test passed
+against the absorbed engine after renames alone (`LayoutContainerId`→
+`SurfaceId`, `LayoutDocument`→`SurfaceDocument`, and the rest of the Card 179
+mapping) — the absorption kept the semantics the suites specified.
+
+- `crates/longhorn-surfaces/tests/layout_model.rs` (+ support, definitions,
+  donors, state, visibility, mutation/{success,failures,policy,replay,
+  donors}) — 38 tests over the engine: commit semantics, exact-source
+  preservation on rejection, instance-count policies, donor shapes.
+- `crates/longhorn-surfaces-config/tests/layout_config.rs` (+ support,
+  debounce, loading, mutation, backup) — 18 tests over the debounce lane
+  (including cross-process coordination timeout), loading/migration, and
+  backup policy.
+- The stale "container inventory" comment in
+  `surface_contract/mutation/presentation.rs` is fixed.
+
+Replay disposition: the ported `mutation/replay.rs` exercises
+`apply_with_replay` and `BoundedLayoutReplayStore` meaningfully — exact
+replay, request-id conflict, bounded eviction — so the held-surface
+register's "exercised by contract tests" line is true again. It still has no
+production caller; that is the register's fact to carry, not a reason to
+invent one.
+
+Counts: longhorn-surfaces 24 → 62, longhorn-surfaces-config 10 → 28.
+
 ## Acceptance Criteria
 
-- [ ] panel-mutation commands, sizing slots, visibility, and policy have tests
+- [x] panel-mutation commands, sizing slots, visibility, and policy have tests
   where the engine lives
-- [ ] the debounce lane is tested in `longhorn-surfaces-config`
-- [ ] `apply_with_replay` has a caller and tests, or is gone
-- [ ] every non-mechanical divergence is recorded
+- [x] the debounce lane is tested in `longhorn-surfaces-config`
+- [x] `apply_with_replay` has tests — it has no caller, and the register says
+  exactly that
+- [x] every non-mechanical divergence is recorded — there were none
 
 ## Evidence Required
 

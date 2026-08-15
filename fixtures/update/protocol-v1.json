@@ -1,0 +1,359 @@
+{
+  "aheadSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "channel": "1.2.9",
+      "installed": "1.3.0-nightly.4",
+      "state": "aheadOfChannel"
+    },
+    "channel": "nightly",
+    "deferral": null,
+    "installedVersion": "1.3.0-nightly.4",
+    "progress": {
+      "state": "readyToInstall",
+      "version": "1.3.0-nightly.5"
+    },
+    "protocolVersion": 1
+  },
+  "changedEvent": {
+    "authorityEpoch": 7,
+    "kind": "checked",
+    "protocolVersion": 1
+  },
+  "checkCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1
+  },
+  "deferCommand": {
+    "authorityEpoch": 7,
+    "cause": {
+      "cause": "workInFlight",
+      "detail": "transfer session open"
+    },
+    "protocolVersion": 1,
+    "version": "1.3.0-nightly.5"
+  },
+  "incompatibility": {
+    "futureProtocolVersion": 2,
+    "unknownAvailabilityState": "pending",
+    "unknownChangedKind": "futureKind",
+    "unknownChannel": "canary",
+    "unknownDeferralCause": "postponedByPolicy",
+    "unknownInstallManager": "macports",
+    "unknownOfferReason": "mandatory",
+    "unknownOutcomeStatus": "uncertain",
+    "unknownProgressState": "seeding",
+    "unknownRejectionCode": "futureRejection"
+  },
+  "installCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1,
+    "version": "1.3.0-nightly.5"
+  },
+  "managedSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "manager": "homebrewCask",
+      "state": "managedElsewhere",
+      "version": "1.3.0"
+    },
+    "channel": "production",
+    "deferral": null,
+    "installedVersion": "1.2.9",
+    "progress": {
+      "state": "idle"
+    },
+    "protocolVersion": 1
+  },
+  "outcomes": [
+    {
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "committed"
+    },
+    {
+      "code": "staleAuthority",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "noOffer",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "unavailable",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "channelMismatch",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "unreachable",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "signatureRejected",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "notWritable",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    },
+    {
+      "code": "installFailed",
+      "snapshot": {
+        "authorityEpoch": 7,
+        "availability": {
+          "notes": "Fixture release notes.",
+          "reason": "userInitiated",
+          "state": "offer",
+          "version": "1.3.0-nightly.5"
+        },
+        "channel": "nightly",
+        "deferral": {
+          "cause": {
+            "cause": "userPostponed"
+          },
+          "version": "1.3.0-nightly.2"
+        },
+        "installedVersion": "1.3.0-nightly.4",
+        "progress": {
+          "fraction": 0.5,
+          "state": "downloading"
+        },
+        "protocolVersion": 1
+      },
+      "status": "rejected"
+    }
+  ],
+  "protocolVersion": 1,
+  "selectChannelCommand": {
+    "authorityEpoch": 7,
+    "channel": "beta",
+    "protocolVersion": 1
+  },
+  "snapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "notes": "Fixture release notes.",
+      "reason": "userInitiated",
+      "state": "offer",
+      "version": "1.3.0-nightly.5"
+    },
+    "channel": "nightly",
+    "deferral": {
+      "cause": {
+        "cause": "userPostponed"
+      },
+      "version": "1.3.0-nightly.2"
+    },
+    "installedVersion": "1.3.0-nightly.4",
+    "progress": {
+      "fraction": 0.5,
+      "state": "downloading"
+    },
+    "protocolVersion": 1
+  },
+  "upToDateSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "state": "upToDate"
+    },
+    "channel": "nightly",
+    "deferral": null,
+    "installedVersion": "1.3.0-nightly.4",
+    "progress": {
+      "state": "installing",
+      "version": "1.3.0"
+    },
+    "protocolVersion": 1
+  },
+  "withheldSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "state": "withheldByRollout",
+      "version": "1.3.0"
+    },
+    "channel": "nightly",
+    "deferral": null,
+    "installedVersion": "1.3.0-nightly.4",
+    "progress": {
+      "state": "verifying"
+    },
+    "protocolVersion": 1
+  }
+}

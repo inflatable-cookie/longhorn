@@ -1,10 +1,14 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { URL as NodeURL, fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const packageRoot = resolve(process.cwd(), "packages/longhorn-poodle-svelte");
+// Node's URL, not the global: the happy-dom environment shadows `URL` with a
+// window implementation that resolves a file-scheme base against the page
+// location, which would send every path here to http://localhost.
+const packageRoot = fileURLToPath(new NodeURL("../", import.meta.url));
 const repositoryRoot = resolve(packageRoot, "../..");
 
 const POODLE = "@inflatable-cookie/poodle-svelte";

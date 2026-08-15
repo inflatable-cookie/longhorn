@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "../../../../fixtures/parity/projection-v1.json";
 
 import { toastAction, toastTitle } from "@inflatable-cookie/longhorn/notifications";
+import { projectSettingsRegistry } from "@inflatable-cookie/longhorn/settings";
 
 import { notificationStatusTone } from "../../src/notifications/poodle/projectors.ts";
 import {
@@ -118,6 +119,45 @@ describe("cross-backend projection parity", () => {
       expect(toastTitle(draft), JSON.stringify(testCase)).toBe(
         testCase.toastTitle,
       );
+    }
+  });
+
+  it("groups settings navigation as the fixture states", () => {
+    expect(fixture.settingsNavigation).toHaveLength(3);
+
+    for (const testCase of fixture.settingsNavigation) {
+      const pages = testCase.pages.map((page) => ({
+        ...page,
+        rendererId: `${page.moduleId}:renderer`,
+        keywords: [],
+        anchors: [],
+        requiredCapabilities: [],
+        readableScopeIds: [],
+        writableApplyUnitIds: [],
+        features: {
+          reset: false,
+          import: false,
+          backup: false,
+          restore: false,
+          confirmation: false,
+        },
+      }));
+      const projection = projectSettingsRegistry({
+        generation: 1,
+        modules: testCase.modules,
+        sections: testCase.sections,
+        pages,
+      } as never);
+
+      const rendered = projection.modules.map(({ module, sections }) => ({
+        module: module.id,
+        sections: sections.map(({ section, pages: sectionPages }) => ({
+          section: section.id,
+          pages: sectionPages.map((page) => page.id),
+        })),
+      }));
+
+      expect(rendered, JSON.stringify(testCase)).toEqual(testCase.expect);
     }
   });
 

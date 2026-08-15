@@ -18,23 +18,23 @@ components.
 
 ## Composable Hosting Model
 
-Regions belong to an opaque layout container.
+A Surface is the layout: it carries the schema it instantiates, its regions,
+its sizing slots, and the panel instances placed in them. One chain serves
+every host:
 
 ```text
 display inventory -> window plan
                          |
-                         +-> window as layout container -> regions -> panels
-                         |
-                         +-> hosted surfaces -> surface as layout container
-                                                -> regions -> panels
+                         +-> window hosts surfaces -> regions -> panels
 ```
 
-This removes Surface from the mandatory core hierarchy:
-
-- Nucleus binds a `WindowId` to a layout-container id.
-- Loophole enables the Surface package and binds a `SurfaceId` to a
-  layout-container id.
+- Nucleus binds a `WindowId` to a single unlabelled Surface — no Surface
+  feature, and no separate layout document.
+- Loophole hosts several Surfaces per window, each carrying its own layout.
 - Panel and region logic does not need to know which hosting choice was made.
+
+There is no surfaces-free layout crate: Card 179 absorbed `longhorn-layout`
+into `longhorn-surfaces`, and the two-container chain collapsed with it.
 
 ## Target Layers
 
@@ -71,9 +71,10 @@ Tauri monitor APIs are an adapter, not the domain model.
 
 This layer does not depend on Surfaces.
 
-### Layout core
+### Layout
 
-- opaque layout-container and layout-schema ids
+Layout is a face of the Surface document, not a separate document:
+
 - consumer-defined flat region ids, families, order, and empty-region policy
 - panel definitions, distinct panel instances, allowed placement, and explicit
   instance policy
@@ -81,33 +82,33 @@ This layer does not depend on Surfaces.
 - fixed-point named sizing slots and supported collapse state
 - occupancy and transient-reveal visibility projection
 - expected-revision mutation and deterministic normalization
-- layout-container id as the only parent requirement
+- a Surface id as the only parent requirement
 
-The core does not encode a generic split tree. Consumers map named sizing slots
-and semantic regions into public Poodle split and dock components. Panel
+The engine does not encode a generic split tree. Consumers map named sizing
+slots and semantic regions into public Poodle split and dock components. Panel
 bodies, labels, and product resource attachments remain consumer-owned.
 
-`longhorn-layout`, `longhorn-layout-config`, `longhorn-bindings`, and
-`@inflatable-cookie/longhorn/layout` implement this foundation. Checked Loophole eight-region
-and Nucleus five-region fixtures use one public resolver and mutation engine.
-Their Surface/window bindings remain outside the layout document.
+`longhorn-surfaces` (the `layout` module), `longhorn-surfaces-config`,
+`longhorn-bindings`, and `@inflatable-cookie/longhorn/layout` implement this
+foundation. Checked Loophole eight-region and Nucleus five-region fixtures use
+one public resolver and mutation engine.
 
 ### Optional Surface hosting
 
 - stable Surface identity and labels
-- distinct Surface-to-layout-container bindings
+- each Surface carries its own layout (schema, regions, sizing slots, panels)
 - window hosting preferences and fallback
 - ordered hosted Surfaces per window
 - active Surface per window
 - consumer-resolved presence input
 - create, duplicate, close, move, and reorder lifecycle
 - expected-revision mutation and registered persistence
-- explicit layout-container cleanup intent
 
 Product presence predicates, layout cloning, cleanup execution, window roles,
-and product resources remain consumer-owned. Surface, layout, and window
-geometry persist as distinct domains. Apps that omit this package carry no
-Surface state.
+and product resources remain consumer-owned. Surface layout and window
+geometry persist as distinct faces of distinct domains. Apps that need no
+Surface feature compose one unlabelled Surface rather than omitting the
+crate.
 
 ### Local state and persistence
 
@@ -157,10 +158,11 @@ adapters own domain staging, apply, and semantic observation. The consumer
 must quiesce live authorities and schedule boot-time execution before opening
 them.
 
-Layout persistence uses a narrow `longhorn-layout-config` adapter. Consumers
-inject the exact descriptor and scope. Layout and window geometry remain
-separate domains, so renderer layout updates cannot replace host-owned window
-state. The adapter binds the complete layout document to a deterministic
+Layout persistence rides the Surface document's `longhorn-surfaces-config`
+adapter — the absorbed `longhorn-layout-config` lane. Consumers inject the
+exact descriptor and scope. Layout and window geometry remain separate
+domains, so renderer layout updates cannot replace host-owned window state.
+The adapter binds the complete document to a deterministic
 definition-registry digest. A changed digest requires a domain schema bump and
 an explicit migration hook. Structural requests publish immediately over fresh
 coordinated state; sizing and collapse may use bounded explicit-flush debounce.

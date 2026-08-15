@@ -14,9 +14,12 @@ use crate::generation::{
     tagged_variants, variant_field_map,
 };
 
+mod fixture;
+
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/update/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/update/generated/fields.ts";
 const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/update/generated/variant-fields.ts";
+const GOLDEN_FIXTURE: &str = "fixtures/update/protocol-v1.json";
 
 struct RenderedProtocol {
     contents: String,
@@ -42,6 +45,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
             Artifact {
                 relative_path: GENERATED_VARIANT_FIELDS,
                 contents: protocol.variant_fields,
+            },
+            Artifact {
+                relative_path: GOLDEN_FIXTURE,
+                contents: fixture::render()?,
             },
         ],
     )

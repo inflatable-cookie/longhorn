@@ -17,6 +17,7 @@ use longhorn_history_tree::{
     ForkPersistence, ForkPersistenceLimits, ForkPreferredChild, ForkRecord,
     ForkStructuralMigration, ForkStructuralMigrationStep, ForkStructuralMigrationTarget,
 };
+use proptest::prelude::*;
 use serde_json::Value;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -865,4 +866,108 @@ fn a_supplied_recorded_at_round_trips() {
             .recorded_at(),
         Some(stamped)
     );
+}
+
+// Property tests for the dense-envelope decode path (card 213). Two
+// properties run 64 fixed cases each: arbitrary bytes never panic
+// `ForkPersistence::load` and load deterministically; a valid envelope
+// mutated by bit flips, truncation, and lies in numeric length or sequence
+// fields fails classified (a typed `ForkLoadError`) or loads, and a loaded
+// graph re-encodes and re-loads cleanly. Measured cost: well under one
+// second for both properties.
+
+const FUZZ_CASES: u32 = 64;
+
+/// Writes a lying numeric value into one of the envelope's weight, sequence,
+/// or revision fields — the fields a corrupt envelope uses to disagree with
+/// its own payload bytes.
+fn apply_numeric_lie(document: &mut Value, field: usize, value: u64) {
+    let node_index = usize::try_from(value).unwrap_or(0) % 3;
+    match field % 5 {
+        0 => document["nextSequence"] = Value::from(value),
+        1 => document["revision"] = Value::from(value),
+        2 => document["nodes"][node_index]["encodedWeight"] = Value::from(value),
+        3 => document["nodes"][node_index]["sequence"] = Value::from(value),
+        _ => document["nodes"][node_index]["committedRevision"] = Value::from(value),
+    }
+}
+
+/// JSON-shaped byte strings, occasionally prefixed with a valid envelope
+/// fragment, so cases reach past JSON rejection into header checks.
+fn hostile_bytes() -> impl Strategy<Value = Vec<u8>> {
+    (
+        prop::collection::vec(
+            prop_oneof![
+                3 => prop::sample::select(b"{}\":,[]0-9a-z".to_vec()),
+                1 => any::<u8>(),
+            ],
+            0..=300,
+        ),
+        any::<bool>(),
+    )
+        .prop_map(|(bytes, prefix)| {
+            if prefix {
+                let (_, valid) = encoded_v1();
+                let take = bytes.len().min(valid.len());
+                let mut prefixed = valid[..take].to_vec();
+                prefixed.extend_from_slice(&bytes);
+                prefixed
+            } else {
+                bytes
+            }
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(FUZZ_CASES))]
+
+    /// Arbitrary bytes never panic the loader, and every outcome is
+    /// deterministic: two loads of the same bytes agree exactly.
+    #[test]
+    fn arbitrary_bytes_load_deterministically_without_panic(bytes in hostile_bytes()) {
+        let history = history_id("history:fork-fixture");
+        let first = persistence_v1().load(&history, &bytes);
+        let second = persistence_v1().load(&history, &bytes);
+        prop_assert_eq!(format!("{first:?}"), format!("{second:?}"));
+    }
+
+    /// A valid envelope corrupted by numeric-field lies, bit flips, and
+    /// truncation never panics the loader. When a mutated envelope still
+    /// loads, the resulting graph re-encodes and re-loads cleanly — a load
+    /// must never produce state the encoder cannot persist again.
+    #[test]
+    fn mutated_valid_envelopes_fail_classified_or_reencode(
+        lies in prop::collection::vec((any::<usize>(), any::<u64>()), 0..=2),
+        flips in prop::collection::vec((any::<usize>(), 0..8_u8), 0..=3),
+        truncation in prop::option::of(any::<usize>()),
+    ) {
+        let (graph, mut bytes) = encoded_v1();
+        for (field, value) in lies {
+            if let Ok(mut document) = serde_json::from_slice::<Value>(&bytes) {
+                apply_numeric_lie(&mut document, field, value);
+                bytes = serde_json::to_vec(&document).expect("lie re-serialization");
+            }
+        }
+        for (offset, bit) in flips {
+            let offset = offset % bytes.len().max(1);
+            if let Some(byte) = bytes.get_mut(offset) {
+                *byte ^= 1 << bit;
+            }
+        }
+        if let Some(len) = truncation {
+            bytes.truncate(len % (bytes.len() + 1));
+        }
+
+        let first = persistence_v1().load(graph.history_id(), &bytes);
+        let second = persistence_v1().load(graph.history_id(), &bytes);
+        prop_assert_eq!(format!("{first:?}"), format!("{second:?}"));
+        if let Ok(loaded) = first {
+            let reencoded = persistence_v1()
+                .encode(loaded.history())
+                .expect("a loaded graph must re-encode");
+            persistence_v1()
+                .load(graph.history_id(), &reencoded)
+                .expect("a re-encoded graph must re-load");
+        }
+    }
 }

@@ -32,3 +32,6 @@ pub use types::{
 
 const MANIFEST_PATH: &str = "longhorn/manifest.json";
 const DEFLATE_LEVEL: i64 = 6;
+
+#[cfg(test)]
+mod tests;

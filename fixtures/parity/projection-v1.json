@@ -259,6 +259,77 @@
     }
   ],
   "deliberateDifferences": [],
+  "settingsNavigation": [
+    {
+      "name": "one module, one section, pages in sealed order",
+      "modules": [
+        { "id": "core", "label": "Core", "order": 0 }
+      ],
+      "sections": [
+        { "id": "general", "moduleId": "core", "label": "General", "order": 0 }
+      ],
+      "pages": [
+        { "id": "appearance", "moduleId": "core", "sectionId": "general", "label": "Appearance", "order": 0 },
+        { "id": "shortcuts", "moduleId": "core", "sectionId": "general", "label": "Shortcuts", "order": 1 }
+      ],
+      "expect": [
+        { "module": "core", "sections": [{ "section": "general", "pages": ["appearance", "shortcuts"] }] }
+      ]
+    },
+    {
+      "name": "an empty section is dropped, and a module left with no section is dropped",
+      "why": "A navigation entry that leads nowhere is worse than an absent one. Memo 022, D3.",
+      "modules": [
+        { "id": "core", "label": "Core", "order": 0 },
+        { "id": "plugins", "label": "Plugins", "order": 1 }
+      ],
+      "sections": [
+        { "id": "general", "moduleId": "core", "label": "General", "order": 0 },
+        { "id": "empty", "moduleId": "core", "label": "Empty", "order": 1 },
+        { "id": "installed", "moduleId": "plugins", "label": "Installed", "order": 0 }
+      ],
+      "pages": [
+        { "id": "appearance", "moduleId": "core", "sectionId": "general", "label": "Appearance", "order": 0 }
+      ],
+      "expect": [
+        { "module": "core", "sections": [{ "section": "general", "pages": ["appearance"] }] }
+      ]
+    },
+    {
+      "name": "several modules and sections keep sealed order",
+      "why": "The registry sorts by order then id at seal; navigation trusts that order rather than re-sorting, so the fixture arrays are already sealed.",
+      "modules": [
+        { "id": "core", "label": "Core", "order": 0 },
+        { "id": "plugins", "label": "Plugins", "order": 1 }
+      ],
+      "sections": [
+        { "id": "core:general", "moduleId": "core", "label": "General", "order": 0 },
+        { "id": "core:storage", "moduleId": "core", "label": "Storage", "order": 1 },
+        { "id": "plugins:installed", "moduleId": "plugins", "label": "Installed", "order": 0 }
+      ],
+      "pages": [
+        { "id": "appearance", "moduleId": "core", "sectionId": "core:general", "label": "Appearance", "order": 0 },
+        { "id": "backups", "moduleId": "core", "sectionId": "core:storage", "label": "Backups", "order": 0 },
+        { "id": "installed", "moduleId": "plugins", "sectionId": "plugins:installed", "label": "Installed", "order": 0 },
+        { "id": "marketplace", "moduleId": "plugins", "sectionId": "plugins:installed", "label": "Marketplace", "order": 1 }
+      ],
+      "expect": [
+        {
+          "module": "core",
+          "sections": [
+            { "section": "core:general", "pages": ["appearance"] },
+            { "section": "core:storage", "pages": ["backups"] }
+          ]
+        },
+        {
+          "module": "plugins",
+          "sections": [
+            { "section": "plugins:installed", "pages": ["installed", "marketplace"] }
+          ]
+        }
+      ]
+    }
+  ],
   "toastAction": [
     {
       "actions": [],

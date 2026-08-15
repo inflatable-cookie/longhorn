@@ -21,6 +21,7 @@ ts-rs = { workspace = true, optional = true }
 zip.workspace = true
 
 [dev-dependencies]
+proptest.workspace = true
 rusqlite.workspace = true
 tempfile.workspace = true
 

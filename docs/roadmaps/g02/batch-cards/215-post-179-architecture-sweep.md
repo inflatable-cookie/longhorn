@@ -1,6 +1,7 @@
 # 215 Post-179 Architecture Sweep
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.025 batch 1
 Governing refs: contract 002; contract 014; memo 023 (C2)
@@ -75,11 +76,11 @@ moved; the canonical docs did not:
 
 ## Acceptance Criteria
 
-- [ ] `LayoutContainerId` appears in live canonical docs only as history
-- [ ] contract 002's body and absorbed sections cannot be quoted against each
+- [x] `LayoutContainerId` appears in live canonical docs only as history
+- [x] contract 002's body and absorbed sections cannot be quoted against each
   other
-- [ ] the 002↔014 loop is broken
-- [ ] `package-topology.md`'s crate table equals the workspace members
+- [x] the 002↔014 loop is broken
+- [x] `package-topology.md`'s crate table equals the workspace members
 
 ## Evidence Required
 

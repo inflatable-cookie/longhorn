@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-08-15
 Evidence: `../research/translation-memos/010-surface-hosting-and-transfer-boundary.md`
 
 ## Problem
@@ -14,32 +14,35 @@ parallel implementations or mandatory Surface state.
 ## Hosting Composition
 
 Display inventory and window planning remain independent of layout topology.
-Regions belong to an opaque layout container. A consumer chooses one binding:
+Since Card 179 a Surface *is* the layout: it carries the schema it
+instantiates, its regions, its sizing slots, and the panel instances placed
+in them. One binding chain serves every host:
 
 ```text
-WindowId -> LayoutContainerId
+WindowId -> SurfaceId -> RegionId -> PanelInstanceId
 ```
 
-or, with the optional Surface capability:
+A host that wants no Surface concept uses a single unlabelled Surface, which
+is what the no-Surface conformance shape had been doing under a different
+name. There is no surfaces-free layout crate: `longhorn-layout` and
+`longhorn-layout-config` were absorbed into `longhorn-surfaces` and
+`longhorn-surfaces-config`, and the `nucleus-no-surface-proof` example links
+`longhorn-surfaces` for exactly one unlabelled Surface. Its name now asserts
+something false in the letter and something true in spirit — the product
+composes no Surface *feature* — and is kept as history.
 
-```text
-WindowId -> SurfaceId -> LayoutContainerId
-```
-
-Core region and panel APIs do not import Surface types. Nucleus can compose
-`longhorn-layout` and `longhorn-windowing` without linking
-`longhorn-surfaces`.
+Core region and panel APIs do not import window or host types.
 
 ## Surface Identity And State
 
 `SurfaceId` uses the bounded opaque-id grammar from `longhorn-core`. It is not
-a window label, tab index, layout-container id, or product resource id.
+a window label, tab index, or product resource id.
 
 One Surface document carries:
 
 - a monotonic Surface revision
-- bounded Surface records
-- one distinct `LayoutContainerId` binding per Surface
+- bounded Surface records, each holding its own layout: the schema it
+  instantiates, region state, sizing slots, and panel instances
 - an optional mutable display label
 - a presentation: regional, or one focused `PanelDefinitionId`
 - ordered host-window preferences per Surface
@@ -52,20 +55,18 @@ not a body, and not a placement.
 
 ### Presentation
 
-A regional Surface renders through its bound container's region tree. A focused
-Surface renders one panel full-surface, with no regions and no panel tabs.
+A regional Surface renders through its own region tree. A focused Surface
+renders one panel full-surface, with no regions and no panel tabs.
 Presentation defaults to regional, so a Surface document written before this
 clause loads unchanged and no migration is required.
 
-**Longhorn records the focused panel; it does not police the container.** The
-Surface domain has no view of container contents — its only evidence about
-layout is whether a container exists. Whether a focused Surface's container
-holds that panel and only that panel is therefore a consumer obligation, and so
-is refusing a panel dropped onto a focused Surface. Both need container and
-Surface authority in one place, which no component currently holds.
+**Longhorn records the focused panel; it does not police the layout.** The
+Surface domain does not verify that the Surface's own layout holds that panel
+and only that panel — that invariant is a consumer obligation (Card 177
+recorded why), and so is refusing a panel dropped onto a focused Surface.
 
 This is a stated ceiling rather than a silence: a consumer can put a focused
-Surface's container into a state the Surface record no longer describes, and
+Surface's layout into a state the presentation no longer describes, and
 Longhorn will not reject it.
 
 Every Surface resolves to at most one available window. Every active Surface
@@ -90,7 +91,6 @@ It returns:
 - resolved ordered Surfaces per window
 - one active Surface per non-empty window
 - unresolved Surfaces with typed reasons
-- the external `SurfaceId -> LayoutContainerId` binding
 
 Missing preferred windows try declared fallbacks in order. No available host
 returns an unresolved Surface. It does not create a window, rewrite the
@@ -104,7 +104,7 @@ capabilities, project state, and workflow conditions stay consumer-owned.
 Surface mutation is expected-revision, all-or-nothing, and normalized. Commands
 cover:
 
-- create a Surface from caller-supplied Surface and layout-container ids
+- create a Surface with its layout from caller-supplied ids
 - duplicate generic Surface metadata using caller-supplied fresh ids
 - rename a Surface
 - set a Surface's presentation to regional or to one focused panel
@@ -113,15 +113,14 @@ cover:
 - move a Surface to another declared window host
 - close a Surface
 
-Creation and duplication require the caller to prove that the target layout
-container exists and is not already bound. Duplication copies only generic
-Surface metadata and hosting policy. It does not clone layout contents,
-panels, or product resources.
+Creation and duplication take caller-supplied fresh ids and reject collisions.
+Duplication copies only generic Surface metadata and hosting policy. It does
+not clone layout contents, panels, or product resources.
 
-Close removes Surface topology and returns an explicit cleanup intent for the
-former layout container. Longhorn does not delete layout or product state by
-inference. A consumer policy decides whether a participating window may become
-empty; the Loophole donor's last-Surface rule is not a hidden default.
+Close removes Surface topology. Longhorn does not delete layout or product
+state by inference. A consumer policy decides whether a participating window
+may become empty; the Loophole donor's last-Surface rule is not a hidden
+default.
 
 Move and reorder preserve the active member when it remains present. Removing
 the active member selects the Surface now at its former index, then the
@@ -141,7 +140,8 @@ active member remains present.
 `longhorn-surfaces-config` binds one Surface document to an exact registered
 configuration domain.
 
-The persistence adapter follows the same rules as `longhorn-layout-config`:
+The persistence adapter follows the same rules as the absorbed layout lane
+(the former `longhorn-layout-config`):
 
 - consumer-supplied descriptor, scope, default, migration, and backup policy
 - fresh expected-revision validation under the store coordinator
@@ -336,8 +336,9 @@ idempotency store.
 
 ## Layout Persistence
 
-`longhorn-layout-config` is the narrow adapter between `longhorn-layout` and
-`longhorn-config`.
+The layout face of a Surface document persists through the same
+`longhorn-surfaces-config` adapter — the absorbed `longhorn-layout-config`
+lane — under the same rules:
 
 The consumer injects:
 
@@ -388,7 +389,7 @@ packages.
 ## Authority
 
 - Rust owns durable Surface resolution and mutation.
-- Consumers own product presence predicates, layout-container seeding and
+- Consumers own product presence predicates, layout seeding,
   cleanup, window roles, creation policy, and product resources.
 - Renderer projections cannot invent Surface fallback or active state.
 - Poodle owns tab interaction and visuals.
@@ -398,27 +399,29 @@ packages.
 
 - same-webview movement may use Poodle HTML5 drag payloads
 - cross-window payloads carry only a host-created transfer-session id
-- panel transfer targets a current layout container and region
+- panel transfer targets a current Surface's region
 - whole-Surface transfer targets a current participating window
 - a no-Surface consumer never imports Surface state
 - contract 011 owns session, lease, target, cancellation, and commit rules
 
 ## Acceptance
 
-- one fixture resolves `window -> region -> panel`
+- one fixture resolves `window -> region -> panel` through a single
+  unlabelled Surface
 - one fixture resolves `window -> surface -> region -> panel`
 - both fixtures share the layout resolver
-- Nucleus-shaped dependencies contain no Surface package
-- every Surface has one distinct container binding and at most one resolved
-  host
+- Nucleus-shaped dependencies compose one unlabelled Surface and no Surface
+  feature
+- every Surface carries its own layout and has at most one resolved host
 - presence predicates remain consumer-owned inputs
 - stale or rejected lifecycle mutation preserves the exact document
-- Surface persistence cannot replace layout or window domains
+- Surface persistence cannot replace window domains
 - no native window is created without explicit consumer policy
 
 ## Specialized Contracts
 
-- layout definitions, state, mutation, and persistence: contract 014
+- layout definitions, state, mutation, and persistence: the absorbed section
+  of this contract (was contract 014, now a superseded stub)
 - configuration envelope and storage coordination: contract 004
 - logical and physical coordinates: contract 009
 - Rust and TypeScript serialization authority: contract 010

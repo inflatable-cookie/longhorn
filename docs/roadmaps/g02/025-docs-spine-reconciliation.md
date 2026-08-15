@@ -35,12 +35,16 @@ this milestone is the sweep.
 
 ### Batch 1. Architecture and contracts
 
-- [ ] [Card 215](batch-cards/215-post-179-architecture-sweep.md): rewrite
+- [x] [Card 215](batch-cards/215-post-179-architecture-sweep.md): rewrite
   `system-architecture.md`'s hosting/layout sections against the
   Surface-as-layout model; revise contract 002's pre-absorption body; break
   the 002↔014 pointer loop; resolve the "no Surface package" acceptance
   criterion against `nucleus-no-surface-proof`; correct
   `package-topology.md`, `system-inventory.md`, and the stale test comment.
+  **Landed 2026-08-15** — contract 002 reads as one contract, the topology
+  table diffs equal to the workspace, and the proof keeps its name with the
+  contract recording what it actually asserts. Card 211's empty divergence
+  list meant restating sufficed.
 
 ### Batch 2. Registers and indexes
 

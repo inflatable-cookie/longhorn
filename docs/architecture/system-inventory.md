@@ -147,7 +147,7 @@ fresh action admission. `g01.012` is complete.
 | Display inventory | Rust library + Tauri adapter | canonical local display facts | Loophole `echo-configuration` and Aura local plane | pure inventory/correlation implemented |
 | Window planning | Rust library | fallback and desired window plan | Loophole `echo-windowing`; `nucleus-workspaces`; Soundcheck | placement and live diff implemented |
 | Tauri window host | Rust adapter | live apply, restore, event capture | Loophole Aura; Nucleus; Soundcheck | g01.004 complete through packaged Card 022 proof |
-| Layout core | Rust + TS protocol | layout containers, regions, panels | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
+| Layout core | Rust + TS protocol | layout as a face of the Surface document: regions, panels, normalization; engine in `longhorn-surfaces` | Loophole Echo/Aura; Nucleus desktop/workspaces | g01.005 complete; donor-shaped foundation conformance passes without claiming migration |
 | Surface hosting | optional Rust + config + TS packages | Surface lifecycle, persistence, and window hosting | Loophole Aura/Echo | pure identity, topology, presence, resolution, lifecycle, persistence, and window-host composition implemented |
 | Cross-window transfer | Rust + TS protocol and narrow host adapters | bounded sessions, leased targets, authoritative move | Loophole Surface drag; shared panel need | g01.006 complete; direct and Surface-enabled packaged macOS proofs pass |
 | Local state store | Rust library | storage classes, domains, versioning, safe writes | Loophole, Nucleus, Soundcheck, Split-shell | g01.002 complete |
