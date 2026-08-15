@@ -6,8 +6,8 @@ umbrella package or donor product policy.
 | Shape | Hierarchy | Selected systems |
 | --- | --- | --- |
 | `minimal` | window | config, settings |
-| `workspace` | window -> layout container -> region -> panel | minimal plus windowing, layout, commands |
-| `full-hosting` | display -> window -> Surface -> layout container -> region -> panel | workspace plus Surface, transfer, linear history |
+| `workspace` | window -> Surface -> region -> panel | minimal plus windowing, layout, commands |
+| `full-hosting` | display -> window -> Surface -> region -> panel | workspace plus Surface, transfer, linear history |
 | `optional-server` | window plus optional service bridge | minimal plus checked bridge and removable supervision |
 
 Each renderer manifest names released-shape versions. Each Rust manifest uses

@@ -19,12 +19,16 @@ neither is a proposed runtime package.
 
 ## Compositions
 
-| Shape | Hierarchy | TypeScript | Rust | Deliberately absent |
-| --- | --- | ---: | ---: | --- |
-| minimal | window | 4 | 6 | layout, Surface, bridge, history, native content |
-| workspace | window, layout container, region, panel | 8 | 16 | Surface, transfer, bridge, history, native content |
-| full hosting | display, window, Surface, layout container, region, panel | 12 | 24 | bridge, native content, operations, notifications |
-| optional server | window, optional bridge | 5 | 8 | layout, Surface, history, native content |
+| Shape | Hierarchy | Deliberately absent |
+| --- | --- | --- |
+| minimal | window | layout, Surface, bridge, history, native content |
+| workspace | window, Surface, region, panel | transfer, bridge, history, native content |
+| full hosting | display, window, Surface, region, panel | bridge, native content, operations, notifications |
+| optional server | window, optional bridge | layout, Surface, history, native content |
+
+Package-count columns were dropped on 2026-08-15: they dated from the
+17-package era and drifted silently. The greenfield roots' manifests under
+`examples/greenfield-compositions/` are the live selection to copy.
 
 Every renderer also selects the five public Poodle packages reached by the
 component and token roots. One Svelte 5.38.6 and Tauri API 2.10.1 runtime

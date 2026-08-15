@@ -1,6 +1,7 @@
 # 217 Guide Repair
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.025 batch 3
 Governing refs: contract 012; memo 023 (docs-H3, M3, M4)
@@ -57,12 +58,35 @@ against the tree the guides ship with.
 - Document the published install path as if it exists. It does not until
   g02.014; the guide says so and gives the `file:` path that works today.
 
+## Result
+
+- `package-selection.md`: deduplicated table, post-179 hierarchy chains,
+  layout row now names `longhorn-surfaces`, and the manifest is a working
+  `file:` + `overrides` recipe — **verified in a scratch consumer** (bun
+  install resolves; subpath imports load). Held table matches the register
+  (update/licensing graduated). The 17-era count columns are dropped, not
+  reinvented.
+- `getting-started.md`: the 17-tarball recipe is gone; the primary path is
+  `file:` + `overrides` + `bun install`, with the receipt named as frozen
+  history and the published path named as g02.014's.
+- `system-composition.md` re-teaches Surface-as-layout.
+- The gpui README's `docs:rust` claim now names the release gate.
+- The sweep's own strays were caught by review: the greenfield matrix,
+  app-shell composition, and the nucleus proof README still taught the
+  container model — all four fixed in the same card, and the nucleus README
+  records what its name actually asserts.
+
+Residuals, recorded: update/licensing get a graduation note but not yet
+selectable-table rows (a content decision for a follow-up); the greenfield
+composition matrix's counts are gone rather than recounted.
+
 ## Acceptance Criteria
 
-- [ ] the manifest in `package-selection.md` resolves in a scratch consumer
-- [ ] `getting-started.md`'s TS path works when followed literally
-- [ ] no guide teaches the removed hierarchy
-- [ ] the guide verifiers pass
+- [x] the manifest in `package-selection.md` resolves in a scratch consumer
+- [x] `getting-started.md`'s TS path works when followed literally
+- [x] no guide teaches the removed hierarchy
+- [x] the guide verifiers pass (guides, documented-commands, held-surface,
+  docs links)
 
 ## Evidence Required
 

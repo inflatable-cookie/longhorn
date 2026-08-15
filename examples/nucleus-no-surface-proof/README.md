@@ -1,16 +1,17 @@
 # Nucleus No-Surface Proof
 
-This compile-only example proves the direct hosting shape:
+This compile-only example proves the no-Surface-feature hosting shape:
 
 ```text
-WindowId -> LayoutContainerId -> RegionId -> PanelId
+WindowId -> SurfaceId -> RegionId -> PanelId
 ```
 
-It depends on `longhorn-core`, `longhorn-layout`, `longhorn-transfer`, and
-`longhorn-windowing`. The transfer dependency exercises the direct-window
-panel-host binding.
-It does not depend on `longhorn-surfaces` or
-`longhorn-surface-windowing`.
+A Surface is the layout since Card 179, so this host composes one unlabelled
+Surface through `longhorn-surfaces` and never uses a Surface feature. The
+name predates the absorption; what it asserts is the absence of the Surface
+*feature*, not of the crate. It also depends on `longhorn-core`,
+`longhorn-transfer`, and `longhorn-windowing`. The transfer dependency
+exercises the direct-window panel-host binding.
 
 Run:
 

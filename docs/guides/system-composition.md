@@ -1,7 +1,7 @@
 # Compose Desktop Systems
 
 Status: checked private adoption guidance
-Updated: 2026-08-04
+Updated: 2026-08-15
 Governing contracts: [002-017](../contracts/contract-index.md)
 
 ## Why This Matters
@@ -40,7 +40,7 @@ snapshot becomes durable or product authority.
 | configuration | typed roots, registered files, safe mutation, backup/restore/recovery | schemas, defaults, retention, user recovery policy | age, custom database/secure-store adapters |
 | settings | sealed registry, apply/session protocol, shared storage pages | product pages, renderers, multi-domain transactions | Svelte and Poodle shell |
 | display/window | typed coordinates, inventory correlation, placement/apply/lifecycle plans | window definitions, creation policy, product readiness | Tauri observation/execution and config persistence |
-| layout | registered containers, regions, panels, sizing, mutation, persistence | panel bodies, product metadata, layout definitions | Svelte/Poodle projection |
+| layout | registered regions, panels, sizing, mutation, persistence — a Surface carries its layout | panel bodies, product metadata, layout definitions | Svelte/Poodle projection |
 | Surface | optional host/container topology and lifecycle | product Surface definitions and presence policy | persistence and window projection |
 | transfer | bounded sessions, leases, target resolution, checked commit | eligibility, product drag affordance, direct-window policy | optional whole-Surface feature |
 | commands | sealed registry, search, keymap resolution, fresh admission | catalogue, availability, authorization, typed execution | config, Tauri metadata, Svelte/Poodle/settings |
@@ -52,20 +52,23 @@ snapshot becomes durable or product authority.
 
 ## Window, Layout, Surface, And Transfer
 
-Layout is Surface-independent. A workspace may stop at:
+A Surface is the layout — there is no separate layout container. The chain is
+one path:
 
 ```text
-window → layout container → region → panel
+WindowId → SurfaceId → RegionId → PanelInstanceId
 ```
 
-Full hosting adds an optional layer:
+Full hosting starts one level up:
 
 ```text
-display → window → Surface → layout container → region → panel
+display → window → Surface → region → panel
 ```
 
-Surfaces hold external container bindings; layout holds registered structure.
-Presence is injected evidence. Missing hosts resolve through explicit policy.
+A host that does not select the Surface feature still composes one unlabelled
+Surface per window through `longhorn-surfaces` — there is no Surface-free
+layout path. Named Surfaces hold external host bindings. Presence is injected
+evidence. Missing hosts resolve through explicit policy.
 Window provisioning, cleanup, fallback, and shutdown are planned and
 receipted.
 

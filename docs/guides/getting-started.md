@@ -1,7 +1,7 @@
 # Getting Started: Zero To Running
 
 Status: checked private adoption guidance
-Updated: 2026-08-11
+Updated: 2026-08-15
 Governing contracts: [002](../contracts/002-composable-workspace-hosting.md),
 [004](../contracts/004-configuration-storage-backup-and-recovery.md), and
 [005](../contracts/005-settings-and-system-registration.md)
@@ -10,25 +10,27 @@ Governing contracts: [002](../contracts/002-composable-workspace-hosting.md),
 
 A minimal Svelte + Tauri app that stores its preferences through Longhorn: one
 config domain, one settings surface, atomic writes, and a restart-proof file.
-This is the smallest proven shape — four TypeScript packages and six Rust
-crates. Work through it once and you know the pattern every larger
-composition builds on.
+This is the smallest proven shape — two Longhorn TypeScript packages (plus the
+Poodle renderer packages) and six Rust crates. Work through it once and you
+know the pattern every larger composition builds on.
 
-> **Temporary note.** The TypeScript install path is in flux: Poodle's
-> artifact layout changes with its upcoming release, and the Longhorn
-> renderer-package story is being reworked. Steps marked **[temporary]**
-> are current today but will change; the Rust steps are stable. The
+> **Temporary note.** Nothing is published: there is no npm/crates.io install
+> of Longhorn or Poodle today. The working TypeScript path is `file:`
+> dependencies against sibling checkouts (step 4); the published-version path
+> arrives with g02.014, blocked on Poodle v0.2.0. The
 > [private 0.1 candidate](../reference/private-0-1-candidate.md) receipt is
-> the source of truth for artifact names.
+> frozen history — it records the 17-tarball TypeScript layout of 2026-08-02;
+> the tree produces three tarballs today. The Rust steps are stable.
 
 ## 1. Prerequisites
 
 - Rust toolchain (edition 2024; the repo floor is 1.95)
 - `bun` or `npm` (the proofs use bun 1.3.x)
 - the Tauri CLI (2.x) for dev builds
-- the Longhorn artifact set from the
-  [private 0.1 candidate](../reference/private-0-1-candidate.md) — Rust
-  source archives plus Cargo inventory, and the npm-compatible tarballs
+- the Longhorn Rust artifacts from the
+  [private 0.1 candidate](../reference/private-0-1-candidate.md) — source
+  archives plus Cargo inventory — and a sibling Longhorn checkout for the
+  TypeScript `file:` pins in step 4
 
 ## 2. Scaffold The App
 
@@ -86,37 +88,17 @@ because the helper is not imported with it.
 
 ## 4. TypeScript: Install The Renderer Packages [temporary]
 
-### Candidate tarballs
-
-Install the minimal shape's packages from the produced tarballs, never from a
-registry:
-
-```sh
-npm install \
-  ./artifacts/longhorn-config-0.1.0.tgz \
-  ./artifacts/longhorn-core-0.1.0.tgz \
-  ./artifacts/longhorn-settings-0.1.0.tgz \
-  ./artifacts/longhorn-tauri-0.1.0.tgz \
-  ./artifacts/poodle-svelte-0.1.0.tgz \
-  ./artifacts/poodle-svelte-tokens-0.1.0.tgz
-npm install svelte@5.38.6 @tauri-apps/api@2.10.1
-```
-
-Tarball filenames come from the candidate receipt (`artifacts.longhornTypescript`
-and `artifacts.poodle`). Commit the lockfile. The exact Poodle tarball names
-and this recipe change with the upcoming Poodle release — re-read the
-[distribution reference](../reference/private-0-1-candidate.md) when it lands.
-
-### Local sibling checkout (`file:`)
-
-Portfolio consumers often pin Longhorn by path while it is unpublished:
+Nothing is on npm today — do not run a registry install for Longhorn or
+Poodle packages. Pin the Longhorn packages by `file:` against a sibling
+checkout:
 
 ```json
 {
   "dependencies": {
     "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn",
-    "@inflatable-cookie/longhorn-poodle-svelte": "file:../longhorn/packages/longhorn-poodle-svelte",
-    "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri"
+    "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri",
+    "@tauri-apps/api": "2.10.1",
+    "svelte": "5.38.6"
   },
   "overrides": {
     "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn"
@@ -124,15 +106,35 @@ Portfolio consumers often pin Longhorn by path while it is unpublished:
 }
 ```
 
+```sh
+bun install
+```
+
+One dependency on `@inflatable-cookie/longhorn` covers every selected system
+— `./config`, `./settings`, and the rest are export subpaths, not installable
+packages. Add `@inflatable-cookie/longhorn-poodle-svelte` by the same `file:`
+discipline when the shape selects Svelte/Poodle bindings. The Poodle packages
+(`@inflatable-cookie/poodle-svelte`, `@inflatable-cookie/poodle-core`) are
+likewise unpublished until Poodle v0.2.0; pin them from a Poodle checkout the
+same way. Adjust relative paths to your layout; commit the lockfile.
+
 The `overrides` block is required, not optional. `longhorn-poodle-svelte` and
 `longhorn-tauri` peer-depend on `@inflatable-cookie/longhorn` at exact
 `0.1.0`. A top-level `file:` dependency does not satisfy that peer for bun, so
 install reaches the registry for `0.1.0` and 404s — for a package that is
 already on disk. Point the override at the same path as the dependency.
-Adjust relative paths to your layout; commit the lockfile.
 
-Once Longhorn publishes and consumers depend by version, delete the
-`overrides` entry — it exists only to keep `file:` installs off the registry.
+Once Longhorn publishes — the published-version path arrives with g02.014,
+blocked on Poodle v0.2.0 — depend by version and delete the `overrides`
+entry. It exists only to keep `file:` installs off the registry.
+
+The 17-tarball `npm install ./artifacts/...` recipe this section used to
+carry is frozen with the
+[private 0.1 candidate](../reference/private-0-1-candidate.md) receipt: it
+matches the 2026-08-02 tree, which produced 17 TypeScript tarballs; the
+current tree produces three.
+
+### Development inner loop
 
 `bun install` for a `file:` dependency materializes `node_modules` as a real
 directory of per-file symlinks resolved at install time. Edits to existing

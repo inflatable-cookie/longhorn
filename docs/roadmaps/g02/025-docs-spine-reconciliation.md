@@ -1,6 +1,7 @@
 # g02.025 Docs Spine Reconciliation
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: memo 023; contract 001; contract 002; contract 012
@@ -60,11 +61,10 @@ this milestone is the sweep.
 
 ### Batch 3. Guides
 
-- [ ] [Card 217](batch-cards/217-guide-repair.md): `package-selection.md`
-  deduplicated and made installable; `getting-started.md`'s TypeScript install
-  path written against the three-package tree; `system-composition.md`'s
-  removed hierarchy re-taught; the gpui prototype README's `docs:rust` claim
-  corrected.
+- [x] [Card 217](batch-cards/217-guide-repair.md): guide repair, verified in
+  a scratch consumer. **Landed 2026-08-15** — installable manifest, frozen
+  receipt named as history, Surface-as-layout throughout, and the four
+  stragglers the 215 sweep missed caught by review.
 
 ## Dependency Shape
 
@@ -81,18 +81,18 @@ architecture stops being wrong before anything points at it.
 
 ## Goals
 
-- [ ] no canonical doc names a deleted crate as load-bearing
-- [ ] contract 002 reads as one contract, not two drafts stapled together
-- [ ] every count in a front door is generated or gone
-- [ ] the guides' copy-paste paths work against the tree they ship with
+- [x] no canonical doc names a deleted crate as load-bearing
+- [x] contract 002 reads as one contract, not two drafts stapled together
+- [x] every count in a front door is generated or gone
+- [x] the guides' copy-paste paths work against the tree they ship with
 
 ## Acceptance Criteria
 
-- [ ] `LayoutContainerId` appears in live docs only as history
-- [ ] `verify-held-surface.ts` flags rows whose named trigger cards are closed
-- [ ] `generation-index.md` carries exactly one live next-task pointer and no
+- [x] `LayoutContainerId` appears in live docs only as history
+- [x] `verify-held-surface.ts` flags rows whose named trigger cards are closed
+- [x] `generation-index.md` carries exactly one live next-task pointer and no
   self-contradictory publication claims
-- [ ] a fresh reader following `getting-started.md` + `package-selection.md`
+- [x] a fresh reader following `getting-started.md` + `package-selection.md`
   reaches a resolvable manifest
 
 ## Explicit Non-goals
@@ -103,8 +103,8 @@ architecture stops being wrong before anything points at it.
 
 ## Next Task
 
-Card 215. Contract 002 is an active compiled boundary that currently asserts
-false things; nothing else in the suite outranks that.
+Milestone complete. g02.027 (Cards 221-223) remains in the audit suite, plus
+the blocked 210 and held 218.
 
 ## Planning Checkpoint
 

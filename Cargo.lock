@@ -2427,6 +2427,7 @@ dependencies = [
  "cap-std",
  "fs4",
  "longhorn-core",
+ "proptest",
  "rusqlite",
  "serde",
  "serde_json",
@@ -2493,6 +2494,7 @@ name = "longhorn-history"
 version = "0.1.0"
 dependencies = [
  "longhorn-core",
+ "proptest",
  "serde",
  "serde_json",
  "ts-rs",
@@ -2505,6 +2507,7 @@ dependencies = [
  "base64 0.22.1",
  "longhorn-core",
  "longhorn-history",
+ "proptest",
  "serde",
  "serde_json",
  "ts-rs",

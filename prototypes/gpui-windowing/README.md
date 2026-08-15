@@ -6,10 +6,10 @@ Binds `longhorn-gpui-windowing`'s `GpuiWindowBackend` seam to real `gpui`
 ## Why it is outside the workspace
 
 `gpui` pulls several hundred transitive crates and a Metal shader build. Every
-`effigy qa` lane — `lint:rust`, `lint:rust:features`, `test:rust`, `docs:rust`
-— would pay for it, for one adapter. So this crate carries its own
-`[workspace]` and its own lock, like every other `prototypes/` crate, and the
-workspace crate depends on no GPUI at all.
+`effigy qa` lane — `lint:rust`, `lint:rust:features`, `test:rust` — would pay
+for it, and so would the `docs:rust` release gate, for one adapter. So this
+crate carries its own `[workspace]` and its own lock, like every other
+`prototypes/` crate, and the workspace crate depends on no GPUI at all.
 
 Poodle draws the same line: `packages/gpui/adapter` has no `gpui` dependency
 and only `packages/gpui/preview` does.

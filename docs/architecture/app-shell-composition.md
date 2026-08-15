@@ -64,20 +64,20 @@ package.
 Nucleus proves:
 
 ```text
-window -> layout container -> region -> panel
+window -> Surface -> region -> panel
 ```
 
-It uses registered layout authority and public Longhorn/Poodle region
-bindings. It has no Surface or Surface-transfer package. A transfer package
-may be added later for direct-window panel movement without changing that
-rule.
+It uses one unlabelled Surface carrying the layout (a Surface is the layout
+since Card 179), with public Longhorn/Poodle region bindings. It composes no
+Surface feature and no Surface-transfer package. A transfer package may be
+added later for direct-window panel movement without changing that rule.
 
 ### Full workspace
 
 Loophole proves:
 
 ```text
-display -> window -> Surface -> layout container -> region -> panel
+display -> window -> Surface -> region -> panel
 ```
 
 It composes Surface state, layout state, panel transfer, whole-Surface
