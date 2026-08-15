@@ -21,9 +21,6 @@ for (const row of rows) {
 
 const heldCrates = [
   "longhorn-config-age",
-  "longhorn-update",
-  "longhorn-update-install",
-  "longhorn-licence",
   "longhorn-bridge",
   "longhorn-history-tree",
 ];
@@ -35,6 +32,46 @@ for (const crate of heldCrates) {
 for (const packageName of heldPackages) {
   if (!api.includes(`\`${packageName}\``)) {
     throw new Error(`held package missing from api-surface: ${packageName}`);
+  }
+}
+
+// Freshness: a row that awaits closed work is stale by definition. Resolve
+// the milestone (g02.NNN) and card (NNN) references in each row's Awaits and
+// Trigger columns against the roadmap files' status lines.
+const { readdir } = await import("node:fs/promises");
+
+async function statusIndex(directory: string): Promise<Map<string, string>> {
+  const index = new Map<string, string>();
+  for (const file of await readdir(join(repoRoot, directory))) {
+    if (!file.endsWith(".md")) continue;
+    const content = await readFile(join(repoRoot, directory, file), "utf8");
+    index.set(file, content);
+  }
+  return index;
+}
+
+const milestones = await statusIndex("docs/roadmaps/g02");
+const cards = await statusIndex("docs/roadmaps/g02/batch-cards");
+
+function isClosed(reference: string, files: Map<string, string>, prefix: string): boolean {
+  for (const [file, content] of files) {
+    if (!file.startsWith(prefix)) continue;
+    return /^Status: (complete|superseded)/m.test(content);
+  }
+  return false;
+}
+
+for (const row of rows) {
+  const [surface, , awaits, trigger] = row.slice(1);
+  for (const match of `${awaits} ${trigger}`.matchAll(/g02\.(\d{3})/g)) {
+    if (isClosed(match[0], milestones, `${match[1]}-`)) {
+      throw new Error(`held surface "${surface!.trim()}" awaits ${match[0]}, which is closed`);
+    }
+  }
+  for (const match of `${awaits} ${trigger}`.matchAll(/card (?:\()?(\d{3})/gi)) {
+    if (isClosed(match[1]!, cards, `${match[1]}-`)) {
+      throw new Error(`held surface "${surface!.trim()}" awaits card ${match[1]}, which is closed`);
+    }
   }
 }
 

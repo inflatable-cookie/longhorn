@@ -1,6 +1,7 @@
 # g02.026 Automation And Gate Convergence
 
-Status: ready — Card 218 operator-held on Poodle v0.2.0
+Status: in progress — 219 and 220 landed; Card 218's closure operator-held on
+Poodle v0.2.0; workflow-edit items in 219/220 held for approval
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: contract 012; memo 023

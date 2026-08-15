@@ -2,7 +2,7 @@
 
 Status: active, amended from second-backend evidence
 Owner: Tom
-Updated: 2026-08-09
+Updated: 2026-08-15
 Amended: 2026-08-09 by Card 163, from the GPUI adapter
 Architecture: `../architecture/package-topology.md`
 Research: `../research/translation-memos/021-dual-backend-host-positioning.md`
@@ -264,10 +264,9 @@ amendments above came from it, but the evidence has a stated ceiling.
 | Cross-window transfer | proved | **proved live** — a real drag, posted through the window server, resolved to the other window in both directions and to an empty display off them |
 
 All three claims this paragraph used to carry are now discharged in-memory,
-and one ceiling remains: **no real drag has crossed a real window on either
-backend**. A GPUI application binding mouse events to a session, dragging under
-the cursor and releasing over another window is still the evidence nobody has,
-and this contract is not complete until a target produces it.
+and the drag ceiling this paragraph then named is closed too — see "The drag
+crossed — 2026-08-10" below. One ceiling remains: **no real teardown has run
+with a real flush in flight** (g02.015's Card 176).
 
 The three claims themselves:
 Multi-window placement was proved against two real windows across two displays
@@ -585,9 +584,9 @@ again with a second screen attached, it found the discarded display origin,
 which one display could not have. Both are now regression tests.
 
 That is the pattern worth noting: each time the evidence got one step closer
-to a real machine, it found something no fake would have. This contract's one
-remaining ceiling — that no real drag has crossed a real window on either
-backend — should be read in that light.
+to a real machine, it found something no fake would have. The drag ceiling
+this sentence carried closed on 2026-08-10 (see above); what remains is
+teardown with a flush in flight — Card 176.
 
 ## Non-goals
 

@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-04
+Updated: 2026-08-15
 Architecture: `../architecture/package-topology.md`
 
 ## Boundary
@@ -70,8 +70,12 @@ policy remain consumer-owned.
 
 ## Consumer Adoption
 
-- Package-manager publication is deferred during the private development and
-  first-migration phase. It does not gate donor cutover.
+- Package-manager publication is scoped and queued, no longer deferred on
+  names: the `@inflatable-cookie` scope was claimed on 2026-08-09, the three
+  TypeScript packages are publishable (`publishConfig.access: public`), and
+  the v0.1.0 tag waits on the Poodle v0.2.0 release (g02.014; Card 218 gates
+  the linked-Poodle exemption's exit). Rust crates stay `publish = false`;
+  consumers take them by git tag.
 - Private consumer repos may merge explicit sibling path or `file:` sources.
   Each adopted graph records the exact clean Longhorn and Poodle commits.
 - Moving branch references and unrecorded dirty sources are not valid pins.

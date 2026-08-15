@@ -38,10 +38,22 @@ from the frozen commits listed below, not from a fresh clone.
 ## Current State Note
 
 This candidate is frozen at its 2026-08-02 source state: 17 TypeScript
-packages and 36 Rust crates. The live tree has since grown (18 TypeScript
-packages, 41 Rust crates, plus the g02 update and licensing crates). Treat
-this receipt as the *proven* point-in-time artifact set, and the
+packages and 36 Rust crates. The live tree has since moved well past that
+shape (the packages consolidated to three in g02.013; the crate count moved
+with the g02 update and licensing crates). Treat this receipt as the
+*proven* point-in-time artifact set, and the
 [generated API surface](api-surface.md) as the *current* inventory.
+
+**Known receipt defect, recorded 2026-08-15:** the frozen receipt's package
+lists misdescribe the commit they froze — the Rust list carries
+`longhorn-surfaces` three times and `longhorn-surfaces-config` twice while
+omitting `longhorn-layout`/`longhorn-layout-config` (both present at
+`7a8cc7b4`), and the TypeScript list uses post-rename package names. The
+receipt was normalized after the rename and surfaces refactor, not produced
+at the frozen commit. The hash chain means it cannot be honestly
+regenerated, so this note carries the truth instead. The Loophole graph row
+in the table below is the frozen one (11/21/21); an earlier edit drifted it
+to the then-live counts and the gate caught it on 2026-08-14.
 
 ## Frozen Sources
 

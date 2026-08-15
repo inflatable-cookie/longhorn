@@ -15,10 +15,13 @@ is the map of those claims, and what an upgrade involves when one arrives.
 
 ## Availability
 
-Longhorn is a coordinated private `0.1.0` workspace. Rust crates use
-`publish = false`; TypeScript packages use `private: true`. Working names have
-no verified registry ownership. There is no npm/crates.io install, hosted docs,
-tag, or public release claim.
+Longhorn is a coordinated `0.1.0` workspace awaiting its first publication.
+Rust crates use `publish = false` and move by git tag. The TypeScript
+packages are publishable — scoped `@inflatable-cookie`,
+`publishConfig.access: public`, MIT — and the `@inflatable-cookie` scope was
+claimed on 2026-08-09. The v0.1.0 tag and npm publication wait on the Poodle
+v0.2.0 release (g02.014). Until then there is no npm/crates.io install,
+hosted docs, tag, or public release claim.
 
 Private consumers use exact clean source receipts or produced archives and an
 exact lock. Moving branches, dirty unrecorded sources, sibling workspace

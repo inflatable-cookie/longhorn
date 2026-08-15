@@ -48,13 +48,15 @@ this milestone is the sweep.
 
 ### Batch 2. Registers and indexes
 
-- [ ] [Card 216](batch-cards/216-front-door-truth-and-register-freshness.md):
+- [x] [Card 216](batch-cards/216-front-door-truth-and-register-freshness.md):
   single-source or delete the handwritten package/crate counts; held-surface
   rows corrected and a freshness gate added to `verify-held-surface.ts`;
   generation index reduced to one next-task pointer; contract-index statuses
   and contract 020's internal contradiction fixed; publication-status
   amendment across contract 012 and the compatibility guide; card127 receipt
-  annotated.
+  annotated. **Landed 2026-08-15** — the gate caught both stale rows on its
+  first run; the index has one pointer; the receipt is annotated, not
+  rewritten.
 
 ### Batch 3. Guides
 

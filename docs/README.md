@@ -28,9 +28,11 @@ For maintainers and agents:
 
 Pre-1.0 private workspace. Generation g01 is complete (20 milestones, cards
 001-137, five migrated consumers). Generation g02 is active with
-application-update and licensing runways (cards 138-159). The private
-`0.1.0` compatibility candidate spans 18 TypeScript packages and 41 Rust
-crates. Publication to npm and crates.io remains deferred.
+application-update and licensing runways (cards 138-159) and the memo-023
+release-audit suite (cards 200-223). The private `0.1.0` compatibility
+candidate spans the TypeScript packages and Rust crates enumerated — always
+currently — by the generated [API reference](reference/api-surface.md).
+Publication to npm and crates.io remains deferred.
 
 The complete delivery history is preserved in the
 [roadmap generation index](roadmaps/generation-index.md).

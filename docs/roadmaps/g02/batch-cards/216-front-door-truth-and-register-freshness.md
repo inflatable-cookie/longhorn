@@ -1,6 +1,7 @@
 # 216 Front-door Truth And Register Freshness
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.025 batch 2
 Governing refs: contract 001; contract 012; memo 023 (H5, H6, M2, M5,
@@ -68,12 +69,40 @@ index carries one pointer instead of three.
 - Fix the *symptom* counts while leaving them handwritten — that is the third
   time this exact drift gets fixed by hand.
 
+## Result
+
+- **Counts**: `docs/README.md` no longer carries handwritten package/crate
+  counts — it points at the generated `api-surface.md`, which is always
+  current. The candidate reference's "live tree" sentence does the same.
+- **Register**: the update and licensing rows graduated out of the register
+  entirely (g02.009/g02.010 shipped crates + renderer + host + proof), the
+  replay row tells the truth again (tested since the Card 211 port; no
+  production caller), and `verify-held-surface.ts` now fails any row whose
+  named milestone or card is closed. Proven: it caught both stale rows on
+  its first run.
+- **Generation index**: one live pointer, with the one-pointer rule written
+  into the section. The running narrative is gone; closeout lives on the
+  cards. The publication self-contradiction left with it.
+- **Contract index**: 015/016 read "active compiled boundary"; the roadmap
+  paragraph describes the current runway, not present-tense closed work.
+- **Contract 020**: the drag ceiling is stated once, as closed, and the live
+  ceiling (teardown with a flush in flight, Card 176) is what both spots now
+  name.
+- **Publication amendment**: contract 012's adoption section and the
+  compatibility guide now say scoped-and-queued — scope claimed 2026-08-09,
+  publishable packages, tag waiting on Poodle v0.2.0. Card-evidence
+  paragraphs from g01 keep their historical wording.
+- **Receipt annotated**: the card127 candidate reference now records the
+  receipt's misdescription of its frozen commit (duplicated/missing entries,
+  post-rename names) — the hash chain stays untouched.
+
 ## Acceptance Criteria
 
-- [ ] no handwritten package/crate count remains in a front door
-- [ ] the freshness gate fails on today's stale rows and passes after the fix
-- [ ] the generation index has exactly one live pointer
-- [ ] no doc asserts publication deferral to a completed milestone
+- [x] no handwritten package/crate count remains in a front door
+- [x] the freshness gate fails on today's stale rows and passes after the fix
+  (both halves observed)
+- [x] the generation index has exactly one live pointer
+- [x] no doc asserts publication deferral to a completed milestone
 
 ## Evidence Required
 

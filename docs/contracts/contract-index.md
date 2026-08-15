@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-03
+Updated: 2026-08-15
 
 ## Positioning
 
@@ -44,8 +44,8 @@ A claim proved on one backend does not close a host-tier contract.
 | [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
 | [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
 | [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | superseded by 002; layout is Surface state since Card 179 | superseded |
-| [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active; lifecycle foundation implemented |
-| [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active; pure ledger implemented |
+| [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active compiled boundary |
+| [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active compiled boundary |
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |
 | [018 Application Update And Release Channels](018-application-update-and-release-channels.md) | update policy, source adapters, channels, client-side rollout, restart readiness, cross-channel store compatibility | active compiled boundary |
 | [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
@@ -110,15 +110,11 @@ authority slices. Card 109 owns renderer and transfer composition.
 g01 is complete through Card 137, including the secondary-consumer
 migrations, the private compatibility candidate, the optional fork-tree
 layer, grouped-adapter absence restore, and child-view navigation.
-Generation g02 executes remediation Cards 138-147 under existing contracts;
-research memo 018 is the governing evidence. Package-manager publication
-remains deferred. Research memo 019 compiles contract 018 over in-app update:
-Longhorn owns channel, rollout, and restart-readiness policy while hosting,
-signing, and installation stay outside the boundary. Cards 150-154 (g02.009)
-execute it. A single bundle identity across channels makes cross-channel
-store compatibility load-bearing; the existing forward-refusal in all four
-stores already satisfies it, so Card 150 proves and classifies rather than
-builds.
+Generation g02 delivered the memo-018 remediation (Cards 138-147), the
+update and licensing runways (g02.009, g02.010), and the memo-023
+release-audit suite (cards 200-223) is the live runway. Publication is
+scoped and queued: the `@inflatable-cookie` scope was claimed 2026-08-09 and
+the v0.1.0 tag waits on Poodle v0.2.0 (g02.014).
 
 Research memo 020 compiles contract 019 over licensing. Longhorn owns the
 licence shape and its evaluation; applications own the backend, the purchase
