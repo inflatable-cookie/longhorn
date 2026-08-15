@@ -43,7 +43,8 @@ impl ForkPreferredChild {
     }
 }
 
-/// Complete untrusted structural state offered to [`ForkHistory::from_state`].
+/// Complete untrusted structural state offered to
+/// [`ForkHistory::from_state`](crate::ForkHistory::from_state).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForkHistoryState<P> {
     pub(crate) history_id: HistoryId,

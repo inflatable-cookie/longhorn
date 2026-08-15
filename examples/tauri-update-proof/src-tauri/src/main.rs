@@ -14,7 +14,7 @@
 //! Claim 2 is what this file is built around, and the whole point is that no
 //! double appears anywhere in the path. The gate reads
 //! [`TransferCoordinator::session_count`] through
-//! [`transfer_session_probe`](longhorn_update::transfer_session_probe), and the
+//! [`transfer_session_probe`], and the
 //! session it counts is one the coordinator accepted through its own
 //! validation — bound client epoch, live window, drop zone, lease lifetime. A
 //! session that satisfies the type system and not the coordinator would make

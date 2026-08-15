@@ -10,7 +10,7 @@
 //! [`GpuiDiagnosticDisposition`].
 //!
 //! The crate does not depend on `gpui`. Every GPUI value crossing the boundary
-//! is a plain Rust type in [`model`], and [`GpuiWindowBackend`] is the seam a
+//! is a plain Rust type in `model`, and [`GpuiWindowBackend`] is the seam a
 //! real GPUI application implements. `prototypes/gpui-windowing` binds that
 //! seam to `gpui` itself and is where the shape below was measured.
 
