@@ -39,10 +39,7 @@ pub use activation::{
     Activation, ActivationError, ActivationRequest, ActivationSource, ActivationUrl,
     ActivationUrlError, Credential, SignedFileSource, TokenRedemptionSource, asserted_remotely,
 };
-pub use credential::{
-    CredentialError, CredentialSlot, CredentialStore, MachineId, MachineIdError,
-    MemoryCredentialStore,
-};
+pub use credential::{MachineId, MachineIdError};
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};
 pub use key::{LicenceKey, LicenceKeyError, MINIMUM_KEY_SYMBOLS, key_conformance_cases};
 pub use licence::{GracePolicy, LicencePayload, TrustBasis, VerifiedLicence};

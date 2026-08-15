@@ -3,6 +3,7 @@
 mod bounded_text;
 mod client_geometry;
 mod command_id;
+mod credential;
 mod diagnostics;
 mod domain_id;
 mod geometry;
@@ -24,6 +25,7 @@ pub use command_id::{
     CommandContextId, CommandEnumValueId, CommandEvidenceCode, CommandFieldId, CommandId,
     CommandKeymapPresetId, CommandRequestId, CommandRouteId,
 };
+pub use credential::{CredentialError, CredentialSlot, CredentialStore, MemoryCredentialStore};
 pub use diagnostics::{
     BestEffortDiagnostics, install_best_effort_diagnostics, report_best_effort_failure,
 };

@@ -26,7 +26,7 @@
 | [g02.018](018-tagged-union-boundary-validation.md) | in progress | the 181 tagged unions validate per variant, from the Rust enums |
 | [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
 | [g02.022](022-bridge-session-and-event-lifecycle.md) | complete | events respect read authority; sessions end with their window |
-| [g02.023](023-credential-and-activation-hardening.md) | complete except 210 (operator-held) | the credential path matches the config-age discipline |
+| [g02.023](023-credential-and-activation-hardening.md) | complete | the credential path matches the config-age discipline |
 | [g02.024](024-coverage-restoration.md) | complete | the test surface matches the code surface again |
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
 | [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |

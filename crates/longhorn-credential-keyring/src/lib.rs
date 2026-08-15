@@ -2,7 +2,7 @@
 //!
 //! Opt-in and host-agnostic, on the precedent `longhorn-browser` set: neither
 //! backend supplies this, so Longhorn implements it once and both hosts
-//! compose the same crate. The trait in `longhorn-licence` stays bound to no
+//! compose the same crate. The trait in `longhorn-core` stays bound to no
 //! keychain crate; a consumer that prefers its own backend, or none, composes
 //! that instead — `MemoryCredentialStore` is the deliberate no-persistence
 //! answer.
@@ -27,7 +27,7 @@
 //! pretending to store a credential that will not be there tomorrow is the
 //! worst available behaviour.
 
-use longhorn_licence::{CredentialError, CredentialSlot, CredentialStore};
+use longhorn_core::{CredentialError, CredentialSlot, CredentialStore};
 
 /// A [`CredentialStore`] over the operating system's keychain.
 ///

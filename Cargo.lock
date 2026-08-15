@@ -2730,7 +2730,7 @@ name = "longhorn-credential-keyring"
 version = "0.1.0"
 dependencies = [
  "keyring",
- "longhorn-licence",
+ "longhorn-core",
 ]
 
 [[package]]
@@ -3185,6 +3185,7 @@ version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
  "longhorn-browser",
+ "longhorn-core",
  "longhorn-credential-keyring",
  "longhorn-licence",
  "longhorn-update",

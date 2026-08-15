@@ -9,11 +9,11 @@
 
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use longhorn_browser::LoopbackRedirect;
+use longhorn_core::{CredentialSlot, CredentialStore, MemoryCredentialStore};
 use longhorn_licence::{
     AccountFlow, Activation, ActivationSource, ActivationUrl, ClockGuard, CodeVerifier, Credential,
-    CredentialSlot, CredentialStore, GracePolicy, LicencePayload, MemoryCredentialStore,
-    SignedFileSource, SignedLicence, Span, Timestamp, TokenRedemptionSource, TrustBasis, Usability,
-    asserted_remotely, usability, verify,
+    GracePolicy, LicencePayload, SignedFileSource, SignedLicence, Span, Timestamp,
+    TokenRedemptionSource, TrustBasis, Usability, asserted_remotely, usability, verify,
 };
 use longhorn_update::{
     Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, DeferralCause, EndpointUrl,

@@ -10,5 +10,8 @@ mod recipient;
 mod retention;
 #[path = "age_envelope/rotation.rs"]
 mod rotation;
+
+#[path = "age_envelope/store.rs"]
+mod store;
 #[path = "age_envelope/support.rs"]
 mod support;

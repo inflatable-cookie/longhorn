@@ -77,15 +77,16 @@ pub fn navigation(registry: &SettingsRegistry) -> Vec<NavigationModule<'_>> {
 
 /// Builds the settings sidebar from a sealed registry.
 ///
-/// Section labels are prefixed with their module only when more than one
-/// module survives grouping. With a single module the prefix is noise, and
-/// with several it is the only thing telling two identically-named sections
-/// apart. This mirrors `SettingsShell.svelte` exactly, deliberately: the two
-/// backends should not disagree about what a section is called.
+/// Section labels are the section's own, always. This used to prefix the
+/// module's label whenever more than one module survived grouping, which
+/// reads as "STORAGE · STORAGE & BACKUPS" for a Storage module holding a
+/// Storage & Backups section. A host that wants its module named writes that
+/// into the section label. This mirrors `SettingsShell.svelte` exactly,
+/// deliberately: the two backends should not disagree about what a section
+/// is called.
 #[must_use]
 pub fn sidebar_nav(registry: &SettingsRegistry, selected: Option<&str>) -> SidebarNavSpec {
     let modules = navigation(registry);
-    let qualify = modules.len() > 1;
 
     let groups: Vec<SidebarNavGroup> = modules
         .iter()
@@ -97,13 +98,8 @@ pub fn sidebar_nav(registry: &SettingsRegistry, selected: Option<&str>) -> Sideb
                     .map(|page| SidebarNavItem::new(page.id.as_str(), page.label.clone()))
                     .collect();
 
-                let label = if qualify {
-                    format!("{} \u{b7} {}", entry.module.label, section.section.label)
-                } else {
-                    section.section.label.clone()
-                };
-
-                SidebarNavGroup::new(section.section.id.as_str(), items).with_label(label)
+                SidebarNavGroup::new(section.section.id.as_str(), items)
+                    .with_label(section.section.label.clone())
             })
         })
         .collect();
@@ -414,9 +410,10 @@ mod tests {
     }
 
     #[test]
-    fn several_modules_qualify_every_section_label() {
-        // Two sections sharing a label is exactly the case the prefix exists
-        // for; without it the sidebar would show "General" twice.
+    fn several_modules_still_use_the_sections_own_labels() {
+        // Two sections sharing a label is the case the removed prefix existed
+        // for. The Svelte tier decided: the section's own label, always; a
+        // host that wants its module named writes that into the label.
         let registry = Fixture::new()
             .module("core", "Core", 0)
             .module("plugins", "Plugins", 1)
@@ -433,10 +430,7 @@ mod tests {
             .filter_map(|group| group.label.as_deref())
             .collect();
 
-        assert_eq!(
-            labels,
-            vec!["Core \u{b7} General", "Plugins \u{b7} General"]
-        );
+        assert_eq!(labels, vec!["General", "General"]);
     }
 
     #[test]

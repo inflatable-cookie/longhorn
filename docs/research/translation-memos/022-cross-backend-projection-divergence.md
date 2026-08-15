@@ -374,3 +374,14 @@ though there are no differences, but so does one that invents them.
 ## What is still open
 
 D6 alone. It is Poodle-side work in either form, and blocks nothing.
+
+## Addendum 2026-08-15 — the sidebar label divergence this memo missed
+
+The audit's coverage card (214) found one divergence outside this memo's
+eight: Rust `sidebar_nav` prefixed section labels with the module label in
+multi-module sidebars and its doc claimed to mirror `SettingsShell.svelte`,
+while the Svelte side had deliberately dropped that prefix. Operator decision
+2026-08-15: the Svelte side is correct — the section's own label, always; a
+host that wants its module named writes it into the section label. The Rust
+prefix is removed, and both tiers pin the rule by test (the Svelte shell
+suite already did; the Rust suite now does).

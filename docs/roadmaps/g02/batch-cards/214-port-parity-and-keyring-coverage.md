@@ -100,6 +100,10 @@ multi-module sidebar labels and memo 022 does not record it. The parity
 fixture pins only where they agree; the label question is a contract-013
 conversation for the operator, not a test edit.
 
+**Resolved 2026-08-15** (operator): the Svelte side is correct — the
+section's own label, always. The Rust prefix is removed; both tiers pin the
+rule by test; memo 022 carries the addendum.
+
 ## Acceptance Criteria
 
 - [x] all seven raw ports have conformance tests

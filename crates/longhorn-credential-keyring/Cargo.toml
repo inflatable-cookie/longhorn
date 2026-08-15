@@ -9,7 +9,7 @@ description = "Opt-in platform keychain backend for Longhorn's CredentialStore"
 publish = false
 
 [dependencies]
-longhorn-licence.workspace = true
+longhorn-core.workspace = true
 
 # Narrow composition on purpose. macOS and Windows cost almost nothing --
 # core-foundation and windows-sys are already in the tree -- and Linux is

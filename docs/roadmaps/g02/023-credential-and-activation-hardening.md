@@ -1,6 +1,7 @@
 # g02.023 Credential And Activation Hardening
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: contract 019; contract 004; memo 023
@@ -27,9 +28,8 @@ noninteractive identity authority Card 210 provides.
 - **`key_id` binding is a decision, not a fix.** Resolved by Card 207: the
   envelope field is an unauthenticated claim, recorded as such; rotation keys
   on the consumer-configured verifying key.
-- **Age-identity storage shape.** Not resolved — Card 210 is blocked on it.
-  The card carries the four placements with evidence and a recommendation;
-  the choice changes what consumers compose, so it is the operator's.
+- **Age-identity storage shape.** Resolved 2026-08-15 (operator, option 1):
+  the vocabulary lives in `longhorn-core`; Card 210 landed the same day.
 
 ## Execution Plan
 
@@ -58,13 +58,11 @@ noninteractive identity authority Card 210 provides.
   probe connection and enforces a total-connection deadline. **Landed
   2026-08-14** — plus `AccountFlow::generate`; the proof's timestamp stub is
   gone, and `getrandom` joined the workspace dependencies.
-- [ ] [Card 210](batch-cards/210-age-identity-persistence.md): a Longhorn-owned
-  persistence path for the operational age identity, satisfying contract
-  004:403 without every consumer re-implementing the storage decision.
-  **Blocked 2026-08-14** — the mechanism is settled (get-or-generate through
-  the keychain); where the store vocabulary lives is the operator's call.
-  The card carries the four options with evidence and a recommendation
-  (move `CredentialStore` to `longhorn-core`).
+- [x] [Card 210](batch-cards/210-age-identity-persistence.md): **landed
+  2026-08-15** on the operator's option-1 call — the store vocabulary moved
+  to `longhorn-core`, the `AgeIdentity` slot joined it, and
+  `StoreBackupEncryption` satisfies contract 004:403 with a tested
+  noninteractive path.
 
 ## Dependency Shape
 
@@ -80,19 +78,20 @@ memo 023 (M-json, L-debug, L-locked, L-keyid, opp-zeroize, opp-pkce, opp-age-slo
 
 ## Goals
 
-- [ ] no credential crosses a serialization boundary by string interpolation
-- [ ] a `{:?}` anywhere in the tree cannot print a bearer token
-- [ ] the pattern a consumer copies for PKCE is a safe one
-- [ ] automatic encrypted backup has its noninteractive identity authority
+- [x] no credential crosses a serialization boundary by string interpolation
+- [x] a `{:?}` anywhere in the tree cannot print a bearer token
+- [x] the pattern a consumer copies for PKCE is a safe one
+- [x] automatic encrypted backup has its noninteractive identity authority
 
 ## Acceptance Criteria
 
-- [ ] redemption and renewal bodies escape correctly for adversarial tokens,
+- [x] redemption and renewal bodies escape correctly for adversarial tokens,
   with tests
-- [ ] redaction tests assert `Debug` output of credential-carrying types
+- [x] redaction tests assert `Debug` output of credential-carrying types
   contains no secret, matching the config-age precedent
-- [ ] tamper-after-header-MAC classifies as `Corrupt` with a regression test
-- [ ] contract 004:403's requirement names the mechanism that satisfies it
+- [x] tamper-after-header-MAC investigated: indistinguishable at age's error
+  surface; `Locked`'s honest meaning documented (Card 208)
+- [x] contract 004:403's requirement names the mechanism that satisfies it
 
 ## Explicit Non-goals
 

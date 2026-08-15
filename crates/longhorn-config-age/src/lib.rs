@@ -11,6 +11,7 @@ mod error;
 mod inspection;
 mod limits;
 mod rotation;
+mod store;
 mod types;
 
 pub use authority::{
@@ -24,6 +25,7 @@ pub use error::{AgeEncryptionError, AgeReencryptionError};
 pub use inspection::{inspect_with_identities, inspect_with_passphrase, inspect_with_provider};
 pub use limits::{AgeEnvelopeLimits, AgeEnvelopeLimitsError};
 pub use rotation::reencrypt_operational_backup;
+pub use store::StoreBackupEncryption;
 pub use types::{
     AgeBackupInspection, AgeEncryptionMode, AgeEnvelopeEvidence, AgeEnvelopeReceipt,
     AgeInspectionOutcome, EncryptedBackupArchive,

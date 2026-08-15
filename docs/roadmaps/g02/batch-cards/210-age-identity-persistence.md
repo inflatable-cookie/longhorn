@@ -1,6 +1,7 @@
 # 210 Age-identity Persistence
 
-Status: blocked — operator decision on the store's home
+Status: complete — unblocked by operator decision 2026-08-15
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.023 batch 3
 Governing refs: contract 004 (§ noninteractive identity authority); memo 023
@@ -75,11 +76,32 @@ boundary correction right before the candidate freeze.
 - Grow `longhorn-core` — this belongs in the two crates that already own the
   halves.
 
+## Result (2026-08-15)
+
+The operator took option 1. `CredentialStore`, `CredentialSlot`,
+`CredentialError`, and `MemoryCredentialStore` moved from `longhorn-licence`
+to `longhorn-core` — credential storage is host plumbing, and core is where
+host plumbing lives. The slot vocabulary gained `AgeIdentity`
+(`backup-identity`): licence and backup secrets share one store shape.
+
+The mechanism is `StoreBackupEncryption` in `longhorn-config-age` (which now
+depends on `longhorn-core`): a `BackupEncryptionProvider` that reads the
+identity back or generates it once from the OS RNG into the slot — with the
+failure honesty the crate is built on: a stored value that does not parse is
+`Failed`, never silently regenerated, because overwriting an unreadable
+identity orphans every backup it wrote. Tests prove generate-once/read-back
+across a process boundary, the corrupt-identity refusal, and the
+end-to-end contract-004 claim: no operator present, identity resolved,
+backup encrypted and inspected.
+
+Consumers re-import the four types from `longhorn-core` at the next bump —
+the break is additive-shaped and the candidate is unpublished.
+
 ## Acceptance Criteria
 
-- [ ] contract 004:403 names its mechanism
-- [ ] the noninteractive backup path runs without an operator in a test
-- [ ] the identity never persists outside the chosen secure store
+- [x] contract 004:403 names its mechanism
+- [x] the noninteractive backup path runs without an operator in a test
+- [x] the identity never persists outside the chosen secure store
 
 ## Evidence Required
 

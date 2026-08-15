@@ -10,10 +10,10 @@ publish = false
 [dependencies]
 age.workspace = true
 longhorn-config.workspace = true
+longhorn-core.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-longhorn-core.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
 
