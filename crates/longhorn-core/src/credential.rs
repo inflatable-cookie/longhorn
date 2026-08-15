@@ -54,8 +54,28 @@ impl fmt::Display for CredentialSlot {
 /// consuming applications differ in what they already depend on, and forcing
 /// a platform backend on all of them would contradict the framework's
 /// agnostic posture. Longhorn owns the *rules*; the backend is composed.
+///
+/// # There is deliberately no conditional write
+///
+/// No `store_if_absent`, no compare-and-swap. It was investigated for the
+/// age-identity first-run race (Card 224) and refused, because no backend can
+/// honour it: `keyring-core` 1.0's `CredentialApi` — the surface behind
+/// `longhorn-credential-keyring` — exposes only unconditional `set_secret`,
+/// and Windows' `CredWrite` has no create-only flag, so the primitive does
+/// not exist cross-platform. A method here whose default was
+/// retrieve-then-store would read like mutual exclusion while providing none,
+/// and the backend Longhorn ships would be the one breaking it.
+///
+/// A caller that needs to survive a lost race reads the slot back after
+/// writing and adopts what it finds, the way `StoreBackupEncryption` does.
+/// That converges rather than excludes, which is what unconditional writes
+/// can actually support.
 pub trait CredentialStore {
     /// Stores a secret, replacing any existing value in the slot.
+    ///
+    /// Unconditional: a concurrent writer's value is overwritten without
+    /// signal, and there is no way to ask for the write only if the slot is
+    /// empty. See the trait note above.
     fn store(&self, slot: CredentialSlot, secret: &str) -> Result<(), CredentialError>;
 
     /// Retrieves a secret, or `None` when the slot is empty.

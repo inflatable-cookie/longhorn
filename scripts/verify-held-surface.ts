@@ -58,7 +58,10 @@ function isClosed(reference: string, files: Map<string, string>, prefix: string)
     if (!file.startsWith(prefix)) continue;
     return /^Status: (complete|superseded)/m.test(content);
   }
-  return false;
+  // A reference that resolves to nothing is a typo or a deleted card, and
+  // answering "not closed" would let it sit in the register forever — the
+  // freshness gate would be reporting on a file it never found.
+  throw new Error(`held surface names ${reference}, which matches no roadmap file`);
 }
 
 for (const row of rows) {

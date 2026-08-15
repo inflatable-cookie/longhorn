@@ -23,30 +23,45 @@ sync-files = ["Cargo.lock"]
 tag-format = "v{version}"
 initial-tag-current-version = true
 
-# Gates run before a release is prepared or executed. Heavy Rust lanes are
-# throttled so the machine stays usable; CI runs unthrottled.
+# Gates run before a release is prepared or executed. This is the only
+# `[release.gates]` table; effigy.toml includes this file and declares none of
+# its own. Two tables merged cleanly, which is exactly why the duplication
+# survived: the Rust board was declared here *and* reached again through
+# `workspace`, so fmt, both Clippy passes and the full test suite each ran
+# twice per release. Every gate below is either `effigy qa` or something qa
+# does not cover.
 #
-# `lint` denies warnings. Clippy gates several lints on the declared MSRV
-# (collapsible_if only fires once let-chains are available), so the lint and
-# floor lanes are not redundant: they see different lint sets.
-#
-# Two feature passes, and both are load-bearing. Default features leave the
-# `bindings`, `supervision`, `operation` and proof-example `surface-mode` code
-# uncompiled; `--all-features` leaves cfg-gated fallbacks uncompiled. The
-# all-features pass was added on 2026-08-06 and immediately found two
-# `manual_clamp` errors in the transfer proof's `surface-mode` module that had
-# never been linted.
+# Listed cheapest-first for reading. That is *not* the execution order: effigy
+# runs gates sorted by name, so a measured run goes advisories, floor,
+# private-candidate, prototypes, rustdoc, source, workspace — the 145s floor
+# ahead of the 38ms candidate check. Renaming gates to buy the ordering back
+# would break the card-127 proof, which asserts two of these lines verbatim.
+# Recorded in PAPERCUTS.md rather than worked around here.
 [release.gates]
-# Cheapest first: the docs-level candidate assertion fails in milliseconds;
-# the floor takes most of a minute.
+# Docs-level candidate assertion. 38ms.
 private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
-fmt = "cargo fmt --all --check"
-lint = "nice -n 5 cargo clippy --workspace --all-targets --locked -- -D warnings"
-"lint:features" = "nice -n 5 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
-test = "nice -n 5 cargo test --workspace --locked"
+# The advisory database against the dated allowances in deny.toml.
+advisories = "cargo deny check advisories"
+# Rustdoc warnings are denied. Not in `qa`: it is a release-shaped concern and
+# the slowest of the cheap gates.
+rustdoc = "effigy docs:rust"
+# Workspace-excluded prototypes still have to build against the crates they
+# probe -- a workspace crate gaining a dependency goes stale here first.
+prototypes = "effigy check:prototypes"
+# The whole local board: fmt, both Clippy passes, the Rust and TypeScript test
+# suites, the bindings and seam gates, and every artifact proof. Declared once
+# in effigy.toml's `qa` aggregate rather than transcribed here.
+#
+# Left unwrapped on purpose. The removed duplicates carried `nice -n 5`, and
+# wrapping this gate to keep that would break the card-127 candidate proof,
+# which asserts this line verbatim. The heaviest lane, `release:floor`, nices
+# itself; qa runs at normal priority the same way an agent runs it.
+workspace = "effigy qa"
 # Enforces the declared MSRV with real Clippy and tests at the floor
 # toolchain, not a bare check -- the 1.90 floor was false for weeks because a
-# transitive build script only failed under --all-targets.
+# transitive build script only failed under --all-targets. Not redundant with
+# qa's Clippy: several lints only fire once the floor's language features
+# exist, so the two lanes see different lint sets.
 floor = "effigy release:floor"
 # Proves the release commit is consumable as a git dependency: a throwaway
 # consumer resolves every probed crate from a git source, not a path.

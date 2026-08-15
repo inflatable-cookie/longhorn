@@ -71,6 +71,33 @@ const STAGING_PREFIX: &str = ".longhorn-update-";
 /// is the whole point.
 const MAX_EXTRACTED_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 
+/// The most entries one artifact may unpack to.
+///
+/// Bytes are not the only finite resource. Directories, links and empty files
+/// all declare a size of zero, so any number of them passes the byte quota
+/// untouched while still consuming inodes and directory space. A large
+/// desktop bundle is tens of thousands of files; a quarter of a million is
+/// not a bundle.
+const MAX_EXTRACTED_ENTRIES: usize = 250_000;
+
+/// What one extraction may spend.
+///
+/// Injectable so both limits can be proved against a small archive. Reaching
+/// the shipped values in a test would mean building the hostile artifact the
+/// quota exists to refuse.
+#[derive(Clone, Copy)]
+struct ExtractionQuota {
+    bytes: u64,
+    entries: usize,
+}
+
+impl ExtractionQuota {
+    const DEFAULT: Self = Self {
+        bytes: MAX_EXTRACTED_BYTES,
+        entries: MAX_EXTRACTED_ENTRIES,
+    };
+}
+
 /// Escalates a replacement the current user cannot perform.
 ///
 /// Injected because escalation is host and platform policy, and because
@@ -275,7 +302,19 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
 /// `assert_inside` refuses a destination whose existing ancestors resolve
 /// outside staging (a link an earlier entry planted), and tar's own
 /// `unpack_in` canonicalizes the destination's parent as the backstop.
+///
+/// Two quotas keep it finite: declared bytes, and entry count — a zero-byte
+/// entry costs no bytes and still costs an inode.
 fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
+    unpack_within(artifact, staging, ExtractionQuota::DEFAULT)
+}
+
+/// [`unpack`], against a stated quota.
+fn unpack_within(
+    artifact: &[u8],
+    staging: &Path,
+    quota: ExtractionQuota,
+) -> Result<PathBuf, InstallFailure> {
     let mut archive = tar::Archive::new(GzDecoder::new(artifact));
     let entries = archive
         .entries()
@@ -285,6 +324,7 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
 
     let mut root: Option<PathBuf> = None;
     let mut declared_bytes: u64 = 0;
+    let mut written_entries: usize = 0;
     for entry in entries {
         let mut entry = entry.map_err(|error| InstallFailure::MalformedArtifact {
             detail: error.to_string(),
@@ -304,6 +344,18 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
         }
 
         let safe = bounded(&path)?;
+
+        // Counted before the write, alongside the byte quota: an entry that
+        // costs no bytes still costs an inode.
+        written_entries += 1;
+        if written_entries > quota.entries {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: format!(
+                    "archive exceeds the {}-entry extraction quota",
+                    quota.entries
+                ),
+            });
+        }
 
         // An application bundle contains files, directories, and links.
         // Anything else — devices, fifos — is not an update, it is a crafted
@@ -342,9 +394,9 @@ fn unpack(artifact: &[u8], staging: &Path) -> Result<PathBuf, InstallFailure> {
                 detail: error.to_string(),
             }
         })?);
-        if declared_bytes > MAX_EXTRACTED_BYTES {
+        if declared_bytes > quota.bytes {
             return Err(InstallFailure::MalformedArtifact {
-                detail: format!("archive exceeds the {MAX_EXTRACTED_BYTES}-byte extraction quota"),
+                detail: format!("archive exceeds the {}-byte extraction quota", quota.bytes),
             });
         }
 
@@ -467,5 +519,61 @@ fn classify(error: &std::io::Error, path: &Path) -> InstallFailure {
     }
     InstallFailure::Failed {
         detail: format!("{}: {error}", path.display()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use flate2::{Compression, write::GzEncoder};
+
+    use super::*;
+
+    /// A bundle-shaped archive of `count` empty files under one root.
+    fn archive_of(count: usize) -> Vec<u8> {
+        let mut builder = tar::Builder::new(GzEncoder::new(Vec::new(), Compression::fast()));
+        for index in 0..count {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(0);
+            header.set_mode(0o644);
+            header.set_entry_type(tar::EntryType::Regular);
+            header.set_cksum();
+            builder
+                .append_data(
+                    &mut header,
+                    format!("Example.app/{index}"),
+                    std::io::empty(),
+                )
+                .unwrap();
+        }
+        builder.into_inner().unwrap().finish().unwrap()
+    }
+
+    /// Empty entries declare no bytes, so only the entry quota bounds them.
+    #[test]
+    fn the_entry_quota_refuses_an_archive_of_zero_byte_entries() {
+        let staging = tempfile::tempdir().unwrap();
+        let quota = ExtractionQuota {
+            bytes: MAX_EXTRACTED_BYTES,
+            entries: 8,
+        };
+
+        let outcome = unpack_within(&archive_of(9), staging.path(), quota);
+
+        assert!(
+            matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+            "expected an entry-quota refusal, found {outcome:?}"
+        );
+    }
+
+    /// The boundary is inclusive: exactly the quota unpacks.
+    #[test]
+    fn an_archive_at_the_entry_quota_unpacks() {
+        let staging = tempfile::tempdir().unwrap();
+        let quota = ExtractionQuota {
+            bytes: MAX_EXTRACTED_BYTES,
+            entries: 8,
+        };
+
+        unpack_within(&archive_of(8), staging.path(), quota).expect("unpack at the quota");
     }
 }

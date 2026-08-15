@@ -107,12 +107,21 @@ exclude = ["history/**"]
 ]
 
 # --- Aggregates ---------------------------------------------------------
-# Cheap orientation baseline for `effigy doctor`. Full validation is `effigy qa`.
-# Mapping health→qa made every doctor run launch the Rust/TS board before an
-# agent had picked a bounded task (see PAPERCUTS.md).
+# Cheap orientation baseline for `effigy doctor`, which AGENTS.md names as a
+# first command. Mapping health→qa made every doctor run launch the Rust/TS
+# board before an agent had picked a bounded task (see PAPERCUTS.md); mapping
+# it to `release:floor` was the same mistake wearing a smaller name, because
+# the floor is two Clippy passes plus the full test suite on the MSRV
+# toolchain. Both are minutes. Orientation has to be seconds or nobody runs it.
+#
+# What belongs here: checks that answer "is this tree coherent right now"
+# without compiling it. Formatting drift and a missing runner tool are exactly
+# that -- and runner-tools is the guard against the class that killed release
+# run 6, so having it fire early is worth more than having it fire late.
+# The floor stays where it earns its cost: a release gate.
 health = [
   { task = "fmt:rust" },
-  { task = "release:floor" },
+  { task = "check:runner-tools" },
 ]
 qa = [
   { task = "fmt:rust" },
@@ -175,8 +184,7 @@ warning = ["TODO", "REVIEW", "NOTE", "placeholder"]
 high = ["FIXME", "HACK", "@deprecated", "workaround"]
 critical = ["BUG", "remove before release"]
 
-[release.gates]
-rustdoc = "effigy docs:rust"
-advisories = "cargo deny check advisories"
-workspace = "effigy qa"
-prototypes = "effigy check:prototypes"
+# Release gates live in `config/release.toml`, next to the rest of `[release]`.
+# Declaring a second `[release.gates]` here merges rather than conflicts, which
+# is how the Rust board came to run twice per release -- once directly and once
+# through `effigy qa`. One table, one home.

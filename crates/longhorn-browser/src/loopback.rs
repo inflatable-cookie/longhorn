@@ -21,7 +21,9 @@
 //! - Binds `127.0.0.1` only, never a routable interface.
 //! - Reads a bounded request head from one connection at a time.
 //! - Answers non-callback paths (a favicon probe, a scanner) with 404 and
-//!   keeps waiting; only the callback path resolves the wait.
+//!   keeps waiting; only the callback path resolves the wait. A connection
+//!   that hangs up, resets, or says nothing at all is noise on the same
+//!   terms — otherwise opening a socket would be enough to cancel a sign-in.
 //! - The response page is static. Nothing from the request is echoed into it,
 //!   so the page cannot be a reflection vector.
 
@@ -38,6 +40,13 @@ use longhorn_licence::{Callback, CallbackOutcome};
 /// An authorization redirect is a short GET; a request that exceeds this is
 /// not one, whatever it is.
 const MAXIMUM_HEAD_BYTES: usize = 8 * 1024;
+
+/// How long one connection may say nothing before it is treated as a probe.
+///
+/// A browser following a redirect sends its GET immediately, so this only
+/// ever expires on traffic that was never the callback. It also bounds how
+/// long a silent peer occupies the accept loop.
+const PROBE_READ_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// The page the operator sees after the redirect lands.
 ///
@@ -146,8 +155,10 @@ enum Answer {
     /// It carried the callback.
     Callback(Callback),
     /// Probe traffic: answered 404 where possible, then closed. A dead
-    /// connection or a long garbage head is noise, and killing the sign-in
-    /// flow over it would let any local process cancel logins.
+    /// connection, a silent one, or a long garbage head is noise, and killing
+    /// the sign-in flow over it would let any local process cancel logins —
+    /// by hanging up abruptly or by saying nothing at all, neither of which
+    /// needs more than an open socket.
     Probe,
 }
 
@@ -161,7 +172,7 @@ fn answer(mut stream: TcpStream, deadline: Instant) -> Result<Answer, LoopbackEr
     // proof paid a build cycle to learn it. Reads and writes here must block.
     stream.set_nonblocking(false).map_err(io_error)?;
     stream
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(PROBE_READ_TIMEOUT))
         .map_err(io_error)?;
 
     let mut head = Vec::new();
@@ -174,18 +185,26 @@ fn answer(mut stream: TcpStream, deadline: Instant) -> Result<Answer, LoopbackEr
         // Each read is bounded by the flow's own deadline, so a peer
         // dribbling a byte at a time cannot hold the connection past it.
         stream
-            .set_read_timeout(Some(remaining.min(Duration::from_secs(5))))
+            .set_read_timeout(Some(remaining.min(PROBE_READ_TIMEOUT)))
             .map_err(io_error)?;
         match stream.read(&mut buffer) {
             Ok(0) => return Ok(Answer::Probe),
             Ok(count) => head.extend_from_slice(&buffer[..count]),
-            // A connection that dies before completing a request is a probe;
-            // a read that outlives the deadline ends the flow.
-            Err(error) => {
+            // Any read failure short of the flow deadline is a probe. A clean
+            // hang-up arrives as `Ok(0)`, but an abrupt one arrives as
+            // `ECONNRESET`, and a peer that connects and then says nothing
+            // arrives as the per-read timeout -- and treating either as fatal
+            // would let any local process cancel a sign-in by opening a socket
+            // and walking away. Only the flow's own deadline ends the wait.
+            //
+            // The cost is that one silent connection occupies the accept loop
+            // for up to `PROBE_READ_TIMEOUT`; the flow outlives that, and a
+            // real callback is accepted as soon as it clears.
+            Err(_) => {
                 if Instant::now() >= deadline {
                     return Err(LoopbackError::TimedOut);
                 }
-                return Err(io_error(error));
+                return Ok(Answer::Probe);
             }
         }
         if head.windows(4).any(|window| window == b"\r\n\r\n") {
@@ -393,7 +412,8 @@ mod tests {
         );
     }
 
-    /// A scanner that connects and dies mid-request must not kill the wait.
+    /// A scanner that connects and hangs up mid-request must not kill the
+    /// wait. Dropping the stream sends a FIN, which the read sees as `Ok(0)`.
     #[test]
     fn a_probe_disconnecting_mid_request_does_not_end_the_wait() {
         let listener = LoopbackRedirect::bind().expect("bind");
@@ -404,11 +424,39 @@ mod tests {
         probe.write_all(b"GET /fav").expect("write");
         drop(probe);
 
-        exchange(port, "/callback?state=sixteen-byte-state&code=after-rst");
+        exchange(port, "/callback?state=sixteen-byte-state&code=after-hangup");
         assert_eq!(
             handle.join().expect("join").expect("callback").outcome,
-            CallbackOutcome::Code("after-rst".to_owned())
+            CallbackOutcome::Code("after-hangup".to_owned())
         );
+    }
+
+    /// A connection that says nothing at all must not kill the wait either.
+    ///
+    /// This is the branch a hang-up cannot reach: the peer neither sends nor
+    /// closes, so the read fails with the per-read timeout rather than
+    /// `Ok(0)`. Treating that as fatal would let any local process cancel a
+    /// sign-in by opening a socket and walking away. Costs
+    /// `PROBE_READ_TIMEOUT` in wall-clock, which is why there is one of it.
+    #[test]
+    fn a_silent_connection_does_not_end_the_wait() {
+        let listener = LoopbackRedirect::bind().expect("bind");
+        let port = listener.port();
+        // Comfortably past the per-read timeout, so the stall expires inside
+        // a flow that is still live.
+        let handle = std::thread::spawn(move || listener.receive(Duration::from_secs(60)));
+
+        let silent = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+
+        exchange(
+            port,
+            "/callback?state=sixteen-byte-state&code=after-silence",
+        );
+        assert_eq!(
+            handle.join().expect("join").expect("callback").outcome,
+            CallbackOutcome::Code("after-silence".to_owned())
+        );
+        drop(silent);
     }
 
     /// A peer dribbling a byte at a time must not outlive the flow deadline.

@@ -86,11 +86,13 @@ The automation lane found no broken gate — it found drift by transcription:
 ## Acceptance Criteria
 
 - [x] `effigy release gates` passes without `POODLE_REPO` set
-- [ ] adding a bindings domain touches one list — **held**: the drift lives in
-  `ci.yml`'s transcription; the workflow edit needs approval (see Result)
+- [x] adding a bindings domain touches one list — `ci.yml` runs the effigy
+  selectors instead of transcribing them (workflow edit approved 2026-08-15)
 - [x] bumping the MSRV touches one file plus one cross-check
 - [x] `effigy qa` includes runner-tools; rustdoc is gated (release gates)
-- [x] `effigy doctor` cost re-checked — kept deliberately, reason recorded
+- [x] `[release.gates]` is declared in one file, and no gate command is
+  reachable twice in a release run
+- [x] `effigy doctor` compiles nothing and finishes in seconds
 
 ## Evidence Required
 

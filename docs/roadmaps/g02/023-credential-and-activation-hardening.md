@@ -63,6 +63,15 @@ noninteractive identity authority Card 210 provides.
   to `longhorn-core`, the `AgeIdentity` slot joined it, and
   `StoreBackupEncryption` satisfies contract 004:403 with a tested
   noninteractive path.
+- [x] [Card 224](batch-cards/224-credential-store-conditional-write.md):
+  **landed 2026-08-15** — Card 210's first-run race, found in review. A
+  compare-and-swap on `CredentialStore` was investigated and refused: no
+  backend can honour one (`keyring-core` 1.0 exposes unconditional
+  `set_secret`; Windows `CredWrite` has no create-only flag), so the method
+  would have read as mutual exclusion while providing none. Generation reads
+  the slot back and adopts what the store names instead, so racing processes
+  converge rather than one encrypting to a superseded identity. The refusal is
+  recorded on the trait.
 
 ## Dependency Shape
 
@@ -74,6 +83,7 @@ memo 023 (M-json, L-debug, L-locked, L-keyid, opp-zeroize, opp-pkce, opp-age-slo
      ├─ 208 secret hygiene       (independent)
      ├─ 209 pkce + loopback      (independent)
      └─ 210 age-identity slot    (boundary choice; lands after 208 settles slots)
+         └─ 224 conditional write (review follow-through; refusal + read-back)
 ```
 
 ## Goals

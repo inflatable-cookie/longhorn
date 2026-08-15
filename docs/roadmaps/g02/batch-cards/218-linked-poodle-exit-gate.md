@@ -1,6 +1,12 @@
 # 218 Linked-poodle Exit Gate
 
-Status: operator-held on Poodle v0.2.0 — machinery lands now, closure held
+Status: operator-held on Poodle v0.2.0 — held whole; no machinery has landed
+Held because: Poodle v0.2.0 is in active development and Longhorn's release
+depends on functionality arriving in it. The operator's decision of 2026-08-15
+is that Longhorn's release waits for Poodle rather than gating against the
+0.1.0 peer, so the exemption stays and the assertion machinery is deferred
+with the rest of the card. Recorded rather than assumed: an earlier revision
+of this line read "machinery lands now", which was never true of the tree.
 Owner: Tom
 Roadmap: g02.026 batch 1
 Governing refs: contract 012; memo 023 (C1)

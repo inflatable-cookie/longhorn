@@ -7,6 +7,19 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
+- Friction: `[release.gates]` is written cheapest-first, but effigy sorts by
+  gate name. A measured run is advisories, floor, private-candidate,
+  prototypes, rustdoc, source, workspace — the 145s MSRV floor runs before the
+  38ms candidate check, so a release that will fail on the cheap gate pays for
+  the expensive one first.
+- Impact: ~2.5 wasted minutes per failing release run; the comment claiming
+  "cheapest first" was false in two files before this was measured.
+- Possible fix: an ordering key in effigy's `[release.gates]`, or execution in
+  declaration order. Renaming gates to sort correctly is not available —
+  `verify-private-candidate-docs-card127.ts` asserts two gate lines verbatim.
+- Surface: `config/release.toml`, `effigy release gates`.
+
 ### [ ] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-14
 - Friction: adding `secrecy`/`getrandom` to `longhorn-licence` left
   `prototypes/gpui-*/Cargo.lock` stale; nothing local saw it until

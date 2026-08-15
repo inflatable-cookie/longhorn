@@ -28,12 +28,19 @@ lives on the cards themselves.
 **Live:** the memo-023 release-audit suite — milestones
 [g02.021-027](g02/README.md), cards 200-223.
 
-- Complete: g02.021 (200-203), g02.022 (204-206), g02.023 (207-210),
+- Complete: g02.021 (200-203), g02.022 (204-206), g02.023 (207-210, 224),
   g02.024 (211-214), g02.025 (215-217), g02.027 (221-223).
+- Card 224 was opened by review of the suite itself: Card 210's identity
+  generation had a first-run race, and the compare-and-swap that would close
+  it does not exist on any platform backend. The refusal and the narrowing
+  that replaced it are recorded on the trait and in contract 004.
 - Operator decisions of 2026-08-15 landed: 210 (store vocabulary moved to
   `longhorn-core`) and the Card 214 sidebar-label divergence (Svelte side
   correct; Rust aligned). Only 218 remains held, on Poodle v0.2.0.
-- Held for approval: the `.github/workflows/` items in 219/220.
+- The `.github/workflows/` items in 219/220 landed 2026-08-15 with approval.
+- g02.026 is closed except Card 218, which is held whole — no machinery from
+  it is in the tree. Longhorn's release waits on Poodle v0.2.0 by operator
+  decision, so the linked-Poodle exemption stays until then.
 - Next ready: nothing in the suite — back to the pre-suite lanes below.
 
 Pre-suite lanes are tracked on the [g02 runway](g02/README.md): g02.015's

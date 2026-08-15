@@ -409,6 +409,14 @@ ordinary configuration.
   identity is generated once from the OS RNG and kept in the
   `CredentialSlot::AgeIdentity` slot (`longhorn-core`), never in ordinary
   configuration
+- generation converges rather than excludes: the slot is read back after the
+  write and whatever it names is adopted, so two processes generating on the
+  same first run agree on one identity instead of one of them encrypting to an
+  identity the store no longer holds. The credential store has no conditional
+  write to exclude with — no platform backend offers one (Card 224) — so the
+  residual window is a rival write landing between one process's write and its
+  read-back. A store that reports a successful write and reads back empty is
+  `Unavailable`, never encrypted to
 - interactive export may use age recipients or a human passphrase
 - unavailable identity reports `locked`, not `corrupt`
 - rotation changes new recipients; external key rings retain old identities

@@ -43,7 +43,12 @@ off. Contract 012's distribution claims depend on this envelope being honest.
   fail when `linkedPoodleAccepted` is true; `poodle-release.ts` verifies
   integrity bytes, not a version string; `ci-rehearse` sees bun global-link
   state; pack-level typecheck of `longhorn-poodle-svelte` against registry
-  Poodle. Final criterion held for Poodle v0.2.0.
+  Poodle. **Held whole on 2026-08-15**, machinery included — nothing from this
+  card is in the tree. Poodle v0.2.0 is in active development and Longhorn's
+  release depends on functionality landing in it, so the release waits on
+  Poodle rather than gating against the 0.1.0 peer. The exemption at
+  `effigy.toml`'s `proof:artifacts` stays until then, and local gates continue
+  to pass against the linked sibling. Nothing else in g02.026 depends on this.
 
 ### Batch 2. One declaration per fact
 
@@ -56,11 +61,26 @@ off. Contract 012's distribution claims depend on this envelope being honest.
   lockstep; pack tooling converged; stale scripts docs fixed. **Landed
   2026-08-14, with holds**: the gate passes without `POODLE_REPO` (a stacked
   doc-drift failure under the import crash was fixed too), runner-tools is in
-  qa with a widened scan, the MSRV is single-sourced, release config has one
-  home, and rustdoc is gated. The `ci.yml` selector routing, action pins,
-  `npm@latest`, and effigy-pin lockstep are workflow edits, held for
-  approval. Doctor keeps its floor deliberately; the pack split and the
+  qa with a widened scan, the MSRV is single-sourced, and rustdoc is gated.
+  The `ci.yml` selector routing, action pins, `npm@latest`, and effigy-pin
+  lockstep landed 2026-08-15 with approval. The pack split and the
   hand-maintained docs path lists are recorded as chosen.
+
+  **Completed 2026-08-15** — two items were reported as done on 2026-08-14
+  but were not: `[release.gates]` was still declared in both
+  `config/release.toml` and `effigy.toml`, and because the two tables merged
+  rather than conflicted, `fmt`, both Clippy passes and the full test suite
+  each ran twice per release — once directly and once through `workspace =
+  "effigy qa"`. The gates now live only in `config/release.toml`, seven of
+  them, and a measured `effigy release gates` run is 543s with every gate
+  passing. Cheap-first turned out to be unbuyable — effigy executes gates in
+  name order, so both files' "cheapest first" comments were false; that is
+  now written down in PAPERCUTS.md instead of asserted. And `health` still
+  mapped to `release:floor`, which is
+  two Clippy passes plus the full test suite at the MSRV toolchain; "doctor
+  keeps its floor deliberately" recorded the contradiction rather than
+  resolving it. `health` is now `fmt:rust` + `check:runner-tools` and
+  `effigy doctor` finishes in about eight seconds, compiling nothing.
 
 ### Batch 3. Seeing the supply chain
 
@@ -85,23 +105,24 @@ memo 023 (C1-residual, H3, H4, M-ci, M-MSRV, M-dup-gates, M-doctor,
      └─ 220 supply-chain gates   (independent)
 ```
 
-219 and 220 are independent; 218's machinery lands now and its closure joins
-the g02.014 critical path.
+219 and 220 are independent and complete. 218 is held whole on the Poodle
+v0.2.0 release; its closure joins the g02.014 critical path.
 
 ## Goals
 
-- [ ] a drifted gate list fails compilation of the gate, not silently
-- [ ] `effigy qa` plus release gates cover everything release confidence needs
+- [x] a drifted gate list fails compilation of the gate, not silently
+- [x] `effigy qa` plus release gates cover everything release confidence needs
 - [ ] the exemption that keeps local development possible cannot pass a
-  release unnoticed
-- [ ] a future vulnerability-class advisory is visible the day it publishes
+  release unnoticed — **held with Card 218**; today the release waits on
+  Poodle by operator decision rather than by gate
+- [x] a future vulnerability-class advisory is visible the day it publishes
 
 ## Acceptance Criteria
 
-- [ ] `effigy release gates` passes on a machine without `POODLE_REPO` set
-- [ ] adding a bindings domain touches one list, not three
-- [ ] bumping the MSRV touches one file and one cross-check, not fifteen
-- [ ] `cargo deny check advisories` runs in CI with a reviewed allow list
+- [x] `effigy release gates` passes on a machine without `POODLE_REPO` set
+- [x] adding a bindings domain touches one list, not three
+- [x] bumping the MSRV touches one file and one cross-check, not fifteen
+- [x] `cargo deny check advisories` runs in CI with a reviewed allow list
 
 ## Explicit Non-goals
 

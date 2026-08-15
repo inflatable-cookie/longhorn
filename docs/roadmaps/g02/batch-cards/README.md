@@ -6,6 +6,24 @@ None.
 
 ## Ready
 
+None.
+
+(Cards 150-199 predate this index's last update; see the milestone files.)
+
+## Operator-held
+
+- [218 Linked-poodle Exit Gate](218-linked-poodle-exit-gate.md) — held whole,
+  machinery included, on the Poodle v0.2.0 release
+- [149 Distribution Candidate V2](149-distribution-candidate-v2.md) —
+  receipt generation waits on nucleus manifest quiescence
+
+## Planned
+
+None.
+
+## Complete
+
+- [224 Credential-store Conditional Write](224-credential-store-conditional-write.md)
 - [223 Dependency Sweep And Measured Costs](223-dependency-sweep-and-measured-costs.md)
 - [222 Shared Primitives And Idiom Codification](222-shared-primitives-and-idiom-codification.md)
 - [221 Native-content Generation Hoist](221-native-content-generation-hoist.md)
@@ -29,22 +47,6 @@ None.
 - [202 Install Atomicity And Recovery](202-install-atomicity-and-recovery.md)
 - [201 Endpoint Authority Parsing](201-endpoint-authority-parsing.md)
 - [200 Extraction That Is Bounded](200-extraction-that-is-bounded.md)
-
-(Cards 150-199 predate this index's last update; see the milestone files.)
-
-## Operator-held
-
-- [218 Linked-poodle Exit Gate](218-linked-poodle-exit-gate.md) — machinery
-  lands now; closure waits on the Poodle v0.2.0 release
-- [149 Distribution Candidate V2](149-distribution-candidate-v2.md) —
-  receipt generation waits on nucleus manifest quiescence
-
-## Planned
-
-None.
-
-## Complete
-
 - [148 Dependency Refresh Sweep](148-dependency-refresh-sweep.md)
 - [147 Front-door Truth Sweep](147-front-door-truth-sweep.md)
 - [146 QA Selectors And Package Hygiene](146-qa-selectors-and-package-hygiene.md)

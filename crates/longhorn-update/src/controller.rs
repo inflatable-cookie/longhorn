@@ -240,6 +240,20 @@ impl<'port> UpdateController<'port> {
                 });
             }
         };
+        // The limit is passed to the host, and also checked here. A host that
+        // overruns it has already spent the memory, so this cannot undo the
+        // cost -- but it stops the oversized buffer going any further, and it
+        // makes the bound a property of the controller rather than a request
+        // every implementor is trusted to have honoured.
+        //
+        // Deliberately unproven: reaching it from a test means a fake host
+        // allocating two gigabytes, and a seam to shrink the limit would be
+        // larger than the check. The extraction quotas, which a hostile
+        // archive can reach cheaply, are proved instead.
+        if bytes.len() as u64 > crate::MAX_ARTIFACT_BYTES {
+            self.progress = UpdateProgressProjection::Idle;
+            return self.reject(UpdateRejectionCode::Unavailable);
+        }
         // The last report the host made, not a count of what arrived. A host
         // that reports nothing leaves the fraction absent, which is the same
         // answer as a source with no content length and is honest for the same

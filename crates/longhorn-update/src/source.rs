@@ -49,7 +49,15 @@ impl EndpointUrl {
 }
 
 fn is_loopback_host(rest: &str) -> bool {
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    // The authority ends at the first '/', '\', '?' or '#'. The backslash is
+    // not decoration: WHATWG treats it as a path separator for special
+    // schemes, so a fetcher built on a conforming URL parser reads
+    // `http://evil.example\@127.0.0.1/x` as host `evil.example` with path
+    // `/@127.0.0.1/x`. Splitting on '/' alone would hand the rest to the
+    // userinfo rule below and call that authority loopback — licensing plain
+    // HTTP to a remote host, which is the exact hole userinfo stripping
+    // closed. This check must never be laxer than the parser that fetches.
+    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
     // Userinfo ends at the last '@'. Without stripping it,
     // `127.0.0.1:80@evil.example` parses as host `127.0.0.1` while the fetch
     // goes to `evil.example` — over plaintext, since this check is what
@@ -385,6 +393,35 @@ mod tests {
                 Err(EndpointUrlError::InsecureScheme),
                 "{url} should be refused"
             );
+        }
+    }
+
+    #[test]
+    fn a_backslash_cannot_push_the_host_past_the_authority() {
+        // WHATWG ends the authority at '\' for special schemes, so these
+        // fetch from `evil.example`. Splitting only on '/' would leave
+        // `evil.example\` as userinfo and read the tail as a loopback host.
+        for url in [
+            r"http://evil.example\@127.0.0.1/x",
+            r"http://evil.example\@localhost/x",
+            r"http://evil.example\@[::1]/x",
+            r"http://evil.example\127.0.0.1",
+        ] {
+            assert_eq!(
+                EndpointUrl::new(url),
+                Err(EndpointUrlError::InsecureScheme),
+                "{url} should be refused"
+            );
+        }
+    }
+
+    #[test]
+    fn a_backslash_after_a_loopback_authority_is_still_loopback() {
+        // The mirror case: the authority genuinely is loopback and the
+        // backslash begins the path. A conforming parser agrees, so refusing
+        // here would reject a legitimate local endpoint.
+        for url in [r"http://127.0.0.1\@evil.example", r"http://localhost:9\x"] {
+            assert!(EndpointUrl::new(url).is_ok(), "{url} should be accepted");
         }
     }
 
