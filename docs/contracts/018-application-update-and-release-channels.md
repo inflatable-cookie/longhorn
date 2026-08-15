@@ -69,10 +69,20 @@ terms as the macOS path.
 - Because every artifact is verified against a key compiled into the
   application, the artifact host is untrusted infrastructure. No adapter may
   claim a security property on the basis of its transport.
-- Untrusted infrastructure bounds resources too: the transfer stops at
-  `MAX_ARTIFACT_BYTES` (2 GiB) and extraction at a 4 GiB declared-size quota.
-  A signature proves origin, not intent, and size is a resource dimension the
-  signature does not cover.
+- Untrusted infrastructure bounds resources too. A signature proves origin,
+  not intent, and size is a resource dimension the signature does not cover.
+  The transfer stops at `MAX_ARTIFACT_BYTES` (2 GiB): the controller passes
+  the limit to the host so a conforming fetch stops early rather than
+  buffering, and checks the delivered length itself, so the bound is a
+  property of the controller rather than a request each implementor is
+  trusted to have honoured.
+- Extraction stops at two quotas, not one: 4 GiB of declared entry size, and
+  250,000 entries. Both are load-bearing. Directories, links and empty files
+  declare no bytes at all, so an archive built from millions of them passes a
+  byte quota untouched while still exhausting inodes and directory space —
+  bytes are not the only finite resource an extraction spends. The quotas are
+  injectable internally so both are proved against a small archive, rather
+  than by building the hostile artifact they exist to refuse.
 - The signature may bind the release version through minisign's trusted
   comment (`version:<semver>`), which the global signature covers. The
   verifier enforces the binding when present and refuses a mismatch as a

@@ -80,6 +80,18 @@ the textual-traversal case that was already there. A positive case keeps real
 bundles working: an in-tree relative symlink (`Contents/Current ->
 Versions/A`) installs and survives the swap.
 
+### Follow-through (2026-08-15)
+
+Review found the resource bound half-built: the 4 GiB quota reads declared
+entry sizes, and directories, links and empty files declare none — so an
+archive of millions of them passed it untouched while still exhausting inodes.
+Extraction now carries a second quota of 250,000 entries. Both live in an
+internal `ExtractionQuota` so they are provable against a small archive
+instead of by building the hostile artifact they refuse, and contract 018
+states both. Same precondition as the rest of this card: it needs the signing
+key, and "a signature proves origin, not intent" is exactly why the bound
+exists anyway.
+
 ## Acceptance Criteria
 
 - [x] no archive entry of any type can cause a write outside staging
