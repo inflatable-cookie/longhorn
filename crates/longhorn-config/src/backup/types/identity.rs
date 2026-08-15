@@ -402,7 +402,11 @@ pub(crate) fn parse_utc_timestamp(value: &str) -> Result<UtcTimestamp, BackupMet
         let value = fraction.iter().fold(0_u32, |accumulator, digit| {
             accumulator * 10 + u32::from(digit - b'0')
         });
-        value * 10_u32.pow(u32::try_from(9 - fraction.len()).unwrap())
+        value
+            * 10_u32.pow(
+                u32::try_from(9 - fraction.len())
+                    .expect("validated fraction length is one to nine digits"),
+            )
     };
 
     let days = days_from_civil(i64::from(year), i64::from(month), i64::from(day));

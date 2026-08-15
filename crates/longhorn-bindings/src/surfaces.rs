@@ -15,8 +15,8 @@ use longhorn_surfaces::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -36,6 +36,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the surface bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -60,42 +61,42 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let command_declaration = SurfaceMutationCommand::decl();
-    let outcome_declaration = SurfaceMutationOutcome::decl();
-    let rejection_declaration = SurfaceMutationRejectionCode::decl();
+    let command_declaration = SurfaceMutationCommand::decl(config());
+    let outcome_declaration = SurfaceMutationOutcome::decl(config());
+    let rejection_declaration = SurfaceMutationRejectionCode::decl(config());
     let command_kinds = tagged_variants(&command_declaration, "kind")?;
     let outcome_kinds = tagged_variants(&outcome_declaration, "kind")?;
     let rejection_codes = string_union_variants(&rejection_declaration)?;
     let declarations = [
-        LayoutSchemaId::decl(),
-        RegionId::decl(),
-        SizingSlotId::decl(),
-        PanelInstanceId::decl(),
-        SurfaceId::decl(),
-        SurfaceRequestId::decl(),
-        WindowId::decl(),
-        SurfaceRevision::decl(),
-        SurfaceProtocolEpoch::decl(),
-        PanelDefinitionId::decl(),
-        LayoutRatio::decl(),
-        RegionState::decl(),
-        SizingSlotState::decl(),
-        PanelInstance::decl(),
-        SurfaceHostPreference::decl(),
-        SurfacePresentation::decl(),
-        SurfaceRecord::decl(),
-        ParticipatingWindow::decl(),
-        SurfaceDocument::decl(),
-        EmptyWindowPolicy::decl(),
+        LayoutSchemaId::decl(config()),
+        RegionId::decl(config()),
+        SizingSlotId::decl(config()),
+        PanelInstanceId::decl(config()),
+        SurfaceId::decl(config()),
+        SurfaceRequestId::decl(config()),
+        WindowId::decl(config()),
+        SurfaceRevision::decl(config()),
+        SurfaceProtocolEpoch::decl(config()),
+        PanelDefinitionId::decl(config()),
+        LayoutRatio::decl(config()),
+        RegionState::decl(config()),
+        SizingSlotState::decl(config()),
+        PanelInstance::decl(config()),
+        SurfaceHostPreference::decl(config()),
+        SurfacePresentation::decl(config()),
+        SurfaceRecord::decl(config()),
+        ParticipatingWindow::decl(config()),
+        SurfaceDocument::decl(config()),
+        EmptyWindowPolicy::decl(config()),
         command_declaration,
-        SurfaceMutationRequest::decl(),
+        SurfaceMutationRequest::decl(config()),
         outcome_declaration,
-        SurfaceMutationReceipt::decl(),
+        SurfaceMutationReceipt::decl(config()),
         rejection_declaration,
-        SurfaceMutationRejection::decl(),
-        SurfaceMutationResponse::decl(),
-        SurfaceSnapshot::decl(),
-        SurfaceChangedEvent::decl(),
+        SurfaceMutationRejection::decl(config()),
+        SurfaceMutationResponse::decl(config()),
+        SurfaceSnapshot::decl(config()),
+        SurfaceChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
     let command_kinds_json = serde_json::to_string(&command_kinds)?;

@@ -70,10 +70,9 @@ impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                     .as_ref()
                     .ok_or(BackingSurfaceError::NotAttached)?;
                 if attachment.generation != generation {
-                    return Err(compare_attached_generation(
-                        attachment.generation,
-                        generation,
-                    ));
+                    return Err(
+                        compare_attached_generation(attachment.generation, generation).into(),
+                    );
                 }
                 Some((attachment.handle.clone(), attachment.detaching))
             }

@@ -1,6 +1,7 @@
 # 221 Native-content Generation Hoist
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.027 batch 1
 Governing refs: contract 017; memo 023 (M-native-content, L3 presentation
@@ -63,12 +64,36 @@ returns typed errors.
   mechanism-shaped on purpose; the rule is not.
 - Let the hoist change observable behavior without the contract saying so.
 
+## Result
+
+The state machine lives once, in `longhorn-native-content`'s new
+`generation` module: `GenerationRejection` (exactly contract 017's six
+clauses), `AttachmentGate`, and the shared rule functions
+(`compare_generation*`, `validate_plan_generation`, `check_attach_reservation`,
+`gate_attached`, `gate_detach`). Adapters keep their error enums with total
+`From` conversions; their util modules are thin wrappers. Nine new tests pin
+the rule table; all three conformance suites pass unchanged.
+
+Both known divergences resolved as **genuinely mechanism-specific**, and the
+contract said less than the code — so contract 017 was amended
+(`:119-128`) rather than the behavior unified:
+
+- backing-surface's `invalidated_generation` exists because it invalidates on
+  host destroy *before* its reversible detach settles; folding it into the
+  shared gate would have flipped observable error variants.
+- isolated-window's `FailedGeneration` re-attach exists because only it has
+  an owner process that can die while the island lives on.
+
+The re-match `unreachable!` now binds the matched mode. The Tauri registry's
+invariant panic became a typed `EvidenceBeforeGeneration` error; the GPUI one
+keeps the panic under the named-guard idiom (its signature is infallible).
+
 ## Acceptance Criteria
 
-- [ ] a generation-rule fix lands in one file
-- [ ] all three adapters' conformance suites pass against the shared machine
-- [ ] each known divergence is resolved toward or amended into contract 017
-- [ ] the two panic traps are typed or documented
+- [x] a generation-rule fix lands in one file
+- [x] all three adapters' conformance suites pass against the shared machine
+- [x] each known divergence is resolved toward or amended into contract 017
+- [x] the two panic traps are typed or documented
 
 ## Evidence Required
 

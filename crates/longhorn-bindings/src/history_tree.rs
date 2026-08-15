@@ -18,8 +18,8 @@ use longhorn_history_tree::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -36,6 +36,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the fork-history bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -60,53 +61,53 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let position = ForkProjectionPosition::decl();
-    let path_target = ForkPathTargetProjection::decl();
-    let path_floor = ForkPathFloorProjection::decl();
-    let navigation_target = ForkNavigationTargetProjection::decl();
-    let rejection_code = ForkNavigationRejectionCode::decl();
-    let navigation_result = ForkNavigationResult::decl();
-    let prune_result = ForkPruneResult::decl();
-    let changed_kind = ForkChangedKind::decl();
+    let position = ForkProjectionPosition::decl(config());
+    let path_target = ForkPathTargetProjection::decl(config());
+    let path_floor = ForkPathFloorProjection::decl(config());
+    let navigation_target = ForkNavigationTargetProjection::decl(config());
+    let rejection_code = ForkNavigationRejectionCode::decl(config());
+    let navigation_result = ForkNavigationResult::decl(config());
+    let prune_result = ForkPruneResult::decl(config());
+    let changed_kind = ForkChangedKind::decl(config());
     let declarations = [
-        HistoryId::decl(),
-        HistoryEntryId::decl(),
-        HistoryGroupId::decl(),
-        HistoryKindId::decl(),
-        HistoryPlanId::decl(),
-        HistoryRevision::decl(),
-        HistoryAuthorityEpoch::decl(),
-        ForkBranchId::decl(),
-        ForkCheckpointId::decl(),
-        ForkHistoryProtocolVersion::decl(),
+        HistoryId::decl(config()),
+        HistoryEntryId::decl(config()),
+        HistoryGroupId::decl(config()),
+        HistoryKindId::decl(config()),
+        HistoryPlanId::decl(config()),
+        HistoryRevision::decl(config()),
+        HistoryAuthorityEpoch::decl(config()),
+        ForkBranchId::decl(config()),
+        ForkCheckpointId::decl(config()),
+        ForkHistoryProtocolVersion::decl(config()),
         position.clone(),
-        ForkSummaryProjection::decl(),
-        ForkSnapshot::decl(),
-        HistoryRecordedAt::decl(),
-        ForkEntryRecord::decl(),
+        ForkSummaryProjection::decl(config()),
+        ForkSnapshot::decl(config()),
+        HistoryRecordedAt::decl(config()),
+        ForkEntryRecord::decl(config()),
         path_floor.clone(),
         path_target.clone(),
-        ForkPathPageCommand::decl(),
-        ForkPathPageSnapshot::decl(),
-        ForkBranchRecord::decl(),
-        ForkBranchPageCommand::decl(),
-        ForkBranchPageSnapshot::decl(),
-        ForkContinuationRecord::decl(),
-        ForkContinuationPageCommand::decl(),
-        ForkContinuationPageSnapshot::decl(),
-        ForkDeleteContinuationCommand::decl(),
-        ForkRemovedEntryRecord::decl(),
-        ForkRemovalReceiptProjection::decl(),
-        ForkPruneCommand::decl(),
+        ForkPathPageCommand::decl(config()),
+        ForkPathPageSnapshot::decl(config()),
+        ForkBranchRecord::decl(config()),
+        ForkBranchPageCommand::decl(config()),
+        ForkBranchPageSnapshot::decl(config()),
+        ForkContinuationRecord::decl(config()),
+        ForkContinuationPageCommand::decl(config()),
+        ForkContinuationPageSnapshot::decl(config()),
+        ForkDeleteContinuationCommand::decl(config()),
+        ForkRemovedEntryRecord::decl(config()),
+        ForkRemovalReceiptProjection::decl(config()),
+        ForkPruneCommand::decl(config()),
         prune_result.clone(),
         navigation_target.clone(),
-        ForkNavigationCommand::decl(),
-        ForkNavigationReceiptProjection::decl(),
+        ForkNavigationCommand::decl(config()),
+        ForkNavigationReceiptProjection::decl(config()),
         rejection_code.clone(),
-        ForkNavigationRejectionProjection::decl(),
+        ForkNavigationRejectionProjection::decl(config()),
         navigation_result.clone(),
         changed_kind.clone(),
-        ForkChangedEvent::decl(),
+        ForkChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

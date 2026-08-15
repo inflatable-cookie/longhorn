@@ -3,16 +3,14 @@
 use std::sync::Arc;
 
 use longhorn_native_content::{
-    ApplyPlan, AttachGeneration, DetachPolicy, InputRoutingMode, NativeContentMechanism,
-    NativeContentOperation,
+    ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
+    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_attached,
+    gate_detach, validate_plan_generation,
 };
 
 use crate::{ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, RuntimeAttachRequest};
 
-use super::{
-    Attachment, ChildViewAdapter, compare_attached_generation, compare_generation,
-    compare_generation_allow_next, current_attachment_mut,
-};
+use super::{Attachment, ChildViewAdapter, compare_generation, current_attachment_mut};
 
 impl<R: ChildViewRuntime> ChildViewAdapter<R> {
     pub(crate) fn validate_plan(&self, plan: &ApplyPlan) -> Result<(), ChildViewError> {
@@ -37,28 +35,18 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         }
 
         let state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-        if let Some(attachment) = state.attachment.as_ref() {
-            if plan.generation() < attachment.generation {
-                return Err(ChildViewError::StaleGeneration {
-                    current: attachment.generation,
-                    supplied: plan.generation(),
-                });
-            }
-            if plan.generation() > attachment.generation {
-                return Err(ChildViewError::CurrentGenerationAttached(
-                    attachment.generation,
-                ));
-            }
-        } else {
-            compare_generation_allow_next(state.latest_generation, plan.generation())?;
-            if state.retired_generation == Some(plan.generation())
-                && plan.operations().iter().any(|planned| {
-                    matches!(planned.operation(), NativeContentOperation::Attach { .. })
-                })
-            {
-                return Err(ChildViewError::GenerationRetired(plan.generation()));
-            }
-        }
+        validate_plan_generation(
+            state.latest_generation,
+            state.retired_generation,
+            state
+                .attachment
+                .as_ref()
+                .map(|attachment| attachment.generation),
+            plan.generation(),
+            plan.operations().iter().any(|planned| {
+                matches!(planned.operation(), NativeContentOperation::Attach { .. })
+            }),
+        )?;
         Ok(())
     }
 
@@ -125,17 +113,15 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
     pub(crate) fn attach(&self, generation: AttachGeneration) -> Result<(), ChildViewError> {
         {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-            if let Some(attachment) = state.attachment.as_ref() {
-                if attachment.generation == generation && attachment.handle.is_some() {
-                    return Ok(());
-                }
-                return Err(ChildViewError::CurrentGenerationAttached(
-                    attachment.generation,
-                ));
-            }
-            compare_generation_allow_next(state.latest_generation, generation)?;
-            if state.retired_generation == Some(generation) {
-                return Err(ChildViewError::GenerationRetired(generation));
+            if check_attach_reservation(
+                state.latest_generation,
+                state.retired_generation,
+                state.attachment.as_ref().map(|attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                }),
+                generation,
+            )? {
+                return Ok(());
             }
             state.latest_generation = Some(generation);
             state.invalidated_generation = None;
@@ -198,22 +184,23 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         let handle = {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            let Some(attachment) = state.attachment.as_mut() else {
-                if state.retired_generation == Some(generation) {
-                    return Ok(());
-                }
-                return Err(ChildViewError::NotAttached);
-            };
-            if attachment.generation != generation {
-                return Err(compare_attached_generation(
-                    attachment.generation,
-                    generation,
-                ));
+            if !gate_detach(
+                state.retired_generation,
+                state.attachment.as_ref().map(|attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                }),
+                generation,
+            )? {
+                return Ok(());
             }
+            let attachment = state
+                .attachment
+                .as_mut()
+                .expect("validated attachment is current");
             let handle = attachment
                 .handle
                 .clone()
-                .ok_or(ChildViewError::AttachInProgress)?;
+                .expect("validated attachment completed attach");
             attachment.detaching = true;
             handle
         };
@@ -245,20 +232,18 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
     pub(crate) fn handle(&self, generation: AttachGeneration) -> Result<R::Handle, ChildViewError> {
         let state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
         compare_generation(state.latest_generation, generation)?;
-        if state.retired_generation == Some(generation) {
-            return Err(ChildViewError::GenerationRetired(generation));
-        }
-        let attachment = state
+        gate_attached(
+            state.retired_generation,
+            state
+                .attachment
+                .as_ref()
+                .map(|attachment| attachment.generation),
+            generation,
+        )?;
+        state
             .attachment
             .as_ref()
-            .ok_or(ChildViewError::NotAttached)?;
-        if attachment.generation != generation {
-            return Err(compare_attached_generation(
-                attachment.generation,
-                generation,
-            ));
-        }
-        attachment
+            .expect("validated attachment is current")
             .handle
             .clone()
             .ok_or(ChildViewError::AttachInProgress)

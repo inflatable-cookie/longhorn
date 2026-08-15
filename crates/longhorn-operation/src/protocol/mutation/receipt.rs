@@ -52,7 +52,6 @@ impl From<&OperationRemoval> for OperationRemovalProjection {
 }
 
 /// Exact successful management receipt.
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
@@ -62,49 +61,86 @@ impl From<&OperationRemoval> for OperationRemovalProjection {
     deny_unknown_fields
 )]
 pub enum OperationMutationReceiptProjection {
+    /// A new operation was registered.
     Registered {
+        /// Committed operation entry.
         operation: OperationEntryProjection,
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
     },
+    /// Progress was reported for an operation.
     Progressed {
+        /// Progressed operation identity.
         operation_id: OperationId,
+        /// Operation revision before the mutation.
         previous_operation_revision: OperationRevision,
+        /// Operation revision after the mutation.
         committed_operation_revision: OperationRevision,
+        /// Progress sequence before the mutation.
         #[cfg_attr(feature = "bindings", ts(type = "number"))]
         previous_progress_sequence: u64,
+        /// Committed progress state.
         committed_progress: OperationProgressProjection,
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
     },
+    /// An operation transitioned state.
     Transitioned {
+        /// Transitioned operation identity.
         operation_id: OperationId,
+        /// State before the mutation.
         previous_state: OperationStateProjection,
+        /// State after the mutation.
         committed_state: OperationStateProjection,
+        /// Operation revision before the mutation.
         previous_operation_revision: OperationRevision,
+        /// Operation revision after the mutation.
         committed_operation_revision: OperationRevision,
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
+        /// Operations the transition evicted.
         evicted: Vec<OperationRemovalProjection>,
     },
+    /// Retention limits changed.
     RetentionChanged {
+        /// Retention limits before the mutation.
         previous_limits: OperationCatalogueLimitsProjection,
+        /// Retention limits after the mutation.
         committed_limits: OperationCatalogueLimitsProjection,
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
+        /// Operations the new limits evicted.
         evicted: Vec<OperationRemovalProjection>,
+        /// Encoded weight retained after eviction.
         #[cfg_attr(feature = "bindings", ts(type = "number"))]
         retained_terminal_encoded_weight: u64,
     },
+    /// An operation was dismissed.
     Dismissed {
+        /// Removed operation record.
         removed: OperationRemovalProjection,
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
     },
+    /// The catalogue was torn down.
     TornDown {
+        /// Catalogue revision before the mutation.
         previous_catalogue_revision: OperationCatalogueRevision,
+        /// Catalogue revision after the mutation.
         committed_catalogue_revision: OperationCatalogueRevision,
+        /// Per-operation teardown results.
         outcomes: Vec<OperationTeardownOutcomeProjection>,
+        /// Operations the teardown evicted.
         evicted: Vec<OperationRemovalProjection>,
     },
 }
@@ -187,7 +223,6 @@ impl OperationMutationReceiptProjection {
 }
 
 /// Exact teardown result on the wire.
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
@@ -197,15 +232,24 @@ impl OperationMutationReceiptProjection {
     deny_unknown_fields
 )]
 pub enum OperationTeardownOutcomeProjection {
+    /// The operation resolved to a terminal state.
     Completed {
+        /// Torn-down operation identity.
         operation_id: OperationId,
+        /// Terminal state the operation reached.
         state: OperationStateProjection,
+        /// Operation revision before teardown.
         previous_operation_revision: OperationRevision,
+        /// Operation revision after teardown.
         committed_operation_revision: OperationRevision,
     },
+    /// The operation transferred to another authority.
     Transferred {
+        /// Transferred operation identity.
         operation_id: OperationId,
+        /// Operation revision before teardown.
         previous_operation_revision: OperationRevision,
+        /// Authority the operation transferred to.
         target_authority: OperationAuthorityProjection,
     },
 }

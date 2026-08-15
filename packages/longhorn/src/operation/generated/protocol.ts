@@ -447,9 +447,161 @@ encodedWeight: number,
  */
 reason: OperationRemovalReasonProjection, };
 
-export type OperationMutationReceiptProjection = { "kind": "registered", operation: OperationEntryProjection, previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "progressed", operationId: OperationId, previousOperationRevision: OperationRevision, committedOperationRevision: OperationRevision, previousProgressSequence: number, committedProgress: OperationProgressProjection, previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "transitioned", operationId: OperationId, previousState: OperationStateProjection, committedState: OperationStateProjection, previousOperationRevision: OperationRevision, committedOperationRevision: OperationRevision, previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, evicted: Array<OperationRemovalProjection>, } | { "kind": "retentionChanged", previousLimits: OperationCatalogueLimitsProjection, committedLimits: OperationCatalogueLimitsProjection, previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, evicted: Array<OperationRemovalProjection>, retainedTerminalEncodedWeight: number, } | { "kind": "dismissed", removed: OperationRemovalProjection, previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "tornDown", previousCatalogueRevision: OperationCatalogueRevision, committedCatalogueRevision: OperationCatalogueRevision, outcomes: Array<OperationTeardownOutcomeProjection>, evicted: Array<OperationRemovalProjection>, };
+export type OperationMutationReceiptProjection = { "kind": "registered", 
+/**
+ * Committed operation entry.
+ */
+operation: OperationEntryProjection, 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "progressed", 
+/**
+ * Progressed operation identity.
+ */
+operationId: OperationId, 
+/**
+ * Operation revision before the mutation.
+ */
+previousOperationRevision: OperationRevision, 
+/**
+ * Operation revision after the mutation.
+ */
+committedOperationRevision: OperationRevision, 
+/**
+ * Progress sequence before the mutation.
+ */
+previousProgressSequence: number, 
+/**
+ * Committed progress state.
+ */
+committedProgress: OperationProgressProjection, 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "transitioned", 
+/**
+ * Transitioned operation identity.
+ */
+operationId: OperationId, 
+/**
+ * State before the mutation.
+ */
+previousState: OperationStateProjection, 
+/**
+ * State after the mutation.
+ */
+committedState: OperationStateProjection, 
+/**
+ * Operation revision before the mutation.
+ */
+previousOperationRevision: OperationRevision, 
+/**
+ * Operation revision after the mutation.
+ */
+committedOperationRevision: OperationRevision, 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Operations the transition evicted.
+ */
+evicted: Array<OperationRemovalProjection>, } | { "kind": "retentionChanged", 
+/**
+ * Retention limits before the mutation.
+ */
+previousLimits: OperationCatalogueLimitsProjection, 
+/**
+ * Retention limits after the mutation.
+ */
+committedLimits: OperationCatalogueLimitsProjection, 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Operations the new limits evicted.
+ */
+evicted: Array<OperationRemovalProjection>, 
+/**
+ * Encoded weight retained after eviction.
+ */
+retainedTerminalEncodedWeight: number, } | { "kind": "dismissed", 
+/**
+ * Removed operation record.
+ */
+removed: OperationRemovalProjection, 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, } | { "kind": "tornDown", 
+/**
+ * Catalogue revision before the mutation.
+ */
+previousCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Catalogue revision after the mutation.
+ */
+committedCatalogueRevision: OperationCatalogueRevision, 
+/**
+ * Per-operation teardown results.
+ */
+outcomes: Array<OperationTeardownOutcomeProjection>, 
+/**
+ * Operations the teardown evicted.
+ */
+evicted: Array<OperationRemovalProjection>, };
 
-export type OperationTeardownOutcomeProjection = { "kind": "completed", operationId: OperationId, state: OperationStateProjection, previousOperationRevision: OperationRevision, committedOperationRevision: OperationRevision, } | { "kind": "transferred", operationId: OperationId, previousOperationRevision: OperationRevision, targetAuthority: OperationAuthorityProjection, };
+export type OperationTeardownOutcomeProjection = { "kind": "completed", 
+/**
+ * Torn-down operation identity.
+ */
+operationId: OperationId, 
+/**
+ * Terminal state the operation reached.
+ */
+state: OperationStateProjection, 
+/**
+ * Operation revision before teardown.
+ */
+previousOperationRevision: OperationRevision, 
+/**
+ * Operation revision after teardown.
+ */
+committedOperationRevision: OperationRevision, } | { "kind": "transferred", 
+/**
+ * Transferred operation identity.
+ */
+operationId: OperationId, 
+/**
+ * Operation revision before teardown.
+ */
+previousOperationRevision: OperationRevision, 
+/**
+ * Authority the operation transferred to.
+ */
+targetAuthority: OperationAuthorityProjection, };
 
 export type OperationRejectionCode = "incompatibleProtocol" | "invalidCommand" | "authorityClosed" | "authorityMismatch" | "authorityEpochMismatch" | "catalogueRevisionMismatch" | "duplicateOperation" | "unknownOperation" | "invalidRetrySource" | "invalidInitialState" | "invalidTransition" | "operationRevisionMismatch" | "activeLimitReached" | "activeLimitBelowCurrent" | "progressNotReportable" | "overallProgressRegression" | "phaseProgressRegression" | "dismissalRequiresTerminal" | "duplicateTeardownResolution" | "missingTeardownResolutions" | "unexpectedTeardownResolution" | "invalidTeardownTerminal" | "teardownTransferToSelf" | "capacityOverflow";
 

@@ -221,9 +221,141 @@ requestId: NotificationRequestId,
  */
 snapshot: NotificationSnapshot, };
 
-export type NotificationClearTargetProjection = { "kind": "all" } | { "kind": "records", notificationIds: Array<NotificationId>, };
+export type NotificationClearTargetProjection = { "kind": "all" } | { "kind": "records", 
+/**
+ * Notifications to remove.
+ */
+notificationIds: Array<NotificationId>, };
 
-export type NotificationMutationCommand = { "kind": "add", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, notificationId: NotificationId, draft: NotificationDraftProjection, } | { "kind": "replace", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, draft: NotificationDraftProjection, markUnseen: boolean, } | { "kind": "markSeen", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, notificationId: NotificationId, } | { "kind": "dismiss", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, notificationId: NotificationId, } | { "kind": "clear", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, target: NotificationClearTargetProjection, } | { "kind": "changeRetention", requestId: NotificationRequestId, protocolVersion: NotificationProtocolVersion, authority: NotificationAuthorityProjection, expectedLedgerRevision: NotificationLedgerRevision, limits: NotificationLedgerLimitsProjection, };
+export type NotificationMutationCommand = { "kind": "add", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Identity assigned to the new notification.
+ */
+notificationId: NotificationId, 
+/**
+ * Content of the new notification.
+ */
+draft: NotificationDraftProjection, } | { "kind": "replace", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Replacement content and target identity.
+ */
+draft: NotificationDraftProjection, 
+/**
+ * Whether the replacement re-marks the record unseen.
+ */
+markUnseen: boolean, } | { "kind": "markSeen", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Notification to mark seen.
+ */
+notificationId: NotificationId, } | { "kind": "dismiss", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Notification to dismiss.
+ */
+notificationId: NotificationId, } | { "kind": "clear", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Which records to remove.
+ */
+target: NotificationClearTargetProjection, } | { "kind": "changeRetention", 
+/**
+ * Correlation identity echoed in the result.
+ */
+requestId: NotificationRequestId, 
+/**
+ * Protocol version the caller negotiated.
+ */
+protocolVersion: NotificationProtocolVersion, 
+/**
+ * Authority composition the caller expects.
+ */
+authority: NotificationAuthorityProjection, 
+/**
+ * Ledger revision the caller observed.
+ */
+expectedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Requested retention limits.
+ */
+limits: NotificationLedgerLimitsProjection, };
 
 export type NotificationRemovalReasonProjection = "dismissed" | "cleared" | "pruned";
 
@@ -237,7 +369,83 @@ record: NotificationRecordProjection,
  */
 reason: NotificationRemovalReasonProjection, };
 
-export type NotificationMutationReceiptProjection = { "kind": "added", record: NotificationRecordProjection, previousLedgerRevision: NotificationLedgerRevision, committedLedgerRevision: NotificationLedgerRevision, pruned: Array<NotificationRemovalProjection>, } | { "kind": "replaced", record: NotificationRecordProjection, previousLedgerRevision: NotificationLedgerRevision, committedLedgerRevision: NotificationLedgerRevision, pruned: Array<NotificationRemovalProjection>, } | { "kind": "seen", record: NotificationRecordProjection, previousLedgerRevision: NotificationLedgerRevision, committedLedgerRevision: NotificationLedgerRevision, } | { "kind": "removed", previousLedgerRevision: NotificationLedgerRevision, committedLedgerRevision: NotificationLedgerRevision, removals: Array<NotificationRemovalProjection>, } | { "kind": "retentionChanged", previousLimits: NotificationLedgerLimitsProjection, committedLimits: NotificationLedgerLimitsProjection, previousLedgerRevision: NotificationLedgerRevision, committedLedgerRevision: NotificationLedgerRevision, removals: Array<NotificationRemovalProjection>, };
+export type NotificationMutationReceiptProjection = { "kind": "added", 
+/**
+ * Committed record.
+ */
+record: NotificationRecordProjection, 
+/**
+ * Ledger revision before the mutation.
+ */
+previousLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Ledger revision after the mutation.
+ */
+committedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Records retention pruned as a side effect.
+ */
+pruned: Array<NotificationRemovalProjection>, } | { "kind": "replaced", 
+/**
+ * Committed record.
+ */
+record: NotificationRecordProjection, 
+/**
+ * Ledger revision before the mutation.
+ */
+previousLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Ledger revision after the mutation.
+ */
+committedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Records retention pruned as a side effect.
+ */
+pruned: Array<NotificationRemovalProjection>, } | { "kind": "seen", 
+/**
+ * Committed record.
+ */
+record: NotificationRecordProjection, 
+/**
+ * Ledger revision before the mutation.
+ */
+previousLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Ledger revision after the mutation.
+ */
+committedLedgerRevision: NotificationLedgerRevision, } | { "kind": "removed", 
+/**
+ * Ledger revision before the mutation.
+ */
+previousLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Ledger revision after the mutation.
+ */
+committedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Removed records with reasons.
+ */
+removals: Array<NotificationRemovalProjection>, } | { "kind": "retentionChanged", 
+/**
+ * Retention limits before the mutation.
+ */
+previousLimits: NotificationLedgerLimitsProjection, 
+/**
+ * Retention limits after the mutation.
+ */
+committedLimits: NotificationLedgerLimitsProjection, 
+/**
+ * Ledger revision before the mutation.
+ */
+previousLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Ledger revision after the mutation.
+ */
+committedLedgerRevision: NotificationLedgerRevision, 
+/**
+ * Records the new limits pruned.
+ */
+removals: Array<NotificationRemovalProjection>, };
 
 export type NotificationRejectionCode = "incompatibleProtocol" | "invalidCommand" | "authorityMismatch" | "ledgerRevisionMismatch" | "duplicateNotification" | "unknownNotification" | "duplicateReplacementKey" | "missingReplacementKey" | "replacementTargetNotFound" | "duplicateProducerToken" | "missingProducerToken" | "alreadySeen" | "duplicateClearTarget" | "clearTargetNotFound" | "retentionUnsatisfied" | "capacityOverflow";
 

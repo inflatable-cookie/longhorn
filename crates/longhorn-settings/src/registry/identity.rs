@@ -1,5 +1,6 @@
 use std::fmt;
 
+use longhorn_core::bytes_to_lowercase_hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use sha2::{Digest, Sha256};
 
@@ -52,13 +53,7 @@ impl SettingsRegistryDigest {
     }
 
     pub(super) fn from_bytes(bytes: &[u8]) -> Self {
-        let digest = Sha256::digest(bytes);
-        let mut encoded = String::with_capacity(64);
-        for byte in digest {
-            use std::fmt::Write;
-            write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
-        }
-        Self(encoded)
+        Self(bytes_to_lowercase_hex(&Sha256::digest(bytes)))
     }
 
     pub(super) fn placeholder() -> Self {

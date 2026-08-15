@@ -5,7 +5,7 @@ use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
     ContentSizeProposal, ContentSizeProposalReceipt, EffectiveFocus, EffectiveVisibility,
     InputRoutingMode, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, StepExecution,
+    ObservedReadiness, StepExecution, gate_attached,
 };
 
 use crate::{
@@ -62,10 +62,9 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             match state.attachment.as_ref() {
                 None => None,
                 Some(attachment) if attachment.generation != generation => {
-                    return Err(compare_attached_generation(
-                        attachment.generation,
-                        generation,
-                    ));
+                    return Err(
+                        compare_attached_generation(attachment.generation, generation).into(),
+                    );
                 }
                 Some(attachment) => Some((
                     attachment.handle.clone(),
@@ -164,10 +163,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         };
         let desired = authority.desired();
         if desired.generation() != generation {
-            return Err(compare_attached_generation(
-                desired.generation(),
-                generation,
-            ));
+            return Err(compare_attached_generation(desired.generation(), generation).into());
         }
         let scale = f64::from(desired.scale().thousandths());
         let semantic = ClientSize::new(
@@ -224,19 +220,18 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            if state.retired_generation == Some(generation) {
-                return Err(IsolatedWindowError::GenerationRetired(generation));
-            }
+            gate_attached(
+                state.retired_generation,
+                state
+                    .attachment
+                    .as_ref()
+                    .map(|attachment| attachment.generation),
+                generation,
+            )?;
             let attachment = state
                 .attachment
                 .as_mut()
-                .ok_or(IsolatedWindowError::NotAttached)?;
-            if attachment.generation != generation {
-                return Err(compare_attached_generation(
-                    attachment.generation,
-                    generation,
-                ));
-            }
+                .expect("validated attachment is current");
             match &event.kind {
                 IsolatedWindowRuntimeEventKind::Progress { .. } => {}
                 IsolatedWindowRuntimeEventKind::Ready { .. } => attachment.ready = true,

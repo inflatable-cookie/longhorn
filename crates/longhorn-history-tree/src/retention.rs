@@ -593,8 +593,116 @@ pub enum ForkRetentionError {
 
 impl fmt::Display for ForkRetentionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "fork retention rejected: {self:?}")
+        match self {
+            Self::ZeroLimit => formatter.write_str("fork retention limit is zero"),
+            Self::EntryLimitTooLarge { maximum, actual } => write!(
+                formatter,
+                "fork retention entry limit {actual} exceeds defensive maximum {maximum}"
+            ),
+            Self::EncodedWeightLimitTooLarge { maximum, actual } => write!(
+                formatter,
+                "fork retention encoded-weight limit {actual} exceeds defensive maximum {maximum}"
+            ),
+            Self::StaleRevision { expected, actual } => write!(
+                formatter,
+                "fork history revision {} is stale; current revision is {}",
+                expected.get(),
+                actual.get()
+            ),
+            Self::UnknownEntry(id) => {
+                write!(formatter, "fork history entry {id} is not retained")
+            }
+            Self::CurrentNodeInSubtree(id) => write!(
+                formatter,
+                "deletion of fork history entry {id} would remove the current node"
+            ),
+            Self::EntryOnCurrentPath(id) => write!(
+                formatter,
+                "deletion of fork history entry {id} would remove part of the active line"
+            ),
+            Self::PinnedBranchInSubtree(id) => write!(
+                formatter,
+                "deletion would remove pinned fork branch {id}; unpin it first"
+            ),
+            Self::WeightOverflow => formatter.write_str("fork retention weight overflowed"),
+            Self::InvalidTopology => formatter
+                .write_str("fork history topology could not produce finite protected lineages"),
+            Self::RevisionOverflow => formatter.write_str("fork history revision cannot advance"),
+        }
     }
 }
 
 impl Error for ForkRetentionError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry_id(value: &str) -> HistoryEntryId {
+        HistoryEntryId::new(value).expect("fixture entry id")
+    }
+
+    #[test]
+    fn fork_retention_error_messages_are_hand_written() {
+        let cases: [(ForkRetentionError, &str); 11] = [
+            (
+                ForkRetentionError::ZeroLimit,
+                "fork retention limit is zero",
+            ),
+            (
+                ForkRetentionError::EntryLimitTooLarge {
+                    maximum: 1_000,
+                    actual: 1_001,
+                },
+                "fork retention entry limit 1001 exceeds defensive maximum 1000",
+            ),
+            (
+                ForkRetentionError::EncodedWeightLimitTooLarge {
+                    maximum: 1_000_000,
+                    actual: 1_000_001,
+                },
+                "fork retention encoded-weight limit 1000001 exceeds defensive maximum 1000000",
+            ),
+            (
+                ForkRetentionError::StaleRevision {
+                    expected: HistoryRevision::new(2),
+                    actual: HistoryRevision::new(5),
+                },
+                "fork history revision 2 is stale; current revision is 5",
+            ),
+            (
+                ForkRetentionError::UnknownEntry(entry_id("entry:a")),
+                "fork history entry entry:a is not retained",
+            ),
+            (
+                ForkRetentionError::CurrentNodeInSubtree(entry_id("entry:b")),
+                "deletion of fork history entry entry:b would remove the current node",
+            ),
+            (
+                ForkRetentionError::EntryOnCurrentPath(entry_id("entry:c")),
+                "deletion of fork history entry entry:c would remove part of the active line",
+            ),
+            (
+                ForkRetentionError::PinnedBranchInSubtree(
+                    ForkBranchId::new("branch:pinned").expect("fixture branch id"),
+                ),
+                "deletion would remove pinned fork branch branch:pinned; unpin it first",
+            ),
+            (
+                ForkRetentionError::WeightOverflow,
+                "fork retention weight overflowed",
+            ),
+            (
+                ForkRetentionError::InvalidTopology,
+                "fork history topology could not produce finite protected lineages",
+            ),
+            (
+                ForkRetentionError::RevisionOverflow,
+                "fork history revision cannot advance",
+            ),
+        ];
+        for (error, message) in cases {
+            assert_eq!(error.to_string(), message);
+        }
+    }
+}

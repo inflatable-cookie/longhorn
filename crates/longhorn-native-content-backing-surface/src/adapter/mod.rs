@@ -6,6 +6,7 @@ mod receipt;
 mod state;
 mod util;
 
+pub(crate) use longhorn_native_content::{compare_attached_generation, compare_generation};
 pub use receipt::{
     BackingSurfaceDetachOutcome, BackingSurfaceDetachReceipt, BackingSurfaceHostDestroyOutcome,
     BackingSurfaceHostDestroyReceipt,
@@ -13,6 +14,5 @@ pub use receipt::{
 pub use state::BackingSurfaceAdapter;
 pub(crate) use state::{AdapterState, Attachment};
 pub(crate) use util::{
-    compare_attached_generation, compare_generation, compare_generation_allow_next,
-    current_attachment, current_attachment_mut, observation, validate_snapshot,
+    current_attachment, current_attachment_mut, observation, reject_invalidated, validate_snapshot,
 };

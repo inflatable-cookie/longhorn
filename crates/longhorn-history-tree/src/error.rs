@@ -165,8 +165,206 @@ pub enum ForkHistoryStateError {
 
 impl fmt::Display for ForkHistoryStateError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "invalid fork history state: {self:?}")
+        match self {
+            Self::MissingBranch => {
+                formatter.write_str("fork history state has no branch references")
+            }
+            Self::TooManyNodes { maximum, actual } => write!(
+                formatter,
+                "fork history state holds {actual} nodes; hard limit is {maximum}"
+            ),
+            Self::TooManyBranches { maximum, actual } => write!(
+                formatter,
+                "fork history state holds {actual} branches; hard limit is {maximum}"
+            ),
+            Self::TooManyCheckpoints { maximum, actual } => write!(
+                formatter,
+                "fork history state holds {actual} checkpoints; hard limit is {maximum}"
+            ),
+            Self::DuplicateNode(id) => {
+                write!(
+                    formatter,
+                    "fork history state lists node {id} more than once"
+                )
+            }
+            Self::DuplicateBranch(id) => write!(
+                formatter,
+                "fork history state lists branch {id} more than once"
+            ),
+            Self::DuplicateSequence(sequence) => write!(
+                formatter,
+                "fork history state lists sequence {sequence} more than once"
+            ),
+            Self::DuplicateCommittedRevision(revision) => write!(
+                formatter,
+                "fork history state lists commit revision {revision} more than once"
+            ),
+            Self::InvalidNextSequence => formatter.write_str(
+                "fork history state next sequence is not strictly after all retained nodes",
+            ),
+            Self::InvalidCommittedRevision(id) => {
+                write!(
+                    formatter,
+                    "fork history entry {id} has an invalid commit revision"
+                )
+            }
+            Self::InvalidParent(id) => {
+                write!(formatter, "fork history entry {id} has an invalid parent")
+            }
+            Self::InvalidBranchHead(id) => {
+                write!(formatter, "fork branch {id} has an invalid head")
+            }
+            Self::DuplicatePreferredParent => formatter
+                .write_str("fork history state lists a preferred-child relation more than once"),
+            Self::InvalidPreferredChild(id) => write!(
+                formatter,
+                "fork history entry {id} is not a direct child of its preferred parent"
+            ),
+            Self::MissingPreferredChild(None) => {
+                formatter.write_str("fork history root declares no preferred child")
+            }
+            Self::MissingPreferredChild(Some(id)) => {
+                write!(
+                    formatter,
+                    "fork history entry {id} declares no preferred child"
+                )
+            }
+            Self::DuplicateCheckpoint(id) => write!(
+                formatter,
+                "fork history state lists checkpoint {id} more than once"
+            ),
+            Self::InvalidCheckpoint(id) => {
+                write!(formatter, "fork checkpoint {id} references an absent node")
+            }
+            Self::UnknownCurrentBranch(id) => {
+                write!(formatter, "fork history current branch {id} does not exist")
+            }
+            Self::InvalidCurrentNode => formatter.write_str(
+                "fork history current node is absent or outside the current branch lineage",
+            ),
+            Self::InvalidEncodedWeight => formatter
+                .write_str("fork history encoded weight overflowed or exceeds its hard limit"),
+        }
     }
 }
 
 impl Error for ForkHistoryStateError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry_id(value: &str) -> HistoryEntryId {
+        HistoryEntryId::new(value).expect("fixture entry id")
+    }
+
+    fn branch_id(value: &str) -> ForkBranchId {
+        ForkBranchId::new(value).expect("fixture branch id")
+    }
+
+    fn checkpoint_id(value: &str) -> ForkCheckpointId {
+        ForkCheckpointId::new(value).expect("fixture checkpoint id")
+    }
+
+    #[test]
+    fn fork_history_state_error_messages_are_hand_written() {
+        let cases: [(ForkHistoryStateError, &str); 20] = [
+            (
+                ForkHistoryStateError::MissingBranch,
+                "fork history state has no branch references",
+            ),
+            (
+                ForkHistoryStateError::TooManyNodes {
+                    maximum: 10,
+                    actual: 11,
+                },
+                "fork history state holds 11 nodes; hard limit is 10",
+            ),
+            (
+                ForkHistoryStateError::TooManyBranches {
+                    maximum: 4,
+                    actual: 5,
+                },
+                "fork history state holds 5 branches; hard limit is 4",
+            ),
+            (
+                ForkHistoryStateError::TooManyCheckpoints {
+                    maximum: 2,
+                    actual: 3,
+                },
+                "fork history state holds 3 checkpoints; hard limit is 2",
+            ),
+            (
+                ForkHistoryStateError::DuplicateNode(entry_id("entry:a")),
+                "fork history state lists node entry:a more than once",
+            ),
+            (
+                ForkHistoryStateError::DuplicateBranch(branch_id("branch:main")),
+                "fork history state lists branch branch:main more than once",
+            ),
+            (
+                ForkHistoryStateError::DuplicateSequence(7),
+                "fork history state lists sequence 7 more than once",
+            ),
+            (
+                ForkHistoryStateError::DuplicateCommittedRevision(9),
+                "fork history state lists commit revision 9 more than once",
+            ),
+            (
+                ForkHistoryStateError::InvalidNextSequence,
+                "fork history state next sequence is not strictly after all retained nodes",
+            ),
+            (
+                ForkHistoryStateError::InvalidCommittedRevision(entry_id("entry:b")),
+                "fork history entry entry:b has an invalid commit revision",
+            ),
+            (
+                ForkHistoryStateError::InvalidParent(entry_id("entry:c")),
+                "fork history entry entry:c has an invalid parent",
+            ),
+            (
+                ForkHistoryStateError::InvalidBranchHead(branch_id("branch:main")),
+                "fork branch branch:main has an invalid head",
+            ),
+            (
+                ForkHistoryStateError::DuplicatePreferredParent,
+                "fork history state lists a preferred-child relation more than once",
+            ),
+            (
+                ForkHistoryStateError::InvalidPreferredChild(entry_id("entry:d")),
+                "fork history entry entry:d is not a direct child of its preferred parent",
+            ),
+            (
+                ForkHistoryStateError::MissingPreferredChild(None),
+                "fork history root declares no preferred child",
+            ),
+            (
+                ForkHistoryStateError::MissingPreferredChild(Some(entry_id("entry:e"))),
+                "fork history entry entry:e declares no preferred child",
+            ),
+            (
+                ForkHistoryStateError::DuplicateCheckpoint(checkpoint_id("checkpoint:one")),
+                "fork history state lists checkpoint checkpoint:one more than once",
+            ),
+            (
+                ForkHistoryStateError::InvalidCheckpoint(checkpoint_id("checkpoint:two")),
+                "fork checkpoint checkpoint:two references an absent node",
+            ),
+            (
+                ForkHistoryStateError::UnknownCurrentBranch(branch_id("branch:gone")),
+                "fork history current branch branch:gone does not exist",
+            ),
+            (
+                ForkHistoryStateError::InvalidCurrentNode,
+                "fork history current node is absent or outside the current branch lineage",
+            ),
+        ];
+        for (error, message) in cases {
+            assert_eq!(error.to_string(), message);
+        }
+        assert_eq!(
+            ForkHistoryStateError::InvalidEncodedWeight.to_string(),
+            "fork history encoded weight overflowed or exceeds its hard limit"
+        );
+    }
+}

@@ -2,7 +2,7 @@
 
 use longhorn_native_content::{
     AttachGeneration, AttachmentLifecycle, EffectiveFocus, EffectiveVisibility, InputRoutingMode,
-    ObservationUpdate, ObservedGeometry, ObservedReadiness,
+    ObservationUpdate, ObservedGeometry, ObservedReadiness, compare_generation, gate_attached,
 };
 
 use crate::{BackingSurfaceError, BackingSurfaceSnapshot};
@@ -51,28 +51,37 @@ pub(crate) fn observation(
     )
 }
 
+/// Mechanism-specific extension (contract 017): native storage can outlive
+/// host invalidation inside the invalidate-then-detach window, so a retained
+/// attachment rejects further work for its invalidated generation.
+pub(crate) fn reject_invalidated(
+    invalidated: Option<AttachGeneration>,
+    generation: AttachGeneration,
+) -> Result<(), BackingSurfaceError> {
+    if invalidated == Some(generation) {
+        return Err(BackingSurfaceError::GenerationInvalidated(generation));
+    }
+    Ok(())
+}
+
 pub(crate) fn current_attachment<H>(
     state: &AdapterState<H>,
     generation: AttachGeneration,
 ) -> Result<&Attachment<H>, BackingSurfaceError> {
     compare_generation(state.latest_generation, generation)?;
-    if state.invalidated_generation == Some(generation) {
-        return Err(BackingSurfaceError::GenerationInvalidated(generation));
-    }
-    if state.retired_generation == Some(generation) {
-        return Err(BackingSurfaceError::GenerationRetired(generation));
-    }
-    let attachment = state
+    reject_invalidated(state.invalidated_generation, generation)?;
+    gate_attached(
+        state.retired_generation,
+        state
+            .attachment
+            .as_ref()
+            .map(|attachment| attachment.generation),
+        generation,
+    )?;
+    Ok(state
         .attachment
         .as_ref()
-        .ok_or(BackingSurfaceError::NotAttached)?;
-    if attachment.generation != generation {
-        return Err(compare_attached_generation(
-            attachment.generation,
-            generation,
-        ));
-    }
-    Ok(attachment)
+        .expect("validated attachment is current"))
 }
 
 pub(crate) fn current_attachment_mut<H>(
@@ -80,65 +89,17 @@ pub(crate) fn current_attachment_mut<H>(
     generation: AttachGeneration,
 ) -> Result<&mut Attachment<H>, BackingSurfaceError> {
     compare_generation(state.latest_generation, generation)?;
-    if state.invalidated_generation == Some(generation) {
-        return Err(BackingSurfaceError::GenerationInvalidated(generation));
-    }
-    if state.retired_generation == Some(generation) {
-        return Err(BackingSurfaceError::GenerationRetired(generation));
-    }
-    let attachment = state
+    reject_invalidated(state.invalidated_generation, generation)?;
+    gate_attached(
+        state.retired_generation,
+        state
+            .attachment
+            .as_ref()
+            .map(|attachment| attachment.generation),
+        generation,
+    )?;
+    Ok(state
         .attachment
         .as_mut()
-        .ok_or(BackingSurfaceError::NotAttached)?;
-    if attachment.generation != generation {
-        return Err(compare_attached_generation(
-            attachment.generation,
-            generation,
-        ));
-    }
-    Ok(attachment)
-}
-
-pub(crate) fn compare_generation(
-    current: Option<AttachGeneration>,
-    supplied: AttachGeneration,
-) -> Result<(), BackingSurfaceError> {
-    let Some(current) = current else {
-        return Ok(());
-    };
-    if supplied < current {
-        Err(BackingSurfaceError::StaleGeneration { current, supplied })
-    } else if supplied > current {
-        Err(BackingSurfaceError::FutureGeneration { current, supplied })
-    } else {
-        Ok(())
-    }
-}
-
-pub(crate) fn compare_generation_allow_next(
-    current: Option<AttachGeneration>,
-    supplied: AttachGeneration,
-) -> Result<(), BackingSurfaceError> {
-    let Some(current) = current else {
-        return Ok(());
-    };
-    if supplied < current {
-        return Err(BackingSurfaceError::StaleGeneration { current, supplied });
-    }
-    if supplied == current || current.checked_next().ok() == Some(supplied) {
-        Ok(())
-    } else {
-        Err(BackingSurfaceError::FutureGeneration { current, supplied })
-    }
-}
-
-pub(crate) fn compare_attached_generation(
-    current: AttachGeneration,
-    supplied: AttachGeneration,
-) -> BackingSurfaceError {
-    if supplied < current {
-        BackingSurfaceError::StaleGeneration { current, supplied }
-    } else {
-        BackingSurfaceError::FutureGeneration { current, supplied }
-    }
+        .expect("validated attachment is current"))
 }

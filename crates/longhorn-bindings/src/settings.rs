@@ -24,8 +24,8 @@ use longhorn_settings::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -42,6 +42,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the settings bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -66,17 +67,17 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let durability = SettingsDurabilityEvidence::decl();
-    let mutation_result = SettingsMutationResult::decl();
-    let load_outcome = SettingsLoadOutcome::decl();
-    let rejection = SettingsRejectionCode::decl();
-    let mutation_timing = SettingsMutationTiming::decl();
-    let effective_source = SettingsEffectiveSource::decl();
-    let editability = SettingsEditability::decl();
-    let policy_effect = SettingsPolicyEffect::decl();
-    let recovery_code = SettingsRecoveryCode::decl();
-    let activation_state = SettingsActivationState::decl();
-    let mutation_outcome = SettingsMutationOutcome::decl();
+    let durability = SettingsDurabilityEvidence::decl(config());
+    let mutation_result = SettingsMutationResult::decl(config());
+    let load_outcome = SettingsLoadOutcome::decl(config());
+    let rejection = SettingsRejectionCode::decl(config());
+    let mutation_timing = SettingsMutationTiming::decl(config());
+    let effective_source = SettingsEffectiveSource::decl(config());
+    let editability = SettingsEditability::decl(config());
+    let policy_effect = SettingsPolicyEffect::decl(config());
+    let recovery_code = SettingsRecoveryCode::decl(config());
+    let activation_state = SettingsActivationState::decl(config());
+    let mutation_outcome = SettingsMutationOutcome::decl(config());
 
     let durability_kinds = tagged_variants(&durability, "kind")?;
     let mutation_statuses = tagged_variants(&mutation_result, "status")?;
@@ -91,59 +92,59 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let mutation_outcomes = string_union_variants(&mutation_outcome)?;
 
     let declarations = [
-        SettingsModuleId::decl(),
-        SettingsSectionId::decl(),
-        SettingsPageId::decl(),
-        SettingsRendererId::decl(),
-        SettingsAnchorId::decl(),
-        SettingsScopeId::decl(),
-        SettingsApplyUnitId::decl(),
-        SettingsCapabilityId::decl(),
-        SettingsActivationTargetId::decl(),
-        SettingsEntryId::decl(),
-        SettingsRequestId::decl(),
-        SettingsPolicySourceId::decl(),
-        SettingsAuthorityToken::decl(),
-        SettingsProtocolVersion::decl(),
-        SettingsScopeRevision::decl(),
-        SettingsRegistryGeneration::decl(),
-        SettingsRegistryDigest::decl(),
-        SettingsLimits::decl(),
-        SettingsOpaqueValue::decl(),
-        SettingsModuleDefinition::decl(),
-        SettingsSectionDefinition::decl(),
-        SettingsRendererDefinition::decl(),
-        SettingsScopeDefinition::decl(),
-        SettingsCapabilityDefinition::decl(),
+        SettingsModuleId::decl(config()),
+        SettingsSectionId::decl(config()),
+        SettingsPageId::decl(config()),
+        SettingsRendererId::decl(config()),
+        SettingsAnchorId::decl(config()),
+        SettingsScopeId::decl(config()),
+        SettingsApplyUnitId::decl(config()),
+        SettingsCapabilityId::decl(config()),
+        SettingsActivationTargetId::decl(config()),
+        SettingsEntryId::decl(config()),
+        SettingsRequestId::decl(config()),
+        SettingsPolicySourceId::decl(config()),
+        SettingsAuthorityToken::decl(config()),
+        SettingsProtocolVersion::decl(config()),
+        SettingsScopeRevision::decl(config()),
+        SettingsRegistryGeneration::decl(config()),
+        SettingsRegistryDigest::decl(config()),
+        SettingsLimits::decl(config()),
+        SettingsOpaqueValue::decl(config()),
+        SettingsModuleDefinition::decl(config()),
+        SettingsSectionDefinition::decl(config()),
+        SettingsRendererDefinition::decl(config()),
+        SettingsScopeDefinition::decl(config()),
+        SettingsCapabilityDefinition::decl(config()),
         mutation_timing,
-        SettingsApplyUnitDefinition::decl(),
-        SettingsAnchorDefinition::decl(),
-        SettingsPageFeatures::decl(),
-        SettingsPageDefinition::decl(),
+        SettingsApplyUnitDefinition::decl(config()),
+        SettingsAnchorDefinition::decl(config()),
+        SettingsPageFeatures::decl(config()),
+        SettingsPageDefinition::decl(config()),
         effective_source,
         editability,
         policy_effect,
-        SettingsPolicyProjection::decl(),
-        SettingsSourceDiagnostic::decl(),
-        SettingsValueProjection::decl(),
+        SettingsPolicyProjection::decl(config()),
+        SettingsSourceDiagnostic::decl(config()),
+        SettingsValueProjection::decl(config()),
         recovery_code,
-        SettingsRecoveryState::decl(),
+        SettingsRecoveryState::decl(config()),
         activation_state,
-        SettingsActivationRequirement::decl(),
-        SettingsAuthorityExpectation::decl(),
-        SettingsScopeSnapshot::decl(),
-        SettingsRegistrySnapshot::decl(),
-        SettingsRegistryChangedEvent::decl(),
-        SettingsScopeChangedEvent::decl(),
-        SettingsLoadCommand::decl(),
-        SettingsApplyCommand::decl(),
-        SettingsResetCommand::decl(),
+        SettingsActivationRequirement::decl(config()),
+        SettingsAuthorityExpectation::decl(config()),
+        SettingsScopeSnapshot::decl(config()),
+        SettingsRegistrySnapshot::decl(config()),
+        SettingsRegistryChangedEvent::decl(config()),
+        SettingsScopeChangedEvent::decl(config()),
+        SettingsLoadCommand::decl(config()),
+        SettingsApplyCommand::decl(config()),
+        SettingsResetCommand::decl(config()),
         mutation_outcome,
         durability,
-        SettingsMutationReceipt::decl(),
-        SettingsConflict::decl(),
+        SettingsMutationReceipt::decl(config()),
+        SettingsConflict::decl(config()),
         rejection,
-        SettingsRejection::decl(),
+        SettingsRejection::decl(config()),
         mutation_result,
         load_outcome,
     ]

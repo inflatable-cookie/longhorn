@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use longhorn_core::{DomainId, SettingsAuthorityToken, SettingsScopeId};
+use longhorn_core::{DomainId, SettingsAuthorityToken, SettingsScopeId, bytes_to_lowercase_hex};
 use longhorn_settings::{
     SettingsAuthorityExpectation, SettingsRegistryGeneration, SettingsScopeRevision,
     SettingsValueProjection,
@@ -146,12 +146,7 @@ fn token(material: &impl Serialize) -> Result<SettingsAuthorityToken, SettingsCo
     let encoded = serde_json::to_vec(material)
         .map_err(|error| SettingsConfigError::AuthorityEncoding(error.to_string()))?;
     let digest = Sha256::digest(encoded);
-    let mut value = String::with_capacity(71);
-    value.push_str("sha256:");
-    for byte in digest {
-        use std::fmt::Write;
-        write!(&mut value, "{byte:02x}").expect("writing to String cannot fail");
-    }
+    let value = format!("sha256:{}", bytes_to_lowercase_hex(&digest));
     SettingsAuthorityToken::new(value)
         .map_err(|error| SettingsConfigError::AuthorityEncoding(error.to_string()))
 }

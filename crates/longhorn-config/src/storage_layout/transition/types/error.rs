@@ -89,7 +89,79 @@ pub enum StorageTransitionError {
 
 impl fmt::Display for StorageTransitionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "{self:?}")
+        match self {
+            Self::InvalidLimits => {
+                formatter.write_str("storage transition inventory bounds are zero or inverted")
+            }
+            Self::InvalidTransitionId => {
+                formatter.write_str("storage transition id is not a stable portable identifier")
+            }
+            Self::InvalidLegacyCandidate => {
+                formatter.write_str("legacy storage candidate id is empty or too long")
+            }
+            Self::LayoutIdentityMismatch => {
+                formatter.write_str("source and target canonical application ids differ")
+            }
+            Self::LayoutStoreMismatch => {
+                formatter.write_str("a store does not use the roots declared by its layout")
+            }
+            Self::TargetSelectionMismatch => formatter
+                .write_str("persisted target selection does not describe the target layout"),
+            Self::DescriptorMismatch { domain } => write!(
+                formatter,
+                "source and target descriptors for domain {domain} differ"
+            ),
+            Self::MissingPolicy { domain } => {
+                write!(
+                    formatter,
+                    "domain {domain} has no explicit transition policy"
+                )
+            }
+            Self::UnavailableDomain { domain } => {
+                write!(formatter, "domain {domain} authority cannot participate")
+            }
+            Self::BoundExceeded { path } => write!(
+                formatter,
+                "storage transition inventory bound exceeded at {}",
+                path.display()
+            ),
+            Self::Filesystem { path, detail } => write!(
+                formatter,
+                "filesystem operation on {} failed: {detail}",
+                path.display()
+            ),
+            Self::Adapter { domain, detail } => {
+                write!(
+                    formatter,
+                    "adapter authority for domain {domain} failed: {detail}"
+                )
+            }
+            Self::StalePlan => formatter
+                .write_str("current evidence no longer matches the confirmed transition plan"),
+            Self::CleanupRefused(detail) => write!(
+                formatter,
+                "source cleanup no longer has safe authority: {detail}"
+            ),
+            Self::Coordination(error) => {
+                write!(formatter, "transition coordination failed: {error}")
+            }
+            Self::Journal(detail) => {
+                write!(
+                    formatter,
+                    "transition journal is invalid or unavailable: {detail}"
+                )
+            }
+            Self::Locator(detail) => {
+                write!(
+                    formatter,
+                    "bootstrap locator is invalid or unavailable: {detail}"
+                )
+            }
+            Self::RecoveryRequired(detail) => write!(
+                formatter,
+                "terminal source or target authority could not be verified: {detail}"
+            ),
+        }
     }
 }
 
@@ -98,6 +170,115 @@ impl Error for StorageTransitionError {
         match self {
             Self::Coordination(error) => Some(error),
             _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::CoordinationFailureKind;
+
+    fn domain(value: &str) -> DomainId {
+        DomainId::new(value).expect("fixture domain id")
+    }
+
+    #[test]
+    fn storage_transition_error_messages_are_hand_written() {
+        let cases: [(StorageTransitionError, &str); 18] = [
+            (
+                StorageTransitionError::InvalidLimits,
+                "storage transition inventory bounds are zero or inverted",
+            ),
+            (
+                StorageTransitionError::InvalidTransitionId,
+                "storage transition id is not a stable portable identifier",
+            ),
+            (
+                StorageTransitionError::InvalidLegacyCandidate,
+                "legacy storage candidate id is empty or too long",
+            ),
+            (
+                StorageTransitionError::LayoutIdentityMismatch,
+                "source and target canonical application ids differ",
+            ),
+            (
+                StorageTransitionError::LayoutStoreMismatch,
+                "a store does not use the roots declared by its layout",
+            ),
+            (
+                StorageTransitionError::TargetSelectionMismatch,
+                "persisted target selection does not describe the target layout",
+            ),
+            (
+                StorageTransitionError::DescriptorMismatch {
+                    domain: domain("settings"),
+                },
+                "source and target descriptors for domain settings differ",
+            ),
+            (
+                StorageTransitionError::MissingPolicy {
+                    domain: domain("settings"),
+                },
+                "domain settings has no explicit transition policy",
+            ),
+            (
+                StorageTransitionError::UnavailableDomain {
+                    domain: domain("settings"),
+                },
+                "domain settings authority cannot participate",
+            ),
+            (
+                StorageTransitionError::BoundExceeded {
+                    path: PathBuf::from("/tmp/bound"),
+                },
+                "storage transition inventory bound exceeded at /tmp/bound",
+            ),
+            (
+                StorageTransitionError::Filesystem {
+                    path: PathBuf::from("/tmp/store"),
+                    detail: "permission denied".to_owned(),
+                },
+                "filesystem operation on /tmp/store failed: permission denied",
+            ),
+            (
+                StorageTransitionError::Adapter {
+                    domain: domain("settings"),
+                    detail: "refused".to_owned(),
+                },
+                "adapter authority for domain settings failed: refused",
+            ),
+            (
+                StorageTransitionError::StalePlan,
+                "current evidence no longer matches the confirmed transition plan",
+            ),
+            (
+                StorageTransitionError::CleanupRefused("receipt mismatch".to_owned()),
+                "source cleanup no longer has safe authority: receipt mismatch",
+            ),
+            (
+                StorageTransitionError::Coordination(CoordinationFailure {
+                    kind: CoordinationFailureKind::Busy,
+                    lock_path: PathBuf::from("/tmp/lock"),
+                    detail: "another writer".to_owned(),
+                }),
+                "transition coordination failed: Busy coordination failure at /tmp/lock: another writer",
+            ),
+            (
+                StorageTransitionError::Journal("truncated".to_owned()),
+                "transition journal is invalid or unavailable: truncated",
+            ),
+            (
+                StorageTransitionError::Locator("missing".to_owned()),
+                "bootstrap locator is invalid or unavailable: missing",
+            ),
+            (
+                StorageTransitionError::RecoveryRequired("unverified".to_owned()),
+                "terminal source or target authority could not be verified: unverified",
+            ),
+        ];
+        for (error, message) in cases {
+            assert_eq!(error.to_string(), message);
         }
     }
 }

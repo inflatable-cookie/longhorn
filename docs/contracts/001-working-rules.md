@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-31
+Updated: 2026-08-15
 Depends on: `../architecture/system-architecture.md`
 
 ## Delivery Grammar
@@ -28,6 +28,12 @@ Depends on: `../architecture/system-architecture.md`
 - Coordinate material consumer breaks.
 - Migrate call sites and remove superseded donor surfaces in the same bounded
   lane unless the operator chooses staged compatibility.
+
+## Code Idioms
+
+- Panic on a violated invariant with `expect("validated …")`, where the
+  message names the guarding check. Bare `unwrap()` on an invariant is not the
+  idiom — an auditor cannot tell it apart from an unexamined assumption.
 
 ## Definition Of Done
 

@@ -31,8 +31,8 @@ use longhorn_core::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, variant_field_map,
 };
 
 mod fixture;
@@ -48,6 +48,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the bridge bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -104,99 +105,99 @@ fn render_admitted_reasons() -> Result<String, Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let host_form = BridgeHostForm::decl();
-    let connection_state = BridgeConnectionState::decl();
-    let connection_reason = BridgeConnectionReason::decl();
-    let authentication = AuthenticationPosture::decl();
-    let availability = DomainAvailability::decl();
-    let read_authority = ReadAuthority::decl();
-    let write_authority = WriteAuthority::decl();
-    let execution_authority = ExecutionAuthority::decl();
-    let failure_phase = BridgeFailurePhase::decl();
-    let retry_class = BridgeRetryClass::decl();
-    let command_delivery = BridgeCommandDelivery::decl();
-    let command_retry = BridgeCommandRetryDecision::decl();
-    let query_retry = BridgeQueryRetryDecision::decl();
-    let required_authority = BridgeRequiredAuthority::decl();
-    let authority_cursor_decision = BridgeAuthorityCursorDecision::decl();
-    let service_ownership = BridgeServiceOwnership::decl();
-    let service_state = BridgeServiceState::decl();
-    let service_action = BridgeServiceAction::decl();
-    let service_failure = BridgeServiceFailureCode::decl();
-    let service_outcome = BridgeServiceOutcome::decl();
-    let snapshot_decision = BridgeSnapshotDecision::decl();
-    let stream_decision = BridgeStreamDecision::decl();
-    let progress_decision = BridgeProgressDecision::decl();
-    let terminal_decision = BridgeJobTerminalDecision::decl();
+    let host_form = BridgeHostForm::decl(config());
+    let connection_state = BridgeConnectionState::decl(config());
+    let connection_reason = BridgeConnectionReason::decl(config());
+    let authentication = AuthenticationPosture::decl(config());
+    let availability = DomainAvailability::decl(config());
+    let read_authority = ReadAuthority::decl(config());
+    let write_authority = WriteAuthority::decl(config());
+    let execution_authority = ExecutionAuthority::decl(config());
+    let failure_phase = BridgeFailurePhase::decl(config());
+    let retry_class = BridgeRetryClass::decl(config());
+    let command_delivery = BridgeCommandDelivery::decl(config());
+    let command_retry = BridgeCommandRetryDecision::decl(config());
+    let query_retry = BridgeQueryRetryDecision::decl(config());
+    let required_authority = BridgeRequiredAuthority::decl(config());
+    let authority_cursor_decision = BridgeAuthorityCursorDecision::decl(config());
+    let service_ownership = BridgeServiceOwnership::decl(config());
+    let service_state = BridgeServiceState::decl(config());
+    let service_action = BridgeServiceAction::decl(config());
+    let service_failure = BridgeServiceFailureCode::decl(config());
+    let service_outcome = BridgeServiceOutcome::decl(config());
+    let snapshot_decision = BridgeSnapshotDecision::decl(config());
+    let stream_decision = BridgeStreamDecision::decl(config());
+    let progress_decision = BridgeProgressDecision::decl(config());
+    let terminal_decision = BridgeJobTerminalDecision::decl(config());
 
     let declarations = [
-        BridgeId::decl(),
-        BridgeSessionId::decl(),
-        HostInstanceId::decl(),
-        BridgeCapabilityId::decl(),
-        AuthorityScopeId::decl(),
-        TransportFeatureId::decl(),
-        BridgeDiagnosticId::decl(),
-        BridgeRequestId::decl(),
-        BridgeIdempotencyKey::decl(),
-        BridgeJobId::decl(),
-        BridgeErrorCode::decl(),
-        BridgeCredentialRef::decl(),
-        DomainId::decl(),
-        BridgeProtocolVersion::decl(),
+        BridgeId::decl(config()),
+        BridgeSessionId::decl(config()),
+        HostInstanceId::decl(config()),
+        BridgeCapabilityId::decl(config()),
+        AuthorityScopeId::decl(config()),
+        TransportFeatureId::decl(config()),
+        BridgeDiagnosticId::decl(config()),
+        BridgeRequestId::decl(config()),
+        BridgeIdempotencyKey::decl(config()),
+        BridgeJobId::decl(config()),
+        BridgeErrorCode::decl(config()),
+        BridgeCredentialRef::decl(config()),
+        DomainId::decl(config()),
+        BridgeProtocolVersion::decl(config()),
         host_form,
-        BridgeHostDescriptor::decl(),
+        BridgeHostDescriptor::decl(config()),
         connection_state,
         connection_reason,
-        BridgeConnectionStatus::decl(),
+        BridgeConnectionStatus::decl(config()),
         authentication,
-        AuthorityEpoch::decl(),
-        AuthorityRevision::decl(),
+        AuthorityEpoch::decl(config()),
+        AuthorityRevision::decl(config()),
         availability,
         read_authority,
         write_authority,
         execution_authority,
-        DomainAuthorityDescriptor::decl(),
-        DomainCapabilityDescriptor::decl(),
-        BridgeDiagnostic::decl(),
-        BridgeHelloRequest::decl(),
-        BridgeNegotiationReceipt::decl(),
-        BridgeRequestContext::decl(),
-        BridgeQueryEnvelope::<String>::decl(),
-        BridgeCommandEnvelope::<String>::decl(),
-        BridgeCancellationRequest::decl(),
-        BridgeFailureMessage::decl(),
+        DomainAuthorityDescriptor::decl(config()),
+        DomainCapabilityDescriptor::decl(config()),
+        BridgeDiagnostic::decl(config()),
+        BridgeHelloRequest::decl(config()),
+        BridgeNegotiationReceipt::decl(config()),
+        BridgeRequestContext::decl(config()),
+        BridgeQueryEnvelope::<String>::decl(config()),
+        BridgeCommandEnvelope::<String>::decl(config()),
+        BridgeCancellationRequest::decl(config()),
+        BridgeFailureMessage::decl(config()),
         failure_phase,
         retry_class,
-        BridgeFailure::<String>::decl(),
-        BridgeQueryOutcome::<String, String>::decl(),
-        BridgeQueryReply::<String, String>::decl(),
-        BridgeCommandOutcome::<String, String>::decl(),
-        BridgeCommandReply::<String, String>::decl(),
-        BridgeDeduplicationCapacity::decl(),
-        BridgeDeduplicationSupport::decl(),
+        BridgeFailure::<String>::decl(config()),
+        BridgeQueryOutcome::<String, String>::decl(config()),
+        BridgeQueryReply::<String, String>::decl(config()),
+        BridgeCommandOutcome::<String, String>::decl(config()),
+        BridgeCommandReply::<String, String>::decl(config()),
+        BridgeDeduplicationCapacity::decl(config()),
+        BridgeDeduplicationSupport::decl(config()),
         command_delivery,
         command_retry,
         query_retry,
-        BridgeMonotonicMillis::decl(),
-        BridgeRetryAttempt::decl(),
-        BridgeReconnectSchedule::decl(),
-        BridgeTransitionSequence::decl(),
-        BridgeConnectionTransitionReceipt::decl(),
+        BridgeMonotonicMillis::decl(config()),
+        BridgeRetryAttempt::decl(config()),
+        BridgeReconnectSchedule::decl(config()),
+        BridgeTransitionSequence::decl(config()),
+        BridgeConnectionTransitionReceipt::decl(config()),
         required_authority,
-        BridgeAuthorityRequirement::decl(),
+        BridgeAuthorityRequirement::decl(config()),
         authority_cursor_decision,
-        BridgeStreamSequence::decl(),
-        BridgeStreamCursor::decl(),
-        BridgeSnapshotEnvelope::<String>::decl(),
-        BridgeEventEnvelope::<String>::decl(),
+        BridgeStreamSequence::decl(config()),
+        BridgeStreamCursor::decl(config()),
+        BridgeSnapshotEnvelope::<String>::decl(config()),
+        BridgeEventEnvelope::<String>::decl(config()),
         snapshot_decision,
         stream_decision,
-        BridgeProgressEvent::<String>::decl(),
-        BridgeJobTerminalOutcome::<String, String>::decl(),
-        BridgeJobTerminalEvent::<String, String>::decl(),
-        BridgeCancellationOutcome::<String>::decl(),
-        BridgeCancellationReceipt::<String>::decl(),
+        BridgeProgressEvent::<String>::decl(config()),
+        BridgeJobTerminalOutcome::<String, String>::decl(config()),
+        BridgeJobTerminalEvent::<String, String>::decl(config()),
+        BridgeCancellationOutcome::<String>::decl(config()),
+        BridgeCancellationReceipt::<String>::decl(config()),
         progress_decision,
         terminal_decision,
         service_ownership,
@@ -204,9 +205,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         service_action,
         service_failure,
         service_outcome,
-        BridgeServiceRequest::decl(),
-        BridgeServiceGeneration::decl(),
-        BridgeServiceTransitionReceipt::decl(),
+        BridgeServiceRequest::decl(config()),
+        BridgeServiceGeneration::decl(config()),
+        BridgeServiceTransitionReceipt::decl(config()),
     ]
     .map(exported_declaration);
 
@@ -251,31 +252,59 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const BRIDGE_TERMINAL_DECISIONS = {} as const;\n\n\
          {}\n\
          {}\n",
-        serde_json::to_string(&string_union_variants(&BridgeHostForm::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeConnectionState::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeConnectionReason::decl())?)?,
-        serde_json::to_string(&string_union_variants(&AuthenticationPosture::decl())?)?,
-        serde_json::to_string(&string_union_variants(&DomainAvailability::decl())?)?,
-        serde_json::to_string(&string_union_variants(&ReadAuthority::decl())?)?,
-        serde_json::to_string(&string_union_variants(&WriteAuthority::decl())?)?,
-        serde_json::to_string(&string_union_variants(&ExecutionAuthority::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeFailurePhase::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeRetryClass::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeCommandDelivery::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeCommandRetryDecision::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeQueryRetryDecision::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeRequiredAuthority::decl())?)?,
+        serde_json::to_string(&string_union_variants(&BridgeHostForm::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeConnectionState::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeConnectionReason::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&AuthenticationPosture::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&DomainAvailability::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&ReadAuthority::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&WriteAuthority::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&ExecutionAuthority::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeFailurePhase::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeRetryClass::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeCommandDelivery::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeCommandRetryDecision::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeQueryRetryDecision::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeRequiredAuthority::decl(
+            config()
+        ))?)?,
         serde_json::to_string(&string_union_variants(
-            &BridgeAuthorityCursorDecision::decl()
+            &BridgeAuthorityCursorDecision::decl(config())
         )?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceOwnership::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceState::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceAction::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceFailureCode::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeSnapshotDecision::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeStreamDecision::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeProgressDecision::decl())?)?,
-        serde_json::to_string(&string_union_variants(&BridgeJobTerminalDecision::decl())?)?,
+        serde_json::to_string(&string_union_variants(&BridgeServiceOwnership::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeServiceState::decl(config()))?)?,
+        serde_json::to_string(&string_union_variants(
+            &BridgeServiceAction::decl(config())
+        )?)?,
+        serde_json::to_string(&string_union_variants(&BridgeServiceFailureCode::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeSnapshotDecision::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeStreamDecision::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeProgressDecision::decl(
+            config()
+        ))?)?,
+        serde_json::to_string(&string_union_variants(&BridgeJobTerminalDecision::decl(
+            config()
+        ))?)?,
         declarations.join("\n\n"),
         render_admitted_reasons()?
     );

@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::bounded_text;
+
 /// Defensive ceiling for one consumer-owned operation label.
 pub const MAXIMUM_OPERATION_LABEL_BYTES: usize = 4_096;
 /// Defensive ceiling for one consumer-owned phase label.
@@ -9,121 +11,24 @@ pub const MAXIMUM_RETAINED_OPERATIONS: usize = 65_536;
 /// Defensive ceiling for terminal metadata retained by one catalogue.
 pub const MAXIMUM_OPERATION_ENCODED_WEIGHT: u64 = 1 << 40;
 
-/// Nonempty, hard-bounded consumer-owned operation label.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OperationLabel(String);
-
-impl OperationLabel {
-    /// Validates and constructs an operation label.
-    pub fn new(value: impl Into<String>) -> Result<Self, OperationLabelError> {
-        let value = value.into();
-        if value.is_empty() {
-            return Err(OperationLabelError::Empty);
-        }
-        if value.len() > MAXIMUM_OPERATION_LABEL_BYTES {
-            return Err(OperationLabelError::TooLong {
-                maximum: MAXIMUM_OPERATION_LABEL_BYTES,
-                actual: value.len(),
-            });
-        }
-        Ok(Self(value))
-    }
-
-    /// Returns the consumer-owned presentation label.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
+bounded_text!(
+    OperationLabel,
+    OperationLabelError,
+    MAXIMUM_OPERATION_LABEL_BYTES,
+    "operation label"
+);
+bounded_text!(
+    OperationPhaseLabel,
+    OperationPhaseLabelError,
+    MAXIMUM_OPERATION_PHASE_LABEL_BYTES,
+    "operation phase label"
+);
 
 impl fmt::Display for OperationLabel {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_str())
     }
 }
-
-/// Invalid operation label.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationLabelError {
-    /// The label was empty.
-    Empty,
-    /// The label exceeded the hard byte ceiling.
-    TooLong {
-        /// Hard byte ceiling.
-        maximum: usize,
-        /// Supplied byte count.
-        actual: usize,
-    },
-}
-
-impl fmt::Display for OperationLabelError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => formatter.write_str("operation label cannot be empty"),
-            Self::TooLong { maximum, actual } => write!(
-                formatter,
-                "operation label is {actual} bytes; maximum is {maximum}"
-            ),
-        }
-    }
-}
-
-impl Error for OperationLabelError {}
-
-/// Nonempty, hard-bounded consumer-owned phase label.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OperationPhaseLabel(String);
-
-impl OperationPhaseLabel {
-    /// Validates and constructs a phase label.
-    pub fn new(value: impl Into<String>) -> Result<Self, OperationPhaseLabelError> {
-        let value = value.into();
-        if value.is_empty() {
-            return Err(OperationPhaseLabelError::Empty);
-        }
-        if value.len() > MAXIMUM_OPERATION_PHASE_LABEL_BYTES {
-            return Err(OperationPhaseLabelError::TooLong {
-                maximum: MAXIMUM_OPERATION_PHASE_LABEL_BYTES,
-                actual: value.len(),
-            });
-        }
-        Ok(Self(value))
-    }
-
-    /// Returns the consumer-owned presentation label.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-/// Invalid operation phase label.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationPhaseLabelError {
-    /// The label was empty.
-    Empty,
-    /// The label exceeded the hard byte ceiling.
-    TooLong {
-        /// Hard byte ceiling.
-        maximum: usize,
-        /// Supplied byte count.
-        actual: usize,
-    },
-}
-
-impl fmt::Display for OperationPhaseLabelError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => formatter.write_str("operation phase label cannot be empty"),
-            Self::TooLong { maximum, actual } => write!(
-                formatter,
-                "operation phase label is {actual} bytes; maximum is {maximum}"
-            ),
-        }
-    }
-}
-
-impl Error for OperationPhaseLabelError {}
 
 /// Explicit finite bound for one operation catalogue.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

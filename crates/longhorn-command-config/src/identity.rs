@@ -1,5 +1,6 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::bytes_to_lowercase_hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Monotonic revision of authoritative active-preset and sparse override state.
@@ -62,12 +63,7 @@ impl CommandKeymapPatchDigest {
     pub(crate) fn from_bytes(bytes: &[u8]) -> Self {
         use sha2::{Digest, Sha256};
 
-        let mut encoded = String::with_capacity(64);
-        for byte in Sha256::digest(bytes) {
-            use fmt::Write;
-            write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
-        }
-        Self(encoded)
+        Self(bytes_to_lowercase_hex(&Sha256::digest(bytes)))
     }
 
     /// Returns the lowercase hexadecimal digest.

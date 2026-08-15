@@ -19,8 +19,8 @@ use longhorn_notifications::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, LabelMap, apply, exported_declaration, field_map, label_module,
-    string_union_variants, tagged_variants, variant_field_map,
+    Artifact, GenerationMode, LabelMap, apply, config, exported_declaration, field_map,
+    label_module, string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -38,6 +38,7 @@ struct RenderedProtocol {
 }
 const GENERATED_LABELS: &str = "packages/longhorn/src/notifications/generated/labels.ts";
 
+/// Generates or checks the notification bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     apply(
@@ -110,49 +111,49 @@ fn render_labels() -> String {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let severity = NotificationSeverityProjection::decl();
-    let read_state = NotificationReadStateProjection::decl();
-    let retention = NotificationRetentionClassProjection::decl();
-    let clear_target = NotificationClearTargetProjection::decl();
-    let mutation = NotificationMutationCommand::decl();
-    let removal_reason = NotificationRemovalReasonProjection::decl();
-    let receipt = NotificationMutationReceiptProjection::decl();
-    let rejection_code = NotificationRejectionCode::decl();
-    let result = NotificationMutationResult::decl();
-    let changed_kind = NotificationChangedKind::decl();
+    let severity = NotificationSeverityProjection::decl(config());
+    let read_state = NotificationReadStateProjection::decl(config());
+    let retention = NotificationRetentionClassProjection::decl(config());
+    let clear_target = NotificationClearTargetProjection::decl(config());
+    let mutation = NotificationMutationCommand::decl(config());
+    let removal_reason = NotificationRemovalReasonProjection::decl(config());
+    let receipt = NotificationMutationReceiptProjection::decl(config());
+    let rejection_code = NotificationRejectionCode::decl(config());
+    let result = NotificationMutationResult::decl(config());
+    let changed_kind = NotificationChangedKind::decl(config());
     let declarations = [
-        NotificationActionReferenceId::decl(),
-        NotificationAuthorityId::decl(),
-        NotificationCauseId::decl(),
-        NotificationId::decl(),
-        NotificationLedgerRevision::decl(),
-        NotificationProducerToken::decl(),
-        NotificationReplacementKey::decl(),
-        NotificationRequestId::decl(),
-        NotificationSourceId::decl(),
-        NotificationProtocolVersion::decl(),
-        NotificationAuthorityProjection::decl(),
+        NotificationActionReferenceId::decl(config()),
+        NotificationAuthorityId::decl(config()),
+        NotificationCauseId::decl(config()),
+        NotificationId::decl(config()),
+        NotificationLedgerRevision::decl(config()),
+        NotificationProducerToken::decl(config()),
+        NotificationReplacementKey::decl(config()),
+        NotificationRequestId::decl(config()),
+        NotificationSourceId::decl(config()),
+        NotificationProtocolVersion::decl(config()),
+        NotificationAuthorityProjection::decl(config()),
         severity.clone(),
         read_state.clone(),
         retention.clone(),
-        NotificationActionProjection::decl(),
-        NotificationDraftProjection::decl(),
-        NotificationRecordProjection::decl(),
-        NotificationLedgerLimitsProjection::decl(),
-        NotificationPageProjection::decl(),
-        NotificationSnapshot::decl(),
-        NotificationSnapshotQuery::decl(),
-        NotificationSnapshotResponse::decl(),
+        NotificationActionProjection::decl(config()),
+        NotificationDraftProjection::decl(config()),
+        NotificationRecordProjection::decl(config()),
+        NotificationLedgerLimitsProjection::decl(config()),
+        NotificationPageProjection::decl(config()),
+        NotificationSnapshot::decl(config()),
+        NotificationSnapshotQuery::decl(config()),
+        NotificationSnapshotResponse::decl(config()),
         clear_target.clone(),
         mutation.clone(),
         removal_reason.clone(),
-        NotificationRemovalProjection::decl(),
+        NotificationRemovalProjection::decl(config()),
         receipt.clone(),
         rejection_code.clone(),
-        NotificationRejection::decl(),
+        NotificationRejection::decl(config()),
         result.clone(),
         changed_kind.clone(),
-        NotificationChangedEvent::decl(),
+        NotificationChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

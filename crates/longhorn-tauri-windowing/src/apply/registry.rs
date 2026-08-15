@@ -163,7 +163,7 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
     ) -> Result<(), ManagedWindowRegistryError> {
         let generation = self
             .generation
-            .expect("generation must be registered before operation evidence");
+            .ok_or(ManagedWindowRegistryError::EvidenceBeforeGeneration)?;
         if let Some(observer) = self.apply_observer.as_ref() {
             observer
                 .register_apply(generation, &operation)
@@ -309,6 +309,8 @@ pub enum ManagedWindowRegistryError {
         /// Rejected generation.
         attempted: ApplyGeneration,
     },
+    /// Operation evidence arrived before `begin_generation` registered one.
+    EvidenceBeforeGeneration,
     /// Lifecycle attribution refused evidence before native mutation.
     ApplyEvidenceRejected {
         /// Apply generation.
@@ -374,6 +376,9 @@ impl fmt::Display for ManagedWindowRegistryError {
                 "apply generation {} is older than current generation {}",
                 attempted.get(),
                 current.get()
+            ),
+            Self::EvidenceBeforeGeneration => formatter.write_str(
+                "operation evidence requires begin_generation to register a generation first",
             ),
             Self::ApplyEvidenceRejected {
                 generation,

@@ -10,8 +10,8 @@ use longhorn_update::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -27,6 +27,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the update bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     apply(
@@ -55,36 +56,36 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let channel = Channel::decl();
-    let offer_reason = OfferReason::decl();
-    let install_manager = InstallManager::decl();
-    let deferral_cause = DeferralCause::decl();
-    let availability = UpdateAvailabilityProjection::decl();
-    let progress = UpdateProgressProjection::decl();
-    let authorization = UpdateInstallAuthorizationProjection::decl();
-    let rejection_code = UpdateRejectionCode::decl();
-    let outcome = UpdateOutcomeProjection::decl();
-    let changed_kind = UpdateChangedKind::decl();
+    let channel = Channel::decl(config());
+    let offer_reason = OfferReason::decl(config());
+    let install_manager = InstallManager::decl(config());
+    let deferral_cause = DeferralCause::decl(config());
+    let availability = UpdateAvailabilityProjection::decl(config());
+    let progress = UpdateProgressProjection::decl(config());
+    let authorization = UpdateInstallAuthorizationProjection::decl(config());
+    let rejection_code = UpdateRejectionCode::decl(config());
+    let outcome = UpdateOutcomeProjection::decl(config());
+    let changed_kind = UpdateChangedKind::decl(config());
 
     let declarations = [
-        UpdateProtocolVersion::decl(),
+        UpdateProtocolVersion::decl(config()),
         channel.clone(),
         offer_reason.clone(),
         install_manager.clone(),
         deferral_cause.clone(),
         availability.clone(),
-        UpdateDeferralProjection::decl(),
+        UpdateDeferralProjection::decl(config()),
         progress.clone(),
-        UpdateSnapshot::decl(),
-        UpdateCheckCommand::decl(),
-        UpdateSelectChannelCommand::decl(),
-        UpdateDeferCommand::decl(),
-        UpdateInstallCommand::decl(),
+        UpdateSnapshot::decl(config()),
+        UpdateCheckCommand::decl(config()),
+        UpdateSelectChannelCommand::decl(config()),
+        UpdateDeferCommand::decl(config()),
+        UpdateInstallCommand::decl(config()),
         authorization.clone(),
         rejection_code.clone(),
         outcome.clone(),
         changed_kind.clone(),
-        UpdateChangedEvent::decl(),
+        UpdateChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

@@ -135,6 +135,46 @@ qa = [
   { task = "qa:northstar" },
 ]
 
+# --- Doctor scan calibration (Card 223) -----------------------------------
+# Doctor's built-in scans previously ran on stock defaults that were never
+# calibrated to this repo. Each setting below is the triaged posture, with
+# the reason written down here instead of absorbed as red.
+
+[scan.god_files]
+# Contract suites, proof scripts, and prototype adapters accumulate
+# assertions linearly -- a line cap there measures length, not entanglement,
+# and splitting them buys nothing. Shipped source keeps a real guard: a
+# `src/` file over 700 code lines still errors, over 400 stays a visible
+# warning. Today's largest source file is 582 code lines
+# (longhorn-gpui-windowing/src/lifecycle.rs).
+warn = 400
+high = 700
+critical = 1000
+exclude = ["crates/*/tests/**", "prototypes/**", "scripts/**", "examples/**"]
+
+[scan.generated_in_src]
+# ts-rs output is committed under packages/*/src/**/generated/ by design --
+# `check:bindings` gates drift byte-for-byte, so doctor re-flagging it is
+# noise. crates/*/bindings/ holds the per-type files ts-rs's `#[ts(export)]`
+# emits for the conformance suites -- equally intentional. And the generator
+# itself trips the content marker because it *writes* the marker;
+# longhorn-bindings/src is the one place allowed to.
+exclude = [
+  "packages/*/src/**/generated/**",
+  "crates/*/bindings/**",
+  "crates/longhorn-bindings/src/**",
+]
+
+[scan.attention_markers]
+# Matching is case-insensitive substring, so "SECURITY" matched the prose
+# "...security release is never withheld..." in update/src/decision.rs:142.
+# A repo that ships a security-release policy will always say "security" in
+# sentences; the scanner cannot express marker syntax, so the word leaves
+# the critical list. The rest of the stock lists stand.
+warning = ["TODO", "REVIEW", "NOTE", "placeholder"]
+high = ["FIXME", "HACK", "@deprecated", "workaround"]
+critical = ["BUG", "remove before release"]
+
 [release.gates]
 rustdoc = "effigy docs:rust"
 advisories = "cargo deny check advisories"

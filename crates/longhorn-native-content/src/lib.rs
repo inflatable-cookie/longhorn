@@ -7,6 +7,7 @@
 
 mod coordinator;
 mod error;
+mod generation;
 mod geometry;
 mod identity;
 mod model;
@@ -20,6 +21,11 @@ pub use coordinator::{
     ObservationReceipt,
 };
 pub use error::{CoordinationError, ReceiptError, ViewportConversionError};
+pub use generation::{
+    AttachmentGate, GenerationRejection, check_attach_reservation, compare_attached_generation,
+    compare_generation, compare_generation_allow_next, gate_attached, gate_detach,
+    validate_plan_generation,
+};
 pub use geometry::viewport_to_physical;
 pub use identity::{AttachGeneration, CounterOverflow, PlanStepId, PositiveCounterError};
 pub use longhorn_core::{

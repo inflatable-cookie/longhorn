@@ -191,9 +191,9 @@ impl GpuiWindowRegistry {
         transport_handle: Option<HostWindowHandle>,
         operation: WindowOperation,
     ) {
-        let generation = self
-            .generation
-            .expect("generation must be registered before operation evidence");
+        let generation = self.generation.expect(
+            "validated generation registered by begin_generation before operation evidence",
+        );
         self.evidence.push(GpuiApplyEvidence::new(
             generation,
             transport_handle,

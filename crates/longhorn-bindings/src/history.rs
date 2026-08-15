@@ -18,8 +18,8 @@ use longhorn_history::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -35,6 +35,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the history bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -59,43 +60,43 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let mode = HistoryProtocolMode::decl();
-    let position = HistoryProjectionPosition::decl();
-    let target = HistoryNavigationTargetProjection::decl();
-    let direction = HistoryNavigationDirectionProjection::decl();
-    let rejection_code = HistoryNavigationRejectionCode::decl();
-    let navigation_result = HistoryNavigationResult::decl();
-    let changed_kind = HistoryChangedKind::decl();
-    let page_floor = HistoryPageFloorProjection::decl();
+    let mode = HistoryProtocolMode::decl(config());
+    let position = HistoryProjectionPosition::decl(config());
+    let target = HistoryNavigationTargetProjection::decl(config());
+    let direction = HistoryNavigationDirectionProjection::decl(config());
+    let rejection_code = HistoryNavigationRejectionCode::decl(config());
+    let navigation_result = HistoryNavigationResult::decl(config());
+    let changed_kind = HistoryChangedKind::decl(config());
+    let page_floor = HistoryPageFloorProjection::decl(config());
     let declarations = [
-        HistoryId::decl(),
-        HistoryEntryId::decl(),
-        HistoryGroupId::decl(),
-        HistoryKindId::decl(),
-        HistoryPlanId::decl(),
-        HistoryRevision::decl(),
-        HistoryRecordedAt::decl(),
-        HistoryProtocolVersion::decl(),
-        HistoryAuthorityEpoch::decl(),
+        HistoryId::decl(config()),
+        HistoryEntryId::decl(config()),
+        HistoryGroupId::decl(config()),
+        HistoryKindId::decl(config()),
+        HistoryPlanId::decl(config()),
+        HistoryRevision::decl(config()),
+        HistoryRecordedAt::decl(config()),
+        HistoryProtocolVersion::decl(config()),
+        HistoryAuthorityEpoch::decl(config()),
         mode.clone(),
         position.clone(),
-        HistoryBaselineProjection::decl(),
-        HistorySummaryProjection::decl(),
-        HistorySnapshot::decl(),
-        HistoryEntryRecord::decl(),
+        HistoryBaselineProjection::decl(config()),
+        HistorySummaryProjection::decl(config()),
+        HistorySnapshot::decl(config()),
+        HistoryEntryRecord::decl(config()),
         page_floor.clone(),
-        HistoryPageCommand::decl(),
-        HistoryPageSnapshot::decl(),
+        HistoryPageCommand::decl(config()),
+        HistoryPageSnapshot::decl(config()),
         target.clone(),
-        HistoryNavigationCommand::decl(),
+        HistoryNavigationCommand::decl(config()),
         direction.clone(),
-        HistoryNavigationPositionProjection::decl(),
-        HistoryNavigationReceiptProjection::decl(),
+        HistoryNavigationPositionProjection::decl(config()),
+        HistoryNavigationReceiptProjection::decl(config()),
         rejection_code.clone(),
-        HistoryNavigationRejectionProjection::decl(),
+        HistoryNavigationRejectionProjection::decl(config()),
         navigation_result.clone(),
         changed_kind.clone(),
-        HistoryChangedEvent::decl(),
+        HistoryChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

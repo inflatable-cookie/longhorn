@@ -15,7 +15,8 @@ use longhorn_surfaces::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, string_union_variants, tagged_variants,
+    Artifact, GenerationMode, apply, config, exported_declaration, string_union_variants,
+    tagged_variants,
 };
 
 mod conformance;
@@ -29,6 +30,7 @@ struct RenderedProtocol {
     rejection_codes: Vec<String>,
 }
 
+/// Generates or checks the layout bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let mut artifacts = vec![
@@ -54,48 +56,48 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let command_declaration = LayoutMutationCommand::decl();
-    let outcome_declaration = LayoutMutationOutcome::decl();
-    let rejection_declaration = LayoutMutationRejectionCode::decl();
+    let command_declaration = LayoutMutationCommand::decl(config());
+    let outcome_declaration = LayoutMutationOutcome::decl(config());
+    let rejection_declaration = LayoutMutationRejectionCode::decl(config());
     let command_kinds = tagged_variants(&command_declaration, "kind")?;
     let outcome_kinds = tagged_variants(&outcome_declaration, "kind")?;
     let rejection_codes = string_union_variants(&rejection_declaration)?;
     let declarations = [
-        LayoutSchemaId::decl(),
-        SurfaceId::decl(),
-        RegionId::decl(),
-        RegionFamilyId::decl(),
-        SizingSlotId::decl(),
-        PanelDefinitionId::decl(),
-        PanelInstanceId::decl(),
-        LayoutRequestId::decl(),
-        SurfaceRevision::decl(),
-        LayoutRatio::decl(),
-        LayoutLimits::decl(),
-        EmptyRegionPolicy::decl(),
-        RegionDefinition::decl(),
-        SizingSlotDefinition::decl(),
-        LayoutSchemaDefinition::decl(),
-        PlacementSelector::decl(),
-        PanelInstancePolicy::decl(),
-        PanelDefinition::decl(),
-        PanelInstance::decl(),
-        WindowId::decl(),
-        RegionState::decl(),
-        SizingSlotState::decl(),
-        SurfaceHostPreference::decl(),
-        SurfacePresentation::decl(),
-        SurfaceRecord::decl(),
-        ParticipatingWindow::decl(),
-        SurfaceDocument::decl(),
-        RegionVisibilityState::decl(),
-        RegionVisibility::decl(),
+        LayoutSchemaId::decl(config()),
+        SurfaceId::decl(config()),
+        RegionId::decl(config()),
+        RegionFamilyId::decl(config()),
+        SizingSlotId::decl(config()),
+        PanelDefinitionId::decl(config()),
+        PanelInstanceId::decl(config()),
+        LayoutRequestId::decl(config()),
+        SurfaceRevision::decl(config()),
+        LayoutRatio::decl(config()),
+        LayoutLimits::decl(config()),
+        EmptyRegionPolicy::decl(config()),
+        RegionDefinition::decl(config()),
+        SizingSlotDefinition::decl(config()),
+        LayoutSchemaDefinition::decl(config()),
+        PlacementSelector::decl(config()),
+        PanelInstancePolicy::decl(config()),
+        PanelDefinition::decl(config()),
+        PanelInstance::decl(config()),
+        WindowId::decl(config()),
+        RegionState::decl(config()),
+        SizingSlotState::decl(config()),
+        SurfaceHostPreference::decl(config()),
+        SurfacePresentation::decl(config()),
+        SurfaceRecord::decl(config()),
+        ParticipatingWindow::decl(config()),
+        SurfaceDocument::decl(config()),
+        RegionVisibilityState::decl(config()),
+        RegionVisibility::decl(config()),
         command_declaration,
-        LayoutMutationRequest::decl(),
+        LayoutMutationRequest::decl(config()),
         outcome_declaration,
-        LayoutMutationReceipt::decl(),
+        LayoutMutationReceipt::decl(config()),
         rejection_declaration,
-        LayoutMutationRejection::decl(),
+        LayoutMutationRejection::decl(config()),
     ];
     let declarations = declarations.map(exported_declaration);
     let command_kinds_json = serde_json::to_string(&command_kinds)?;

@@ -29,7 +29,7 @@ ignore = [
 ]
 
 [bans]
-# Duplicate versions land as warnings, not errors: two are upstream-pinned
-# (base64 0.21.7 via swift-rs, sha2 0.10.9 via age/ed25519-dalek) and none
-# are ours to chase.
+# Duplicate versions land as warnings, not errors: they are upstream-pinned
+# (base64 0.21.7 via swift-rs and 0.22.1 via age/reqwest/wry/tauri-codegen,
+# sha2 0.10.9 via age/wry/secret-service) and none are ours to chase.
 multiple-versions = "warn"

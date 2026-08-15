@@ -10,34 +10,57 @@ use crate::protocol::{OperationSnapshot, OperationStateProjection};
 use super::{OperationMutationReceiptProjection, OperationRemovalProjection};
 
 /// Stable checked mutation rejection category.
-#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub enum OperationRejectionCode {
+    /// Command protocol version is not supported.
     IncompatibleProtocol,
+    /// Command failed structural validation.
     InvalidCommand,
+    /// Authority no longer accepts mutations.
     AuthorityClosed,
+    /// Authority composition does not match the catalogue's.
     AuthorityMismatch,
+    /// Authority epoch does not match the catalogue's.
     AuthorityEpochMismatch,
+    /// Expected catalogue revision is stale.
     CatalogueRevisionMismatch,
+    /// Operation identity already exists.
     DuplicateOperation,
+    /// Operation identity does not exist.
     UnknownOperation,
+    /// Retry source is not valid for this mutation.
     InvalidRetrySource,
+    /// Initial state is not valid for a new operation.
     InvalidInitialState,
+    /// Requested state transition is not permitted.
     InvalidTransition,
+    /// Expected operation revision is stale.
     OperationRevisionMismatch,
+    /// Active-operation limit is reached.
     ActiveLimitReached,
+    /// Requested active limit is below the current active count.
     ActiveLimitBelowCurrent,
+    /// Operation state does not accept progress reports.
     ProgressNotReportable,
+    /// Overall progress moved backwards.
     OverallProgressRegression,
+    /// Phase progress moved backwards.
     PhaseProgressRegression,
+    /// Dismissal requires a terminal operation state.
     DismissalRequiresTerminal,
+    /// Teardown resolution names one operation twice.
     DuplicateTeardownResolution,
+    /// Teardown omits resolutions for active operations.
     MissingTeardownResolutions,
+    /// Teardown resolution names an unknown operation.
     UnexpectedTeardownResolution,
+    /// Teardown resolution is not a valid terminal outcome.
     InvalidTeardownTerminal,
+    /// Teardown transfer targets the operation's own authority.
     TeardownTransferToSelf,
+    /// Catalogue capacity counter overflowed.
     CapacityOverflow,
 }
 

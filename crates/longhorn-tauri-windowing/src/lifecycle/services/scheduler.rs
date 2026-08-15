@@ -138,6 +138,9 @@ impl TauriAsyncWindowLifecycleScheduler {
             };
             if let Some(wake) = due_wake {
                 let Some(handler) = inner.handler.get().and_then(Weak::upgrade) else {
+                    // The handler died after this wake was queued; there is no
+                    // reporter left to tell. The loud half of this is in
+                    // `schedule`, which refuses new wakes from here on.
                     return exit(inner);
                 };
                 // Delivery failures are reported by the handler itself
@@ -157,8 +160,20 @@ impl WindowLifecycleScheduler for TauriAsyncWindowLifecycleScheduler {
     }
 
     fn schedule(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
-        if self.inner.handler.get().is_none() {
-            return Err("Tauri lifecycle scheduler is not bound".to_string());
+        // A wake queued behind a dead handler is a wake that vanishes: the
+        // worker pops it, fails to upgrade, and exits without a word. Refuse
+        // instead, so the caller hears about the dead handler at the one
+        // moment it can still act.
+        match self.inner.handler.get() {
+            None => return Err("Tauri lifecycle scheduler is not bound".to_string()),
+            Some(handler) if handler.upgrade().is_none() => {
+                return Err(
+                    "Tauri lifecycle wake handler is gone; refusing to queue an \
+                     undeliverable wake"
+                        .to_string(),
+                );
+            }
+            _ => {}
         }
         let spawn_worker = {
             let mut state = self

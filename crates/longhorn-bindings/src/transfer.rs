@@ -18,8 +18,8 @@ use longhorn_transfer::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -37,6 +37,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the transfer bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -61,15 +62,15 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let target_binding = TransferTargetBinding::decl();
-    let commit_selector = TransferCommitSelector::decl();
-    let abort_source = TransferAbortSource::decl();
-    let session_response = TransferSessionResponse::decl();
-    let lease_response = TransferLeaseResponse::decl();
-    let cancel_response = TransferCancelResponse::decl();
-    let panel_response = PanelTransferResponse::decl();
-    let transfer_errors = TransferErrorCode::decl();
-    let panel_errors = PanelTransferErrorCode::decl();
+    let target_binding = TransferTargetBinding::decl(config());
+    let commit_selector = TransferCommitSelector::decl(config());
+    let abort_source = TransferAbortSource::decl(config());
+    let session_response = TransferSessionResponse::decl(config());
+    let lease_response = TransferLeaseResponse::decl(config());
+    let cancel_response = TransferCancelResponse::decl(config());
+    let panel_response = PanelTransferResponse::decl(config());
+    let transfer_errors = TransferErrorCode::decl(config());
+    let panel_errors = PanelTransferErrorCode::decl(config());
 
     let target_kinds = tagged_variants(&target_binding, "kind")?;
     let selector_kinds = tagged_variants(&commit_selector, "kind")?;
@@ -82,44 +83,44 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let panel_error_codes = string_union_variants(&panel_errors)?;
 
     let declarations = [
-        DomainId::decl(),
-        DropZoneId::decl(),
-        TransferClientId::decl(),
-        TransferHostBindingId::decl(),
-        TransferRequestId::decl(),
-        WindowId::decl(),
-        ClientLogicalPx::decl(),
-        ClientPoint::decl(),
-        ClientSize::decl(),
-        ClientRect::decl(),
-        DragSessionId::decl(),
-        ClientEpoch::decl(),
-        LeaseGeneration::decl(),
-        TransferRevision::decl(),
-        InsertionPosition::decl(),
-        TransferProtocolVersion::decl(),
-        TransferCapability::decl(),
+        DomainId::decl(config()),
+        DropZoneId::decl(config()),
+        TransferClientId::decl(config()),
+        TransferHostBindingId::decl(config()),
+        TransferRequestId::decl(config()),
+        WindowId::decl(config()),
+        ClientLogicalPx::decl(config()),
+        ClientPoint::decl(config()),
+        ClientSize::decl(config()),
+        ClientRect::decl(config()),
+        DragSessionId::decl(config()),
+        ClientEpoch::decl(config()),
+        LeaseGeneration::decl(config()),
+        TransferRevision::decl(config()),
+        InsertionPosition::decl(config()),
+        TransferProtocolVersion::decl(config()),
+        TransferCapability::decl(config()),
         target_binding,
-        TransferPayload::decl(),
-        SessionCancellationStatus::decl(),
-        TargetResolutionPath::decl(),
-        PanelHostBindingKind::decl(),
+        TransferPayload::decl(config()),
+        SessionCancellationStatus::decl(config()),
+        TargetResolutionPath::decl(config()),
+        PanelHostBindingKind::decl(config()),
         transfer_errors,
         panel_errors,
-        PanelSessionStartRequest::decl(),
-        TransferCancelRequest::decl(),
-        ClientDropZone::decl(),
-        TransferLeaseRequest::decl(),
+        PanelSessionStartRequest::decl(config()),
+        TransferCancelRequest::decl(config()),
+        ClientDropZone::decl(config()),
+        TransferLeaseRequest::decl(config()),
         commit_selector,
-        PanelTransferCommand::decl(),
-        TransferClientSnapshot::decl(),
-        TransferSessionStarted::decl(),
-        TransferLeaseReceipt::decl(),
-        TransferCancelReceipt::decl(),
-        TransferCommittedTarget::decl(),
-        PanelTransferCompletion::decl(),
+        PanelTransferCommand::decl(config()),
+        TransferClientSnapshot::decl(config()),
+        TransferSessionStarted::decl(config()),
+        TransferLeaseReceipt::decl(config()),
+        TransferCancelReceipt::decl(config()),
+        TransferCommittedTarget::decl(config()),
+        PanelTransferCompletion::decl(config()),
         abort_source,
-        TransferAbort::decl(),
+        TransferAbort::decl(config()),
         session_response,
         lease_response,
         cancel_response,

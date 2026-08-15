@@ -24,8 +24,8 @@ use longhorn_native_content::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -42,6 +42,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the native-content bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -71,52 +72,52 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let mechanism = NativeContentMechanism::decl();
-    let detach_policy = DetachPolicy::decl();
-    let input_routing = InputRoutingMode::decl();
-    let desired_presence = DesiredPresence::decl();
-    let desired_visibility = DesiredVisibility::decl();
-    let focus_intent = FocusIntent::decl();
-    let lifecycle = AttachmentLifecycle::decl();
-    let readiness = ObservedReadiness::decl();
-    let effective_visibility = EffectiveVisibility::decl();
-    let effective_focus = EffectiveFocus::decl();
-    let observed_geometry = ObservedGeometry::decl();
-    let operation = NativeContentOperation::decl();
-    let operation_outcome = OperationOutcome::decl();
-    let decision = ContentSizeDecision::decl();
-    let host_destroy_outcome = HostDestroyOutcome::decl();
-    let rejection_code = NativeContentRejectionCode::decl();
-    let failure_phase = NativeContentFailurePhase::decl();
-    let retry_class = NativeContentRetryClass::decl();
-    let connect_result = NativeContentConnectResult::decl();
-    let snapshot_result = NativeContentSnapshotResult::decl();
-    let update_result = NativeContentDesiredUpdateResult::decl();
-    let decision_result = NativeContentContentSizeDecisionResult::decl();
-    let change = NativeContentChangeProjection::decl();
+    let mechanism = NativeContentMechanism::decl(config());
+    let detach_policy = DetachPolicy::decl(config());
+    let input_routing = InputRoutingMode::decl(config());
+    let desired_presence = DesiredPresence::decl(config());
+    let desired_visibility = DesiredVisibility::decl(config());
+    let focus_intent = FocusIntent::decl(config());
+    let lifecycle = AttachmentLifecycle::decl(config());
+    let readiness = ObservedReadiness::decl(config());
+    let effective_visibility = EffectiveVisibility::decl(config());
+    let effective_focus = EffectiveFocus::decl(config());
+    let observed_geometry = ObservedGeometry::decl(config());
+    let operation = NativeContentOperation::decl(config());
+    let operation_outcome = OperationOutcome::decl(config());
+    let decision = ContentSizeDecision::decl(config());
+    let host_destroy_outcome = HostDestroyOutcome::decl(config());
+    let rejection_code = NativeContentRejectionCode::decl(config());
+    let failure_phase = NativeContentFailurePhase::decl(config());
+    let retry_class = NativeContentRetryClass::decl(config());
+    let connect_result = NativeContentConnectResult::decl(config());
+    let snapshot_result = NativeContentSnapshotResult::decl(config());
+    let update_result = NativeContentDesiredUpdateResult::decl(config());
+    let decision_result = NativeContentContentSizeDecisionResult::decl(config());
+    let change = NativeContentChangeProjection::decl(config());
     let declarations = [
-        ClientLogicalPx::decl(),
-        ClientPoint::decl(),
-        ClientSize::decl(),
-        ClientRect::decl(),
-        ScaleFactor::decl(),
-        RoundingMode::decl(),
-        WindowId::decl(),
-        NativeContentIslandId::decl(),
-        NativeContentKindId::decl(),
-        NativeContentRequestId::decl(),
-        NativeContentFailureCode::decl(),
-        VisibilityReasonId::decl(),
-        NativeContentRevision::decl(),
-        AttachGeneration::decl(),
-        PlanStepId::decl(),
-        NativeContentProtocolVersion::decl(),
-        NativeContentAuthorityEpoch::decl(),
-        NativeContentClientEpoch::decl(),
+        ClientLogicalPx::decl(config()),
+        ClientPoint::decl(config()),
+        ClientSize::decl(config()),
+        ClientRect::decl(config()),
+        ScaleFactor::decl(config()),
+        RoundingMode::decl(config()),
+        WindowId::decl(config()),
+        NativeContentIslandId::decl(config()),
+        NativeContentKindId::decl(config()),
+        NativeContentRequestId::decl(config()),
+        NativeContentFailureCode::decl(config()),
+        VisibilityReasonId::decl(config()),
+        NativeContentRevision::decl(config()),
+        AttachGeneration::decl(config()),
+        PlanStepId::decl(config()),
+        NativeContentProtocolVersion::decl(config()),
+        NativeContentAuthorityEpoch::decl(config()),
+        NativeContentClientEpoch::decl(config()),
         mechanism.clone(),
         detach_policy.clone(),
         input_routing.clone(),
-        MechanismCapabilities::decl(),
+        MechanismCapabilities::decl(config()),
         desired_presence.clone(),
         desired_visibility.clone(),
         focus_intent.clone(),
@@ -125,39 +126,39 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         effective_visibility.clone(),
         effective_focus.clone(),
         observed_geometry.clone(),
-        DesiredState::decl(),
-        DesiredUpdate::decl(),
-        ObservedState::decl(),
-        ObservationUpdate::decl(),
+        DesiredState::decl(config()),
+        DesiredUpdate::decl(config()),
+        ObservedState::decl(config()),
+        ObservationUpdate::decl(config()),
         operation.clone(),
-        PlannedOperation::decl(),
-        ApplyPlan::decl(),
+        PlannedOperation::decl(config()),
+        ApplyPlan::decl(config()),
         operation_outcome.clone(),
-        StepReceipt::decl(),
-        ApplyReceipt::decl(),
-        ContentSizeProposal::decl(),
+        StepReceipt::decl(config()),
+        ApplyReceipt::decl(config()),
+        ContentSizeProposal::decl(config()),
         decision.clone(),
-        ContentSizeProposalReceipt::decl(),
-        DesiredUpdateReceipt::decl(),
-        ObservationReceipt::decl(),
+        ContentSizeProposalReceipt::decl(config()),
+        DesiredUpdateReceipt::decl(config()),
+        ObservationReceipt::decl(config()),
         host_destroy_outcome.clone(),
-        HostDestroyReceipt::decl(),
+        HostDestroyReceipt::decl(config()),
         rejection_code.clone(),
         failure_phase.clone(),
         retry_class.clone(),
-        NativeContentProtocolRejection::decl(),
-        NativeContentCursor::decl(),
-        NativeContentSnapshot::decl(),
-        NativeContentConnectRequest::decl(),
-        NativeContentSnapshotRequest::decl(),
-        NativeContentDesiredUpdateRequest::decl(),
-        NativeContentContentSizeDecisionRequest::decl(),
+        NativeContentProtocolRejection::decl(config()),
+        NativeContentCursor::decl(config()),
+        NativeContentSnapshot::decl(config()),
+        NativeContentConnectRequest::decl(config()),
+        NativeContentSnapshotRequest::decl(config()),
+        NativeContentDesiredUpdateRequest::decl(config()),
+        NativeContentContentSizeDecisionRequest::decl(config()),
         connect_result.clone(),
         snapshot_result.clone(),
         update_result.clone(),
         decision_result.clone(),
         change.clone(),
-        NativeContentChangedEvent::decl(),
+        NativeContentChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

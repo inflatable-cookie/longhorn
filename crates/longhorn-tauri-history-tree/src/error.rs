@@ -2,6 +2,12 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
+// Per-adapter fork, recorded as policy (Card 222): every Tauri adapter owns
+// its `{code, message, retryable}` scaffold. The codes are wire-stable -- serde
+// camelCase to TypeScript -- and adapters with two mutable states name them
+// distinctly (`AuthorityStateUnavailable` vs `ExecutorStateUnavailable`), so the
+// drifting vocabulary is semantic, not accidental. A shared crate would save six
+// lines and churn wire codes a consumer may match on.
 /// Stable operational failure outside ordinary graph-navigation rejection.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

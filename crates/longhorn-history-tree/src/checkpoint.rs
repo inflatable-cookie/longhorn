@@ -248,8 +248,93 @@ pub enum ForkCheckpointError {
 
 impl fmt::Display for ForkCheckpointError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "fork checkpoint rejected: {self:?}")
+        match self {
+            Self::StaleRevision { expected, actual } => write!(
+                formatter,
+                "fork history revision {} is stale; current revision is {}",
+                expected.get(),
+                actual.get()
+            ),
+            Self::DuplicateCheckpoint(id) => {
+                write!(formatter, "fork checkpoint {id} already exists")
+            }
+            Self::CheckpointLimitReached { maximum } => write!(
+                formatter,
+                "fork history reached its {maximum}-checkpoint hard limit"
+            ),
+            Self::EmptyReference => formatter.write_str("fork checkpoint reference is empty"),
+            Self::ReferenceTooLong { maximum, actual } => write!(
+                formatter,
+                "fork checkpoint reference is {actual} bytes; maximum is {maximum}"
+            ),
+            Self::UnknownEntry(id) => {
+                write!(formatter, "fork history entry {id} does not exist")
+            }
+            Self::WeightOverflow => formatter.write_str("fork checkpoint replay weight overflowed"),
+            Self::RevisionOverflow => formatter.write_str("fork history revision cannot advance"),
+        }
     }
 }
 
 impl Error for ForkCheckpointError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry_id(value: &str) -> HistoryEntryId {
+        HistoryEntryId::new(value).expect("fixture entry id")
+    }
+
+    fn checkpoint_id(value: &str) -> ForkCheckpointId {
+        ForkCheckpointId::new(value).expect("fixture checkpoint id")
+    }
+
+    #[test]
+    fn fork_checkpoint_error_messages_are_hand_written() {
+        let revision = HistoryRevision::new;
+        let cases: [(ForkCheckpointError, &str); 8] = [
+            (
+                ForkCheckpointError::StaleRevision {
+                    expected: revision(3),
+                    actual: revision(9),
+                },
+                "fork history revision 3 is stale; current revision is 9",
+            ),
+            (
+                ForkCheckpointError::DuplicateCheckpoint(checkpoint_id("checkpoint:one")),
+                "fork checkpoint checkpoint:one already exists",
+            ),
+            (
+                ForkCheckpointError::CheckpointLimitReached { maximum: 8 },
+                "fork history reached its 8-checkpoint hard limit",
+            ),
+            (
+                ForkCheckpointError::EmptyReference,
+                "fork checkpoint reference is empty",
+            ),
+            (
+                ForkCheckpointError::ReferenceTooLong {
+                    maximum: 64,
+                    actual: 65,
+                },
+                "fork checkpoint reference is 65 bytes; maximum is 64",
+            ),
+            (
+                ForkCheckpointError::UnknownEntry(entry_id("entry:a")),
+                "fork history entry entry:a does not exist",
+            ),
+            (
+                ForkCheckpointError::WeightOverflow,
+                "fork checkpoint replay weight overflowed",
+            ),
+            (
+                ForkCheckpointError::RevisionOverflow,
+                "fork history revision cannot advance",
+            ),
+        ];
+        for (error, message) in cases {
+            assert_eq!(error.to_string(), message);
+        }
+    }
+}

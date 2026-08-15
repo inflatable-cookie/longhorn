@@ -29,12 +29,12 @@ lives on the cards themselves.
 [g02.021-027](g02/README.md), cards 200-223.
 
 - Complete: g02.021 (200-203), g02.022 (204-206), g02.024 (211-214),
-  g02.025's first batch (215).
+  g02.025 (215-217), g02.027 (221-223); 207-209 in g02.023.
 - Blocked on the operator: 210 (credential-store home; options recorded on
-  the card) and 218 (Poodle v0.2.0).
+  the card) and 218 (Poodle v0.2.0). One finding out of the suite needs an
+  operator call: the settings sidebar label divergence recorded on Card 214.
 - Held for approval: the `.github/workflows/` items in 219/220.
-- Next ready: 216 (this hygiene work's continuation), 217, then g02.027's
-  221-223.
+- Next ready: nothing in the suite — back to the pre-suite lanes below.
 
 Pre-suite lanes are tracked on the [g02 runway](g02/README.md): g02.015's
 Card 176, g02.017-019 in progress, Card 149 operator-held.

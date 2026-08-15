@@ -214,7 +214,10 @@ impl StorageRoots {
         root.map_or_else(
             || DomainLocation::RootRequired {
                 root: kind,
-                relative_path: descriptor.file_path().cloned().unwrap(),
+                relative_path: descriptor
+                    .file_path()
+                    .cloned()
+                    .expect("validated descriptor for a file-backed class has a file path"),
             },
             |root| resolved_file(kind, root, descriptor, access),
         )
@@ -245,7 +248,10 @@ fn resolved_file(
     descriptor: &DomainDescriptor,
     access: AccessMode,
 ) -> DomainLocation {
-    let relative_path = descriptor.file_path().cloned().unwrap();
+    let relative_path = descriptor
+        .file_path()
+        .cloned()
+        .expect("validated descriptor for a file-backed class has a file path");
     let full_path = root.join(relative_path.as_path());
 
     DomainLocation::File(ResolvedFile {

@@ -30,7 +30,7 @@
 | [g02.024](024-coverage-restoration.md) | complete | the test surface matches the code surface again |
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
 | [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |
-| [g02.027](027-structural-consolidation-and-dependency-sweep.md) | ready | rules stated once are implemented once |
+| [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

@@ -11,17 +11,23 @@ publish = false
 [dependencies]
 longhorn-licence.workspace = true
 
-# Narrow features on purpose. macOS and Windows cost almost nothing --
+# Narrow composition on purpose. macOS and Windows cost almost nothing --
 # core-foundation and windows-sys are already in the tree -- and Linux is
 # deliberately absent: its persistent backend drags zbus in, and the cheap
 # alternative (kernel keyutils) does not survive a reboot, which silently
 # violates the "credentials survive a restart" claim. See the cfg note in
 # lib.rs for what non-composed platforms get instead.
+#
+# keyring 4: the `v1` facade re-exports the v3 surface (`Entry`,
+# `Error::NoEntry`, set/get/delete) over keyring-core plus the native macOS
+# and Windows stores. The v1 feature also names the zbus secret-service
+# store, but that dependency is target-gated to non-Apple unix inside
+# keyring's own manifest, and this dep is itself gated to macOS/Windows --
+# so a Linux build never compiles keyring or zbus. The alternative to the
+# facade (keyring-core + per-store crates) only exists to call
+# `set_default_store`, a process-global a library has no business touching.
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
-keyring = { version = "3", default-features = false, features = [
-  "apple-native",
-  "windows-native",
-] }
+keyring = { version = "4", default-features = false, features = ["v1"] }
 
 [lints]
 workspace = true

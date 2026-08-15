@@ -148,8 +148,9 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   // 51 since Card 191 named the origin: the default path still reports it
   // after a prune -- which is what protection guarantees and what a lying
   // origin row would depend on -- and a continuation run reports its anchor
-  // instead. 53 since Card 213 added the envelope property suite.
-  if (testCount !== 53) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // instead. 53 since Card 213 added the envelope property suite. 57 since
+  // Card 222 pinned the host-facing error messages by content.
+  if (testCount !== 57) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;

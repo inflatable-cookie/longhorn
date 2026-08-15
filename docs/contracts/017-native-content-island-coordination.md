@@ -2,7 +2,7 @@
 
 Status: active promoted production boundary  
 Owner: Tom  
-Updated: 2026-08-03
+Updated: 2026-08-15
 Evidence: `../research/translation-memos/017-native-content-island-boundary.md`
 
 ## Boundary
@@ -115,6 +115,17 @@ Every attach attempt has a monotonically advancing generation. Renderer
 measurements, platform events, adapter completions, and teardown reports name
 that generation. Older or future generations fail typed and leave current
 state unchanged.
+
+Every mechanism adapter enforces one shared generation rule, implemented once
+in `longhorn-native-content`: reject stale, future, retired, attaching, or
+absent generations before native work. Two extensions are mechanism-specific:
+
+- backing-surface storage can outlive host invalidation inside the
+  invalidate-then-detach window, so a retained attachment rejects further
+  native work for its invalidated generation until detach settles;
+- an isolated-window owner can fail terminally while its island lives on, so
+  the failed generation rejects further work and yields only to exactly the
+  next generation.
 
 Registration does not create content. Unregistration does not imply that a
 consumer-owned process, plugin, or renderer shut down successfully.

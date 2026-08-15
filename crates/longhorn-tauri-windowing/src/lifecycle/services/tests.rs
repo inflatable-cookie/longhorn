@@ -82,6 +82,28 @@ fn tauri_scheduler_binds_then_delivers_on_the_runtime() {
 }
 
 #[test]
+fn a_schedule_after_the_handler_is_gone_fails_loudly() {
+    let scheduler = TauriAsyncWindowLifecycleScheduler::new(Arc::new(FixedClock));
+    let wake = ScheduledWindowLifecycleWake::new(
+        MonotonicMillis::new(10),
+        WindowLifecycleEvent::Blurred {
+            window_id: WindowId::new("window:orphaned").unwrap(),
+        },
+    );
+
+    let (sender, _receiver) = channel();
+    let handler: Arc<dyn WindowLifecycleWakeHandler> = Arc::new(RecordingHandler(sender));
+    scheduler.bind(Arc::downgrade(&handler)).unwrap();
+    drop(handler);
+
+    let error = scheduler.schedule(wake).unwrap_err();
+    assert!(
+        error.contains("wake handler is gone"),
+        "expected a loud refusal, got: {error}"
+    );
+}
+
+#[test]
 fn newer_wake_for_the_same_window_and_kind_supersedes_the_older_one() {
     let clock = Arc::new(AdjustableClock(std::sync::atomic::AtomicU64::new(0)));
     let scheduler = TauriAsyncWindowLifecycleScheduler::new(clock.clone());

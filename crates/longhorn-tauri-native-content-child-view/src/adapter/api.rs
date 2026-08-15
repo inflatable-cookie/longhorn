@@ -4,7 +4,7 @@ use longhorn_core::{NativeContentFailureCode, WindowId};
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, EffectiveFocus,
     EffectiveVisibility, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, StepExecution,
+    ObservedReadiness, StepExecution, gate_attached,
 };
 use tauri::Url;
 
@@ -58,10 +58,9 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
             match state.attachment.as_ref() {
                 None => None,
                 Some(attachment) if attachment.generation != generation => {
-                    return Err(compare_attached_generation(
-                        attachment.generation,
-                        generation,
-                    ));
+                    return Err(
+                        compare_attached_generation(attachment.generation, generation).into(),
+                    );
                 }
                 Some(attachment) => Some((
                     attachment.handle.clone(),
@@ -168,10 +167,9 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
                     }
                 })?;
                 if attachment.generation != generation {
-                    return Err(compare_attached_generation(
-                        attachment.generation,
-                        generation,
-                    ));
+                    return Err(
+                        compare_attached_generation(attachment.generation, generation).into(),
+                    );
                 }
                 state.attachment = None;
                 state.retired_generation = Some(generation);
@@ -223,19 +221,18 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
         {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
             compare_generation(state.latest_generation, event.generation)?;
-            if state.retired_generation == Some(event.generation) {
-                return Err(ChildViewError::GenerationRetired(event.generation));
-            }
+            gate_attached(
+                state.retired_generation,
+                state
+                    .attachment
+                    .as_ref()
+                    .map(|attachment| attachment.generation),
+                event.generation,
+            )?;
             let attachment = state
                 .attachment
                 .as_mut()
-                .ok_or(ChildViewError::NotAttached)?;
-            if attachment.generation != event.generation {
-                return Err(compare_attached_generation(
-                    attachment.generation,
-                    event.generation,
-                ));
-            }
+                .expect("validated attachment is current");
             match event.kind {
                 ChildViewRuntimeEventKind::PageLoadStarted => attachment.ready = false,
                 ChildViewRuntimeEventKind::PageLoadFinished => attachment.ready = true,

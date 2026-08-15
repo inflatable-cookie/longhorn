@@ -1,6 +1,8 @@
 use std::{error::Error, fmt};
 
-use longhorn_native_content::{AttachGeneration, NativeContentIslandId, ReceiptError};
+use longhorn_native_content::{
+    AttachGeneration, GenerationRejection, NativeContentIslandId, ReceiptError,
+};
 use tauri::Url;
 
 /// Failure from child-view validation, runtime execution, or receipt admission.
@@ -185,5 +187,22 @@ impl Error for ChildViewError {}
 impl From<ReceiptError> for ChildViewError {
     fn from(value: ReceiptError) -> Self {
         Self::Receipt(value)
+    }
+}
+
+impl From<GenerationRejection> for ChildViewError {
+    fn from(rejection: GenerationRejection) -> Self {
+        match rejection {
+            GenerationRejection::Stale { current, supplied } => {
+                Self::StaleGeneration { current, supplied }
+            }
+            GenerationRejection::Future { current, supplied } => {
+                Self::FutureGeneration { current, supplied }
+            }
+            GenerationRejection::Attached(current) => Self::CurrentGenerationAttached(current),
+            GenerationRejection::Retired(generation) => Self::GenerationRetired(generation),
+            GenerationRejection::Absent => Self::NotAttached,
+            GenerationRejection::Attaching => Self::AttachInProgress,
+        }
     }
 }

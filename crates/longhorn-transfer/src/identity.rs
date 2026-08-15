@@ -1,5 +1,6 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::bytes_to_lowercase_hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Exact 128-bit process-local transfer-session identity.
@@ -30,10 +31,7 @@ impl fmt::Debug for DragSessionId {
 
 impl fmt::Display for DragSessionId {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for byte in self.0 {
-            write!(formatter, "{byte:02x}")?;
-        }
-        Ok(())
+        formatter.write_str(&bytes_to_lowercase_hex(&self.0))
     }
 }
 

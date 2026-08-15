@@ -10,8 +10,8 @@ use longhorn_surface_transfer::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -29,6 +29,7 @@ struct RenderedProtocol {
     variant_fields: String,
 }
 
+/// Generates or checks the surface-transfer bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -58,26 +59,26 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let target = SurfaceTransferTarget::decl();
-    let abort_source = SurfaceTransferAbortSource::decl();
-    let session_response = SurfaceSessionResponse::decl();
-    let transfer_response = SurfaceTransferResponse::decl();
-    let errors = SurfaceTransferErrorCode::decl();
+    let target = SurfaceTransferTarget::decl(config());
+    let abort_source = SurfaceTransferAbortSource::decl(config());
+    let session_response = SurfaceSessionResponse::decl(config());
+    let transfer_response = SurfaceTransferResponse::decl(config());
+    let errors = SurfaceTransferErrorCode::decl(config());
     let target_kinds = tagged_variants(&target, "kind")?;
     let abort_domains = tagged_variants(&abort_source, "domain")?;
     let session_statuses = tagged_variants(&session_response, "status")?;
     let transfer_statuses = tagged_variants(&transfer_response, "status")?;
     let error_codes = string_union_variants(&errors)?;
     let declarations = [
-        DisplayId::decl(),
+        DisplayId::decl(config()),
         errors,
-        SurfaceSessionStartRequest::decl(),
-        SurfaceTransferCommand::decl(),
-        SurfaceProvisioningCompletion::decl(),
+        SurfaceSessionStartRequest::decl(config()),
+        SurfaceTransferCommand::decl(config()),
+        SurfaceProvisioningCompletion::decl(config()),
         target,
-        SurfaceTransferCompletion::decl(),
+        SurfaceTransferCompletion::decl(config()),
         abort_source,
-        SurfaceTransferAbort::decl(),
+        SurfaceTransferAbort::decl(config()),
         session_response,
         transfer_response,
     ]

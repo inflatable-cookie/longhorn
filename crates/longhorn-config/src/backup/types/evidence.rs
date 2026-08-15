@@ -4,20 +4,11 @@ use std::{
     io::{self, Read},
 };
 
-use longhorn_core::DomainId;
+use longhorn_core::{DomainId, bytes_to_lowercase_hex};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use sha2::{Digest, Sha256};
 
 use super::identity::MAX_METADATA_BYTES;
-
-fn lowercase_hex(bytes: &[u8]) -> String {
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        use std::fmt::Write;
-        let _ = write!(out, "{byte:02x}");
-    }
-    out
-}
 
 /// Lowercase hexadecimal SHA-256 digest.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -28,13 +19,13 @@ impl Sha256Digest {
     /// Computes a digest from exact bytes.
     #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self(lowercase_hex(&Sha256::digest(bytes)))
+        Self(bytes_to_lowercase_hex(&Sha256::digest(bytes)))
     }
 
     /// Wraps an already finalized SHA-256 output.
     #[must_use]
     pub(crate) fn from_output(output: &[u8]) -> Self {
-        Self(lowercase_hex(output))
+        Self(bytes_to_lowercase_hex(output))
     }
 
     /// Validates an existing lowercase hexadecimal digest.
@@ -70,7 +61,7 @@ impl Sha256Digest {
                 .ok_or_else(|| io::Error::other("source length exceeds u64"))?;
             digest.update(&buffer[..read]);
         }
-        Ok((length, Self(lowercase_hex(&digest.finalize()))))
+        Ok((length, Self(bytes_to_lowercase_hex(&digest.finalize()))))
     }
 }
 

@@ -1,6 +1,7 @@
 # g02.027 Structural Consolidation And Dependency Sweep
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Updated: 2026-08-14
 Governing refs: contract 017; contract 001; memo 023
@@ -36,16 +37,18 @@ This milestone is the g02.007-shaped sweep applied to what the audit found.
 
 ### Batch 1. One state machine
 
-- [ ] [Card 221](batch-cards/221-native-content-generation-hoist.md): hoist the
+- [x] [Card 221](batch-cards/221-native-content-generation-hoist.md): hoist the
   attach-generation state machine from the three mechanism adapters into
   `longhorn-native-content`; per-mechanism error enums stay; the three known
   divergences are reconciled against contract 017's single statement of the
   rule; the re-match `unreachable!` and registry `expect` traps get invariant
-  documentation or typed errors.
+  documentation or typed errors. **Landed 2026-08-15** — shared `generation`
+  module with nine rule tests; both divergences proved mechanism-specific and
+  contract 017 gained the two clauses it was missing.
 
 ### Batch 2. One idiom, written down
 
-- [ ] [Card 222](batch-cards/222-shared-primitives-and-idiom-codification.md):
+- [x] [Card 222](batch-cards/222-shared-primitives-and-idiom-codification.md) — landed 2026-08-15:
   hex helper into `longhorn-core`; `bounded_text!` macro unification; adapter
   error-scaffold convergence or recorded per-adapter policy; the
   `Display`-via-`{self:?}` decision; `#[allow(missing_docs)]` removed from the
@@ -55,7 +58,7 @@ This milestone is the g02.007-shaped sweep applied to what the audit found.
 
 ### Batch 3. The dependency sweep
 
-- [ ] [Card 223](batch-cards/223-dependency-sweep-and-measured-costs.md):
+- [x] [Card 223](batch-cards/223-dependency-sweep-and-measured-costs.md) — landed 2026-08-15 (ts-rs 12 landed; clone costs measured and kept; doctor green-by-choice):
   `keyring` 4, `ed25519-dalek` 3, `base64` 0.23, `ts-rs` 12 (with generator
   hardening), `=tauri-build` pin rationale or removal; lockfile duplicates
   noted as upstream-pinned; the mutation clone-cost measurement; the
@@ -75,21 +78,21 @@ memo 023 (M-native-content, M-missing-docs, M-display, low-tier quality,
 
 ## Goals
 
-- [ ] contract 017's generation rule has one implementation
-- [ ] the same five-line primitive does not exist six times with three error
+- [x] contract 017's generation rule has one implementation
+- [x] the same five-line primitive does not exist six times with three error
   idioms
-- [ ] `effigy doctor` is green because the tree is clean or the thresholds are
+- [x] `effigy doctor` is green because the tree is clean or the thresholds are
   chosen, not because nobody runs it
-- [ ] no direct dependency is held back without a recorded reason
+- [x] no direct dependency is held back without a recorded reason
 
 ## Acceptance Criteria
 
-- [ ] a rule fix in the attach-generation discipline lands in one file
-- [ ] every exact pin (`=age`, `=rusqlite`, `=zip`, `=ts-rs`, `=tauri-build`)
+- [x] a rule fix in the attach-generation discipline lands in one file
+- [x] every exact pin (`=age`, `=rusqlite`, `=zip`, `=ts-rs`, `=tauri-build`)
   carries a rationale comment or moves to a compatible range
-- [ ] the panic-invariant convention is checkable: an auditor can distinguish
+- [x] the panic-invariant convention is checkable: an auditor can distinguish
   `expect("validated …")` from a straggler by rule, not taste
-- [ ] the clone-cost measurement is recorded with its decision, either way
+- [x] the clone-cost measurement is recorded with its decision, either way
 
 ## Explicit Non-goals
 
@@ -100,8 +103,9 @@ memo 023 (M-native-content, M-missing-docs, M-display, low-tier quality,
 
 ## Next Task
 
-Card 221. The three-way divergence widens with every native-content change;
-the hoist gets cheaper the sooner it lands.
+Milestone complete — the audit suite's execution runway is closed. What
+remains open from it: Card 210 (operator decision recorded), Card 218
+(Poodle v0.2.0), and the workflow-edit items in 219/220 (approval).
 
 ## Planning Checkpoint
 

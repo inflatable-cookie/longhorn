@@ -8,7 +8,6 @@ use crate::{NotificationRemoval, NotificationRemovalReason};
 use super::*;
 
 /// Revision-bound notification mutation command.
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
@@ -18,48 +17,86 @@ use super::*;
     deny_unknown_fields
 )]
 pub enum NotificationMutationCommand {
+    /// Adds one new notification.
     Add {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Identity assigned to the new notification.
         notification_id: NotificationId,
+        /// Content of the new notification.
         draft: NotificationDraftProjection,
     },
+    /// Replaces one existing notification.
     Replace {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Replacement content and target identity.
         draft: NotificationDraftProjection,
+        /// Whether the replacement re-marks the record unseen.
         mark_unseen: bool,
     },
+    /// Marks one notification as seen.
     MarkSeen {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Notification to mark seen.
         notification_id: NotificationId,
     },
+    /// Dismisses one notification.
     Dismiss {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Notification to dismiss.
         notification_id: NotificationId,
     },
+    /// Removes notifications matching an explicit target.
     Clear {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Which records to remove.
         target: NotificationClearTargetProjection,
     },
+    /// Changes ledger retention limits.
     ChangeRetention {
+        /// Correlation identity echoed in the result.
         request_id: NotificationRequestId,
+        /// Protocol version the caller negotiated.
         protocol_version: NotificationProtocolVersion,
+        /// Authority composition the caller expects.
         authority: NotificationAuthorityProjection,
+        /// Ledger revision the caller observed.
         expected_ledger_revision: NotificationLedgerRevision,
+        /// Requested retention limits.
         limits: NotificationLedgerLimitsProjection,
     },
 }
@@ -142,7 +179,6 @@ impl From<&NotificationRemoval> for NotificationRemovalProjection {
 }
 
 /// Exact successful mutation receipt on the wire.
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
@@ -152,33 +188,57 @@ impl From<&NotificationRemoval> for NotificationRemovalProjection {
     deny_unknown_fields
 )]
 pub enum NotificationMutationReceiptProjection {
+    /// A notification was added.
     Added {
+        /// Committed record.
         record: NotificationRecordProjection,
+        /// Ledger revision before the mutation.
         previous_ledger_revision: NotificationLedgerRevision,
+        /// Ledger revision after the mutation.
         committed_ledger_revision: NotificationLedgerRevision,
+        /// Records retention pruned as a side effect.
         pruned: Vec<NotificationRemovalProjection>,
     },
+    /// A notification was replaced.
     Replaced {
+        /// Committed record.
         record: NotificationRecordProjection,
+        /// Ledger revision before the mutation.
         previous_ledger_revision: NotificationLedgerRevision,
+        /// Ledger revision after the mutation.
         committed_ledger_revision: NotificationLedgerRevision,
+        /// Records retention pruned as a side effect.
         pruned: Vec<NotificationRemovalProjection>,
     },
+    /// A notification was marked seen.
     Seen {
+        /// Committed record.
         record: NotificationRecordProjection,
+        /// Ledger revision before the mutation.
         previous_ledger_revision: NotificationLedgerRevision,
+        /// Ledger revision after the mutation.
         committed_ledger_revision: NotificationLedgerRevision,
     },
+    /// Notifications were removed by dismissal or clear.
     Removed {
+        /// Ledger revision before the mutation.
         previous_ledger_revision: NotificationLedgerRevision,
+        /// Ledger revision after the mutation.
         committed_ledger_revision: NotificationLedgerRevision,
+        /// Removed records with reasons.
         removals: Vec<NotificationRemovalProjection>,
     },
+    /// Retention limits changed.
     RetentionChanged {
+        /// Retention limits before the mutation.
         previous_limits: NotificationLedgerLimitsProjection,
+        /// Retention limits after the mutation.
         committed_limits: NotificationLedgerLimitsProjection,
+        /// Ledger revision before the mutation.
         previous_ledger_revision: NotificationLedgerRevision,
+        /// Ledger revision after the mutation.
         committed_ledger_revision: NotificationLedgerRevision,
+        /// Records the new limits pruned.
         removals: Vec<NotificationRemovalProjection>,
     },
 }
@@ -261,26 +321,41 @@ impl NotificationMutationReceiptProjection {
 }
 
 /// Stable checked mutation rejection category.
-#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub enum NotificationRejectionCode {
+    /// Command protocol version is not supported.
     IncompatibleProtocol,
+    /// Command failed structural validation.
     InvalidCommand,
+    /// Authority composition does not match the ledger's.
     AuthorityMismatch,
+    /// Expected ledger revision is stale.
     LedgerRevisionMismatch,
+    /// Notification identity already exists.
     DuplicateNotification,
+    /// Notification identity does not exist.
     UnknownNotification,
+    /// Replacement key is already bound to another record.
     DuplicateReplacementKey,
+    /// Replacement requires a replacement key the draft lacks.
     MissingReplacementKey,
+    /// No record carries the draft's replacement key.
     ReplacementTargetNotFound,
+    /// Producer token is already bound to another record.
     DuplicateProducerToken,
+    /// Replacement requires a producer token the draft lacks.
     MissingProducerToken,
+    /// Notification is already marked seen.
     AlreadySeen,
+    /// Clear target lists one notification twice.
     DuplicateClearTarget,
+    /// Clear target names an unknown notification.
     ClearTargetNotFound,
+    /// Requested retention limits cannot hold the current records.
     RetentionUnsatisfied,
+    /// Ledger capacity counter overflowed.
     CapacityOverflow,
 }
 

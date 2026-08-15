@@ -1,10 +1,12 @@
 //! Shared, framework-independent Longhorn primitives.
 
+mod bounded_text;
 mod client_geometry;
 mod command_id;
 mod diagnostics;
 mod domain_id;
 mod geometry;
+mod hex;
 mod host_services;
 mod opaque_id;
 mod revision;
@@ -31,6 +33,7 @@ pub use geometry::{
     PhysicalSpace, PhysicalVector, Point, Rect, ScreenDip, ScreenPoint, ScreenRect, ScreenSize,
     ScreenSpace, ScreenVector, Size, Vector,
 };
+pub use hex::bytes_to_lowercase_hex;
 pub use host_services::{HostServices, PlainHostServices};
 pub use opaque_id::MAX_OPAQUE_ID_BYTES;
 pub use opaque_id::{

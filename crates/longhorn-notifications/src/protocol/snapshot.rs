@@ -105,7 +105,6 @@ pub struct NotificationSnapshotResponse {
 }
 
 /// Explicit clear target on the wire.
-#[allow(missing_docs)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
@@ -115,8 +114,11 @@ pub struct NotificationSnapshotResponse {
     deny_unknown_fields
 )]
 pub enum NotificationClearTargetProjection {
+    /// Removes every record.
     All,
+    /// Removes the listed records.
     Records {
+        /// Notifications to remove.
         notification_ids: Vec<NotificationId>,
     },
 }

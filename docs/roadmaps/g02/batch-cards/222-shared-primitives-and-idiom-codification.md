@@ -1,6 +1,7 @@
 # 222 Shared Primitives And Idiom Codification
 
-Status: ready
+Status: complete
+Completed: 2026-08-15
 Owner: Tom
 Roadmap: g02.027 batch 2
 Governing refs: contract 001; memo 023 (quality lane M1, M2, L1-L5;
@@ -75,12 +76,26 @@ down where the next audit can check it mechanically.
 - Grow `longhorn-core` an HTTP or crypto concept — the helper is bytes-to-hex,
   nothing more.
 
+## Result
+
+One `lowercase_hex` lives in `longhorn-core` and all six call sites use it.
+The wire-type `#[allow(missing_docs)]` opts-out are gone — the variants carry
+docs, and the generated TypeScript gained the doc comments with them (the
+generated protocol diffs are the evidence). The five `Display`-via-`{self:?}`
+sites are hand-written per-variant messages with content tests, so a variant
+rename breaks a test instead of a host's log. `json_string` escapes through
+`serde_json`, the misplaced doc comment moved, and `longhorn-bindings` is
+lib+bin — `missing_docs` applies. The adapter scaffolds kept their per-crate
+copies with the fork recorded as policy (convergence was not small). The
+idiom is codified in contract 001 (Code Idioms) and the three bare-unwrap
+stragglers converted.
+
 ## Acceptance Criteria
 
-- [ ] one hex implementation, one idiom
-- [ ] no `#[allow(missing_docs)]` on wire types
-- [ ] host-facing error text is rename-proof by test
-- [ ] the idiom entry exists and an auditor can apply it mechanically
+- [x] one hex implementation, one idiom
+- [x] no `#[allow(missing_docs)]` on wire types
+- [x] host-facing error text is rename-proof by test
+- [x] the idiom entry exists and an auditor can apply it mechanically
 
 ## Evidence Required
 

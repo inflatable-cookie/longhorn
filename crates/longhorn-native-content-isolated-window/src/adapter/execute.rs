@@ -3,8 +3,9 @@
 use std::{collections::HashSet, sync::Arc};
 
 use longhorn_native_content::{
-    ApplyPlan, AttachGeneration, DetachPolicy, InputRoutingMode, NativeContentMechanism,
-    NativeContentOperation,
+    ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
+    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_attached,
+    gate_detach, validate_plan_generation,
 };
 
 use crate::{
@@ -12,10 +13,7 @@ use crate::{
     TeardownOutcome,
 };
 
-use super::{
-    Attachment, IsolatedWindowAdapter, compare_attached_generation, compare_generation,
-    compare_generation_allow_next, current_attachment_mut,
-};
+use super::{Attachment, IsolatedWindowAdapter, compare_generation, current_attachment_mut};
 
 impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
     pub(crate) fn validate_plan(&self, plan: &ApplyPlan) -> Result<(), IsolatedWindowError> {
@@ -43,33 +41,30 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
         if let Some(attachment) = state.attachment.as_ref() {
-            if plan.generation() < attachment.generation {
-                return Err(IsolatedWindowError::StaleGeneration {
-                    current: attachment.generation,
-                    supplied: plan.generation(),
-                });
-            }
-            if plan.generation() > attachment.generation
-                && !(attachment.failed
-                    && attachment.generation.checked_next().ok() == Some(plan.generation()))
-            {
-                return Err(IsolatedWindowError::CurrentGenerationAttached(
-                    attachment.generation,
-                ));
-            }
-            if attachment.failed && plan.generation() == attachment.generation {
-                return Err(IsolatedWindowError::FailedGeneration);
-            }
-        } else {
-            compare_generation_allow_next(state.latest_generation, plan.generation())?;
-            if state.retired_generation == Some(plan.generation())
-                && plan.operations().iter().any(|planned| {
-                    matches!(planned.operation(), NativeContentOperation::Attach { .. })
-                })
-            {
-                return Err(IsolatedWindowError::GenerationRetired(plan.generation()));
+            // Mechanism-specific extension (contract 017): a terminally failed
+            // owner rejects its own generation and yields only to exactly the
+            // next generation.
+            if attachment.failed {
+                if plan.generation() == attachment.generation {
+                    return Err(IsolatedWindowError::FailedGeneration);
+                }
+                if attachment.generation.checked_next().ok() == Some(plan.generation()) {
+                    return Ok(());
+                }
             }
         }
+        validate_plan_generation(
+            state.latest_generation,
+            state.retired_generation,
+            state
+                .attachment
+                .as_ref()
+                .map(|attachment| attachment.generation),
+            plan.generation(),
+            plan.operations().iter().any(|planned| {
+                matches!(planned.operation(), NativeContentOperation::Attach { .. })
+            }),
+        )?;
         Ok(())
     }
 
@@ -145,6 +140,8 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
+            // Mechanism-specific extension (contract 017): a terminally failed
+            // owner retires when exactly the next generation attaches.
             if state.attachment.as_ref().is_some_and(|attachment| {
                 attachment.failed && attachment.generation.checked_next().ok() == Some(generation)
             }) {
@@ -152,17 +149,15 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 state.attachment = None;
                 state.retired_generation = retired;
             }
-            if let Some(attachment) = state.attachment.as_ref() {
-                if attachment.generation == generation && attachment.handle.is_some() {
-                    return Ok(());
-                }
-                return Err(IsolatedWindowError::CurrentGenerationAttached(
-                    attachment.generation,
-                ));
-            }
-            compare_generation_allow_next(state.latest_generation, generation)?;
-            if state.retired_generation == Some(generation) {
-                return Err(IsolatedWindowError::GenerationRetired(generation));
+            if check_attach_reservation(
+                state.latest_generation,
+                state.retired_generation,
+                state.attachment.as_ref().map(|attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                }),
+                generation,
+            )? {
+                return Ok(());
             }
             state.latest_generation = Some(generation);
             state.attachment = Some(Attachment {
@@ -232,22 +227,23 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            let Some(attachment) = state.attachment.as_mut() else {
-                if state.retired_generation == Some(generation) {
-                    return Ok(());
-                }
-                return Err(IsolatedWindowError::NotAttached);
-            };
-            if attachment.generation != generation {
-                return Err(compare_attached_generation(
-                    attachment.generation,
-                    generation,
-                ));
+            if !gate_detach(
+                state.retired_generation,
+                state.attachment.as_ref().map(|attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                }),
+                generation,
+            )? {
+                return Ok(());
             }
+            let attachment = state
+                .attachment
+                .as_mut()
+                .expect("validated attachment is current");
             let handle = attachment
                 .handle
                 .clone()
-                .ok_or(IsolatedWindowError::AttachInProgress)?;
+                .expect("validated attachment completed attach");
             attachment.detaching = true;
             handle
         };
@@ -304,19 +300,18 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
         compare_generation(state.latest_generation, generation)?;
-        if state.retired_generation == Some(generation) {
-            return Err(IsolatedWindowError::GenerationRetired(generation));
-        }
+        gate_attached(
+            state.retired_generation,
+            state
+                .attachment
+                .as_ref()
+                .map(|attachment| attachment.generation),
+            generation,
+        )?;
         let attachment = state
             .attachment
             .as_ref()
-            .ok_or(IsolatedWindowError::NotAttached)?;
-        if attachment.generation != generation {
-            return Err(compare_attached_generation(
-                attachment.generation,
-                generation,
-            ));
-        }
+            .expect("validated attachment is current");
         if attachment.failed {
             return Err(IsolatedWindowError::FailedGeneration);
         }

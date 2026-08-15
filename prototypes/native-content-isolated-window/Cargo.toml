@@ -15,7 +15,7 @@ longhorn-windowing = { path = "../../crates/longhorn-windowing" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 tauri = { version = "=2.10.3", default-features = false, features = ["unstable", "wry"] }
-tauri-build = { version = "=2.6.3", default-features = false, features = ["config-json"] }
+tauri-build = { version = "2.6.3", default-features = false, features = ["config-json"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"

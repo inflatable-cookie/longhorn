@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::bounded_text;
+
 /// Defensive ceiling for one notification title.
 pub const MAXIMUM_NOTIFICATION_TITLE_BYTES: usize = 4_096;
 /// Defensive ceiling for one notification summary.
@@ -14,66 +16,6 @@ pub const MAXIMUM_RETAINED_NOTIFICATIONS: usize = 65_536;
 pub const MAXIMUM_NOTIFICATION_ENCODED_WEIGHT: u64 = 1 << 40;
 /// Defensive ceiling for one notification page.
 pub const MAXIMUM_NOTIFICATION_PAGE_SIZE: usize = 1_024;
-
-macro_rules! bounded_text {
-    ($name:ident, $error:ident, $maximum:ident, $noun:literal) => {
-        #[doc = concat!("Nonempty bounded ", $noun, ".")]
-        #[derive(Clone, Debug, Eq, PartialEq)]
-        pub struct $name(String);
-
-        impl $name {
-            #[doc = concat!("Validates and constructs a ", $noun, ".")]
-            pub fn new(value: impl Into<String>) -> Result<Self, $error> {
-                let value = value.into();
-                if value.is_empty() {
-                    return Err($error::Empty);
-                }
-                if value.len() > $maximum {
-                    return Err($error::TooLong {
-                        maximum: $maximum,
-                        actual: value.len(),
-                    });
-                }
-                Ok(Self(value))
-            }
-
-            #[doc = concat!("Returns the ", $noun, ".")]
-            #[must_use]
-            pub fn as_str(&self) -> &str {
-                &self.0
-            }
-        }
-
-        #[doc = concat!("Invalid ", $noun, ".")]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        pub enum $error {
-            /// The text was empty.
-            Empty,
-            /// The text exceeded its hard byte ceiling.
-            TooLong {
-                /// Hard byte ceiling.
-                maximum: usize,
-                /// Supplied byte count.
-                actual: usize,
-            },
-        }
-
-        impl fmt::Display for $error {
-            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self {
-                    Self::Empty => write!(formatter, concat!($noun, " cannot be empty")),
-                    Self::TooLong { maximum, actual } => write!(
-                        formatter,
-                        concat!($noun, " is {} bytes; maximum is {}"),
-                        actual, maximum
-                    ),
-                }
-            }
-        }
-
-        impl Error for $error {}
-    };
-}
 
 bounded_text!(
     NotificationTitle,

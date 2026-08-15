@@ -20,8 +20,8 @@ use longhorn_operation::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, LabelMap, apply, exported_declaration, field_map, label_module,
-    string_union_variants, tagged_variants, variant_field_map,
+    Artifact, GenerationMode, LabelMap, apply, config, exported_declaration, field_map,
+    label_module, string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -39,6 +39,7 @@ struct RenderedProtocol {
 }
 const GENERATED_LABELS: &str = "packages/longhorn/src/operation/generated/labels.ts";
 
+/// Generates or checks the operation bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     let artifacts = [
@@ -83,57 +84,57 @@ fn render_labels() -> String {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let state = OperationStateProjection::decl();
-    let cancellation_support = OperationCancellationSupportProjection::decl();
-    let overall = OperationOverallProgressProjection::decl();
-    let teardown_resolution = OperationTeardownResolutionProjection::decl();
-    let mutation_command = OperationMutationCommand::decl();
-    let removal_reason = OperationRemovalReasonProjection::decl();
-    let mutation_receipt = OperationMutationReceiptProjection::decl();
-    let teardown_outcome = OperationTeardownOutcomeProjection::decl();
-    let rejection_code = OperationRejectionCode::decl();
-    let mutation_result = OperationMutationResult::decl();
-    let cancellation_outcome = OperationCancellationOutcomeProjection::decl();
-    let executor_dispatch = OperationExecutorDispatchProjection::decl();
-    let cancellation_result = OperationCancellationResult::decl();
-    let changed_kind = OperationChangedKind::decl();
+    let state = OperationStateProjection::decl(config());
+    let cancellation_support = OperationCancellationSupportProjection::decl(config());
+    let overall = OperationOverallProgressProjection::decl(config());
+    let teardown_resolution = OperationTeardownResolutionProjection::decl(config());
+    let mutation_command = OperationMutationCommand::decl(config());
+    let removal_reason = OperationRemovalReasonProjection::decl(config());
+    let mutation_receipt = OperationMutationReceiptProjection::decl(config());
+    let teardown_outcome = OperationTeardownOutcomeProjection::decl(config());
+    let rejection_code = OperationRejectionCode::decl(config());
+    let mutation_result = OperationMutationResult::decl(config());
+    let cancellation_outcome = OperationCancellationOutcomeProjection::decl(config());
+    let executor_dispatch = OperationExecutorDispatchProjection::decl(config());
+    let cancellation_result = OperationCancellationResult::decl(config());
+    let changed_kind = OperationChangedKind::decl(config());
     let declarations = [
-        OperationAuthorityId::decl(),
-        OperationId::decl(),
-        OperationKindId::decl(),
-        OperationScopeId::decl(),
-        OperationPhaseId::decl(),
-        OperationRequestId::decl(),
-        OperationRevision::decl(),
-        OperationCatalogueRevision::decl(),
-        OperationProtocolVersion::decl(),
-        OperationAuthorityProjection::decl(),
+        OperationAuthorityId::decl(config()),
+        OperationId::decl(config()),
+        OperationKindId::decl(config()),
+        OperationScopeId::decl(config()),
+        OperationPhaseId::decl(config()),
+        OperationRequestId::decl(config()),
+        OperationRevision::decl(config()),
+        OperationCatalogueRevision::decl(config()),
+        OperationProtocolVersion::decl(config()),
+        OperationAuthorityProjection::decl(config()),
         state.clone(),
         cancellation_support.clone(),
         overall.clone(),
-        OperationPhaseProgressProjection::decl(),
-        OperationProgressProjection::decl(),
-        OperationEntryProjection::decl(),
-        OperationCatalogueLimitsProjection::decl(),
-        OperationSnapshot::decl(),
-        OperationSnapshotQuery::decl(),
-        OperationSnapshotResponse::decl(),
+        OperationPhaseProgressProjection::decl(config()),
+        OperationProgressProjection::decl(config()),
+        OperationEntryProjection::decl(config()),
+        OperationCatalogueLimitsProjection::decl(config()),
+        OperationSnapshot::decl(config()),
+        OperationSnapshotQuery::decl(config()),
+        OperationSnapshotResponse::decl(config()),
         teardown_resolution.clone(),
         mutation_command.clone(),
-        OperationCancellationCommand::decl(),
+        OperationCancellationCommand::decl(config()),
         removal_reason.clone(),
-        OperationRemovalProjection::decl(),
+        OperationRemovalProjection::decl(config()),
         mutation_receipt.clone(),
         teardown_outcome.clone(),
         rejection_code.clone(),
-        OperationRejection::decl(),
+        OperationRejection::decl(config()),
         mutation_result.clone(),
         cancellation_outcome.clone(),
-        OperationCancellationReceiptProjection::decl(),
+        OperationCancellationReceiptProjection::decl(config()),
         executor_dispatch.clone(),
         cancellation_result.clone(),
         changed_kind.clone(),
-        OperationChangedEvent::decl(),
+        OperationChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

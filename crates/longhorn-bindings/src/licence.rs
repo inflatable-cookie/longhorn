@@ -11,8 +11,8 @@ use longhorn_licence::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, exported_declaration, field_map, string_union_variants,
-    tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
+    string_union_variants, tagged_variants, variant_field_map,
 };
 
 mod fixture;
@@ -35,6 +35,7 @@ struct RenderedProtocol {
     key_conformance: String,
 }
 
+/// Generates or checks the licence bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
     let protocol = render_protocol()?;
     apply(
@@ -67,32 +68,32 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
 }
 
 fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let usability = LicenceUsabilityProjection::decl();
-    let trust_basis = LicenceTrustBasisProjection::decl();
-    let credential = LicenceCredentialProjection::decl();
-    let rejection_code = LicenceRejectionCode::decl();
-    let outcome = LicenceOutcomeProjection::decl();
-    let changed_kind = LicenceChangedKind::decl();
+    let usability = LicenceUsabilityProjection::decl(config());
+    let trust_basis = LicenceTrustBasisProjection::decl(config());
+    let credential = LicenceCredentialProjection::decl(config());
+    let rejection_code = LicenceRejectionCode::decl(config());
+    let outcome = LicenceOutcomeProjection::decl(config());
+    let changed_kind = LicenceChangedKind::decl(config());
 
     let declarations = [
-        LicenceProtocolVersion::decl(),
-        Timestamp::decl(),
+        LicenceProtocolVersion::decl(config()),
+        Timestamp::decl(config()),
         usability.clone(),
         trust_basis.clone(),
-        LicenceEntitlementProjection::decl(),
-        LicenceSeatProjection::decl(),
-        HeldLicenceProjection::decl(),
-        LicenceSnapshot::decl(),
+        LicenceEntitlementProjection::decl(config()),
+        LicenceSeatProjection::decl(config()),
+        HeldLicenceProjection::decl(config()),
+        LicenceSnapshot::decl(config()),
         credential.clone(),
-        LicenceActivateCommand::decl(),
-        LicenceDeactivateCommand::decl(),
-        LicenceRefreshCommand::decl(),
-        LicenceReleaseSeatCommand::decl(),
-        LicenceRenameSeatCommand::decl(),
+        LicenceActivateCommand::decl(config()),
+        LicenceDeactivateCommand::decl(config()),
+        LicenceRefreshCommand::decl(config()),
+        LicenceReleaseSeatCommand::decl(config()),
+        LicenceRenameSeatCommand::decl(config()),
         rejection_code.clone(),
         outcome.clone(),
         changed_kind.clone(),
-        LicenceChangedEvent::decl(),
+        LicenceChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 

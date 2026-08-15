@@ -37,8 +37,9 @@ use longhorn_core::ConfigRequestId;
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, LabelMap, apply, exported_declaration, field_map, label_module,
-    label_template_renderer, string_union_variants, tagged_variants, variant_field_map,
+    Artifact, GenerationMode, LabelMap, apply, config, exported_declaration, field_map,
+    label_module, label_template_renderer, string_union_variants, tagged_variants,
+    variant_field_map,
 };
 
 mod fixture;
@@ -95,115 +96,116 @@ fn render_labels() -> String {
     )
 }
 
+/// Generates or checks the config bindings and golden fixtures.
 pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let capability = ConfigOperationCapability::decl();
-    let rejection = ConfigOperationRejectionCode::decl();
-    let bootstrap = StorageBootstrapProjection::decl();
-    let pending = BackupPendingState::decl();
-    let encryption = BackupEncryptionState::decl();
-    let inspect = StorageTransitionInspectOutcome::decl();
-    let execute = StorageTransitionExecuteOutcome::decl();
-    let recovery = StorageRecoveryOutcome::decl();
-    let cleanup = StorageCleanupOutcome::decl();
-    let create = BackupCreateOutcome::decl();
-    let export = BackupExportOutcome::decl();
-    let retention = BackupRetentionApplyOutcome::decl();
-    let restore_selection = RestoreArchiveSelection::decl();
-    let restore_identity = RestoreIdentityStatusProjection::decl();
-    let restore_compatibility = RestoreDomainCompatibilityProjection::decl();
-    let restore_participation = RestoreAdapterParticipationProjection::decl();
-    let restore_current = RestoreCurrentEvidenceProjection::decl();
-    let restore_inspect = RestoreInspectOutcome::decl();
-    let restore_plan = RestorePlanOutcome::decl();
-    let restore_execute = RestoreExecuteOutcome::decl();
-    let restore_adapter = RestoreAdapterExecuteOutcome::decl();
-    let restore_recovery = RestoreRecoveryOutcomeProjection::decl();
+    let capability = ConfigOperationCapability::decl(config());
+    let rejection = ConfigOperationRejectionCode::decl(config());
+    let bootstrap = StorageBootstrapProjection::decl(config());
+    let pending = BackupPendingState::decl(config());
+    let encryption = BackupEncryptionState::decl(config());
+    let inspect = StorageTransitionInspectOutcome::decl(config());
+    let execute = StorageTransitionExecuteOutcome::decl(config());
+    let recovery = StorageRecoveryOutcome::decl(config());
+    let cleanup = StorageCleanupOutcome::decl(config());
+    let create = BackupCreateOutcome::decl(config());
+    let export = BackupExportOutcome::decl(config());
+    let retention = BackupRetentionApplyOutcome::decl(config());
+    let restore_selection = RestoreArchiveSelection::decl(config());
+    let restore_identity = RestoreIdentityStatusProjection::decl(config());
+    let restore_compatibility = RestoreDomainCompatibilityProjection::decl(config());
+    let restore_participation = RestoreAdapterParticipationProjection::decl(config());
+    let restore_current = RestoreCurrentEvidenceProjection::decl(config());
+    let restore_inspect = RestoreInspectOutcome::decl(config());
+    let restore_plan = RestorePlanOutcome::decl(config());
+    let restore_execute = RestoreExecuteOutcome::decl(config());
+    let restore_adapter = RestoreAdapterExecuteOutcome::decl(config());
+    let restore_recovery = RestoreRecoveryOutcomeProjection::decl(config());
 
     let base_declarations = [
-        ConfigProtocolVersion::decl(),
-        ConfigGeneration::decl(),
-        ConfigRequestId::decl(),
+        ConfigProtocolVersion::decl(config()),
+        ConfigGeneration::decl(config()),
+        ConfigRequestId::decl(config()),
         capability.clone(),
-        StorageProfileId::decl(),
-        StorageLeafProvenanceProjection::decl(),
-        StorageRootProjection::decl(),
-        StorageLayoutProjection::decl(),
+        StorageProfileId::decl(config()),
+        StorageLeafProvenanceProjection::decl(config()),
+        StorageRootProjection::decl(config()),
+        StorageLayoutProjection::decl(config()),
         bootstrap.clone(),
-        StorageOperationsProjection::decl(),
-        StorageTransitionDomainProjection::decl(),
-        StorageTransitionConflictProjection::decl(),
-        StorageTransitionPreviewProjection::decl(),
-        StorageTransitionReceiptProjection::decl(),
-        StorageRecoveryReceiptProjection::decl(),
-        StorageCleanupReceiptProjection::decl(),
-        BackupArchiveProjection::decl(),
-        BackupInventoryEntryState::decl(),
-        BackupInventoryEntry::decl(),
-        BackupInventoryProjection::decl(),
+        StorageOperationsProjection::decl(config()),
+        StorageTransitionDomainProjection::decl(config()),
+        StorageTransitionConflictProjection::decl(config()),
+        StorageTransitionPreviewProjection::decl(config()),
+        StorageTransitionReceiptProjection::decl(config()),
+        StorageRecoveryReceiptProjection::decl(config()),
+        StorageCleanupReceiptProjection::decl(config()),
+        BackupArchiveProjection::decl(config()),
+        BackupInventoryEntryState::decl(config()),
+        BackupInventoryEntry::decl(config()),
+        BackupInventoryProjection::decl(config()),
         pending.clone(),
         encryption.clone(),
-        BackupRetentionReasonProjection::decl(),
-        BackupRetentionProjection::decl(),
-        BackupOperationsProjection::decl(),
-        ConfigOperationsSnapshot::decl(),
-        ConfigSnapshotCommand::decl(),
-        StorageTransitionInspectCommand::decl(),
-        StorageTransitionExecuteCommand::decl(),
-        StorageRecoveryCommand::decl(),
-        StorageCleanupCommand::decl(),
-        PendingBackupPolicy::decl(),
-        BackupCreateCommand::decl(),
-        BackupExportCommand::decl(),
-        BackupRetentionApplyCommand::decl(),
+        BackupRetentionReasonProjection::decl(config()),
+        BackupRetentionProjection::decl(config()),
+        BackupOperationsProjection::decl(config()),
+        ConfigOperationsSnapshot::decl(config()),
+        ConfigSnapshotCommand::decl(config()),
+        StorageTransitionInspectCommand::decl(config()),
+        StorageTransitionExecuteCommand::decl(config()),
+        StorageRecoveryCommand::decl(config()),
+        StorageCleanupCommand::decl(config()),
+        PendingBackupPolicy::decl(config()),
+        BackupCreateCommand::decl(config()),
+        BackupExportCommand::decl(config()),
+        BackupRetentionApplyCommand::decl(config()),
         rejection.clone(),
-        ConfigOperationRejection::decl(),
+        ConfigOperationRejection::decl(config()),
         inspect.clone(),
         execute.clone(),
         recovery.clone(),
         cleanup.clone(),
-        BackupCaptureReceiptProjection::decl(),
-        BackupPublicationReceiptProjection::decl(),
+        BackupCaptureReceiptProjection::decl(config()),
+        BackupPublicationReceiptProjection::decl(config()),
         create.clone(),
         export.clone(),
         retention.clone(),
     ]
     .map(exported_declaration);
     let restore_declarations = [
-        RestoreOperationStateProjection::decl(),
-        RestoreOperationsProjection::decl(),
+        RestoreOperationStateProjection::decl(config()),
+        RestoreOperationsProjection::decl(config()),
         restore_selection.clone(),
-        RestoreIntegrityProjection::decl(),
-        RestoreAuthenticityProjection::decl(),
+        RestoreIntegrityProjection::decl(config()),
+        RestoreAuthenticityProjection::decl(config()),
         restore_identity.clone(),
-        RestoreIdentityProjection::decl(),
-        RestoreConsistencyGroupProjection::decl(),
+        RestoreIdentityProjection::decl(config()),
+        RestoreConsistencyGroupProjection::decl(config()),
         restore_compatibility.clone(),
         restore_participation.clone(),
-        RestoreDomainInspectionProjection::decl(),
-        RestoreExclusionProjection::decl(),
-        RestoreInspectionReceiptProjection::decl(),
-        RestoreInspectionProjection::decl(),
-        RestoreInspectCommand::decl(),
+        RestoreDomainInspectionProjection::decl(config()),
+        RestoreExclusionProjection::decl(config()),
+        RestoreInspectionReceiptProjection::decl(config()),
+        RestoreInspectionProjection::decl(config()),
+        RestoreInspectCommand::decl(config()),
         restore_inspect.clone(),
-        RestoreConflictChoiceProjection::decl(),
-        RestoreDomainChoice::decl(),
+        RestoreConflictChoiceProjection::decl(config()),
+        RestoreDomainChoice::decl(config()),
         restore_current.clone(),
-        RestorePlanEntryProjection::decl(),
-        RestorePlanReceiptProjection::decl(),
-        RestorePlanProjection::decl(),
-        RestorePlanCommand::decl(),
+        RestorePlanEntryProjection::decl(config()),
+        RestorePlanReceiptProjection::decl(config()),
+        RestorePlanProjection::decl(config()),
+        RestorePlanCommand::decl(config()),
         restore_plan.clone(),
-        RestoreExecuteCommand::decl(),
-        RestoreStagingReceiptProjection::decl(),
-        RestoreExecutionReceiptProjection::decl(),
-        RestoreExecutionFailureProjection::decl(),
+        RestoreExecuteCommand::decl(config()),
+        RestoreStagingReceiptProjection::decl(config()),
+        RestoreExecutionReceiptProjection::decl(config()),
+        RestoreExecutionFailureProjection::decl(config()),
         restore_execute.clone(),
-        RestoreAdapterRequirementProjection::decl(),
-        RestoreAdapterExecuteCommand::decl(),
-        RestoreAdapterReceiptProjection::decl(),
+        RestoreAdapterRequirementProjection::decl(config()),
+        RestoreAdapterExecuteCommand::decl(config()),
+        RestoreAdapterReceiptProjection::decl(config()),
         restore_adapter.clone(),
-        RestoreRecoveryCommand::decl(),
-        RestoreRecoveryReceiptProjection::decl(),
+        RestoreRecoveryCommand::decl(config()),
+        RestoreRecoveryReceiptProjection::decl(config()),
         restore_recovery.clone(),
     ]
     .map(exported_declaration);

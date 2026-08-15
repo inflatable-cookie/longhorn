@@ -64,10 +64,14 @@ license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
+# Exact pin: this is the version whose encrypted-backup output the
+# capture/restore/key-rotation conformance suites are frozen against; the
+# wire format must stay byte-stable across app versions, so a move needs
+# those suites rerun, not a caret. 0.12.1 is also the newest age published.
 age = { version = "=0.12.1", default-features = false }
-base64 = "0.22.1"
+base64 = "0.23.1"
 cap-std = "4.0.2"
-ed25519-dalek = { version = "2.2.0", default-features = false, features = ["std"] }
+ed25519-dalek = { version = "3.0.0", default-features = false }
 flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 getrandom = "0.3.4"
@@ -118,6 +122,11 @@ longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 minisign = "0.9.1"
 minisign-verify = "0.2.5"
+# Exact pin: g02.007 moved rusqlite here under frozen evidence -- the
+# native-snapshot, grouped-restore, WAL, and storage-transition suites --
+# and `bundled` means a version move swaps the embedded SQLite engine.
+# 0.40.2 exists; taking it needs the same conformance treatment, so the
+# pin is what forces that decision instead of a silent `cargo update`.
 rusqlite = { version = "=0.40.1", features = ["backup", "bundled"] }
 semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
@@ -127,8 +136,20 @@ sha2 = "0.11.0"
 tar = "0.4.44"
 tempfile = "3.27.0"
 tauri = { version = "2.10.3", default-features = false }
-tauri-build = { version = "=2.6.3", default-features = false, features = ["config-json"] }
-ts-rs = { version = "=11.1.0", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+# Not an exact pin: 2.6.3 is the newest tauri-build published (Tauri does
+# not version tauri-build in lockstep with tauri). The apparent mixed stack
+# -- tauri 2.11.5 with tauri-build/codegen 2.6.3 -- is upstream's own
+# release pattern; tauri 2.11.5 itself depends on codegen/macros 2.6.3.
+tauri-build = { version = "2.6.3", default-features = false, features = ["config-json"] }
+# Exact pin: the bindings generator reads `ts-rs` output by shape (quoted tag
+# keys, union arms, field separators) and 12 moved `decl()` onto a `Config`
+# argument -- see `generation::config`. A version move is a generator-hardening
+# task with a full regen and fixture diff, never a silent `cargo update`.
+ts-rs = { version = "=12.0.1", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
+# Exact pin: g02.007 moved zip here under frozen archive evidence -- the
+# publication, determinism, retention, and restore suites. Backup archives
+# are compared byte-for-byte, so a version move needs those suites rerun;
+# 8.6.0 is the newest zip published.
 zip = { version = "=8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]

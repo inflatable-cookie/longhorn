@@ -9,7 +9,7 @@
 
 | Crate | Kind | Features | Source reference |
 | --- | --- | --- | --- |
-| `longhorn-bindings` | development tool | none | [source](../../crates/longhorn-bindings/Cargo.toml) |
+| `longhorn-bindings` | library | none | [source](../../crates/longhorn-bindings/src/lib.rs) |
 | `longhorn-bridge` | library | `bindings`, `supervision` | [source](../../crates/longhorn-bridge/README.md) |
 | `longhorn-browser` | library | none | [source](../../crates/longhorn-browser/src/lib.rs) |
 | `longhorn-command` | library | `bindings` | [source](../../crates/longhorn-command/README.md) |
