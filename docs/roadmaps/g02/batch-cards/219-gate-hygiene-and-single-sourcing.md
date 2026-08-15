@@ -1,6 +1,6 @@
 # 219 Gate Hygiene And Single-sourcing
 
-Status: complete — workflow edits held for approval
+Status: complete (workflow edits landed 2026-08-15 with approval)
 Completed: 2026-08-14
 Owner: Tom
 Roadmap: g02.026 batch 2
