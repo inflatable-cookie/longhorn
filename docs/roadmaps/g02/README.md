@@ -31,6 +31,7 @@
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
 | [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
+| [g02.028](028-consumer-scoped-credential-slots.md) | ready | one shared store admits isolated consumer-owned scope without product policy |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

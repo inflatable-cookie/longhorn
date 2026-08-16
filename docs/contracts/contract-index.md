@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-15
+Updated: 2026-08-16
 
 ## Positioning
 
@@ -18,7 +18,7 @@ them.
 
 - **Core** — host-agnostic. Every application satisfies these whatever its
   backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
-  018 (policy), 019.
+  018 (policy), 019, 021.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
@@ -50,12 +50,12 @@ A claim proved on one backend does not close a host-tier contract.
 | [018 Application Update And Release Channels](018-application-update-and-release-channels.md) | update policy, source adapters, channels, client-side rollout, restart readiness, cross-channel store compatibility | active compiled boundary |
 | [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
 | [020 Host Adapter Boundary](020-host-adapter-boundary.md) | what a backend must provide, what it may not do, delegated capabilities, dual-backend evidence | active compiled boundary |
+| [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md) | validated built-in and consumer namespace/scope/purpose identities over one credential store | active compiled boundary |
 
 ## Pending Contracts
 
-None. Contract 017 now has a production kernel and three separately selectable
-mechanism packages. It is not a cross-platform native-host support promise;
-Svelte lifetime and final artifact gates remain in g01.018.
+None. Contract 021 compiles the consumer-characterized scoped credential gap
+without moving product vocabulary into Longhorn.
 
 ## Roadmap Readiness
 

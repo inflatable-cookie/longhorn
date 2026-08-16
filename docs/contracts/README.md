@@ -18,6 +18,10 @@
 - [015 Async Operation Lifecycle](015-async-operation-lifecycle.md)
 - [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md)
 - [017 Native Content Island Coordination](017-native-content-island-coordination.md)
+- [018 Application Update And Release Channels](018-application-update-and-release-channels.md)
+- [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md)
+- [020 Host Adapter Boundary](020-host-adapter-boundary.md)
+- [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md)
 
 Roadmap execution stops when its required boundary remains pending in the
 index.

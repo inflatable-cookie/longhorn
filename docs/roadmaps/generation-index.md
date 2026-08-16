@@ -25,8 +25,11 @@ the running narrative that used to fill this section drifted into three
 competing pointers, which is how Card 216 came to exist. Card closeout detail
 lives on the cards themselves.
 
-**Live:** the memo-023 release-audit suite — milestones
-[g02.021-027](g02/README.md), cards 200-223.
+**Live:** Bovine publishing characterized one shared credential-store gap.
+[g02.028](g02/028-consumer-scoped-credential-slots.md) and Card 225 are ready.
+
+The memo-023 release-audit suite — milestones g02.021-027, cards 200-224 — is
+complete except the separately operator-held release machinery noted below.
 
 - Complete: g02.021 (200-203), g02.022 (204-206), g02.023 (207-210, 224),
   g02.024 (211-214), g02.025 (215-217), g02.027 (221-223).
@@ -41,7 +44,7 @@ lives on the cards themselves.
 - g02.026 is closed except Card 218, which is held whole — no machinery from
   it is in the tree. Longhorn's release waits on Poodle v0.2.0 by operator
   decision, so the linked-Poodle exemption stays until then.
-- Next ready: nothing in the suite — back to the pre-suite lanes below.
+- Next ready: Card 225.
 
 Pre-suite lanes are tracked on the [g02 runway](g02/README.md): g02.015's
 Card 176, g02.017-019 in progress, Card 149 operator-held.
@@ -52,4 +55,3 @@ Research memo 023 (full-repo release audit, 2026-08-14) compiles into
 milestones [g02.021-027](g02/README.md) — cards 200-223, the suite that is
 the live pointer above. Its state lives there; this section stays as the
 memo-to-roadmap provenance.
-

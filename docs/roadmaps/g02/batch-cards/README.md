@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-None.
+- [225 Consumer-scoped Credential Slot Value](225-consumer-scoped-credential-slot-value.md)
 
 (Cards 150-199 predate this index's last update; see the milestone files.)
 

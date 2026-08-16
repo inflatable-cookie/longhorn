@@ -3,7 +3,7 @@
 ## Generation State
 
 - [Generation Index](generation-index.md) — live next-task pointer
-- [g02](g02/README.md) — active (cards 138-159: workspace integrity, distribution candidate v2, application updates, licensing)
+- [g02](g02/README.md) — active; Card 225 is the ready consumer-scoped credential prerequisite
 - [g01](g01/README.md) — complete
 
 ## Completed Generation
