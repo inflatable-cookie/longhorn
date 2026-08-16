@@ -25,8 +25,8 @@ the running narrative that used to fill this section drifted into three
 competing pointers, which is how Card 216 came to exist. Card closeout detail
 lives on the cards themselves.
 
-**Live:** Bovine publishing characterized one shared credential-store gap.
-[g02.028](g02/028-consumer-scoped-credential-slots.md) and Card 225 are ready.
+**Live:** [g02.028](g02/028-consumer-scoped-credential-slots.md) and Card 225
+are complete. Return the promoted Longhorn commit to Bovine Card 128 adoption.
 
 The memo-023 release-audit suite — milestones g02.021-027, cards 200-224 — is
 complete except the separately operator-held release machinery noted below.
@@ -44,7 +44,7 @@ complete except the separately operator-held release machinery noted below.
 - g02.026 is closed except Card 218, which is held whole — no machinery from
   it is in the tree. Longhorn's release waits on Poodle v0.2.0 by operator
   decision, so the linked-Poodle exemption stays until then.
-- Next ready: Card 225.
+- No Longhorn card auto-starts from Card 225.
 
 Pre-suite lanes are tracked on the [g02 runway](g02/README.md): g02.015's
 Card 176, g02.017-019 in progress, Card 149 operator-held.

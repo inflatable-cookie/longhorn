@@ -1,6 +1,7 @@
 # g02.028 Consumer-scoped Credential Slots
 
-Status: ready
+Status: complete
+Completed: 2026-08-16
 Owner: Longhorn maintainers
 Created: 2026-08-16
 Governing refs: contract 021; contracts 001, 003, 004, and 012
@@ -14,7 +15,7 @@ built-in keyring names.
 
 ## Generation Runway
 
-- [ ] [Card 225](batch-cards/225-consumer-scoped-credential-slot-value.md)
+- [x] [Card 225](batch-cards/225-consumer-scoped-credential-slot-value.md)
       replaces the closed enum, migrates built-in callers and backends, and
       proves scoped isolation.
 
@@ -31,5 +32,4 @@ publishing adoption. Bovine composition stays in Bovine.
 
 ## Next Task
 
-Execute Card 225.
-
+Return the promoted Longhorn commit to Bovine Card 128 adoption.

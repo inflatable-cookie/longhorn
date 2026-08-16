@@ -7,6 +7,23 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Fresh worktree QA reaches TypeScript without installing dependencies — 2026-08-16
+- Friction: `effigy qa` in a fresh Git worktree reached `check:ts` with no
+  `node_modules`; `bun x tsc` fetched the compiler but left every workspace,
+  Svelte, Poodle, Vitest, and Node type import unresolved. After `bun install`,
+  the documented `effigy deps link bun ../poodle` path refused Bun's normal
+  registry-package symlinks as conflicting targets. Once linked, the
+  greenfield proof ignored that resolved source and derived a nonexistent
+  `../poodle` from the worktree path unless `POODLE_REPO` was set separately.
+- Impact: a clean worker sees hundreds of unrelated TypeScript errors after
+  the Rust suite has run, then must infer both the missing install and the
+  manual link precondition.
+- Possible fix: make QA require or perform the locked Bun bootstrap before
+  TypeScript checks; make `deps link bun` safely replace Bun's installed
+  package symlinks; let proofs consume the healthy link state instead of a
+  second path variable.
+- Surface: `effigy qa`, `check:ts`, `effigy deps link bun`, fresh Git worktrees.
+
 ### [ ] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
 - Friction: `[release.gates]` is written cheapest-first, but effigy sorts by
   gate name. A measured run is advisories, floor, private-candidate,

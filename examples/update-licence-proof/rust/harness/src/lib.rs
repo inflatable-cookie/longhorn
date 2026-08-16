@@ -300,20 +300,22 @@ pub fn licence_evidence() -> Value {
     let restart_persistence = platform_persistence_claim();
 
     let store = MemoryCredentialStore::new();
-    store.store(CredentialSlot::RefreshToken, "token").unwrap();
-    store.store(CredentialSlot::LicenceKey, "key").unwrap();
+    let refresh_token = CredentialSlot::refresh_token();
+    let licence_key = CredentialSlot::licence_key();
+    store.store(&refresh_token, "token").unwrap();
+    store.store(&licence_key, "key").unwrap();
     assert_eq!(
-        store.retrieve(CredentialSlot::RefreshToken).unwrap(),
+        store.retrieve(&refresh_token).unwrap(),
         Some("token".to_owned())
     );
     assert_eq!(
-        store.retrieve(CredentialSlot::LicenceKey).unwrap(),
+        store.retrieve(&licence_key).unwrap(),
         Some("key".to_owned())
     );
-    store.remove(CredentialSlot::RefreshToken).unwrap();
-    assert_eq!(store.retrieve(CredentialSlot::RefreshToken).unwrap(), None);
+    store.remove(&refresh_token).unwrap();
+    assert_eq!(store.retrieve(&refresh_token).unwrap(), None);
     store
-        .remove(CredentialSlot::RefreshToken)
+        .remove(&refresh_token)
         .expect("removing an empty slot succeeds");
 
     json!({
@@ -352,14 +354,14 @@ fn platform_persistence_claim() -> String {
     use longhorn_credential_keyring::KeyringCredentialStore;
 
     let store = KeyringCredentialStore::new("audio.example.longhorn-update-licence-proof");
-    let slot = CredentialSlot::RefreshToken;
+    let slot = CredentialSlot::refresh_token();
 
     // The in-process contract first: store, read back, replace. A backend
     // that cannot do this much has no persistence to claim.
-    if let Err(error) = store.store(slot, "proof-round-trip") {
+    if let Err(error) = store.store(&slot, "proof-round-trip") {
         return format!("unavailable: {error}");
     }
-    match store.retrieve(slot) {
+    match store.retrieve(&slot) {
         Ok(Some(value)) if value == "proof-round-trip" => {}
         Ok(other) => return format!("round trip returned {other:?}"),
         Err(error) => return format!("unavailable: {error}"),
@@ -367,17 +369,17 @@ fn platform_persistence_claim() -> String {
 
     // The cross-run marker, in the other slot so the round trip above cannot
     // be mistaken for it.
-    let marker = CredentialSlot::LicenceKey;
-    let previous = match store.retrieve(marker) {
+    let marker = CredentialSlot::licence_key();
+    let previous = match store.retrieve(&marker) {
         Ok(found) => found,
         Err(error) => return format!("unavailable: {error}"),
     };
     let stamp = format!("run:{}", std::process::id());
-    if let Err(error) = store.store(marker, &stamp) {
+    if let Err(error) = store.store(&marker, &stamp) {
         return format!("unavailable: {error}");
     }
     // The round-trip slot is cleaned; the marker stays for the next run.
-    drop(store.remove(slot));
+    drop(store.remove(&slot));
 
     match previous {
         Some(earlier) => {
