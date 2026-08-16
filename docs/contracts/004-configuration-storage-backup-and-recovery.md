@@ -407,7 +407,7 @@ ordinary configuration.
   authority — supplied since 2026-08-15 by `StoreBackupEncryption`
   (`longhorn-config-age`) over the host's credential store: the operational
   identity is generated once from the OS RNG and kept in the
-  `CredentialSlot::AgeIdentity` slot (`longhorn-core`), never in ordinary
+  `CredentialSlot::backup_identity()` slot (`longhorn-core`), never in ordinary
   configuration
 - generation converges rather than excludes: the slot is read back after the
   write and whatever it names is adopted, so two processes generating on the

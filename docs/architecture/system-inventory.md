@@ -181,7 +181,7 @@ fresh action admission. `g01.012` is complete.
 | Surface | Role | Planning state |
 | --- | --- | --- |
 | platform filesystem roots | config/data/cache/log/temp location authority | contract 004; pure layouts and Tauri path mapping implemented |
-| secure credential store | secrets outside ordinary config/backups | trait required; provider choice pending |
+| secure credential store | built-in and consumer-scoped secrets outside ordinary config/backups | core trait plus opt-in platform keyring provider implemented |
 | Tauri path/window/monitor/event APIs | native desktop adapter | contracts 009-010 and 017 |
 | local or remote service transport | optional product authority seam | contract 007; v1 transports pending |
 | Poodle packages | component and presentation authority | contract 013; exact Card 038 artifact set proven through Card 041 |
@@ -212,5 +212,4 @@ These are deferred candidates, not a committed runway.
 - Windows/Linux child-view proof and any future non-macOS native host support
 - cross-document panel transaction and copy-transfer authority
 - non-macOS strong display and packaged transfer evidence
-- secure credential-store provider selection
 - package-registry naming and publication, explicitly deferred

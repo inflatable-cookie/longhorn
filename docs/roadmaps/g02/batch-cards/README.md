@@ -6,7 +6,7 @@ None.
 
 ## Ready
 
-- [225 Consumer-scoped Credential Slot Value](225-consumer-scoped-credential-slot-value.md)
+None.
 
 (Cards 150-199 predate this index's last update; see the milestone files.)
 
@@ -23,6 +23,7 @@ None.
 
 ## Complete
 
+- [225 Consumer-scoped Credential Slot Value](225-consumer-scoped-credential-slot-value.md)
 - [224 Credential-store Conditional Write](224-credential-store-conditional-write.md)
 - [223 Dependency Sweep And Measured Costs](223-dependency-sweep-and-measured-costs.md)
 - [222 Shared Primitives And Idiom Codification](222-shared-primitives-and-idiom-codification.md)

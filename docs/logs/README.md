@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-08
 
+### 2026-08-16
+
+- [Consumer-scoped Credential Slots](2026-08/16-consumer-scoped-credential-slots.md)
+
 ### 2026-08-09
 
 - [Artifact Proof Selection Model](2026-08/09-artifact-proof-selection-model.md)

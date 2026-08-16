@@ -34,7 +34,8 @@ use longhorn_core::{CredentialError, CredentialSlot, CredentialStore};
 /// The service name is **host-supplied** — the application identifier, such as
 /// `com.inflatablecookie.soundcheck`. This crate hard-coding one would put
 /// every consumer's secrets under a single identity, and consumer identity
-/// belongs to the consumer. The keyring user is [`CredentialSlot::as_str`].
+/// belongs to the consumer. The keyring account name is
+/// [`CredentialSlot::as_str`].
 #[derive(Clone, Debug)]
 pub struct KeyringCredentialStore {
     service: String,
@@ -122,7 +123,7 @@ mod platform {
 
     fn entry(
         store: &KeyringCredentialStore,
-        slot: CredentialSlot,
+        slot: &CredentialSlot,
     ) -> Result<keyring::Entry, CredentialError> {
         keyring::Entry::new(store.service(), slot.as_str()).map_err(|error| {
             CredentialError::Unavailable {
@@ -143,7 +144,7 @@ mod platform {
     }
 
     impl crate::CredentialStore for KeyringCredentialStore {
-        fn store(&self, slot: CredentialSlot, secret: &str) -> Result<(), CredentialError> {
+        fn store(&self, slot: &CredentialSlot, secret: &str) -> Result<(), CredentialError> {
             map_store(
                 entry(self, slot)?
                     .set_password(secret)
@@ -151,11 +152,11 @@ mod platform {
             )
         }
 
-        fn retrieve(&self, slot: CredentialSlot) -> Result<Option<String>, CredentialError> {
+        fn retrieve(&self, slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
             map_retrieve(entry(self, slot)?.get_password().map_err(classify))
         }
 
-        fn remove(&self, slot: CredentialSlot) -> Result<(), CredentialError> {
+        fn remove(&self, slot: &CredentialSlot) -> Result<(), CredentialError> {
             map_remove(entry(self, slot)?.delete_credential().map_err(classify))
         }
     }
@@ -163,15 +164,15 @@ mod platform {
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 impl CredentialStore for KeyringCredentialStore {
-    fn store(&self, _slot: CredentialSlot, _secret: &str) -> Result<(), CredentialError> {
+    fn store(&self, _slot: &CredentialSlot, _secret: &str) -> Result<(), CredentialError> {
         Err(no_backend())
     }
 
-    fn retrieve(&self, _slot: CredentialSlot) -> Result<Option<String>, CredentialError> {
+    fn retrieve(&self, _slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
         Err(no_backend())
     }
 
-    fn remove(&self, _slot: CredentialSlot) -> Result<(), CredentialError> {
+    fn remove(&self, _slot: &CredentialSlot) -> Result<(), CredentialError> {
         Err(no_backend())
     }
 }
@@ -204,45 +205,71 @@ mod tests {
     #[test]
     fn the_contract_holds_against_the_real_platform_store() {
         let store = KeyringCredentialStore::new(test_service("contract"));
-        let slot = CredentialSlot::RefreshToken;
+        let slot = CredentialSlot::refresh_token();
         // Whatever an earlier failed run left behind.
-        store.remove(slot).expect("cleanup");
+        store.remove(&slot).expect("cleanup");
 
-        assert_eq!(store.retrieve(slot).expect("empty read"), None);
-        store.store(slot, "first-secret").expect("store");
+        assert_eq!(store.retrieve(&slot).expect("empty read"), None);
+        store.store(&slot, "first-secret").expect("store");
         assert_eq!(
-            store.retrieve(slot).expect("read back"),
+            store.retrieve(&slot).expect("read back"),
             Some("first-secret".to_owned())
         );
-        store.store(slot, "replaced-secret").expect("replace");
+        store.store(&slot, "replaced-secret").expect("replace");
         assert_eq!(
-            store.retrieve(slot).expect("read replacement"),
+            store.retrieve(&slot).expect("read replacement"),
             Some("replaced-secret".to_owned())
         );
-        store.remove(slot).expect("remove");
-        assert_eq!(store.retrieve(slot).expect("read after remove"), None);
+        store.remove(&slot).expect("remove");
+        assert_eq!(store.retrieve(&slot).expect("read after remove"), None);
         // Removing an empty slot succeeds, per the trait.
-        store.remove(slot).expect("remove empty");
+        store.remove(&slot).expect("remove empty");
     }
 
     /// The slots are distinct entries, not one value with two names.
     #[test]
-    fn slots_do_not_alias() {
+    fn built_in_and_consumer_slots_do_not_alias() {
         let store = KeyringCredentialStore::new(test_service("aliasing"));
-        store.remove(CredentialSlot::RefreshToken).expect("cleanup");
-        store.remove(CredentialSlot::LicenceKey).expect("cleanup");
+        let refresh_token = CredentialSlot::refresh_token();
+        let consumer = CredentialSlot::consumer_scoped("publisher", "source-1", "signing").unwrap();
+        store.remove(&refresh_token).expect("cleanup");
+        store.remove(&consumer).expect("cleanup");
 
+        store.store(&refresh_token, "token").expect("store token");
         store
-            .store(CredentialSlot::RefreshToken, "token")
-            .expect("store token");
+            .store(&consumer, "consumer-secret")
+            .expect("store consumer secret");
         assert_eq!(
-            store
-                .retrieve(CredentialSlot::LicenceKey)
-                .expect("other slot"),
-            None
+            store.retrieve(&refresh_token).expect("read token"),
+            Some("token".to_owned())
+        );
+        assert_eq!(
+            store.retrieve(&consumer).expect("read consumer secret"),
+            Some("consumer-secret".to_owned())
         );
 
-        store.remove(CredentialSlot::RefreshToken).expect("cleanup");
+        store.remove(&refresh_token).expect("cleanup");
+        store.remove(&consumer).expect("cleanup");
+    }
+
+    #[test]
+    fn maximum_platform_account_name_is_accepted() {
+        let service = test_service("maximum-account-name");
+        let account = "a".repeat(255);
+        let entry =
+            keyring::Entry::new(&service, &account).expect("construct maximum account name");
+
+        drop(entry.delete_credential());
+        entry
+            .set_password("secret")
+            .expect("store maximum account name");
+        assert_eq!(
+            entry.get_password().expect("retrieve maximum account name"),
+            "secret"
+        );
+        entry
+            .delete_credential()
+            .expect("remove maximum account name");
     }
 }
 
@@ -256,14 +283,14 @@ mod tests {
 mod mock_tests {
     use super::*;
     use std::collections::BTreeMap;
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex};
 
     /// A backend answering in `BackendFailure` terms: an in-memory slot map
     /// plus a switch that makes every call fail the way a locked or
     /// unreachable store would.
     #[derive(Default)]
     struct MockBackend {
-        secrets: Mutex<BTreeMap<CredentialSlot, String>>,
+        secrets: Mutex<BTreeMap<(String, CredentialSlot), String>>,
         failure: Mutex<Option<String>>,
     }
 
@@ -280,11 +307,21 @@ mod mock_tests {
     /// A `CredentialStore` over the mock, routing through the crate's own
     /// mapping functions exactly as the platform module does.
     struct MockStore {
-        backend: MockBackend,
+        backend: Arc<MockBackend>,
+        service: String,
+    }
+
+    impl MockStore {
+        fn new(backend: Arc<MockBackend>, service: &str) -> Self {
+            Self {
+                backend,
+                service: service.to_owned(),
+            }
+        }
     }
 
     impl CredentialStore for MockStore {
-        fn store(&self, slot: CredentialSlot, secret: &str) -> Result<(), CredentialError> {
+        fn store(&self, slot: &CredentialSlot, secret: &str) -> Result<(), CredentialError> {
             if let Some(detail) = self.backend.failure() {
                 return map_store(Err(detail));
             }
@@ -292,11 +329,11 @@ mod mock_tests {
                 .secrets
                 .lock()
                 .expect("secrets")
-                .insert(slot, secret.to_owned());
+                .insert((self.service.clone(), slot.clone()), secret.to_owned());
             map_store(Ok(()))
         }
 
-        fn retrieve(&self, slot: CredentialSlot) -> Result<Option<String>, CredentialError> {
+        fn retrieve(&self, slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
             if let Some(detail) = self.backend.failure() {
                 return map_retrieve(Err(BackendFailure::Unavailable(detail)));
             }
@@ -305,7 +342,7 @@ mod mock_tests {
                 .secrets
                 .lock()
                 .expect("secrets")
-                .get(&slot)
+                .get(&(self.service.clone(), slot.clone()))
                 .cloned();
             match secret {
                 Some(secret) => map_retrieve(Ok(secret)),
@@ -313,11 +350,16 @@ mod mock_tests {
             }
         }
 
-        fn remove(&self, slot: CredentialSlot) -> Result<(), CredentialError> {
+        fn remove(&self, slot: &CredentialSlot) -> Result<(), CredentialError> {
             if let Some(detail) = self.backend.failure() {
                 return map_remove(Err(BackendFailure::Unavailable(detail)));
             }
-            let removed = self.backend.secrets.lock().expect("secrets").remove(&slot);
+            let removed = self
+                .backend
+                .secrets
+                .lock()
+                .expect("secrets")
+                .remove(&(self.service.clone(), slot.clone()));
             match removed {
                 Some(_) => map_remove(Ok(())),
                 None => map_remove(Err(BackendFailure::NoEntry)),
@@ -330,61 +372,69 @@ mod mock_tests {
     /// against a real keychain.
     #[test]
     fn the_contract_holds_against_the_mock_backend() {
-        let store = MockStore {
-            backend: MockBackend::default(),
-        };
-        let slot = CredentialSlot::RefreshToken;
+        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
+        let slot = CredentialSlot::refresh_token();
 
-        assert_eq!(store.retrieve(slot).expect("empty read"), None);
-        store.store(slot, "first-secret").expect("store");
+        assert_eq!(store.retrieve(&slot).expect("empty read"), None);
+        store.store(&slot, "first-secret").expect("store");
         assert_eq!(
-            store.retrieve(slot).expect("read back"),
+            store.retrieve(&slot).expect("read back"),
             Some("first-secret".to_owned())
         );
-        store.store(slot, "replaced-secret").expect("replace");
+        store.store(&slot, "replaced-secret").expect("replace");
         assert_eq!(
-            store.retrieve(slot).expect("read replacement"),
+            store.retrieve(&slot).expect("read replacement"),
             Some("replaced-secret".to_owned())
         );
-        store.remove(slot).expect("remove");
-        assert_eq!(store.retrieve(slot).expect("read after remove"), None);
+        store.remove(&slot).expect("remove");
+        assert_eq!(store.retrieve(&slot).expect("read after remove"), None);
         // Removing an empty slot succeeds, per the trait.
-        store.remove(slot).expect("remove empty");
+        store.remove(&slot).expect("remove empty");
     }
 
     /// The slots are distinct entries, not one value with two names.
     #[test]
     fn slots_do_not_alias_against_the_mock_backend() {
-        let store = MockStore {
-            backend: MockBackend::default(),
-        };
+        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
+        let slots = [
+            CredentialSlot::consumer_scoped("publisher-a", "source", "signing").unwrap(),
+            CredentialSlot::consumer_scoped("publisher-b", "source", "signing").unwrap(),
+            CredentialSlot::consumer_scoped("publisher-a", "other-source", "signing").unwrap(),
+            CredentialSlot::consumer_scoped("publisher-a", "source", "submit").unwrap(),
+        ];
 
-        store
-            .store(CredentialSlot::RefreshToken, "token")
-            .expect("store token");
-        assert_eq!(
-            store
-                .retrieve(CredentialSlot::LicenceKey)
-                .expect("other slot"),
-            None
-        );
+        store.store(&slots[0], "secret").expect("store secret");
+        for slot in &slots[1..] {
+            assert_eq!(store.retrieve(slot).expect("other slot"), None);
+        }
+    }
+
+    #[test]
+    fn application_services_isolate_the_same_slot() {
+        let backend = Arc::new(MockBackend::default());
+        let first = MockStore::new(Arc::clone(&backend), "service-a");
+        let second = MockStore::new(backend, "service-b");
+        let slot = CredentialSlot::consumer_scoped("publisher", "source", "signing").unwrap();
+
+        first.store(&slot, "first").expect("store first service");
+        second.store(&slot, "second").expect("store second service");
+
+        assert_eq!(first.retrieve(&slot).unwrap(), Some("first".to_owned()));
+        assert_eq!(second.retrieve(&slot).unwrap(), Some("second".to_owned()));
     }
 
     /// Locked is not absent: a store that does not answer is `Unavailable`,
     /// and no read of it may come back as "the slot is empty".
     #[test]
     fn a_locked_store_is_unavailable_never_empty() {
-        let store = MockStore {
-            backend: MockBackend::default(),
-        };
-        store
-            .store(CredentialSlot::RefreshToken, "secret")
-            .expect("store");
+        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
+        let slot = CredentialSlot::refresh_token();
+        store.store(&slot, "secret").expect("store");
 
         store.backend.lock("keychain is locked");
 
         let error = store
-            .retrieve(CredentialSlot::RefreshToken)
+            .retrieve(&slot)
             .expect_err("a locked store cannot answer None");
         assert_eq!(
             error,
@@ -392,7 +442,7 @@ mod mock_tests {
                 detail: "keychain is locked".to_owned()
             }
         );
-        assert!(store.store(CredentialSlot::RefreshToken, "other").is_err());
-        assert!(store.remove(CredentialSlot::RefreshToken).is_err());
+        assert!(store.store(&slot, "other").is_err());
+        assert!(store.remove(&slot).is_err());
     }
 }

@@ -2,7 +2,7 @@
 //! store — the mechanism contract 004's automatic encrypted backup requires.
 //!
 //! The identity is generated once from the OS RNG and kept in the
-//! `CredentialSlot::AgeIdentity` slot; every later backup and restore reads it
+//! `CredentialSlot::backup_identity()` slot; every later backup and restore reads it
 //! back. A consumer supplies any [`CredentialStore`] — the keychain backend
 //! for persistence, the memory store for a deliberate no-persistence
 //! composition (a fresh identity per process means old backups stop
@@ -69,17 +69,15 @@ impl<S: CredentialStore> StoreBackupEncryption<S> {
         if let Some(identity) = cached.as_ref() {
             return Ok(identity.clone());
         }
-        let identity = match self.store.retrieve(CredentialSlot::AgeIdentity) {
+        let slot = CredentialSlot::backup_identity();
+        let identity = match self.store.retrieve(&slot) {
             Ok(Some(secret)) => {
                 AgeIdentity::parse(&secret).map_err(|_| AgeProviderError::Failed)?
             }
             Ok(None) => {
                 let generated = AgeIdentity::generate();
                 self.store
-                    .store(
-                        CredentialSlot::AgeIdentity,
-                        generated.to_secret().expose_secret(),
-                    )
+                    .store(&slot, generated.to_secret().expose_secret())
                     .map_err(|_| AgeProviderError::Unavailable)?;
                 // Read back rather than trusting the write. Another process
                 // that generated between this one's read and its write has
@@ -87,7 +85,7 @@ impl<S: CredentialStore> StoreBackupEncryption<S> {
                 // generated here would write archives that the identity the
                 // store actually names cannot open. Adopt what the store
                 // says, not what this process made.
-                match self.store.retrieve(CredentialSlot::AgeIdentity) {
+                match self.store.retrieve(&slot) {
                     Ok(Some(secret)) => {
                         AgeIdentity::parse(&secret).map_err(|_| AgeProviderError::Failed)?
                     }
@@ -146,12 +144,12 @@ mod tests {
     }
 
     impl CredentialStore for RivalWonStore {
-        fn store(&self, _slot: CredentialSlot, secret: &str) -> Result<(), CredentialError> {
+        fn store(&self, _slot: &CredentialSlot, secret: &str) -> Result<(), CredentialError> {
             *self.written.lock().unwrap() = Some(secret.to_owned());
             Ok(())
         }
 
-        fn retrieve(&self, _slot: CredentialSlot) -> Result<Option<String>, CredentialError> {
+        fn retrieve(&self, _slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
             let mut reads = self.reads.lock().unwrap();
             *reads += 1;
             // First read: the slot is genuinely empty, so the caller
@@ -163,7 +161,7 @@ mod tests {
             }
         }
 
-        fn remove(&self, _slot: CredentialSlot) -> Result<(), CredentialError> {
+        fn remove(&self, _slot: &CredentialSlot) -> Result<(), CredentialError> {
             Ok(())
         }
     }
@@ -172,15 +170,15 @@ mod tests {
     struct ForgetfulStore;
 
     impl CredentialStore for ForgetfulStore {
-        fn store(&self, _slot: CredentialSlot, _secret: &str) -> Result<(), CredentialError> {
+        fn store(&self, _slot: &CredentialSlot, _secret: &str) -> Result<(), CredentialError> {
             Ok(())
         }
 
-        fn retrieve(&self, _slot: CredentialSlot) -> Result<Option<String>, CredentialError> {
+        fn retrieve(&self, _slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
             Ok(None)
         }
 
-        fn remove(&self, _slot: CredentialSlot) -> Result<(), CredentialError> {
+        fn remove(&self, _slot: &CredentialSlot) -> Result<(), CredentialError> {
             Ok(())
         }
     }
@@ -233,14 +231,15 @@ mod tests {
         // never wrote to the store at all.
         let persisted = provider
             .store
-            .retrieve(CredentialSlot::AgeIdentity)
+            .retrieve(&CredentialSlot::backup_identity())
             .unwrap()
             .expect("generation must persist the identity, not just return it");
 
         // A fresh provider over that stored secret reads the same identity —
         // the process boundary is the point.
         let next = MemoryCredentialStore::new();
-        next.store(CredentialSlot::AgeIdentity, &persisted).unwrap();
+        next.store(&CredentialSlot::backup_identity(), &persisted)
+            .unwrap();
         let second = StoreBackupEncryption::new(next)
             .decryption_identities()
             .unwrap();
@@ -252,7 +251,7 @@ mod tests {
     fn a_corrupt_stored_identity_fails_rather_than_regenerating() {
         let store = MemoryCredentialStore::new();
         store
-            .store(CredentialSlot::AgeIdentity, "not-an-identity")
+            .store(&CredentialSlot::backup_identity(), "not-an-identity")
             .unwrap();
         let provider = StoreBackupEncryption::new(store);
 
@@ -263,7 +262,7 @@ mod tests {
         assert_eq!(
             provider
                 .store
-                .retrieve(CredentialSlot::AgeIdentity)
+                .retrieve(&CredentialSlot::backup_identity())
                 .unwrap()
                 .as_deref(),
             Some("not-an-identity"),

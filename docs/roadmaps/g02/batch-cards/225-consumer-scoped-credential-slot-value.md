@@ -1,6 +1,7 @@
 # 225 Consumer-scoped Credential Slot Value
 
-Status: ready
+Status: complete
+Completed: 2026-08-16
 Owner: Longhorn maintainers
 Roadmap: g02.028
 Governing refs: contract 021; contracts 001, 003, 004, and 012
@@ -28,17 +29,34 @@ consumer namespace/scope/purpose slots.
    that still describe the store as licence-only or the slot vocabulary as
    closed.
 
+## Result
+
+`CredentialSlot` is now an owned validated value. Its three built-in
+constructors preserve the previous persisted bytes, while
+`consumer_scoped(namespace, scope, purpose)` admits the canonical contract-021
+shape without teaching Longhorn consumer policy.
+
+The store trait and all implementations borrow slots. Memory storage keys by
+the complete value; keyring storage maps service plus canonical persisted
+name. Validation reports the rejected segment category and lengths without
+echoing input.
+
+The memory and mock-keyring suites prove replacement, removal, namespace,
+scope, purpose, and service isolation. The real macOS suite proves consumer
+round trips and that the underlying platform accepts the contract's 255-byte
+account-name ceiling.
+
 ## Acceptance
 
-- [ ] Built-in persisted names are byte-identical before and after the change.
-- [ ] Namespace, scope, purpose, and service differences produce distinct
+- [x] Built-in persisted names are byte-identical before and after the change.
+- [x] Namespace, scope, purpose, and service differences produce distinct
       entries.
-- [ ] Every malformed or overlong segment and total name fails before backend
+- [x] Every malformed or overlong segment and total name fails before backend
       access.
-- [ ] Memory and mock/real-platform keyring contract suites pass.
-- [ ] `rg` finds no old enum variant call sites or product vocabulary in the
+- [x] Memory and mock/real-platform keyring contract suites pass.
+- [x] `rg` finds no old enum variant call sites or product vocabulary in the
       shared implementation.
-- [ ] `effigy qa` passes.
+- [x] `effigy qa` passes.
 
 ## Out Of Scope
 
@@ -54,4 +72,3 @@ secret-derived identity or entry enumeration.
 ## Next Task
 
 Return the promoted Longhorn commit to Bovine Card 128 adoption.
-
