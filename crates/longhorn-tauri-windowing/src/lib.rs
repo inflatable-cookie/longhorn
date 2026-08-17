@@ -45,12 +45,9 @@ pub use lifecycle::{
     WindowRevealStatus, WindowScaleGeometryMapper, WindowShutdownReceipt, WindowUserCloseHandler,
     translate_tauri_window_event,
 };
-#[cfg(target_os = "macos")]
-pub use mapping::AppKitDesktopPlane;
 pub use mapping::{
-    DesktopCoordinateMapper, MacOsDesktopMapper, MappedDesktopGeometry, MappedDisplayGeometry,
-    MappedWindowGeometry, NativeDesktopPlane, NativeDisplayGeometry, UniformScaleMapper,
-    project_desktop,
+    DesktopCoordinateMapper, LogicalLayoutMapper, MappedDesktopGeometry, MappedDisplayGeometry,
+    MappedWindowGeometry, UniformScaleMapper, project_desktop,
 };
 pub use model::{
     DefaultDisplayMetadata, DesktopObservation, DisplayMetadataProvider,

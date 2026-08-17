@@ -7,8 +7,8 @@ use longhorn_tauri_windowing::{
 
 use super::support::{display, mapped_display, physical_rect, screen_rect, window};
 
-#[path = "mapping/macos.rs"]
-mod macos;
+#[path = "mapping/logical_layout.rs"]
+mod logical_layout;
 #[path = "mapping/projection.rs"]
 mod projection;
 

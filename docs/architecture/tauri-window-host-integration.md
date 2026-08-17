@@ -77,22 +77,26 @@ scaled displays. Its global origin is valid only where the platform's physical
 origin divided by current scale forms one coherent logical desktop. Mixed-scale
 global origins otherwise require an injected platform mapper.
 
-`MacOsDesktopMapper` is that mapper on macOS, composed over an
-`AppKitDesktopPlane`. It exists because a MacBook plus an external monitor is
-an ordinary arrangement that `UniformScaleMapper` refuses outright, which
-stopped a consumer completing hidden-window restore before startup could read
-saved state.
+`LogicalLayoutMapper` is that mapper for macOS and Linux. It exists because a
+laptop plus an external monitor is an ordinary arrangement that
+`UniformScaleMapper` refuses outright, which stopped a consumer completing
+hidden-window restore before startup could read saved state.
 
-It reads rather than derives. macOS composites one logical desktop in points
-with a top-left origin — `ScreenDip` — so the mapper returns `NSScreen`
-geometry directly and never divides a monitor origin. Tauri's physical facts
-are used only to correlate an observation with the native display it describes,
-on size, scale, and main-display status; exactly one match or a typed refusal.
+It converts every display and window through its own scale. That works on
+macOS and Linux for one reason: both lay the desktop out in logical units and
+report physical facts as those units times each object's scale, so dividing
+returns the original layout exactly.
 
-The mapper is macOS-only and exposed as such rather than hidden behind a
-platform-selecting constructor. Longhorn states host differences instead of
-erasing them, and a consumer on a platform with no plane reader should meet
-that at composition rather than as a runtime refusal.
+Windows does not work that way, and is the case the general prohibition exists
+for. Its virtual desktop is a real physical-pixel plane read from the OS. Put a
+3840x2160 display at 200% beside a 1920x1080 display at 100% and the second
+monitor's physical origin is x=3840; divided by its own scale that stays 3840,
+where a coherent logical layout wants 1920 — a phantom gap between monitors
+that touch. Windows needs a mapper that reads its own layout, and until one
+exists a mixed-scale Windows desktop keeps the typed refusal.
+
+Mappers name the hosts they are valid for rather than selecting a strategy at
+runtime. Longhorn states host differences instead of erasing them.
 
 Restore through `SavedWindowPlacement` and `restore_window_placement`.
 The record carries optional canonical `DisplayId` plus mapped display evidence.

@@ -7,12 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{DesktopMappingError, PhysicalDesktopSnapshot};
 
-mod macos;
 mod project;
 
-#[cfg(target_os = "macos")]
-pub use macos::AppKitDesktopPlane;
-pub use macos::{MacOsDesktopMapper, NativeDesktopPlane, NativeDisplayGeometry};
 pub use project::project_desktop;
 
 /// Logical geometry returned for one raw display observation.
@@ -199,6 +195,78 @@ impl DesktopCoordinateMapper for UniformScaleMapper {
             .windows()
             .iter()
             .map(|window| {
+                Ok(MappedWindowGeometry::new(
+                    window.transport_handle().clone(),
+                    scale.physical_rect_to_screen(window.outer_bounds(), RoundingMode::Nearest)?,
+                    scale.physical_size_to_screen(window.inner_size(), RoundingMode::Nearest)?,
+                ))
+            })
+            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
+
+        Ok(MappedDesktopGeometry::new(displays, windows))
+    }
+}
+
+/// Maps a desktop whose physical facts are derived from a logical layout.
+///
+/// Converts every display and window through its own scale, which establishes
+/// one coherent plane across mixed scales — the arrangement
+/// [`UniformScaleMapper`] refuses.
+///
+/// # Where this is valid, and where it is not
+///
+/// It depends entirely on what the host means by "physical", and the three
+/// platforms do not agree:
+///
+/// - **macOS** lays the desktop out in points. Tauri reports a monitor's
+///   position as `CGDisplayBounds.origin * that display's own scale`, so
+///   dividing by the same scale returns the original layout exactly.
+/// - **Linux** has the same shape through GTK: the monitor geometry is logical
+///   and Tauri multiplies it by the scale to report physical.
+/// - **Windows does not.** Tauri reports `rcMonitor` straight from the OS, and
+///   that is a real physical-pixel virtual desktop rather than anything derived
+///   from a logical layout. Per-monitor division breaks there. A 3840x2160
+///   display at 200% followed by a 1920x1080 display at 100% puts the second
+///   monitor's physical origin at x=3840; divided by its own scale that stays
+///   3840, where a coherent logical layout wants 1920. The result is a
+///   1920-wide gap between two monitors that physically touch.
+///
+/// So this is not a general desktop mapping and must not be composed on
+/// Windows, which is what contract 009's rule against per-monitor division is
+/// really about. Windows needs a mapper that reads its own layout; until one
+/// exists, a mixed-scale Windows desktop keeps [`UniformScaleMapper`]'s typed
+/// refusal, which is honest rather than silently wrong.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LogicalLayoutMapper;
+
+impl DesktopCoordinateMapper for LogicalLayoutMapper {
+    fn map_desktop(
+        &self,
+        snapshot: &PhysicalDesktopSnapshot,
+    ) -> Result<MappedDesktopGeometry, DesktopMappingError> {
+        let displays = snapshot
+            .displays()
+            .iter()
+            .map(|display| {
+                let scale = display.facts().scale();
+                Ok(MappedDisplayGeometry::new(
+                    display.metadata().observation_id().clone(),
+                    scale.physical_rect_to_screen(
+                        display.facts().full_bounds(),
+                        RoundingMode::Nearest,
+                    )?,
+                    scale.physical_rect_to_screen(
+                        display.facts().work_area(),
+                        RoundingMode::Nearest,
+                    )?,
+                ))
+            })
+            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
+        let windows = snapshot
+            .windows()
+            .iter()
+            .map(|window| {
+                let scale = window.scale();
                 Ok(MappedWindowGeometry::new(
                     window.transport_handle().clone(),
                     scale.physical_rect_to_screen(window.outer_bounds(), RoundingMode::Nearest)?,

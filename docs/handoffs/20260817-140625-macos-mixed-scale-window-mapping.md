@@ -7,10 +7,12 @@ created: 2026-08-17
 updated: 2026-08-17
 completed: 2026-08-17
 outcome: >-
-  Card 226 landed on main. MacOsDesktopMapper reads the platform's own logical
-  plane; contract 009 and the architecture note carry the policy. Figmatic
-  adoption is the explicit next task and was not performed from this lane.
-  This file is history, not a dispatch.
+  Card 226 landed on main. LogicalLayoutMapper converts each object through its
+  own scale — valid on macOS and Linux, excluded on Windows; contract 009 now
+  states that per platform instead of banning division outright. A first native
+  AppKit implementation was written and then removed as redundant; see the card.
+  Figmatic adoption is the explicit next task and was not performed from this
+  lane. This file is history, not a dispatch.
 handoff_path: /Users/tom/Dev/projects/longhorn/docs/handoffs/20260817-140625-macos-mixed-scale-window-mapping.md
 tags: [coordination, handoff, windowing, macos]
 ---
