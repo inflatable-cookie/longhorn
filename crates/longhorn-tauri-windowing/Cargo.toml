@@ -14,6 +14,28 @@ longhorn-windowing.workspace = true
 serde.workspace = true
 tauri.workspace = true
 
+# The macOS coordinate plane is read from AppKit, not derived from Tauri's
+# physical facts (contract 009; Card 226). Both crates are already in the tree
+# as Tauri's own macOS dependencies, so this adds a feature surface rather than
+# a new supply-chain edge, and nothing outside macOS compiles them.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+  "std",
+  "NSScreen",
+  "NSWindow",
+  "NSView",
+  "NSResponder",
+] }
+objc2-foundation = { version = "0.3", default-features = false, features = [
+  "std",
+  "NSArray",
+  "NSDictionary",
+  "NSGeometry",
+  "NSString",
+  "NSValue",
+] }
+
 [dev-dependencies]
 longhorn-surface-windowing.workspace = true
 longhorn-surfaces.workspace = true

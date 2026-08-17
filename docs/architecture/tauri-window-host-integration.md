@@ -77,6 +77,23 @@ scaled displays. Its global origin is valid only where the platform's physical
 origin divided by current scale forms one coherent logical desktop. Mixed-scale
 global origins otherwise require an injected platform mapper.
 
+`MacOsDesktopMapper` is that mapper on macOS, composed over an
+`AppKitDesktopPlane`. It exists because a MacBook plus an external monitor is
+an ordinary arrangement that `UniformScaleMapper` refuses outright, which
+stopped a consumer completing hidden-window restore before startup could read
+saved state.
+
+It reads rather than derives. macOS composites one logical desktop in points
+with a top-left origin — `ScreenDip` — so the mapper returns `NSScreen`
+geometry directly and never divides a monitor origin. Tauri's physical facts
+are used only to correlate an observation with the native display it describes,
+on size, scale, and main-display status; exactly one match or a typed refusal.
+
+The mapper is macOS-only and exposed as such rather than hidden behind a
+platform-selecting constructor. Longhorn states host differences instead of
+erasing them, and a consumer on a platform with no plane reader should meet
+that at composition rather than as a runtime refusal.
+
 Restore through `SavedWindowPlacement` and `restore_window_placement`.
 The record carries optional canonical `DisplayId` plus mapped display evidence.
 Resolution tries the saved display, useful intersection, main display, then

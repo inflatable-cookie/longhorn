@@ -110,6 +110,21 @@ the host suppress feedback from its own mutations.
 - Mixed-scale global origins require an injected platform coordinate mapper.
   Dividing each monitor origin by its own scale is not a valid generic desktop
   mapping and fails as unavailable.
+- The macOS mapper reads the plane rather than deriving one. macOS already
+  composites a single logical desktop in points, top-left origin, y down —
+  which is `ScreenDip`. `MacOsDesktopMapper` returns each display's bounds and
+  work area from that plane and never divides a monitor origin.
+- Its correlation is the guard, not a convenience. A display observation is
+  matched to a native display on physical size, scale, and main-display status;
+  anything other than exactly one match fails typed, including two identical
+  external displays. Position is deliberately excluded from the key.
+- Managed windows convert through their own scale under that mapper, which is
+  sound only because the correlation just proved the host derives physical
+  facts from the same plane. The guard runs first: a host that changed that
+  derivation fails correlation on the displays before any window is mapped.
+- A platform plane is read on the platform's terms. The macOS reader is
+  main-thread-only and refuses off it rather than reading geometry the window
+  server may be changing.
 - A managed-window probe is complete or fails. An unreadable managed window
   cannot disappear from a snapshot and trigger duplicate creation by omission.
 - Native apply is ordered and non-transactional. Every attempted operation

@@ -45,6 +45,10 @@ complete except the separately operator-held release machinery noted below.
   it is in the tree. Longhorn's release waits on Poodle v0.2.0 by operator
   decision, so the linked-Poodle exemption stays until then.
 - No Longhorn card auto-starts from Card 225.
+- Card 226 (2026-08-17) closed a mixed-scale macOS coordinate gap raised by
+  Figmatic consumer evidence: `MacOsDesktopMapper` reads the platform's own
+  logical plane instead of dividing monitor origins. Figmatic adoption is the
+  next task and belongs to the Figmatic thread.
 
 Pre-suite lanes are tracked on the [g02 runway](g02/README.md). g02.015 closed
 2026-08-17 and g02.018 closed 2026-08-12; g02.017 and g02.019 are the

@@ -7,8 +7,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{DesktopMappingError, PhysicalDesktopSnapshot};
 
+mod macos;
 mod project;
 
+#[cfg(target_os = "macos")]
+pub use macos::AppKitDesktopPlane;
+pub use macos::{MacOsDesktopMapper, NativeDesktopPlane, NativeDisplayGeometry};
 pub use project::project_desktop;
 
 /// Logical geometry returned for one raw display observation.
