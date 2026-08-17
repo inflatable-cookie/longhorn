@@ -3,10 +3,15 @@ title: Consumer-scoped credential slots worker handoff
 kind: northstar-handoff
 handoff_mode: worker-pr-loop
 handoff: single-file-path-only
-status: ready-to-launch
+status: complete
 owner: orchestrator
 created: 2026-08-16
-updated: 2026-08-16
+updated: 2026-08-17
+completed: 2026-08-17
+outcome: >-
+  Card 225 landed. Worker delivered consumer-scoped slots; merged to main as
+  PR #1 (7f30368c, feature commit fe5ab2bc). g02.028 is complete. This file is
+  history, not a dispatch — do not relaunch a worker from it.
 handoff_path: /Users/tom/Dev/projects/longhorn/docs/handoffs/20260816-192517-scoped-credentials-card225.md
 base_required: pushed-main
 tags: [coordination, handoff, worker, pr]

@@ -1,5 +1,9 @@
 # Longhorn Agents
 
+Longhorn is a pre-1.0 private workspace of shared Rust and Svelte/TypeScript
+systems for Tauri desktop applications, consumed by five sibling apps.
+Publication is deferred.
+
 This file applies to the whole repository.
 
 ## Start Here
@@ -13,9 +17,11 @@ effigy qa
 
 `doctor` runs cheap health (`fmt:rust`, `check:runner-tools`) plus built-in
 scans, and finishes in seconds — it compiles nothing. Full Rust/TypeScript
-validation is `effigy qa`, not doctor; the MSRV floor is a release gate. Before
-a release, also run `effigy ci:rehearse` — it exercises the clean-runner
-properties that local `qa` can miss.
+validation is `effigy qa` — not doctor, and not `effigy test`, whose built-in
+plan runs `cargo nextest` and so skips the doc tests the gate counts. The MSRV
+floor is a release gate. Before a release, also run `effigy ci:rehearse` — it
+exercises the clean-runner properties that local `qa` can miss, and it is a
+full rehearsal, not a quick check.
 
 Then read:
 

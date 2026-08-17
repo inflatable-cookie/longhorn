@@ -46,8 +46,10 @@ complete except the separately operator-held release machinery noted below.
   decision, so the linked-Poodle exemption stays until then.
 - No Longhorn card auto-starts from Card 225.
 
-Pre-suite lanes are tracked on the [g02 runway](g02/README.md): g02.015's
-Card 176, g02.017-019 in progress, Card 149 operator-held.
+Pre-suite lanes are tracked on the [g02 runway](g02/README.md). g02.015 closed
+2026-08-17 and g02.018 closed 2026-08-12; g02.017 and g02.019 are the
+in-progress lanes, g02.020 is ready. Open pre-suite cards are 166 (ready), 160
+and 177 (in progress). Card 149 is operator-held.
 
 ## Memo 023 Release-audit Suite
 

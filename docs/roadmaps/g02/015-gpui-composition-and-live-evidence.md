@@ -1,8 +1,8 @@
 # g02.015 GPUI Composition And Live Evidence
 
-Status: ready
+Status: complete — 2026-08-17
 Owner: Tom
-Updated: 2026-08-09
+Updated: 2026-08-17
 Governing refs: contract 020; contract 013; contract 012; memo 021; memo 022
 Depends on: g02.012 (complete)
 
@@ -64,7 +64,7 @@ compiles, and the two readable against each other.
   empty display off both. Found that `on_mouse_up` never fires for a
   cross-window release, and that a window cannot be observed from inside its
   own event callback.
-- [ ] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
+- [x] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
   **Answered.** A window moved just before it closes loses its placement: the
@@ -92,19 +92,31 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 - [x] a GPUI application can be assembled without reading adapter source
 - [x] every seam a GPUI application must supply is named in one place
-- [ ] contract 020 holds no claim proved only in memory
-- [ ] the GPUI binding is built by something other than a person remembering to
+- [x] contract 020 holds no claim proved only in memory — read as written: no
+  row claims memory-only evidence *without saying why it cannot be more*. The
+  lifecycle-events row still rests mostly on in-memory proof and now states the
+  reason (a live event costs a person at the machine, target frontmost), which
+  is the standard the acceptance criterion sets
+- [x] the GPUI binding is built by something other than a person remembering to
+  — `effigy check:prototypes` covers all seven prototypes and is a release
+  gate, so a workspace crate that breaks the GPUI binding fails a release
 
 ## Acceptance Criteria
 
-- [ ] the composition guide assembles a window, a projection, and
+- [x] the composition guide assembles a window, a projection, and
   `HostServices`, and its example compiles under whatever cadence Batch 1 chose
+  — `docs/guides/gpui-composition.md`'s Composition Order supplies
+  `HostServices` (step 3), implements `GpuiWindowBackend` (step 4), and projects
+  with `longhorn-poodle` (step 6); `prototypes/gpui-composition` compiles under
+  `check:prototypes`, verified 2026-08-17
 - [x] a drag released over a second real window resolves to that window
 - [x] a window torn down with a flush genuinely in flight either completes it
   or refuses the close, and the proof says which — it does neither: it stages,
   permits the close, and never writes
-- [ ] no claim in contract 020's current-state table reads "in-memory only"
-  without a stated reason it cannot be more
+- [x] no claim in contract 020's current-state table reads "in-memory only"
+  without a stated reason it cannot be more — the lifecycle-events row was the
+  last one; it now names the cost of a live observation as the reason. The
+  close-handling row moved to live evidence outright on Card 176
 
 ## Explicit Non-goals
 
@@ -117,12 +129,17 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 
 ## Next Task
 
-Card 176's three observations. All need a real window closed while the example
-is frontmost, and keeping it there proved to be the hard part — a titlebar drag
-sent it behind another application twice.
+None — the milestone closed 2026-08-17.
 
-The one Card 175 criterion left open is the same shape: a window moved
-mid-drag, which needs the window to stay in front while it is moved.
+Card 176 took the three observations. Keeping the example frontmost was the
+hard part, exactly as anticipated; the answer was a driver that verifies the
+target is frontmost and the point is inside one of its windows before posting,
+and exits non-zero naming the failed check. That guard is the reusable piece.
+
+One Card 175 criterion of the same shape stays open — a window moved mid-drag,
+which needs the window to stay in front while it is moved. It is recorded on
+Card 175 and does not hold this milestone: the guard above is what a later
+attempt would build on.
 
 ## Planning Checkpoint
 

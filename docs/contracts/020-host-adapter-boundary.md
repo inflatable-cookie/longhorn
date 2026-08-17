@@ -256,8 +256,8 @@ amendments above came from it, but the evidence has a stated ceiling.
 | --- | --- | --- |
 | Windows: create, destroy, observe | proved | proved, in-memory **and against real windows, including two at once** |
 | Placement application | proved | origin proved at creation, on a real window at the exact requested origin; size proved on existing windows; moving an existing window is refused and named |
-| Lifecycle events | proved | proved for every event in the list, in-memory only |
-| Close handling | proved | proved in-memory, **including thirteen windows torn down out of order with a failing sink**; the real close path ran in the smoke binary |
+| Lifecycle events | proved | proved for every event in the list, in-memory; live only for the close path (Card 176). The rest stay in-memory for a stated reason: each live event needs a person at the machine with the target frontmost, so the events were proved live where a defect was plausible rather than exhaustively |
+| Close handling | proved | **proved live** — a real close against a real store with a move staged, which found a silent placement loss and the missing shutdown flush behind it; both fixed and pinned (Card 176). Also proved in-memory, including thirteen windows torn down out of order with a failing sink |
 | Quiescence participation | proved | proved, in-memory, **and that it returns to quiet after a teardown** |
 | Display facts with scale factors | proved | **not obtainable from the gpui API alone** — scale, work area and position come from a per-platform reader over the id gpui exposes; a macOS reader exists and was measured against two real displays |
 | Platform directories | proved | not exercised |
@@ -265,8 +265,13 @@ amendments above came from it, but the evidence has a stated ceiling.
 
 All three claims this paragraph used to carry are now discharged in-memory,
 and the drag ceiling this paragraph then named is closed too — see "The drag
-crossed — 2026-08-10" below. One ceiling remains: **no real teardown has run
-with a real flush in flight** (g02.015's Card 176).
+crossed — 2026-08-10" below. The teardown ceiling it named after that is closed
+as well: Card 176 ran a real close against a real store with a real move
+staged, and the loss it found is fixed — see "Closed" below. What that run
+also established is the boundary of this evidence: **a live observation here
+costs a person at the machine**, with the target frontmost and events posted
+into its session, which is why the rows below that still read in-memory say so
+rather than promising more.
 
 The three claims themselves:
 Multi-window placement was proved against two real windows across two displays
@@ -584,9 +589,10 @@ again with a second screen attached, it found the discarded display origin,
 which one display could not have. Both are now regression tests.
 
 That is the pattern worth noting: each time the evidence got one step closer
-to a real machine, it found something no fake would have. The drag ceiling
-this sentence carried closed on 2026-08-10 (see above); what remains is
-teardown with a flush in flight — Card 176.
+to a real machine, it found something no fake would have. The drag ceiling this
+sentence carried closed on 2026-08-10, and the teardown ceiling it named next
+closed the same day — Card 176 held to the pattern exactly, finding a silent
+placement loss and an adapter gap that no in-memory sink could have shown.
 
 ## Non-goals
 

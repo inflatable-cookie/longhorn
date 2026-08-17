@@ -18,12 +18,12 @@
 | [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
 | [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
-| [g02.015](015-gpui-composition-and-live-evidence.md) | ready | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
+| [g02.015](015-gpui-composition-and-live-evidence.md) | complete | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
 | [g02.017](017-fork-retention-and-deletion.md) | in progress | an operator can delete a fork; retention can prune, which today it cannot |
 | [g02.020](020-no-design-in-the-authority.md) | ready | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | in progress | the state the operator started from is a position they can name and return to |
-| [g02.018](018-tagged-union-boundary-validation.md) | in progress | the 181 tagged unions validate per variant, from the Rust enums |
+| [g02.018](018-tagged-union-boundary-validation.md) | complete | the 181 tagged unions validate per variant, from the Rust enums |
 | [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
 | [g02.022](022-bridge-session-and-event-lifecycle.md) | complete | events respect read authority; sessions end with their window |
 | [g02.023](023-credential-and-activation-hardening.md) | complete | the credential path matches the config-age discipline |

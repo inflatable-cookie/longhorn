@@ -6,9 +6,12 @@ None.
 
 ## Ready
 
-None.
+None in the indexed range.
 
-(Cards 150-199 predate this index's last update; see the milestone files.)
+Cards 150-199 predate this index and are tracked on the milestone files, not
+here. Three of them are still open and this section does not list them:
+Card 166 (first publication) is ready; Cards 160 and 177 are in progress. Read
+"None" as "nothing indexed here is ready", not as "nothing in g02 is ready".
 
 ## Operator-held
 
