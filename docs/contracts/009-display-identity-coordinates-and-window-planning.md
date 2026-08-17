@@ -125,6 +125,13 @@ the host suppress feedback from its own mutations.
   exists.
 - A mapper states which hosts it is valid for. Composing one on a host it does
   not describe is a composition error, not a runtime fallback.
+- Longhorn chooses the mapper, not the consuming application. Which mapper is
+  correct follows from the target platform, about which an application knows
+  nothing Longhorn does not, so `observe_tauri_desktop`,
+  `TauriDesktopReadback::new`, and `plan_tauri_window_restore` take no mapper.
+  A nominated mapper stays available for a test double or an undescribed host.
+- The consequence is the point: a platform mapper that lands later reaches
+  every consumer on the next Longhorn revision without an application change.
 - A managed-window probe is complete or fails. An unreadable managed window
   cannot disappear from a snapshot and trigger duplicate creation by omission.
 - Native apply is ordered and non-transactional. Every attempted operation

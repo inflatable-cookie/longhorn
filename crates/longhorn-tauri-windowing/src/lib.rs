@@ -47,14 +47,16 @@ pub use lifecycle::{
 };
 pub use mapping::{
     DesktopCoordinateMapper, LogicalLayoutMapper, MappedDesktopGeometry, MappedDisplayGeometry,
-    MappedWindowGeometry, UniformScaleMapper, project_desktop,
+    MappedWindowGeometry, PlatformDesktopMapper, UniformScaleMapper, project_desktop,
 };
 pub use model::{
     DefaultDisplayMetadata, DesktopObservation, DisplayMetadataProvider,
     DisplayObservationMetadata, ManagedWebviewWindow, PhysicalDesktopSnapshot,
     PhysicalDisplayObservation, PhysicalLiveWindowObservation, PhysicalMonitorFacts,
 };
-pub use probe::{observe_tauri_desktop, probe_managed_windows, probe_tauri_desktop};
+pub use probe::{
+    observe_tauri_desktop, observe_tauri_desktop_with, probe_managed_windows, probe_tauri_desktop,
+};
 pub use restore::{
     TauriWindowRestore, TauriWindowRestoreError, plan_tauri_window_restore,
     plan_window_restore_from_observation,

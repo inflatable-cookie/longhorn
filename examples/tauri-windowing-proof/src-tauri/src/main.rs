@@ -24,11 +24,10 @@ use longhorn_tauri_windowing::{
     DefaultDisplayMetadata, ManagedWebviewWindow, PredeclaredTauriWindow, ProcessMonotonicClock,
     ScheduledWindowLifecycleWake, TauriDesktopReadback, TauriWindowCaptureBackend, TauriWindowHost,
     TauriWindowLifecycleServices, TauriWindowMutationBackend, TauriWindowRevealBackend,
-    UniformScaleMapper, UniformWindowGeometryMapper, WindowFlushRequest, WindowLifecycleClock,
-    WindowLifecycleReport, WindowLifecycleScheduler, WindowPlacementFlushCompletion,
-    WindowPlacementFlushTicket, WindowPlacementSink, WindowRevealReceipt, WindowShutdownReceipt,
-    WindowUserCloseHandler, assemble_tauri_window_host, observe_tauri_desktop,
-    scale_factor_from_tauri,
+    UniformWindowGeometryMapper, WindowFlushRequest, WindowLifecycleClock, WindowLifecycleReport,
+    WindowLifecycleScheduler, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
+    WindowPlacementSink, WindowRevealReceipt, WindowShutdownReceipt, WindowUserCloseHandler,
+    assemble_tauri_window_host, observe_tauri_desktop, scale_factor_from_tauri,
 };
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostWindowHandle, PlacementPolicy, ProtectedPrimaryPolicy,
@@ -347,13 +346,8 @@ fn managed_windows<R: Runtime>(app: &AppHandle<R>) -> Result<Vec<ManagedWebviewW
 fn current_observation<R: Runtime>(
     app: &AppHandle<R>,
 ) -> Result<longhorn_tauri_windowing::DesktopObservation, String> {
-    observe_tauri_desktop(
-        app,
-        &managed_windows(app)?,
-        &mut DefaultDisplayMetadata,
-        &UniformScaleMapper,
-    )
-    .map_err(|error| format!("{error:?}"))
+    observe_tauri_desktop(app, &managed_windows(app)?, &mut DefaultDisplayMetadata)
+        .map_err(|error| format!("{error:?}"))
 }
 
 fn fallback_placement(
@@ -506,7 +500,7 @@ fn apply_window_set(
             input,
             dynamic_factory,
             TauriWindowMutationBackend,
-            TauriDesktopReadback::new(DefaultDisplayMetadata, UniformScaleMapper),
+            TauriDesktopReadback::new(DefaultDisplayMetadata),
         )
         .map_err(|error| format!("{error:?}"))?;
     let summary = json!({

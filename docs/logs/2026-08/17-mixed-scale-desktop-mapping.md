@@ -51,6 +51,19 @@ The sequencing is the lesson. The evidence that undercut the premise — reading
 how tao derives macOS coordinates — arrived partway through, and the work
 continued rather than stopping to re-raise it.
 
+## The rollout shape
+
+The mapper started as a consumer argument, so every sibling app would have had
+to edit two call sites, and any app that missed it would keep compiling while
+staying broken. The choice is not a product decision — it follows from the
+target platform — so it moved into Longhorn. `PlatformDesktopMapper` resolves
+per target; the consumer entry points take no mapper.
+
+That is a deliberate consumer break, approved by the operator. One mechanical
+deletion per call site now, compiler-enforced, in exchange for every future
+platform mapper reaching every app with no application change. Longhorn's own
+windowing proof was still on `UniformScaleMapper` and is fixed here.
+
 ## Validation
 
 `effigy qa` green. Six unit tests over an arrangement measured from Core

@@ -8,8 +8,7 @@ use longhorn_windowing::{
 use tauri::{AppHandle, Runtime};
 
 use crate::{
-    DesktopCoordinateMapper, DesktopObservation, DisplayMetadataProvider, TauriObservationError,
-    observe_tauri_desktop,
+    DesktopObservation, DisplayMetadataProvider, TauriObservationError, observe_tauri_desktop,
 };
 
 /// Canonical display reconciliation plus one pure restore result.
@@ -79,7 +78,6 @@ pub fn plan_tauri_window_restore<R, A>(
     saved: &SavedWindowPlacement,
     registry: &KnownDisplayRegistry,
     metadata_provider: &mut impl DisplayMetadataProvider,
-    mapper: &impl DesktopCoordinateMapper,
     allocator: &mut A,
     role: WindowRole,
     policy: PlacementPolicy,
@@ -88,7 +86,7 @@ where
     R: Runtime,
     A: DisplayIdAllocator,
 {
-    let observation = observe_tauri_desktop(app, &[], metadata_provider, mapper)
+    let observation = observe_tauri_desktop(app, &[], metadata_provider)
         .map_err(TauriWindowRestoreError::Observation)?;
     plan_window_restore_from_observation(saved, registry, &observation, allocator, role, policy)
 }

@@ -278,3 +278,29 @@ impl DesktopCoordinateMapper for LogicalLayoutMapper {
         Ok(MappedDesktopGeometry::new(displays, windows))
     }
 }
+
+/// The desktop mapper Longhorn composes for the target platform.
+///
+/// Choosing a coordinate mapper is not a product decision — it follows from
+/// the host platform, about which a consuming application knows nothing
+/// Longhorn does not. So the choice lives here, and an application asks for a
+/// desktop observation rather than nominating the arithmetic that produces it.
+///
+/// macOS and Linux derive their physical facts from a logical desktop layout,
+/// so [`LogicalLayoutMapper`] returns that layout exactly. Everywhere else —
+/// Windows today — the desktop plane is physical and per-object division is
+/// wrong, so the platform keeps [`UniformScaleMapper`]'s typed refusal until a
+/// mapper that reads its layout exists. A refusal is the honest answer there;
+/// a plausible-looking wrong plane is not.
+///
+/// The consequence worth having: when a Windows mapper does land, every
+/// consumer picks it up on the next Longhorn revision with no code change.
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+pub type PlatformDesktopMapper = LogicalLayoutMapper;
+
+/// The desktop mapper Longhorn composes for the target platform.
+///
+/// See the macOS/Linux definition for the reasoning; this target has no mapper
+/// that can establish a mixed-scale plane, so it keeps the typed refusal.
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+pub type PlatformDesktopMapper = UniformScaleMapper;

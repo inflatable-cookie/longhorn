@@ -98,6 +98,16 @@ exists a mixed-scale Windows desktop keeps the typed refusal.
 Mappers name the hosts they are valid for rather than selecting a strategy at
 runtime. Longhorn states host differences instead of erasing them.
 
+Longhorn also picks. `PlatformDesktopMapper` resolves at compile time to
+`LogicalLayoutMapper` on macOS and Linux and to `UniformScaleMapper`
+elsewhere, and the consumer-facing entry points take no mapper argument.
+Choosing one was never a product decision — an application has no information
+about the host that Longhorn lacks — and leaving the choice in each
+application meant every app had to know the platform rule, with a silently
+wrong plane as the cost of getting it wrong. `observe_tauri_desktop_with` and
+`TauriDesktopReadback::with_mapper` remain for a test double or a host
+Longhorn does not yet describe.
+
 Restore through `SavedWindowPlacement` and `restore_window_placement`.
 The record carries optional canonical `DisplayId` plus mapped display evidence.
 Resolution tries the saved display, useful intersection, main display, then

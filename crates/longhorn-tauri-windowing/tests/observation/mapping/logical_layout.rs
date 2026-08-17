@@ -18,7 +18,7 @@ use longhorn_core::{PhysicalSize, ScreenSize};
 use longhorn_display::DisplayBuiltinStatus;
 use longhorn_tauri_windowing::{
     DesktopCoordinateMapper, DesktopMappingError, LogicalLayoutMapper, PhysicalDesktopSnapshot,
-    UniformScaleMapper,
+    PlatformDesktopMapper, UniformScaleMapper,
 };
 
 use super::super::support::{display, physical_rect, screen_rect, window};
@@ -202,4 +202,31 @@ fn a_uniform_desktop_maps_identically_through_both_mappers() {
     let through_layout = LogicalLayoutMapper.map_desktop(&snapshot).expect("maps");
 
     assert_eq!(through_uniform, through_layout);
+}
+
+/// What consumers actually get, now that they no longer nominate a mapper.
+///
+/// On macOS and Linux the platform default must handle the arrangement that
+/// started this card; anywhere else it must still refuse rather than invent a
+/// plane. This is the assertion the whole rollout rests on, so it is pinned
+/// per platform rather than assumed from the type alias.
+#[test]
+fn the_platform_default_is_the_right_mapper_for_this_target() {
+    let outcome = PlatformDesktopMapper::default().map_desktop(&measured_snapshot());
+
+    if cfg!(any(target_os = "macos", target_os = "linux")) {
+        let mapped = outcome.expect("macOS and Linux map a mixed-scale desktop");
+        assert_eq!(
+            mapped.displays()[1].full_bounds(),
+            screen_rect(-1577, 1440, 1800, 1169)
+        );
+    } else {
+        assert!(
+            matches!(
+                outcome,
+                Err(DesktopMappingError::MixedScaleUnavailable { .. })
+            ),
+            "a platform with no layout-derived plane must refuse, found {outcome:?}"
+        );
+    }
 }

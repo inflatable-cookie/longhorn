@@ -100,13 +100,42 @@ elaborate version look mandatory. That prohibition is now stated accurately:
 division is invalid where the desktop plane is physical, which is Windows, and
 valid where it is derived, which is macOS and Linux.
 
+## Longhorn picks the mapper, not the application
+
+The mapper began as a consumer-supplied argument, which meant every one of the
+sibling apps had to know the platform rule and edit two call sites to get the
+fix — and an app that missed it kept compiling while staying broken on
+mixed-scale desktops. Silent wrongness is the worse failure.
+
+Choosing a coordinate mapper was never a product decision. It follows entirely
+from the target platform, about which an application knows nothing Longhorn
+does not. So `observe_tauri_desktop`, `TauriDesktopReadback::new`, and
+`plan_tauri_window_restore` no longer take one; `PlatformDesktopMapper`
+resolves at compile time to `LogicalLayoutMapper` on macOS and Linux and to
+`UniformScaleMapper` elsewhere. `observe_tauri_desktop_with` and
+`TauriDesktopReadback::with_mapper` remain for a test double or an undescribed
+host.
+
+This is a consumer break, taken deliberately with operator approval. It costs
+one mechanical deletion per call site now — compiler-enforced, so it cannot be
+missed or done wrongly — and it buys the thing that matters at this fleet size:
+**a platform mapper that lands later reaches every app on the next Longhorn
+revision with no application change at all.** A Windows mapper is the next one
+that will.
+
+Longhorn's own `examples/tauri-windowing-proof` was still passing
+`UniformScaleMapper` and is fixed in the same pass; the proof app had been left
+broken on exactly the arrangement this card exists for.
+
 ## Evidence
 
-- six unit tests over the arrangement measured on real hardware, including the
+- seven unit tests over the arrangement measured on real hardware, including the
   negative origin, a 2x window landing inside the 2x display's mapped bounds,
   per-object scales in one snapshot, and uniform-desktop equivalence;
 - the `MixedScaleUnavailable` control test, so the fail-closed contract cannot
-  weaken unnoticed.
+  weaken unnoticed;
+- a per-platform assertion on `PlatformDesktopMapper` itself, so the default a
+  consumer now silently receives is pinned rather than inferred from the alias.
 
 ## Unexecuted arrangements
 
@@ -126,6 +155,8 @@ the host derives its monitor geometry, not on a run.
 - [x] the coordinate policy is stated accurately in contract 009 and the
   architecture note, per platform rather than as a blanket ban
 - [x] Windows is named as excluded rather than silently mismapped
+- [x] consumers no longer choose a mapper, and the platform default is pinned
+- [x] Longhorn's own windowing proof uses the platform default
 - [ ] left/right/above arrangements — **not executed**, see above
 - [ ] any Linux arrangement — **not executed**, claim rests on host derivation
 

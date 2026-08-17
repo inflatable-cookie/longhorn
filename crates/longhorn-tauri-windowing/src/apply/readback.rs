@@ -2,7 +2,7 @@ use tauri::{AppHandle, Runtime};
 
 use crate::{
     DesktopCoordinateMapper, DesktopObservation, DisplayMetadataProvider, ManagedWindowRegistry,
-    TauriObservationError, observe_tauri_desktop,
+    TauriObservationError,
 };
 
 /// Fresh complete desktop observation after native mutation attempts.
@@ -21,10 +21,29 @@ pub struct TauriDesktopReadback<M, C> {
     mapper: C,
 }
 
-impl<M, C> TauriDesktopReadback<M, C> {
-    /// Constructs a production desktop readback.
+impl<M> TauriDesktopReadback<M, crate::PlatformDesktopMapper> {
+    /// Constructs a production desktop readback for the target platform.
+    ///
+    /// The coordinate mapper follows from the platform, not from product
+    /// policy, so it is not a parameter. See [`PlatformDesktopMapper`].
+    ///
+    /// [`PlatformDesktopMapper`]: crate::PlatformDesktopMapper
     #[must_use]
-    pub const fn new(metadata_provider: M, mapper: C) -> Self {
+    pub fn new(metadata_provider: M) -> Self {
+        Self {
+            metadata_provider,
+            mapper: crate::PlatformDesktopMapper::default(),
+        }
+    }
+}
+
+impl<M, C> TauriDesktopReadback<M, C> {
+    /// Constructs a readback through a nominated coordinate mapper.
+    ///
+    /// [`TauriDesktopReadback::new`] is the ordinary path. Reach for this only
+    /// with a reason the platform default does not cover.
+    #[must_use]
+    pub const fn with_mapper(metadata_provider: M, mapper: C) -> Self {
         Self {
             metadata_provider,
             mapper,
@@ -43,7 +62,7 @@ where
         app: &AppHandle<R>,
         registry: &ManagedWindowRegistry<R>,
     ) -> Result<DesktopObservation, TauriObservationError> {
-        observe_tauri_desktop(
+        crate::observe_tauri_desktop_with(
             app,
             &registry.managed_windows(),
             &mut self.metadata_provider,

@@ -139,6 +139,25 @@ pub fn observe_tauri_desktop<R: Runtime>(
     app: &AppHandle<R>,
     managed_windows: &[ManagedWebviewWindow<R>],
     metadata_provider: &mut impl DisplayMetadataProvider,
+) -> Result<DesktopObservation, TauriObservationError> {
+    observe_tauri_desktop_with(
+        app,
+        managed_windows,
+        metadata_provider,
+        &crate::PlatformDesktopMapper::default(),
+    )
+}
+
+/// Observes the desktop through a nominated coordinate mapper.
+///
+/// [`observe_tauri_desktop`] is the ordinary path and picks the mapper for the
+/// target platform. Reach for this only with a reason the platform default
+/// does not cover — a test double, or a host whose coordinate behaviour
+/// Longhorn does not yet describe.
+pub fn observe_tauri_desktop_with<R: Runtime>(
+    app: &AppHandle<R>,
+    managed_windows: &[ManagedWebviewWindow<R>],
+    metadata_provider: &mut impl DisplayMetadataProvider,
     mapper: &impl DesktopCoordinateMapper,
 ) -> Result<DesktopObservation, TauriObservationError> {
     let snapshot = probe_tauri_desktop(app, managed_windows, metadata_provider)?;
