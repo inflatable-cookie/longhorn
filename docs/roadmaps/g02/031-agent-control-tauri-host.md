@@ -1,6 +1,6 @@
 # g02.031 Agent Control Tauri Host
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Created: 2026-08-19
 Governing refs: contract 022; contracts 010, 012, 020
@@ -15,10 +15,10 @@ scan proving the entire surface is absent when the dev feature is off.
 
 ## Generation Runway
 
-- [ ] [Card 230](batch-cards/230-agent-control-tauri-plugin.md) — plugin,
+- [x] [Card 230](batch-cards/230-agent-control-tauri-plugin.md) — plugin,
       server mount behind the dev feature flag, localhost binding, window
       enumeration and targeting, release-absence artifact scan.
-- [ ] [Card 231](batch-cards/231-agent-control-capture.md) — WKWebView
+- [x] [Card 231](batch-cards/231-agent-control-capture.md) — WKWebView
       snapshot capture wired per the g02.029 evidence, including the
       recorded occluded/minimized behavior; packaged macOS
       unfocused-capture proof.
