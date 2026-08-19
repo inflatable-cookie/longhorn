@@ -33,6 +33,7 @@ members = [
   "crates/longhorn-tauri-notifications",
   "crates/longhorn-tauri-operation",
   "crates/longhorn-tauri-settings",
+  "crates/longhorn-tauri-agent-control",
   "crates/longhorn-surface-windowing",
   "crates/longhorn-surface-transfer",
   "crates/longhorn-surfaces",
@@ -102,6 +103,7 @@ longhorn-operation = { path = "crates/longhorn-operation", version = "0.1.0" }
 longhorn-poodle = { path = "crates/longhorn-poodle", version = "0.1.0" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.1.0" }
+longhorn-tauri-agent-control = { path = "crates/longhorn-tauri-agent-control", version = "0.1.0" }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "0.1.0" }
 longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "0.1.0" }
 longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.1.0" }

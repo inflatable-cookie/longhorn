@@ -3085,6 +3085,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-tauri-agent-control"
+version = "0.1.0"
+dependencies = [
+ "longhorn-agent-control",
+ "longhorn-core",
+ "longhorn-tauri-agent-control",
+ "longhorn-tauri-config",
+ "serde_json",
+ "tauri",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "longhorn-tauri-bridge"
 version = "0.1.0"
 dependencies = [

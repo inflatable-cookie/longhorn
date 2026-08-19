@@ -55,6 +55,7 @@ discovery and validation entry points.
 | `longhorn-agent-control` | host-agnostic agent app-control core (contract 022): tool vocabulary, discovery-file lifecycle, per-instance bearer token, native-surface provider seam | core, config, sysinfo |
 | `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
+| `longhorn-tauri-agent-control` | Tauri host wiring for the contract 022 control surface: dev-feature-gated server mount, window scope, `command` through the host's contract-006 bridge; empty library feature-off | core, agent-control, tauri-config, Tauri |
 | `longhorn-tauri-config` | Tauri platform-path mapping plus injected storage, backup, restore, and recovery handlers | config, Tauri |
 | `longhorn-tauri-windowing` | checked Tauri observation, managed identity, native mutation, lifecycle, capture, reveal, and flush | core, display, windowing, Tauri |
 | `longhorn-tauri-transfer` | managed-window projection and transfer handler assembly | core, transfer, tauri-windowing, Tauri |

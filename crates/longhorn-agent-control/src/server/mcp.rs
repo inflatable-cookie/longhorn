@@ -71,6 +71,7 @@ where
     }
 
     #[tool(
+        name = "type",
         description = "Synthetic in-page text entry into an element ref, as untrusted DOM events. Never moves the OS pointer and never requires focus."
     )]
     async fn r#type(

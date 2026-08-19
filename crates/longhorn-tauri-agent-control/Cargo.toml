@@ -1,0 +1,37 @@
+[package]
+name = "longhorn-tauri-agent-control"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+# The entire agent control surface (contract 022) is dev-build-only and off
+# by default. Enabling `dev` pulls the core server crate into the dependency
+# graph; a featureless build compiles to an empty library carrying no server,
+# route, token, or discovery code, and no runtime toggle can enable it.
+dev = [
+  "dep:longhorn-agent-control",
+  "dep:longhorn-tauri-config",
+  "dep:serde_json",
+  "dep:tokio",
+]
+
+[dependencies]
+longhorn-core.workspace = true
+tauri.workspace = true
+longhorn-agent-control = { workspace = true, optional = true }
+longhorn-tauri-config = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+longhorn-tauri-agent-control = { path = ".", features = ["dev"] }
+serde_json.workspace = true
+tauri = { workspace = true, features = ["test"] }
+tempfile.workspace = true
+
+[lints]
+workspace = true
