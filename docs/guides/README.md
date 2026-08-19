@@ -17,7 +17,8 @@ authority, receipt, and donor in precise ways.
 5. [Compose A GPUI Application](gpui-composition.md) — the other host
 6. [Migrate And Roll Back](migration-and-rollback.md)
 7. [Compatibility And Upgrades](compatibility-and-upgrades.md)
-8. [Glossary](glossary.md)
+8. [Compose Agent App Control](agent-control-composition.md) — the dev-only MCP surface
+9. [Glossary](glossary.md)
 
 Exact package names, features, entrypoints, dependencies, and peers are in the
 [generated API surface](../reference/api-surface.md). Symbol-level behavior

@@ -66,6 +66,13 @@ exclude = ["history/**"]
 # release `workspace` gate runs — no separate release.gates line, per the
 # single-table rule in config/release.toml.
 "check:agent-control-release-absence" = "bun scripts/verify-agent-control-release-absence.ts"
+# Card 236: lock the skill's tool table to CONTROL_TOOL_NAMES and the
+# workspace version; also runs finder and install fixtures (Cards 235-236).
+"check:agent-control-skill" = "bun scripts/verify-agent-control-skill.ts"
+# Operator-invoked copy of skills/agent-control/ into a consumer git repo.
+# Pass the target path after `--`. The global `--repo` flag switches
+# catalogs and cannot name the install target.
+"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }
 "generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------
@@ -128,6 +135,7 @@ exclude = ["history/**"]
 health = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
+  { task = "check:agent-control-skill" },
 ]
 qa = [
   { task = "fmt:rust" },
@@ -146,6 +154,7 @@ qa = [
   { task = "check:consumer-isolation" },
   { task = "check:repo-containment" },
   { task = "check:agent-control-release-absence" },
+  { task = "check:agent-control-skill" },
   { task = "proof:artifacts" },
   { task = "qa:docs" },
   { task = "qa:northstar" },

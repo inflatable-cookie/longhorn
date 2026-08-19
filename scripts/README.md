@@ -36,8 +36,11 @@ worth wiring, and if it is not wired it should be deleted.
 The rest are wired individually: `check:api-reference` runs
 `generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
-each their own selector. `consumer-absence.ts` and `poodle-release.ts` are
-shared modules, not entry points.
+each their own selector. `check:agent-control-skill` runs
+`verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
+install fixtures). `agent-control:install-skill` is the Rhai wrapper around
+`install-agent-control-skill.ts`. `consumer-absence.ts` and `poodle-release.ts`
+are shared modules, not entry points.
 
 ## No consumer knowledge
 

@@ -21,9 +21,10 @@ use axum::{
 };
 use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
-    ActionReceipt, CommandResult, ControlHandler, ControlServerConfig, ElementRef, EvaluateResult,
-    InstanceToken, ListWindowsResult, PageState, ScreenshotResult, SemanticNode, SnapshotResult,
-    ToolError, WaitForResult, control_router, enumerate_discovery, serve_control_surface,
+    ActionReceipt, CONTROL_TOOL_NAMES, CommandResult, ControlHandler, ControlServerConfig,
+    ElementRef, EvaluateResult, InstanceToken, ListWindowsResult, PageState, ScreenshotResult,
+    SemanticNode, SnapshotResult, ToolError, WaitForResult, control_router, enumerate_discovery,
+    serve_control_surface,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -336,23 +337,9 @@ async fn tool_names_match_the_contract_vocabulary() {
         .collect();
     names.sort_unstable();
     // Raw identifiers must not leak onto the wire: `r#type` serves as `type`.
-    assert_eq!(
-        names,
-        [
-            "click",
-            "command",
-            "drag",
-            "evaluate",
-            "list_windows",
-            "press",
-            "resize_window",
-            "screenshot",
-            "scroll",
-            "snapshot",
-            "type",
-            "wait_for",
-        ]
-    );
+    // CONTROL_TOOL_NAMES is the single vocabulary list; this fixture
+    // asserts the live server matches it rather than a second typed copy.
+    assert_eq!(names, CONTROL_TOOL_NAMES);
 }
 
 #[tokio::test]

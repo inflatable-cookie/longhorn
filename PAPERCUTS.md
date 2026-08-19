@@ -7,6 +7,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Global `--repo` is consumed after `--`, so a Longhorn task cannot take `--repo` as its target — 2026-08-19
+- Friction: `effigy --repo <PATH>` switches catalogs and cwd. `effigy <task> -- --repo <PATH>` still treats `--repo` as the global flag, so the task is looked up in the target repo. Extra args reach Rhai tasks only; shell-string tasks get none. Card 236's install selector therefore cannot be `effigy --repo <consumer> agent-control:install-skill`.
+- Impact: the one sanctioned cross-repo write has to take a positional path after `--` (`effigy agent-control:install-skill -- <consumer>`). Agents following the `--repo` convention hit a missing-task error.
+- Possible fix: let `--` end global flag parsing; pass remaining args through to shell-string tasks; or add a target-repo argument that does not switch catalogs.
+- Surface: `effigy --repo`, `agent-control:install-skill`, Rhai `args`.
+
 ### [ ] Fresh worktree QA reaches TypeScript without installing dependencies — 2026-08-16
 - Friction: `effigy qa` in a fresh Git worktree reached `check:ts` with no
   `node_modules`; `bun x tsc` fetched the compiler but left every workspace,

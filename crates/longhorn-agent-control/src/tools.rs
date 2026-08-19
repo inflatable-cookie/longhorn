@@ -15,6 +15,26 @@ use std::{collections::BTreeSet, error::Error, fmt, str::FromStr};
 use longhorn_core::{ClientSize, CommandId, OpaqueIdError, WindowId};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
 
+/// Wire names of every MCP tool the control server exposes.
+///
+/// Shared source of truth for the Card 229 conformance suite and the
+/// skill drift check. Add a name here when adding a tool; never retype
+/// the list elsewhere.
+pub const CONTROL_TOOL_NAMES: &[&str] = &[
+    "click",
+    "command",
+    "drag",
+    "evaluate",
+    "list_windows",
+    "press",
+    "resize_window",
+    "screenshot",
+    "scroll",
+    "snapshot",
+    "type",
+    "wait_for",
+];
+
 /// Opaque element reference stamped by the edge that produced a snapshot.
 ///
 /// Resolution is the stamping edge's job against the live DOM; the core
@@ -462,6 +482,14 @@ mod tests {
 
     fn ref_a() -> ElementRef {
         ElementRef::new("e1").unwrap()
+    }
+
+    #[test]
+    fn control_tool_names_are_unique_and_sorted() {
+        let mut sorted = CONTROL_TOOL_NAMES.to_vec();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(CONTROL_TOOL_NAMES, sorted.as_slice());
     }
 
     #[test]
