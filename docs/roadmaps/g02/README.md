@@ -35,7 +35,7 @@
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
 | [g02.030](030-agent-control-core.md) | complete | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
 | [g02.031](031-agent-control-tauri-host.md) | complete | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
-| [g02.032](032-agent-control-semantic-surface.md) | planned | semantic snapshot and input tools; packaged unfocused end-to-end proof |
+| [g02.032](032-agent-control-semantic-surface.md) | ready | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -112,11 +112,12 @@ memo 024 agent app control (contract 022 draft)
          └─ 032 semantic surface and proof (232-234)
 ```
 
-029 (PR 2) and 030 (PR 3) are complete: contract 022 is active and
-`longhorn-agent-control` exists with its stateless conformance proved
-host-free. 031 is ready (Cards 230-231 compiled); 032 stays planned with
-232-234 as reserved numbers. 031 is the first lane with platform
-requirements: a macOS host and a packaged proof app.
+029 (PR 2), 030 (PR 3), and 031 (PR 4) are complete: contract 022 is
+active, `longhorn-agent-control` and `longhorn-tauri-agent-control` are
+merged, and the packaged freshness matrix reproduced the spike exactly —
+release-absence proved by scan both directions. 032 is ready (Cards
+232-234 compiled): the TS shim, the semantic tools, and the end-to-end
+proof that closes the feature.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these

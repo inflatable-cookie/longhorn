@@ -1,10 +1,10 @@
 # g02.032 Agent Control Semantic Surface
 
-Status: planned — blocked on g02.031
+Status: ready
 Owner: Longhorn maintainers
 Created: 2026-08-19
 Governing refs: contract 022; contracts 006, 010, 013
-Depends on: g02.031 complete
+Depends on: g02.031 complete — true 2026-08-19 (PR 4)
 
 ## Outcome
 
@@ -15,17 +15,18 @@ exposed as MCP tools.
 
 ## Generation Runway
 
-Cards compile to ready with g02.031; numbers reserved:
-
-- [ ] Card 232 — TS shim in `longhorn`: semantic tree with stamped refs,
-      synthetic dispatch (click, type, press, scroll, drag), evaluate,
-      wait_for; ref-staleness fixtures.
-- [ ] Card 233 — tools wired through the plugin: snapshot, input, command
-      invocation, event push over `subscriptions/listen` (console, errors,
+- [ ] [Card 232](batch-cards/232-agent-control-webview-shim.md) — TS shim
+      in `longhorn`: semantic tree with stamped refs, synthetic dispatch
+      (click, type, press, scroll, drag), wait_for predicate evaluation;
+      ref-staleness fixtures.
+- [ ] [Card 233](batch-cards/233-agent-control-semantic-tools.md) — tools
+      wired through the plugin: snapshot, input, wait_for over the shim;
+      event push over `subscriptions/listen` (console, errors,
       navigation).
-- [ ] Card 234 — packaged end-to-end proof: an MCP client drives the app
-      unfocused; two clients interleave on one instance without
-      interference; milestone and contract 022 evidence closeout.
+- [ ] [Card 234](batch-cards/234-agent-control-end-to-end-proof.md) —
+      packaged end-to-end proof: an MCP client drives the app unfocused;
+      two clients interleave on one instance without interference;
+      milestone and contract 022 evidence closeout.
 
 ## Acceptance
 
