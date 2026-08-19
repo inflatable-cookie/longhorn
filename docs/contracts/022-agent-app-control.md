@@ -3,7 +3,8 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-08-19 — promoted from Card 227 spike evidence (memo 024)
+Updated: 2026-08-19 — g02.032 evidence closeout (Cards 232-234): listen
+events mapped onto resource URIs; required-evidence items cited or narrowed
 Depends on: contracts 001, 006, 010, 012, 020
 Affects: new `longhorn-agent-control`, new `longhorn-tauri-agent-control`,
 `longhorn` (TS shim), all app consumers in dev builds
@@ -28,9 +29,14 @@ agent can use while the app runs unfocused in the background.
 - Semantics follow MCP revision 2026-07-28. The implementation library may
   negotiate earlier revisions with older clients; stateless behavior does
   not change per revision.
-- Event push uses the `subscriptions/listen` request-scoped SSE stream:
-  console output, page errors, and navigation events. Request-scoped
-  notifications (progress) stay on their own request stream.
+- Event push uses the `subscriptions/listen` request-scoped SSE stream.
+  Console output, page errors, and navigation events are MCP resources
+  (`longhorn://agent-control/{console,error,navigation}`); subscribers opt
+  in by URI and receive `notifications/resources/updated`. rmcp 3.1.3's
+  listen sink rejects custom notifications and logging, so those events
+  do not ride as first-class MCP notification methods. Request-scoped
+  notifications (progress) stay on their own request stream. The resource
+  body carries the bounded event ring and the drop counter.
 - Closing a request's response stream cancels that request.
 
 ### Availability And Security
@@ -110,18 +116,34 @@ reads.
 
 ## Required Evidence
 
-- release-build artifact scan proving the server, routes, and token code
-  are absent
+Satisfied, with the proof named:
+
+- release-build artifact scan proving the server, routes, token code, and
+  the injected shim asset are absent — `effigy check:agent-control-release-absence`
+  (Cards 230-233)
 - stateless conformance: tool calls with no session id succeed; minted
-  session ids never appear in responses
+  session ids never appear in responses — Card 229 conformance fixtures
 - ref stability fixtures: snapshot, mutate DOM, re-resolve; stale ref fails
-  explicitly
-- unfocused-and-occluded screenshot proof on packaged macOS
-- Origin-rejection and bad-token fixtures
-- discovery lifecycle: create, enumerate, stale-pid detection, cleanup
-- two concurrent clients interleaving on one instance without interference
+  explicitly — Card 232 shim fixtures and Card 233 marshalling
+- unfocused-and-occluded screenshot proof on packaged macOS — Card 231
+  freshness matrix (`examples/agent-control-proof/evidence/`)
+- Origin-rejection and bad-token fixtures — Cards 229-230
+- discovery lifecycle: create, enumerate, stale-pid detection, cleanup —
+  Cards 229-231
+- two concurrent clients interleaving on one instance without interference —
+  Card 229 loopback journal plus Card 234 packaged two-client snapshot and
+  listen streams
 - one packaged consumer app driven end-to-end by an MCP client while the
-  app never holds OS focus
+  app never holds OS focus — Card 234 `examples/agent-control-proof/e2e.ts`
+
+Narrowed, explicitly:
+
+- Capture, `evaluate`, and the semantic tools are proved on macOS only.
+  Other hosts compile and answer typed `Unsupported` (contract 020).
+- No native-surface provider ships; native chrome is not clicked.
+- Another-Space window state was not probed (Card 231).
+- Listen delivers page events as `resources/updated` on the three URIs
+  above, not as custom MCP notification methods.
 
 ## Stop Conditions
 

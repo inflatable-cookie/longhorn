@@ -1,6 +1,6 @@
 # 233 Agent Control Semantic Tools
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.032
 Governing refs: contract 022; contracts 006, 010; memo 024
@@ -39,15 +39,15 @@ and navigation events.
 
 ## Acceptance Criteria
 
-- [ ] no tool in the contract 022 surface answers `Unsupported` on the
+- [x] no tool in the contract 022 surface answers `Unsupported` on the
       Tauri host with a webview present (native-surface provider absence
       unchanged)
-- [ ] the round-trip fixture passes over real loopback
-- [ ] listen streams deliver console, error, and navigation events with
+- [x] the round-trip fixture passes over real loopback
+- [x] listen streams deliver console, error, and navigation events with
       bounded buffering and an honest drop counter
-- [ ] release-absence scan stays green feature-off with the shim asset
+- [x] release-absence scan stays green feature-off with the shim asset
       and injection code gated
-- [ ] `effigy qa` passes
+- [x] `effigy qa` passes
 
 ## Validation
 
@@ -61,6 +61,27 @@ suite.
   support rather than inventing a side channel;
 - tool marshalling needs the core vocabulary or plugin public surface to
   change shape — report first, per the standing rule.
+
+## Closeout
+
+Status: done 2026-08-19, same branch and worktree as Card 232.
+
+The plugin injects the Card 232 IIFE as a Tauri initialization script
+(plus `eval` on already-created windows). Semantic tools marshal through
+`evaluate` + `JSON.stringify`; shim `{ok:false}` maps onto the core
+`ToolError` vocabulary. `wait_for` polls host-side at 50 ms.
+
+rmcp 3.1.3 listen works on 2026-07-28. The sink rejects custom
+notifications, so page events are three resources
+(`longhorn://agent-control/{console,error,navigation}`) and
+`resources/updated` on the listen stream. Contract 022 records the
+mapping. Drop-oldest lives in the shim ring; the drop counter is on the
+resource body.
+
+Mock-runtime mount fixtures cannot execute JS: snapshot answers
+`evaluationFailed`, not the old g02.032 `unsupported`. Resources/list
+and listen acknowledgment are proved over real loopback. The packaged
+round-trip is Card 234.
 
 ## Continuation
 

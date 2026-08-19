@@ -1,6 +1,6 @@
 # 234 Agent Control End-to-end Proof
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.032
 Governing refs: contract 022 (Required Evidence is this card's checklist);
@@ -43,16 +43,16 @@ honestly amended.
 
 ## Acceptance Criteria
 
-- [ ] the packaged proof run passes with the app unfocused throughout,
+- [x] the packaged proof run passes with the app unfocused throughout,
       evidence committed (driver output, screenshots, focus check)
-- [ ] two-client interleave passes on one packaged instance
-- [ ] every contract 022 Required Evidence item cites proof or carries an
+- [x] two-client interleave passes on one packaged instance
+- [x] every contract 022 Required Evidence item cites proof or carries an
       explicit amendment in the contract (amendment = report to the
       orchestrator first, then the edit lands with the evidence)
-- [ ] untrusted-event limits and the DOM-relative waiting rule are
+- [x] untrusted-event limits and the DOM-relative waiting rule are
       documented for consumers
-- [ ] release-absence scan green feature-off on the final tree
-- [ ] `effigy qa` passes
+- [x] release-absence scan green feature-off on the final tree
+- [x] `effigy qa` passes
 
 ## Validation
 
@@ -67,6 +67,26 @@ release-absence scan; `effigy doctor`.
 - contract amendment wants to widen scope (native surfaces, trusted
   input, remote access) rather than narrow honestly — that is a new
   contract conversation, not a closeout edit.
+
+## Closeout
+
+Status: done 2026-08-19, same branch and worktree as Cards 232-233.
+
+Proof app extended with a form-and-list UI (click, type, drag-reorder,
+hash navigation) while keeping the hue ticker. Driver
+`examples/agent-control-proof/e2e.ts` builds the packaged `.app`, launches
+it unfocused, and runs snapshot → click → type → wait_for → screenshot →
+command plus two-client snapshot interleave and two listen streams.
+Focus samples (System Events) stay off the app pid throughout; no OS
+pointer in the path. Evidence:
+`examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/`.
+
+Contract 022 Required Evidence now cites proofs or records narrowings
+(macOS-only capture/semantic tools, no native-surface provider,
+another-Space unprobed, listen as resource-updated). Untrusted-event
+limits are in the crate and package READMEs.
+
+`effigy qa` is the lane's final gate.
 
 ## Continuation
 

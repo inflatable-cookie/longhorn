@@ -8,6 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-08-19
 
+- [Agent Control Semantic Surface](2026-08/19-agent-control-semantic-surface.md)
 - [Agent Control Tauri Host](2026-08/19-agent-control-tauri-host.md)
 - [Agent Control Core](2026-08/19-agent-control-core.md)
 - [Agent Control Spike And Promotion](2026-08/19-agent-control-spike-and-promotion.md)
