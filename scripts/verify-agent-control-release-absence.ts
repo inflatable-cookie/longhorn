@@ -32,7 +32,9 @@ const SCAN_ROOT = join(repoRoot, "target", "agent-control-scan");
 // source path (panic locations record it). Both are absent when the core
 // crate is not in the graph; the hyphen-free plugin crate's own name can
 // never produce either.
-const MARKERS = ["longhorn_agent_control", "longhorn-agent-control/src"];
+const CORE_MARKERS = ["longhorn_agent_control", "longhorn-agent-control/src"];
+const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl"];
+const MARKERS = [...CORE_MARKERS, ...SHIM_MARKERS];
 
 type BuildResult = {
   targetDir: string;
@@ -173,13 +175,19 @@ if (on.coreRlib === null) {
   throw new Error("feature-on build produced no core-crate rlib");
 }
 const onHits = await markerHits(on.pluginRlib);
-if (!onHits.includes(MARKERS[0]!)) {
+if (!onHits.includes(CORE_MARKERS[0]!)) {
   throw new Error(
-    `feature-on release artifact does not reference ${MARKERS[0]} — the scan would pass vacuously`,
+    `feature-on release artifact does not reference ${CORE_MARKERS[0]} — the scan would pass vacuously`,
+  );
+}
+const missingShim = SHIM_MARKERS.filter((marker) => !onHits.includes(marker));
+if (missingShim.length > 0) {
+  throw new Error(
+    `feature-on plugin artifact is missing shim markers: ${missingShim.join(", ")} — the gated injectable is not in the feature-on build`,
   );
 }
 const coreHits = await markerHits(on.coreRlib);
-const missingCore = MARKERS.filter((marker) => !coreHits.includes(marker));
+const missingCore = CORE_MARKERS.filter((marker) => !coreHits.includes(marker));
 if (missingCore.length > 0) {
   throw new Error(
     `feature-on core artifact is missing markers the scan forbids feature-off: ${missingCore.join(", ")} — the scan would pass vacuously`,

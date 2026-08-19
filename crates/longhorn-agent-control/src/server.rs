@@ -12,6 +12,7 @@
 //! shutdown.
 
 mod args;
+mod events;
 mod guard;
 mod mcp;
 

@@ -29,8 +29,13 @@ file. The
 host supplies a `CommandBridge` over its own contract-006 registry — the
 plugin adds no authority of its own.
 
-Wired tools: `command`, `list_windows`, `resize_window`. Snapshot, input
-dispatch, `evaluate`, and `wait_for` answer the core vocabulary's typed
-`Unsupported` until g02.032; `screenshot` is macOS-only capture through the
-public `WKWebView` snapshot API (Card 231), answering typed `Unsupported`
-elsewhere.
+Wired tools: the full contract 022 surface on macOS (`snapshot`, `click`,
+`type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`, `screenshot`,
+`command`, window ops). Synthetic input is untrusted DOM events: it never
+moves the OS pointer, never requires focus, and does not satisfy
+`isTrusted` checks. Native hover and OS drag-and-drop are out of scope.
+`wait_for` is DOM-relative; no time-only or animation-frame wait exists.
+`screenshot` is macOS-only capture through the public `WKWebView` snapshot
+API (Card 231), answering typed `Unsupported` elsewhere. Page events ride
+`subscriptions/listen` as resource updates on
+`longhorn://agent-control/{console,error,navigation}`.

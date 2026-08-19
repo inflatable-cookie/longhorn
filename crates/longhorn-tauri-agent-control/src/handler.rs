@@ -1,10 +1,10 @@
 //! The Tauri [`ControlHandler`]: window scope against the app's webview
 //! windows, `command` through the host's [`CommandBridge`], `screenshot`
 //! and the `evaluate` escape hatch through the macOS webview capture bridge
-//! (Card 231), and typed `Unsupported` for the tools the g02.032 shim wires
-//! (snapshot, input dispatch, `wait_for`). Non-macOS hosts compile and
-//! answer typed `Unsupported` for capture and evaluate — the per-backend
-//! evidence discipline of contract 020.
+//! (Card 231), and the Card 232 semantic tools (`snapshot`, input dispatch,
+//! `wait_for`) marshalled through that same evaluate path. Non-macOS hosts
+//! compile and answer typed `Unsupported` for capture, evaluate, and the
+//! semantic tools — the per-backend evidence discipline of contract 020.
 //!
 //! Window identity is the Tauri window label: it is already the app's own
 //! stable window name, so the control surface introduces no parallel
@@ -25,7 +25,7 @@ use longhorn_agent_control::{
 use longhorn_core::{ClientSize, WindowId};
 use tauri::{AppHandle, Manager, Runtime, WebviewWindow};
 
-use crate::bridge::CommandBridge;
+use crate::{bridge::CommandBridge, shim};
 
 /// Host authority for the control surface, backed by the Tauri app handle.
 pub struct TauriControlHandler<R: Runtime> {
@@ -112,58 +112,118 @@ impl<R: Runtime> TauriControlHandler<R> {
             focused: window.is_focused().unwrap_or(false),
         })
     }
-}
 
-/// Typed `Unsupported` for a tool a later lane wires.
-fn unwired(tool: &str) -> ToolError {
-    ToolError::Unsupported {
-        message: format!("{tool} is not wired in the Tauri host yet (g02.032)"),
-    }
-}
-
-impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
-    async fn snapshot(&self, _request: SnapshotRequest) -> Result<SnapshotResult, ToolError> {
-        Err(unwired("snapshot"))
-    }
-
-    async fn click(&self, _request: ClickRequest) -> Result<ActionReceipt, ToolError> {
-        Err(unwired("click"))
-    }
-
-    async fn r#type(&self, _request: TypeRequest) -> Result<ActionReceipt, ToolError> {
-        Err(unwired("type"))
-    }
-
-    async fn press(&self, _request: PressRequest) -> Result<ActionReceipt, ToolError> {
-        Err(unwired("press"))
-    }
-
-    async fn scroll(&self, _request: ScrollRequest) -> Result<ActionReceipt, ToolError> {
-        Err(unwired("scroll"))
-    }
-
-    async fn drag(&self, _request: DragRequest) -> Result<ActionReceipt, ToolError> {
-        Err(unwired("drag"))
-    }
-
-    async fn evaluate(&self, request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
-        let (_, window) = self.resolve_window(&request.window)?;
+    async fn eval_js(
+        &self,
+        target: &WindowTarget,
+        js: String,
+    ) -> Result<(longhorn_core::WindowId, serde_json::Value), ToolError> {
+        let (window, live) = self.resolve_window(target)?;
         #[cfg(target_os = "macos")]
         {
-            let value = crate::capture::evaluate_webview(&window, request.js).await?;
-            Ok(EvaluateResult { value })
+            let value = crate::capture::evaluate_webview(&live, js).await?;
+            Ok((window, value))
         }
         #[cfg(not(target_os = "macos"))]
         {
-            let _ = (window, request);
+            let _ = (live, js);
             Err(ToolError::Unsupported {
                 message: "evaluate is implemented on macOS only (contract 020)".to_owned(),
             })
         }
     }
+}
 
-    async fn wait_for(&self, _request: WaitForRequest) -> Result<WaitForResult, ToolError> {
-        Err(unwired("wait_for"))
+impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
+    async fn snapshot(&self, request: SnapshotRequest) -> Result<SnapshotResult, ToolError> {
+        let (window, value) = self.eval_js(&request.window, shim::snapshot_js()).await?;
+        let (page, root) = shim::decode_snapshot(value)?;
+        Ok(SnapshotResult { window, page, root })
+    }
+
+    async fn click(&self, request: ClickRequest) -> Result<ActionReceipt, ToolError> {
+        let (_, value) = self
+            .eval_js(&request.window, shim::click_js(request.element.as_str()))
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn r#type(&self, request: TypeRequest) -> Result<ActionReceipt, ToolError> {
+        let (_, value) = self
+            .eval_js(
+                &request.window,
+                shim::type_js(request.element.as_str(), &request.text),
+            )
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn press(&self, request: PressRequest) -> Result<ActionReceipt, ToolError> {
+        let modifiers: Vec<String> = request
+            .modifiers
+            .iter()
+            .map(|modifier| match modifier {
+                longhorn_agent_control::KeyModifier::Alt => "alt",
+                longhorn_agent_control::KeyModifier::Control => "control",
+                longhorn_agent_control::KeyModifier::Meta => "meta",
+                longhorn_agent_control::KeyModifier::Shift => "shift",
+            })
+            .map(str::to_owned)
+            .collect();
+        let (_, value) = self
+            .eval_js(
+                &request.window,
+                shim::press_js(
+                    &request.key,
+                    &modifiers,
+                    request.element.as_ref().map(|element| element.as_str()),
+                ),
+            )
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn scroll(&self, request: ScrollRequest) -> Result<ActionReceipt, ToolError> {
+        let (_, value) = self
+            .eval_js(
+                &request.window,
+                shim::scroll_js(
+                    request.delta_x,
+                    request.delta_y,
+                    request.element.as_ref().map(|element| element.as_str()),
+                ),
+            )
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn drag(&self, request: DragRequest) -> Result<ActionReceipt, ToolError> {
+        let (_, value) = self
+            .eval_js(
+                &request.window,
+                shim::drag_js(request.source.as_str(), request.target.as_str()),
+            )
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn evaluate(&self, request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
+        let (_, value) = self.eval_js(&request.window, request.js).await?;
+        Ok(EvaluateResult { value })
+    }
+
+    async fn wait_for(&self, request: WaitForRequest) -> Result<WaitForResult, ToolError> {
+        let js = shim::wait_for_js(&request.predicate);
+        let window = request.window.clone();
+        shim::poll_until(request.timeout_ms, || {
+            let js = js.clone();
+            let window = window.clone();
+            async move {
+                let (_, value) = self.eval_js(&window, js).await?;
+                shim::decode_wait(value)
+            }
+        })
+        .await
     }
 
     async fn screenshot(&self, request: ScreenshotRequest) -> Result<ScreenshotResult, ToolError> {

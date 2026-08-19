@@ -11,8 +11,13 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
     ErrorData, ServerHandler,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerInfo},
+    model::{
+        CallToolResult, ContentBlock, Implementation, ListResourcesResult,
+        ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities,
+        ServerInfo, SubscriptionFilter,
+    },
     serde::Serialize,
+    service::SubscriptionContext,
     tool, tool_handler, tool_router,
 };
 
@@ -20,7 +25,9 @@ use super::args::{
     ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs, ResizeWindowArgs, ScreenshotArgs,
     ScrollArgs, SnapshotArgs, TypeArgs, WaitForArgs,
 };
-use crate::{ControlHandler, ToolError};
+use crate::{ControlHandler, EvaluateRequest, ToolError};
+
+use super::events;
 
 /// MCP service dispatching to the host's control authority.
 #[derive(Clone)]
@@ -175,6 +182,64 @@ where
     ) -> Result<CallToolResult, ErrorData> {
         json_result(self.handler.resize_window(args.into_request()?).await)
     }
+
+    async fn read_events(
+        &self,
+        since_seq: u64,
+    ) -> Result<(Vec<serde_json::Value>, u64, u64), ToolError> {
+        let value = self
+            .handler
+            .evaluate(EvaluateRequest {
+                window: None,
+                js: format!(
+                    "JSON.stringify(globalThis.__longhornAgentControl ? globalThis.__longhornAgentControl.readEvents({since_seq}) : {{events:[], nextSeq:{since_seq}, dropped:0}})"
+                ),
+            })
+            .await?
+            .value;
+        let parsed = match value {
+            serde_json::Value::String(text) => {
+                serde_json::from_str(&text).map_err(|error| ToolError::EvaluationFailed {
+                    message: format!("readEvents JSON did not parse: {error}"),
+                })?
+            }
+            other => other,
+        };
+        let events = parsed
+            .get("events")
+            .and_then(serde_json::Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let next_seq = parsed
+            .get("nextSeq")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(since_seq);
+        let dropped = parsed
+            .get("dropped")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        Ok((events, next_seq, dropped))
+    }
+
+    async fn read_event_resource(&self, uri: &str) -> Result<String, ErrorData> {
+        let kind = events::kind_for_uri(uri).ok_or_else(|| {
+            ErrorData::resource_not_found(format!("unknown resource {uri}"), None)
+        })?;
+        let (events, next_seq, dropped) = self
+            .read_events(0)
+            .await
+            .map_err(|error| ErrorData::internal_error(error.to_string(), None))?;
+        let filtered: Vec<_> = events
+            .into_iter()
+            .filter(|event| event.get("kind").and_then(serde_json::Value::as_str) == Some(kind))
+            .collect();
+        Ok(serde_json::json!({
+            "events": filtered,
+            "nextSeq": next_seq,
+            "dropped": dropped,
+        })
+        .to_string())
+    }
 }
 
 #[tool_handler]
@@ -183,13 +248,96 @@ where
     H: ControlHandler,
 {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .build(),
+        )
             .with_server_info(Implementation::new(
                 "longhorn-agent-control",
                 env!("CARGO_PKG_VERSION"),
             ))
             .with_instructions(
-                "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch, wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Stateless: every call is self-contained.",
+                "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch, wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained.",
             )
+    }
+
+    fn accepted_subscription_filter(
+        &self,
+        requested: &SubscriptionFilter,
+    ) -> Option<SubscriptionFilter> {
+        Some(
+            requested.intersection(
+                &SubscriptionFilter::builder()
+                    .resource_subscription(events::CONSOLE_URI)
+                    .resource_subscription(events::ERROR_URI)
+                    .resource_subscription(events::NAVIGATION_URI)
+                    .build(),
+            ),
+        )
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<ListResourcesResult, ErrorData> {
+        Ok(ListResourcesResult::with_all_items(events::all_resources()))
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> Result<rmcp::model::ReadResourceResponse, ErrorData> {
+        if !events::known_uri(&request.uri) {
+            return Err(ErrorData::resource_not_found(
+                format!("unknown resource {}", request.uri),
+                None,
+            ));
+        }
+        let body = self.read_event_resource(&request.uri).await?;
+        Ok(ReadResourceResult::new(vec![ResourceContents::text(body, request.uri)]).into())
+    }
+
+    async fn listen(&self, context: SubscriptionContext) -> Result<(), ErrorData> {
+        let sink = context.sink().clone();
+        let accepted = context.accepted().clone();
+        let mut seq = 0_u64;
+        loop {
+            tokio::select! {
+                () = context.cancelled() => break,
+                () = tokio::time::sleep(std::time::Duration::from_millis(50)) => {
+                    match self.read_events(seq).await {
+                        Ok((events, next_seq, _dropped)) => {
+                            seq = next_seq;
+                            for event in events {
+                                let Some(uri) = event
+                                    .get("kind")
+                                    .and_then(serde_json::Value::as_str)
+                                    .and_then(events::uri_for_kind)
+                                else {
+                                    continue;
+                                };
+                                let subscribed = accepted
+                                    .resource_subscriptions
+                                    .as_ref()
+                                    .is_some_and(|uris| uris.iter().any(|item| item == uri));
+                                if subscribed {
+                                    let _ = sink.notify_resource_updated(uri).await;
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            // No page yet, or evaluate failed: keep the stream
+                            // alive; the next tick retries.
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
