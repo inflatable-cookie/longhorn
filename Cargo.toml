@@ -70,12 +70,14 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 # wire format must stay byte-stable across app versions, so a move needs
 # those suites rerun, not a caret. 0.12.1 is also the newest age published.
 age = { version = "=0.12.1", default-features = false }
+axum = "0.8.4"
 base64 = "0.23.1"
 cap-std = "4.0.2"
 ed25519-dalek = { version = "3.0.0", default-features = false }
 flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 getrandom = "0.3.4"
+http-body-util = "0.1.3"
 longhorn-agent-control = { path = "crates/longhorn-agent-control", version = "0.1.0" }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
 longhorn-browser = { path = "crates/longhorn-browser", version = "0.1.0" }
@@ -124,12 +126,19 @@ longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 minisign = "0.9.1"
 minisign-verify = "0.2.5"
+# The line the Card 227 spike proved on the wire: `legacy_session_mode:
+# false` mints no session ids, and 2026-07-28 is supported but not the
+# negotiated default (see the Card 229 closeout).
+rmcp = { version = "3.1.3", features = ["transport-streamable-http-server"] }
 # Exact pin: g02.007 moved rusqlite here under frozen evidence -- the
 # native-snapshot, grouped-restore, WAL, and storage-transition suites --
 # and `bundled` means a version move swaps the embedded SQLite engine.
 # 0.40.2 exists; taking it needs the same conformance treatment, so the
 # pin is what forces that decision instead of a silent `cargo update`.
 rusqlite = { version = "=0.40.1", features = ["backup", "bundled"] }
+# Pinned to rmcp 3.1.3's own schemars line: the derive must macro-match the
+# version rmcp's tool macros generate code against.
+schemars = "1.0"
 semver = { version = "1.0.28", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 secrecy = "0.10.3"
@@ -140,6 +149,8 @@ sha2 = "0.11.0"
 sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
 tar = "0.4.44"
 tempfile = "3.27.0"
+tokio = { version = "1.45.1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tower = { version = "0.5.2", features = ["util"] }
 tauri = { version = "2.10.3", default-features = false }
 # Not an exact pin: 2.6.3 is the newest tauri-build published (Tauri does
 # not version tauri-build in lockstep with tauri). The apparent mixed stack

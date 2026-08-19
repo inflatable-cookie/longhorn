@@ -9,17 +9,23 @@ description = "Host-agnostic core of the Longhorn agent app-control surface (con
 publish = false
 
 [dependencies]
+axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
 longhorn-config.workspace = true
 longhorn-core.workspace = true
+rmcp.workspace = true
+schemars.workspace = true
 secrecy.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sysinfo.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
+http-body-util.workspace = true
 tempfile.workspace = true
+tower.workspace = true
 
 [lints]
 workspace = true

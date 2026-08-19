@@ -10,9 +10,11 @@ Host-agnostic core of the agent app-control surface
   (path resolution through the contract 004 storage-profile conventions)
 - per-instance bearer token: CSPRNG generation, constant-time verify,
   redacted `Debug`
+- the stateless MCP streamable-HTTP server assembly over rmcp
+  (`legacy_session_mode: false`; bearer token and `Origin` rejection run
+  before tool dispatch), as an axum router a host mounts
 - the native-surface provider seam; no provider ships under contract 022
 
-No server and no host dependency: no tauri, wry, or objc2. The stateless
-MCP streamable-HTTP assembly (Card 229) and the Tauri host (g02.031) build
-on this vocabulary; a GPUI host composes the core and its own provider or
-nothing — absence is not a gap.
+No host dependency: no tauri, wry, or objc2. The Tauri host (g02.031)
+implements `ControlHandler` and mounts the router; a GPUI host composes the
+core and its own provider or nothing — absence is not a gap.
