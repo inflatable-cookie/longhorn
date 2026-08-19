@@ -1,6 +1,6 @@
 # 237 Agent Control Skill Dogfood Proof
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.033
 Governing refs: contract 022; Cards 234-236; `examples/agent-control-proof`
@@ -38,13 +38,13 @@ fill gaps.
 
 ## Acceptance Criteria
 
-- [ ] a full skill-only pass completes against the packaged app,
+- [x] a full skill-only pass completes against the packaged app,
       unfocused throughout, evidence committed
-- [ ] every ambiguity found during the run is fixed in the skill/guide
+- [x] every ambiguity found during the run is fixed in the skill/guide
       and the affected step re-proved — none recorded as "worked around"
-- [ ] finder script behaved per its contract on the real discovery dir
-- [ ] token appears nowhere in committed evidence
-- [ ] `effigy qa` passes (drift check included) on the final tree
+- [x] finder script behaved per its contract on the real discovery dir
+- [x] token appears nowhere in committed evidence
+- [x] `effigy qa` passes (drift check included) on the final tree
 
 ## Validation
 
@@ -56,6 +56,24 @@ fill gaps.
   that is a contract/runway gap, not skill prose: stop and report;
 - the run cannot be made honest without committing secret material —
   stop; evidence redaction is not optional.
+
+## Closeout
+
+Status: done 2026-08-19, same branch and worktree as Cards 235-236.
+
+First pass: snapshot → click → type → wait_for → screenshot → command
+succeeded unfocused; `subscriptions/listen` missed the first
+`console.log` after subscribe. Cause: listen cursor used the ring's
+`nextSeq` as `sinceSeq`, and the shim filters `seq > sinceSeq`, so the
+next assigned event was dropped. Card 234's two-client e2e hid this
+(two evaluates, the second event passed the cursor). Reported; operator
+authorised the fix. Cursor is now the last delivered event seq;
+conformance `listen_delivers_the_first_event_after_subscribe` locks it.
+
+Skill gained the ack-vs-`resources/updated` distinction and the
+`list_commands` / `proof:ping` note. Re-run green:
+`examples/agent-control-proof/evidence/2026-08-19T22-06-06-skill-dogfood/`
+(`appHeldFocus: false`, token redacted, findings empty).
 
 ## Continuation
 

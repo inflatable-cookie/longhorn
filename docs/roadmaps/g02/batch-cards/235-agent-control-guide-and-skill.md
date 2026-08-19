@@ -1,6 +1,6 @@
 # 235 Agent Control Guide And Skill
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.033
 Governing refs: contract 022; contracts 001, 003; the Card 230-234
@@ -66,16 +66,16 @@ surfaces, not prose — no placeholder values that break when copied.
 
 ## Acceptance Criteria
 
-- [ ] guide present, indexed, and sufficient: every step a consumer
+- [x] guide present, indexed, and sufficient: every step a consumer
       card needs, with both exit hooks and the dev-feature rule stated
       as requirements
-- [ ] skill present with version stamp and trigger-phrase description;
+- [x] skill present with version stamp and trigger-phrase description;
       tool table matches the wire vocabulary exactly (Card 236 locks
       this with a check — write it to be lockable: one parseable table)
-- [ ] finder script fixtures: live instance found, stale skipped,
+- [x] finder script fixtures: live instance found, stale skipped,
       empty dir → nonzero with message, token absent from diagnostics
-- [ ] no consumer repo touched
-- [ ] `effigy qa` passes
+- [x] no consumer repo touched
+- [x] `effigy qa` passes
 
 ## Validation
 
@@ -87,6 +87,18 @@ surfaces, not prose — no placeholder values that break when copied.
   actually have — that is a gap report, not skill prose;
 - the guide cannot be written without exposing app-specific authority
   decisions — contract 003 boundary question, stop.
+
+## Closeout
+
+Status: done 2026-08-19, on `t3code/read-agent-control-handoff` in
+worktree `/Users/tom/.t3/worktrees/longhorn/t3code-72ca9155` (launcher-
+provided).
+
+Guide `docs/guides/agent-control-composition.md` is in the register.
+Skill `skills/agent-control/SKILL.md` stamps `longhorn_version: "0.1.0"`
+and carries one parseable `| Tool |` table. Finder
+`skills/agent-control/scripts/find-instance.ts` fixtures live in
+`scripts/verify-agent-control-skill.ts`. No consumer repo touched.
 
 ## Continuation
 

@@ -1,6 +1,6 @@
 # g02.033 Agent Control Adoption Kit
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Created: 2026-08-19
 Governing refs: contract 022; contracts 001, 003 (consumer boundary), 012
@@ -16,12 +16,12 @@ semantic tools correctly. Proved by an agent following only the skill.
 
 ## Generation Runway
 
-- [ ] [Card 235](batch-cards/235-agent-control-guide-and-skill.md) —
+- [x] [Card 235](batch-cards/235-agent-control-guide-and-skill.md) —
       composition guide, canonical skill, instance-finder script.
-- [ ] [Card 236](batch-cards/236-agent-control-skill-install-and-drift.md)
+- [x] [Card 236](batch-cards/236-agent-control-skill-install-and-drift.md)
       — effigy install selector for consumer repos; a qa check locking
       the skill's documented tool surface to the core vocabulary.
-- [ ] [Card 237](batch-cards/237-agent-control-skill-dogfood-proof.md) —
+- [x] [Card 237](batch-cards/237-agent-control-skill-dogfood-proof.md) —
       the skill proved by use: an agent drives the packaged proof app
       following only the skill, evidence committed.
 

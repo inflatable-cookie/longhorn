@@ -10,8 +10,9 @@ use std::{
     collections::BTreeSet,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicU64, AtomicUsize, Ordering},
     },
+    time::Duration,
 };
 
 use axum::{
@@ -21,9 +22,10 @@ use axum::{
 };
 use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
-    ActionReceipt, CommandResult, ControlHandler, ControlServerConfig, ElementRef, EvaluateResult,
-    InstanceToken, ListWindowsResult, PageState, ScreenshotResult, SemanticNode, SnapshotResult,
-    ToolError, WaitForResult, control_router, enumerate_discovery, serve_control_surface,
+    ActionReceipt, CONTROL_TOOL_NAMES, CommandResult, ControlHandler, ControlServerConfig,
+    ElementRef, EvaluateResult, InstanceToken, ListWindowsResult, PageState, ScreenshotResult,
+    SemanticNode, SnapshotResult, ToolError, WaitForResult, control_router, enumerate_discovery,
+    serve_control_surface,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -32,11 +34,62 @@ use tower::ServiceExt as _;
 const SESSION_HEADER: &str = "mcp-session-id";
 
 /// Host stub: canned answers, an invocation counter that proves rejection
-/// happened before dispatch, and an echo journal for the interleave fixture.
-#[derive(Clone, Default)]
+/// happened before dispatch, an echo journal for the interleave fixture,
+/// and a page-event ring listen polls through `evaluate` of `readEvents`.
+#[derive(Clone)]
 struct StubHandler {
     invocations: Arc<AtomicUsize>,
     evaluated: Arc<Mutex<Vec<String>>>,
+    events: Arc<Mutex<Vec<Value>>>,
+    next_seq: Arc<AtomicU64>,
+}
+
+impl Default for StubHandler {
+    fn default() -> Self {
+        // Seeded so resources/read still has a console event without a
+        // preceding evaluate. Listen's single-trigger fixture uses
+        // [`StubHandler::empty_ring`] so the first post-subscribe event
+        // is the only one that can produce `resources/updated`.
+        Self {
+            invocations: Arc::new(AtomicUsize::new(0)),
+            evaluated: Arc::new(Mutex::new(Vec::new())),
+            events: Arc::new(Mutex::new(vec![json!({
+                "seq": 1,
+                "kind": "console",
+                "level": "log",
+                "text": "hello from stub"
+            })])),
+            next_seq: Arc::new(AtomicU64::new(2)),
+        }
+    }
+}
+
+impl StubHandler {
+    fn empty_ring() -> Self {
+        Self {
+            invocations: Arc::new(AtomicUsize::new(0)),
+            evaluated: Arc::new(Mutex::new(Vec::new())),
+            events: Arc::new(Mutex::new(Vec::new())),
+            next_seq: Arc::new(AtomicU64::new(1)),
+        }
+    }
+
+    fn push_console(&self, text: &str) {
+        let seq = self.next_seq.fetch_add(1, Ordering::SeqCst);
+        self.events.lock().unwrap().push(json!({
+            "seq": seq,
+            "kind": "console",
+            "level": "log",
+            "text": text
+        }));
+    }
+}
+
+fn parse_read_events_since(js: &str) -> Option<u64> {
+    let start = js.find("readEvents(")?;
+    let rest = &js[start + "readEvents(".len()..];
+    let end = rest.find(')')?;
+    rest[..end].trim().parse().ok()
 }
 
 impl StubHandler {
@@ -118,22 +171,28 @@ impl ControlHandler for StubHandler {
     ) -> Result<EvaluateResult, ToolError> {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         self.evaluated.lock().unwrap().push(request.js.clone());
-        if request.js.contains("readEvents") {
+        if let Some(since) = parse_read_events_since(&request.js) {
+            let events = self.events.lock().unwrap();
+            let filtered: Vec<Value> = events
+                .iter()
+                .filter(|event| event["seq"].as_u64().unwrap_or(0) > since)
+                .cloned()
+                .collect();
+            let next_seq = self.next_seq.load(Ordering::SeqCst);
             return Ok(EvaluateResult {
                 value: Value::String(
                     json!({
-                        "events": [{
-                            "seq": 1,
-                            "kind": "console",
-                            "level": "log",
-                            "text": "hello from stub"
-                        }],
-                        "nextSeq": 2,
+                        "events": filtered,
+                        "nextSeq": next_seq,
                         "dropped": 0
                     })
                     .to_string(),
                 ),
             });
+        }
+        if request.js.contains("console.log") {
+            self.push_console("only-once");
+            return Ok(EvaluateResult { value: Value::Null });
         }
         Ok(EvaluateResult {
             value: Value::String(request.js),
@@ -289,6 +348,19 @@ impl McpRequest {
             json!({ "uri": uri, "_meta": meta() }),
         )
     }
+
+    fn listen_console(self) -> Request<Body> {
+        self.post(
+            "subscriptions/listen",
+            None,
+            json!({
+                "notifications": {
+                    "resourceSubscriptions": ["longhorn://agent-control/console"]
+                },
+                "_meta": meta()
+            }),
+        )
+    }
 }
 
 struct McpResponse {
@@ -336,23 +408,9 @@ async fn tool_names_match_the_contract_vocabulary() {
         .collect();
     names.sort_unstable();
     // Raw identifiers must not leak onto the wire: `r#type` serves as `type`.
-    assert_eq!(
-        names,
-        [
-            "click",
-            "command",
-            "drag",
-            "evaluate",
-            "list_windows",
-            "press",
-            "resize_window",
-            "screenshot",
-            "scroll",
-            "snapshot",
-            "type",
-            "wait_for",
-        ]
-    );
+    // CONTROL_TOOL_NAMES is the single vocabulary list; this fixture
+    // asserts the live server matches it rather than a second typed copy.
+    assert_eq!(names, CONTROL_TOOL_NAMES);
 }
 
 #[tokio::test]
@@ -391,6 +449,81 @@ async fn event_resources_are_listed_and_readable() {
     let body: Value = serde_json::from_str(text).unwrap();
     assert_eq!(body["events"][0]["text"], "hello from stub");
     assert_eq!(body["dropped"], 0);
+}
+
+/// One `console.log` after subscribe must produce `resources/updated`.
+/// Using `nextSeq` as the listen cursor drops that first event (Card 237).
+#[tokio::test]
+async fn listen_delivers_the_first_event_after_subscribe() {
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::empty_ring();
+    let app = control_router(stub, token.clone());
+
+    let response = app
+        .clone()
+        .oneshot(McpRequest::authed(&token).listen_console())
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK, "listen should 200");
+    let mut body = response.into_body();
+    let mut buf = String::new();
+
+    async fn pull_until(
+        body: &mut axum::body::Body,
+        buf: &mut String,
+        needle: &str,
+        bound: Duration,
+    ) -> bool {
+        let deadline = tokio::time::Instant::now() + bound;
+        while tokio::time::Instant::now() < deadline {
+            if buf.contains(needle) {
+                return true;
+            }
+            match tokio::time::timeout(Duration::from_millis(100), body.frame()).await {
+                Ok(Some(Ok(frame))) => {
+                    if let Ok(data) = frame.into_data() {
+                        buf.push_str(&String::from_utf8_lossy(&data));
+                    }
+                }
+                Ok(Some(Err(_))) | Ok(None) => return buf.contains(needle),
+                Err(_) => {}
+            }
+        }
+        buf.contains(needle)
+    }
+
+    assert!(
+        pull_until(
+            &mut body,
+            &mut buf,
+            "notifications/subscriptions/acknowledged",
+            Duration::from_secs(2),
+        )
+        .await,
+        "listen never acknowledged: {buf}"
+    );
+
+    let eval = exchange(
+        app,
+        McpRequest::authed(&token).evaluate("console.log('only-once')"),
+    )
+    .await;
+    assert_eq!(eval.status, StatusCode::OK, "{}", eval.body);
+
+    assert!(
+        pull_until(
+            &mut body,
+            &mut buf,
+            "notifications/resources/updated",
+            Duration::from_secs(2),
+        )
+        .await,
+        "single trigger after subscribe produced no resources/updated: {buf}"
+    );
+    assert!(
+        buf.contains("longhorn://agent-control/console"),
+        "updated did not name the console URI: {buf}"
+    );
 }
 
 #[tokio::test]

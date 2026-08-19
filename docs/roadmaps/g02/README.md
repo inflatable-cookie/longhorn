@@ -36,7 +36,7 @@
 | [g02.030](030-agent-control-core.md) | complete | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
 | [g02.031](031-agent-control-tauri-host.md) | complete | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
 | [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
-| [g02.033](033-agent-control-adoption-kit.md) | ready | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
+| [g02.033](033-agent-control-adoption-kit.md) | done 2026-08-19 | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

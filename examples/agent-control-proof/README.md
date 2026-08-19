@@ -49,3 +49,17 @@ connection, plus two-client snapshot interleave and two listen streams.
 It records that the app never held OS focus (System Events) and that no OS
 pointer motion exists in the path. Evidence lands in
 `evidence/<timestamp>-e2e/`.
+
+## Running the skill-only dogfood pass (macOS, operator's display)
+
+```sh
+bunx @tauri-apps/cli build
+cd ../..
+bun examples/agent-control-proof/dogfood.ts
+```
+
+This follows the composition guide to launch the packaged app, then the
+canonical skill (`skills/agent-control/SKILL.md`) for finder, raw-POST
+connection, and snapshot → click → type → wait_for → screenshot → command
+→ listen. Evidence lands in `evidence/<timestamp>-skill-dogfood/`. The
+token is redacted; the app must stay unfocused.
