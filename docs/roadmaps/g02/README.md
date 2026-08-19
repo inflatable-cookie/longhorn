@@ -125,11 +125,13 @@ g02.029-032 complete
      └─ per-app adoption cards, run from the five consumer repos
 ```
 
-g02.033 packages adoption: the composition guide and canonical skill
-(235), one-command install with a qa drift lock (236), and a
-skill-only dogfood pass against the packaged proof app (237). Consumer
-repos stay untouched until their own adoption cards run (contract 003).
-The stdio proxy client sits in the candidate runway.
+g02.033 is complete (PR 6): the composition guide, the drift-locked
+skill and finder, one-command install proved against a scratch repo,
+and the dogfood pass — which found and fixed a real listen-cursor bug,
+exactly its job. The whole agent-control arc, memo to adoption kit, ran
+2026-08-19 in six PRs. What remains is per-app adoption from the five
+consumer repos' own roadmaps (contract 003); the stdio proxy client
+sits in the candidate runway.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
