@@ -311,8 +311,13 @@ where
                 () = context.cancelled() => break,
                 () = tokio::time::sleep(std::time::Duration::from_millis(50)) => {
                     match self.read_events(seq).await {
-                        Ok((events, next_seq, _dropped)) => {
-                            seq = next_seq;
+                        Ok((events, _next_seq, _dropped)) => {
+                            // Cursor is the last delivered event seq, not
+                            // `nextSeq`. The ring assigns `nextSeq` to the
+                            // *next* push and filters `seq > sinceSeq`, so
+                            // using `nextSeq` as the cursor drops the first
+                            // event after subscribe (Card 237).
+                            seq = advance_listen_cursor(seq, &events);
                             for event in events {
                                 let Some(uri) = event
                                     .get("kind")
@@ -339,5 +344,40 @@ where
             }
         }
         Ok(())
+    }
+}
+
+/// Advance the listen cursor past events already delivered.
+///
+/// `nextSeq` from the ring is the next seq to assign, not a since-cursor.
+/// An empty batch leaves `previous` unchanged so a later first event is
+/// still `seq > previous`.
+fn advance_listen_cursor(previous: u64, events: &[serde_json::Value]) -> u64 {
+    events
+        .iter()
+        .filter_map(|event| event.get("seq").and_then(serde_json::Value::as_u64))
+        .max()
+        .unwrap_or(previous)
+}
+
+#[cfg(test)]
+mod cursor_tests {
+    use super::advance_listen_cursor;
+    use serde_json::json;
+
+    #[test]
+    fn empty_batch_keeps_the_previous_cursor() {
+        assert_eq!(advance_listen_cursor(0, &[]), 0);
+        assert_eq!(advance_listen_cursor(3, &[]), 3);
+    }
+
+    #[test]
+    fn cursor_is_the_last_delivered_seq_not_next_seq() {
+        let events = vec![
+            json!({"seq": 1, "kind": "navigation"}),
+            json!({"seq": 2, "kind": "navigation"}),
+        ];
+        // nextSeq would be 3 here; using it would drop the next event.
+        assert_eq!(advance_listen_cursor(0, &events), 2);
     }
 }

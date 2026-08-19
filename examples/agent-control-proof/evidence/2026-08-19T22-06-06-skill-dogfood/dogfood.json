@@ -1,0 +1,233 @@
+{
+  "schema": "longhorn.agent-control-skill-dogfood.v1",
+  "app": "/Users/tom/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 72698,
+  "url": "http://127.0.0.1:59606/mcp",
+  "finder": {
+    "stdout": "url: http://127.0.0.1:59606/mcp\nclaude mcp add --transport http longhorn-dev.example.longhorn-agent-control-proof-72698 http://127.0.0.1:59606/mcp --header \"Authorization: Bearer <redacted-token>\"\n",
+    "stderr": "\u001b[0m\u001b[31mfound 1 live instance\n  appId=dev.example.longhorn-agent-control-proof pid=72698 port=59606\u001b[0m\n"
+  },
+  "commands": [
+    {
+      "label": "guide: open -g packaged proof",
+      "command": [
+        "open",
+        "-g",
+        "-a",
+        "/Users/tom/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "skill: finder",
+      "command": [
+        "bun",
+        "skills/agent-control/scripts/find-instance.ts",
+        "--app-id",
+        "dev.example.longhorn-agent-control-proof"
+      ],
+      "code": 0,
+      "stdout": "url: http://127.0.0.1:59606/mcp\nclaude mcp add --transport http longhorn-dev.example.longhorn-agent-control-proof-72698 http://127.0.0.1:59606/mcp --header \"Authorization: Bearer <redacted-token>\"\n",
+      "stderr": "\u001b[0m\u001b[31mfound 1 live instance\n  appId=dev.example.longhorn-agent-control-proof pid=72698 port=59606\u001b[0m\n"
+    },
+    {
+      "label": "quit proof app",
+      "command": [
+        "osascript",
+        "-e",
+        "tell application id \"dev.example.longhorn-agent-control-proof\" to quit"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "toolCalls": [
+    {
+      "tool": "snapshot",
+      "args": {},
+      "isError": false,
+      "result": {
+        "window": "main",
+        "page": {
+          "url": "tauri://localhost",
+          "title": "Agent Control Proof"
+        },
+        "root": {
+          "elementRef": "e1",
+          "role": "body",
+          "states": [
+            "focused",
+            "visible"
+          ],
+          "children": [
+            {
+              "elementRef": "e2",
+              "role": "navigation",
+              "states": [
+                "visible"
+              ],
+              "children": [
+                {
+                  "elementRef": "e3",
+                  "role": "link",
+                  "name": "List",
+                  "states": [
+                    "visible"
+                  ]
+                },
+                {
+                  "elementRef": "e4",
+                  "role": "link",
+                  "name": "About",
+                  "states": [
+                    "visible"
+                  ]
+                }
+              ]
+            },
+            {
+              "elementRef": "e5",
+              "role": "form",
+              "states": [
+                "visible"
+              ],
+              "children": [
+                {
+                  "elementRef": "e6",
+                  "role": "textbox",
+                  "name": "Item",
+                  "states": [
+                    "visible"
+                  ]
+                },
+                {
+                  "elementRef": "e7",
+                  "role": "button",
+                  "name": "Add",
+                  "states": [
+                    "visible"
+                  ]
+                }
+              ]
+            },
+            {
+              "elementRef": "e8",
+              "role": "list",
+              "states": [
+                "visible"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "tool": "click",
+      "args": {
+        "element": "<item-ref>"
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "type",
+      "args": {
+        "element": "<item-ref>",
+        "text": "Dogfood"
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "click",
+      "args": {
+        "element": "<add-ref>"
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "click",
+      "args": {
+        "element": "<about-ref>"
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "wait_for",
+      "args": {
+        "predicate": {
+          "predicate": "pageUrlContains",
+          "needle": "about"
+        },
+        "timeoutMs": 2000
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "screenshot",
+      "args": {},
+      "isError": false,
+      "result": {
+        "type": "image",
+        "path": "unfocused-about.png"
+      }
+    },
+    {
+      "tool": "command",
+      "args": {
+        "command": "proof:ping"
+      },
+      "isError": false,
+      "result": {}
+    },
+    {
+      "tool": "evaluate",
+      "args": {
+        "js": "console.log('dogfood-listen')"
+      },
+      "isError": false,
+      "result": {
+        "value": null
+      }
+    },
+    {
+      "tool": "subscriptions/listen",
+      "args": {
+        "resourceSubscriptions": [
+          "longhorn://agent-control/console"
+        ]
+      },
+      "sawAck": true,
+      "sawUpdate": true,
+      "excerpt": "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/subscriptions/acknowledged\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/subscriptionId\":10},\"notifications\":{\"resourceSubscriptions\":[\"longhorn://agent-control/console\"]}}}\n\ndata: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/updated\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/subscriptionId\":10},\"uri\":\"longhorn://agent-control/console\"}}\n\n",
+      "resourceRead": null
+    }
+  ],
+  "focusSamples": [
+    {
+      "at": "after-unfocus",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-wait_for",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-listen",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    }
+  ],
+  "appHeldFocus": false,
+  "osPointerUsed": false,
+  "findings": [],
+  "screenshot": "unfocused-about.png"
+}

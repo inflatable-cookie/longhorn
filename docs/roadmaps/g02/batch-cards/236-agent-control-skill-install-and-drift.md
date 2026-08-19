@@ -1,6 +1,6 @@
 # 236 Agent Control Skill Install And Drift Lock
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.033
 Governing refs: contract 022; contracts 001, 003; effigy conventions
@@ -40,16 +40,16 @@ the skill cannot silently drift from the tool surface it documents.
 
 ## Acceptance Criteria
 
-- [ ] install into a scratch git repo works, re-run is a stated no-op,
+- [x] install into a scratch git repo works, re-run is a stated no-op,
       non-repo target refused, nothing outside the skill dir touched —
       all fixture-proved
-- [ ] drift check fails on: a removed tool, an added tool, an edited
+- [x] drift check fails on: a removed tool, an added tool, an edited
       tool name, a stale version stamp — each proved by a fixture that
       breaks it on purpose
-- [ ] the vocabulary source of truth is shared with the conformance
+- [x] the vocabulary source of truth is shared with the conformance
       suite, not retyped
-- [ ] `effigy qa` passes with the new check in the board
-- [ ] no consumer repo touched in this card
+- [x] `effigy qa` passes with the new check in the board
+- [x] no consumer repo touched in this card
 
 ## Validation
 
@@ -62,6 +62,16 @@ the skill cannot silently drift from the tool surface it documents.
 - the drift check cannot reach a single source of truth for the
   vocabulary without exporting new core-crate surface — report first,
   per the standing rule.
+
+## Closeout
+
+Status: done 2026-08-19, same branch and worktree as Card 235.
+
+`CONTROL_TOOL_NAMES` in `longhorn-agent-control` is the shared
+vocabulary; conformance and `check:agent-control-skill` both use it.
+Install is `effigy agent-control:install-skill -- <git-repo>` — the
+global `--repo` flag switches catalogs and cannot name the target
+(PAPERCUTS, 2026-08-19). Doctor runs the same check via `health`.
 
 ## Continuation
 

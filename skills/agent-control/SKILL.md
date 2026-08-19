@@ -145,7 +145,7 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | Tool | Arguments | Result | Limits |
 | --- | --- | --- | --- |
 | `click` | `element` (ref), `window?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
-| `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click |
+| `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. |
 | `drag` | `source` (ref), `target` (ref), `window?` | `ActionReceipt` | untrusted in-page drag; no OS drag-and-drop |
 | `evaluate` | `js`, `window?` | JSON `value` | escape hatch; full in-app code execution |
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
@@ -209,8 +209,10 @@ mcp-method: subscriptions/listen
 }
 ```
 
-Keep the response stream open. Events arrive as
-`notifications/resources/updated` for the URI that changed. Then
+Keep the response stream open. The first SSE event is
+`notifications/subscriptions/acknowledged` — that is the subscription
+handshake, not a page event. Page events arrive later as
+`notifications/resources/updated` with the URI that changed. Then
 `resources/read` that URI. Body:
 
 ```json

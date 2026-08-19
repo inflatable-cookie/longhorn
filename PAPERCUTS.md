@@ -7,6 +7,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
+### [ ] Doctor schema rejects inline `{ rhai = ... }` task values that the runner accepts — 2026-08-19
+- Friction: `"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }` runs correctly and is the documented task shape. `effigy doctor` flags `tasks.agent-control:install-skill.rhai` as an unsupported key. The table form `[tasks."name"] run = { rhai = ... }` fails to parse in this manifest (`ManifestTaskLikeDefinition`).
+- Impact: a working Rhai task makes doctor red; switching form breaks the rest of `[tasks]`.
+- Possible fix: admit `rhai` on inline task tables in the doctor schema, or document the one table form this manifest parser actually accepts.
+- Surface: `effigy doctor` `manifest.schema.unsupported_key`, `effigy.toml` `[tasks]`.
+
 ### [ ] Global `--repo` is consumed after `--`, so a Longhorn task cannot take `--repo` as its target — 2026-08-19
 - Friction: `effigy --repo <PATH>` switches catalogs and cwd. `effigy <task> -- --repo <PATH>` still treats `--repo` as the global flag, so the task is looked up in the target repo. Extra args reach Rhai tasks only; shell-string tasks get none. Card 236's install selector therefore cannot be `effigy --repo <consumer> agent-control:install-skill`.
 - Impact: the one sanctioned cross-repo write has to take a positional path after `--` (`effigy agent-control:install-skill -- <consumer>`). Agents following the `--repo` convention hit a missing-task error.
