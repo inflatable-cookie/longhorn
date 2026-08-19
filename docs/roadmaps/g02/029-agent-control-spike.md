@@ -1,6 +1,7 @@
 # g02.029 Agent Control Spike
 
-Status: ready
+Status: complete
+Completed: 2026-08-19
 Owner: Longhorn maintainers
 Created: 2026-08-19
 Governing refs: research memo 024; contract 022 (draft); contracts 001, 020
@@ -32,5 +33,6 @@ facts instead of documentation.
 
 ## Next Task
 
-Orchestrator promotes memo 024 and contract 022 from the spike evidence,
-then compiles g02.030-032 cards to ready.
+Done 2026-08-19: memo 024 and contract 022 promoted from the spike
+evidence (PR 2); g02.030 compiled to ready (Cards 228-229). Dispatch
+g02.030 next.

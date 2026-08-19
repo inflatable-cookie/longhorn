@@ -1,10 +1,11 @@
 # 024 Agent App Control
 
-Status: draft, pre-compilation
+Status: complete and promoted
 Owner: Tom
 Updated: 2026-08-19
-Promotes: contract 022 (draft). Touches contracts 006 (command invocation),
-010 (IPC boundary), 012 (new crates), 020 (host adapter seam).
+Promotes: contract 022 (active 2026-08-19); the g02.029-032 runway. Touches
+contracts 006 (command invocation), 010 (IPC boundary), 012 (new crates),
+020 (host adapter seam).
 
 ## Prompt
 

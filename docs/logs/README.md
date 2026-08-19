@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-08
 
+### 2026-08-19
+
+- [Agent Control Spike And Promotion](2026-08/19-agent-control-spike-and-promotion.md)
+
 ### 2026-08-16
 
 - [Consumer-scoped Credential Slots](2026-08/16-consumer-scoped-credential-slots.md)

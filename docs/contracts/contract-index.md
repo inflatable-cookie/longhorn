@@ -22,7 +22,9 @@ them.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
-  010, 013. A GPUI application composes none of it, and that is not a gap.
+  010, 013, and 022's semantic surface (its server core and capture sit in
+  the host tier via a provider seam). A GPUI application composes none of
+  it, and that is not a gap.
 
 A claim proved on one backend does not close a host-tier contract.
 
@@ -51,14 +53,14 @@ A claim proved on one backend does not close a host-tier contract.
 | [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
 | [020 Host Adapter Boundary](020-host-adapter-boundary.md) | what a backend must provide, what it may not do, delegated capabilities, dual-backend evidence | active compiled boundary |
 | [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md) | validated built-in and consumer namespace/scope/purpose identities over one credential store | active compiled boundary |
+| [022 Agent App Control](022-agent-app-control.md) | dev-only stateless MCP control surface: semantic snapshot, in-page input, unfocused capture, command invocation | active |
 
 ## Pending Contracts
 
-[022 Agent App Control](022-agent-app-control.md) is drafted, not compiled: a
-dev-only, stateless MCP control server inside each app so agents drive a
-running app (semantic snapshot, in-page input, unfocused screenshots, command
-invocation) without OS focus or pointer theft. Needs a research memo and a
-runway slot before promotion.
+None. Contract 022 was promoted 2026-08-19 from Card 227's spike evidence
+(memo 024): stateless mount and 2026-07-28 negotiation proved on the wire,
+unfocused/occluded/minimized capture proved fresh, with the rAF/timer
+caveat folded into the contract's `wait_for` semantics.
 
 ## Roadmap Readiness
 

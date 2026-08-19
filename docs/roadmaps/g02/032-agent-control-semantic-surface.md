@@ -3,7 +3,7 @@
 Status: planned — blocked on g02.031
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Governing refs: contract 022 (promotion pending); contracts 006, 010, 013
+Governing refs: contract 022; contracts 006, 010, 013
 Depends on: g02.031 complete
 
 ## Outcome

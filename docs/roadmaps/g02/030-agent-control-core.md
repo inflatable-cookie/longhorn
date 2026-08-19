@@ -1,10 +1,10 @@
 # g02.030 Agent Control Core
 
-Status: planned — blocked on g02.029 evidence and contract 022 promotion
+Status: ready
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Governing refs: contract 022 (promotion pending); contracts 001, 006, 012
-Depends on: g02.029 complete; contract 022 active
+Governing refs: contract 022; memo 024; contracts 001, 006, 012
+Depends on: g02.029 complete and contract 022 active — both true 2026-08-19
 
 ## Outcome
 
@@ -15,13 +15,13 @@ conformance proved without any host.
 
 ## Generation Runway
 
-Cards compile to ready after promotion; numbers reserved:
-
-- [ ] Card 228 — core crate: tool schema, discovery file (app id, pid,
-      port, token, schema version), token generation, provider seam.
-- [ ] Card 229 — stateless server assembly over rmcp: no minted session
-      ids, Origin rejection, bad-token rejection, discovery lifecycle
-      fixtures including stale-pid detection.
+- [ ] [Card 228](batch-cards/228-agent-control-core-crate.md) — core
+      crate: tool schema, discovery file (app id, pid, port, token, schema
+      version), token generation, provider seam.
+- [ ] [Card 229](batch-cards/229-agent-control-stateless-server.md) —
+      stateless server assembly over rmcp: no minted session ids, Origin
+      rejection, bad-token rejection, discovery lifecycle fixtures
+      including stale-pid detection.
 
 ## Acceptance
 

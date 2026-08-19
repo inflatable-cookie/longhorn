@@ -1,8 +1,9 @@
 # 022 Agent App Control
 
-Status: draft, not compiled
+Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
+Updated: 2026-08-19 — promoted from Card 227 spike evidence (memo 024)
 Depends on: contracts 001, 006, 010, 012, 020
 Affects: new `longhorn-agent-control`, new `longhorn-tauri-agent-control`,
 `longhorn` (TS shim), all app consumers in dev builds
@@ -65,9 +66,14 @@ agent can use while the app runs unfocused in the background.
   drag-and-drop, and `isTrusted` checks are out of scope.
 - `evaluate`: run JS in the page. Escape hatch, not the primary path.
 - `wait_for`: predicate over the semantic tree or page state, bounded by
-  timeout.
-- `screenshot`: window image via webview snapshot capture. Works occluded
-  and unfocused; requires no screen-recording permission.
+  timeout. Waiting is DOM-relative, never time- or animation-relative:
+  WKWebView coalesces DOM timers in every window state and stops
+  `requestAnimationFrame` entirely while the window is not key (Card 227),
+  so rAF-driven visuals must not be awaited and elapsed time proves
+  nothing about page progress.
+- `screenshot`: window image via webview snapshot capture. Works occluded,
+  unfocused, and minimized (Card 227 proved all three fresh against the
+  DOM); requires no screen-recording permission or private API.
 - `command`: invoke a registered contract-006 command by id. This is the
   route to behavior behind native menus and dialogs; agents do not click
   native chrome.
