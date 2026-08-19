@@ -112,12 +112,13 @@ memo 024 agent app control (contract 022 draft)
          └─ 032 semantic surface and proof (232-234)
 ```
 
-029 (PR 2), 030 (PR 3), and 031 (PR 4) are complete: contract 022 is
-active, `longhorn-agent-control` and `longhorn-tauri-agent-control` are
-merged, and the packaged freshness matrix reproduced the spike exactly —
-release-absence proved by scan both directions. 032 is ready (Cards
-232-234 compiled): the TS shim, the semantic tools, and the end-to-end
-proof that closes the feature.
+The runway is complete (PRs 2-5, all 2026-08-19): contract 022 active
+with its Required Evidence cited or explicitly narrowed, two crates and
+the TS shim merged, release-absence proved by scan both directions, and
+the packaged end-to-end proof driven by a real MCP client while the app
+never held OS focus. Consumer adoption — the five sibling apps composing
+`longhorn-tauri-agent-control` behind `dev` — is per-app work outside
+this runway.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
