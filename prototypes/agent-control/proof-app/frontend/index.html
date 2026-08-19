@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Longhorn Agent Control Proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #counter {
+        font-size: 96px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      #label {
+        margin-top: 12px;
+        font-size: 16px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="counter">0</div>
+    <div id="label">agent-control proof counter</div>
+    <script>
+      // A second-ticking counter with a cycling background so staleness of a
+      // snapshot is decidable from the image alone: number and hue must both
+      // match "now".
+      let value = 0;
+      const counter = document.getElementById("counter");
+      function tick() {
+        value += 1;
+        counter.textContent = String(value);
+        document.body.style.backgroundColor = `hsl(${(value * 37) % 360} 60% 18%)`;
+        document.body.style.color = `hsl(${(value * 37 + 180) % 360} 90% 85%)`;
+      }
+      tick();
+      setInterval(tick, 1000);
+    </script>
+  </body>
+</html>

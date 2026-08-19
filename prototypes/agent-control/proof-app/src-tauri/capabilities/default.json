@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "agent-control-proof-main",
+  "description": "The single window runs no Tauri commands; MCP control happens over the in-process HTTP server.",
+  "local": true,
+  "windows": ["main"],
+  "permissions": []
+}
