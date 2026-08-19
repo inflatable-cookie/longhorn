@@ -172,3 +172,16 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   warnings — those types are declared, just not flat-mapped.
 - Not: adding `check:ts` to `check:bindings`.
 - Surface: `crates/longhorn-bindings/src/generation.rs`.
+
+## .agents.local.env is a convention with no gitignore entry (2026-08-19)
+
+- Friction: the worker-worktree fallback expects an ignored
+  `.agents.local.env` carrying `AGENTS_WORKTREE_CONTAINER_DIR`, but the
+  repo's `.gitignore` does not cover it, so creating the file makes the
+  shared checkout dirty. Both worker dispatches so far routed the container
+  question to the operator instead (`~/Dev/worktrees`).
+- Impact: every dispatched worker without a launcher worktree must ask the
+  operator the same question again.
+- Plausible fix: add `.agents.local.env` to `.gitignore`, then create the
+  file with `AGENTS_WORKTREE_CONTAINER_DIR=/Users/tom/Dev/worktrees`.
+- Surface: `.gitignore`, orchestrator/worker handoff loop.
