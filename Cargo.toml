@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/longhorn-agent-control",
   "crates/longhorn-bindings",
   "crates/longhorn-bridge",
   "crates/longhorn-browser",
@@ -75,6 +76,7 @@ ed25519-dalek = { version = "3.0.0", default-features = false }
 flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 getrandom = "0.3.4"
+longhorn-agent-control = { path = "crates/longhorn-agent-control", version = "0.1.0" }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.1.0" }
 longhorn-browser = { path = "crates/longhorn-browser", version = "0.1.0" }
 longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
@@ -133,6 +135,9 @@ serde = { version = "1.0.229", features = ["derive"] }
 secrecy = "0.10.3"
 serde_json = "1.0.151"
 sha2 = "0.11.0"
+# Process liveness only (`system` feature): discovery files go stale by dead
+# pid, and std has no safe cross-platform liveness probe.
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
 tar = "0.4.44"
 tempfile = "3.27.0"
 tauri = { version = "2.10.3", default-features = false }
