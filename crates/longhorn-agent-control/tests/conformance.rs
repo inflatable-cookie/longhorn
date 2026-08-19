@@ -118,6 +118,23 @@ impl ControlHandler for StubHandler {
     ) -> Result<EvaluateResult, ToolError> {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         self.evaluated.lock().unwrap().push(request.js.clone());
+        if request.js.contains("readEvents") {
+            return Ok(EvaluateResult {
+                value: Value::String(
+                    json!({
+                        "events": [{
+                            "seq": 1,
+                            "kind": "console",
+                            "level": "log",
+                            "text": "hello from stub"
+                        }],
+                        "nextSeq": 2,
+                        "dropped": 0
+                    })
+                    .to_string(),
+                ),
+            });
+        }
         Ok(EvaluateResult {
             value: Value::String(request.js),
         })
@@ -260,6 +277,18 @@ impl McpRequest {
             json!({ "name": "evaluate", "arguments": { "js": js }, "_meta": meta() }),
         )
     }
+
+    fn resources_list(self) -> Request<Body> {
+        self.post("resources/list", None, json!({ "_meta": meta() }))
+    }
+
+    fn resources_read(self, uri: &str) -> Request<Body> {
+        self.post(
+            "resources/read",
+            Some(uri),
+            json!({ "uri": uri, "_meta": meta() }),
+        )
+    }
 }
 
 struct McpResponse {
@@ -324,6 +353,44 @@ async fn tool_names_match_the_contract_vocabulary() {
             "wait_for",
         ]
     );
+}
+
+#[tokio::test]
+async fn event_resources_are_listed_and_readable() {
+    let (app, token, _stub) = app();
+
+    let response = exchange(app.clone(), McpRequest::authed(&token).resources_list()).await;
+    assert_eq!(response.status, StatusCode::OK, "{}", response.body);
+    let payload = response.json();
+    let mut uris: Vec<&str> = payload["result"]["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|resource| resource["uri"].as_str().unwrap())
+        .collect();
+    uris.sort_unstable();
+    assert_eq!(
+        uris,
+        [
+            "longhorn://agent-control/console",
+            "longhorn://agent-control/error",
+            "longhorn://agent-control/navigation",
+        ]
+    );
+
+    let response = exchange(
+        app,
+        McpRequest::authed(&token).resources_read("longhorn://agent-control/console"),
+    )
+    .await;
+    assert_eq!(response.status, StatusCode::OK, "{}", response.body);
+    let payload = response.json();
+    let text = payload["result"]["contents"][0]["text"]
+        .as_str()
+        .expect("resource text");
+    let body: Value = serde_json::from_str(text).unwrap();
+    assert_eq!(body["events"][0]["text"], "hello from stub");
+    assert_eq!(body["dropped"], 0);
 }
 
 #[tokio::test]

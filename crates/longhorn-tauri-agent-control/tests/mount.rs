@@ -163,6 +163,47 @@ impl McpPost {
             json!({ "name": name, "arguments": arguments, "_meta": meta() }),
         )
     }
+
+    fn resources_list(&self) -> McpReply {
+        self.post("resources/list", None, json!({ "_meta": meta() }))
+    }
+
+    /// Opens `subscriptions/listen` and reads until the socket times out —
+    /// the stream is long-lived, so the acknowledgment is the proof it
+    /// accepted the filter.
+    fn listen(&self, notifications: Value) -> McpReply {
+        let body = json!({
+            "jsonrpc": "2.0",
+            "id": 7,
+            "method": "subscriptions/listen",
+            "params": { "notifications": notifications, "_meta": meta() },
+        })
+        .to_string();
+        let mut request = format!(
+            "POST /mcp HTTP/1.1\r\nhost: 127.0.0.1:{}\r\ncontent-type: application/json\r\naccept: application/json, text/event-stream\r\nmcp-protocol-version: 2026-07-28\r\nmcp-method: subscriptions/listen\r\nconnection: close\r\ncontent-length: {}\r\n",
+            self.port,
+            body.len(),
+        );
+        if let Some(token) = &self.token {
+            request.push_str(&format!("authorization: Bearer {token}\r\n"));
+        }
+        request.push_str("\r\n");
+        request.push_str(&body);
+        let mut stream = TcpStream::connect(("127.0.0.1", self.port)).unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_millis(400)))
+            .unwrap();
+        stream.write_all(request.as_bytes()).unwrap();
+        let mut raw = Vec::new();
+        let _ = stream.read_to_end(&mut raw);
+        let raw = String::from_utf8(raw).unwrap_or_default();
+        let status = raw
+            .split_whitespace()
+            .nth(1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+        McpReply { status, body: raw }
+    }
 }
 
 /// The `_meta` envelope revision 2026-07-28 requires (Card 227 capture).
@@ -289,12 +330,20 @@ fn mounted_server_serves_the_vocabulary_and_window_scope() {
         assert!(tools.contains(&expected), "missing tool {expected}");
     }
 
-    // Not-yet-wired tools answer the typed `Unsupported` error.
+    // Semantic tools are wired through the shim. The mock runtime has no
+    // WKWebView, so evaluate fails typed — not the old g02.032 Unsupported.
     let reply = client.call("snapshot", json!({}));
     assert_eq!(reply.status, 200, "{}", reply.body);
     let (is_error, content) = tool_content(&reply);
-    assert!(is_error, "snapshot must fail typed: {content}");
-    assert_eq!(content["error"], "unsupported");
+    assert!(
+        is_error,
+        "snapshot must fail typed on the mock runtime: {content}"
+    );
+    assert_ne!(
+        content["error"], "unsupported",
+        "snapshot is wired; mock evaluate fails as evaluationFailed: {content}"
+    );
+    assert_eq!(content["error"], "evaluationFailed");
 
     // `command` reaches the host bridge and returns its output.
     let reply = client.call(
@@ -326,6 +375,32 @@ fn mounted_server_serves_the_vocabulary_and_window_scope() {
     );
     let (is_error, content) = tool_content(&reply);
     assert!(!is_error, "resize_window must succeed: {content}");
+
+    let reply = client.resources_list();
+    assert_eq!(reply.status, 200, "{}", reply.body);
+    let resources = reply.json()["result"]["resources"]
+        .as_array()
+        .cloned()
+        .unwrap();
+    let uris: Vec<&str> = resources
+        .iter()
+        .map(|resource| resource["uri"].as_str().unwrap())
+        .collect();
+    assert!(uris.contains(&"longhorn://agent-control/console"));
+    assert!(uris.contains(&"longhorn://agent-control/error"));
+    assert!(uris.contains(&"longhorn://agent-control/navigation"));
+
+    let listen = client.listen(json!({
+        "resourceSubscriptions": ["longhorn://agent-control/console"]
+    }));
+    assert_eq!(listen.status, 200, "{}", listen.body);
+    assert!(
+        listen
+            .body
+            .contains("notifications/subscriptions/acknowledged"),
+        "listen stream must acknowledge: {}",
+        listen.body
+    );
 
     // An unknown window fails typed.
     let reply = client.call(

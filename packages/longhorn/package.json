@@ -16,6 +16,11 @@
       "import": "./src/core/index.ts",
       "default": "./src/core/index.ts"
     },
+    "./agent-control": {
+      "types": "./src/agent-control/index.ts",
+      "import": "./src/agent-control/index.ts",
+      "default": "./src/agent-control/index.ts"
+    },
     "./bridge": {
       "types": "./src/bridge/index.ts",
       "import": "./src/bridge/index.ts",

@@ -23,6 +23,8 @@ mod capture;
 mod handler;
 #[cfg(feature = "dev")]
 mod mount;
+#[cfg(feature = "dev")]
+mod shim;
 
 #[cfg(feature = "dev")]
 pub use bridge::CommandBridge;

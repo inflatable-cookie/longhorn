@@ -8,38 +8,128 @@
       html,
       body {
         margin: 0;
-        height: 100%;
+        min-height: 100%;
       }
       body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #101318;
-        color: #f5f7fa;
         font:
-          700 160px/1 -apple-system,
+          16px/1.4 -apple-system,
+          system-ui,
+          sans-serif;
+        color: #f5f7fa;
+        background: #101318;
+        padding: 24px;
+      }
+      #counter {
+        font:
+          700 48px/1 -apple-system,
           system-ui,
           sans-serif;
         font-variant-numeric: tabular-nums;
-        user-select: none;
+        margin: 0 0 16px;
+      }
+      nav a {
+        color: #9ecbff;
+        margin-right: 12px;
+      }
+      #list,
+      #about {
+        display: none;
+        max-width: 420px;
+      }
+      body.view-list #list,
+      body.view-about #about {
+        display: block;
+      }
+      form {
+        display: flex;
+        gap: 8px;
+        margin: 12px 0;
+      }
+      input,
+      button {
+        font: inherit;
+        padding: 6px 10px;
+      }
+      #items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      #items li {
+        background: rgba(255, 255, 255, 0.12);
+        margin: 6px 0;
+        padding: 8px 12px;
+        cursor: grab;
       }
     </style>
   </head>
-  <body>
+  <body class="view-list">
     <div id="counter">0</div>
+    <nav>
+      <a id="to-list" href="#list">List</a>
+      <a id="to-about" href="#about">About</a>
+    </nav>
+    <section id="list">
+      <form id="add-form">
+        <label for="item-name">Item</label>
+        <input id="item-name" name="item" autocomplete="off" />
+        <button id="add" type="button">Add</button>
+      </form>
+      <ul id="items"></ul>
+    </section>
+    <section id="about">
+      <p id="about-copy">Proof about page. Native chrome is not clicked; commands cover menus.</p>
+    </section>
     <script>
-      // The freshness oracle: a counter that ticks once a second and is
-      // readable both as text (human/bracket checks, exactly like the Card
-      // 227 spike) and as the background hue (automated pixel checks). The
-      // hue stride makes adjacent seconds visually distinct, so a stale
-      // snapshot can never pass for a fresh one.
+      // Freshness oracle retained from Card 231: the ticker is readable as
+      // text and as the body hue (47° stride).
       let counter = 0;
-      const element = document.getElementById("counter");
+      const ticker = document.getElementById("counter");
       setInterval(() => {
         counter += 1;
-        element.textContent = String(counter);
+        ticker.textContent = String(counter);
         document.body.style.backgroundColor = `hsl(${(counter * 47) % 360} 70% 45%)`;
       }, 1000);
+
+      function showView() {
+        const view = location.hash === "#about" ? "about" : "list";
+        document.body.classList.toggle("view-list", view === "list");
+        document.body.classList.toggle("view-about", view === "about");
+      }
+      window.addEventListener("hashchange", showView);
+      showView();
+
+      const items = document.getElementById("items");
+      const field = document.getElementById("item-name");
+      function addItem() {
+        const name = field.value.trim();
+        if (!name) return;
+        const li = document.createElement("li");
+        li.textContent = name;
+        li.draggable = true;
+        items.append(li);
+        field.value = "";
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      document.getElementById("add-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        addItem();
+      });
+      document.getElementById("add").addEventListener("click", addItem);
+
+      let dragging = null;
+      items.addEventListener("dragstart", (event) => {
+        dragging = event.target;
+      });
+      items.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        const over = event.target.closest("li");
+        if (!dragging || !over || over === dragging) return;
+        const rect = over.getBoundingClientRect();
+        const after = event.clientY > rect.top + rect.height / 2;
+        over.insertAdjacentElement(after ? "afterend" : "beforebegin", dragging);
+      });
+      items.addEventListener("drop", (event) => event.preventDefault());
     </script>
   </body>
 </html>

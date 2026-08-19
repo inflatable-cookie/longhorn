@@ -28,7 +28,29 @@ use longhorn_tauri_config::{TauriDirectorySnapshot, platform_directory_facts};
 use tauri::{AppHandle, Manager, Runtime};
 use tokio::sync::oneshot;
 
-use crate::{bridge::CommandBridge, handler::TauriControlHandler};
+use crate::{bridge::CommandBridge, handler::TauriControlHandler, shim::SHIM_SOURCE};
+
+/// Registers the in-page shim as a Tauri initialization script so every
+/// document load re-arms it. Existing windows also get an immediate `eval`.
+struct AgentControlShimPlugin;
+
+impl<R: Runtime> tauri::plugin::Plugin<R> for AgentControlShimPlugin {
+    fn name(&self) -> &'static str {
+        "longhorn-agent-control-shim"
+    }
+
+    fn initialization_script(&self) -> Option<String> {
+        Some(SHIM_SOURCE.to_owned())
+    }
+
+    fn on_page_load(
+        &mut self,
+        webview: &tauri::Webview<R>,
+        _payload: &tauri::webview::PageLoadPayload<'_>,
+    ) {
+        let _ = webview.eval(SHIM_SOURCE);
+    }
+}
 
 /// What one mount needs from the composing app.
 #[derive(Clone, Debug)]
@@ -196,6 +218,13 @@ pub fn mount_agent_control<R: Runtime>(
         None => resolve_discovery_dir(&facts),
     }
     .map_err(AgentControlMountError::Discovery)?;
+
+    // Initialization script for windows created after this mount; eval for
+    // windows that already exist (the proof app and the mount fixtures).
+    let _ = app.plugin(AgentControlShimPlugin);
+    for (_, window) in app.webview_windows() {
+        let _ = window.eval(SHIM_SOURCE);
+    }
 
     let handler = TauriControlHandler::new(app.clone(), commands);
     let server_config = ControlServerConfig {

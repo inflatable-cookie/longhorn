@@ -1,0 +1,30 @@
+{
+  "schema": "longhorn.agent-control-e2e.v1",
+  "app": "/Users/tom/.t3/worktrees/longhorn/t3code-672f3dc8/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 78343,
+  "discoveryPath": "/Users/tom/Library/Application Support/longhorn/state/agent-control/dev.example.longhorn-agent-control-proof-78343.json",
+  "screenshot": "/Users/tom/.t3/worktrees/longhorn/t3code-672f3dc8/examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/unfocused-about.png",
+  "focusSamples": [
+    {
+      "at": "after-unfocus",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-navigation",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-listen",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    }
+  ],
+  "appHeldFocus": false,
+  "twoClientRefsShared": true,
+  "listenA": true,
+  "listenB": true,
+  "discoveryRemovedOnQuit": true,
+  "osPointerUsed": false
+}

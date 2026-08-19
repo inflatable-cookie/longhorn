@@ -287,10 +287,19 @@ async function inspectTypescriptArtifact(name: string, path: string) {
   // is scoped to that subtree; the mechanism markers still apply everywhere.
   const packageSrc = join(extractRoot, "package", "src");
   const source = await readSourceTree(packageSrc);
-  for (const marker of ["SignalPlugin", "wgpu", "devicePixelRatio", "querySelector"]) {
+  // Card 232's in-page shim is the one domain that walks the live DOM. Keep
+  // querySelector forbidden everywhere else in the peerless package.
+  const sourceWithoutShim =
+    name === "@inflatable-cookie/longhorn"
+      ? await readSourceTree(packageSrc, (path) => !path.startsWith("agent-control/"))
+      : source;
+  for (const marker of ["SignalPlugin", "wgpu", "devicePixelRatio"]) {
     if (source.includes(marker)) {
       throw new Error(`${name} artifact contains forbidden authority marker ${marker}`);
     }
+  }
+  if (sourceWithoutShim.includes("querySelector")) {
+    throw new Error(`${name} artifact contains forbidden authority marker querySelector`);
   }
   const nativeContentSource =
     name === "@inflatable-cookie/longhorn-poodle-svelte"
@@ -838,9 +847,10 @@ async function assertSingleSvelteRuntime(stage: string) {
   }
 }
 
-async function readSourceTree(root: string) {
+async function readSourceTree(root: string, include = (_path: string) => true) {
   const files = (await readdir(root, { recursive: true }))
     .filter((path) => /\.(rs|ts|svelte)$/.test(path))
+    .filter((path) => include(path.replaceAll("\\", "/")))
     .sort();
   return (
     await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))

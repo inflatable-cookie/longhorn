@@ -35,7 +35,7 @@
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
 | [g02.030](030-agent-control-core.md) | complete | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
 | [g02.031](031-agent-control-tauri-host.md) | complete | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
-| [g02.032](032-agent-control-semantic-surface.md) | ready | semantic snapshot and input tools; packaged unfocused end-to-end proof |
+| [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

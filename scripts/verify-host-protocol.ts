@@ -30,6 +30,10 @@ const seamCommandsRustOnly = new Map([
 const seamEventsRustOnly = new Map([
   ["longhorn://command/catalogue-changed", "contract 010; renderer listen is consumer-filled"],
   ["longhorn://command/keymap-changed", "contract 010; renderer listen is consumer-filled"],
+  // MCP resource URIs on the agent-control listen stream, not Tauri events.
+  ["longhorn://agent-control/console", "contract 022; MCP resource, not a Tauri event"],
+  ["longhorn://agent-control/error", "contract 022; MCP resource, not a Tauri event"],
+  ["longhorn://agent-control/navigation", "contract 022; MCP resource, not a Tauri event"],
 ]);
 
 function walk(directory: string, suffix: string, files: string[] = []): string[] {
