@@ -17,6 +17,8 @@
 
 #[cfg(feature = "dev")]
 mod bridge;
+#[cfg(all(feature = "dev", target_os = "macos"))]
+mod capture;
 #[cfg(feature = "dev")]
 mod handler;
 #[cfg(feature = "dev")]

@@ -1,0 +1,69 @@
+{
+  "schema": "longhorn.agent-control-freshness-matrix.v1",
+  "app": "/Users/tom/Dev/worktrees/longhorn-231/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 2834,
+  "rows": [
+    {
+      "state": "frontmost",
+      "bracketBefore": 1,
+      "bracketAfter": 1,
+      "matchedCounter": 1,
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "fresh": true
+    },
+    {
+      "state": "unfocused",
+      "bracketBefore": 3,
+      "bracketAfter": 3,
+      "matchedCounter": 3,
+      "pixel": [
+        34,
+        195,
+        91
+      ],
+      "fresh": true
+    },
+    {
+      "state": "occluded",
+      "bracketBefore": 5,
+      "bracketAfter": 5,
+      "matchedCounter": 5,
+      "pixel": [
+        34,
+        48,
+        195
+      ],
+      "fresh": true
+    },
+    {
+      "state": "minimized",
+      "bracketBefore": 6,
+      "bracketAfter": 6,
+      "matchedCounter": 6,
+      "pixel": [
+        147,
+        34,
+        195
+      ],
+      "fresh": true
+    },
+    {
+      "state": "restored",
+      "bracketBefore": 8,
+      "bracketAfter": 8,
+      "matchedCounter": 8,
+      "pixel": [
+        195,
+        77,
+        34
+      ],
+      "fresh": true
+    }
+  ],
+  "discoveryRemovedOnQuit": true,
+  "fresh": true
+}

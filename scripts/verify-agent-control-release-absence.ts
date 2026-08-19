@@ -20,7 +20,7 @@
 // rlib files themselves — no external binutils, matching the runner-tools
 // posture that a clean runner has a Rust toolchain and nothing else.
 
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -65,6 +65,20 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
   const targetDir = join(SCAN_ROOT, features);
   const env = { CARGO_TARGET_DIR: targetDir };
 
+  // Drop prior scan artifacts for the two crates under test (only) so a
+  // source change since the last run cannot leave a second hash beside the
+  // current one; the dependency cache stays warm.
+  const depsDir = join(targetDir, "release", "deps");
+  const prior = await readdir(depsDir).catch(() => [] as string[]);
+  for (const entry of prior) {
+    if (
+      entry.startsWith("liblonghorn_agent_control-") ||
+      entry.startsWith("liblonghorn_tauri_agent_control-")
+    ) {
+      await rm(join(depsDir, entry));
+    }
+  }
+
   const tree = await run(
     [
       "cargo",
@@ -94,7 +108,6 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
     env,
   );
 
-  const depsDir = join(targetDir, "release", "deps");
   const entries = await readdir(depsDir);
   const coreRlibs = entries.filter(
     (entry) => entry.startsWith("liblonghorn_agent_control-") && entry.endsWith(".rlib"),

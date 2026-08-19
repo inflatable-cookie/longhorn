@@ -1,0 +1,21 @@
+[package]
+name = "longhorn-agent-control-proof"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+longhorn-command.workspace = true
+longhorn-core.workspace = true
+longhorn-tauri-agent-control = { workspace = true, features = ["dev"] }
+serde_json.workspace = true
+tauri = { workspace = true, features = ["wry"] }
+
+[lints]
+workspace = true

@@ -14,18 +14,35 @@ publish = false
 # route, token, or discovery code, and no runtime toggle can enable it.
 dev = [
   "dep:longhorn-agent-control",
+  "dep:longhorn-core",
   "dep:longhorn-tauri-config",
   "dep:serde_json",
+  "dep:tauri",
   "dep:tokio",
+  "dep:block2",
+  "dep:objc2",
+  "dep:objc2-app-kit",
+  "dep:objc2-foundation",
+  "dep:objc2-web-kit",
 ]
 
 [dependencies]
-longhorn-core.workspace = true
-tauri.workspace = true
+longhorn-core = { workspace = true, optional = true }
+# `wry` because the capture bridge needs `WebviewWindow::with_webview`.
+tauri = { workspace = true, optional = true, features = ["wry"] }
 longhorn-agent-control = { workspace = true, optional = true }
 longhorn-tauri-config = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
+
+# The Card 231 capture bridge: macOS-only, public WKWebView API through
+# objc2, all of it behind the same `dev` feature.
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = { workspace = true, optional = true }
+objc2 = { workspace = true, optional = true }
+objc2-app-kit = { workspace = true, optional = true }
+objc2-foundation = { workspace = true, optional = true }
+objc2-web-kit = { workspace = true, optional = true }
 
 [dev-dependencies]
 longhorn-tauri-agent-control = { path = ".", features = ["dev"] }
@@ -33,5 +50,14 @@ serde_json.workspace = true
 tauri = { workspace = true, features = ["test"] }
 tempfile.workspace = true
 
-[lints]
-workspace = true
+# `deny`, not the workspace's `forbid`: the macOS capture bridge crosses
+# into WKWebView through objc2's unsafe FFI (`takeSnapshot…`,
+# `evaluateJavaScript…`, `Retained::retain` are all `unsafe fn`). The allow
+# is scoped to the `capture` module with SAFETY comments at each call;
+# everything else in the crate stays denied.
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "deny"
+
+[lints.clippy]
+all = "deny"

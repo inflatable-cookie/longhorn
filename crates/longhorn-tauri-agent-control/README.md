@@ -22,8 +22,10 @@ let agent_control = longhorn_tauri_agent_control::mount_agent_control(
 )?;
 ```
 
-The app keeps the returned handle and calls `shutdown()` from
-`RunEvent::ExitRequested` so a clean exit removes the discovery file. The
+The app keeps the returned handle and calls `shutdown()` from its run-event
+callback — hook `RunEvent::Exit` (and `ExitRequested` where it fires; a
+macOS quit delivers `Exit` alone) — so a clean exit removes the discovery
+file. The
 host supplies a `CommandBridge` over its own contract-006 registry — the
 plugin adds no authority of its own.
 

@@ -1,7 +1,10 @@
 //! The Tauri [`ControlHandler`]: window scope against the app's webview
-//! windows, `command` through the host's [`CommandBridge`], and typed
-//! `Unsupported` for the tools later lanes wire (snapshot, input dispatch,
-//! `evaluate`, `wait_for` — g02.032).
+//! windows, `command` through the host's [`CommandBridge`], `screenshot`
+//! and the `evaluate` escape hatch through the macOS webview capture bridge
+//! (Card 231), and typed `Unsupported` for the tools the g02.032 shim wires
+//! (snapshot, input dispatch, `wait_for`). Non-macOS hosts compile and
+//! answer typed `Unsupported` for capture and evaluate — the per-backend
+//! evidence discipline of contract 020.
 //!
 //! Window identity is the Tauri window label: it is already the app's own
 //! stable window name, so the control surface introduces no parallel
@@ -143,16 +146,41 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         Err(unwired("drag"))
     }
 
-    async fn evaluate(&self, _request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
-        Err(unwired("evaluate"))
+    async fn evaluate(&self, request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
+        let (_, window) = self.resolve_window(&request.window)?;
+        #[cfg(target_os = "macos")]
+        {
+            let value = crate::capture::evaluate_webview(&window, request.js).await?;
+            Ok(EvaluateResult { value })
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = (window, request);
+            Err(ToolError::Unsupported {
+                message: "evaluate is implemented on macOS only (contract 020)".to_owned(),
+            })
+        }
     }
 
     async fn wait_for(&self, _request: WaitForRequest) -> Result<WaitForResult, ToolError> {
         Err(unwired("wait_for"))
     }
 
-    async fn screenshot(&self, _request: ScreenshotRequest) -> Result<ScreenshotResult, ToolError> {
-        Err(unwired("screenshot"))
+    async fn screenshot(&self, request: ScreenshotRequest) -> Result<ScreenshotResult, ToolError> {
+        let (window, live) = self.resolve_window(&request.window)?;
+        #[cfg(target_os = "macos")]
+        {
+            let png = crate::capture::screenshot_webview(&live).await?;
+            Ok(ScreenshotResult { window, png })
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = live;
+            Err(ToolError::Unsupported {
+                message: "screenshot capture is implemented on macOS only (contract 020)"
+                    .to_owned(),
+            })
+        }
     }
 
     async fn command(&self, request: CommandRequest) -> Result<CommandResult, ToolError> {

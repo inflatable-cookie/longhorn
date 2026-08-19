@@ -6,9 +6,11 @@
 //! `serve_control_surface` there — token generation, 127.0.0.1 ephemeral
 //! bind, discovery publication, and clean-exit removal are the core's
 //! lifecycle, not reimplemented here. The returned [`AgentControlHandle`] is
-//! the app's shutdown lever: call [`AgentControlHandle::shutdown`] from
-//! `RunEvent::ExitRequested` so a clean exit removes the discovery file; a
-//! crash leaves it stale-detectable by dead pid (contract 022).
+//! the app's shutdown lever: call [`AgentControlHandle::shutdown`] from the
+//! run-event callback — hook `RunEvent::Exit` (and `ExitRequested` where it
+//! fires; a macOS quit delivers `Exit` alone) — so a clean exit removes the
+//! discovery file; a crash leaves it stale-detectable by dead pid (contract
+//! 022).
 
 use std::{
     error::Error,
@@ -141,7 +143,10 @@ impl Error for AgentControlShutdownError {
 /// Dropping the handle without [`AgentControlHandle::shutdown`] detaches the
 /// server thread: the process exit then strands the discovery file, which
 /// the stale-pid path covers. Clean shutdown is the honest path — take it
-/// from `RunEvent::ExitRequested`.
+/// from the app's run-event callback. Hook `RunEvent::Exit` (and
+/// `ExitRequested` where it fires): on macOS a quit delivers `Exit`
+/// without a preceding `ExitRequested`, so `ExitRequested` alone misses
+/// the removal.
 pub struct AgentControlHandle {
     shutdown: Option<oneshot::Sender<()>>,
     thread: Option<JoinHandle<Result<ServeReceipt, ServeError>>>,
@@ -153,8 +158,9 @@ impl AgentControlHandle {
     ///
     /// Blocks until the server finishes: axum's graceful shutdown drains
     /// in-flight requests, then the core removes the discovery file before
-    /// the thread returns. Call this from `RunEvent::ExitRequested`, before
-    /// the process exits.
+    /// the thread returns. Call this from the run-event callback — hook
+    /// `RunEvent::Exit` (and `ExitRequested` where it fires) — before the
+    /// process exits.
     pub fn shutdown(mut self) -> Result<ServeReceipt, AgentControlShutdownError> {
         if let Some(shutdown) = self.shutdown.take() {
             shutdown

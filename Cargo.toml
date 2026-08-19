@@ -47,6 +47,7 @@ members = [
   "crates/longhorn-tauri-windowing",
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
+  "examples/agent-control-proof/src-tauri",
   "examples/nucleus-no-surface-proof",
   "examples/packaged-update-proof",
   "examples/tauri-update-proof/src-tauri",
@@ -73,6 +74,10 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 age = { version = "=0.12.1", default-features = false }
 axum = "0.8.4"
 base64 = "0.23.1"
+# The Card 231 capture bridge's objc2 line (longhorn-tauri-agent-control,
+# macOS only): the versions the Card 227 spike proved, already resolved in
+# this lockfile through wry, so the bridge adds no version movement.
+block2 = "0.6.2"
 cap-std = "4.0.2"
 ed25519-dalek = { version = "3.0.0", default-features = false }
 flate2 = "1.1.9"
@@ -125,6 +130,10 @@ longhorn-tauri-update = { path = "crates/longhorn-tauri-update", version = "0.1.
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version = "0.1.0" }
 longhorn-windowing = { path = "crates/longhorn-windowing", version = "0.1.0" }
 longhorn-windowing-config = { path = "crates/longhorn-windowing-config", version = "0.1.0" }
+objc2 = "0.6.3"
+objc2-app-kit = "0.3.2"
+objc2-foundation = "0.3.2"
+objc2-web-kit = { version = "0.3.2", features = ["WKSnapshotConfiguration", "WKWebView", "block2"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 minisign = "0.9.1"
 minisign-verify = "0.2.5"
