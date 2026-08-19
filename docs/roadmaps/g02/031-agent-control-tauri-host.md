@@ -1,10 +1,10 @@
 # g02.031 Agent Control Tauri Host
 
-Status: planned — blocked on g02.030
+Status: ready
 Owner: Longhorn maintainers
 Created: 2026-08-19
 Governing refs: contract 022; contracts 010, 012, 020
-Depends on: g02.030 complete
+Depends on: g02.030 complete — true 2026-08-19 (PR 3)
 
 ## Outcome
 
@@ -15,13 +15,12 @@ scan proving the entire surface is absent when the dev feature is off.
 
 ## Generation Runway
 
-Cards compile to ready with g02.030; numbers reserved:
-
-- [ ] Card 230 — plugin, server mount behind the dev feature flag,
-      localhost binding, window enumeration and targeting, release-absence
-      artifact scan.
-- [ ] Card 231 — WKWebView snapshot capture wired per the g02.029 evidence,
-      including the recorded occluded/minimized behavior; packaged macOS
+- [ ] [Card 230](batch-cards/230-agent-control-tauri-plugin.md) — plugin,
+      server mount behind the dev feature flag, localhost binding, window
+      enumeration and targeting, release-absence artifact scan.
+- [ ] [Card 231](batch-cards/231-agent-control-capture.md) — WKWebView
+      snapshot capture wired per the g02.029 evidence, including the
+      recorded occluded/minimized behavior; packaged macOS
       unfocused-capture proof.
 
 ## Acceptance

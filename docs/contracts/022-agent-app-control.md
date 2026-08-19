@@ -38,8 +38,12 @@ agent can use while the app runs unfocused in the background.
 - The server exists only behind a dev feature flag. Release builds contain
   none of it. No runtime toggle can enable it in a release build.
 - Binds 127.0.0.1 only. Requires a per-instance bearer token. Validates
-  `Origin` and rejects browser-originated requests; this is the DNS-rebinding
-  defense and is not optional.
+  `Origin`: a present `Origin` must be a loopback origin, everything else
+  is rejected before dispatch. This is the DNS-rebinding defense and is
+  not optional — a rebinding attack still presents the attacker's origin.
+  Loopback browser origins are admitted (they still need the token, which
+  no browser can read) so localhost tooling such as MCP Inspector works;
+  Cards 228-229 implement and fixture this rule.
 - `evaluate` and command invocation are full code execution in the app.
   The token is the entire trust boundary; treat its file like a credential.
 

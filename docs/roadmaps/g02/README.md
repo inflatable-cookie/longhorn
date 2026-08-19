@@ -33,8 +33,8 @@
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 | [g02.028](028-consumer-scoped-credential-slots.md) | complete | one shared store admits isolated consumer-owned scope without product policy |
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
-| [g02.030](030-agent-control-core.md) | ready | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
-| [g02.031](031-agent-control-tauri-host.md) | planned | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
+| [g02.030](030-agent-control-core.md) | complete | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
+| [g02.031](031-agent-control-tauri-host.md) | ready | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
 | [g02.032](032-agent-control-semantic-surface.md) | planned | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
@@ -112,10 +112,11 @@ memo 024 agent app control (contract 022 draft)
          └─ 032 semantic surface and proof (232-234)
 ```
 
-029 is complete (PR 2, 2026-08-19) and both probes came back positive;
-contract 022 is active with the spike's rAF/timer caveat folded in. 030 is
-ready (Cards 228-229 compiled); 031-032 stay planned with 230-234 as
-reserved numbers, compiled when their milestone opens.
+029 (PR 2) and 030 (PR 3) are complete: contract 022 is active and
+`longhorn-agent-control` exists with its stateless conformance proved
+host-free. 031 is ready (Cards 230-231 compiled); 032 stays planned with
+232-234 as reserved numbers. 031 is the first lane with platform
+requirements: a macOS host and a packaged proof app.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these

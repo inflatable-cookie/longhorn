@@ -8,6 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-08-19
 
+- [Agent Control Core](2026-08/19-agent-control-core.md)
 - [Agent Control Spike And Promotion](2026-08/19-agent-control-spike-and-promotion.md)
 
 ### 2026-08-16
