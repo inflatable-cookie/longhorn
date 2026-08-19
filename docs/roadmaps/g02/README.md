@@ -32,6 +32,10 @@
 | [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 | [g02.028](028-consumer-scoped-credential-slots.md) | complete | one shared store admits isolated consumer-owned scope without product policy |
+| [g02.029](029-agent-control-spike.md) | ready | memo 024's two runtime unknowns answered with recorded prototype evidence |
+| [g02.030](030-agent-control-core.md) | planned | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
+| [g02.031](031-agent-control-tauri-host.md) | planned | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
+| [g02.032](032-agent-control-semantic-surface.md) | planned | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -101,6 +105,17 @@ memo 023 full-repo release audit (cards 200-223)
  └─ 027 consolidation and dependency sweep (221, 222 independent; 223 after 222)
 ```
 
+```text
+memo 024 agent app control (contract 022 draft)
+ └─ 029 spike (card 227) ── promotion gate (memo 024 + contract 022)
+     └─ 030 core (228, 229) ─ 031 tauri host (230, 231)
+         └─ 032 semantic surface and proof (232-234)
+```
+
+029 is ready and independent of every live lane; 030-032 are planned and
+gate on the spike evidence promoting contract 022 to active. Only 227's
+cards exist; 228-234 are reserved numbers, compiled at promotion.
+
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
 milestones harden the evidence envelope and the surfaces that grew faster
@@ -161,6 +176,13 @@ test suites, and gates that drift by hand-transcription. Cards 200-223
 compile the remediation into milestones g02.021-027, all inside existing
 contracts. Card 218's closure is operator-held on the Poodle v0.2.0 release
 that unblocks g02.014.
+
+Research memo 024 characterizes the agent app-control gap: agents testing
+consumer apps steal OS focus and the pointer because no remote-control
+protocol reaches macOS Tauri. Contract 022 is drafted (stateless MCP
+server in dev builds, semantic snapshot and in-page input, unfocused
+capture) and g02.029-032 compile the runway. Only the spike (Card 227) is
+ready; the memo's two runtime gaps gate promotion and everything after it.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table

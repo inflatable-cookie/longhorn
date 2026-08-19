@@ -28,5 +28,6 @@ contracts.
 - [Dual-backend Host Positioning](translation-memos/021-dual-backend-host-positioning.md)
 - [Cross-backend Projection Divergence](translation-memos/022-cross-backend-projection-divergence.md)
 - [Full-repo Release Audit](translation-memos/023-full-repo-release-audit.md)
+- [Agent App Control](translation-memos/024-agent-app-control.md)
 
 Start from a problem. Promote stable conclusions before roadmap execution.

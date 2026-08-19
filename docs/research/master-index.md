@@ -33,9 +33,12 @@ Updated: 2026-07-31
 | dual-backend host positioning | [Dual-backend Host Positioning](translation-memos/021-dual-backend-host-positioning.md) | `../contracts/020-host-adapter-boundary.md`; `../contracts/018-application-update-and-release-channels.md`; `../roadmaps/g02/012-dual-backend-host-positioning.md`; cards 161-163 |
 | cross-backend projection divergence | [Cross-backend Projection Divergence](translation-memos/022-cross-backend-projection-divergence.md) | `../contracts/013-svelte-and-poodle-adapter-lifecycle.md`; `../contracts/020-host-adapter-boundary.md`; `../roadmaps/g02/batch-cards/169-poodle-projection-tier.md` |
 | full-repo release audit | [Full-repo Release Audit](translation-memos/023-full-repo-release-audit.md) | `../roadmaps/g02/README.md`; milestones g02.021-027, cards 200-223 |
+| agent app control | [Agent App Control](translation-memos/024-agent-app-control.md) | `../contracts/022-agent-app-control.md` (draft); runway not compiled |
 
 ## Open Research
 
+- occluded-window WKWebView snapshot freshness and in-app rmcp mount (memo
+  024 spike)
 - non-macOS strong display evidence and ambiguity UX
 - non-macOS packaged cross-window transfer across platforms and display scales
 - cross-document panel transaction and copy-transfer authority

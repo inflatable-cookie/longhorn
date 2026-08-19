@@ -54,8 +54,11 @@ A claim proved on one backend does not close a host-tier contract.
 
 ## Pending Contracts
 
-None. Contract 021 compiles the consumer-characterized scoped credential gap
-without moving product vocabulary into Longhorn.
+[022 Agent App Control](022-agent-app-control.md) is drafted, not compiled: a
+dev-only, stateless MCP control server inside each app so agents drive a
+running app (semantic snapshot, in-page input, unfocused screenshots, command
+invocation) without OS focus or pointer theft. Needs a research memo and a
+runway slot before promotion.
 
 ## Roadmap Readiness
 
