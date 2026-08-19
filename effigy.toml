@@ -69,10 +69,11 @@ exclude = ["history/**"]
 # Card 236: lock the skill's tool table to CONTROL_TOOL_NAMES and the
 # workspace version; also runs finder and install fixtures (Cards 235-236).
 "check:agent-control-skill" = "bun scripts/verify-agent-control-skill.ts"
-# Operator-invoked copy of skills/agent-control/ into a consumer git repo.
-# Pass the target path after `--`. The global `--repo` flag switches
-# catalogs and cannot name the install target.
-"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }
+# Skill install into a consumer repo is `bun
+# scripts/install-agent-control-skill.ts <git-repo>` (operator-invoked).
+# The effigy task form is withdrawn until the doctor schema admits the
+# arg-receiving `{ rhai = ... }` task shape (PAPERCUTS 2026-08-19); a
+# shell-string task receives no target argument.
 "generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------

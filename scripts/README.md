@@ -38,8 +38,10 @@ The rest are wired individually: `check:api-reference` runs
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
 each their own selector. `check:agent-control-skill` runs
 `verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
-install fixtures). `agent-control:install-skill` is the Rhai wrapper around
-`install-agent-control-skill.ts`. `consumer-absence.ts` and `poodle-release.ts`
+install fixtures). `install-agent-control-skill.ts` is the operator-invoked
+skill installer (`bun scripts/install-agent-control-skill.ts <git-repo>`);
+its effigy task form is withdrawn until the doctor schema admits it
+(PAPERCUTS 2026-08-19). `consumer-absence.ts` and `poodle-release.ts`
 are shared modules, not entry points.
 
 ## No consumer knowledge

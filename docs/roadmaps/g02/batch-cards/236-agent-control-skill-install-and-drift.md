@@ -69,9 +69,19 @@ Status: done 2026-08-19, same branch and worktree as Card 235.
 
 `CONTROL_TOOL_NAMES` in `longhorn-agent-control` is the shared
 vocabulary; conformance and `check:agent-control-skill` both use it.
-Install is `effigy agent-control:install-skill -- <git-repo>` — the
-global `--repo` flag switches catalogs and cannot name the target
+Install shipped as `effigy agent-control:install-skill -- <git-repo>` —
+the global `--repo` flag switches catalogs and cannot name the target
 (PAPERCUTS, 2026-08-19). Doctor runs the same check via `health`.
+
+**Post-merge amendment (2026-08-19, orchestrator):** the effigy task's
+`{ rhai = ... }` form is the only arg-receiving shape the runner
+accepts, and the doctor schema rejects it as an unsupported key, making
+doctor red on main. The task is withdrawn until the schema admits the
+form; install is the direct
+`bun scripts/install-agent-control-skill.ts <git-repo>` (same script,
+same fixtures, re-proved). The "one effigy invocation" acceptance line
+is narrowed to "one command" accordingly; the PAPERCUTS entry tracks
+restoring the task.
 
 ## Continuation
 

@@ -445,7 +445,7 @@ async function runEffigyInstallFixture(): Promise<void> {
   await gitInit(target);
   try {
     const subprocess = Bun.spawn(
-      ["effigy", "agent-control:install-skill", "--", target],
+      ["bun", "scripts/install-agent-control-skill.ts", target],
       {
         cwd: repoRoot,
         stdout: "pipe",
@@ -458,14 +458,14 @@ async function runEffigyInstallFixture(): Promise<void> {
       new Response(subprocess.stderr).text(),
     ]);
     if (code !== 0) {
-      throw new Error(`effigy install failed: ${stdout}\n${stderr}`);
+      throw new Error(`install failed: ${stdout}\n${stderr}`);
     }
     if (!stdout.includes("installed ")) {
-      throw new Error(`effigy install message missing: ${stdout}`);
+      throw new Error(`install message missing: ${stdout}`);
     }
     await readFile(join(target, ".claude", "skills", "agent-control", "SKILL.md"), "utf8");
 
-    const again = Bun.spawn(["effigy", "agent-control:install-skill", "--", target], {
+    const again = Bun.spawn(["bun", "scripts/install-agent-control-skill.ts", target], {
       cwd: repoRoot,
       stdout: "pipe",
       stderr: "pipe",

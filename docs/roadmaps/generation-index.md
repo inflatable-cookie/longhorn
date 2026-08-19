@@ -29,7 +29,8 @@ lives on the cards themselves.
 Cards 227-237, PRs 2-6, all 2026-08-19). Next: per-app adoption — each
 consumer repo compiles one card: compose per
 `docs/guides/agent-control-composition.md`, then
-`effigy agent-control:install-skill -- <repo>`. Operator picks the
+`bun scripts/install-agent-control-skill.ts <repo>` (from the Longhorn
+checkout). Operator picks the
 first app; the first adoption should also confirm the skill's
 `claude mcp add` paste-line path with a real client (PR 6 review note).
 Still open on the operator side: return the promoted Longhorn commit to

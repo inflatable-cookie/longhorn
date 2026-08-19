@@ -9,7 +9,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ### [ ] Doctor schema rejects inline `{ rhai = ... }` task values that the runner accepts — 2026-08-19
 - Friction: `"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }` runs correctly and is the documented task shape. `effigy doctor` flags `tasks.agent-control:install-skill.rhai` as an unsupported key. The table form `[tasks."name"] run = { rhai = ... }` fails to parse in this manifest (`ManifestTaskLikeDefinition`).
-- Impact: a working Rhai task makes doctor red; switching form breaks the rest of `[tasks]`.
+- Impact: a working Rhai task makes doctor red; switching form breaks the rest of `[tasks]`. The task was withdrawn post-merge (2026-08-19) to keep doctor green; install is the direct bun invocation until the schema admits the form, then the task returns.
 - Possible fix: admit `rhai` on inline task tables in the doctor schema, or document the one table form this manifest parser actually accepts.
 - Surface: `effigy doctor` `manifest.schema.unsupported_key`, `effigy.toml` `[tasks]`.
 

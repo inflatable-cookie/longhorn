@@ -13,7 +13,9 @@ Agents testing a Longhorn app through OS computer use steal focus and the
 pointer. The contract 022 control surface is the replacement: a
 dev-build-only MCP server inside the app. This guide is the Rust half — how
 a consumer app mounts it. The agent half is the skill at
-`skills/agent-control/`; install it with `effigy agent-control:install-skill`.
+`skills/agent-control/`; install it with
+`bun scripts/install-agent-control-skill.ts <git-repo>` (run from the
+Longhorn checkout).
 
 A consumer card should execute from this page plus the worked example. Do
 not copy product policy out of another app.
@@ -204,7 +206,7 @@ repo. The path after `--` is the install target. Do not use the global
 define the task.
 
 ```sh
-effigy agent-control:install-skill -- /path/to/consumer
+bun scripts/install-agent-control-skill.ts /path/to/consumer
 ```
 
 The copy lands at `.claude/skills/agent-control/` in the target. Re-run

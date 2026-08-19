@@ -5,7 +5,6 @@
 // Usage:
 //   bun scripts/install-agent-control-skill.ts --repo <git-repo>
 //   bun scripts/install-agent-control-skill.ts <git-repo>
-//   effigy agent-control:install-skill -- <git-repo>
 
 import { cp, lstat, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -34,7 +33,7 @@ export function parseInstallTarget(argv: string[]): string | null {
 
 export function usage(): string {
   return [
-    "usage: effigy agent-control:install-skill -- <git-repo>",
+    "usage: bun scripts/install-agent-control-skill.ts <git-repo>",
     "   or: bun scripts/install-agent-control-skill.ts --repo <git-repo>",
     "The path is the install target. Do not use the global --repo flag",
     "with this task: that switches catalogs and the consumer does not",
