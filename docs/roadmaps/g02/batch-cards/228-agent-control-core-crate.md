@@ -1,6 +1,6 @@
 # 228 Agent Control Core Crate
 
-Status: ready
+Status: done
 Owner: Longhorn maintainers
 Roadmap: g02.030
 Governing refs: contract 022; memo 024; contracts 001, 006, 012
@@ -42,14 +42,52 @@ gates passing, no consumer composes it yet.
 
 ## Acceptance Criteria
 
-- [ ] crate compiles host-free; no tauri, wry, or objc2 dependency
-- [ ] tool vocabulary covers the contract 022 surface, including typed
+- [x] crate compiles host-free; no tauri, wry, or objc2 dependency
+- [x] tool vocabulary covers the contract 022 surface, including typed
       untrusted-event limits where they belong (drag has no OS-level mode)
-- [ ] discovery lifecycle proved by fixtures: create, enumerate, stale-pid
+- [x] discovery lifecycle proved by fixtures: create, enumerate, stale-pid
       detection, idempotent remove
-- [ ] token never appears in logs or Debug formatting, proved by a fixture
-- [ ] no `wait_for` variant can express a time-only or rAF wait
-- [ ] `effigy qa` passes with the new crate in the graph
+- [x] token never appears in logs or Debug formatting, proved by a fixture
+- [x] no `wait_for` variant can express a time-only or rAF wait
+- [x] `effigy qa` passes with the new crate in the graph
+
+## Closeout
+
+Status: done 2026-08-19. Worker branch `worker/230-agent-control-core`,
+worktree `~/Dev/worktrees/longhorn-230` (manual fallback container; the
+planning checkout was on `main`).
+
+The crate landed as `tools` (vocabulary), `discovery`, `token`, and
+`provider` modules with no server and no host dependency. Notable shape
+decisions:
+
+- Discovery path resolution runs through contract 004's
+  `resolve_storage_layout` with the fixed `longhorn` identity and the
+  `platform-native-v1` profile, so the per-platform shapes are the
+  profile's own state-root rules and tests inject roots as overrides —
+  no hand-rolled dirs lookup, no filesystem or environment access in
+  resolution.
+- Stale detection ships a real probe: `process_alive` over `sysinfo`
+  (std has no safe liveness API and the workspace forbids `unsafe`;
+  hand-rolled per-platform code is what the host-free criterion forbids
+  in this crate). **Reviewer note:** sysinfo transitively pulls
+  `objc2-io-kit`/`objc2-core-foundation` on Apple targets. The crate's
+  own manifest carries no tauri/wry/objc2 and no platform-specific code;
+  the acceptance line reads as host-coupling, which this is not — but
+  the transitive pair exists in the macOS graph and is flagged rather
+  than hidden.
+- The token is 32 CSPRNG bytes base64url (43 chars), `SecretString`-held,
+  constant-time verify, redacted `Debug`; plaintext only in the discovery
+  file, which exists to carry it (owner-only file and directory modes).
+- `wait_for` admits exactly four DOM-relative predicates; a fixture
+  proves the wire rejects duration/animation-shaped variants. Drag
+  carries no mode field and `deny_unknown_fields` keeps one off the wire.
+- The provider seam stayed at two methods over the shared vocabulary;
+  it did not want to grow.
+
+Fixtures: 19 across `tests/discovery.rs` and `tests/token.rs` plus module
+unit tests. Validation: `effigy qa` exit 0 with the crate in the graph
+(run at the runway's end, after Card 229).
 
 ## Validation
 
