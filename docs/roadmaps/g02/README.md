@@ -36,6 +36,7 @@
 | [g02.030](030-agent-control-core.md) | complete | `longhorn-agent-control`: stateless MCP core, discovery, token, provider seam |
 | [g02.031](031-agent-control-tauri-host.md) | complete | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
 | [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
+| [g02.033](033-agent-control-adoption-kit.md) | ready | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -112,13 +113,23 @@ memo 024 agent app control (contract 022 draft)
          └─ 032 semantic surface and proof (232-234)
 ```
 
-The runway is complete (PRs 2-5, all 2026-08-19): contract 022 active
-with its Required Evidence cited or explicitly narrowed, two crates and
-the TS shim merged, release-absence proved by scan both directions, and
-the packaged end-to-end proof driven by a real MCP client while the app
-never held OS focus. Consumer adoption — the five sibling apps composing
-`longhorn-tauri-agent-control` behind `dev` — is per-app work outside
-this runway.
+The build runway is complete (PRs 2-5, all 2026-08-19): contract 022
+active with its Required Evidence cited or explicitly narrowed, two
+crates and the TS shim merged, release-absence proved by scan both
+directions, and the packaged end-to-end proof driven by a real MCP
+client while the app never held OS focus.
+
+```text
+g02.029-032 complete
+ └─ 033 adoption kit (235 guide+skill → 236 install+drift → 237 dogfood)
+     └─ per-app adoption cards, run from the five consumer repos
+```
+
+g02.033 packages adoption: the composition guide and canonical skill
+(235), one-command install with a qa drift lock (236), and a
+skill-only dogfood pass against the packaged proof app (237). Consumer
+repos stay untouched until their own adoption cards run (contract 003).
+The stdio proxy client sits in the candidate runway.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
@@ -210,6 +221,7 @@ tiered by readiness. None auto-starts; the operator picks.
 | Dependency refresh sweep | 37 transitive crates behind within compatible ranges; four held-back pins under frozen evidence: rusqlite 0.31→0.40 (SQLite CVE bumps), zip 5.1→8.6 (backup-archive determinism), ts-rs 11→12 (full bindings regen), sha2 0.10→0.11 | one card, ordered before candidate v2: compatible `cargo update`, then each held-back crate with its conformance suite (SQLite adapter proofs, archive-determinism regression, bindings and fixture diff) |
 | Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/41; bridge optional-peer demotion deferred here (Card 146) | one card, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
 | Diagnostics adoption | Card 145 seam has no consumer guide | one small card: composition-guide section plus one consumer-shape example |
+| Agent-control stdio proxy client | g02.033 skill connects dynamically (ephemeral port + token); a static `.mcp.json` needs a command-based proxy | one card: `longhorn-agent-control-client` binary — discovers the live instance, proxies stdio↔streamable-HTTP; distribution decision (crate bin vs npm) inside the card |
 
 ### Tier B — needs new evidence or a contract extension first
 

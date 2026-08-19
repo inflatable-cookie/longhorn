@@ -25,14 +25,14 @@ the running narrative that used to fill this section drifted into three
 competing pointers, which is how Card 216 came to exist. Card closeout detail
 lives on the cards themselves.
 
-**Live:** the agent-control runway (g02.029-032, Cards 227-234, PRs 2-5)
-is complete: contract 022's evidence section is closed, and agents can
-drive a dev-featured app over stateless MCP without OS focus or pointer.
-Next: operator picks — consumer adoption of `longhorn-tauri-agent-control`
-in the sibling apps (per-app work, outside this runway), or the next
-candidate from the [candidate runway](g02/README.md#candidate-runway).
-Still open on the operator side: return the promoted Longhorn commit to
-Bovine Card 128 adoption (from g02.028).
+**Live:** the agent-control build runway (g02.029-032, PRs 2-5) is
+complete. The operator picked adoption:
+[g02.033](g02/033-agent-control-adoption-kit.md) (Cards 235-237 —
+composition guide, canonical drift-locked skill, one-command install,
+skill-only dogfood proof) is ready for dispatch. Per-app adoption cards
+in the five consumer repos follow it. Still open on the operator side:
+return the promoted Longhorn commit to Bovine Card 128 adoption (from
+g02.028).
 
 The memo-023 release-audit suite — milestones g02.021-027, cards 200-224 — is
 complete except the separately operator-held release machinery noted below.
