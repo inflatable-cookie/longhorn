@@ -1,0 +1,351 @@
+// Drives the Card 231 packaged freshness matrix against the bundled
+// agent-control proof app (contract 022 evidence: unfocused, occluded, and
+// minimized screenshots are fresh, judged DOM-relative — never wall-clock).
+//
+// The spike's matrix judged freshness by reading the counter off the PNG
+// against `evaluate` brackets. This driver automates the same judgment:
+// the page encodes its counter in the background hue (stride 47°, so
+// adjacent seconds are visually distinct), each screenshot is bracketed by
+// `evaluate` reads of the counter, and the captured pixels must match one
+// of the bracketed counters' hues. The big numeral remains for human
+// spot-checks; PNGs land in `evidence/` next to the matrix receipt.
+//
+// Window states are scripted without accessibility permissions: focus and
+// the covering Terminal window go through AppleScript (Terminal's own
+// dictionary, plus the DOM's window.screenX/Y for placement), minimize and
+// restore go through the app's own contract-006 commands over the MCP
+// `command` tool — the same path an agent would use.
+//
+// Usage (from the repo root, on the operator's display):
+//
+//   bunx @tauri-apps/cli build        # from examples/agent-control-proof
+//   bun examples/agent-control-proof/freshness-matrix.ts
+
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+
+const repoRoot = resolve(import.meta.dir, "../..");
+const exampleRoot = join(repoRoot, "examples", "agent-control-proof");
+const evidenceRoot = join(exampleRoot, "evidence");
+const appPath = join(
+  repoRoot,
+  "target",
+  "release",
+  "bundle",
+  "macos",
+  "Longhorn Agent Control Proof.app",
+);
+const discoveryDir = join(
+  homedir(),
+  "Library",
+  "Application Support",
+  "longhorn",
+  "state",
+  "agent-control",
+);
+const appId = "dev.example.longhorn-agent-control-proof";
+
+type Discovery = { appId: string; pid: number; port: number; token: string };
+
+type MatrixRow = {
+  state: string;
+  bracketBefore: number;
+  bracketAfter: number;
+  matchedCounter: number | null;
+  pixel: [number, number, number];
+  fresh: boolean;
+};
+
+async function run(command: readonly string[]): Promise<string> {
+  const subprocess = Bun.spawn(command, { stdout: "pipe", stderr: "pipe" });
+  const [exitCode, stdout, stderr] = await Promise.all([
+    subprocess.exited,
+    new Response(subprocess.stdout).text(),
+    new Response(subprocess.stderr).text(),
+  ]);
+  if (exitCode !== 0) {
+    throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
+  }
+  return stdout.trim();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+}
+
+async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string }> {
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const match = entries.find((entry) => entry.startsWith(`${appId}-`));
+    if (match) {
+      const path = join(discoveryDir, match);
+      const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
+      return { discovery, path };
+    }
+    if (Date.now() > deadline) throw new Error("discovery file never appeared");
+    await sleep(200);
+  }
+}
+
+// Minimal streamable-HTTP MCP client, one POST per call.
+async function mcp(
+  discovery: Discovery,
+  method: string,
+  params: Record<string, unknown>,
+  name?: string,
+): Promise<unknown> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    "mcp-protocol-version": "2026-07-28",
+    "mcp-method": method,
+    authorization: `Bearer ${discovery.token}`,
+  };
+  if (name) headers["mcp-name"] = name;
+  const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+  });
+  if (response.status !== 200) {
+    throw new Error(`MCP ${method} answered ${response.status}: ${await response.text()}`);
+  }
+  const body = await response.text();
+  const data = body
+    .split("\n")
+    .find((line) => line.startsWith("data: "))
+    ?.slice("data: ".length);
+  if (!data) throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  return JSON.parse(data);
+}
+
+function meta() {
+  return {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientInfo": { name: "freshness-matrix", version: "0.0.0" },
+    "io.modelcontextprotocol/clientCapabilities": {},
+  };
+}
+
+async function callTool(
+  discovery: Discovery,
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<{ isError: boolean; result: Record<string, unknown> }> {
+  const payload = (await mcp(
+    discovery,
+    "tools/call",
+    { name: tool, arguments: args, _meta: meta() },
+    tool,
+  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
+  const result = payload.result;
+  const isError = result.isError === true;
+  const first = result.content[0] ?? {};
+  const parsed =
+    first.type === "text" ? (JSON.parse(String(first.text)) as Record<string, unknown>) : first;
+  return { isError, result: parsed };
+}
+
+async function evaluateCounter(discovery: Discovery): Promise<number> {
+  const { isError, result } = await callTool(discovery, "evaluate", {
+    js: "document.getElementById('counter').textContent",
+  });
+  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  return Number.parseInt(String(result.value), 10);
+}
+
+async function evaluateJson<T>(discovery: Discovery, js: string): Promise<T> {
+  const { isError, result } = await callTool(discovery, "evaluate", { js });
+  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  return JSON.parse(String(result.value)) as T;
+}
+
+async function screenshot(discovery: Discovery, path: string): Promise<void> {
+  const payload = (await mcp(
+    discovery,
+    "tools/call",
+    { name: "screenshot", arguments: {}, _meta: meta() },
+    "screenshot",
+  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
+  if (payload.result.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(payload.result.content)}`);
+  }
+  const image = payload.result.content[0];
+  if (!image || image.type !== "image") {
+    throw new Error(`screenshot returned no image content: ${JSON.stringify(payload.result)}`);
+  }
+  await writeFile(path, Buffer.from(String(image.data), "base64"));
+}
+
+// CSS hsl() → sRGB bytes, matching the page's hue encoding.
+function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
+  const h = (((hue % 360) + 360) % 360) / 60;
+  const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const x = c * (1 - Math.abs((h % 2) - 1));
+  const [r, g, b] =
+    h < 1 ? [c, x, 0]
+    : h < 2 ? [x, c, 0]
+    : h < 3 ? [0, c, x]
+    : h < 4 ? [0, x, c]
+    : h < 5 ? [x, 0, c]
+    : [c, 0, x];
+  const m = lightness - c / 2;
+  return [r, g, b].map((channel) => Math.round((channel + m) * 255)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+function expectedPixel(counter: number): [number, number, number] {
+  return hslToRgb((counter * 47) % 360, 0.7, 0.45);
+}
+
+// Reads one pixel out of a PNG via sips → BMP (macOS built-ins only).
+async function pixelAt(pngPath: string, fractionX: number, fractionY: number): Promise<[number, number, number]> {
+  const bmpPath = pngPath.replace(/\.png$/, ".bmp");
+  await run(["sips", "-s", "format", "bmp", pngPath, "--out", bmpPath]);
+  const bmp = await readFile(bmpPath);
+  const dataOffset = bmp.readUInt32LE(10);
+  const width = bmp.readInt32LE(18);
+  const rawHeight = bmp.readInt32LE(22);
+  const bitsPerPixel = bmp.readUInt16LE(28);
+  if (bitsPerPixel !== 24 && bitsPerPixel !== 32) {
+    throw new Error(`unexpected BMP depth ${bitsPerPixel}`);
+  }
+  const bytesPerPixel = bitsPerPixel / 8;
+  const rowSize = Math.ceil((width * bytesPerPixel) / 4) * 4;
+  const height = Math.abs(rawHeight);
+  const x = Math.floor(width * fractionX);
+  // Negative height means top-down rows; fractionY counts from the top.
+  const y = Math.floor(height * fractionY);
+  const row = rawHeight < 0 ? y : height - 1 - y;
+  const offset = dataOffset + row * rowSize + x * bytesPerPixel;
+  const pixel: [number, number, number] = [bmp[offset + 2]!, bmp[offset + 1]!, bmp[offset]!];
+  await rm(bmpPath);
+  return pixel;
+}
+
+function colorNear(
+  actual: [number, number, number],
+  expected: [number, number, number],
+  tolerance: number,
+): boolean {
+  return actual.every((channel, index) => Math.abs(channel - expected[index]!) <= tolerance);
+}
+
+async function activateApp(): Promise<void> {
+  await run(["osascript", "-e", `tell application id "${appId}" to activate`]);
+}
+
+async function activateTerminal(): Promise<void> {
+  await run(["osascript", "-e", 'tell application "Terminal" to activate']);
+}
+
+async function coverWithTerminal(discovery: Discovery): Promise<void> {
+  const bounds = await evaluateJson<{ x: number; y: number; w: number; h: number }>(
+    discovery,
+    "JSON.stringify({x: window.screenX, y: window.screenY, w: window.outerWidth, h: window.outerHeight})",
+  );
+  await run([
+    "osascript",
+    "-e",
+    'tell application "Terminal" to do script ""',
+    "-e",
+    `tell application "Terminal" to set bounds of front window to {${bounds.x - 20}, ${bounds.y - 20}, ${bounds.x + bounds.w + 20}, ${bounds.y + bounds.h + 20}}`,
+    "-e",
+    'tell application "Terminal" to activate',
+  ]);
+}
+
+async function closeCoveringTerminal(): Promise<void> {
+  await run([
+    "osascript",
+    "-e",
+    'tell application "Terminal" to close front window saving no',
+  ]).catch(() => {});
+}
+
+async function command(discovery: Discovery, id: string): Promise<void> {
+  const { isError, result } = await callTool(discovery, "command", { command: id });
+  if (isError) throw new Error(`command ${id} failed: ${JSON.stringify(result)}`);
+}
+
+async function main(): Promise<void> {
+  const stamp = new Date().toISOString().replaceAll(":", "-").replace(/\..+$/, "");
+  const outDir = join(evidenceRoot, `${stamp}-packaged`);
+  await mkdir(outDir, { recursive: true });
+
+  await run(["pkill", "-f", "Longhorn Agent Control Proof"]).catch(() => {});
+  await sleep(500);
+  await run(["open", "-a", appPath]);
+  const { discovery } = await waitForDiscovery();
+
+  const rows: MatrixRow[] = [];
+  async function probe(state: string, apply: () => Promise<void>): Promise<void> {
+    await apply();
+    await sleep(1600);
+    const before = await evaluateCounter(discovery);
+    const pngPath = join(outDir, `${state}.png`);
+    await screenshot(discovery, pngPath);
+    const after = await evaluateCounter(discovery);
+    const pixel = await pixelAt(pngPath, 0.25, 0.25);
+    let matched: number | null = null;
+    for (let counter = before; counter <= after; counter += 1) {
+      if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+    }
+    rows.push({
+      state,
+      bracketBefore: before,
+      bracketAfter: after,
+      matchedCounter: matched,
+      pixel,
+      fresh: matched !== null,
+    });
+    console.log(
+      `${state}: bracket ${before}..${after}, pixel [${pixel}], matched ${matched ?? "none"}`,
+    );
+  }
+
+  await probe("frontmost", activateApp);
+  await probe("unfocused", activateTerminal);
+  await probe("occluded", () => coverWithTerminal(discovery));
+  await closeCoveringTerminal();
+  await activateApp();
+  await probe("minimized", () => command(discovery, "proof:window.minimize"));
+  await probe("restored", async () => {
+    await command(discovery, "proof:window.restore");
+    await activateApp();
+  });
+
+  // Clean exit must remove the discovery file (contract 022 lifecycle).
+  await run(["osascript", "-e", `tell application id "${appId}" to quit`]);
+  let discoveryRemoved = false;
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    if (!entries.some((entry) => entry.startsWith(`${appId}-`))) {
+      discoveryRemoved = true;
+      break;
+    }
+    await sleep(200);
+  }
+
+  const receipt = {
+    schema: "longhorn.agent-control-freshness-matrix.v1",
+    app: appPath,
+    pid: discovery.pid,
+    rows,
+    discoveryRemovedOnQuit: discoveryRemoved,
+    fresh: rows.every((row) => row.fresh),
+  };
+  await writeFile(join(outDir, "matrix.json"), `${JSON.stringify(receipt, null, 2)}\n`);
+  console.log(JSON.stringify(receipt, null, 2));
+  if (!receipt.fresh || !discoveryRemoved) {
+    throw new Error(`freshness matrix failed; evidence in ${outDir}`);
+  }
+  console.log(`matrix fresh; evidence in ${outDir}`);
+}
+
+await main();

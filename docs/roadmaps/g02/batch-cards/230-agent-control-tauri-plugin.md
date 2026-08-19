@@ -1,6 +1,6 @@
 # 230 Agent Control Tauri Plugin
 
-Status: ready
+Status: done 2026-08-19
 Owner: Longhorn maintainers
 Roadmap: g02.031
 Governing refs: contract 022; contracts 010, 012, 020; memo 024
@@ -42,19 +42,19 @@ this card; Longhorn's own proof composition arrives with Card 231.
 
 ## Acceptance Criteria
 
-- [ ] plugin composes in a dev-featured build: token generated, server
+- [x] plugin composes in a dev-featured build: token generated, server
       bound on 127.0.0.1, discovery file published with the real port and
       removed on clean exit
-- [ ] an MCP client can list tools against the composed app;
+- [x] an MCP client can list tools against the composed app;
       not-yet-wired tools answer typed `Unsupported`
-- [ ] `command` reaches the contract 006 registry and returns its result
+- [x] `command` reaches the contract 006 registry and returns its result
       through the core vocabulary
-- [ ] a build without the dev feature contains no gated code, proved by
+- [x] a build without the dev feature contains no gated code, proved by
       the repeatable artifact scan, and the scan is runnable by the
       release gate
-- [ ] no authority added: the plugin reaches app behavior only through
+- [x] no authority added: the plugin reaches app behavior only through
       existing command and IPC boundaries (contracts 006, 010)
-- [ ] `effigy qa` passes
+- [x] `effigy qa` passes
 
 ## Validation
 
@@ -69,6 +69,62 @@ feature off: absent); `effigy doctor`.
   gating;
 - command invocation cannot go through contract 006 without new authority
   — that is a contract question, not plugin code.
+
+## Closeout
+
+Status: done 2026-08-19, on `worker/231-agent-control-tauri-host` in
+worktree `/Users/tom/Dev/worktrees/longhorn-231` (manual fallback — the
+session root was the planning checkout on `main`).
+
+**Composition shape.** No `tauri::plugin::Builder` — the workspace has
+none; the crate follows the actual `longhorn-tauri-*` pattern: a host
+assembly the app calls from `setup` (`mount_agent_control`) plus a
+shutdown handle the run-event callback drives. The server runs on a
+background thread with its own tokio runtime; the core's
+`serve_control_surface` owns token, bind, discovery publish, and
+clean-exit removal. `CommandBridge` is the host-supplied seam into the
+app's contract-006 registry — the plugin holds no command authority, so
+the second stop condition did not trigger.
+
+**Gating.** Everything — the core crate, `tauri`+`wry`, tokio, and (Card
+231) the objc2 capture bridge — is optional behind the off-by-default
+`dev` feature; feature-off the crate compiles to an empty library.
+Feature unification pulling the core crate in is caught by the scan's
+`cargo tree` assertion, so the first stop condition is guarded, not just
+untriggered.
+
+**Artifact scan.** `scripts/verify-agent-control-release-absence.ts`,
+wired as `check:agent-control-release-absence` in `qa` (which the release
+`workspace` gate runs — no separate release.gates line, per
+config/release.toml's single-table rule). Both directions: feature-off
+asserts no core-crate graph edge, no core rlib, no gated markers in the
+plugin rlib; feature-on is the positive control proving the markers are
+live. Receipt: `longhorn.agent-control-release-absence.v1`.
+
+**One core fix (reported).** The Card 229 server served `type` under its
+raw identifier `r#type`; the tool macro takes the name from the fn ident.
+Fixed with an explicit `name = "type"` in the core's `server/mcp.rs` and
+pinned by a new core conformance test asserting the full wire vocabulary.
+No public-surface change — the vocabulary already said `type`.
+
+**Evidence.** `crates/longhorn-tauri-agent-control/tests/mount.rs` (2
+fixtures, real loopback against a mock-runtime app): tools/list returns
+all twelve tools; `snapshot` answers typed `unsupported`; `command`
+reaches the bridge and returns its output; `list_windows` /
+`resize_window` / unknown-window typed failure; unauthenticated → 401,
+foreign `Origin` → 403, loopback origin admitted; discovery published
+with the real port and removed on `shutdown()`. The packaged proof app
+(Card 231) re-proves composition, `command` against a real contract-006
+registry, and clean-exit discovery removal on a real bundle.
+
+**Versions (workspace lock):** tauri 2.11.5, tauri-runtime 2.11.3 (the
+workspace's caret `2.10.3` resolves here — the spike's `=2.10.3` pin was
+prototype-local; no workspace pin moved), rmcp 3.1.3, axum 0.8.9, tokio
+1.53.1.
+
+**Found while wiring (also in Card 231's closeout):** a macOS quit
+delivers `RunEvent::Exit` without a preceding `ExitRequested`; the mount
+docs and the proof app hook both events, and the composition docs say so.
 
 ## Continuation
 

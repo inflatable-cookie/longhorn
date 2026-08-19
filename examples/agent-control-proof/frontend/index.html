@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Control Proof</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #101318;
+        color: #f5f7fa;
+        font:
+          700 160px/1 -apple-system,
+          system-ui,
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+        user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="counter">0</div>
+    <script>
+      // The freshness oracle: a counter that ticks once a second and is
+      // readable both as text (human/bracket checks, exactly like the Card
+      // 227 spike) and as the background hue (automated pixel checks). The
+      // hue stride makes adjacent seconds visually distinct, so a stale
+      // snapshot can never pass for a fresh one.
+      let counter = 0;
+      const element = document.getElementById("counter");
+      setInterval(() => {
+        counter += 1;
+        element.textContent = String(counter);
+        document.body.style.backgroundColor = `hsl(${(counter * 47) % 360} 70% 45%)`;
+      }, 1000);
+    </script>
+  </body>
+</html>

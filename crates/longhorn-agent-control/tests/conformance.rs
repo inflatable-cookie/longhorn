@@ -293,6 +293,40 @@ async fn exchange(app: Router, request: Request<Body>) -> McpResponse {
 }
 
 #[tokio::test]
+async fn tool_names_match_the_contract_vocabulary() {
+    let (app, token, _stub) = app();
+
+    let response = exchange(app.clone(), McpRequest::authed(&token).tools_list()).await;
+    assert_eq!(response.status, StatusCode::OK, "{}", response.body);
+    let payload = response.json();
+    let mut names: Vec<&str> = payload["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect();
+    names.sort_unstable();
+    // Raw identifiers must not leak onto the wire: `r#type` serves as `type`.
+    assert_eq!(
+        names,
+        [
+            "click",
+            "command",
+            "drag",
+            "evaluate",
+            "list_windows",
+            "press",
+            "resize_window",
+            "screenshot",
+            "scroll",
+            "snapshot",
+            "type",
+            "wait_for",
+        ]
+    );
+}
+
+#[tokio::test]
 async fn no_session_id_is_ever_minted_or_echoed() {
     let (app, token, _stub) = app();
 

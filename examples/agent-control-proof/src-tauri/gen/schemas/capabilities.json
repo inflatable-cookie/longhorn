@@ -1,0 +1,1 @@
+{"agent-control-proof-main":{"identifier":"agent-control-proof-main","description":"The main window; the proof frontend needs no Tauri privileges — the control surface drives it from Rust.","local":true,"windows":["main"],"permissions":["core:default"]}}
