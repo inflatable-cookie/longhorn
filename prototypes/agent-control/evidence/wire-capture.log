@@ -1,0 +1,1537 @@
+
+===== 15:03:20 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: server/discover
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 440
+
+{"jsonrpc":"2.0","id":"server-discover-probe-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}}}}}
+
+===== 15:03:20 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:20 GMT
+
+1EA
+data: {"jsonrpc":"2.0","id":"server-discover-probe-1","result":{"resultType":"complete","supportedVersions":["2024-11-05","2025-03-26","2025-06-18","2025-11-25","2026-07-28"],"capabilities":{"tools":{}},"instructions":"Controls the Longhorn agent-control proof app: evaluate runs JS in the WKWebView, screenshot returns a fresh PNG snapshot of it.","ttlMs":0,"cacheScope":"private","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"longhorn-agent-control-proof","version":"0.0.0"}}}}
+
+
+0
+
+
+
+===== 15:03:20 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: tools/list
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 411
+
+{"method":"tools/list","jsonrpc":"2.0","id":0,"params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}}}}}
+
+===== 15:03:20 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:20 GMT
+
+2BD
+data: {"jsonrpc":"2.0","id":0,"result":{"resultType":"complete","ttlMs":0,"cacheScope":"public","tools":[{"name":"evaluate","description":"Evaluate JavaScript in the app's WKWebView and return the result as text (strings and numbers as plain text, other values via their description, undefined as \"undefined\")","inputSchema":{"$schema":"https://json-schema.org/draft/2020-12/schema","properties":{"js":{"description":"JavaScript source evaluated in the webview's main world.","type":"string"}},"required":["js"],"type":"object"}},{"name":"screenshot","description":"Take a fresh WKWebView snapshot of the app window and return it as a PNG image","inputSchema":{"properties":{},"type":"object"}}]}}
+
+
+0
+
+
+
+===== 15:03:51 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: server/discover
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 440
+
+{"jsonrpc":"2.0","id":"server-discover-probe-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}}}}}
+
+===== 15:03:51 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:51 GMT
+
+1EA
+data: {"jsonrpc":"2.0","id":"server-discover-probe-1","result":{"resultType":"complete","supportedVersions":["2024-11-05","2025-03-26","2025-06-18","2025-11-25","2026-07-28"],"capabilities":{"tools":{}},"instructions":"Controls the Longhorn agent-control proof app: evaluate runs JS in the WKWebView, screenshot returns a fresh PNG snapshot of it.","ttlMs":0,"cacheScope":"private","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"longhorn-agent-control-proof","version":"0.0.0"}}}}
+
+
+0
+
+
+
+===== 15:03:51 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: tools/list
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 411
+
+{"method":"tools/list","jsonrpc":"2.0","id":0,"params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}}}}}
+
+===== 15:03:51 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:51 GMT
+
+2BD
+data: {"jsonrpc":"2.0","id":0,"result":{"resultType":"complete","ttlMs":0,"cacheScope":"public","tools":[{"name":"evaluate","description":"Evaluate JavaScript in the app's WKWebView and return the result as text (strings and numbers as plain text, other values via their description, undefined as \"undefined\")","inputSchema":{"$schema":"https://json-schema.org/draft/2020-12/schema","properties":{"js":{"description":"JavaScript source evaluated in the webview's main world.","type":"string"}},"required":["js"],"type":"object"}},{"name":"screenshot","description":"Take a fresh WKWebView snapshot of the app window and return it as a PNG image","inputSchema":{"properties":{},"type":"object"}}]}}
+
+
+0
+
+
+
+===== 15:03:55 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: tools/call
+mcp-name: evaluate
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 573
+
+{"method":"tools/call","params":{"name":"evaluate","arguments":{"js":"document.getElementById(\"counter\").textContent"},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}},"claudecode/toolUseId":"toolu_01PryggnKqDAiokpr7HubFNw","progressToken":1}},"jsonrpc":"2.0","id":1}
+
+===== 15:03:55 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:55 GMT
+
+7B
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"67"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:03:56 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept: application/json, text/event-stream
+Accept-Encoding: identity
+Content-Type: application/json
+User-Agent: claude-code/2.1.235 (sdk-cli)
+mcp-method: tools/call
+mcp-name: screenshot
+mcp-protocol-version: 2026-07-28
+Connection: keep-alive
+Host: 127.0.0.1:60699
+Content-Length: 520
+
+{"method":"tools/call","params":{"name":"screenshot","arguments":{},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}},"claudecode/toolUseId":"toolu_01XDZUkpEWjrGhZSJEe7ToZc","progressToken":2}},"jsonrpc":"2.0","id":2}
+
+===== 15:03:56 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:03:56 GMT
+
+AD7D
+data: {"jsonrpc":"2.0","id":2,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:04:56 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 154
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}}}
+
+===== 15:04:56 SERVER -> CLIENT =====
+HTTP/1.1 400 Bad Request
+content-type: application/json
+connection: close
+content-length: 95
+date: Wed, 19 Aug 2026 14:04:56 GMT
+
+{"jsonrpc":"2.0","id":1,"error":{"code":-32020,"message":"missing required Mcp-Method header"}}
+
+===== 15:05:18 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 154
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}}}
+
+===== 15:05:18 SERVER -> CLIENT =====
+HTTP/1.1 400 Bad Request
+content-type: application/json
+connection: close
+content-length: 110
+date: Wed, 19 Aug 2026 14:05:18 GMT
+
+{"jsonrpc":"2.0","id":1,"error":{"code":-32020,"message":"missing required Mcp-Name header for `tools/call`"}}
+
+===== 15:05:45 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 154
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}}}
+
+===== 15:05:45 SERVER -> CLIENT =====
+HTTP/1.1 400 Bad Request
+content-type: application/json
+connection: close
+content-length: 219
+date: Wed, 19 Aug 2026 14:05:45 GMT
+
+{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"Invalid params: request _meta is missing or has malformed required fields: io.modelcontextprotocol/protocolVersion, io.modelcontextprotocol/clientCapabilities"}}
+
+===== 15:06:09 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:09 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:09 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"136"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:06:09 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 305
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: screenshot
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "screenshot", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:09 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:09 GMT
+
+AC99
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:06:09 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:09 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:09 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"137"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:06:57 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:57 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:57 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"162"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:06:57 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 305
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: screenshot
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "screenshot", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:57 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:57 GMT
+
+A6ED
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:06:57 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:06:57 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:06:57 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"162"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:21 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:21 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:21 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"186"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:21 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 305
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: screenshot
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "screenshot", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:21 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:21 GMT
+
+B14D
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:21 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:21 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:21 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"186"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:50 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"206"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 305
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: screenshot
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "screenshot", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:50 GMT
+
+BB2D
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:07:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:07:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:07:50 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"206"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:08:26 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:08:26 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:08:26 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"224"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:08:31 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:08:31 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:08:31 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"227"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:08:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:08:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:08:50 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"237"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:08:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 305
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: screenshot
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "screenshot", "arguments": {}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:08:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:08:50 GMT
+
+ADA1
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"image","data":"<ELIDED base64 PNG, ~33-36KB>","mimeType":"image/png"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:08:50 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:08:50 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:08:50 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"237"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:09:22 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:09:22 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:09:22 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"269"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:09:27 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:09:27 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:09:27 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"272"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:09:56 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:09:56 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:09:56 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"286"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:10:01 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:10:01 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:10:01 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"288"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:10:51 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:10:51 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:10:51 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"314"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:01 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:01 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:01 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"319"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:41 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:41 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:41 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"339"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:42 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:42 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:42 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"340"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:43 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:43 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:43 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"340"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:44 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:44 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:44 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"341"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:45 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:45 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:45 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"341"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:46 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:46 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:46 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"342"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:47 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:47 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:47 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"342"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:11:48 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 357
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.getElementById('counter').textContent"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:11:48 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:11:48 GMT
+
+7C
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"343"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:12:28 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 522
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "new Promise(r => { let n=0; const t0=performance.now(); const i=setInterval(()=>{ n++; if (performance.now()-t0>=3000){ clearInterval(i); r('ticks='+n+' elapsed='+Math.round(performance.now()-t0)); } }, 100); })"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:12:28 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:12:28 GMT
+
+B5
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"JavaScript execution returned a result of an unsupported type"}],"isError":true}}
+
+
+0
+
+
+
+===== 15:12:49 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 554
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr = null; (() => { let n=0; const t0=performance.now(); const i=setInterval(()=>{ n++; if (performance.now()-t0>=3000){ clearInterval(i); window.__pr = 'ticks='+n+' elapsed='+Math.round(performance.now()-t0); } }, 100); })(); 'armed'"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:12:49 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:12:49 GMT
+
+7E
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"armed"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:12:53 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 322
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:12:53 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:12:53 GMT
+
+8D
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"ticks=9 elapsed=3031"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:12:53 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 585
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr2 = null; (() => { let n=0; const t0=performance.now(); const step=()=>{ n++; if (performance.now()-t0>=3000){ window.__pr2='frames='+n+' elapsed='+Math.round(performance.now()-t0); } else requestAnimationFrame(step); }; requestAnimationFrame(step); })(); 'armed'"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:12:53 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:12:53 GMT
+
+7E
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"armed"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:12:57 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 323
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr2"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:12:57 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:12:57 GMT
+
+7F
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"<null>"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:14:01 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 335
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.visibilityState"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:14:01 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:14:01 GMT
+
+80
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"visible"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:14:01 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 330
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "document.hasFocus()"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:14:01 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:14:01 GMT
+
+7A
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"1"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:14:01 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 585
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr2 = null; (() => { let n=0; const t0=performance.now(); const step=()=>{ n++; if (performance.now()-t0>=3000){ window.__pr2='frames='+n+' elapsed='+Math.round(performance.now()-t0); } else requestAnimationFrame(step); }; requestAnimationFrame(step); })(); 'armed'"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:14:01 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:14:01 GMT
+
+7E
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"armed"}],"isError":false}}
+
+
+0
+
+
+
+===== 15:14:05 CLIENT -> SERVER =====
+POST /mcp HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 323
+Host: 127.0.0.1:60699
+User-Agent: Python-urllib/3.9
+Content-Type: application/json
+Accept: application/json, text/event-stream
+Mcp-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: evaluate
+Connection: close
+
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "evaluate", "arguments": {"js": "window.__pr2"}, "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientInfo": {"name": "card227-probe", "version": "0.0.0"}, "io.modelcontextprotocol/clientCapabilities": {}}}}
+
+===== 15:14:05 SERVER -> CLIENT =====
+HTTP/1.1 200 OK
+content-type: text/event-stream
+cache-control: no-cache
+x-accel-buffering: no
+connection: close
+transfer-encoding: chunked
+date: Wed, 19 Aug 2026 14:14:05 GMT
+
+90
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"frames=182 elapsed=3011"}],"isError":false}}
+
+
+0
+
+

@@ -57,25 +57,48 @@ stream is cancellation. The spec mandates `Origin` validation, localhost
 binding for local servers, and authentication — the exact posture a local
 control port needs anyway.
 
-### rmcp serves this today
+### rmcp serves this today — with two corrections from the spike
 
-`rmcp` implements 2026-07-28 statelessly by default (no session ids, no
-GET/DELETE, no resumption) while negotiating 2025-11-25 and earlier with
-older clients. `StreamableHttpService` is a Tower service mountable on an
-axum router inside the app process. Protocol-revision drift is the
-library's problem, not the contract's; the contract records "stateless, no
-minted sessions" rather than a spec date.
+`rmcp` (3.1.3, the current line) supports revisions 2024-11-05 through
+2026-07-28 and negotiates for real: it echoes the client-requested
+revision when known, else falls back to its own default (`LATEST` is
+2025-11-25, not 2026-07-28 — the newest revision is supported but not
+default). With `legacy_session_mode: false` the service is POST-only and
+mints no session ids; the spike's wire capture shows zero
+`Mcp-Session-Id` headers. `StreamableHttpService` is a Tower service and
+mounted on an axum router inside the app process without incident
+(Card 227). Protocol-revision drift is the library's problem, not the
+contract's; the contract records "stateless, no minted sessions" rather
+than a spec date.
 
-### Unfocused capture is public API
+### A current agent client speaks 2026-07-28, session-free
+
+Claude Code 2.1.235 against the spike server: no `initialize` at all — it
+opens with `server/discover`, stamps every request with
+`mcp-protocol-version: 2026-07-28`, `mcp-method`, and `mcp-name` headers
+and `_meta.io.modelcontextprotocol/*` params, lists both tools, and calls
+them. Hand-driven calls missing the SEP-2243 envelope get explicit 400s
+naming the missing field. The stateless posture the contract mandates is
+what a current client already expects.
+
+### Unfocused capture is public API — and is fresh in every window state
 
 Tauri's `Webview::with_webview` hands over the `objc2_web_kit::WKWebView`
 on the main thread. `takeSnapshot(with:completionHandler:)` is public
 WKWebView API (macOS 10.13+), renders from the web-content process rather
 than the screen, and needs no focus and no screen-recording permission.
-Open probe: WebKit may throttle rendering for fully occluded or minimized
-windows, which could yield stale snapshots; the spike card must prove
-capture freshness for an occluded (not minimized) window and record the
-minimized-window behavior honestly.
+
+Spike evidence (Card 227, `prototypes/agent-control/evidence/`): with the
+page counter read off each PNG bracketed by `evaluate` calls, the snapshot
+showed the current DOM value for a frontmost, an unfocused-visible, a
+fully occluded, and a minimized window alike. Capture freshness does not
+depend on window state. Another-Space was not probed (not scriptable
+without Mission Control UI scripting). One page-side caveat: WKWebView
+coalesces 1 s DOM timers to ~2 s in every state including key, and
+`requestAnimationFrame` fires only while the window is key. Snapshots stay
+DOM-faithful regardless, but agents cannot rely on rAF-driven visuals
+advancing while the app is unfocused, and a ticking page is not a wall
+clock — freshness must be decided against the DOM, not elapsed time.
 
 ### Semantic snapshots beat pixels as the primary surface
 
@@ -111,11 +134,11 @@ evidence.
 
 ## Gaps
 
-- Occluded/minimized capture freshness — runtime probe, not resolvable
-  from documentation.
-- Which protocol revisions current agent clients (Claude Code and peers)
-  actually negotiate — observe during the spike; affects nothing in the
-  contract, only library configuration.
+- ~~Occluded/minimized capture freshness~~ — closed by Card 227: fresh in
+  every probed window state, DOM-relative (see Findings).
+- ~~Which protocol revisions current agent clients negotiate~~ — closed by
+  Card 227: Claude Code 2.1.235 speaks 2026-07-28 session-free;
+  rmcp 3.1.3 supports it but defaults to 2025-11-25 (see Findings).
 - Mock dialog responders are app-owned; their seam shape is deferred until
   a consumer needs one.
 - No provider for native surfaces ships under contract 022; the seam is

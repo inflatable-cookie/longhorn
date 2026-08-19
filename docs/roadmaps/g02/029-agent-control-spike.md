@@ -16,7 +16,7 @@ facts instead of documentation.
 
 ## Generation Runway
 
-- [ ] [Card 227](batch-cards/227-agent-control-spike.md) builds the
+- [x] [Card 227](batch-cards/227-agent-control-spike.md) builds the
       standalone prototype and records both probe results in memo 024.
 
 ## Acceptance
