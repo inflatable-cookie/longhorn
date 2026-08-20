@@ -35,12 +35,15 @@ checkout). Soundcheck adopted first (2026-08-20, its
 `claude mcp add` paste-line end to end — the adoption kit's last open
 review item. Figmatic is in flight on the `NoCommandBridge` composition.
 Figmatic's screenshot blocker cleared with g02.034 (PR 7,
-`e135d725`); its PR 14 reruns on that revision. The operator promoted
-child-webview semantic targeting:
+`e135d725`); its PR 14 reruns on that revision. Child-webview semantic
+targeting is merged:
 [g02.035](g02/035-agent-control-child-webview-targeting.md) (Cards
-239-240, ready) lets an app opt in child labels so agents drive the
-preview island directly — dispatch next. Three apps remain after
-Figmatic; operator picks order.
+239-240, PR 8, `592dbdb8`) — an app opts in child labels and agents
+drive them directly. Figmatic's full path is now open: rerun PR 14 on
+this revision, `.with_semantic_child("figmatic-preview")` at mount,
+re-run the skill installer, automate preview acceptance (never opt in
+`longhorn-browser` views). Three apps remain after Figmatic; operator
+picks order.
 Still open on the operator side: return the promoted Longhorn commit to
 Bovine Card 128 adoption (from g02.028).
 
