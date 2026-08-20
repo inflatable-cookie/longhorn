@@ -37,6 +37,7 @@
 | [g02.031](031-agent-control-tauri-host.md) | complete | Tauri plugin: dev-only server mount, unfocused capture, release-absence proof |
 | [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 | [g02.033](033-agent-control-adoption-kit.md) | done 2026-08-19 | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
+| [g02.034](034-agent-control-window-composition.md) | ready | screenshot composes child webviews: whole-window truth for multiwebview apps |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -132,6 +133,14 @@ exactly its job. The whole agent-control arc, memo to adoption kit, ran
 2026-08-19 in six PRs. What remains is per-app adoption from the five
 consumer repos' own roadmaps (contract 003); the stdio proxy client
 sits in the candidate runway.
+
+Adoption evidence reopened one seam: Figmatic's preview child webview
+is black in `screenshot` output — the capture mechanism (UI-webview
+`takeSnapshot`) cannot see sibling webview pixels, so contract 022's
+screenshot claim currently overclaims. The Figmatic handoff
+(`docs/handoffs/20260820-142528-figmatic-child-webview-screenshot-composition.md`)
+characterizes it; g02.034 (Card 238) makes the mechanism match the
+claim or narrows it honestly.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
