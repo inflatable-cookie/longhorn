@@ -10,6 +10,19 @@
 // of the bracketed counters' hues. The big numeral remains for human
 // spot-checks; PNGs land in `evidence/` next to the matrix receipt.
 //
+// Card 238 adds the preview island: a child webview attached to the main
+// window (right/bottom clipped by the viewport) with its own 1 Hz ticker
+// encoded at a 97° stride / 0.55 lightness. The island is not a semantic
+// target, so its counter cannot be bracketed by `evaluate` directly;
+// instead both tickers start at page load and tick at 1 Hz, so the island
+// counter stays within a couple of ticks of the parent's bracket — the
+// island pixel is judged against child hues for counters in
+// [before-2, after+2]. A pre-fix run shows the island region black (no hue
+// match): that failure is the baseline fixture. A frontmost-only geometry
+// probe checks the island's left edge pixel-exactly (parent hue one logical
+// pixel left of the edge, island hue one to the right) and records the PNG
+// dimensions so the observed scale factor is on record.
+//
 // Window states are scripted without accessibility permissions: focus and
 // the covering Terminal window go through AppleScript (Terminal's own
 // dictionary, plus the DOM's window.screenX/Y for placement), minimize and
@@ -54,6 +67,8 @@ type MatrixRow = {
   bracketAfter: number;
   matchedCounter: number | null;
   pixel: [number, number, number];
+  childMatchedCounter: number | null;
+  childPixel: [number, number, number];
   fresh: boolean;
 };
 
@@ -203,6 +218,19 @@ function expectedPixel(counter: number): [number, number, number] {
   return hslToRgb((counter * 47) % 360, 0.7, 0.45);
 }
 
+// The island's encoding: 97° stride at 0.55 lightness — pairwise-distinct
+// from every parent hue within the judged ranges (28° minimum circular
+// separation inside a five-counter scan window is ~75/255 per channel).
+function expectedChildPixel(counter: number): [number, number, number] {
+  return hslToRgb((counter * 97) % 360, 0.7, 0.55);
+}
+
+// PNG pixel dimensions straight from the IHDR.
+async function pngSize(pngPath: string): Promise<{ width: number; height: number }> {
+  const png = await readFile(pngPath);
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
 // Reads one pixel out of a PNG via sips → BMP (macOS built-ins only).
 async function pixelAt(pngPath: string, fractionX: number, fractionY: number): Promise<[number, number, number]> {
   const bmpPath = pngPath.replace(/\.png$/, ".bmp");
@@ -296,20 +324,62 @@ async function main(): Promise<void> {
     for (let counter = before; counter <= after; counter += 1) {
       if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
     }
+    // The island cannot be bracketed by `evaluate` (not a semantic target);
+    // both tickers start at page load and tick at 1 Hz, so its counter sits
+    // within a couple of ticks of the parent's bracket.
+    const childPixel = await pixelAt(pngPath, 0.75, 0.625);
+    let childMatched: number | null = null;
+    for (let counter = before - 2; counter <= after + 2; counter += 1) {
+      if (colorNear(childPixel, expectedChildPixel(counter), 12)) childMatched = counter;
+    }
     rows.push({
       state,
       bracketBefore: before,
       bracketAfter: after,
       matchedCounter: matched,
       pixel,
-      fresh: matched !== null,
+      childMatchedCounter: childMatched,
+      childPixel,
+      fresh: matched !== null && childMatched !== null,
     });
     console.log(
-      `${state}: bracket ${before}..${after}, pixel [${pixel}], matched ${matched ?? "none"}`,
+      `${state}: bracket ${before}..${after}, pixel [${pixel}], matched ${matched ?? "none"}; island [${childPixel}], matched ${childMatched ?? "none"}`,
     );
   }
 
+  // Frontmost-only geometry probe (Card 238): the island's left edge sits
+  // at logical x=360 of the 720-wide window; the pixel one logical pixel
+  // left must be the parent hue, one right the island hue. The PNG's pixel
+  // dimensions record the observed scale factor.
+  async function geometryProbe(): Promise<Record<string, unknown>> {
+    const before = await evaluateCounter(discovery);
+    const pngPath = join(outDir, "geometry.png");
+    await screenshot(discovery, pngPath);
+    const after = await evaluateCounter(discovery);
+    const size = await pngSize(pngPath);
+    const left = await pixelAt(pngPath, 359.5 / 720, 240.5 / 480);
+    const right = await pixelAt(pngPath, 360.5 / 720, 240.5 / 480);
+    let leftMatched: number | null = null;
+    for (let counter = before; counter <= after; counter += 1) {
+      if (colorNear(left, expectedPixel(counter), 12)) leftMatched = counter;
+    }
+    let rightMatched: number | null = null;
+    for (let counter = before - 2; counter <= after + 2; counter += 1) {
+      if (colorNear(right, expectedChildPixel(counter), 12)) rightMatched = counter;
+    }
+    return {
+      pngPixels: size,
+      windowLogical: { width: 720, height: 480 },
+      observedScaleFactor: size.width / 720,
+      islandLeftEdgeLogicalX: 360,
+      leftOfEdge: { pixel: left, matchedCounter: leftMatched },
+      rightOfEdge: { pixel: right, matchedCounter: rightMatched },
+      pass: leftMatched !== null && rightMatched !== null,
+    };
+  }
+
   await probe("frontmost", activateApp);
+  const geometry = await geometryProbe();
   await probe("unfocused", activateTerminal);
   await probe("occluded", () => coverWithTerminal(discovery));
   await closeCoveringTerminal();
@@ -333,12 +403,13 @@ async function main(): Promise<void> {
   }
 
   const receipt = {
-    schema: "longhorn.agent-control-freshness-matrix.v1",
+    schema: "longhorn.agent-control-freshness-matrix.v2",
     app: appPath,
     pid: discovery.pid,
     rows,
+    geometry,
     discoveryRemovedOnQuit: discoveryRemoved,
-    fresh: rows.every((row) => row.fresh),
+    fresh: rows.every((row) => row.fresh) && (geometry.pass as boolean),
   };
   await writeFile(join(outDir, "matrix.json"), `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(JSON.stringify(receipt, null, 2));

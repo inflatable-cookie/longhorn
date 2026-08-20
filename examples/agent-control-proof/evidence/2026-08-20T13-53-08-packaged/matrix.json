@@ -1,0 +1,128 @@
+{
+  "schema": "longhorn.agent-control-freshness-matrix.v2",
+  "app": "/Users/tom/Dev/worktrees/longhorn-238/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 38134,
+  "rows": [
+    {
+      "state": "frontmost",
+      "bracketBefore": 1,
+      "bracketAfter": 1,
+      "matchedCounter": 1,
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "childMatchedCounter": null,
+      "childPixel": [
+        195,
+        160,
+        34
+      ],
+      "fresh": false
+    },
+    {
+      "state": "unfocused",
+      "bracketBefore": 3,
+      "bracketAfter": 3,
+      "matchedCounter": 3,
+      "pixel": [
+        34,
+        195,
+        91
+      ],
+      "childMatchedCounter": null,
+      "childPixel": [
+        34,
+        195,
+        91
+      ],
+      "fresh": false
+    },
+    {
+      "state": "occluded",
+      "bracketBefore": 5,
+      "bracketAfter": 5,
+      "matchedCounter": 5,
+      "pixel": [
+        34,
+        48,
+        195
+      ],
+      "childMatchedCounter": null,
+      "childPixel": [
+        34,
+        48,
+        195
+      ],
+      "fresh": false
+    },
+    {
+      "state": "minimized",
+      "bracketBefore": 7,
+      "bracketAfter": 7,
+      "matchedCounter": 7,
+      "pixel": [
+        195,
+        34,
+        117
+      ],
+      "childMatchedCounter": null,
+      "childPixel": [
+        195,
+        34,
+        117
+      ],
+      "fresh": false
+    },
+    {
+      "state": "restored",
+      "bracketBefore": 9,
+      "bracketAfter": 9,
+      "matchedCounter": 9,
+      "pixel": [
+        187,
+        195,
+        34
+      ],
+      "childMatchedCounter": null,
+      "childPixel": [
+        187,
+        195,
+        34
+      ],
+      "fresh": false
+    }
+  ],
+  "geometry": {
+    "pngPixels": {
+      "width": 1440,
+      "height": 960
+    },
+    "windowLogical": {
+      "width": 720,
+      "height": 480
+    },
+    "observedScaleFactor": 2,
+    "islandLeftEdgeLogicalX": 360,
+    "leftOfEdge": {
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "matchedCounter": 1
+    },
+    "rightOfEdge": {
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "matchedCounter": null
+    },
+    "pass": false
+  },
+  "discoveryRemovedOnQuit": true,
+  "fresh": false
+}

@@ -1,4 +1,4 @@
-//! Longhorn's own agent-control proof composition (Cards 230-231).
+//! Longhorn's own agent-control proof composition (Cards 230-231, 238).
 //!
 //! A minimal Tauri app that composes `longhorn-tauri-agent-control` behind
 //! its `dev` feature — this app exists to prove the dev control surface and
@@ -6,6 +6,15 @@
 //! commands so the packaged freshness matrix can minimize and restore the
 //! window through the same `command` tool an agent would use, plus a `ping`
 //! command proving the registry round trip.
+//!
+//! Card 238 attaches a child webview (`preview`, the `island.html` page with
+//! its own 1 Hz hue ticker at a 97° stride) to the main window — the
+//! native-content-island shape from the Figmatic adoption finding. The
+//! island is deliberately oversized so its right and bottom edges clip at
+//! the window viewport; the freshness matrix judges both surfaces' pixels.
+//! With the child attached, `webview_windows()` no longer lists `main`, so
+//! every host-side lookup here goes through `get_window` (the same shape
+//! `c1482daf` adopted in the plugin).
 
 use std::sync::{
     Arc, Mutex,
@@ -121,16 +130,19 @@ struct ProofExecutor {
 
 impl CommandExecutor for ProofExecutor {
     fn execute(&mut self, invocation: &AdmittedCommandInvocation) -> CommandExecutorOutcome {
+        // `get_window`, not `get_webview_window`: with the preview island
+        // attached, `main` hosts two webviews and tauri's `webview_windows`
+        // map drops it.
         let outcome = match invocation.route().as_str() {
             "proof:ping" => Ok(()),
             "host:window.minimize" => self
                 .app
-                .get_webview_window("main")
+                .get_window("main")
                 .ok_or_else(|| "no main window".to_owned())
                 .and_then(|window| window.minimize().map_err(|error| error.to_string())),
             "host:window.restore" => self
                 .app
-                .get_webview_window("main")
+                .get_window("main")
                 .ok_or_else(|| "no main window".to_owned())
                 .and_then(|window| window.unminimize().map_err(|error| error.to_string())),
             route => Err(format!("unrouted command route {route:?}")),
@@ -233,6 +245,20 @@ fn main() {
             app.manage(ProofState {
                 agent_control: Mutex::new(Some(agent_control)),
             });
+            // Card 238: attach the preview island child webview. Oversized
+            // on purpose — the window is 720x480 logical, so the island's
+            // right and bottom edges clip at the viewport.
+            let main_window = app.get_window("main").expect("main window");
+            main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview",
+                        tauri::WebviewUrl::App("island.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(360.0, 120.0),
+                    tauri::LogicalSize::new(400.0, 400.0),
+                )
+                .expect("attach preview island");
             Ok(())
         })
         .build(tauri::generate_context!())
