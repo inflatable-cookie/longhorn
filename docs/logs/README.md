@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-08
 
+### 2026-08-20
+
+- [Agent Control Window Composition](2026-08/20-agent-control-window-composition.md)
+
 ### 2026-08-19
 
 - [Agent Control Adoption Kit](2026-08/19-agent-control-adoption-kit.md)

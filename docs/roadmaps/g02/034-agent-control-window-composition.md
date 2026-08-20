@@ -1,6 +1,6 @@
 # g02.034 Agent Control Window Composition
 
-Status: ready
+Status: done 2026-08-20
 Owner: Longhorn maintainers
 Created: 2026-08-20
 Governing refs: contract 022; contracts 001, 012, 017 (island
@@ -19,7 +19,7 @@ preview island stops being a black rectangle.
 
 ## Generation Runway
 
-- [ ] [Card 238](batch-cards/238-agent-control-screenshot-composition.md)
+- [x] [Card 238](batch-cards/238-agent-control-screenshot-composition.md)
       — fixture, mechanism characterization, composition path, packaged
       proof, contract/guide truthfulness, Figmatic rerun handback.
 
