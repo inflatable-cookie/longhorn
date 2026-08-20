@@ -198,7 +198,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   file with `AGENTS_WORKTREE_CONTAINER_DIR=/Users/tom/Dev/worktrees`.
 - Surface: `.gitignore`, orchestrator/worker handoff loop.
 
-### [ ] Installed skill copies go stale within one longhorn_version — 2026-08-19
+### [x] Installed skill copies go stale within one longhorn_version — 2026-08-19 (fixed 2026-08-20)
 - Friction: the agent-control skill changed three times on 2026-08-19
   (command-less note, sanitized MCP names, listen ack distinction) while
   `longhorn_version` stayed 0.1.0. The drift check compares the stamp to
@@ -211,3 +211,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   hashes; or simply bump `longhorn_version` policy to change-on-edit.
 - Surface: `skills/agent-control/SKILL.md`, `install-agent-control-skill.ts`,
   `check:agent-control-skill`.
+- Fix (2026-08-20): the installer compares trees on an equal version stamp
+  and refreshes on any content difference ("refreshed ... — content
+  changed"); fixture pins it. Bit Soundcheck first: their same-version
+  re-run no-opped over the pre-fix copy and needed a manual delete.

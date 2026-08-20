@@ -6,7 +6,7 @@
 //   bun scripts/install-agent-control-skill.ts --repo <git-repo>
 //   bun scripts/install-agent-control-skill.ts <git-repo>
 
-import { cp, lstat, readFile, rm } from "node:fs/promises";
+import { cp, lstat, readFile, readdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -57,6 +57,37 @@ export function compareVersions(left: string, right: string): number {
   return 0;
 }
 
+/// True when the source and installed skill trees have identical files.
+async function treesMatch(source: string, dest: string): Promise<boolean> {
+  const list = async (root: string) =>
+    (await readdir(root, { recursive: true }))
+      .map((path) => String(path).replaceAll("\\", "/"))
+      .sort();
+  let sourceFiles: string[];
+  let destFiles: string[];
+  try {
+    [sourceFiles, destFiles] = [await list(source), await list(dest)];
+  } catch {
+    return false;
+  }
+  if (sourceFiles.join("\n") !== destFiles.join("\n")) return false;
+  for (const file of sourceFiles) {
+    let left: string;
+    let right: string;
+    try {
+      [left, right] = [
+        await readFile(join(source, file), "utf8"),
+        await readFile(join(dest, file), "utf8"),
+      ];
+    } catch {
+      // Directories land in the recursive listing too; skip non-files.
+      continue;
+    }
+    if (left !== right) return false;
+  }
+  return true;
+}
+
 async function isGitRepo(path: string): Promise<boolean> {
   try {
     await lstat(join(path, ".git"));
@@ -93,7 +124,15 @@ export async function installSkill(targetRepo: string): Promise<string> {
       );
     }
     if (cmp === 0) {
-      return `already installed ${sourceVersion} at ${destRel} — no-op`;
+      // Same stamp is not same content: the skill can change within one
+      // longhorn_version (bit Soundcheck's refresh, 2026-08-20). Compare
+      // the trees and refresh on any difference.
+      if (await treesMatch(sourceDir, dest)) {
+        return `already installed ${sourceVersion} at ${destRel} — no-op`;
+      }
+      await rm(dest, { recursive: true, force: true });
+      await cp(sourceDir, dest, { recursive: true });
+      return `refreshed ${destRel} at ${sourceVersion} — content changed`;
     }
   }
 

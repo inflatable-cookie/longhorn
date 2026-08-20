@@ -494,6 +494,30 @@ async function runEffigyInstallFixture(): Promise<void> {
     if (!againStdout.includes("no-op")) {
       throw new Error(`effigy re-run should be a no-op: ${againStdout}`);
     }
+
+    // Same version, changed content must refresh, not no-op — the skill
+    // changes within one longhorn_version (Soundcheck refresh, 2026-08-20).
+    const installedSkill = join(target, ".claude", "skills", "agent-control", "SKILL.md");
+    await writeFile(installedSkill, `${await readFile(installedSkill, "utf8")}\nstale marker\n`);
+    const refresh = Bun.spawn(["bun", "scripts/install-agent-control-skill.ts", target], {
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [refreshCode, refreshStdout, refreshStderr] = await Promise.all([
+      refresh.exited,
+      new Response(refresh.stdout).text(),
+      new Response(refresh.stderr).text(),
+    ]);
+    if (refreshCode !== 0) {
+      throw new Error(`refresh run failed: ${refreshStdout}\n${refreshStderr}`);
+    }
+    if (!refreshStdout.includes("refreshed")) {
+      throw new Error(`changed content should refresh: ${refreshStdout}`);
+    }
+    if ((await readFile(installedSkill, "utf8")).includes("stale marker")) {
+      throw new Error("refresh did not replace the stale installed copy");
+    }
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
