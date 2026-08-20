@@ -100,7 +100,13 @@ impl<R: Runtime> TauriControlHandler<R> {
                     .get_window(label)
                     .and_then(|live| {
                         ui_webview(&live).map(|webview| {
-                            (window.clone(), LiveTarget { window: live, webview })
+                            (
+                                window.clone(),
+                                LiveTarget {
+                                    window: live,
+                                    webview,
+                                },
+                            )
                         })
                     })
                     .ok_or_else(|| ToolError::UnknownWindow {
