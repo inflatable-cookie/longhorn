@@ -103,6 +103,26 @@ call `command`. The proof registry (`proof:ping`,
 `proof:window.minimize`, `proof:window.restore`) is the pattern, not the
 catalogue to ship.
 
+### Applications without a command registry
+
+Leaving contract 006 uncomposed is a supported composition, not a gap. Do
+**not** adopt `longhorn-command` just to satisfy this guide, and do not
+bridge Tauri `invoke` handlers into `command` — that would hand the agent
+a route your registry and admission engine never authorized (contract 022
+adds no authority). Mount with the provided no-command bridge instead:
+
+```rust
+use longhorn_tauri_agent_control::NoCommandBridge;
+
+mount_agent_control(app.handle(), config, std::sync::Arc::new(NoCommandBridge))?;
+```
+
+Every `command` call then answers a typed `Unsupported` naming the
+absence. The consequence to accept knowingly: behavior reachable only
+through native menus or dialogs has **no** agent path in such an app —
+agents drive whatever the UI exposes to the semantic tools, and the skill
+tells them to report the gap rather than click native chrome.
+
 ## 3. Mount From `setup`
 
 ```rust

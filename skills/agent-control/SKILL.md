@@ -145,7 +145,7 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | Tool | Arguments | Result | Limits |
 | --- | --- | --- | --- |
 | `click` | `element` (ref), `window?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
-| `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. |
+| `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. Some apps compose no registry at all: every `command` then answers `Unsupported` naming that — drive the UI through snapshot/input and report menu-only gaps to the operator. |
 | `drag` | `source` (ref), `target` (ref), `window?` | `ActionReceipt` | untrusted in-page drag; no OS drag-and-drop |
 | `evaluate` | `js`, `window?` | JSON `value` | escape hatch; full in-app code execution |
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |

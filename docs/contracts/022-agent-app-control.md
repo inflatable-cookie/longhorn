@@ -86,7 +86,10 @@ agent can use while the app runs unfocused in the background.
   DOM); requires no screen-recording permission or private API.
 - `command`: invoke a registered contract-006 command by id. This is the
   route to behavior behind native menus and dialogs; agents do not click
-  native chrome.
+  native chrome. An application that composes no command registry mounts
+  the provided no-command bridge, and every invocation answers typed
+  `Unsupported`; bridging unauthorized invoke surface into `command` is
+  not admitted (Figmatic adoption finding, 2026-08-19).
 - Window operations: list windows, resize, per-window targeting.
 
 ### Boundaries

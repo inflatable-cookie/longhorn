@@ -31,3 +31,28 @@ pub trait CommandBridge: Send + Sync + 'static {
         argument: Option<Value>,
     ) -> Result<Option<Value>, ToolError>;
 }
+
+/// The legitimate no-command composition (contract 022).
+///
+/// An application that does not compose a contract-006 registry — leaving
+/// Commands unselected is a supported composition, not a gap — mounts with
+/// this bridge. Every `command` invocation answers a typed
+/// [`ToolError::Unsupported`] naming the absence, so an agent learns the
+/// truth instead of a guessed id failing ambiguously. Behavior an agent
+/// should reach in such an app is whatever its UI exposes to the semantic
+/// tools; there is no side door.
+pub struct NoCommandBridge;
+
+impl CommandBridge for NoCommandBridge {
+    fn invoke_command(
+        &self,
+        _command: &CommandId,
+        _argument: Option<Value>,
+    ) -> Result<Option<Value>, ToolError> {
+        Err(ToolError::Unsupported {
+            message: "this application composes no command registry; drive the UI through \
+                      snapshot/input tools instead"
+                .to_owned(),
+        })
+    }
+}

@@ -27,7 +27,7 @@ mod mount;
 mod shim;
 
 #[cfg(feature = "dev")]
-pub use bridge::CommandBridge;
+pub use bridge::{CommandBridge, NoCommandBridge};
 #[cfg(feature = "dev")]
 pub use handler::TauriControlHandler;
 #[cfg(feature = "dev")]

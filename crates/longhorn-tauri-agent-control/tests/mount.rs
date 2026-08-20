@@ -20,7 +20,9 @@ use std::{
 };
 
 use longhorn_core::CommandId;
-use longhorn_tauri_agent_control::{AgentControlConfig, CommandBridge, mount_agent_control};
+use longhorn_tauri_agent_control::{
+    AgentControlConfig, CommandBridge, NoCommandBridge, mount_agent_control,
+};
 use serde_json::{Value, json};
 use tauri::WebviewWindowBuilder;
 use tempfile::TempDir;
@@ -442,4 +444,52 @@ fn guard_rejects_unauthenticated_and_foreign_origin() {
 
     mounted.handle.shutdown().unwrap();
     drop(mounted.state_root);
+}
+
+/// The legitimate no-command composition: an app without a contract-006
+/// registry mounts with `NoCommandBridge`, and `command` answers a typed
+/// `Unsupported` naming the absence — not a panic, not a guessed failure.
+#[test]
+fn no_command_bridge_answers_typed_unsupported() {
+    let app = tauri::test::mock_app();
+    WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+        .build()
+        .unwrap();
+
+    let state_root = tempfile::tempdir().unwrap();
+    let handle = mount_agent_control(
+        app.handle(),
+        AgentControlConfig::new("longhorn-no-command-fixture")
+            .with_state_root(state_root.path().to_owned()),
+        Arc::new(NoCommandBridge),
+    )
+    .unwrap();
+
+    let discovery_dir = state_root.path().join("agent-control");
+    let discovery_path = wait_for_discovery(&discovery_dir);
+    let discovery: Value =
+        serde_json::from_str(&std::fs::read_to_string(&discovery_path).unwrap()).unwrap();
+    let port = discovery["port"].as_u64().unwrap() as u16;
+    let token = discovery["token"].as_str().unwrap().to_owned();
+    let client = McpPost::authed(port, &token);
+
+    // The tool stays in the vocabulary; only its answer names the absence.
+    let tools = client.tools_list();
+    assert!(tools.body.contains("\"command\""), "{}", tools.body);
+
+    let reply = client.call("command", json!({ "command": "anything.at.all" }));
+    assert_eq!(reply.status, 200, "{}", reply.body);
+    let (is_error, content) = tool_content(&reply);
+    assert!(is_error, "command must fail typed: {content}");
+    assert_eq!(content["error"], "unsupported", "{content}");
+    assert!(
+        content["message"]
+            .as_str()
+            .unwrap()
+            .contains("no command registry"),
+        "{content}"
+    );
+
+    handle.shutdown().unwrap();
+    drop(app);
 }
