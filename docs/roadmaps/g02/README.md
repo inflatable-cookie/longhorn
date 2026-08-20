@@ -38,6 +38,7 @@
 | [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 | [g02.033](033-agent-control-adoption-kit.md) | done 2026-08-19 | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
 | [g02.034](034-agent-control-window-composition.md) | done 2026-08-20 | screenshot composes child webviews: whole-window truth for multiwebview apps |
+| [g02.035](035-agent-control-child-webview-targeting.md) | ready | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -232,7 +233,7 @@ tiered by readiness. None auto-starts; the operator picks.
 | Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/41; bridge optional-peer demotion deferred here (Card 146) | one card, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
 | Diagnostics adoption | Card 145 seam has no consumer guide | one small card: composition-guide section plus one consumer-shape example |
 | Agent-control stdio proxy client | g02.033 skill connects dynamically (ephemeral port + token); a static `.mcp.json` needs a command-based proxy | one card: `longhorn-agent-control-client` binary — discovers the live instance, proxies stdio↔streamable-HTTP; distribution decision (crate bin vs npm) inside the card |
-| Child-webview semantic targeting | Figmatic triage 2026-08-20 (`figmatic:docs/triage/20260820-162239-agent-control-preview-input-gap.md`): agents can screenshot but not click/marquee inside the preview island; contract 022 limits semantic tools to the UI webview by design | contract 022 extension when a second consumer needs it or Figmatic's preview toil recurs: app-opt-in per child label at mount (default closed — `evaluate` in unauthored content is the boundary), `webview?` targeting param, ref disambiguation; shim injection already reaches every webview |
+| ~~Child-webview semantic targeting~~ — promoted to g02.035 on 2026-08-20 by operator decision (Figmatic preview-input triage) | | |
 
 ### Tier B — needs new evidence or a contract extension first
 

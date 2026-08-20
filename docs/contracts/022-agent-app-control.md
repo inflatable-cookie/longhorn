@@ -3,7 +3,9 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-08-20 — g02.034 evidence closeout (Card 238): `screenshot`
+Updated: 2026-08-20 — child-webview semantic targeting admitted, opt-in
+per label at mount, default closed (operator decision; g02.035 executes).
+Prior: g02.034 evidence closeout (Card 238): `screenshot`
 composes the whole window across child webviews; the tool-surface claim,
 native-surface boundary, required evidence, and narrowings updated to the
 proved mechanism
@@ -72,6 +74,16 @@ agent can use while the app runs unfocused in the background.
   snapshot time and resolved against the live DOM on use. No server-side
   ref table; a ref from any prior snapshot either resolves or fails
   explicitly.
+- Semantic and input tools target the window's UI webview by default. An
+  application may opt in named child-webview labels at mount; an opted-in
+  child is a full semantic target addressed by an explicit webview
+  parameter, and its refs are scoped to the webview that stamped them —
+  a ref never resolves against a webview it did not come from. A child
+  not opted in answers typed `Unsupported` naming the absence. The
+  default is closed because `evaluate` and synthetic input inside a child
+  webview execute in whatever content it hosts; opting in is the
+  application asserting that content is its own to drive (operator
+  decision, 2026-08-20, from the Figmatic preview-input finding).
 - `click`, `type`, `press`, `scroll`, `drag` by ref: synthetic DOM events
   dispatched in-page. They never move the OS pointer and never require
   focus. Documented honestly as untrusted events: native hover, OS
@@ -107,7 +119,10 @@ agent can use while the app runs unfocused in the background.
 - Native menus, native dialogs, and OS-level input are out of scope.
   Dev builds may register mock dialog responders; that seam is app-owned.
 - Non-webview content (GPUI, native-content islands) is visible in
-  screenshots only, never a semantic target. On the Tauri host, a
+  screenshots only, never a semantic target. A child *webview* island is
+  semantic only when its label is opted in at mount (see Tool Surface);
+  otherwise it is screenshot-only like everything else here. On the
+  Tauri host, a
   native-content island realized as a child webview attached to the window
   is composed into `screenshot` as described above; a genuinely native
   (non-webview) surface does not appear in the image — the core crate

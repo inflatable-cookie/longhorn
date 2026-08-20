@@ -34,11 +34,13 @@ checkout). Soundcheck adopted first (2026-08-20, its
 `docs/logs/2026-08/20-agent-control-adoption.md`) and confirmed the
 `claude mcp add` paste-line end to end — the adoption kit's last open
 review item. Figmatic is in flight on the `NoCommandBridge` composition.
-Figmatic's blocker is cleared:
-[g02.034](g02/034-agent-control-window-composition.md) (Card 238, PR 7,
-merged as `e135d725`) composes whole-window screenshots across child
-webviews. Figmatic PR 14 reruns on that revision and owns its merge.
-Three apps remain after Figmatic; operator picks order.
+Figmatic's screenshot blocker cleared with g02.034 (PR 7,
+`e135d725`); its PR 14 reruns on that revision. The operator promoted
+child-webview semantic targeting:
+[g02.035](g02/035-agent-control-child-webview-targeting.md) (Cards
+239-240, ready) lets an app opt in child labels so agents drive the
+preview island directly — dispatch next. Three apps remain after
+Figmatic; operator picks order.
 Still open on the operator side: return the promoted Longhorn commit to
 Bovine Card 128 adoption (from g02.028).
 
