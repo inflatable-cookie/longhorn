@@ -1,6 +1,6 @@
 # 240 Agent Control Child Drive Proof
 
-Status: ready
+Status: done 2026-08-20
 Owner: Longhorn maintainers
 Roadmap: g02.035
 Governing refs: contract 022 (amended); Card 239; Cards 234/238
@@ -44,16 +44,16 @@ gets its opt-in instructions.
 
 ## Acceptance Criteria
 
-- [ ] packaged drive green: all six tool motions inside the opted-in
+- [x] packaged drive green: all six tool motions inside the opted-in
       island, unfocused, evidence committed
-- [ ] refusal leg green packaged: non-opted island typed `Unsupported`,
+- [x] refusal leg green packaged: non-opted island typed `Unsupported`,
       cross-webview ref `UnresolvedRef`
-- [ ] two-client UI/island interleave green
-- [ ] skill, guide, and contract Required Evidence match the shipped
+- [x] two-client UI/island interleave green
+- [x] skill, guide, and contract Required Evidence match the shipped
       mechanism; installer refresh picks up the skill; drift lock green
-- [ ] release-absence scan green both directions on the final tree
-- [ ] closeout names revision and Figmatic opt-in steps
-- [ ] `effigy qa` passes
+- [x] release-absence scan green both directions on the final tree
+- [x] closeout names revision and Figmatic opt-in steps
+- [x] `effigy qa` passes
 
 ## Validation
 
@@ -73,3 +73,40 @@ focus or pointer theft); the release-absence scan.
 
 g02.035 closes here. Figmatic opts in its preview and owns its own
 automation; the orchestrator relays the revision and steps.
+
+## Closeout
+
+Status: done 2026-08-20, same branch and worktree as Card 239
+(`t3code/read-webview-targeting-handoff`,
+`/Users/tom/.t3/worktrees/longhorn/t3code-3feafabe`).
+
+**Packaged drive.** `examples/agent-control-proof` opts in `preview`
+and leaves `preview-top` closed. Island content: `Island Go`, `Island
+Note`, a 3×3 marquee grid, plus the Card 238 ticker. e2e schema v2
+(`examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/`):
+snapshot / click / type / drag / wait_for / evaluate inside `preview`,
+screenshot of the composed window, closed-child `Unsupported`,
+cross-webview `UnresolvedRef`, UI/island interleave with distinct refs.
+Unfocused throughout (five focus samples, app never frontmost). No OS
+pointer.
+
+**Untrusted drag, precisely.** The tool is ref-to-ref and two-point:
+pointer/mouse down at the source center, move at the target center,
+HTML5 DnD (`dragstart` → `dragenter` → `dragover` → `drop` → `dragend`),
+pointer/mouse up at the target. The packaged island listens to those
+events and selected `0,0:2,2` from Cell 0 0 → Cell 2 2. There is no
+interpolated pixel path. A marquee that only samples intermediate
+`mousemove` coordinates along a free-form trail is not expressed;
+a two-ref selection (start cell → end cell) that listens to
+pointer/mouse down/up or HTML5 DnD at those elements is.
+
+**Figmatic opt-in.** After merge, pin the landed `main` commit. In the
+Figmatic worktree: bump `longhorn-tauri-agent-control` to that
+revision; at mount, `.with_semantic_child("figmatic-preview")` (the
+preview island's webview label); rebuild; re-run
+`bun scripts/install-agent-control-skill.ts <figmatic>` from Longhorn
+so the skill picks up `webview` addressing and the opt-in stop rule;
+drive the preview with `webview: "figmatic-preview"` — snapshot, then
+click/type/drag by the island's refs. Do not opt in any
+`longhorn-browser` view. Figmatic owns the bump, the opt-in, and its
+preview-acceptance automation.

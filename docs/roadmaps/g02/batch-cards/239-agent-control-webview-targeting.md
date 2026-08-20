@@ -1,6 +1,6 @@
 # 239 Agent Control Webview Targeting
 
-Status: ready
+Status: done 2026-08-20
 Owner: Longhorn maintainers
 Roadmap: g02.035
 Governing refs: contract 022 (amended 2026-08-20 — the opt-in rule this
@@ -57,14 +57,14 @@ webview that stamped them, and everything not opted in refuses typed.
 
 ## Acceptance Criteria
 
-- [ ] empty opt-in set: all existing fixtures pass unmodified
-- [ ] opted-in child addressable on every semantic/input tool; absent
+- [x] empty opt-in set: all existing fixtures pass unmodified
+- [x] opted-in child addressable on every semantic/input tool; absent
       `webview` still means the UI webview on the old wire shape
-- [ ] cross-webview ref resolution fails as `UnresolvedRef`, fixtured
-- [ ] both refusal cases typed and fixtured
-- [ ] shim reaches children attached after mount, fixtured or honestly
+- [x] cross-webview ref resolution fails as `UnresolvedRef`, fixtured
+- [x] both refusal cases typed and fixtured
+- [x] shim reaches children attached after mount, fixtured or honestly
       recorded as a Card 240 packaged check
-- [ ] `effigy qa` passes; release-absence scan green both directions
+- [x] `effigy qa` passes; release-absence scan green both directions
 
 ## Validation
 
@@ -85,3 +85,40 @@ scan.
 
 Card 240 proves it packaged, updates the teaching surfaces, and hands
 Figmatic its opt-in instructions.
+
+## Closeout
+
+Status: done 2026-08-20, on `t3code/read-webview-targeting-handoff` in
+worktree `/Users/tom/.t3/worktrees/longhorn/t3code-3feafabe` (launcher-
+provided). Same PR as Card 240.
+
+**Ref scoping.** Resolution is keyed by the request's `webview` target
+(the handler evals in that webview). Collision safety is in the DOM, not
+a server-side table: the shim stamps UI refs as `eN` (today's shape) and
+child refs as `{encodeURIComponent(label)}:eN`. Same local seq in two
+documents cannot match. Sending an island ref to the UI webview, or a UI
+ref into the island, is `UnresolvedRef` — never a wrong-element hit.
+Chose prefix-in-DOM over a wire-only wrap so the live attribute is the
+scoped id and the core stays stateless. Prefix is injected per call
+(`__longhornAgentRefPrefix`); late-attached children pick it up on the
+first semantic call because every call includes the shim source.
+
+**Vocabulary.** Additive `webview` on semantic/input requests; absent
+means the UI webview. Snapshot results name a child and omit the field
+for the UI webview. `UnknownWebview` is a new error: a label that
+matches no hosted webview of the window. Exists-but-not-opted-in is
+`Unsupported` naming the opt-in absence. `UnknownWindow` stays windows.
+The opt-in set is `AgentControlConfig::with_semantic_child`, fixed at
+mount.
+
+**Fixtures.** Core: omitted `webview` serializes as today's JSON;
+`webview` deserializes additively; `UnknownWebview` round-trips. Shim:
+collision case, two documents, same seq, no cross-hit; byte-lock green.
+Plugin: late-attach after mount, unknown label → `UnknownWebview`,
+closed child → `Unsupported`, opted-in child is found (mock runtime
+then fails `evaluationFailed`, not a targeting error). Empty opt-in is
+the existing mount fixtures unmodified.
+
+**Late-attach.** Plugin fixture attaches `preview` after
+`mount_agent_control` and the opted-in snapshot is not a targeting
+refusal. Card 240's packaged drive is the JS-executes proof.

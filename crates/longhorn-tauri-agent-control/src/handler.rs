@@ -11,18 +11,23 @@
 //! naming. Per-window targeting resolves a label to its live window at call
 //! time; a request with no target addresses the focused window, falling
 //! back to the first window by label when the app holds no focus — the
-//! steady state while an agent drives the app unfocused.
+//! steady state while an agent drives the app unfocused. Semantic and input
+//! tools take an optional `webview` label: absent means the UI webview;
+//! present means an opted-in child of that window. Refs stamped in a child
+//! are namespaced to that child's label so they cannot resolve in another
+//! webview.
 
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 
 use longhorn_agent_control::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, ControlHandler, DragRequest,
     EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest,
     ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SnapshotRequest,
-    SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult, WindowInfo,
-    WindowTarget,
+    SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult, WebviewLabel,
+    WebviewTarget, WindowInfo, WindowTarget,
 };
 use longhorn_core::{ClientSize, WindowId};
+use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, Webview, Window};
 
 use crate::{bridge::CommandBridge, shim};
@@ -31,14 +36,19 @@ use crate::{bridge::CommandBridge, shim};
 pub struct TauriControlHandler<R: Runtime> {
     app: AppHandle<R>,
     commands: Arc<dyn CommandBridge>,
+    /// Child-webview labels opted in as semantic targets at mount. Empty
+    /// means today's UI-webview-only behavior.
+    semantic_children: BTreeSet<String>,
 }
 
-/// One targetable window with its UI webview (the webview sharing the
-/// window's label). Child webviews attached to the window are not semantic
-/// targets; they stay reachable only through the native-surface seam.
+/// One resolved window + the webview a semantic/input call will drive.
+/// The default is the UI webview (same label as the window). An opted-in
+/// child is selected only when the request names it.
 struct LiveTarget<R: Runtime> {
     window: Window<R>,
     webview: Webview<R>,
+    webview_label: String,
+    is_ui: bool,
 }
 
 impl<R: Runtime> Clone for LiveTarget<R> {
@@ -46,7 +56,26 @@ impl<R: Runtime> Clone for LiveTarget<R> {
         Self {
             window: self.window.clone(),
             webview: self.webview.clone(),
+            webview_label: self.webview_label.clone(),
+            is_ui: self.is_ui,
         }
+    }
+}
+
+impl<R: Runtime> LiveTarget<R> {
+    /// Child refs are namespaced in the DOM as `{encodeURIComponent(label)}:eN`
+    /// so a colliding `eN` in another webview cannot resolve. UI webviews
+    /// stamp unprefixed `eN` — today's wire.
+    fn with_ref_prefix(&self, js: String) -> String {
+        let prefix = if self.is_ui {
+            "''".to_owned()
+        } else {
+            format!(
+                "encodeURIComponent({})",
+                Value::String(self.webview_label.clone())
+            )
+        };
+        format!("globalThis.__longhornAgentRefPrefix = {prefix};\n{js}")
     }
 }
 
@@ -61,8 +90,16 @@ fn ui_webview<R: Runtime>(window: &Window<R>) -> Option<Webview<R>> {
 
 impl<R: Runtime> TauriControlHandler<R> {
     /// Creates the handler over `app`, routing `command` through `commands`.
-    pub fn new(app: AppHandle<R>, commands: Arc<dyn CommandBridge>) -> Self {
-        Self { app, commands }
+    pub fn new(
+        app: AppHandle<R>,
+        commands: Arc<dyn CommandBridge>,
+        semantic_children: BTreeSet<String>,
+    ) -> Self {
+        Self {
+            app,
+            commands,
+            semantic_children,
+        }
     }
 
     /// Every targetable window, sorted by label for deterministic
@@ -73,15 +110,25 @@ impl<R: Runtime> TauriControlHandler<R> {
     /// its label, so a window gaining a child webview (a native-content
     /// island like Figmatic's preview) silently vanishes from
     /// `webview_windows()` (Figmatic adoption finding, 2026-08-20). The
-    /// app's UI webview is the one sharing the window's label; child
-    /// webviews are not semantic targets.
+    /// app's UI webview is the one sharing the window's label. Child
+    /// webviews are semantic only when opted in at mount.
     fn windows(&self) -> Vec<(String, LiveTarget<R>)> {
         let mut windows: Vec<_> = self
             .app
             .windows()
             .into_iter()
             .filter_map(|(label, window)| {
-                ui_webview(&window).map(|webview| (label, LiveTarget { window, webview }))
+                ui_webview(&window).map(|webview| {
+                    (
+                        label.clone(),
+                        LiveTarget {
+                            window,
+                            webview,
+                            webview_label: label,
+                            is_ui: true,
+                        },
+                    )
+                })
             })
             .collect();
         windows.sort_by(|(left, _), (right, _)| left.cmp(right));
@@ -105,6 +152,8 @@ impl<R: Runtime> TauriControlHandler<R> {
                                 LiveTarget {
                                     window: live,
                                     webview,
+                                    webview_label: window.as_str().to_owned(),
+                                    is_ui: true,
                                 },
                             )
                         })
@@ -165,16 +214,68 @@ impl<R: Runtime> TauriControlHandler<R> {
         })
     }
 
+    /// Resolves a semantic/input target: window as today, then an optional
+    /// child webview. Absent `webview` is the UI webview. A hosted child
+    /// that was not opted in at mount answers typed `Unsupported`; a label
+    /// that matches no hosted webview answers [`ToolError::UnknownWebview`].
+    fn resolve_semantic(
+        &self,
+        window: &WindowTarget,
+        webview: &WebviewTarget,
+    ) -> Result<(WindowId, LiveTarget<R>), ToolError> {
+        let (window_id, mut live) = self.resolve_window(window)?;
+        let Some(label) = webview else {
+            return Ok((window_id, live));
+        };
+        let hosted = live
+            .window
+            .webviews()
+            .into_iter()
+            .find(|candidate| candidate.label() == label.as_str())
+            .ok_or_else(|| ToolError::UnknownWebview {
+                webview: label.clone(),
+            })?;
+        let is_ui = hosted.label() == live.window.label();
+        if !is_ui && !self.semantic_children.contains(label.as_str()) {
+            return Err(ToolError::Unsupported {
+                message: format!(
+                    "child webview {:?} is not opted in as a semantic target; name it with AgentControlConfig::with_semantic_child at mount",
+                    label.as_str()
+                ),
+            });
+        }
+        live.webview = hosted;
+        live.webview_label = label.as_str().to_owned();
+        live.is_ui = is_ui;
+        Ok((window_id, live))
+    }
+
+    fn snapshot_webview_field(live: &LiveTarget<R>) -> Result<WebviewTarget, ToolError> {
+        if live.is_ui {
+            return Ok(None);
+        }
+        WebviewLabel::new(live.webview_label.clone())
+            .map(Some)
+            .map_err(|error| ToolError::Unsupported {
+                message: format!(
+                    "webview label {:?} is not a valid webview id: {error}",
+                    live.webview_label
+                ),
+            })
+    }
+
     async fn eval_js(
         &self,
-        target: &WindowTarget,
+        window: &WindowTarget,
+        webview: &WebviewTarget,
         js: String,
-    ) -> Result<(longhorn_core::WindowId, serde_json::Value), ToolError> {
-        let (window, live) = self.resolve_window(target)?;
+    ) -> Result<(WindowId, LiveTarget<R>, serde_json::Value), ToolError> {
+        let (window_id, live) = self.resolve_semantic(window, webview)?;
+        let js = live.with_ref_prefix(js);
         #[cfg(target_os = "macos")]
         {
             let value = crate::capture::evaluate_webview(&live.webview, js).await?;
-            Ok((window, value))
+            Ok((window_id, live, value))
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -188,22 +289,34 @@ impl<R: Runtime> TauriControlHandler<R> {
 
 impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     async fn snapshot(&self, request: SnapshotRequest) -> Result<SnapshotResult, ToolError> {
-        let (window, value) = self.eval_js(&request.window, shim::snapshot_js()).await?;
+        let (window, live, value) = self
+            .eval_js(&request.window, &request.webview, shim::snapshot_js())
+            .await?;
         let (page, root) = shim::decode_snapshot(value)?;
-        Ok(SnapshotResult { window, page, root })
+        Ok(SnapshotResult {
+            window,
+            webview: Self::snapshot_webview_field(&live)?,
+            page,
+            root,
+        })
     }
 
     async fn click(&self, request: ClickRequest) -> Result<ActionReceipt, ToolError> {
-        let (_, value) = self
-            .eval_js(&request.window, shim::click_js(request.element.as_str()))
+        let (_, _, value) = self
+            .eval_js(
+                &request.window,
+                &request.webview,
+                shim::click_js(request.element.as_str()),
+            )
             .await?;
         shim::decode_action(value)
     }
 
     async fn r#type(&self, request: TypeRequest) -> Result<ActionReceipt, ToolError> {
-        let (_, value) = self
+        let (_, _, value) = self
             .eval_js(
                 &request.window,
+                &request.webview,
                 shim::type_js(request.element.as_str(), &request.text),
             )
             .await?;
@@ -222,9 +335,10 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
             })
             .map(str::to_owned)
             .collect();
-        let (_, value) = self
+        let (_, _, value) = self
             .eval_js(
                 &request.window,
+                &request.webview,
                 shim::press_js(
                     &request.key,
                     &modifiers,
@@ -236,9 +350,10 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn scroll(&self, request: ScrollRequest) -> Result<ActionReceipt, ToolError> {
-        let (_, value) = self
+        let (_, _, value) = self
             .eval_js(
                 &request.window,
+                &request.webview,
                 shim::scroll_js(
                     request.delta_x,
                     request.delta_y,
@@ -250,9 +365,10 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn drag(&self, request: DragRequest) -> Result<ActionReceipt, ToolError> {
-        let (_, value) = self
+        let (_, _, value) = self
             .eval_js(
                 &request.window,
+                &request.webview,
                 shim::drag_js(request.source.as_str(), request.target.as_str()),
             )
             .await?;
@@ -260,18 +376,22 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn evaluate(&self, request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
-        let (_, value) = self.eval_js(&request.window, request.js).await?;
+        let (_, _, value) = self
+            .eval_js(&request.window, &request.webview, request.js)
+            .await?;
         Ok(EvaluateResult { value })
     }
 
     async fn wait_for(&self, request: WaitForRequest) -> Result<WaitForResult, ToolError> {
         let js = shim::wait_for_js(&request.predicate);
         let window = request.window.clone();
+        let webview = request.webview.clone();
         shim::poll_until(request.timeout_ms, || {
             let js = js.clone();
             let window = window.clone();
+            let webview = webview.clone();
             async move {
-                let (_, value) = self.eval_js(&window, js).await?;
+                let (_, _, value) = self.eval_js(&window, &webview, js).await?;
                 shim::decode_wait(value)
             }
         })

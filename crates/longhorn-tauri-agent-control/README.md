@@ -17,7 +17,8 @@ Composition, from the app's `setup` closure:
 #[cfg(feature = "dev")]
 let agent_control = longhorn_tauri_agent_control::mount_agent_control(
     app.handle(),
-    longhorn_tauri_agent_control::AgentControlConfig::new("com.example.app"),
+    longhorn_tauri_agent_control::AgentControlConfig::new("com.example.app")
+        .with_semantic_child("preview"),
     std::sync::Arc::new(my_command_bridge),
 )?;
 ```
@@ -31,9 +32,13 @@ plugin adds no authority of its own.
 
 Wired tools: the full contract 022 surface on macOS (`snapshot`, `click`,
 `type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`, `screenshot`,
-`command`, window ops). Synthetic input is untrusted DOM events: it never
-moves the OS pointer, never requires focus, and does not satisfy
-`isTrusted` checks. Native hover and OS drag-and-drop are out of scope.
+`command`, window ops). Semantic and input tools take an optional
+`webview` label; omit it for the UI webview. Name child labels at mount
+with `AgentControlConfig::with_semantic_child` — opting in asserts the
+child's content is the app's own to drive. Synthetic input is untrusted
+DOM events: it never moves the OS pointer, never requires focus, and does
+not satisfy `isTrusted` checks. Native hover and OS drag-and-drop are out
+of scope. Untrusted `drag` is ref-to-ref and two-point.
 `wait_for` is DOM-relative; no time-only or animation-frame wait exists.
 `screenshot` is macOS-only capture through the public `WKWebView` snapshot
 API (Card 231), answering typed `Unsupported` elsewhere. Page events ride

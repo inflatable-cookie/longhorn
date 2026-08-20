@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { REF_ATTR } from "../../src/agent-control/index.ts";
+import { REF_ATTR, REF_PREFIX_GLOBAL } from "../../src/agent-control/index.ts";
 import { findByName, install, openPage } from "./support.ts";
 
 describe("agent-control live-DOM refs", () => {
@@ -60,5 +60,39 @@ describe("agent-control live-DOM refs", () => {
 
     expect(api.click(alpha!.elementRef).ok).toBe(true);
     expect(api.click(beta!.elementRef).ok).toBe(true);
+  });
+
+  test("the same local seq in two webviews never cross-hits", () => {
+    const ui = openPage(`<button>Ui</button>`);
+    const island = openPage(`<button>Island</button>`);
+    (island as unknown as Record<string, unknown>)[REF_PREFIX_GLOBAL] = encodeURIComponent("preview");
+    const uiApi = install(ui);
+    const islandApi = install(island);
+    const uiSnap = uiApi.snapshot();
+    const islandSnap = islandApi.snapshot();
+    expect(uiSnap.ok && islandSnap.ok).toBe(true);
+    if (!uiSnap.ok || !islandSnap.ok) return;
+    const uiButton = findByName(uiSnap.root, "Ui");
+    const islandButton = findByName(islandSnap.root, "Island");
+    expect(uiButton?.elementRef).toMatch(/^e\d+$/);
+    expect(islandButton?.elementRef).toBe(`preview:${uiButton?.elementRef}`);
+    const crossIntoUi = uiApi.click(islandButton!.elementRef);
+    expect(crossIntoUi.ok).toBe(false);
+    if (!crossIntoUi.ok) {
+      expect(crossIntoUi.error).toEqual({
+        error: "unresolvedRef",
+        element: islandButton!.elementRef,
+      });
+    }
+    const crossIntoIsland = islandApi.click(uiButton!.elementRef);
+    expect(crossIntoIsland.ok).toBe(false);
+    if (!crossIntoIsland.ok) {
+      expect(crossIntoIsland.error).toEqual({
+        error: "unresolvedRef",
+        element: uiButton!.elementRef,
+      });
+    }
+    expect(uiApi.click(uiButton!.elementRef).ok).toBe(true);
+    expect(islandApi.click(islandButton!.elementRef).ok).toBe(true);
   });
 });

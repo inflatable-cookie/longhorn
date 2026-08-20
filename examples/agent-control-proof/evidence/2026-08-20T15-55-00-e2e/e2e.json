@@ -1,0 +1,49 @@
+{
+  "schema": "longhorn.agent-control-e2e.v2",
+  "app": "/Users/tom/.t3/worktrees/longhorn/t3code-3feafabe/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 10943,
+  "discoveryPath": "/Users/tom/Library/Application Support/longhorn/state/agent-control/dev.example.longhorn-agent-control-proof-10943.json",
+  "screenshot": "/Users/tom/.t3/worktrees/longhorn/t3code-3feafabe/examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/unfocused-about.png",
+  "islandScreenshot": "/Users/tom/.t3/worktrees/longhorn/t3code-3feafabe/examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/unfocused-island.png",
+  "focusSamples": [
+    {
+      "at": "after-unfocus",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-navigation",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-listen",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-island-drive",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    },
+    {
+      "at": "after-island-interleave",
+      "frontmostPid": 739,
+      "appHoldsFocus": false
+    }
+  ],
+  "appHeldFocus": false,
+  "twoClientRefsShared": true,
+  "listenA": true,
+  "listenB": true,
+  "island": {
+    "typedNote": "Marquee",
+    "selection": "0,0:2,2",
+    "title": "Preview Island Ready",
+    "closedChildUnsupported": true,
+    "crossWebviewUnresolved": true,
+    "uiIslandRefsDistinct": true
+  },
+  "discoveryRemovedOnQuit": true,
+  "osPointerUsed": false
+}

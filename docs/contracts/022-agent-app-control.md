@@ -171,6 +171,10 @@ Satisfied, with the proof named:
   listen streams
 - one packaged consumer app driven end-to-end by an MCP client while the
   app never holds OS focus — Card 234 `examples/agent-control-proof/e2e.ts`
+- opted-in child webview driven end-to-end (snapshot, click, type, drag,
+  wait_for, evaluate) unfocused, plus closed-child `Unsupported`,
+  cross-webview `UnresolvedRef`, and two-client UI/island interleave —
+  Card 240 `examples/agent-control-proof/e2e.ts` (schema v2)
 
 Narrowed, explicitly:
 

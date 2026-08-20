@@ -26,18 +26,64 @@
         font-variant-numeric: tabular-nums;
         margin: 0 0 16px;
       }
+      #island-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 12px;
+      }
+      input,
+      button {
+        font: inherit;
+        padding: 4px 8px;
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(3, 56px);
+        gap: 4px;
+        margin: 8px 0;
+      }
+      #grid button {
+        width: 56px;
+        height: 36px;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.45);
+        border: 1px solid #101318;
+      }
+      #grid button.selected {
+        background: #1d4ed8;
+        color: #fff;
+      }
+      #selection {
+        font-variant-numeric: tabular-nums;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
     <div id="counter">0</div>
-    <p>Preview island: a child webview, visible in screenshots only.</p>
+    <p>Preview island: opted-in child webview (Card 239/240).</p>
+    <div id="island-controls">
+      <button id="island-go" type="button">Island Go</button>
+      <label for="island-note">Island Note</label>
+      <input id="island-note" name="island-note" autocomplete="off" />
+    </div>
+    <div id="grid" role="grid" aria-label="Marquee">
+      <button type="button" draggable="true" data-r="0" data-c="0" aria-label="Cell 0 0">0,0</button>
+      <button type="button" draggable="true" data-r="0" data-c="1" aria-label="Cell 0 1">0,1</button>
+      <button type="button" draggable="true" data-r="0" data-c="2" aria-label="Cell 0 2">0,2</button>
+      <button type="button" draggable="true" data-r="1" data-c="0" aria-label="Cell 1 0">1,0</button>
+      <button type="button" draggable="true" data-r="1" data-c="1" aria-label="Cell 1 1">1,1</button>
+      <button type="button" draggable="true" data-r="1" data-c="2" aria-label="Cell 1 2">1,2</button>
+      <button type="button" draggable="true" data-r="2" data-c="0" aria-label="Cell 2 0">2,0</button>
+      <button type="button" draggable="true" data-r="2" data-c="1" aria-label="Cell 2 1">2,1</button>
+      <button type="button" draggable="true" data-r="2" data-c="2" aria-label="Cell 2 2">2,2</button>
+    </div>
+    <p id="selection" aria-label="Selection">none</p>
     <script>
-      // The island's own freshness oracle (Card 238): same 1 Hz ticker shape
-      // as the parent page but a distinct hue encoding (97° stride, lighter
-      // lightness) so the matrix can judge the two surfaces apart. The
-      // island is not a semantic target — its counter is read from the PNG,
-      // bracketed by the parent webview's `evaluate` counter reads (both
-      // tickers start at page load and tick at 1 Hz).
+      // Freshness oracle (Card 238): 1 Hz ticker, 97° hue stride. Interactive
+      // controls sit on top of the same body fill so edge pixels still name
+      // the island for the composition matrix.
       let counter = 0;
       const ticker = document.getElementById("counter");
       setInterval(() => {
@@ -45,6 +91,60 @@
         ticker.textContent = String(counter);
         document.body.style.backgroundColor = `hsl(${(counter * 97) % 360} 70% 55%)`;
       }, 1000);
+
+      const go = document.getElementById("island-go");
+      go.addEventListener("click", () => {
+        document.title = "Preview Island Ready";
+      });
+
+      const grid = document.getElementById("grid");
+      const selection = document.getElementById("selection");
+      let anchor = null;
+
+      function coord(cell) {
+        return { r: Number(cell.dataset.r), c: Number(cell.dataset.c) };
+      }
+
+      function paint(from, to) {
+        const r0 = Math.min(from.r, to.r);
+        const r1 = Math.max(from.r, to.r);
+        const c0 = Math.min(from.c, to.c);
+        const c1 = Math.max(from.c, to.c);
+        for (const cell of grid.querySelectorAll("[data-r]")) {
+          const r = Number(cell.dataset.r);
+          const c = Number(cell.dataset.c);
+          const on = r >= r0 && r <= r1 && c >= c0 && c <= c1;
+          cell.classList.toggle("selected", on);
+          if (on) cell.setAttribute("aria-selected", "true");
+          else cell.removeAttribute("aria-selected");
+        }
+        selection.textContent = `${r0},${c0}:${r1},${c1}`;
+      }
+
+      grid.addEventListener("pointerdown", (event) => {
+        const cell = event.target.closest("[data-r]");
+        if (cell) anchor = coord(cell);
+      });
+      grid.addEventListener("mousedown", (event) => {
+        const cell = event.target.closest("[data-r]");
+        if (cell) anchor = coord(cell);
+      });
+      const finish = (event) => {
+        const cell = event.target.closest("[data-r]");
+        if (!cell || !anchor) return;
+        paint(anchor, coord(cell));
+      };
+      grid.addEventListener("pointerup", finish);
+      grid.addEventListener("mouseup", finish);
+      grid.addEventListener("dragstart", (event) => {
+        const cell = event.target.closest("[data-r]");
+        if (cell) anchor = coord(cell);
+      });
+      grid.addEventListener("dragover", (event) => event.preventDefault());
+      grid.addEventListener("drop", (event) => {
+        event.preventDefault();
+        finish(event);
+      });
     </script>
   </body>
 </html>
