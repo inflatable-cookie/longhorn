@@ -13,11 +13,12 @@
 //! so its right and bottom edges clip at the window viewport; `preview-top`
 //! (island-top.html, 199° stride) overlapping it, attached later so the
 //! composed image must show it on top; and `preview-hidden`, hidden after
-//! attach so its region must show the parent page. The islands are
-//! screenshot surfaces only, never semantic targets. With children
-//! attached, `webview_windows()` no longer lists `main`, so every host-side
-//! lookup here goes through `get_window` (the same shape `c1482daf`
-//! adopted in the plugin).
+//! attach so its region must show the parent page. Card 239 opts `preview`
+//! in as a semantic target; `preview-top` stays closed so the packaged
+//! refusal has a live counterpart. With children attached,
+//! `webview_windows()` no longer lists `main`, so every host-side lookup
+//! here goes through `get_window` (the same shape `c1482daf` adopted in
+//! the plugin).
 
 use std::sync::{
     Arc, Mutex,
@@ -243,8 +244,11 @@ fn main() {
     let app = tauri::Builder::default()
         .setup(move |app| {
             bridge.install_handle(app.handle().clone());
-            let agent_control =
-                mount_agent_control(app.handle(), AgentControlConfig::new(APP_ID), bridge)?;
+            let agent_control = mount_agent_control(
+                app.handle(),
+                AgentControlConfig::new(APP_ID).with_semantic_child("preview"),
+                bridge,
+            )?;
             app.manage(ProofState {
                 agent_control: Mutex::new(Some(agent_control)),
             });

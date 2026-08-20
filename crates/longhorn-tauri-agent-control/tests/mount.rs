@@ -571,3 +571,129 @@ fn multiwebview_window_stays_enumerable() {
     handle.shutdown().unwrap();
     drop(app);
 }
+
+/// Card 239: opt-in is closed by default; a hosted child that was not
+/// named at mount answers typed `Unsupported`; a label that matches no
+/// hosted webview answers `UnknownWebview`. An opted-in late-attached
+/// child is found (mock runtime cannot execute JS, so snapshot then
+/// fails typed `evaluationFailed`, not a targeting error).
+#[test]
+fn child_webview_targeting_refusals_and_opt_in() {
+    let app = tauri::test::mock_app();
+    let window = WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+        .build()
+        .unwrap();
+
+    let state_root = tempfile::tempdir().unwrap();
+    let handle = mount_agent_control(
+        app.handle(),
+        AgentControlConfig::new("longhorn-webview-target-fixture")
+            .with_state_root(state_root.path().to_owned())
+            .with_semantic_child("preview"),
+        Arc::new(NoCommandBridge),
+    )
+    .unwrap();
+
+    let discovery_path = wait_for_discovery(&state_root.path().join("agent-control"));
+    let discovery: Value =
+        serde_json::from_str(&std::fs::read_to_string(&discovery_path).unwrap()).unwrap();
+    let port = discovery["port"].as_u64().unwrap() as u16;
+    let token = discovery["token"].as_str().unwrap().to_owned();
+    let client = McpPost::authed(port, &token);
+
+    // Attach after mount: the Figmatic shape, and the late-attach check.
+    let child =
+        tauri::webview::WebviewBuilder::new("preview", tauri::WebviewUrl::App("index.html".into()));
+    window
+        .as_ref()
+        .window()
+        .add_child(
+            child,
+            tauri::LogicalPosition::new(0.0, 0.0),
+            tauri::LogicalSize::new(100.0, 100.0),
+        )
+        .unwrap();
+    let closed = tauri::webview::WebviewBuilder::new(
+        "preview-top",
+        tauri::WebviewUrl::App("index.html".into()),
+    );
+    window
+        .as_ref()
+        .window()
+        .add_child(
+            closed,
+            tauri::LogicalPosition::new(10.0, 10.0),
+            tauri::LogicalSize::new(40.0, 40.0),
+        )
+        .unwrap();
+
+    let unknown = client.call("snapshot", json!({ "webview": "does-not-exist" }));
+    assert_eq!(unknown.status, 200, "{}", unknown.body);
+    let (unknown_error, unknown_content) = tool_content(&unknown);
+    assert!(
+        unknown_error,
+        "unknown webview must fail typed: {unknown_content}"
+    );
+    assert_eq!(
+        unknown_content["error"], "unknownWebview",
+        "{unknown_content}"
+    );
+    assert_eq!(
+        unknown_content["webview"], "does-not-exist",
+        "{unknown_content}"
+    );
+
+    let closed_reply = client.call("snapshot", json!({ "webview": "preview-top" }));
+    assert_eq!(closed_reply.status, 200, "{}", closed_reply.body);
+    let (closed_error, closed_content) = tool_content(&closed_reply);
+    assert!(
+        closed_error,
+        "closed child must fail typed: {closed_content}"
+    );
+    assert_eq!(closed_content["error"], "unsupported", "{closed_content}");
+    assert!(
+        closed_content["message"]
+            .as_str()
+            .unwrap()
+            .contains("not opted in"),
+        "{closed_content}"
+    );
+
+    // Opted-in late-attached child is a legal target. Mock runtime cannot
+    // execute JS (macOS: evaluationFailed; elsewhere: host Unsupported) —
+    // not UnknownWebview and not the opt-in Unsupported.
+    let opted = client.call("snapshot", json!({ "webview": "preview" }));
+    assert_eq!(opted.status, 200, "{}", opted.body);
+    let (opted_error, opted_content) = tool_content(&opted);
+    assert!(opted_error, "mock runtime cannot eval: {opted_content}");
+    assert_ne!(
+        opted_content["error"], "unknownWebview",
+        "opted-in child must be found: {opted_content}"
+    );
+    assert!(
+        !opted_content["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("not opted in"),
+        "opted-in child must not hit the closed-child refusal: {opted_content}"
+    );
+
+    // Absent webview is still the UI webview — never an opt-in refusal.
+    let ui = client.call("snapshot", json!({}));
+    assert_eq!(ui.status, 200, "{}", ui.body);
+    let (ui_error, ui_content) = tool_content(&ui);
+    assert!(
+        ui_error,
+        "UI snapshot on mock runtime fails typed: {ui_content}"
+    );
+    assert!(
+        !ui_content["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("not opted in"),
+        "{ui_content}"
+    );
+
+    handle.shutdown().unwrap();
+    drop(app);
+}

@@ -133,6 +133,73 @@ pub struct PageState {
 /// the host's frontmost or only window.
 pub type WindowTarget = Option<WindowId>;
 
+/// Opaque child-webview label used as a semantic target.
+///
+/// This is the host's own webview label (Tauri's, on that host). Absent
+/// [`WebviewTarget`] means the window's UI webview — today's meaning,
+/// unchanged. A present value addresses one hosted webview of that window.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct WebviewLabel(String);
+
+impl WebviewLabel {
+    /// Validates and constructs the label.
+    pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
+        let value = value.into();
+        if value.is_empty() {
+            return Err(OpaqueIdError::Empty);
+        }
+        if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
+            return Err(OpaqueIdError::TooLong {
+                maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
+                actual: value.len(),
+            });
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the serialized label.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for WebviewLabel {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for WebviewLabel {
+    type Err = OpaqueIdError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value)
+    }
+}
+
+impl Serialize for WebviewLabel {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WebviewLabel {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
+    }
+}
+
+/// Per-webview targeting shared by semantic and input tools: `None`
+/// addresses the window's UI webview.
+pub type WebviewTarget = Option<WebviewLabel>;
+
 /// `snapshot` request.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -140,6 +207,9 @@ pub struct SnapshotRequest {
     /// Window to snapshot; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview to snapshot; `None` targets the window's UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
 }
 
 /// `snapshot` result: the semantic tree with refs stamped into the live DOM.
@@ -148,6 +218,10 @@ pub struct SnapshotRequest {
 pub struct SnapshotResult {
     /// Window the snapshot was taken from.
     pub window: WindowId,
+    /// Webview the snapshot was taken from. Omitted for the UI webview so
+    /// the result shape stays additive for clients that snap the default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Page state at snapshot time.
     pub page: PageState,
     /// Root of the semantic element tree.
@@ -161,6 +235,9 @@ pub struct ClickRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview containing the element; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Element to click.
     pub element: ElementRef,
 }
@@ -172,6 +249,9 @@ pub struct TypeRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview containing the element; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Element to focus and type into.
     pub element: ElementRef,
     /// Text to enter.
@@ -199,6 +279,9 @@ pub struct PressRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview containing the element; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Element to dispatch against; `None` targets the focused element.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub element: Option<ElementRef>,
@@ -216,6 +299,9 @@ pub struct ScrollRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview to scroll; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Element to scroll; `None` scrolls the document.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub element: Option<ElementRef>,
@@ -236,6 +322,9 @@ pub struct DragRequest {
     /// Window containing the elements; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview containing the elements; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// Element the drag starts on.
     pub source: ElementRef,
     /// Element the drag ends on.
@@ -257,6 +346,9 @@ pub struct EvaluateRequest {
     /// Window to evaluate in; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview to evaluate in; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// JavaScript source evaluated in the page's main world.
     pub js: String,
 }
@@ -311,6 +403,9 @@ pub struct WaitForRequest {
     /// Window to wait in; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: WindowTarget,
+    /// Child webview to wait in; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
     /// DOM-relative predicate to await.
     pub predicate: WaitPredicate,
     /// Hard bound in milliseconds; expiry is [`ToolError::WaitTimeout`].
@@ -421,6 +516,13 @@ pub enum ToolError {
         /// Window that was not found.
         window: WindowId,
     },
+    /// The targeted webview label matches no hosted webview of the window.
+    /// Distinct from [`ToolError::Unsupported`]: the child exists-but-is-
+    /// not-opted-in case is opt-in absence, not a missing label.
+    UnknownWebview {
+        /// Webview label that was not found.
+        webview: WebviewLabel,
+    },
     /// The `wait_for` bound elapsed before the predicate held.
     WaitTimeout {
         /// Bound that elapsed, in milliseconds.
@@ -457,6 +559,9 @@ impl fmt::Display for ToolError {
             }
             Self::UnknownWindow { window } => {
                 write!(formatter, "window {window:?} does not exist")
+            }
+            Self::UnknownWebview { webview } => {
+                write!(formatter, "webview {webview:?} is not hosted by the window")
             }
             Self::WaitTimeout { timeout_ms } => {
                 write!(formatter, "predicate did not hold within {timeout_ms} ms")
@@ -527,6 +632,7 @@ mod tests {
     fn drag_has_no_os_level_mode() {
         let drag = DragRequest {
             window: None,
+            webview: None,
             source: ref_a(),
             target: ElementRef::new("e2").unwrap(),
         };
@@ -540,9 +646,85 @@ mod tests {
     }
 
     #[test]
+    fn requests_without_webview_keep_todays_wire_shape() {
+        let click = ClickRequest {
+            window: None,
+            webview: None,
+            element: ref_a(),
+        };
+        assert_eq!(
+            serde_json::to_string(&click).unwrap(),
+            r#"{"element":"e1"}"#
+        );
+        assert_eq!(
+            serde_json::from_str::<ClickRequest>(r#"{"element":"e1"}"#).unwrap(),
+            click
+        );
+        let snapshot = SnapshotRequest::default();
+        assert_eq!(serde_json::to_string(&snapshot).unwrap(), "{}");
+        assert_eq!(
+            serde_json::from_str::<SnapshotRequest>("{}").unwrap(),
+            snapshot
+        );
+    }
+
+    #[test]
+    fn webview_field_is_additive() {
+        let click: ClickRequest =
+            serde_json::from_str(r#"{"element":"e1","webview":"preview"}"#).unwrap();
+        assert_eq!(
+            click.webview.as_ref().map(WebviewLabel::as_str),
+            Some("preview")
+        );
+        let snapshot: SnapshotRequest = serde_json::from_str(r#"{"webview":"preview"}"#).unwrap();
+        assert_eq!(
+            snapshot.webview.as_ref().map(WebviewLabel::as_str),
+            Some("preview")
+        );
+        let result = SnapshotResult {
+            window: WindowId::new("main").unwrap(),
+            webview: None,
+            page: PageState {
+                url: "https://app.example/".to_owned(),
+                title: "Proof".to_owned(),
+            },
+            root: SemanticNode {
+                element_ref: ref_a(),
+                role: "document".to_owned(),
+                name: None,
+                value: None,
+                states: BTreeSet::new(),
+                children: Vec::new(),
+            },
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(
+            !json.contains("webview"),
+            "UI snapshot must omit webview: {json}"
+        );
+        let child = SnapshotResult {
+            webview: Some(WebviewLabel::new("preview").unwrap()),
+            ..result.clone()
+        };
+        let child_json = serde_json::to_string(&child).unwrap();
+        assert!(
+            child_json.contains("\"webview\":\"preview\""),
+            "{child_json}"
+        );
+    }
+
+    #[test]
     fn tool_errors_round_trip() {
         let error = ToolError::WaitTimeout { timeout_ms: 250 };
         let json = serde_json::to_string(&error).unwrap();
         assert_eq!(serde_json::from_str::<ToolError>(&json).unwrap(), error);
+        let missing = ToolError::UnknownWebview {
+            webview: WebviewLabel::new("preview").unwrap(),
+        };
+        let missing_json = serde_json::to_string(&missing).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ToolError>(&missing_json).unwrap(),
+            missing
+        );
     }
 }

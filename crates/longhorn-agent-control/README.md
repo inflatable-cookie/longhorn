@@ -20,8 +20,11 @@ Host-agnostic core of the agent app-control surface
 
 Synthetic `click`/`type`/`press`/`scroll`/`drag` are untrusted DOM events:
 they never move the OS pointer and never require focus. Native hover, OS
-drag-and-drop, and `isTrusted` checks are out of scope. `wait_for` admits
-only DOM-relative predicates.
+drag-and-drop, and `isTrusted` checks are out of scope. Semantic and input
+tools take an optional `webview` label (absent = the UI webview).
+`wait_for` admits only DOM-relative predicates. A hosted child that is
+not opted in answers typed `Unsupported`; a label that matches no hosted
+webview answers `UnknownWebview`.
 
 No host dependency: no tauri, wry, or objc2. The Tauri host (g02.031)
 implements `ControlHandler` and mounts the router; a GPUI host composes the

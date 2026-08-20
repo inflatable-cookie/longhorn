@@ -117,6 +117,7 @@ impl ControlHandler for StubHandler {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         Ok(SnapshotResult {
             window: longhorn_core::WindowId::new("main").unwrap(),
+            webview: None,
             page: PageState {
                 url: "http://localhost/".to_owned(),
                 title: "stub".to_owned(),

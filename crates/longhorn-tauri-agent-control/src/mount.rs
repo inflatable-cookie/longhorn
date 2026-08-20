@@ -13,6 +13,7 @@
 //! 022).
 
 use std::{
+    collections::BTreeSet,
     error::Error,
     fmt, io,
     path::PathBuf,
@@ -65,6 +66,10 @@ pub struct AgentControlConfig {
     /// resolver as an explicit override rather than a parallel root.
     /// `None` (the default) resolves the platform state root.
     pub state_root: Option<PathBuf>,
+    /// Child-webview labels opted in as semantic targets. Empty (the
+    /// default) is today's UI-webview-only behavior. The set is fixed at
+    /// mount; there is no runtime mutation.
+    pub semantic_children: BTreeSet<String>,
 }
 
 impl AgentControlConfig {
@@ -75,6 +80,7 @@ impl AgentControlConfig {
             app_id: app_id.into(),
             port: 0,
             state_root: None,
+            semantic_children: BTreeSet::new(),
         }
     }
 
@@ -89,6 +95,16 @@ impl AgentControlConfig {
     #[must_use]
     pub fn with_state_root(mut self, state_root: PathBuf) -> Self {
         self.state_root = Some(state_root);
+        self
+    }
+
+    /// Names one child-webview label as a semantic target. Repeatable.
+    /// The label is the host's own webview label; it must match a hosted
+    /// webview at call time. Opting in asserts the child's content is the
+    /// app's own to drive.
+    #[must_use]
+    pub fn with_semantic_child(mut self, label: impl Into<String>) -> Self {
+        self.semantic_children.insert(label.into());
         self
     }
 }
@@ -231,7 +247,7 @@ pub fn mount_agent_control<R: Runtime>(
         }
     }
 
-    let handler = TauriControlHandler::new(app.clone(), commands);
+    let handler = TauriControlHandler::new(app.clone(), commands, config.semantic_children);
     let server_config = ControlServerConfig {
         app_id: config.app_id,
         discovery_dir,

@@ -1,6 +1,6 @@
 # g02.035 Agent Control Child-webview Targeting
 
-Status: ready
+Status: done 2026-08-20
 Owner: Longhorn maintainers
 Created: 2026-08-20
 Governing refs: contract 022 (amended 2026-08-20: opt-in child-webview
@@ -20,10 +20,10 @@ operator's hands for marquee selection.
 
 ## Generation Runway
 
-- [ ] [Card 239](batch-cards/239-agent-control-webview-targeting.md) —
+- [x] [Card 239](batch-cards/239-agent-control-webview-targeting.md) —
       vocabulary and plumbing: opt-in config, `webview` addressing,
       webview-scoped refs, typed refusals, conformance fixtures.
-- [ ] [Card 240](batch-cards/240-agent-control-child-drive-proof.md) —
+- [x] [Card 240](batch-cards/240-agent-control-child-drive-proof.md) —
       packaged proof driving an opted-in island unfocused; skill, guide,
       and contract truthfulness; Figmatic handback.
 

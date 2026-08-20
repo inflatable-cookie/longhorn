@@ -14,7 +14,7 @@ use serde::Deserialize;
 use crate::{
     ClickRequest, CommandRequest, DragRequest, EvaluateRequest, KeyModifier, PressRequest,
     ResizeWindowRequest, ScreenshotRequest, ScrollRequest, SnapshotRequest, TypeRequest,
-    WaitForRequest, WaitPredicate,
+    WaitForRequest, WaitPredicate, WebviewLabel,
 };
 
 /// Invalid wire input; surfaced as a JSON-RPC invalid-params error.
@@ -32,6 +32,16 @@ fn window_target(value: Option<String>) -> Result<Option<WindowId>, ErrorData> {
         .transpose()
 }
 
+/// Parses an optional child-webview target.
+fn webview_target(value: Option<String>) -> Result<Option<WebviewLabel>, ErrorData> {
+    value
+        .map(|value| {
+            WebviewLabel::new(value.clone())
+                .map_err(|_| invalid_params(format!("invalid webview label {value:?}")))
+        })
+        .transpose()
+}
+
 /// Parses one element ref.
 fn element_ref(value: &str) -> Result<crate::ElementRef, ErrorData> {
     crate::ElementRef::new(value)
@@ -45,6 +55,9 @@ pub struct SnapshotArgs {
     /// Window id to snapshot; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label to snapshot; omit for the window's UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
 }
 
 impl SnapshotArgs {
@@ -52,6 +65,7 @@ impl SnapshotArgs {
     pub fn into_request(self) -> Result<SnapshotRequest, ErrorData> {
         Ok(SnapshotRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
         })
     }
 }
@@ -63,6 +77,9 @@ pub struct ClickArgs {
     /// Window id containing the element; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label containing the element; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// Element ref from a prior snapshot.
     pub element: String,
 }
@@ -72,6 +89,7 @@ impl ClickArgs {
     pub fn into_request(self) -> Result<ClickRequest, ErrorData> {
         Ok(ClickRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             element: element_ref(&self.element)?,
         })
     }
@@ -84,6 +102,9 @@ pub struct TypeArgs {
     /// Window id containing the element; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label containing the element; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// Element ref from a prior snapshot.
     pub element: String,
     /// Text to enter.
@@ -95,6 +116,7 @@ impl TypeArgs {
     pub fn into_request(self) -> Result<TypeRequest, ErrorData> {
         Ok(TypeRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             element: element_ref(&self.element)?,
             text: self.text,
         })
@@ -108,6 +130,9 @@ pub struct PressArgs {
     /// Window id containing the element; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label containing the element; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// Element ref to dispatch against; omit for the focused element.
     #[serde(default)]
     pub element: Option<String>,
@@ -134,6 +159,7 @@ impl PressArgs {
             .collect::<Result<BTreeSet<_>, _>>()?;
         Ok(PressRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             element: self.element.as_deref().map(element_ref).transpose()?,
             key: self.key,
             modifiers,
@@ -148,6 +174,9 @@ pub struct ScrollArgs {
     /// Window id containing the element; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label to scroll; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// Element ref to scroll; omit to scroll the document.
     #[serde(default)]
     pub element: Option<String>,
@@ -162,6 +191,7 @@ impl ScrollArgs {
     pub fn into_request(self) -> Result<ScrollRequest, ErrorData> {
         Ok(ScrollRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             element: self.element.as_deref().map(element_ref).transpose()?,
             delta_x: self.delta_x,
             delta_y: self.delta_y,
@@ -177,6 +207,9 @@ pub struct DragArgs {
     /// Window id containing the elements; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label containing the elements; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// Element ref the drag starts on.
     pub source: String,
     /// Element ref the drag ends on.
@@ -188,6 +221,7 @@ impl DragArgs {
     pub fn into_request(self) -> Result<DragRequest, ErrorData> {
         Ok(DragRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             source: element_ref(&self.source)?,
             target: element_ref(&self.target)?,
         })
@@ -201,6 +235,9 @@ pub struct EvaluateArgs {
     /// Window id to evaluate in; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label to evaluate in; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// JavaScript source evaluated in the page's main world.
     pub js: String,
 }
@@ -210,6 +247,7 @@ impl EvaluateArgs {
     pub fn into_request(self) -> Result<EvaluateRequest, ErrorData> {
         Ok(EvaluateRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             js: self.js,
         })
     }
@@ -253,6 +291,9 @@ pub struct WaitForArgs {
     /// Window id to wait in; omit for the frontmost window.
     #[serde(default)]
     pub window: Option<String>,
+    /// Child webview label to wait in; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
     /// DOM-relative predicate to await.
     pub predicate: WaitPredicateArgs,
     /// Hard bound in milliseconds.
@@ -278,6 +319,7 @@ impl WaitForArgs {
         };
         Ok(WaitForRequest {
             window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
             predicate,
             timeout_ms: self.timeout_ms,
         })
@@ -345,5 +387,47 @@ impl ResizeWindowArgs {
         let size = ClientSize::new(self.width, self.height)
             .map_err(|error| invalid_params(format!("invalid window size: {error}")))?;
         Ok(ResizeWindowRequest { window, size })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn omitted_webview_deserializes_to_todays_meaning() {
+        let snapshot = SnapshotArgs {
+            window: None,
+            webview: None,
+        }
+        .into_request()
+        .unwrap();
+        assert_eq!(snapshot, SnapshotRequest::default());
+        let from_empty: SnapshotArgs = serde_json::from_str("{}").unwrap();
+        assert_eq!(
+            from_empty.into_request().unwrap(),
+            SnapshotRequest::default()
+        );
+        let click: ClickArgs = serde_json::from_str(r#"{"element":"e1"}"#).unwrap();
+        let request = click.into_request().unwrap();
+        assert_eq!(request.window, None);
+        assert_eq!(request.webview, None);
+        assert_eq!(request.element.as_str(), "e1");
+    }
+
+    #[test]
+    fn webview_field_is_accepted_on_semantic_args() {
+        let args: SnapshotArgs = serde_json::from_str(r#"{"webview":"preview"}"#).unwrap();
+        let request = args.into_request().unwrap();
+        assert_eq!(
+            request.webview.as_ref().map(WebviewLabel::as_str),
+            Some("preview")
+        );
+        let click: ClickArgs =
+            serde_json::from_str(r#"{"element":"e1","webview":"preview"}"#).unwrap();
+        assert_eq!(
+            click.into_request().unwrap().webview.unwrap().as_str(),
+            "preview"
+        );
     }
 }

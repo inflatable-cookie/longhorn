@@ -38,7 +38,7 @@
 | [g02.032](032-agent-control-semantic-surface.md) | done 2026-08-19 | semantic snapshot and input tools; packaged unfocused end-to-end proof |
 | [g02.033](033-agent-control-adoption-kit.md) | done 2026-08-19 | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
 | [g02.034](034-agent-control-window-composition.md) | done 2026-08-20 | screenshot composes child webviews: whole-window truth for multiwebview apps |
-| [g02.035](035-agent-control-child-webview-targeting.md) | ready | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
+| [g02.035](035-agent-control-child-webview-targeting.md) | done 2026-08-20 | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the

@@ -124,6 +124,15 @@ the live DOM on use. There is no server-side ref table. `UnresolvedRef`
 means the ref is unknown or stale: take a new `snapshot` and use the new
 ref. Never retry the same ref blindly.
 
+Semantic and input tools (`snapshot`, `click`, `type`, `press`, `scroll`,
+`drag`, `wait_for`, `evaluate`) take an optional `webview` argument: omit
+it to drive the window's UI webview (today's meaning). Pass a child
+webview's label only when the app opted that label in at mount. Snapshot
+results name the child they came from. Refs are scoped to the webview
+that stamped them — a ref from the island never resolves in the UI
+webview, and the reverse is also `UnresolvedRef`, never a wrong-element
+hit. `screenshot`, `command`, and window ops do not take `webview`.
+
 Input tools dispatch untrusted DOM events in-page. They never move the
 OS pointer and never require focus. Native hover, OS drag-and-drop, and
 `isTrusted` checks are out of scope — there is no flag that selects a
@@ -150,18 +159,18 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 
 | Tool | Arguments | Result | Limits |
 | --- | --- | --- | --- |
-| `click` | `element` (ref), `window?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
+| `click` | `element` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
 | `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. Some apps compose no registry at all: every `command` then answers `Unsupported` naming that — drive the UI through snapshot/input and report menu-only gaps to the operator. |
-| `drag` | `source` (ref), `target` (ref), `window?` | `ActionReceipt` | untrusted in-page drag; no OS drag-and-drop |
-| `evaluate` | `js`, `window?` | JSON `value` | escape hatch; full in-app code execution |
+| `drag` | `source` (ref), `target` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted in-page drag, ref-to-ref, two-point (source center → target center); HTML5 DnD plus pointer/mouse down-move-up; no OS drag-and-drop and no interpolated pixel path |
+| `evaluate` | `js`, `window?`, `webview?` | JSON `value` | escape hatch; full in-app code execution |
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
-| `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
+| `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?`, `webview?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
 | `screenshot` | `window?` | PNG image content | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only |
-| `scroll` | `delta_x`, `delta_y`, `element?`, `window?` | `ActionReceipt` | omit `element` to scroll the document |
-| `snapshot` | `window?` | `window`, `page` (`url`, `title`), `root` tree of `{elementRef, role, name?, value?, states, children}` | refs live-DOM; omit `window` for frontmost |
-| `type` | `element` (ref), `text`, `window?` | `ActionReceipt` | untrusted text entry |
-| `wait_for` | `predicate`, `timeoutMs`, `window?` | empty result or `WaitTimeout` | see predicates below |
+| `scroll` | `delta_x`, `delta_y`, `element?`, `window?`, `webview?` | `ActionReceipt` | omit `element` to scroll the document |
+| `snapshot` | `window?`, `webview?` | `window`, `webview?` (child label; omitted for the UI webview), `page` (`url`, `title`), `root` tree of `{elementRef, role, name?, value?, states, children}` | refs live-DOM; omit `window` for frontmost; omit `webview` for the UI webview |
+| `type` | `element` (ref), `text`, `window?`, `webview?` | `ActionReceipt` | untrusted text entry |
+| `wait_for` | `predicate`, `timeoutMs`, `window?`, `webview?` | empty result or `WaitTimeout` | see predicates below |
 
 `wait_for` predicates (wire tag `predicate`):
 
@@ -182,7 +191,11 @@ Call shape:
 ```
 
 Typed errors (JSON, `isError`): `UnresolvedRef`, `UnknownWindow`,
-`WaitTimeout`, `EvaluationFailed`, `CommandFailed`, `Unsupported`.
+`UnknownWebview`, `WaitTimeout`, `EvaluationFailed`, `CommandFailed`,
+`Unsupported`. A child that exists but was not opted in at mount is
+`Unsupported` naming the opt-in absence — ask the operator to opt that
+label in; do not work around it with `evaluate` against the UI webview or
+OS input. A label that matches no hosted webview is `UnknownWebview`.
 
 ### Events
 
@@ -249,6 +262,10 @@ not a prompt to screenshot the desktop.
 Release builds contain none of this server. If the finder finds
 nothing and the app is a release/packaged-without-dev binary, stop and
 tell the operator. Never try to enable the surface at runtime.
+
+If a child webview you need to drive answers `Unsupported` naming opt-in
+absence, stop and ask the operator to opt that label in at mount. Do not
+scrape it through the UI webview or fall back to OS input.
 
 If a step cannot be done with these tools, tell the operator before
 using OS computer use. Falling back silently is the failure this

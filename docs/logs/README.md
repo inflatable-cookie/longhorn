@@ -8,6 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-08-20
 
+- [Agent Control Child-webview Targeting](2026-08/20-agent-control-child-webview-targeting.md)
 - [Agent Control Window Composition](2026-08/20-agent-control-window-composition.md)
 
 ### 2026-08-19

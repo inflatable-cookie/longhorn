@@ -9,6 +9,7 @@
 
 export const REF_ATTR = "data-longhorn-agent-ref";
 export const REF_SEQ_ATTR = "data-longhorn-agent-ref-seq";
+export const REF_PREFIX_GLOBAL = "__longhornAgentRefPrefix";
 export const TRUNCATED_ROLE = "truncated";
 export const TRUNCATED_REF = "truncated";
 export const MAX_DEPTH = 24;
@@ -132,12 +133,20 @@ function resolveRef(document: Document, element: string): Element | null {
   return document.querySelector(`[${REF_ATTR}="${element}"]`);
 }
 
+function refPrefix(document: Document): string {
+  const view = document.defaultView as unknown as Record<string, unknown> | null;
+  const value = view?.[REF_PREFIX_GLOBAL];
+  return typeof value === "string" ? value : "";
+}
+
 function allocRef(document: Document): string {
   const root = document.documentElement;
   const current = Number(root.getAttribute(REF_SEQ_ATTR) ?? "0");
   const next = Number.isFinite(current) ? current + 1 : 1;
   root.setAttribute(REF_SEQ_ATTR, String(next));
-  return `e${next}`;
+  const id = `e${next}`;
+  const prefix = refPrefix(document);
+  return prefix.length > 0 ? `${prefix}:${id}` : id;
 }
 
 function stamp(element: Element, document: Document): string {
@@ -397,13 +406,28 @@ function snapshot(world: ShimWorld): ShimResult<{ page: PageState; root: Semanti
   };
 }
 
-function dispatchMouse(world: ShimWorld, element: Element, type: string): void {
+function centerOf(element: Element): { x: number; y: number } {
+  const rect = element.getBoundingClientRect();
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function dispatchMouse(
+  world: ShimWorld,
+  element: Element,
+  type: string,
+  point?: { x: number; y: number },
+): void {
+  const coords = point ?? centerOf(element);
   element.dispatchEvent(
     new world.MouseEvent(type, {
       bubbles: true,
       cancelable: true,
       composed: true,
       button: 0,
+      clientX: coords.x,
+      clientY: coords.y,
+      screenX: coords.x,
+      screenY: coords.y,
     }),
   );
 }
@@ -552,24 +576,36 @@ function drag(
   if (!source) return unresolved(sourceRef);
   const target = resolveRef(world.document, targetRef);
   if (!target) return unresolved(targetRef);
+  const from = centerOf(source);
+  const to = centerOf(target);
+  // Two-point untrusted path: pointer/mouse at the source center, then the
+  // target center. There is no interpolated pixel trail — drag is ref-to-ref.
+  dispatchMouse(world, source, "pointerdown", from);
+  dispatchMouse(world, source, "mousedown", from);
+  dispatchMouse(world, target, "pointermove", to);
+  dispatchMouse(world, target, "mousemove", to);
   const transfer: DataTransfer =
     typeof DataTransfer === "function"
       ? new DataTransfer()
       : ({ setData() {}, getData() { return ""; } } as unknown as DataTransfer);
-  const dragEvent = (type: string, current: Element) => {
+  const dragEvent = (type: string, current: Element, point: { x: number; y: number }) => {
     const event = new world.MouseEvent(type, {
       bubbles: true,
       cancelable: true,
       composed: true,
+      clientX: point.x,
+      clientY: point.y,
     });
     Object.defineProperty(event, "dataTransfer", { value: transfer });
     current.dispatchEvent(event);
   };
-  dragEvent("dragstart", source);
-  dragEvent("dragenter", target);
-  dragEvent("dragover", target);
-  dragEvent("drop", target);
-  dragEvent("dragend", source);
+  dragEvent("dragstart", source, from);
+  dragEvent("dragenter", target, to);
+  dragEvent("dragover", target, to);
+  dragEvent("drop", target, to);
+  dragEvent("dragend", source, from);
+  dispatchMouse(world, target, "pointerup", to);
+  dispatchMouse(world, target, "mouseup", to);
   return ok();
 }
 

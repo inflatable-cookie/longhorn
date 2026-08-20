@@ -31,5 +31,6 @@ pub use tools::{
     ElementRef, EvaluateRequest, EvaluateResult, KeyModifier, ListWindowsRequest,
     ListWindowsResult, PageState, PressRequest, ResizeWindowRequest, ScreenshotRequest,
     ScreenshotResult, ScrollRequest, SemanticNode, SnapshotRequest, SnapshotResult, ToolError,
-    TypeRequest, WaitForRequest, WaitForResult, WaitPredicate, WindowInfo, WindowTarget,
+    TypeRequest, WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel, WebviewTarget,
+    WindowInfo, WindowTarget,
 };

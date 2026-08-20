@@ -10,6 +10,7 @@
   //! is forbidden). Synthetic events are untrusted: `isTrusted` stays false.
   var REF_ATTR = "data-longhorn-agent-ref";
   var REF_SEQ_ATTR = "data-longhorn-agent-ref-seq";
+  var REF_PREFIX_GLOBAL = "__longhornAgentRefPrefix";
   var TRUNCATED_ROLE = "truncated";
   var TRUNCATED_REF = "truncated";
   var MAX_DEPTH = 24;
@@ -41,12 +42,19 @@
       return null;
     return document.querySelector(`[${REF_ATTR}="${element}"]`);
   }
+  function refPrefix(document) {
+    const view = document.defaultView;
+    const value = view?.[REF_PREFIX_GLOBAL];
+    return typeof value === "string" ? value : "";
+  }
   function allocRef(document) {
     const root = document.documentElement;
     const current = Number(root.getAttribute(REF_SEQ_ATTR) ?? "0");
     const next = Number.isFinite(current) ? current + 1 : 1;
     root.setAttribute(REF_SEQ_ATTR, String(next));
-    return `e${next}`;
+    const id = `e${next}`;
+    const prefix = refPrefix(document);
+    return prefix.length > 0 ? `${prefix}:${id}` : id;
   }
   function stamp(element, document) {
     const existing = element.getAttribute(REF_ATTR);
@@ -319,12 +327,21 @@
       root: root ?? truncatedNode()
     };
   }
-  function dispatchMouse(world, element, type) {
+  function centerOf(element) {
+    const rect = element.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+  function dispatchMouse(world, element, type, point) {
+    const coords = point ?? centerOf(element);
     element.dispatchEvent(new world.MouseEvent(type, {
       bubbles: true,
       cancelable: true,
       composed: true,
-      button: 0
+      button: 0,
+      clientX: coords.x,
+      clientY: coords.y,
+      screenX: coords.x,
+      screenY: coords.y
     }));
   }
   function dispatchKey(world, element, type, key, modifiers) {
@@ -439,23 +456,33 @@
     const target = resolveRef(world.document, targetRef);
     if (!target)
       return unresolved(targetRef);
+    const from = centerOf(source);
+    const to = centerOf(target);
+    dispatchMouse(world, source, "pointerdown", from);
+    dispatchMouse(world, source, "mousedown", from);
+    dispatchMouse(world, target, "pointermove", to);
+    dispatchMouse(world, target, "mousemove", to);
     const transfer = typeof DataTransfer === "function" ? new DataTransfer : { setData() {}, getData() {
       return "";
     } };
-    const dragEvent = (type, current) => {
+    const dragEvent = (type, current, point) => {
       const event = new world.MouseEvent(type, {
         bubbles: true,
         cancelable: true,
-        composed: true
+        composed: true,
+        clientX: point.x,
+        clientY: point.y
       });
       Object.defineProperty(event, "dataTransfer", { value: transfer });
       current.dispatchEvent(event);
     };
-    dragEvent("dragstart", source);
-    dragEvent("dragenter", target);
-    dragEvent("dragover", target);
-    dragEvent("drop", target);
-    dragEvent("dragend", source);
+    dragEvent("dragstart", source, from);
+    dragEvent("dragenter", target, to);
+    dragEvent("dragover", target, to);
+    dragEvent("drop", target, to);
+    dragEvent("dragend", source, from);
+    dispatchMouse(world, target, "pointerup", to);
+    dispatchMouse(world, target, "mouseup", to);
     return ok();
   }
   function waitFor(world, predicate) {

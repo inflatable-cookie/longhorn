@@ -1,7 +1,7 @@
 # Compose Agent App Control
 
 Status: checked private adoption guidance
-Updated: 2026-08-19
+Updated: 2026-08-20
 Governing contracts: [022](../contracts/022-agent-app-control.md),
 [003](../contracts/003-extraction-and-consumer-migration.md),
 [006](../contracts/006-command-action-and-input.md),
@@ -106,19 +106,43 @@ catalogue to ship.
 ### Windows hosting child webviews
 
 Apps that attach child webviews (native-content islands, preview panes)
-to a window are supported: the handler enumerates `Window`s and drives
-the webview sharing the window's label, so the window stays targetable
-after a child attaches. Child webviews with their own labels are not
-semantic targets — `snapshot`, `click`, `type`, and `wait_for` stay on
-the UI webview — but they do appear in `screenshot`: the capture composes
-one image of the whole window from every hosted webview's own snapshot,
-each drawn at its physical bounds in view-hierarchy z-order and clipped to
-the window (Card 238). A hidden child contributes nothing, matching the
-real window; a child whose snapshot fails fails the call typed rather
-than silently dropping out of the image. Freshness holds per webview in
-every probed window state (frontmost, unfocused, occluded, minimized).
-A genuinely native (non-webview) island is not captured — no provider
-ships for that seam. The plugin's `dev` feature enables tauri's
+to a window stay targetable: the handler enumerates `Window`s and, by
+default, drives the webview sharing the window's label. Child webviews
+are screenshot surfaces always (Card 238) and semantic targets only when
+the app names their labels at mount:
+
+```rust
+AgentControlConfig::new(APP_ID).with_semantic_child("preview")
+```
+
+Repeat `with_semantic_child` for each label. The set is fixed at mount;
+there is no runtime mutation. Opting in a label asserts that child's
+content is the app's own to drive — `evaluate` and synthetic input
+execute inside whatever that webview hosts. Do **not** opt in labels
+that host third-party content (`longhorn-browser` views are the named
+counterexample). Default is closed: an unnamed child answers typed
+`Unsupported` naming the opt-in absence; a label that matches no hosted
+webview answers `UnknownWebview`.
+
+Agents address an opted-in child with the optional `webview` argument on
+`snapshot`, `click`, `type`, `press`, `scroll`, `drag`, `wait_for`, and
+`evaluate`. Omit it and the call is the UI webview — today's wire,
+unchanged. Refs are scoped to the webview that stamped them; crossing
+them is `UnresolvedRef`, never a wrong-element hit.
+
+Untrusted `drag` is ref-to-ref and two-point (source center → target
+center): it dispatches pointer/mouse down-move-up plus the HTML5 DnD
+sequence. It does not interpolate a pixel path, so a free-form marquee
+that only samples intermediate mousemove coordinates is not expressed.
+
+`screenshot` still composes the whole window from every hosted webview's
+own snapshot, each drawn at its physical bounds in view-hierarchy z-order
+and clipped to the window (Card 238). A hidden child contributes nothing,
+matching the real window; a child whose snapshot fails fails the call
+typed rather than silently dropping out of the image. Freshness holds per
+webview in every probed window state (frontmost, unfocused, occluded,
+minimized). A genuinely native (non-webview) island is not captured — no
+provider ships for that seam. The plugin's `dev` feature enables tauri's
 `unstable` feature for this; release builds are unaffected because the
 whole dependency is dev-gated.
 
@@ -163,7 +187,8 @@ struct AgentControlState {
     let bridge = std::sync::Arc::new(AppCommandBridge::new(/* ... */));
     let agent_control = mount_agent_control(
         app.handle(),
-        AgentControlConfig::new(APP_ID),
+        AgentControlConfig::new(APP_ID)
+            .with_semantic_child("preview"), // omit if no child needs driving
         bridge,
     )?;
     app.manage(AgentControlState {
@@ -175,7 +200,8 @@ struct AgentControlState {
 `AgentControlConfig::new` binds `127.0.0.1` on an ephemeral port and
 publishes the discovery file after bind. `with_port` pins a port;
 `with_state_root` is deployment/test policy (contract 004), not a second
-discovery location agents have to guess.
+discovery location agents have to guess. `with_semantic_child` is the
+opt-in above; skip it when no child webview should be a semantic target.
 
 Mount injects the in-page shim as an initialization script. The app does
 not mount a separate JavaScript package for snapshot or input.

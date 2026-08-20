@@ -58,7 +58,7 @@ where
     }
 
     #[tool(
-        description = "Semantic element tree of the webview (roles, names, values, state) with element refs stamped into the live DOM. Refs resolve against the live DOM on use; a ref from any prior snapshot either resolves or fails explicitly."
+        description = "Semantic element tree of the targeted webview (roles, names, values, state) with element refs stamped into the live DOM. Omit webview for the window's UI webview; an explicit webview label addresses an opted-in child. Refs are scoped to the webview that stamped them and resolve against the live DOM on use."
     )]
     async fn snapshot(
         &self,
@@ -191,6 +191,7 @@ where
             .handler
             .evaluate(EvaluateRequest {
                 window: None,
+                webview: None,
                 js: format!(
                     "JSON.stringify(globalThis.__longhornAgentControl ? globalThis.__longhornAgentControl.readEvents({since_seq}) : {{events:[], nextSeq:{since_seq}, dropped:0}})"
                 ),
