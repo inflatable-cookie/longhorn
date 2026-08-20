@@ -134,9 +134,10 @@ window state and stops `requestAnimationFrame` while the window is not
 key, so elapsed time and rAF-driven visuals prove nothing. There is no
 time-only or animation-frame wait.
 
-`screenshot` is a fresh webview snapshot. It works occluded, unfocused,
-and minimized. macOS only; other hosts return `Unsupported`. No
-screen-recording permission.
+`screenshot` is a fresh image of the whole window: every hosted webview
+composed at its bounds, child webviews (native-content islands) included.
+It works occluded, unfocused, and minimized. macOS only; other hosts
+return `Unsupported`. No screen-recording permission.
 
 After `click`/`type`/`press`/`scroll`/`drag`/`resize_window`, the
 receipt means the event was dispatched, not that the UI changed.
@@ -156,7 +157,7 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
 | `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
-| `screenshot` | `window?` | PNG image content | fresh when occluded/unfocused/minimized; macOS only |
+| `screenshot` | `window?` | PNG image content | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only |
 | `scroll` | `delta_x`, `delta_y`, `element?`, `window?` | `ActionReceipt` | omit `element` to scroll the document |
 | `snapshot` | `window?` | `window`, `page` (`url`, `title`), `root` tree of `{elementRef, role, name?, value?, states, children}` | refs live-DOM; omit `window` for frontmost |
 | `type` | `element` (ref), `text`, `window?` | `ActionReceipt` | untrusted text entry |

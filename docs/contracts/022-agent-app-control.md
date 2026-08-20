@@ -3,8 +3,10 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-08-19 — g02.032 evidence closeout (Cards 232-234): listen
-events mapped onto resource URIs; required-evidence items cited or narrowed
+Updated: 2026-08-20 — g02.034 evidence closeout (Card 238): `screenshot`
+composes the whole window across child webviews; the tool-surface claim,
+native-surface boundary, required evidence, and narrowings updated to the
+proved mechanism
 Depends on: contracts 001, 006, 010, 012, 020
 Affects: new `longhorn-agent-control`, new `longhorn-tauri-agent-control`,
 `longhorn` (TS shim), all app consumers in dev builds
@@ -81,9 +83,17 @@ agent can use while the app runs unfocused in the background.
   `requestAnimationFrame` entirely while the window is not key (Card 227),
   so rAF-driven visuals must not be awaited and elapsed time proves
   nothing about page progress.
-- `screenshot`: window image via webview snapshot capture. Works occluded,
-  unfocused, and minimized (Card 227 proved all three fresh against the
-  DOM); requires no screen-recording permission or private API.
+- `screenshot`: one image of the whole logical window, composed on macOS
+  from every hosted webview's own fresh viewport snapshot (`takeSnapshot`
+  reaches only the webview it is called on, so each surface is captured
+  separately and drawn at its tauri-reported physical bounds, back to front
+  in the view hierarchy's z-order, clipped to the window). Child webviews
+  attached to the window appear in the image; hidden ones do not, matching
+  what the window shows. Works occluded, unfocused, and minimized — Card
+  227 proved the UI webview fresh in all three states and Card 238
+  re-proved it per child webview. Requires no screen-recording permission
+  or private API. If any hosted visible webview's snapshot fails, the call
+  fails typed rather than returning an image that silently omits a surface.
 - `command`: invoke a registered contract-006 command by id. This is the
   route to behavior behind native menus and dialogs; agents do not click
   native chrome. An application that composes no command registry mounts
@@ -97,9 +107,12 @@ agent can use while the app runs unfocused in the background.
 - Native menus, native dialogs, and OS-level input are out of scope.
   Dev builds may register mock dialog responders; that seam is app-owned.
 - Non-webview content (GPUI, native-content islands) is visible in
-  screenshots only. The core crate exposes a provider seam so a native
-  surface can later register its own snapshot and action handlers; no
-  provider ships under this contract.
+  screenshots only, never a semantic target. On the Tauri host, a
+  native-content island realized as a child webview attached to the window
+  is composed into `screenshot` as described above; a genuinely native
+  (non-webview) surface does not appear in the image — the core crate
+  exposes a provider seam so such a surface can later register its own
+  snapshot and action handlers, and no provider ships under this contract.
 - The control server is observation and input only. It holds no app state,
   no history, no authority. App semantics stay behind existing commands and
   IPC per contracts 006 and 010.
@@ -130,6 +143,11 @@ Satisfied, with the proof named:
   explicitly — Card 232 shim fixtures and Card 233 marshalling
 - unfocused-and-occluded screenshot proof on packaged macOS — Card 231
   freshness matrix (`examples/agent-control-proof/evidence/`)
+- whole-window screenshot composition across child webviews: both-surfaces
+  baseline failure, then every window state fresh for parent and island,
+  pixel-exact bounds, clipping, overlap order, and hidden-island absence on
+  packaged macOS — Card 238 freshness matrix v2
+  (`examples/agent-control-proof/evidence/`)
 - Origin-rejection and bad-token fixtures — Cards 229-230
 - discovery lifecycle: create, enumerate, stale-pid detection, cleanup —
   Cards 229-231
@@ -143,7 +161,14 @@ Narrowed, explicitly:
 
 - Capture, `evaluate`, and the semantic tools are proved on macOS only.
   Other hosts compile and answer typed `Unsupported` (contract 020).
-- No native-surface provider ships; native chrome is not clicked.
+- Screenshot composition is proved at 2x backing scale; no 1x display was
+  available to probe. The composition works in physical pixels throughout
+  (tauri reports child bounds physically; snapshots are drawn into a
+  physical-pixel canvas), so scale enters only through the host's own
+  physical reporting.
+- Genuinely native (non-webview) surfaces do not appear in the composed
+  screenshot; no native-surface provider ships, and native chrome is not
+  clicked.
 - Another-Space window state was not probed (Card 231).
 - Listen delivers page events as `resources/updated` on the three URIs
   above, not as custom MCP notification methods.

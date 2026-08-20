@@ -109,8 +109,16 @@ Apps that attach child webviews (native-content islands, preview panes)
 to a window are supported: the handler enumerates `Window`s and drives
 the webview sharing the window's label, so the window stays targetable
 after a child attaches. Child webviews with their own labels are not
-semantic targets — they appear in screenshots only, per contract 022's
-native-surface posture. The plugin's `dev` feature enables tauri's
+semantic targets — `snapshot`, `click`, `type`, and `wait_for` stay on
+the UI webview — but they do appear in `screenshot`: the capture composes
+one image of the whole window from every hosted webview's own snapshot,
+each drawn at its physical bounds in view-hierarchy z-order and clipped to
+the window (Card 238). A hidden child contributes nothing, matching the
+real window; a child whose snapshot fails fails the call typed rather
+than silently dropping out of the image. Freshness holds per webview in
+every probed window state (frontmost, unfocused, occluded, minimized).
+A genuinely native (non-webview) island is not captured — no provider
+ships for that seam. The plugin's `dev` feature enables tauri's
 `unstable` feature for this; release builds are unaffected because the
 whole dependency is dev-gated.
 
@@ -204,7 +212,7 @@ Once mounted in a `dev` build, an agent can:
 | `click`, `type`, `press`, `scroll`, `drag` | untrusted in-page DOM events; never moves the OS pointer; never requires focus |
 | `evaluate` | JS in the page; escape hatch; full code execution |
 | `wait_for` | DOM-relative predicates only |
-| `screenshot` | fresh window image; occluded, unfocused, and minimized; macOS only |
+| `screenshot` | fresh image of the whole window, child webviews composed in; occluded, unfocused, and minimized; macOS only |
 | `command` | invoke a registered contract-006 command by id |
 | `list_windows`, `resize_window` | window scope |
 
