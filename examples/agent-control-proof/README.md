@@ -12,11 +12,14 @@ UI (click, type, drag-reorder, hash navigation) so an agent can drive it
 unfocused. Synthetic input is untrusted DOM events: it never moves the OS
 pointer and never holds focus.
 
-Card 238 attaches a child webview (`preview`, running `island.html` with its
-own 1 Hz hue ticker at a 97° stride) to the main window — the
-native-content-island shape from the Figmatic adoption finding. The island
-is deliberately oversized so its right and bottom edges clip at the window
-viewport. It is a screenshot surface only, never a semantic target.
+Card 238 attaches three child webviews to the main window — the
+native-content-island shape from the Figmatic adoption finding: the
+`preview` island (`island.html`, 97° hue stride), deliberately oversized so
+its right and bottom edges clip at the window viewport; `preview-top`
+(`island-top.html`, 199° stride) overlapping it, attached later so the
+composed screenshot must show it on top; and `preview-hidden`, hidden after
+attach so its region must show the parent page. The islands are screenshot
+surfaces only, never semantic targets.
 
 Its contract-006 registry (`proof:ping`, `proof:window.minimize`,
 `proof:window.restore`) exists so the matrix scripts window state through
@@ -35,15 +38,17 @@ The driver launches the packaged `.app`, reads the discovery file, and
 probes frontmost, unfocused, occluded (a Terminal window over the app),
 minimized, and restored states — each screenshot bracketed by `evaluate`
 counter reads, judged fresh when the captured pixels match a bracketed
-counter's hue. With the island attached, every row judges both surfaces:
-the parent's region against its own bracket, the island's region against
-the island's encoding over the parent's bracket widened by two ticks (both
-tickers start at page load at 1 Hz; the island is not a semantic target, so
-its counter can only be read from the PNG). A frontmost-only geometry probe
-checks the island's left edge pixel-exactly and records the PNG dimensions
-and observed scale factor. It finishes by quitting the app cleanly and
-asserting the discovery file is removed. Evidence (PNGs plus `matrix.json`)
-lands in `evidence/<timestamp>-packaged/`.
+counter's hue. With the islands attached, every row judges both surfaces:
+the parent's region against its own bracket, the base island's region
+against the island's encoding over the parent's bracket widened by two
+ticks (all tickers start at page load at 1 Hz; an island is not a semantic
+target, so its counter can only be read from the PNG). A frontmost-only
+geometry probe checks the base island's left and top edges pixel-exactly,
+that the overlap region shows the later-attached island, and that the
+hidden island's region shows the parent page, and records the PNG
+dimensions and observed scale factor. It finishes by quitting the app
+cleanly and asserting the discovery file is removed. Evidence (PNGs plus
+`matrix.json`) lands in `evidence/<timestamp>-packaged/`.
 
 It needs the operator's display for about a minute and opens one Terminal
 window (closed afterwards); coordinate the run rather than assuming the

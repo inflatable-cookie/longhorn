@@ -7,14 +7,17 @@
 //! window through the same `command` tool an agent would use, plus a `ping`
 //! command proving the registry round trip.
 //!
-//! Card 238 attaches a child webview (`preview`, the `island.html` page with
-//! its own 1 Hz hue ticker at a 97° stride) to the main window — the
-//! native-content-island shape from the Figmatic adoption finding. The
-//! island is deliberately oversized so its right and bottom edges clip at
-//! the window viewport; the freshness matrix judges both surfaces' pixels.
-//! With the child attached, `webview_windows()` no longer lists `main`, so
-//! every host-side lookup here goes through `get_window` (the same shape
-//! `c1482daf` adopted in the plugin).
+//! Card 238 attaches three child webviews to the main window — the
+//! native-content-island shape from the Figmatic adoption finding: the
+//! `preview` island (island.html, 97° hue stride), deliberately oversized
+//! so its right and bottom edges clip at the window viewport; `preview-top`
+//! (island-top.html, 199° stride) overlapping it, attached later so the
+//! composed image must show it on top; and `preview-hidden`, hidden after
+//! attach so its region must show the parent page. The islands are
+//! screenshot surfaces only, never semantic targets. With children
+//! attached, `webview_windows()` no longer lists `main`, so every host-side
+//! lookup here goes through `get_window` (the same shape `c1482daf`
+//! adopted in the plugin).
 
 use std::sync::{
     Arc, Mutex,
@@ -259,6 +262,32 @@ fn main() {
                     tauri::LogicalSize::new(400.0, 400.0),
                 )
                 .expect("attach preview island");
+            // A second island overlapping the first: attached later, so the
+            // real window shows it on top and the composed image must match
+            // (z-order case). Its 199° hue stride names the winner.
+            main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview-top",
+                        tauri::WebviewUrl::App("island-top.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(460.0, 220.0),
+                    tauri::LogicalSize::new(300.0, 300.0),
+                )
+                .expect("attach overlapping island");
+            // A hidden island: it shows no pixels in the real window, so
+            // the composed image must show the parent page in its region.
+            let hidden = main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview-hidden",
+                        tauri::WebviewUrl::App("island.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(24.0, 300.0),
+                    tauri::LogicalSize::new(200.0, 150.0),
+                )
+                .expect("attach hidden island");
+            hidden.hide().expect("hide the hidden island");
             Ok(())
         })
         .build(tauri::generate_context!())

@@ -558,6 +558,16 @@ fn multiwebview_window_stays_enumerable() {
     let (resize_error, resize_content) = tool_content(&resize);
     assert!(!resize_error, "resize must target main: {resize_content}");
 
+    // Screenshot composes every hosted webview on macOS; the mock runtime
+    // has no WKWebView, so the call must fail typed — not panic, not hang
+    // (Card 238: capture walks every webview of the window now).
+    let shot = client.call("screenshot", json!({ "window": "main" }));
+    assert!(
+        shot.status == 200 && tool_content(&shot).0,
+        "screenshot must fail typed on the mock runtime: {}",
+        shot.body
+    );
+
     handle.shutdown().unwrap();
     drop(app);
 }
