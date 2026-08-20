@@ -46,7 +46,9 @@ use objc2_app_kit::{
     NSBitmapImageFileType, NSBitmapImageRep, NSCalibratedRGBColorSpace, NSCompositingOperation,
     NSGraphicsContext, NSImage,
 };
-use objc2_foundation::{NSArray, NSData, NSError, NSDictionary, NSNumber, NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{
+    NSArray, NSData, NSDictionary, NSError, NSNumber, NSPoint, NSRect, NSSize, NSString,
+};
 use objc2_web_kit::WKWebView;
 use serde_json::Value;
 use tauri::{PhysicalSize, Runtime, Webview, Window};
