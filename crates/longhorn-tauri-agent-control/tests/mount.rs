@@ -493,3 +493,71 @@ fn no_command_bridge_answers_typed_unsupported() {
     handle.shutdown().unwrap();
     drop(app);
 }
+
+/// A window gaining a child webview (native-content island) must stay
+/// enumerable and targetable: `webview_windows()` loses it, the handler's
+/// `Window` + same-label-webview walk must not (Figmatic, 2026-08-20).
+#[test]
+fn multiwebview_window_stays_enumerable() {
+    let app = tauri::test::mock_app();
+    let window = WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+        .build()
+        .unwrap();
+
+    let state_root = tempfile::tempdir().unwrap();
+    let handle = mount_agent_control(
+        app.handle(),
+        AgentControlConfig::new("longhorn-multiwebview-fixture")
+            .with_state_root(state_root.path().to_owned()),
+        Arc::new(NoCommandBridge),
+    )
+    .unwrap();
+
+    let discovery_path = wait_for_discovery(&state_root.path().join("agent-control"));
+    let discovery: Value =
+        serde_json::from_str(&std::fs::read_to_string(&discovery_path).unwrap()).unwrap();
+    let port = discovery["port"].as_u64().unwrap() as u16;
+    let token = discovery["token"].as_str().unwrap().to_owned();
+    let client = McpPost::authed(port, &token);
+
+    // Attach a child webview with a different label — the Figmatic shape.
+    let child = tauri::webview::WebviewBuilder::new(
+        "preview-island",
+        tauri::WebviewUrl::App("index.html".into()),
+    );
+    window
+        .as_ref()
+        .window()
+        .add_child(
+            child,
+            tauri::LogicalPosition::new(0.0, 0.0),
+            tauri::LogicalSize::new(100.0, 100.0),
+        )
+        .unwrap();
+
+    // The window must still enumerate and target.
+    let reply = client.call("list_windows", json!({}));
+    assert_eq!(reply.status, 200, "{}", reply.body);
+    let (is_error, content) = tool_content(&reply);
+    assert!(!is_error, "list_windows must succeed: {content}");
+    let labels: Vec<_> = content["windows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|info| info["window"].as_str().unwrap().to_owned())
+        .collect();
+    assert!(
+        labels.contains(&"main".to_owned()),
+        "main lost after child webview attach: {labels:?}"
+    );
+
+    let resize = client.call(
+        "resize_window",
+        json!({ "window": "main", "width": 400.0, "height": 300.0 }),
+    );
+    let (resize_error, resize_content) = tool_content(&resize);
+    assert!(!resize_error, "resize must target main: {resize_content}");
+
+    handle.shutdown().unwrap();
+    drop(app);
+}

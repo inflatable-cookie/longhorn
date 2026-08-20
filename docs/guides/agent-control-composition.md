@@ -103,6 +103,17 @@ call `command`. The proof registry (`proof:ping`,
 `proof:window.minimize`, `proof:window.restore`) is the pattern, not the
 catalogue to ship.
 
+### Windows hosting child webviews
+
+Apps that attach child webviews (native-content islands, preview panes)
+to a window are supported: the handler enumerates `Window`s and drives
+the webview sharing the window's label, so the window stays targetable
+after a child attaches. Child webviews with their own labels are not
+semantic targets — they appear in screenshots only, per contract 022's
+native-surface posture. The plugin's `dev` feature enables tauri's
+`unstable` feature for this; release builds are unaffected because the
+whole dependency is dev-gated.
+
 ### Applications without a command registry
 
 Leaving contract 006 uncomposed is a supported composition, not a gap. Do

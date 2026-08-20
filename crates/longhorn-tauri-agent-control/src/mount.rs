@@ -222,8 +222,13 @@ pub fn mount_agent_control<R: Runtime>(
     // Initialization script for windows created after this mount; eval for
     // windows that already exist (the proof app and the mount fixtures).
     let _ = app.plugin(AgentControlShimPlugin);
-    for (_, window) in app.webview_windows() {
-        let _ = window.eval(SHIM_SOURCE);
+    // Walk every webview of every window: `webview_windows()` excludes any
+    // window hosting a child webview with a different label (Figmatic
+    // adoption finding, 2026-08-20).
+    for (_, window) in app.windows() {
+        for webview in window.webviews() {
+            let _ = webview.eval(SHIM_SOURCE);
+        }
     }
 
     let handler = TauriControlHandler::new(app.clone(), commands);

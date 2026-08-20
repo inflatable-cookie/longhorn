@@ -4,7 +4,7 @@
 //! Mechanics follow the Card 227 spike's proven shape — the tool handlers
 //! run on the control server's tokio threads, every `WKWebView` call must
 //! run on the app main thread, so each entry point hands a closure to
-//! `WebviewWindow::with_webview` (tauri dispatches it onto the main
+//! `Webview::with_webview` (tauri dispatches it onto the main
 //! thread), the closure issues the `WKWebView` call with a `block2`
 //! completion handler, and the completion sends the outcome through a
 //! `tokio::sync::oneshot` the async caller awaits. What changed from the
@@ -30,7 +30,7 @@ use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep, NSImage};
 use objc2_foundation::{NSError, NSNumber, NSString};
 use objc2_web_kit::WKWebView;
 use serde_json::Value;
-use tauri::{Runtime, WebviewWindow};
+use tauri::{Runtime, Webview};
 use tokio::sync::oneshot;
 
 use longhorn_agent_control::ToolError;
@@ -39,12 +39,12 @@ use longhorn_agent_control::ToolError;
 /// strings as strings, numbers as numbers, `undefined`/`null` (both reported
 /// as nil by `WKWebView`) as null, anything else via its ObjC `description`.
 pub(crate) async fn evaluate_webview<R: Runtime>(
-    window: &WebviewWindow<R>,
+    webview_handle: &Webview<R>,
     js: String,
 ) -> Result<Value, ToolError> {
     let (tx, rx) = oneshot::channel();
     let tx = Arc::new(Mutex::new(Some(tx)));
-    window
+    webview_handle
         .with_webview(move |webview| {
             let tx = Arc::clone(&tx);
             let Some(webview) = retain_webview(&webview, &tx, |message| {
@@ -78,11 +78,11 @@ pub(crate) async fn evaluate_webview<R: Runtime>(
 /// Takes a fresh `WKWebView` snapshot of the window's current viewport and
 /// returns it as PNG bytes.
 pub(crate) async fn screenshot_webview<R: Runtime>(
-    window: &WebviewWindow<R>,
+    webview_handle: &Webview<R>,
 ) -> Result<Vec<u8>, ToolError> {
     let (tx, rx) = oneshot::channel();
     let tx = Arc::new(Mutex::new(Some(tx)));
-    window
+    webview_handle
         .with_webview(move |webview| {
             let tx = Arc::clone(&tx);
             let Some(webview) = retain_webview(&webview, &tx, capture_failed) else {

@@ -28,8 +28,11 @@ dev = [
 
 [dependencies]
 longhorn-core = { workspace = true, optional = true }
-# `wry` because the capture bridge needs `WebviewWindow::with_webview`.
-tauri = { workspace = true, optional = true, features = ["wry"] }
+# `wry` because the capture bridge needs `Webview::with_webview`;
+# `unstable` because window enumeration must survive multiwebview windows —
+# `Window`/`Webview` APIs live behind it, and `webview_windows()` loses any
+# window hosting a child webview (Figmatic adoption finding, 2026-08-20).
+tauri = { workspace = true, optional = true, features = ["wry", "unstable"] }
 longhorn-agent-control = { workspace = true, optional = true }
 longhorn-tauri-config = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
