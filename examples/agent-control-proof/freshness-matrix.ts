@@ -10,6 +10,21 @@
 // of the bracketed counters' hues. The big numeral remains for human
 // spot-checks; PNGs land in `evidence/` next to the matrix receipt.
 //
+// Card 238 adds the preview islands: child webviews attached to the main
+// window — a base island (97° stride, oversized so it clips right and
+// bottom), an overlapping island attached after it (199° stride; the
+// overlap region must name it), and a hidden island (its region must show
+// the parent page). The islands are not semantic targets, so their
+// counters cannot be bracketed by `evaluate` directly; instead all tickers
+// start at page load and tick at 1 Hz, so an island counter stays within a
+// couple of ticks of the parent's bracket — island pixels are judged
+// against island hues for counters in [before-2, after+2]. A pre-fix run
+// shows the island region carrying the parent's pixels (no island hue
+// match): that failure is the baseline fixture. A frontmost-only geometry
+// probe checks the base island's left and top edges pixel-exactly, the
+// overlap order, and the hidden island's absence, and records the PNG
+// dimensions so the observed scale factor is on record.
+//
 // Window states are scripted without accessibility permissions: focus and
 // the covering Terminal window go through AppleScript (Terminal's own
 // dictionary, plus the DOM's window.screenX/Y for placement), minimize and
@@ -54,6 +69,8 @@ type MatrixRow = {
   bracketAfter: number;
   matchedCounter: number | null;
   pixel: [number, number, number];
+  childMatchedCounter: number | null;
+  childPixel: [number, number, number];
   fresh: boolean;
 };
 
@@ -203,6 +220,24 @@ function expectedPixel(counter: number): [number, number, number] {
   return hslToRgb((counter * 47) % 360, 0.7, 0.45);
 }
 
+// The island's encoding: 97° stride at 0.55 lightness — pairwise-distinct
+// from every parent hue within the judged ranges (28° minimum circular
+// separation inside a five-counter scan window is ~75/255 per channel).
+function expectedChildPixel(counter: number): [number, number, number] {
+  return hslToRgb((counter * 97) % 360, 0.7, 0.55);
+}
+
+// The overlapping island's encoding: 199° stride at 0.55 lightness.
+function expectedChildTopPixel(counter: number): [number, number, number] {
+  return hslToRgb((counter * 199) % 360, 0.7, 0.55);
+}
+
+// PNG pixel dimensions straight from the IHDR.
+async function pngSize(pngPath: string): Promise<{ width: number; height: number }> {
+  const png = await readFile(pngPath);
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+}
+
 // Reads one pixel out of a PNG via sips → BMP (macOS built-ins only).
 async function pixelAt(pngPath: string, fractionX: number, fractionY: number): Promise<[number, number, number]> {
   const bmpPath = pngPath.replace(/\.png$/, ".bmp");
@@ -296,20 +331,98 @@ async function main(): Promise<void> {
     for (let counter = before; counter <= after; counter += 1) {
       if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
     }
+    // The island cannot be bracketed by `evaluate` (not a semantic target);
+    // both tickers start at page load and tick at 1 Hz, so its counter sits
+    // within a couple of ticks of the parent's bracket. The probe point
+    // (0.569, 0.9375) = (410, 450) logical sits low in the island, left of
+    // the overlapping second island — the island band is bottom-heavy
+    // (y 120..480), so a vertical flip bug lands this probe outside it.
+    const childPixel = await pixelAt(pngPath, 0.569, 0.9375);
+    let childMatched: number | null = null;
+    for (let counter = before - 2; counter <= after + 2; counter += 1) {
+      if (colorNear(childPixel, expectedChildPixel(counter), 12)) childMatched = counter;
+    }
     rows.push({
       state,
       bracketBefore: before,
       bracketAfter: after,
       matchedCounter: matched,
       pixel,
-      fresh: matched !== null,
+      childMatchedCounter: childMatched,
+      childPixel,
+      fresh: matched !== null && childMatched !== null,
     });
     console.log(
-      `${state}: bracket ${before}..${after}, pixel [${pixel}], matched ${matched ?? "none"}`,
+      `${state}: bracket ${before}..${after}, pixel [${pixel}], matched ${matched ?? "none"}; island [${childPixel}], matched ${childMatched ?? "none"}`,
     );
   }
 
+  // Frontmost-only geometry probe (Card 238): the island spans logical
+  // x 360..760, y 120..520 of the 720x480 window (clipped right and bottom);
+  // the second island spans x 460..760, y 220..520 over it; the hidden
+  // island covers x 24..224, y 300..450 but shows nothing. Pixels one
+  // logical pixel outside/inside the base island's left and top edges pin
+  // its placement pixel-exactly; the top-edge pair also catches a
+  // vertical-flip bug (a flipped island would invert the two judgments).
+  // The overlap pixel names the top island; the hidden region must show the
+  // parent page. The PNG's pixel dimensions record the observed scale.
+  async function geometryProbe(): Promise<Record<string, unknown>> {
+    const before = await evaluateCounter(discovery);
+    const pngPath = join(outDir, "geometry.png");
+    await screenshot(discovery, pngPath);
+    const after = await evaluateCounter(discovery);
+    const size = await pngSize(pngPath);
+    async function judge(
+      fractionX: number,
+      fractionY: number,
+    ): Promise<{ pixel: [number, number, number]; surface: string; matchedCounter: number | null }> {
+      const pixel = await pixelAt(pngPath, fractionX, fractionY);
+      let matched: number | null = null;
+      for (let counter = before; counter <= after; counter += 1) {
+        if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+      }
+      if (matched !== null) return { pixel, surface: "parent", matchedCounter: matched };
+      for (let counter = before - 2; counter <= after + 2; counter += 1) {
+        if (colorNear(pixel, expectedChildPixel(counter), 12)) matched = counter;
+      }
+      if (matched !== null) return { pixel, surface: "island", matchedCounter: matched };
+      for (let counter = before - 2; counter <= after + 2; counter += 1) {
+        if (colorNear(pixel, expectedChildTopPixel(counter), 12)) matched = counter;
+      }
+      return { pixel, surface: matched === null ? "neither" : "island-top", matchedCounter: matched };
+    }
+    const leftOfEdge = await judge(359.5 / 720, 240.5 / 480);
+    const rightOfEdge = await judge(360.5 / 720, 240.5 / 480);
+    const aboveEdge = await judge(540.5 / 720, 119.5 / 480);
+    const belowEdge = await judge(540.5 / 720, 120.5 / 480);
+    const overlap = await judge(600.5 / 720, 400.5 / 480);
+    const hiddenRegion = await judge(100.5 / 720, 375.5 / 480);
+    const pass =
+      leftOfEdge.surface === "parent" &&
+      rightOfEdge.surface === "island" &&
+      aboveEdge.surface === "parent" &&
+      belowEdge.surface === "island" &&
+      overlap.surface === "island-top" &&
+      hiddenRegion.surface === "parent";
+    return {
+      pngPixels: size,
+      windowLogical: { width: 720, height: 480 },
+      observedScaleFactor: size.width / 720,
+      islandLogicalBounds: { x: 360, y: 120, width: 400, height: 400 },
+      islandTopLogicalBounds: { x: 460, y: 220, width: 300, height: 300 },
+      islandHiddenLogicalBounds: { x: 24, y: 300, width: 200, height: 150 },
+      leftOfEdge,
+      rightOfEdge,
+      aboveEdge,
+      belowEdge,
+      overlap,
+      hiddenRegion,
+      pass,
+    };
+  }
+
   await probe("frontmost", activateApp);
+  const geometry = await geometryProbe();
   await probe("unfocused", activateTerminal);
   await probe("occluded", () => coverWithTerminal(discovery));
   await closeCoveringTerminal();
@@ -333,12 +446,13 @@ async function main(): Promise<void> {
   }
 
   const receipt = {
-    schema: "longhorn.agent-control-freshness-matrix.v1",
+    schema: "longhorn.agent-control-freshness-matrix.v2",
     app: appPath,
     pid: discovery.pid,
     rows,
+    geometry,
     discoveryRemovedOnQuit: discoveryRemoved,
-    fresh: rows.every((row) => row.fresh),
+    fresh: rows.every((row) => row.fresh) && (geometry.pass as boolean),
   };
   await writeFile(join(outDir, "matrix.json"), `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(JSON.stringify(receipt, null, 2));

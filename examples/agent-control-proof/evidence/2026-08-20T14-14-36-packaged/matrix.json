@@ -1,0 +1,183 @@
+{
+  "schema": "longhorn.agent-control-freshness-matrix.v2",
+  "app": "/Users/tom/Dev/worktrees/longhorn-238/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "pid": 88287,
+  "rows": [
+    {
+      "state": "frontmost",
+      "bracketBefore": 1,
+      "bracketAfter": 1,
+      "matchedCounter": 1,
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "childMatchedCounter": 1,
+      "childPixel": [
+        122,
+        221,
+        60
+      ],
+      "fresh": true
+    },
+    {
+      "state": "unfocused",
+      "bracketBefore": 3,
+      "bracketAfter": 3,
+      "matchedCounter": 3,
+      "pixel": [
+        35,
+        195,
+        91
+      ],
+      "childMatchedCounter": 3,
+      "childPixel": [
+        196,
+        60,
+        221
+      ],
+      "fresh": true
+    },
+    {
+      "state": "occluded",
+      "bracketBefore": 5,
+      "bracketAfter": 5,
+      "matchedCounter": 5,
+      "pixel": [
+        34,
+        48,
+        195
+      ],
+      "childMatchedCounter": 5,
+      "childPixel": [
+        60,
+        221,
+        73
+      ],
+      "fresh": true
+    },
+    {
+      "state": "minimized",
+      "bracketBefore": 6,
+      "bracketAfter": 6,
+      "matchedCounter": 6,
+      "pixel": [
+        147,
+        42,
+        195
+      ],
+      "childMatchedCounter": 6,
+      "childPixel": [
+        59,
+        108,
+        221
+      ],
+      "fresh": true
+    },
+    {
+      "state": "restored",
+      "bracketBefore": 8,
+      "bracketAfter": 8,
+      "matchedCounter": 8,
+      "pixel": [
+        195,
+        77,
+        35
+      ],
+      "childMatchedCounter": 9,
+      "childPixel": [
+        60,
+        221,
+        148
+      ],
+      "fresh": true
+    }
+  ],
+  "geometry": {
+    "pngPixels": {
+      "width": 1440,
+      "height": 960
+    },
+    "windowLogical": {
+      "width": 720,
+      "height": 480
+    },
+    "observedScaleFactor": 2,
+    "islandLogicalBounds": {
+      "x": 360,
+      "y": 120,
+      "width": 400,
+      "height": 400
+    },
+    "islandTopLogicalBounds": {
+      "x": 460,
+      "y": 220,
+      "width": 300,
+      "height": 300
+    },
+    "islandHiddenLogicalBounds": {
+      "x": 24,
+      "y": 300,
+      "width": 200,
+      "height": 150
+    },
+    "leftOfEdge": {
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "surface": "parent",
+      "matchedCounter": 1
+    },
+    "rightOfEdge": {
+      "pixel": [
+        122,
+        221,
+        60
+      ],
+      "surface": "island",
+      "matchedCounter": 1
+    },
+    "aboveEdge": {
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "surface": "parent",
+      "matchedCounter": 1
+    },
+    "belowEdge": {
+      "pixel": [
+        122,
+        221,
+        60
+      ],
+      "surface": "island",
+      "matchedCounter": 1
+    },
+    "overlap": {
+      "pixel": [
+        60,
+        170,
+        221
+      ],
+      "surface": "island-top",
+      "matchedCounter": 1
+    },
+    "hiddenRegion": {
+      "pixel": [
+        195,
+        160,
+        34
+      ],
+      "surface": "parent",
+      "matchedCounter": 1
+    },
+    "pass": true
+  },
+  "discoveryRemovedOnQuit": true,
+  "fresh": true
+}

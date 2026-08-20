@@ -1,4 +1,4 @@
-//! Longhorn's own agent-control proof composition (Cards 230-231).
+//! Longhorn's own agent-control proof composition (Cards 230-231, 238).
 //!
 //! A minimal Tauri app that composes `longhorn-tauri-agent-control` behind
 //! its `dev` feature — this app exists to prove the dev control surface and
@@ -6,6 +6,18 @@
 //! commands so the packaged freshness matrix can minimize and restore the
 //! window through the same `command` tool an agent would use, plus a `ping`
 //! command proving the registry round trip.
+//!
+//! Card 238 attaches three child webviews to the main window — the
+//! native-content-island shape from the Figmatic adoption finding: the
+//! `preview` island (island.html, 97° hue stride), deliberately oversized
+//! so its right and bottom edges clip at the window viewport; `preview-top`
+//! (island-top.html, 199° stride) overlapping it, attached later so the
+//! composed image must show it on top; and `preview-hidden`, hidden after
+//! attach so its region must show the parent page. The islands are
+//! screenshot surfaces only, never semantic targets. With children
+//! attached, `webview_windows()` no longer lists `main`, so every host-side
+//! lookup here goes through `get_window` (the same shape `c1482daf`
+//! adopted in the plugin).
 
 use std::sync::{
     Arc, Mutex,
@@ -121,16 +133,19 @@ struct ProofExecutor {
 
 impl CommandExecutor for ProofExecutor {
     fn execute(&mut self, invocation: &AdmittedCommandInvocation) -> CommandExecutorOutcome {
+        // `get_window`, not `get_webview_window`: with the preview island
+        // attached, `main` hosts two webviews and tauri's `webview_windows`
+        // map drops it.
         let outcome = match invocation.route().as_str() {
             "proof:ping" => Ok(()),
             "host:window.minimize" => self
                 .app
-                .get_webview_window("main")
+                .get_window("main")
                 .ok_or_else(|| "no main window".to_owned())
                 .and_then(|window| window.minimize().map_err(|error| error.to_string())),
             "host:window.restore" => self
                 .app
-                .get_webview_window("main")
+                .get_window("main")
                 .ok_or_else(|| "no main window".to_owned())
                 .and_then(|window| window.unminimize().map_err(|error| error.to_string())),
             route => Err(format!("unrouted command route {route:?}")),
@@ -233,6 +248,46 @@ fn main() {
             app.manage(ProofState {
                 agent_control: Mutex::new(Some(agent_control)),
             });
+            // Card 238: attach the preview island child webview. Oversized
+            // on purpose — the window is 720x480 logical, so the island's
+            // right and bottom edges clip at the viewport.
+            let main_window = app.get_window("main").expect("main window");
+            main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview",
+                        tauri::WebviewUrl::App("island.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(360.0, 120.0),
+                    tauri::LogicalSize::new(400.0, 400.0),
+                )
+                .expect("attach preview island");
+            // A second island overlapping the first: attached later, so the
+            // real window shows it on top and the composed image must match
+            // (z-order case). Its 199° hue stride names the winner.
+            main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview-top",
+                        tauri::WebviewUrl::App("island-top.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(460.0, 220.0),
+                    tauri::LogicalSize::new(300.0, 300.0),
+                )
+                .expect("attach overlapping island");
+            // A hidden island: it shows no pixels in the real window, so
+            // the composed image must show the parent page in its region.
+            let hidden = main_window
+                .add_child(
+                    tauri::webview::WebviewBuilder::new(
+                        "preview-hidden",
+                        tauri::WebviewUrl::App("island.html".into()),
+                    ),
+                    tauri::LogicalPosition::new(24.0, 300.0),
+                    tauri::LogicalSize::new(200.0, 150.0),
+                )
+                .expect("attach hidden island");
+            hidden.hide().expect("hide the hidden island");
             Ok(())
         })
         .build(tauri::generate_context!())

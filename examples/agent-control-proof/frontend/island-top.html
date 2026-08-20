@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Preview Island Top</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+      body {
+        font:
+          16px/1.4 -apple-system,
+          system-ui,
+          sans-serif;
+        color: #101318;
+        padding: 24px;
+      }
+      #counter {
+        font:
+          700 48px/1 -apple-system,
+          system-ui,
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+        margin: 0 0 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="counter">0</div>
+    <p>Overlapping island: attached after the base island, so it composes on top.</p>
+    <script>
+      // Same 1 Hz ticker shape as island.html, at a 199° stride so the
+      // overlap region's pixel names which island composed on top.
+      let counter = 0;
+      const ticker = document.getElementById("counter");
+      setInterval(() => {
+        counter += 1;
+        ticker.textContent = String(counter);
+        document.body.style.backgroundColor = `hsl(${(counter * 199) % 360} 70% 55%)`;
+      }, 1000);
+    </script>
+  </body>
+</html>

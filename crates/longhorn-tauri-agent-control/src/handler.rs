@@ -282,7 +282,9 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         let (window, live) = self.resolve_window(&request.window)?;
         #[cfg(target_os = "macos")]
         {
-            let png = crate::capture::screenshot_webview(&live.webview).await?;
+            // The whole window, child webviews composed in (Card 238) —
+            // not the UI webview alone.
+            let png = crate::capture::screenshot_window(&live.window).await?;
             Ok(ScreenshotResult { window, png })
         }
         #[cfg(not(target_os = "macos"))]
