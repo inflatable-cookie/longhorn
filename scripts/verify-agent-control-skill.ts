@@ -305,6 +305,19 @@ async function runFinderFixtures(): Promise<void> {
     if (!mcpAddLine(scan.live[0].file).includes("claude mcp add --transport http")) {
       throw new Error("paste line is not a claude mcp add command");
     }
+    // Claude Code rejects server names outside [A-Za-z0-9_-]; reverse-DNS
+    // app ids must sanitize (Soundcheck adoption finding, 2026-08-19).
+    const dotted = mcpAddLine({
+      ...scan.live[0].file,
+      appId: "dev.example.some-app",
+    });
+    const dottedName = dotted.split(" ")[5] ?? "";
+    if (!/^[A-Za-z0-9_-]+$/.test(dottedName)) {
+      throw new Error(`mcp server name is not Claude-Code-safe: ${dottedName}`);
+    }
+    if (!dottedName.includes("dev-example-some-app")) {
+      throw new Error(`sanitized name lost the app id: ${dottedName}`);
+    }
     if (diagnostics.includes(tokenFor(livePid))) {
       throw new Error("formatDiagnostics leaked a token");
     }

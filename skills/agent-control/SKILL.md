@@ -68,8 +68,13 @@ session id. Every call is one self-contained POST. Do not send
 ### Preferred: paste the finder line
 
 ```sh
-claude mcp add --transport http longhorn-<app-id>-<pid> http://127.0.0.1:<port>/mcp --header "Authorization: Bearer <token>"
+claude mcp add --transport http longhorn-<app-id-sanitized>-<pid> http://127.0.0.1:<port>/mcp --header "Authorization: Bearer <token>"
 ```
+
+The server name admits only letters, numbers, hyphens, and underscores —
+Claude Code rejects dots, so reverse-DNS app ids are sanitized
+(`dev.example.app` → `dev-example-app`). The finder's printed line
+already is; if you build the name yourself, sanitize it the same way.
 
 Then call the tools through the MCP client.
 

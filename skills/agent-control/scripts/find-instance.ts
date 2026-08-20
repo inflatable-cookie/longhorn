@@ -144,10 +144,17 @@ export function instanceUrl(file: DiscoveryFile): string {
   return `http://127.0.0.1:${file.port}/mcp`;
 }
 
+// Claude Code server names admit only letters, numbers, hyphens, and
+// underscores; reverse-DNS app ids carry dots, so every unsafe symbol
+// becomes a hyphen (Soundcheck adoption finding, 2026-08-19).
+export function mcpServerName(file: DiscoveryFile): string {
+  const appId = file.appId.replace(/[^A-Za-z0-9_-]+/g, "-");
+  return `longhorn-${appId}-${file.pid}`;
+}
+
 export function mcpAddLine(file: DiscoveryFile): string {
   const url = instanceUrl(file);
-  const name = `longhorn-${file.appId}-${file.pid}`;
-  return `claude mcp add --transport http ${name} ${url} --header "Authorization: Bearer ${file.token}"`;
+  return `claude mcp add --transport http ${mcpServerName(file)} ${url} --header "Authorization: Bearer ${file.token}"`;
 }
 
 export function formatStdout(live: LiveInstance[]): string {
