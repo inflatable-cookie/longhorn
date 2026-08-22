@@ -8,7 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-08-22
 
-- [Linux Directory Sync Fix](2026-08/22-linux-directory-sync-fix.md)
+- [Linux And Windows Directory Sync Fixes](2026-08/22-linux-directory-sync-fix.md)
 
 ### 2026-08-20
 

@@ -1,8 +1,8 @@
-# Linux Directory Sync Fix
+# Linux And Windows Directory Sync Fixes
 
 Date: 2026-08-22
 Scope: `longhorn-config` store publication; Soundcheck Linux acceptance
-finding (its g04.029 lane)
+finding (its g04.029 lane) and the Windows sibling (its g04 card 144)
 
 ## What happened
 
@@ -56,3 +56,34 @@ pattern and does **not** have the bug: it opens the parent with
   reported architecture) pass; no Linux runtime available in this
   session (Docker daemon down). Soundcheck verifies live by re-running
   its rendered-window acceptance against the fixed revision.
+
+## Windows sibling (same day)
+
+Soundcheck's Windows lane found the non-Linux arm equally broken on
+Windows: `FlushFileBuffers` on a directory handle fails with
+`ERROR_ACCESS_DENIED` — cap-std handles lack
+`FILE_FLAG_BACKUP_SEMANTICS`, and the call is not defined for directory
+handles even with it. Same downstream shape: every `Durable`
+publication failed, startup profile adoption failed, placement never
+persisted (Windows 11 ARM64, five failures with the signature).
+
+**Posture chosen: documented no-op** (Soundcheck's option a). Windows
+has no directory-flush operation; NTFS journals the rename metadata
+itself, and `std`/`tokio`/Soundcheck's own sites take the same stance.
+`sync_directory` is now three arms: Linux reopen-and-fsync (unchanged
+from `36504692`), Windows documented no-op, everything else the
+original clone-and-sync byte-identical. On Windows,
+`Durability::FileAndDirectorySynced` means the platform's
+directory-durability guarantee applies — there is no stronger operation
+to perform. A best-effort backup-semantics flush was rejected as
+ceremony: it cannot add durability and its failure handling would blur
+the `Durable` contract.
+
+Validation: the existing regression test pins
+`Durable → FileAndDirectorySynced` on every platform (on Windows it
+exercises the no-op arm; pre-fix it failed as os error 5); macOS suite
+150 green, clippy/fmt clean; `cargo check` green for
+`aarch64-pc-windows-msvc` (Soundcheck's architecture) and
+`aarch64-unknown-linux-gnu` (arm unchanged). Windows verification here
+is compile-plus-unit-level; Soundcheck's card 147 rendered acceptance
+on its Windows VM is the live proof.

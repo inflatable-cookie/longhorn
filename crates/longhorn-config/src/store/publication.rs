@@ -243,9 +243,25 @@ fn sync_directory(parent: &Dir) -> io::Result<()> {
     Ok(())
 }
 
-/// See the Linux variant: off Linux the cloned handle is a real fd and
-/// `sync_all` is valid on it.
-#[cfg(not(target_os = "linux"))]
+/// Windows has no directory-flush operation: `FlushFileBuffers` on a
+/// directory handle fails with `ERROR_ACCESS_DENIED` (cap-std handles lack
+/// `FILE_FLAG_BACKUP_SEMANTICS`, and the call is not defined for directory
+/// handles even with it), which failed every `Durable` publication there
+/// (Soundcheck Windows acceptance, its g04 card 144, 2026-08-22). The
+/// documented posture is a no-op: NTFS journals the rename metadata
+/// itself, `std`/`tokio` and Soundcheck's own directory-sync sites take
+/// the same stance, and `Durability::FileAndDirectorySynced` on Windows
+/// means the platform's directory-durability guarantee applies — there is
+/// no stronger operation to perform.
+#[cfg(windows)]
+fn sync_directory(_parent: &Dir) -> io::Result<()> {
+    Ok(())
+}
+
+/// See the Linux and Windows variants: everywhere else (macOS and the
+/// remaining unixes) the cloned handle is a real fd and `sync_all` is
+/// valid on it — byte-identical to the original behavior.
+#[cfg(not(any(target_os = "linux", windows)))]
 fn sync_directory(parent: &Dir) -> io::Result<()> {
     parent.try_clone()?.into_std_file().sync_all()
 }
