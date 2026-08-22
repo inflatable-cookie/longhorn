@@ -13,6 +13,7 @@ mod atomic_file;
 mod backup;
 mod coordination;
 mod debounce;
+mod dir_sync;
 mod domain;
 mod journal_file;
 mod location;

@@ -102,14 +102,30 @@ pub(super) fn publish(
             "destination already exists and overwrite was not authorized",
         ));
     }
-    let parent = fs::File::open(parent_path).map_err(|error| {
-        publication_error(
-            BackupPublicationStage::OpenParent,
-            target.clone(),
-            false,
-            error.to_string(),
-        )
-    })?;
+    // Validate the parent by metadata, not by opening it: Windows cannot
+    // open a directory with plain CreateFileW at all (ERROR_ACCESS_DENIED),
+    // so holding a File on it was Unix-only reasoning (Soundcheck Windows
+    // finding, 2026-08-22). The durability barrier at SyncDirectory goes
+    // through `crate::dir_sync` instead.
+    match fs::metadata(parent_path) {
+        Ok(metadata) if metadata.is_dir() => {}
+        Ok(_) => {
+            return Err(publication_error(
+                BackupPublicationStage::OpenParent,
+                target.clone(),
+                false,
+                "publication parent exists but is not a directory",
+            ));
+        }
+        Err(error) => {
+            return Err(publication_error(
+                BackupPublicationStage::OpenParent,
+                target.clone(),
+                false,
+                error.to_string(),
+            ));
+        }
+    }
     let mut temporary = create_temporary(parent_path, file_name, &target)?;
     let staged_bytes = if corrupt_staging {
         &archive.bytes()[..archive.bytes().len().saturating_sub(1)]
@@ -172,7 +188,7 @@ pub(super) fn publish(
     }
     drop(temporary);
 
-    let sync = parent.sync_all().map_err(|error| {
+    let sync = crate::dir_sync::sync_dir_path(parent_path).map_err(|error| {
         publication_error(
             BackupPublicationStage::SyncDirectory,
             target.clone(),

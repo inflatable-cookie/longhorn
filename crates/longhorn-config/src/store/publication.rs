@@ -115,7 +115,7 @@ fn publish_inner(
 
     let directory_sync = inject(target, PublicationStage::SyncDirectory, injected_failure)
         .and_then(|()| {
-            sync_directory(&parent).map_err(|error| {
+            crate::dir_sync::sync_dir_handle(&parent).map_err(|error| {
                 failure(
                     target,
                     PublicationStage::SyncDirectory,
@@ -220,51 +220,6 @@ fn set_private_mode(options: &mut OpenOptions) {
 
 #[cfg(not(unix))]
 fn set_private_mode(_options: &mut OpenOptions) {}
-
-/// Fsyncs the parent directory so the rename itself is durable.
-///
-/// On Linux, cap-std opens directory capabilities with `O_PATH`, and
-/// `fsync(2)` on an `O_PATH` fd is `EBADF` — so cloning the `Dir` and
-/// syncing it fails unconditionally there (Soundcheck Linux acceptance,
-/// 2026-08-22). Reopen `.` relative to the capability as a real
-/// `O_RDONLY | O_DIRECTORY` fd and fsync that. macOS has no `O_PATH`
-/// directory handles, so the original clone-and-sync stays byte-identical
-/// off Linux.
-#[cfg(target_os = "linux")]
-fn sync_directory(parent: &Dir) -> io::Result<()> {
-    use rustix::fs::{Mode, OFlags};
-    let directory = rustix::fs::openat(
-        parent,
-        ".",
-        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
-        Mode::empty(),
-    )?;
-    rustix::fs::fsync(&directory)?;
-    Ok(())
-}
-
-/// Windows has no directory-flush operation: `FlushFileBuffers` on a
-/// directory handle fails with `ERROR_ACCESS_DENIED` (cap-std handles lack
-/// `FILE_FLAG_BACKUP_SEMANTICS`, and the call is not defined for directory
-/// handles even with it), which failed every `Durable` publication there
-/// (Soundcheck Windows acceptance, its g04 card 144, 2026-08-22). The
-/// documented posture is a no-op: NTFS journals the rename metadata
-/// itself, `std`/`tokio` and Soundcheck's own directory-sync sites take
-/// the same stance, and `Durability::FileAndDirectorySynced` on Windows
-/// means the platform's directory-durability guarantee applies — there is
-/// no stronger operation to perform.
-#[cfg(windows)]
-fn sync_directory(_parent: &Dir) -> io::Result<()> {
-    Ok(())
-}
-
-/// See the Linux and Windows variants: everywhere else (macOS and the
-/// remaining unixes) the cloned handle is a real fd and `sync_all` is
-/// valid on it — byte-identical to the original behavior.
-#[cfg(not(any(target_os = "linux", windows)))]
-fn sync_directory(parent: &Dir) -> io::Result<()> {
-    parent.try_clone()?.into_std_file().sync_all()
-}
 
 #[cfg(test)]
 mod tests;

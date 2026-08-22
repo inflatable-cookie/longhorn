@@ -96,8 +96,10 @@ impl UniqueTemporary {
 }
 
 /// Syncs a directory so a rename below it is durable.
+///
+/// Platform split (Windows documented no-op) lives in [`crate::dir_sync`].
 pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
-    File::open(path)?.sync_all()
+    crate::dir_sync::sync_dir_path(path)
 }
 
 /// Creates a private file with `create_new` and writes `bytes`.

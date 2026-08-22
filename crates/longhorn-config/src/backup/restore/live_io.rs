@@ -87,7 +87,7 @@ fn delete_state(file: &ResolvedFile) -> io::Result<()> {
         .file_name()
         .ok_or_else(|| io::Error::other("registered target has no file name"))?;
     match parent.remove_file(file_name) {
-        Ok(()) => parent.into_std_file().sync_all(),
+        Ok(()) => crate::dir_sync::sync_dir_handle(&parent),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error),
     }

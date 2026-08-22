@@ -87,3 +87,35 @@ exercises the no-op arm; pre-fix it failed as os error 5); macOS suite
 `aarch64-unknown-linux-gnu` (arm unchanged). Windows verification here
 is compile-plus-unit-level; Soundcheck's card 147 rendered acceptance
 on its Windows VM is the live proof.
+
+## Centralization (same day, second Windows follow-up)
+
+Soundcheck's VM verification (158/5 → 162/1) proved the publication fix
+and exposed the class elsewhere. Repo sweep found four directory-sync
+sites total; all now route through one platform-split module,
+`crates/longhorn-config/src/dir_sync.rs` (`sync_dir_handle` for cap-std
+capabilities, `sync_dir_path` for paths — Linux reopen-and-fsync where a
+capability is in hand, Windows documented no-op, macOS/other unixes
+byte-identical):
+
+1. `store/publication.rs` — delegated (was the `36504692`/`40797735`
+   local three-arm helper).
+2. `atomic_file.rs::sync_directory` — carried the storage-transition
+   path; `File::open` on a directory is `ERROR_ACCESS_DENIED` on
+   Windows, so profile adoption failed at startup. Now delegates.
+3. `backup/archive/publication/publish.rs` — the earlier "backup path
+   not affected" note was Unix-only reasoning and wrong for Windows:
+   `CreateFileW` cannot open a directory at all, so backup publication
+   failed at `OpenParent` before ever reaching the sync. The parent is
+   now validated by metadata at the same stage and the barrier goes
+   through `sync_dir_path`.
+4. `backup/restore/live_io.rs::delete_state` — the exact cap-std
+   `into_std_file().sync_all()` pattern removed from publication
+   (broken on Linux and Windows both). Now `sync_dir_handle`.
+
+Repo-wide sweep confirms no directory-sync pattern exists outside the
+module. New module test pins both barrier forms Ok on every platform;
+suites 151 green on macOS; `cargo check` green for
+`aarch64-pc-windows-msvc` and `aarch64-unknown-linux-gnu`. Windows
+verification remains compile-plus-unit here; Soundcheck's VM rerun is
+the live proof.
