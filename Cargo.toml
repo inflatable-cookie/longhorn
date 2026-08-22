@@ -79,6 +79,9 @@ base64 = "0.23.1"
 # this lockfile through wry, so the bridge adds no version movement.
 block2 = "0.6.2"
 cap-std = "4.0.2"
+# Linux directory-fsync reopen in longhorn-config (O_PATH fix, 2026-08-22);
+# version tracks what cap-std already resolves in the lock.
+rustix = { version = "1.1.4", features = ["fs"] }
 ed25519-dalek = { version = "3.0.0", default-features = false }
 flate2 = "1.1.9"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }

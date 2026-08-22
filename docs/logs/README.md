@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-08
 
+### 2026-08-22
+
+- [Linux Directory Sync Fix](2026-08/22-linux-directory-sync-fix.md)
+
 ### 2026-08-20
 
 - [Agent Control Child-webview Targeting](2026-08/20-agent-control-child-webview-targeting.md)

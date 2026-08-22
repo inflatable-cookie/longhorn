@@ -20,6 +20,11 @@ sha2.workspace = true
 ts-rs = { workspace = true, optional = true }
 zip.workspace = true
 
+# The publication directory fsync reopens `.` as a real fd on Linux, where
+# cap-std directory handles are O_PATH and fsync(2) on them is EBADF.
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix.workspace = true
+
 [dev-dependencies]
 proptest.workspace = true
 rusqlite.workspace = true

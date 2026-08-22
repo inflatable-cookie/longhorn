@@ -115,17 +115,14 @@ fn publish_inner(
 
     let directory_sync = inject(target, PublicationStage::SyncDirectory, injected_failure)
         .and_then(|()| {
-            parent
-                .try_clone()
-                .and_then(|directory| directory.into_std_file().sync_all())
-                .map_err(|error| {
-                    failure(
-                        target,
-                        PublicationStage::SyncDirectory,
-                        true,
-                        error.to_string(),
-                    )
-                })
+            sync_directory(&parent).map_err(|error| {
+                failure(
+                    target,
+                    PublicationStage::SyncDirectory,
+                    true,
+                    error.to_string(),
+                )
+            })
         });
 
     match (directory_sync, requirement) {
@@ -223,6 +220,35 @@ fn set_private_mode(options: &mut OpenOptions) {
 
 #[cfg(not(unix))]
 fn set_private_mode(_options: &mut OpenOptions) {}
+
+/// Fsyncs the parent directory so the rename itself is durable.
+///
+/// On Linux, cap-std opens directory capabilities with `O_PATH`, and
+/// `fsync(2)` on an `O_PATH` fd is `EBADF` — so cloning the `Dir` and
+/// syncing it fails unconditionally there (Soundcheck Linux acceptance,
+/// 2026-08-22). Reopen `.` relative to the capability as a real
+/// `O_RDONLY | O_DIRECTORY` fd and fsync that. macOS has no `O_PATH`
+/// directory handles, so the original clone-and-sync stays byte-identical
+/// off Linux.
+#[cfg(target_os = "linux")]
+fn sync_directory(parent: &Dir) -> io::Result<()> {
+    use rustix::fs::{Mode, OFlags};
+    let directory = rustix::fs::openat(
+        parent,
+        ".",
+        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+        Mode::empty(),
+    )?;
+    rustix::fs::fsync(&directory)?;
+    Ok(())
+}
+
+/// See the Linux variant: off Linux the cloned handle is a real fd and
+/// `sync_all` is valid on it.
+#[cfg(not(target_os = "linux"))]
+fn sync_directory(parent: &Dir) -> io::Result<()> {
+    parent.try_clone()?.into_std_file().sync_all()
+}
 
 #[cfg(test)]
 mod tests;

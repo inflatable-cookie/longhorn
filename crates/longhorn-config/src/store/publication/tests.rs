@@ -84,3 +84,20 @@ fn durable_requirement_reports_post_publication_sync_failure() {
     assert!(error.published);
     assert_eq!(fs::read(target.full_path()).unwrap(), b"new");
 }
+
+/// The directory sync must actually work on every platform: on Linux,
+/// syncing a cloned cap-std `Dir` is `EBADF` (`O_PATH`), which failed every
+/// `Durable` publication there while `Atomic` silently degraded
+/// (Soundcheck Linux acceptance, 2026-08-22). A `Durable` publication with
+/// no injected failure must reach full directory durability, not an error
+/// and not the degraded lane.
+#[test]
+fn durable_publication_syncs_the_directory_on_this_platform() {
+    let (_temp, target) = fixture();
+
+    let durability =
+        publish_inner(&target, b"durable", DurabilityRequirement::Durable, None).unwrap();
+
+    assert_eq!(durability, Durability::FileAndDirectorySynced);
+    assert_eq!(fs::read(target.full_path()).unwrap(), b"durable");
+}
