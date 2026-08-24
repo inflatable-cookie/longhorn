@@ -11,6 +11,9 @@ import {
 } from "node:fs/promises";
 
 import { POODLE_RELEASE } from "./artifacts.ts";
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = "0.1.0";
 import {
   assertExactSet,
   equalJson,
@@ -150,13 +153,15 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
-    artifactResolution.push(await assertArtifactInstall(stage, name));
+    artifactResolution.push(
+      await assertArtifactInstall(stage, name, LONGHORN_VERSION),
+    );
   }
   for (const name of policy.forbidden) await assertPackageAbsent(stage, name);
 
   if (shape === "loophole") {
     for (const pkg of context.poodle.packages) {
-      await assertArtifactInstall(stage, pkg.name);
+      await assertArtifactInstall(stage, pkg.name, context.poodle.version);
     }
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") {
@@ -224,15 +229,24 @@ async function installedScope(stage: string, scope: string): Promise<readonly st
   }
 }
 
-async function assertArtifactInstall(stage: string, name: string) {
+async function assertArtifactInstall(
+  stage: string,
+  name: string,
+  expected: string,
+) {
   const installed = await installedPackage(stage, name);
   for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) {
     if (installed.realPath.includes(root)) {
       throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
     }
   }
-  if (installed.manifest.version !== "0.1.0") {
-    throw new Error(`${name} installed unexpected version`);
+  // Longhorn and Poodle no longer share a version, so the expectation is the
+  // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
+  // release for a Poodle one.
+  if (installed.manifest.version !== expected) {
+    throw new Error(
+      `${name} installed ${installed.manifest.version}, expected ${expected}`,
+    );
   }
   return { name, version: installed.manifest.version };
 }

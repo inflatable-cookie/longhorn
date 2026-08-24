@@ -34,7 +34,7 @@ use longhorn_update::{InstallManager, UpdateAvailability};
 use poodle_adapter::ThemeProvider;
 use poodle_gpui::GpuiThemeProvider;
 use poodle_render::toast_stack::ToastStackHandlers;
-use poodle_render::{banner, progress, status_indicator, toast_stack};
+use poodle_render::{banner, progress, status_indicator, toast_stack, RenderContext};
 use semver::Version;
 
 /// Builds a ledger holding one notification per severity.
@@ -123,6 +123,11 @@ impl Render for ProofRoot {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         poodle_gpui_node_backend::reset_element_ids();
         let theme = &self.theme;
+        // Poodle 0.2.2 renderers take the construction context, not a bare
+        // theme: size scale and density now cascade through it. This proof
+        // establishes no provider scope, so the root context is the whole of
+        // it -- `md` scale, default density.
+        let ctx = RenderContext::new(theme);
 
         let records: Vec<_> = self.ledger.records().cloned().collect();
         let stack = project_notification_stack(&records);
@@ -167,27 +172,27 @@ impl Render for ProofRoot {
             .bg(canvas)
             .text_color(text)
             .child(poodle_gpui_node_backend::to_gpui(&banner::banner(
-                &lapsed, theme,
+                &lapsed, &ctx,
             )))
             .child(poodle_gpui_node_backend::to_gpui(&banner::banner(
-                &managed, theme,
+                &managed, &ctx,
             )))
             .child(
                 div()
                     .flex()
                     .gap(px(16.0))
                     .child(poodle_gpui_node_backend::to_gpui(
-                        &status_indicator::status_indicator(&running, theme),
+                        &status_indicator::status_indicator(&running, &ctx),
                     ))
                     .child(poodle_gpui_node_backend::to_gpui(
-                        &status_indicator::status_indicator(&cancelling, theme),
+                        &status_indicator::status_indicator(&cancelling, &ctx),
                     )),
             )
             .child(poodle_gpui_node_backend::to_gpui(&progress::progress(
-                &units, theme,
+                &units, &ctx,
             )))
             .child(poodle_gpui_node_backend::to_gpui(
-                &toast_stack::toast_stack(&stack, theme, ToastStackHandlers::default()),
+                &toast_stack::toast_stack(&stack, &ctx, ToastStackHandlers::default()),
             ))
     }
 }

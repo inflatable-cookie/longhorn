@@ -13,10 +13,16 @@ here. Three of them are still open and this section does not list them:
 Card 166 (first publication) is ready; Cards 160 and 177 are in progress. Read
 "None" as "nothing indexed here is ready", not as "nothing in g02 is ready".
 
+## Needs recompile
+
+- [218 Linked-poodle Exit Gate](218-linked-poodle-exit-gate.md) — unheld; the
+  Poodle precondition is met at public 0.2.2 and g16.008 removed the exemption
+  (step 5). Step 1 is obsolete with the flag it would have asserted on; steps
+  2-4 are release hardening that needs recompiling under a framing that is not
+  the exemption's exit.
+
 ## Operator-held
 
-- [218 Linked-poodle Exit Gate](218-linked-poodle-exit-gate.md) — held whole,
-  machinery included, on the Poodle v0.2.0 release
 - [149 Distribution Candidate V2](149-distribution-candidate-v2.md) —
   receipt generation waits on nucleus manifest quiescence
 

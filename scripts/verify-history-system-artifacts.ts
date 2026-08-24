@@ -21,6 +21,9 @@ import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const POODLE_RELEASE = poodleRelease();
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = "0.1.0";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-system-proof");
 const temporaryRoot = await mkdtemp(
@@ -444,7 +447,9 @@ async function verifyTypescriptConsumer(
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
-    artifactResolution.push(await assertArtifactInstall(stage, name));
+    artifactResolution.push(
+      await assertArtifactInstall(stage, name, LONGHORN_VERSION),
+    );
   }
   // Card 164: a domain is a subpath now, so install-absence for it would
   // pass vacuously. Packages keep install-absence; subpaths become
@@ -456,7 +461,7 @@ async function verifyTypescriptConsumer(
   await assertImportsAbsent(stage, forbidden.imports);
   if (shape === "loophole") {
     for (const artifact of POODLE_RELEASE.packages) {
-      await assertArtifactInstall(stage, artifact.name);
+      await assertArtifactInstall(stage, artifact.name, POODLE_RELEASE.version);
     }
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") {
@@ -665,7 +670,11 @@ async function installedScope(
   }
 }
 
-async function assertArtifactInstall(stage: string, name: string) {
+async function assertArtifactInstall(
+  stage: string,
+  name: string,
+  expected: string,
+) {
   const installed = await installedPackage(stage, name);
   for (const root of [
     "/Dev/projects/longhorn/packages/",
@@ -677,8 +686,13 @@ async function assertArtifactInstall(stage: string, name: string) {
       );
     }
   }
-  if (installed.manifest.version !== "0.1.0") {
-    throw new Error(`${name} installed unexpected version`);
+  // Longhorn and Poodle no longer share a version, so the expectation is the
+  // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
+  // release for a Poodle one.
+  if (installed.manifest.version !== expected) {
+    throw new Error(
+      `${name} installed ${installed.manifest.version}, expected ${expected}`,
+    );
   }
   return { name, version: installed.manifest.version };
 }

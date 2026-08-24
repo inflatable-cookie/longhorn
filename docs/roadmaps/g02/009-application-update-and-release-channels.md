@@ -195,13 +195,13 @@ it, refuse to install while work is in flight, install it, and come back — and
 every one of those is proved rather than asserted, the last four against a real
 bundle on a real machine.
 
-**Two things leave it, neither blocking.**
+**Two things left it. One is closed; the other is not blocking.**
 
-`LONGHORN_PROOF_ACCEPT_LINKED_POODLE` comes out of `effigy.toml` when Poodle
-publishes `SettingsShell`, `UpdateCenter` and `UpdateStatus`. Until then the
-settings composition proof installs Poodle from the sibling checkout and every
-run records `linkedPoodleAccepted: true`, so a green run is never mistaken for
-one that proved registry resolution.
+`LONGHORN_PROOF_ACCEPT_LINKED_POODLE` was to come out of `effigy.toml` when
+Poodle published `SettingsShell`, `UpdateCenter` and `UpdateStatus`. Public
+0.2.2 ships all three, so g16.008 removed the flag, the sibling-checkout pack
+path, and the `linkedPoodleAccepted` field. The settings composition proof now
+resolves registry Poodle on every run.
 
 Whether `managedElsewhere` should show a quiet update icon rather than none is
 with Poodle. `presence` hides it today, on the argument that an icon promises a

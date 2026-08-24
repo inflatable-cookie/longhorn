@@ -1,19 +1,20 @@
 # g02.026 Automation And Gate Convergence
 
 Status: in progress — 219 and 220 landed in full 2026-08-15 (workflow edits
-approved); Card 218's closure operator-held on Poodle v0.2.0
+approved); Card 218 is part-landed and needs recompiling
 Owner: Tom
-Updated: 2026-08-14
+Updated: 2026-08-24
 Governing refs: contract 012; memo 023
-Depends on: none; Card 218's final closure waits on the Poodle v0.2.0 release
-that unblocks g02.014
+Depends on: nothing outstanding — Card 218's Poodle precondition is met at
+public 0.2.2, which also unblocks g02.014
 
 ## Outcome
 
 The gates mean what they claim. CI and local qa check the same things, the
 MSRV has one declaration, the release gates are cheap-first and defined once,
-an advisory cannot land invisibly, and the linked-Poodle exemption that makes
-local evidence possible cannot silently ride into a release.
+an advisory cannot land invisibly, and the linked-Poodle exemption that made
+local evidence possible cannot silently ride into a release — it is gone
+rather than gated, which answers the same question.
 
 ## Generation Runway
 
@@ -25,12 +26,13 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 
 ## Planning Gaps
 
-- **Poodle v0.2.0 is the operator-named precondition for publication.**
-  Card 218 builds the assertion machinery now (fail release on
-  `linkedPoodleAccepted`, integrity-bytes verification, pack-level typecheck
-  against registry Poodle) so the moment v0.2.0 publishes, the exemption dies
-  by gate rather than by memory. Its last acceptance criterion is held until
-  then.
+- ~~**Poodle v0.2.0 is the operator-named precondition for publication.**~~
+  **Closed 2026-08-24.** The precondition was the components, not the version
+  number, and public Poodle 0.2.2 ships them. The exemption died by deletion
+  before any of Card 218's machinery was built, so the gate on
+  `linkedPoodleAccepted` has nothing left to assert; integrity-bytes
+  verification and the pack-level typecheck survive as ordinary release
+  hardening.
 - **Release-runner effigy version** (0.9.1 pinned vs 0.11.0+local) — whether
   to bump the pin or assert parity is a small tooling call inside Card 219,
   recorded there.
@@ -39,16 +41,17 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 
 ### Batch 1. The exemption's exit
 
-- [ ] [Card 218](batch-cards/218-linked-poodle-exit-gate.md): release gates
-  fail when `linkedPoodleAccepted` is true; `poodle-release.ts` verifies
-  integrity bytes, not a version string; `ci-rehearse` sees bun global-link
-  state; pack-level typecheck of `longhorn-poodle-svelte` against registry
-  Poodle. **Held whole on 2026-08-15**, machinery included — nothing from this
-  card is in the tree. Poodle v0.2.0 is in active development and Longhorn's
-  release depends on functionality landing in it, so the release waits on
-  Poodle rather than gating against the 0.1.0 peer. The exemption at
-  `effigy.toml`'s `proof:artifacts` stays until then, and local gates continue
-  to pass against the linked sibling. Nothing else in g02.026 depends on this.
+- [ ] [Card 218](batch-cards/218-linked-poodle-exit-gate.md):
+  `poodle-release.ts` verifies integrity bytes, not a version string;
+  `ci-rehearse` sees bun global-link state; pack-level typecheck of
+  `longhorn-poodle-svelte` against registry Poodle. **Held whole on
+  2026-08-15**, then **part-landed 2026-08-24**: g16.008 removed the exemption
+  from `effigy.toml`'s `proof:artifacts` (step 5) once public Poodle 0.2.2
+  shipped `SettingsShell`, `UpdateCenter` and `UpdateStatus`. The release gate
+  on `linkedPoodleAccepted` (step 1) went obsolete with the field. The three
+  remaining items are release hardening under a framing that is no longer the
+  exemption's exit, so the card needs recompiling before it is ready. Nothing
+  else in g02.026 depends on this.
 
 ### Batch 2. One declaration per fact
 
@@ -100,21 +103,23 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 memo 023 (C1-residual, H3, H4, M-ci, M-MSRV, M-dup-gates, M-doctor,
           M-effigy-version, M-pack-path, M-advisories, L1-L10 DX lane)
  └─ 026 automation and gate convergence
-     ├─ 218 linked-poodle exit   (operator-held closure on Poodle v0.2.0)
+     ├─ 218 linked-poodle exit   (step 5 landed; remainder needs recompile)
      ├─ 219 gate hygiene         (independent)
      └─ 220 supply-chain gates   (independent)
 ```
 
-219 and 220 are independent and complete. 218 is held whole on the Poodle
-v0.2.0 release; its closure joins the g02.014 critical path.
+219 and 220 are independent and complete. 218 is part-landed: the exemption
+is out and g02.014 is unblocked, and what is left of the card is release
+hardening off the critical path.
 
 ## Goals
 
 - [x] a drifted gate list fails compilation of the gate, not silently
 - [x] `effigy qa` plus release gates cover everything release confidence needs
-- [ ] the exemption that keeps local development possible cannot pass a
-  release unnoticed — **held with Card 218**; today the release waits on
-  Poodle by operator decision rather than by gate
+- [x] the exemption that kept local development possible cannot pass a
+  release unnoticed — **met by deletion 2026-08-24**, not by the gate Card 218
+  planned. Public Poodle 0.2.2 removed the need for it, so there is no
+  exemption to ride into a release
 - [x] a future vulnerability-class advisory is visible the day it publishes
 
 ## Acceptance Criteria
@@ -140,5 +145,6 @@ every other card in this suite.
 ## Planning Checkpoint
 
 After Batch 2. If selector-routing `ci.yml` surfaces tasks that only exist
-locally (effigy version split-brain), that resolves before Card 218's exit
-gate is trusted to mean the same thing on the runner.
+locally (effigy version split-brain), that resolves before Card 218's
+remaining runner-environment work is trusted to mean the same thing on the
+runner.

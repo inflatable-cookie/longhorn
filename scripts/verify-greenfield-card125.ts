@@ -13,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
+import { poodleRelease } from "./poodle-release.ts";
 
 type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
 type ShapePolicy = {
@@ -30,6 +31,11 @@ const bunCommand = ["/usr/bin/env", "bun"] as const;
 const exampleRoot = join(repoRoot, "examples/greenfield-compositions");
 const receiptPath = join(repoRoot, "fixtures/greenfield/card125/composition-matrix-v1.json");
 const poodleRoot = resolve(process.env.POODLE_REPO ?? join(repoRoot, "../poodle"));
+// Longhorn and Poodle no longer share a version. Longhorn's is its own
+// coordinated one; Poodle's is whatever the checkout this proof packs from
+// carries, which is the pinned release when POODLE_REPO names the release tag.
+const LONGHORN_VERSION = "0.1.0";
+const POODLE_VERSION = poodleRelease().version;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
@@ -130,8 +136,8 @@ try {
   await mkdir(typescriptArtifactRoot);
   await mkdir(rustArtifactRoot);
   await verifyExampleSources();
-  const poodle = await packPackages(poodleRoot, poodlePackages, typescriptArtifactRoot);
-  const typescript = await packPackages(repoRoot, longhornTypescriptPackages, typescriptArtifactRoot);
+  const poodle = await packPackages(poodleRoot, poodlePackages, typescriptArtifactRoot, POODLE_VERSION);
+  const typescript = await packPackages(repoRoot, longhornTypescriptPackages, typescriptArtifactRoot, LONGHORN_VERSION);
   const renderers = await verifyRenderers(new Map([...poodle.paths, ...typescript.paths]));
   const rust = await verifyRustArtifacts();
   const report = {
@@ -365,6 +371,7 @@ async function packPackages(
   root: string,
   packages: readonly (readonly [string, string])[],
   destination: string,
+  expected: string,
 ): Promise<{ identities: ArtifactIdentity[]; paths: Map<string, string> }> {
   const identities: ArtifactIdentity[] = [];
   const paths = new Map<string, string>();
@@ -374,14 +381,14 @@ async function packPackages(
     } catch (error) {
       throw new Error(`${name} pack failed from ${join(root, directory)}: ${String(error)}`);
     }
-    const path = join(destination, `${name.replace("@", "").replace("/", "-")}-0.1.0.tgz`);
+    const path = join(destination, `${name.replace("@", "").replace("/", "-")}-${expected}.tgz`);
     const listing = await run(["tar", "-tzf", path], destination);
     const manifest = await run(["tar", "-xOzf", path, "package/package.json"], destination);
     if (listing.includes("node_modules/") || listing.includes("/tests/") || /workspace:|link:/.test(manifest)) {
       throw new Error(`${name} artifact contains workspace or proof material`);
     }
     const parsed = JSON.parse(manifest) as { name: string; version: string };
-    if (parsed.name !== name || parsed.version !== "0.1.0") throw new Error(`${name} artifact identity drift`);
+    if (parsed.name !== name || parsed.version !== expected) throw new Error(`${name} artifact identity drift`);
     const identity = { name, filename: basename(path), sha256: await digest(path) };
     identities.push(identity);
     paths.set(name, path);

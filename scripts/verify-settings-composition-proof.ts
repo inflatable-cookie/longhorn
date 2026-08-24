@@ -3,9 +3,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 import {
-  ACCEPT_LINKED_POODLE,
   POODLE_RELEASE,
-  packLinkedPoodle,
   packAndCheckRustArtifacts,
   packTypescriptArtifacts,
 } from "./settings-composition-proof/artifacts.ts";
@@ -20,23 +18,8 @@ const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 
 try {
-  // Skipped under the exemption: `poodleRelease()` checks the registry's
-  // sha512 against `bun.lock`, and a locally packed Poodle has no registry
-  // entry to check against. Nothing else about the run changes.
-  const poodle = ACCEPT_LINKED_POODLE
-    ? { version: "0.1.0-linked", packages: [] }
-    : POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
   const artifacts = new Map(typescript.paths);
-  if (ACCEPT_LINKED_POODLE) {
-    console.error(
-      "settings-composition-proof: installing Poodle from the sibling checkout. " +
-        "This run does NOT prove a consumer can resolve Poodle from the registry.",
-    );
-    for (const [name, path] of await packLinkedPoodle(artifactRoot)) {
-      artifacts.set(name, path);
-    }
-  }
   const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot);
   const consumers = await verifyConsumers({
     repoRoot,
@@ -44,16 +27,13 @@ try {
     temporaryRoot,
     artifactRoot,
     artifacts,
-    poodle,
+    poodle: POODLE_RELEASE,
   });
   console.log(
     JSON.stringify(
       {
         schema: "longhorn.settings-composition-artifact-proof.v1",
-        poodleVersion: poodle.version,
-        // Recorded so a green run under the exemption is never mistaken for
-        // one that proved registry resolution.
-        linkedPoodleAccepted: ACCEPT_LINKED_POODLE,
+        poodleVersion: POODLE_RELEASE.version,
         rustArtifacts: rust,
         typescriptArtifacts: typescript.identities,
         consumers,

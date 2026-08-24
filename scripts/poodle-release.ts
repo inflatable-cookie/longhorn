@@ -4,8 +4,10 @@
 // This replaces `poodle-evidence.ts`, which pinned the proofs to a packed
 // tarball in a sibling checkout. That indirection existed because Poodle was
 // unpublished: the only way to prove a consumer could install it was to pack it
-// and install the pack. Poodle 0.1.0 is on the public registry, so the proofs
-// install what a real consumer installs, and the pack directory is gone.
+// and install the pack. Poodle publishes to the public registry now, so the
+// proofs install what a real consumer installs, and the pack directory is gone.
+// Which release that is comes from the root manifest's pin -- 0.2.2 as of
+// g16.008 -- and is never a literal in this file.
 //
 // The integrity claim survives the move rather than being dropped. It used to
 // be a SHA-256 over each pack on disk plus a membership hash over the set. It

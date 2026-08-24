@@ -48,7 +48,7 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
       "@inflatable-cookie/longhorn": "0.1.0",
-      "@inflatable-cookie/poodle-svelte": "0.1.0",
+      "@inflatable-cookie/poodle-svelte": "0.2.2",
       svelte: ">=5.38.6 <=5.56.8",
     });
     expect(metadata.peerDependenciesMeta).toEqual({

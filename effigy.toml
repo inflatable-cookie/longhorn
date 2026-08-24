@@ -78,12 +78,12 @@ exclude = ["history/**"]
 
 # --- Artifact proofs ----------------------------------------------------
 # Each script builds isolated artifacts and asserts one composition claim.
-# LONGHORN_PROOF_ACCEPT_LINKED_POODLE: the settings composition proof installs
-# Poodle from the sibling checkout instead of the registry, because the shell
-# binding depends on an unreleased component. Every run under it records
-# `linkedPoodleAccepted: true` in its artifact. REMOVE THIS once Poodle ships
-# a release containing SettingsShell, UpdateCenter and UpdateStatus.
-"proof:artifacts" = "sh -c 'LONGHORN_PROOF_ACCEPT_LINKED_POODLE=1; export LONGHORN_PROOF_ACCEPT_LINKED_POODLE; for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+# Every proof installs Poodle from the registry. The linked-Poodle exemption
+# that used to be forced here is gone (Card 218 step 5): it existed because
+# published poodle-svelte 0.1.0 shipped none of the SettingsShell,
+# UpdateCenter and UpdateStatus components the adapter imports, and 0.2.2
+# ships all three.
+"proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
 
 # Pre-release rehearsal of the four machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.

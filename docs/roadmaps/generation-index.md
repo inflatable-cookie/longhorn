@@ -48,7 +48,7 @@ Still open on the operator side: return the promoted Longhorn commit to
 Bovine Card 128 adoption (from g02.028).
 
 The memo-023 release-audit suite — milestones g02.021-027, cards 200-224 — is
-complete except the separately operator-held release machinery noted below.
+complete except Card 218's remaining release machinery, noted below.
 
 - Complete: g02.021 (200-203), g02.022 (204-206), g02.023 (207-210, 224),
   g02.024 (211-214), g02.025 (215-217), g02.027 (221-223).
@@ -58,11 +58,13 @@ complete except the separately operator-held release machinery noted below.
   that replaced it are recorded on the trait and in contract 004.
 - Operator decisions of 2026-08-15 landed: 210 (store vocabulary moved to
   `longhorn-core`) and the Card 214 sidebar-label divergence (Svelte side
-  correct; Rust aligned). Only 218 remains held, on Poodle v0.2.0.
+  correct; Rust aligned). Only 218 remains open, and it is no longer held.
 - The `.github/workflows/` items in 219/220 landed 2026-08-15 with approval.
-- g02.026 is closed except Card 218, which is held whole — no machinery from
-  it is in the tree. Longhorn's release waits on Poodle v0.2.0 by operator
-  decision, so the linked-Poodle exemption stays until then.
+- g02.026 is closed except Card 218, which is part-landed. Its Poodle
+  precondition is met at public 0.2.2, and g16.008 removed the linked-Poodle
+  exemption (step 5), which unblocks g02.014. Step 1 — a release gate on the
+  `linkedPoodleAccepted` flag — is obsolete with the flag. Steps 2-4 are
+  release hardening and need recompiling before they are ready.
 - No Longhorn card auto-starts from Card 225.
 - Card 226 (2026-08-17) closed a mixed-scale coordinate gap raised by Figmatic
   consumer evidence: `LogicalLayoutMapper` converts each object through its own

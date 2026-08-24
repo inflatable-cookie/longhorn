@@ -9,6 +9,9 @@ import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const POODLE_RELEASE = poodleRelease();
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = "0.1.0";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-tree-artifact-proof");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-tree-artifact-proof-"));
@@ -186,10 +189,10 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
 
   assertExactSet(`${shape} installed Longhorn packages`, (await installedScope(stage, "@inflatable-cookie")).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`), policy.longhorn);
   const artifactResolution = [];
-  for (const name of policy.longhorn) artifactResolution.push(await assertArtifactInstall(stage, name));
+  for (const name of policy.longhorn) artifactResolution.push(await assertArtifactInstall(stage, name, LONGHORN_VERSION));
   for (const name of policy.forbidden) await assertPackageAbsent(stage, name);
   if (shape === "loophole") {
-    for (const pkg of POODLE_RELEASE.packages) await assertArtifactInstall(stage, pkg.name);
+    for (const pkg of POODLE_RELEASE.packages) await assertArtifactInstall(stage, pkg.name, POODLE_RELEASE.version);
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.38.6") throw new Error("Loophole installed unexpected Svelte version");
     await assertSingleSvelteRuntime(stage);
@@ -270,7 +273,7 @@ function canonical(value: unknown): unknown { if (Array.isArray(value)) return v
 async function readSourceTree(root: string): Promise<string> { const files = (await readdir(root, { recursive: true })).filter((path) => /\.(rs|ts|svelte)$/.test(path)).sort(); return (await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))).join("\n"); }
 function longhornPackages(tree: string): readonly string[] { return [...new Set(tree.split("\n").map((line) => line.trim().split(/\s+/)[0] ?? "").filter((name) => name.startsWith("longhorn-")).filter((name) => !name.endsWith("-artifact-proof")))].sort(); }
 async function installedScope(stage: string, scope: string): Promise<readonly string[]> { try { return (await readdir(join(stage, "node_modules", scope))).sort(); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; } }
-async function assertArtifactInstall(stage: string, name: string) { const installed = await installedPackage(stage, name); for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) if (installed.realPath.includes(root)) throw new Error(`${name} resolved to sibling source: ${installed.realPath}`); if (installed.manifest.version !== "0.1.0") throw new Error(`${name} installed unexpected version`); return { name, version: installed.manifest.version }; }
+async function assertArtifactInstall(stage: string, name: string, expected: string) { const installed = await installedPackage(stage, name); for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) if (installed.realPath.includes(root)) throw new Error(`${name} resolved to sibling source: ${installed.realPath}`); if (installed.manifest.version !== expected) throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`); return { name, version: installed.manifest.version }; }
 async function installedPackage(stage: string, name: string) { const path = join(stage, "node_modules", ...name.split("/")); const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as { name: string; version: string }; if (manifest.name !== name) throw new Error(`installed package identity mismatch for ${name}`); return { realPath: await realpath(path), manifest }; }
 async function assertPackageAbsent(stage: string, name: string): Promise<void> { try { await lstat(join(stage, "node_modules", ...name.split("/"))); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; } throw new Error(`${name} unexpectedly entered the install graph`); }
 async function assertSingleSvelteRuntime(stage: string): Promise<void> { const manifests = (await readdir(join(stage, "node_modules"), { recursive: true })).filter((path) => path === "svelte/package.json" || path.endsWith("/node_modules/svelte/package.json")); if (manifests.length !== 1) throw new Error(`expected one Svelte runtime, found ${manifests.length}`); }

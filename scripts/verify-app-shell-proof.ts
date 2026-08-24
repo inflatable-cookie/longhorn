@@ -22,6 +22,9 @@ const proofRoot = join(repoRoot, "examples/app-shell-proof");
 // locate and no pack to digest here. poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const poodle = poodleRelease();
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = "0.1.0";
 
 const longhornPackages = [
   ["@inflatable-cookie/longhorn", "longhorn"],
@@ -114,12 +117,14 @@ try {
 
     const resolved = [];
     for (const name of policy.longhorn) {
-      resolved.push(await assertArtifactInstall(stage, name, repoRoot));
+      resolved.push(
+        await assertArtifactInstall(stage, name, repoRoot, LONGHORN_VERSION),
+      );
     }
     const poodleResolved = [];
     for (const artifact of poodle.packages) {
       poodleResolved.push(
-        await assertArtifactInstall(stage, artifact.name, repoRoot),
+        await assertArtifactInstall(stage, artifact.name, repoRoot, poodle.version),
       );
     }
     // Card 164: a domain is a subpath now, so install-absence for it would
@@ -240,6 +245,7 @@ async function assertArtifactInstall(
   stage: string,
   name: string,
   sourceRoot: string,
+  expected: string,
 ): Promise<{ name: string; version: string }> {
   const installed = await installedPackage(stage, name);
   const sourcePackages = join(sourceRoot, "packages");
@@ -249,8 +255,13 @@ async function assertArtifactInstall(
   ) {
     throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
   }
-  if (installed.manifest.version !== "0.1.0") {
-    throw new Error(`${name} installed unexpected version`);
+  // Longhorn and Poodle no longer share a version, so the expectation is the
+  // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
+  // release for a Poodle one.
+  if (installed.manifest.version !== expected) {
+    throw new Error(
+      `${name} installed ${installed.manifest.version}, expected ${expected}`,
+    );
   }
   const entry = await lstat(installed.path);
   if (!entry.isDirectory() && !entry.isSymbolicLink()) {
