@@ -229,6 +229,7 @@ ${workspaceDependencies([
   "fs4",
   "proptest",
   "rusqlite",
+  "rustix",
   "serde",
   "serde_json",
   "sha2",
