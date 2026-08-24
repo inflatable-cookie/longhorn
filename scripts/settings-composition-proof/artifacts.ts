@@ -1,12 +1,7 @@
 import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
-import { homedir } from "node:os";
-import { basename, join, resolve } from "node:path";
-import {
-  mkdir,
-  readFile,
-  writeFile,
-} from "node:fs/promises";
+import { basename, join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
 import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
 import { digest, run } from "./shared.ts";
@@ -246,63 +241,4 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = "deny"
 `;
-}
-
-
-/**
- * Whether the proof may install Poodle from the sibling checkout.
- *
- * Off unless asked for. The proof exists to show that a consumer can install
- * what a consumer resolves, and the registry is what a consumer resolves --
- * so this weakens it, and every run that uses it says so in its artifact.
- *
- * It exists because a Longhorn change can depend on an unreleased Poodle
- * component, and the alternative is a red gate for as long as the release
- * takes. A red gate hides the next real failure, which costs more than a
- * recorded exemption. Remove the flag from `effigy.toml` once Poodle ships.
- */
-export const ACCEPT_LINKED_POODLE =
-  process.env.LONGHORN_PROOF_ACCEPT_LINKED_POODLE === "1";
-
-const POODLE_PACKAGE_DIRECTORIES = new Map([
-  ["@inflatable-cookie/poodle-core", "packages/core"],
-  ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
-]);
-
-/**
- * Packs Poodle from the sibling checkout into installable tarballs.
- *
- * Packed rather than linked on purpose. The consumer still performs a clean
- * install of real bytes with no symlink and no source alias, so every claim
- * the proof makes survives except one: the bytes came from a local pack rather
- * than from the registry. That is the single thing the exemption gives up, and
- * naming it here is cheaper than discovering it later.
- */
-export async function packLinkedPoodle(
-  artifactRoot: string,
-): Promise<ReadonlyMap<string, string>> {
-  const paths = new Map<string, string>();
-  const checkout = resolve(homedir(), "Dev/projects/poodle");
-  for (const [name, directory] of POODLE_PACKAGE_DIRECTORIES) {
-    const source = join(checkout, directory);
-    // The tarball name carries the packed version, and the checkout's version
-    // is whatever it is -- it moved off 0.1.0 the moment Poodle released
-    // again. Read it rather than assert it: this path is already the recorded
-    // exemption, and a wrong guess here reads as a missing tarball.
-    const { version } = JSON.parse(
-      await readFile(join(source, "package.json"), "utf8"),
-    ) as { readonly version: string };
-    await run(
-      ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
-      source,
-    );
-    paths.set(
-      name,
-      join(
-        artifactRoot,
-        `${name.replace("@", "").replace("/", "-")}-${version}.tgz`,
-      ),
-    );
-  }
-  return paths;
 }
