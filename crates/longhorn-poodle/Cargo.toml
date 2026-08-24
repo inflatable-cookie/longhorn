@@ -25,7 +25,7 @@ semver.workspace = true
 # To edit Poodle and Longhorn together, override locally rather than reverting
 # this line — `[patch."https://github.com/inflatable-cookie/poodle"]` in a
 # `.cargo/config.toml` that is not committed.
-poodle-specs = { version = "0.1.0", git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-specs = { version = "0.2.2", git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.2.2" }
 
 [dev-dependencies]
 serde_json.workspace = true

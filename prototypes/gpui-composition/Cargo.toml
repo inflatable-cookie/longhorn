@@ -35,10 +35,10 @@ serde_json = "1"
 # By tag, matching `longhorn-poodle`. See the note in prototypes/gpui-windowing:
 # reaching Poodle both directly and through `longhorn-poodle` needs one source,
 # or the same struct arrives as two incompatible types.
-poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
-poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
-poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
-poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.1.0" }
+poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.2.2" }
+poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.2.2" }
+poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.2.2" }
+poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.2.2" }
 
 [lints.rust]
 missing_docs = "deny"
