@@ -283,13 +283,24 @@ export async function packLinkedPoodle(
   const paths = new Map<string, string>();
   const checkout = resolve(homedir(), "Dev/projects/poodle");
   for (const [name, directory] of POODLE_PACKAGE_DIRECTORIES) {
+    const source = join(checkout, directory);
+    // The tarball name carries the packed version, and the checkout's version
+    // is whatever it is -- it moved off 0.1.0 the moment Poodle released
+    // again. Read it rather than assert it: this path is already the recorded
+    // exemption, and a wrong guess here reads as a missing tarball.
+    const { version } = JSON.parse(
+      await readFile(join(source, "package.json"), "utf8"),
+    ) as { readonly version: string };
     await run(
       ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
-      join(checkout, directory),
+      source,
     );
     paths.set(
       name,
-      join(artifactRoot, `${name.replace("@", "").replace("/", "-")}-0.1.0.tgz`),
+      join(
+        artifactRoot,
+        `${name.replace("@", "").replace("/", "-")}-${version}.tgz`,
+      ),
     );
   }
   return paths;

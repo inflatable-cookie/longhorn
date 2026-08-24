@@ -48,11 +48,11 @@ step "4/4 CI=1 proofs under that CARGO_HOME (coloured vitest + cold cache)"
 # POODLE_REPO; otherwise clone the tagged release into a temp dir.
 if [[ -z "${POODLE_REPO:-}" && ! -d "$(dirname "$root")/poodle" ]]; then
   poodle_tmp=$(mktemp -d)
-  git clone --quiet --depth 1 --branch v0.1.0 \
+  git clone --quiet --depth 1 --branch v0.2.2 \
     https://github.com/inflatable-cookie/poodle.git \
     "$poodle_tmp/poodle"
   export POODLE_REPO="$poodle_tmp/poodle"
-  printf 'cloned Poodle v0.1.0 for greenfield at %s\n' "$POODLE_REPO"
+  printf 'cloned Poodle v0.2.2 for greenfield at %s\n' "$POODLE_REPO"
 fi
 CI=1 CARGO_HOME="$cargo_home" effigy proof:artifacts
 
