@@ -29,7 +29,7 @@
 | [g02.023](023-credential-and-activation-hardening.md) | complete | the credential path matches the config-age discipline |
 | [g02.024](024-coverage-restoration.md) | complete | the test surface matches the code surface again |
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
-| [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 held on Poodle v0.2.0 | gates mean what they claim; one declaration per fact |
+| [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 unheld, step 5 landed, remainder needs recompile | gates mean what they claim; one declaration per fact |
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 | [g02.028](028-consumer-scoped-credential-slots.md) | complete | one shared store admits isolated consumer-owned scope without product policy |
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
@@ -103,7 +103,7 @@ memo 023 full-repo release audit (cards 200-223)
  ├─ 023 credential and activation hardening(207-209 independent, 210 after 208)
  ├─ 024 coverage restoration               (211-214 independent)
  ├─ 025 docs spine reconciliation          (215 → 216, 217)
- ├─ 026 automation and gate convergence    (218 held on Poodle v0.2.0;
+ ├─ 026 automation and gate convergence    (218 part-landed, needs recompile;
  │                                            219, 220 independent)
  └─ 027 consolidation and dependency sweep (221, 222 independent; 223 after 222)
 ```
@@ -200,8 +200,10 @@ evidence envelope — extraction that is not bounded against link entries, a
 docs spine still specifying the Card 179 deletion, deleted-not-ported layout
 test suites, and gates that drift by hand-transcription. Cards 200-223
 compile the remediation into milestones g02.021-027, all inside existing
-contracts. Card 218's closure is operator-held on the Poodle v0.2.0 release
-that unblocks g02.014.
+contracts. Card 218's Poodle precondition is met at public 0.2.2 — g16.008
+removed the linked-Poodle exemption (step 5) and unblocked g02.014 — but the
+card does not close with it: step 1 is obsolete and steps 2-4 need
+recompiling as release hardening.
 
 Research memo 024 characterizes the agent app-control gap: agents testing
 consumer apps steal OS focus and the pointer because no remote-control
