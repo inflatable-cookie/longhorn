@@ -35,6 +35,7 @@ use longhorn_transfer::TransferClientId;
 use poodle_adapter::ThemeProvider;
 use poodle_gpui::GpuiThemeProvider;
 use poodle_render::toast_stack::{self, ToastStackHandlers};
+use poodle_render::RenderContext;
 
 // ---------------------------------------------------------------------------
 // Step 3. Supply `HostServices`, before anything that formats or folds.
@@ -201,6 +202,9 @@ impl Render for CompositionRoot {
 
         poodle_gpui_node_backend::reset_element_ids();
         let theme = &self.theme;
+        // Poodle 0.2.2 renderers take the construction context, not a bare
+        // theme. No provider scope here, so this is the root one.
+        let ctx = RenderContext::new(theme);
 
         let records: Vec<_> = self.ledger.records().cloned().collect();
         // `project_notification_stack`, not `project_notifications`: a `Toast`
@@ -283,7 +287,7 @@ impl Render for CompositionRoot {
                     .join(", ")
             ))
             .child(poodle_gpui_node_backend::to_gpui(
-                &toast_stack::toast_stack(&stack, theme, ToastStackHandlers::default()),
+                &toast_stack::toast_stack(&stack, &ctx, ToastStackHandlers::default()),
             ))
     }
 }
