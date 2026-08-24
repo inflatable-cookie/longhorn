@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-15
+Updated: 2026-08-24
 Architecture: `../architecture/package-topology.md`
 
 ## Boundary
@@ -23,9 +23,9 @@ policy remain consumer-owned.
   duplicate runtimes.
 - The initial Svelte compatibility floor is `5.38.6`; a package must prove its
   declared upper bound instead of inheriting the newest donor version.
-- Private Poodle adapter work uses one exact source commit and packable preview
-  artifact. It claims no broader compatibility range before the release lane
-  proves one.
+- Poodle adapter work pins one exact published Poodle version. The preview era
+  -- one exact source commit plus a packable artifact, claiming no range --
+  ended when Poodle released publicly; see the checkpoint below.
 - Package names are working names until registry ownership is verified before
   first publication.
 
@@ -73,9 +73,10 @@ policy remain consumer-owned.
 - Package-manager publication is scoped and queued, no longer deferred on
   names: the `@inflatable-cookie` scope was claimed on 2026-08-09, the three
   TypeScript packages are publishable (`publishConfig.access: public`), and
-  the v0.1.0 tag waits on the Poodle v0.2.0 release (g02.014; Card 218 gates
-  the linked-Poodle exemption's exit). Rust crates stay `publish = false`;
-  consumers take them by git tag.
+  the v0.1.0 tag waited on a Poodle release carrying the components the
+  adapter imports (g02.014). Public Poodle 0.2.2 carries them, so that
+  precondition is met and the linked-Poodle exemption is gone (Card 218 step
+  5). Rust crates stay `publish = false`; consumers take them by git tag.
 - Private consumer repos may merge explicit sibling path or `file:` sources.
   Each adopted graph records the exact clean Longhorn and Poodle commits.
 - Moving branch references and unrecorded dirty sources are not valid pins.
@@ -120,23 +121,44 @@ A release candidate requires:
 - an artifact-install example passes outside workspace resolution
 - compatibility failures name the package, protocol, and supported range
 - a Surface-free root import does not resolve Surface or Surface-transfer code
-- Poodle adapter evidence names the exact preview artifact under test
+- Poodle adapter evidence names the exact published Poodle release under test
 
-## Current Poodle Preview Checkpoint
+## Current Poodle Checkpoint
+
+**Public registry, exact 0.2.2, adopted 2026-08-24 by g16.008.** There is no
+packed preview artifact any more. Longhorn resolves Poodle the way any
+consumer does.
+
+- npm: `@inflatable-cookie/poodle-core@0.2.2` and
+  `@inflatable-cookie/poodle-svelte@0.2.2`, both `latest` on the public
+  registry. Exact, not a range: the adapter's peer is exact, and a range on
+  either side would let the two skew.
+- Rust: git tag `v0.2.2` at `d5607def24c6833913df1b5dcfa06372fcd5dd81`. One
+  tag for `poodle-specs` and for every direct prototype Poodle crate --
+  two sources for one crate are two incompatible types.
+- `gpui` resolves from crates.io at `0.2.2` on both sides of the graph, the
+  consumer's direct dependency and Poodle's transitive one. Poodle 0.2.1
+  exposed a fork identity here and is not adoptable; 0.2.0 and 0.2.1 are
+  both skipped.
+- React remains source-only and has no npm package.
+
+`poodle-core` carries the former `poodle-headless`, `poodle-styles`,
+`poodle-svelte-tokens` and `poodle-icons-lucide` as the subpaths `.`,
+`./styles/*`, `./tokens/*` and `./icons/*`.
+
+### Superseded preview checkpoints
+
+Kept as the record of what the pin was, not as anything still in force.
 
 **Superseded 2026-08-08 by Poodle Card 020.** Poodle collapsed its six
 publish-intent packages into three grouped by framework binding, so the set
-below is now two tarballs rather than five:
+below was two tarballs rather than five:
 
 - artifact set
   `ec626ac7c66cfd45249690270195e7be74e34fe96940e32a938852a41ed7bba8`
   from `~/Dev/projects/poodle/.artifacts/svelte-pack-install-V2Wu2n/`
 - `@inflatable-cookie/poodle-core` — `ac13b2ef31c84b11…`, 291,471 bytes
 - `@inflatable-cookie/poodle-svelte` — `8a845d0fb7279ef5…`, 200,091 bytes
-
-`poodle-core` carries the former `poodle-headless`, `poodle-styles`,
-`poodle-svelte-tokens` and `poodle-icons-lucide` as the subpaths `.`,
-`./styles/*`, `./tokens/*` and `./icons/*`. Longhorn pins both tarballs.
 
 The paragraphs below record the sets each card was bound to at the time and
 keep their original package names deliberately.

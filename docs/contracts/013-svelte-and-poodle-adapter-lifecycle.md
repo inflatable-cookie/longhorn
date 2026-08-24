@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-08-24
 Evidence: `../research/translation-memos/003-foundation-boundary-characterization.md`,
 `../research/translation-memos/011-client-svelte-poodle-and-shell-boundary.md`,
 `../research/translation-memos/014-command-input-and-palette-boundary.md`
@@ -79,10 +79,15 @@ an injected reporter.
 ## Compatibility
 
 - Svelte, Poodle, and Tauri compatibility ranges are declared peers.
-- Private Poodle adapter proof pins one exact source commit and packable preview
-  artifact until the later release lane proves a public range.
-- The current pin is Card 038 artifact set
-  `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`.
+- The Poodle adapter proof pins one exact published Poodle version. The
+  preview-artifact era ended when Poodle released publicly.
+- The current pin is exact `@inflatable-cookie/poodle-svelte@0.2.2` from the
+  public registry, declared as the adapter's optional peer, with Rust tag
+  `v0.2.2` at `d5607def24c6833913df1b5dcfa06372fcd5dd81`. Contract 012 carries
+  the full checkpoint.
+- Superseded: Card 038 artifact set
+  `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`, the
+  packable preview this replaced. Kept as record, not as a live pin.
 - Every adapter has a framework-neutral client test and a mounted lifecycle
   test.
 - DOM-only code is isolated from generated protocol and domain packages.
