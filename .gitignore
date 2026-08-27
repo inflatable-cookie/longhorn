@@ -1,6 +1,9 @@
 # Effigy local state
 .effigy/
 
+# Operator-local agent worktree defaults (AGENTS_WORKTREE_CONTAINER_DIR, …)
+.agents.local.env
+
 # Rust build output
 /target/
 **/target/

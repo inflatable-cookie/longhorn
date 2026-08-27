@@ -15,36 +15,13 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Impact: agents following the getting-started link path hit a conflict
   error after a successful install.
 - Possible fix: make `deps link bun` safely replace Bun's installed package
-  symlinks (Effigy surface), or document a Longhorn-owned replace step.
+  symlinks (Effigy surface). Longhorn cannot wrap this without a fake local
+  shim; proven 2026-08-27 on Effigy v0.12.1 — conflicting target under
+  `node_modules/.bun/@inflatable-cookie+poodle-core@…`; manual unlink of the
+  registry symlinks then `deps link bun` succeeds.
 - Surface: `effigy deps link bun`, fresh Git worktrees.
 - Split from: fresh-worktree QA umbrella (2026-08-16), closed 2026-08-27 for
   the Bun-bootstrap half only.
-
-### [ ] Greenfield proof ignores healthy Poodle link state — 2026-08-27
-- Friction: once Poodle is linked, `verify-greenfield-card125.ts` ignores that
-  resolved source and derives a nonexistent `../poodle` from the worktree path
-  unless `POODLE_REPO` is set separately. Isolated-worktree `effigy qa` still
-  fails there without the env var.
-- Impact: a clean worker with a healthy link still needs a second path
-  variable the link state already answers.
-- Possible fix: let proofs consume the healthy link state instead of a second
-  path variable.
-- Surface: `scripts/verify-greenfield-card125.ts`, `effigy deps link bun`,
-  `POODLE_REPO`.
-- Split from: fresh-worktree QA umbrella (2026-08-16), closed 2026-08-27 for
-  the Bun-bootstrap half only.
-
-### [ ] `.agents.local.env` is a convention with no gitignore entry — 2026-08-19
-- Friction: the worker-worktree fallback expects an ignored
-  `.agents.local.env` carrying `AGENTS_WORKTREE_CONTAINER_DIR`, but the
-  repo's `.gitignore` does not cover it, so creating the file makes the
-  shared checkout dirty. Both worker dispatches so far routed the container
-  question to the operator instead (`~/Dev/worktrees`).
-- Impact: every dispatched worker without a launcher worktree must ask the
-  operator the same question again.
-- Plausible fix: add `.agents.local.env` to `.gitignore`, then create the
-  file with `AGENTS_WORKTREE_CONTAINER_DIR=/Users/tom/Dev/worktrees`.
-- Surface: `.gitignore`, orchestrator/worker handoff loop.
 
 ### [ ] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
 - Friction: `[release.gates]` is written cheapest-first, but effigy sorts by
@@ -77,6 +54,25 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Closed
 
+### [x] Greenfield proof ignores healthy Poodle link state — 2026-08-27
+- Friction: once Poodle is linked, `verify-greenfield-card125.ts` ignored that
+  resolved source and derived a nonexistent `../poodle` from the worktree path
+  unless `POODLE_REPO` was set separately.
+- Fix (2026-08-27): proof resolves `POODLE_REPO`, then a healthy
+  `effigy deps status bun` library path covering the Poodle packages, then
+  the sibling `../poodle` fallback.
+- Surface: `scripts/verify-greenfield-card125.ts`, `effigy deps link bun`,
+  `POODLE_REPO`.
+
+### [x] `.agents.local.env` is a convention with no gitignore entry — 2026-08-19
+- Friction: the worker-worktree fallback expects an ignored
+  `.agents.local.env` carrying `AGENTS_WORKTREE_CONTAINER_DIR`, but the
+  repo's `.gitignore` did not cover it, so creating the file made the
+  shared checkout dirty.
+- Fix (2026-08-27): `.agents.local.env` added to `.gitignore`. Creating the
+  local file remains operator/optional; gitignore alone unblocks it.
+- Surface: `.gitignore`, orchestrator/worker handoff loop.
+
 ### [x] Doctor schema rejects inline `{ rhai = ... }` task values — 2026-08-27
 - Friction: `"agent-control:install-skill" = { rhai = "..." }` ran correctly
   but `effigy doctor` flagged `rhai` as an unsupported task-table key; the
@@ -101,8 +97,8 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Fix (2026-08-27): `bootstrap:deps` runs `bun install --frozen-lockfile`;
   `qa` invokes it before TypeScript checks; `check:bun-deps` fails fast with
   the bootstrap selector when `check:ts` or `check:svelte` run alone.
-- Remaining halves tracked as open papercuts: `deps link bun` registry-symlink
-  replacement; greenfield proof path resolution / `POODLE_REPO`.
+- Remaining half tracked as an open papercut: `deps link bun` registry-symlink
+  replacement (Effigy). Greenfield proof path resolution closed 2026-08-27.
 - Surface: `effigy qa`, `bootstrap:deps`, `check:bun-deps`, `check:ts`.
 
 ### [x] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-27
@@ -221,7 +217,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Not: adding `check:ts` to `check:bindings`.
 - Surface: `crates/longhorn-bindings/src/generation.rs`.
 
-### [x] Installed skill copies go stale within one longhorn_version — 2026-08-19 (fixed 2026-08-20)
+### [x] Installed skill copies go stale within one longhorn_version — 2026-08-19
 - Friction: the agent-control skill changed three times on 2026-08-19
   (command-less note, sanitized MCP names, listen ack distinction) while
   `longhorn_version` stayed 0.1.0. The drift check compares the stamp to
@@ -229,7 +225,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   passes every gate while missing the day's fixes.
 - Impact: consumer agents follow stale instructions; nothing tells the
   repo to re-run the installer.
-- Plausible fix: add a content hash to the skill frontmatter, stamp it at
+- Possible fix: add a content hash to the skill frontmatter, stamp it at
   install, and have the installer (or a consumer-side check) compare
   hashes; or simply bump `longhorn_version` policy to change-on-edit.
 - Surface: `skills/agent-control/SKILL.md`, `install-agent-control-skill.ts`,
