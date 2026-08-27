@@ -83,6 +83,10 @@ same fixtures, re-proved). The "one effigy invocation" acceptance line
 is narrowed to "one command" accordingly; the PAPERCUTS entry tracks
 restoring the task.
 
+**Restored 2026-08-27 (papercuts wave 2):** Effigy PR 45 admits inline
+`{ rhai = ... }` in doctor; `agent-control:install-skill` is back.
+Preferred form: `effigy agent-control:install-skill -- <git-repo>`.
+
 ## Continuation
 
 Card 237 closes the lane: the skill proved by an agent actually

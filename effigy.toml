@@ -2,7 +2,7 @@
 alias = "longhorn"
 
 [bootstrap]
-setup = ["bootstrap:deps"]
+setup = [{ task = "bootstrap:deps" }]
 
 [manifest]
 include = ["config/release.toml"]

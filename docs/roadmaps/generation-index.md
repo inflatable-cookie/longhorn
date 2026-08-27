@@ -29,7 +29,7 @@ lives on the cards themselves.
 Cards 227-237, PRs 2-6, all 2026-08-19). Next: per-app adoption — each
 consumer repo compiles one card: compose per
 `docs/guides/agent-control-composition.md`, then
-`bun scripts/install-agent-control-skill.ts <repo>` (from the Longhorn
+`effigy agent-control:install-skill -- <repo>` (from the Longhorn
 checkout). Soundcheck adopted first (2026-08-20, its
 `docs/logs/2026-08/20-agent-control-adoption.md`) and confirmed the
 `claude mcp add` paste-line end to end — the adoption kit's last open
