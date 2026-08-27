@@ -1,6 +1,9 @@
 [catalog]
 alias = "longhorn"
 
+[bootstrap]
+setup = ["bootstrap:deps"]
+
 [manifest]
 include = ["config/release.toml"]
 
@@ -11,6 +14,8 @@ section = "Vision Artifacts"
 exclude = ["history/**"]
 
 [tasks]
+"bootstrap:deps" = "bun install --frozen-lockfile"
+
 # One task per job, not one per package. Per-package variants were hundreds of
 # lines of duplication that nothing ever invoked individually; loops and test
 # runners cover the same ground.
@@ -46,8 +51,15 @@ exclude = ["history/**"]
 "check:prototypes" = "sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"
 
 # --- TypeScript and Svelte ----------------------------------------------
-"check:ts" = "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'"
-"check:svelte" = "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json"
+"check:bun-deps" = "bun scripts/check-bun-deps.ts"
+"check:ts" = [
+  { task = "check:bun-deps" },
+  "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'",
+]
+"check:svelte" = [
+  { task = "check:bun-deps" },
+  "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json",
+]
 "check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
 "test:ts" = "bash scripts/test-packages.sh"
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
@@ -69,11 +81,7 @@ exclude = ["history/**"]
 # Card 236: lock the skill's tool table to CONTROL_TOOL_NAMES and the
 # workspace version; also runs finder and install fixtures (Cards 235-236).
 "check:agent-control-skill" = "bun scripts/verify-agent-control-skill.ts"
-# Skill install into a consumer repo is `bun
-# scripts/install-agent-control-skill.ts <git-repo>` (operator-invoked).
-# The effigy task form is withdrawn until the doctor schema admits the
-# arg-receiving `{ rhai = ... }` task shape (PAPERCUTS 2026-08-19); a
-# shell-string task receives no target argument.
+"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }
 "generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------
@@ -141,6 +149,7 @@ health = [
 qa = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
+  { task = "bootstrap:deps" },
   { task = "lint:rust" },
   { task = "lint:rust:features" },
   { task = "test:rust" },

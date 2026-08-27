@@ -7,35 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] Doctor schema rejects inline `{ rhai = ... }` task values that the runner accepts — 2026-08-19
-- Friction: `"agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }` runs correctly and is the documented task shape. `effigy doctor` flags `tasks.agent-control:install-skill.rhai` as an unsupported key. The table form `[tasks."name"] run = { rhai = ... }` fails to parse in this manifest (`ManifestTaskLikeDefinition`).
-- Impact: a working Rhai task makes doctor red; switching form breaks the rest of `[tasks]`. The task was withdrawn post-merge (2026-08-19) to keep doctor green; install is the direct bun invocation until the schema admits the form, then the task returns.
-- Possible fix: admit `rhai` on inline task tables in the doctor schema, or document the one table form this manifest parser actually accepts.
-- Surface: `effigy doctor` `manifest.schema.unsupported_key`, `effigy.toml` `[tasks]`.
-
-### [ ] Global `--repo` is consumed after `--`, so a Longhorn task cannot take `--repo` as its target — 2026-08-19
-- Friction: `effigy --repo <PATH>` switches catalogs and cwd. `effigy <task> -- --repo <PATH>` still treats `--repo` as the global flag, so the task is looked up in the target repo. Extra args reach Rhai tasks only; shell-string tasks get none. Card 236's install selector therefore cannot be `effigy --repo <consumer> agent-control:install-skill`.
-- Impact: the one sanctioned cross-repo write has to take a positional path after `--` (`effigy agent-control:install-skill -- <consumer>`). Agents following the `--repo` convention hit a missing-task error.
-- Possible fix: let `--` end global flag parsing; pass remaining args through to shell-string tasks; or add a target-repo argument that does not switch catalogs.
-- Surface: `effigy --repo`, `agent-control:install-skill`, Rhai `args`.
-
-### [ ] Fresh worktree QA reaches TypeScript without installing dependencies — 2026-08-16
-- Friction: `effigy qa` in a fresh Git worktree reached `check:ts` with no
-  `node_modules`; `bun x tsc` fetched the compiler but left every workspace,
-  Svelte, Poodle, Vitest, and Node type import unresolved. After `bun install`,
-  the documented `effigy deps link bun ../poodle` path refused Bun's normal
-  registry-package symlinks as conflicting targets. Once linked, the
-  greenfield proof ignored that resolved source and derived a nonexistent
-  `../poodle` from the worktree path unless `POODLE_REPO` was set separately.
-- Impact: a clean worker sees hundreds of unrelated TypeScript errors after
-  the Rust suite has run, then must infer both the missing install and the
-  manual link precondition.
-- Possible fix: make QA require or perform the locked Bun bootstrap before
-  TypeScript checks; make `deps link bun` safely replace Bun's installed
-  package symlinks; let proofs consume the healthy link state instead of a
-  second path variable.
-- Surface: `effigy qa`, `check:ts`, `effigy deps link bun`, fresh Git worktrees.
-
 ### [ ] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
 - Friction: `[release.gates]` is written cheapest-first, but effigy sorts by
   gate name. A measured run is advisories, floor, private-candidate,
@@ -48,17 +19,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   declaration order. Renaming gates to sort correctly is not available —
   `verify-private-candidate-docs-card127.ts` asserts two gate lines verbatim.
 - Surface: `config/release.toml`, `effigy release gates`.
-
-### [ ] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-14
-- Friction: adding `secrecy`/`getrandom` to `longhorn-licence` left
-  `prototypes/gpui-*/Cargo.lock` stale; nothing local saw it until
-  `effigy release gates` ran `check:prototypes --locked`.
-- Impact: a routine dependency addition surfaces as a release-gate failure
-  days later; the fix is `cargo update --offline --workspace` per prototype.
-- Possible fix: `check:prototypes` in a scheduled lane, or a lockfile-sync
-  note on the dependency-sweep card (Card 223 does sweeps — teach it the
-  prototype lockfile step).
-- Surface: `prototypes/*/Cargo.lock`, `effigy.toml` `check:prototypes`.
 
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
@@ -76,7 +36,56 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Surface: `crates/longhorn-update/src/source.rs`,
   `crates/longhorn-licence/src/activation.rs`.
 
+### [ ] `.agents.local.env` is a convention with no gitignore entry — 2026-08-19
+- Friction: the worker-worktree fallback expects an ignored
+  `.agents.local.env` carrying `AGENTS_WORKTREE_CONTAINER_DIR`, but the
+  repo's `.gitignore` does not cover it, so creating the file makes the
+  shared checkout dirty. Both worker dispatches so far routed the container
+  question to the operator instead (`~/Dev/worktrees`).
+- Impact: every dispatched worker without a launcher worktree must ask the
+  operator the same question again.
+- Plausible fix: add `.agents.local.env` to `.gitignore`, then create the
+  file with `AGENTS_WORKTREE_CONTAINER_DIR=/Users/tom/Dev/worktrees`.
+- Surface: `.gitignore`, orchestrator/worker handoff loop.
+
 ## Closed
+
+### [x] Doctor schema rejects inline `{ rhai = ... }` task values — 2026-08-27
+- Friction: `"agent-control:install-skill" = { rhai = "..." }` ran correctly
+  but `effigy doctor` flagged `rhai` as an unsupported task-table key; the
+  task was withdrawn post-merge (2026-08-19) to keep doctor green.
+- Fix (2026-08-27): Effigy PR 45 admits inline `{ rhai = ... }` in the
+  doctor schema; Longhorn restored `agent-control:install-skill` and doctor
+  stays green (`ok:17 err:0`).
+- Surface: `effigy doctor`, `effigy.toml` `[tasks]`.
+
+### [x] Global `--repo` is consumed after `--` — 2026-08-27
+- Friction: `effigy <task> -- --repo <PATH>` still switched catalogs, so
+  consumer tasks could not receive `--repo` as their own argument.
+- Fix (2026-08-27): Effigy PR 45 ends global flag parsing at `--`; verified
+  `effigy agent-control:install-skill -- --repo <consumer>` reaches the Rhai
+  task. Leading `--repo` before the task name still switches catalogs.
+- Surface: `effigy --repo`, `agent-control:install-skill`.
+
+### [x] Fresh worktree QA reaches TypeScript without installing dependencies — 2026-08-27
+- Friction: `effigy qa` in a fresh worktree reached `check:ts` with no
+  `node_modules`; `bun x tsc` fetched the compiler but left workspace imports
+  unresolved.
+- Fix (2026-08-27): `bootstrap:deps` runs `bun install --frozen-lockfile`;
+  `qa` invokes it before TypeScript checks; `check:bun-deps` fails fast with
+  the bootstrap selector when `check:ts` or `check:svelte` run alone.
+- Not in scope: `deps link bun` replacing registry symlinks; greenfield proof
+  path variables — separate papercut surfaces.
+- Surface: `effigy qa`, `bootstrap:deps`, `check:bun-deps`, `check:ts`.
+
+### [x] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-27
+- Friction: adding workspace deps left `prototypes/gpui-*/Cargo.lock` stale
+  until `effigy release gates` ran `check:prototypes --locked`.
+- Fix (2026-08-27): Card 223 now records the ongoing lockfile-refresh step
+  when workspace `Cargo.toml` deps change (`cargo update --offline
+  --workspace` per prototype). Card 223's one-time refresh already landed
+  2026-08-15; release gates still own the expensive `check:prototypes` lane.
+- Surface: `prototypes/*/Cargo.lock`, Card 223, `check:prototypes`.
 
 ### [x] Repo-wide renames need to be language-aware — 2026-08-09
 - Friction: `bovine` -> `split-shell` text substitution hit Rust identifiers
@@ -184,19 +193,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   warnings — those types are declared, just not flat-mapped.
 - Not: adding `check:ts` to `check:bindings`.
 - Surface: `crates/longhorn-bindings/src/generation.rs`.
-
-## .agents.local.env is a convention with no gitignore entry (2026-08-19)
-
-- Friction: the worker-worktree fallback expects an ignored
-  `.agents.local.env` carrying `AGENTS_WORKTREE_CONTAINER_DIR`, but the
-  repo's `.gitignore` does not cover it, so creating the file makes the
-  shared checkout dirty. Both worker dispatches so far routed the container
-  question to the operator instead (`~/Dev/worktrees`).
-- Impact: every dispatched worker without a launcher worktree must ask the
-  operator the same question again.
-- Plausible fix: add `.agents.local.env` to `.gitignore`, then create the
-  file with `AGENTS_WORKTREE_CONTAINER_DIR=/Users/tom/Dev/worktrees`.
-- Surface: `.gitignore`, orchestrator/worker handoff loop.
 
 ### [x] Installed skill copies go stale within one longhorn_version — 2026-08-19 (fixed 2026-08-20)
 - Friction: the agent-control skill changed three times on 2026-08-19

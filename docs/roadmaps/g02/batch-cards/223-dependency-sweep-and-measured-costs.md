@@ -63,6 +63,11 @@ triaged to green-by-choice.
    thresholds intentionally for tests/prototypes; teach the attention-marker
   scan that a quoted `[SECURITY]` in a comment is not a marker. Doctor ends
    green-by-choice.
+7. When a workspace crate gains or bumps a dependency, refresh each
+   prototype lockfile before commit:
+   `for d in prototypes/*/; do (cd "$d" && cargo update --offline --workspace); done`.
+   Release gates still run `check:prototypes --locked`; this step catches drift
+   during dependency sweeps instead of days later at release time.
 
 ## Do Not
 
@@ -99,6 +104,9 @@ commitments, and the attention-marker scan no longer treats the word
 recorded as follow-up candidates, not split in a sweep card.
 
 Prototype lockfiles refreshed (the papercut's prescribed step, now proven).
+Ongoing rule (2026-08-27): step 7 above — refresh prototype locks whenever
+workspace `Cargo.toml` dependencies change; release gates still own the
+expensive `check:prototypes` compile lane.
 
 ## Acceptance Criteria
 
