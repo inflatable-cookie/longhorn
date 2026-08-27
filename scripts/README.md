@@ -38,11 +38,14 @@ The rest are wired individually: `check:api-reference` runs
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
 each their own selector. `check:agent-control-skill` runs
 `verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
-install fixtures). `install-agent-control-skill.ts` is the operator-invoked
-skill installer (`bun scripts/install-agent-control-skill.ts <git-repo>`);
-its effigy task form is withdrawn until the doctor schema admits it
-(PAPERCUTS 2026-08-19). `consumer-absence.ts` and `poodle-release.ts`
-are shared modules, not entry points.
+install fixtures). `agent-control:install-skill` copies
+`skills/agent-control/` into a consumer repo
+(`effigy agent-control:install-skill -- <git-repo>` or
+`effigy agent-control:install-skill -- --repo <git-repo>`); the bun script
+remains the implementation. `bootstrap:deps` runs the locked Bun install fresh
+worktrees need before TypeScript checks; `check:bun-deps` guards
+`check:ts`/`check:svelte` when run alone. `consumer-absence.ts` and
+`poodle-release.ts` are shared modules, not entry points.
 
 ## No consumer knowledge
 

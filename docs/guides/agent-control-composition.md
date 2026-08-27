@@ -14,8 +14,8 @@ pointer. The contract 022 control surface is the replacement: a
 dev-build-only MCP server inside the app. This guide is the Rust half — how
 a consumer app mounts it. The agent half is the skill at
 `skills/agent-control/`; install it with
-`bun scripts/install-agent-control-skill.ts <git-repo>` (run from the
-Longhorn checkout).
+`effigy agent-control:install-skill -- <git-repo>` (from the Longhorn
+checkout).
 
 A consumer card should execute from this page plus the worked example. Do
 not copy product policy out of another app.
@@ -266,13 +266,17 @@ directory lists every live instance. File name is `<app-id>-<pid>.json`.
 ## Install The Skill
 
 From this Longhorn checkout, copy the canonical skill into a consumer git
-repo. The path after `--` is the install target. Do not use the global
-`--repo` flag for this: that switches catalogs, and the consumer does not
-define the task.
+repo. Prefer the Effigy task. Pass the consumer path after `--` (positional
+or `--repo`); do not put `--repo` before the task name — that switches
+catalogs and the consumer does not define the installer.
 
 ```sh
-bun scripts/install-agent-control-skill.ts /path/to/consumer
+effigy agent-control:install-skill -- /path/to/consumer
+effigy agent-control:install-skill -- --repo /path/to/consumer
 ```
+
+The bun script remains the implementation if you need to invoke it
+directly: `bun scripts/install-agent-control-skill.ts /path/to/consumer`.
 
 The copy lands at `.claude/skills/agent-control/` in the target. Re-run
 at the same version is a no-op. This is operator-invoked, never automatic
