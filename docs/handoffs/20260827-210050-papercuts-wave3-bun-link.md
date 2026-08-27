@@ -49,7 +49,7 @@ symlinks, then ignore the link they finally get.
      (ask-before-create still applies).
 - **Out of scope:** release-gate name order (Effigy); URL primitive
   duplication (wait for a third caller).
-- **PR URL:** pending
+- **PR URL:** https://github.com/inflatable-cookie/longhorn/pull/11
 - **Merge authorisation:** absent; do not merge
 
 ## Boundaries
