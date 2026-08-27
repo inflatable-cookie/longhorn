@@ -30,16 +30,6 @@ const repoRoot = resolve(import.meta.dir, "..");
 const bunCommand = ["/usr/bin/env", "bun"] as const;
 const exampleRoot = join(repoRoot, "examples/greenfield-compositions");
 const receiptPath = join(repoRoot, "fixtures/greenfield/card125/composition-matrix-v1.json");
-const poodleRoot = resolve(process.env.POODLE_REPO ?? join(repoRoot, "../poodle"));
-// Longhorn and Poodle no longer share a version. Longhorn's is its own
-// coordinated one; Poodle's is whatever the checkout this proof packs from
-// carries, which is the pinned release when POODLE_REPO names the release tag.
-const LONGHORN_VERSION = "0.1.0";
-const POODLE_VERSION = poodleRelease().version;
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
-const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
-const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
-
 const longhornTypescriptPackages = [
   ["@inflatable-cookie/longhorn", "packages/longhorn"],
   ["@inflatable-cookie/longhorn-poodle-svelte", "packages/longhorn-poodle-svelte"],
@@ -49,6 +39,17 @@ const poodlePackages = [
   ["@inflatable-cookie/poodle-core", "packages/core"],
   ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
 ] as const;
+// Prefer POODLE_REPO, then a healthy `effigy deps link bun` library path, then
+// the sibling checkout. Isolated worktrees often have the link and no sibling.
+const poodleRoot = await resolvePoodleRoot();
+// Longhorn and Poodle no longer share a version. Longhorn's is its own
+// coordinated one; Poodle's is whatever the checkout this proof packs from
+// carries, which is the pinned release when POODLE_REPO names the release tag.
+const LONGHORN_VERSION = "0.1.0";
+const POODLE_VERSION = poodleRelease().version;
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
+const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
+const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
 const allRustCrates = [
   "longhorn-bridge",
   "longhorn-command",
@@ -581,4 +582,47 @@ async function run(command: string[], cwd: string): Promise<string> {
   const [stdout, stderr, exitCode] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
   if (exitCode !== 0) throw new Error(`${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`);
   return stdout;
+}
+
+async function resolvePoodleRoot(): Promise<string> {
+  if (process.env.POODLE_REPO) return resolve(process.env.POODLE_REPO);
+  const linked = healthyBunLibraryPath(poodlePackages.map(([name]) => name));
+  if (linked) return linked;
+  return resolve(join(repoRoot, "../poodle"));
+}
+
+function healthyBunLibraryPath(requiredPackages: readonly string[]): string | null {
+  const status = Bun.spawnSync(["effigy", "--json", "deps", "status", "bun"], {
+    cwd: repoRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (status.exitCode !== 0) return null;
+  try {
+    const envelope = JSON.parse(status.stdout.toString()) as {
+      ok?: boolean;
+      result?: {
+        links?: Array<{
+          observed?: { state?: string };
+          desired?: {
+            key?: { library_path?: string };
+            packages?: Array<{ name?: string }>;
+          };
+        }>;
+      };
+    };
+    if (!envelope.ok || !envelope.result?.links) return null;
+    for (const link of envelope.result.links) {
+      if (link.observed?.state !== "healthy") continue;
+      const names = new Set(
+        (link.desired?.packages ?? []).map((pkg) => pkg.name).filter((name): name is string => Boolean(name)),
+      );
+      if (!requiredPackages.every((name) => names.has(name))) continue;
+      const libraryPath = link.desired?.key?.library_path;
+      if (libraryPath) return resolve(libraryPath);
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
