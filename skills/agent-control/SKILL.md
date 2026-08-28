@@ -148,6 +148,21 @@ composed at its bounds, child webviews (native-content islands) included.
 It works occluded, unfocused, and minimized. macOS only; other hosts
 return `Unsupported`. No screen-recording permission.
 
+`screenshot` returns MCP image content (`type: "image"`, `mimeType:
+"image/png"`, `data` as base64). There is no capture-to-path argument.
+A text-only Write tool cannot persist that losslessly — decode the
+`data` field to a file:
+
+```sh
+# $DATA = result.content[0].data from the tools/call response
+printf '%s' "$DATA" | base64 --decode > out.png
+```
+
+```js
+// when you already hold the image content object
+await Bun.write("out.png", Buffer.from(String(image.data), "base64"));
+```
+
 After `click`/`type`/`press`/`scroll`/`drag`/`resize_window`, the
 receipt means the event was dispatched, not that the UI changed.
 Observe with `snapshot` or `wait_for`.
@@ -166,8 +181,8 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
 | `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?`, `webview?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
-| `screenshot` | `window?` | PNG image content | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only |
-| `scroll` | `delta_x`, `delta_y`, `element?`, `window?`, `webview?` | `ActionReceipt` | omit `element` to scroll the document |
+| `screenshot` | `window?` | PNG image content (`type: "image"`, base64 `data`) | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only; decode `data` to a file (see above) — no path argument |
+| `scroll` | `deltaX`, `deltaY`, `element?`, `window?`, `webview?` | `ActionReceipt` | both deltas required; omit `element` to scroll the document |
 | `snapshot` | `window?`, `webview?` | `window`, `webview?` (child label; omitted for the UI webview), `page` (`url`, `title`), `root` tree of `{elementRef, role, name?, value?, states, children}` | refs live-DOM; omit `window` for frontmost; omit `webview` for the UI webview |
 | `type` | `element` (ref), `text`, `window?`, `webview?` | `ActionReceipt` | untrusted text entry |
 | `wait_for` | `predicate`, `timeoutMs`, `window?`, `webview?` | empty result or `WaitTimeout` | see predicates below |
