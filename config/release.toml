@@ -31,12 +31,10 @@ initial-tag-current-version = true
 # twice per release. Every gate below is either `effigy qa` or something qa
 # does not cover.
 #
-# Listed cheapest-first for reading. That is *not* the execution order: effigy
-# runs gates sorted by name, so a measured run goes advisories, floor,
-# private-candidate, prototypes, rustdoc, source, workspace — the 145s floor
-# ahead of the 38ms candidate check. Renaming gates to buy the ordering back
-# would break the card-127 proof, which asserts two of these lines verbatim.
-# Recorded in PAPERCUTS.md rather than worked around here.
+# Listed cheapest-first. Effigy PR 48 runs `[release.gates]` in declaration
+# order, so the 38ms candidate check precedes the 145s MSRV floor. Do not
+# rename gates to force order — `verify-private-candidate-docs-card127.ts`
+# asserts two of these lines verbatim.
 [release.gates]
 # Docs-level candidate assertion. 38ms.
 private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
