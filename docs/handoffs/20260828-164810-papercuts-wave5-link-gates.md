@@ -56,7 +56,7 @@ MSRV floor that Effigy already fixed.
 - **Required validation:** Effigy `v0.12.1+local.9b9a3ba`. Link proof on
   this worktree after `bun install`. Gate proof from
   `effigy release gates` order on a fixture, not a rename.
-- **PR URL:** pending
+- **PR URL:** https://github.com/inflatable-cookie/longhorn/pull/12
 - **Merge authorisation:** absent; do not merge
 
 ## Boundaries
