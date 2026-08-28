@@ -7,35 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] `deps link bun` refuses Bun registry package symlinks — 2026-08-27
-- Friction: after `bun install` in a fresh worktree, the documented
-  `effigy deps link bun ../poodle` path refuses Bun's normal registry-package
-  symlinks as conflicting targets, so a linked Poodle cannot replace the
-  installed copy without manual cleanup.
-- Impact: agents following the getting-started link path hit a conflict
-  error after a successful install.
-- Possible fix: make `deps link bun` safely replace Bun's installed package
-  symlinks (Effigy surface). Longhorn cannot wrap this without a fake local
-  shim; proven 2026-08-27 on Effigy v0.12.1 — conflicting target under
-  `node_modules/.bun/@inflatable-cookie+poodle-core@…`; manual unlink of the
-  registry symlinks then `deps link bun` succeeds.
-- Surface: `effigy deps link bun`, fresh Git worktrees.
-- Split from: fresh-worktree QA umbrella (2026-08-16), closed 2026-08-27 for
-  the Bun-bootstrap half only.
-
-### [ ] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
-- Friction: `[release.gates]` is written cheapest-first, but effigy sorts by
-  gate name. A measured run is advisories, floor, private-candidate,
-  prototypes, rustdoc, source, workspace — the 145s MSRV floor runs before the
-  38ms candidate check, so a release that will fail on the cheap gate pays for
-  the expensive one first.
-- Impact: ~2.5 wasted minutes per failing release run; the comment claiming
-  "cheapest first" was false in two files before this was measured.
-- Possible fix: an ordering key in effigy's `[release.gates]`, or execution in
-  declaration order. Renaming gates to sort correctly is not available —
-  `verify-private-candidate-docs-card127.ts` asserts two gate lines verbatim.
-- Surface: `config/release.toml`, `effigy release gates`.
-
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
@@ -53,6 +24,25 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   `crates/longhorn-licence/src/activation.rs`.
 
 ## Closed
+
+### [x] `deps link bun` refuses Bun registry package symlinks — 2026-08-27
+- Friction: after `bun install` in a fresh worktree, `effigy deps link bun
+  ../poodle` refused Bun's registry-package symlinks as conflicting targets.
+- Fix (2026-08-28): Effigy PR 48 replaces those symlinks when the target is
+  inside the consumer's `node_modules/.bun`. Proven on PATH Effigy
+  `v0.12.1+local.9b9a3ba` (contains `02100eef`): after `bun install`, link
+  applied over `@inflatable-cookie+poodle-core@…` with no manual unlink.
+- Surface: `effigy deps link bun`, fresh Git worktrees.
+
+### [x] Release gates execute in name order, so cheap-first is unbuyable — 2026-08-15
+- Friction: `[release.gates]` was written cheapest-first, but Effigy sorted
+  by gate name, so the 145s MSRV floor ran before the 38ms candidate check.
+- Fix (2026-08-28): Effigy PR 48 runs gates in declaration order. Proven on
+  PATH Effigy `v0.12.1+local.9b9a3ba` with a fixture (`zzz-first`,
+  `aaa-second`, `mmm-third` ran in that order). Gate names unchanged —
+  `verify-private-candidate-docs-card127.ts` still asserts two lines
+  verbatim. `config/release.toml` comment updated to match.
+- Surface: `config/release.toml`, `effigy release gates`.
 
 ### [x] Greenfield proof ignores healthy Poodle link state — 2026-08-27
 - Friction: once Poodle is linked, `verify-greenfield-card125.ts` ignored that
@@ -97,8 +87,8 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Fix (2026-08-27): `bootstrap:deps` runs `bun install --frozen-lockfile`;
   `qa` invokes it before TypeScript checks; `check:bun-deps` fails fast with
   the bootstrap selector when `check:ts` or `check:svelte` run alone.
-- Remaining half tracked as an open papercut: `deps link bun` registry-symlink
-  replacement (Effigy). Greenfield proof path resolution closed 2026-08-27.
+  Registry-symlink replacement closed 2026-08-28 (Effigy PR 48); greenfield
+  proof path resolution closed 2026-08-27.
 - Surface: `effigy qa`, `bootstrap:deps`, `check:bun-deps`, `check:ts`.
 
 ### [x] Prototype lockfiles go stale when a workspace crate gains a dependency — 2026-08-27

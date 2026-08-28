@@ -5,7 +5,7 @@ handoff_mode: worker-pr-loop
 worker_mode: implementation
 dispatch_authority: orchestrator
 handoff: single-file-path-only
-status: ready-to-launch
+status: ready-for-review
 owner: Tom / papercuts orchestrator
 created: 2026-08-28
 updated: 2026-08-28
@@ -35,31 +35,28 @@ MSRV floor that Effigy already fixed.
 - **Repository:** `/Users/tom/Dev/projects/longhorn`
 - **Planning branch:** `main`
 - **Planning base commit:** `61beb470a330c78e841f9f069d2cb36a2a86d73d`
-- **Pushed main verification:** local `HEAD` and `origin/main` both resolved
-  to that SHA before this handoff was created.
-- **Planning checkout:** clean before this handoff file was created.
 - **Worker mode:** implementation worker dispatched by the orchestrator.
-- **Worker branch:** `worker/papercuts-wave5-link-gates`
-- **Worker worktree:** launcher worktree first. `.agents.local.env` was
-  absent; ask before creating a manual fallback. Never use `/tmp`.
-- **Ready work items, in order:**
-  1. `deps link bun` refuses Bun registry package symlinks — close if
-     current Effigy can replace the registry symlink under
-     `node_modules/.bun/@inflatable-cookie+poodle-core@…` without a
-     manual unlink
-  2. Release gates execute in name order — close if
-     `effigy release gates` follows `config/release.toml` declaration
-     order. `verify-private-candidate-docs-card127.ts` still asserts two
-     gate lines verbatim; do not rename gates to sort them
-- **Out of scope:** Endpoint URL validation duplicated across capability
-  crates (wait for a third caller); editing Effigy.
+- **Worker branch:** `t3code/link-gates-papercuts-wave5`
+- **Worker worktree:** `/Users/tom/.t3/worktrees/longhorn/t3code-a1d5be69`
+- **Item outcomes:**
+  1. `deps link bun` refuses Bun registry package symlinks — **closed**.
+     PATH Effigy `v0.12.1+local.9b9a3ba` (contains `02100eef` / PR 48)
+     replaced the registry symlink under
+     `node_modules/.bun/@inflatable-cookie+poodle-core@…` after
+     `bun install` with no manual unlink.
+  2. Release gates execute in name order — **closed**. Same PATH Effigy
+     ran a fixture in declaration order (`zzz-first`, `aaa-second`,
+     `mmm-third`). Gate names unchanged; card-127 asserts stay intact.
+     `config/release.toml` comment updated.
+- **Out of scope left open:** Endpoint URL validation duplicated across
+  capability crates (wait for a third caller).
 - **Canonical refs:** `PAPERCUTS.md`; `config/release.toml`;
   `scripts/verify-private-candidate-docs-card127.ts`; sibling Effigy
   `02100eefdde17db64652b2b26317bb284c504d8e` (PR 48).
-- **Required validation:** cite the Effigy version/SHA you ran. Link
-  proof on a fresh worktree after `bun install`. Gate proof from
-  `effigy release gates` order, not a rename.
-- **PR URL:** pending
+- **Required validation:** Effigy `v0.12.1+local.9b9a3ba`. Link proof on
+  this worktree after `bun install`. Gate proof from
+  `effigy release gates` order on a fixture, not a rename.
+- **PR URL:** https://github.com/inflatable-cookie/longhorn/pull/12
 - **Merge authorisation:** absent; do not merge
 
 ## Boundaries
@@ -76,8 +73,7 @@ MSRV floor that Effigy already fixed.
 
 ## Suggested Next Move
 
-Read this file, run the worktree preflight, then prove link-replace and
-declaration-order gates against current Effigy.
+Awaiting orchestrator review. Merge is operator-authorised only.
 
 ## Completion Protocol
 
