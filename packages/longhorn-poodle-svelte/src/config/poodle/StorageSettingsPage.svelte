@@ -32,10 +32,10 @@
     onSnapshot,
   }: ConfigOperationsPageProps = $props();
 
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshot);
-  let selectedProfile = $state<StorageProfileId | null>(
-    initialSnapshot?.storage?.layout.profile ?? null,
-  );
+  const initialSnapshotValue = (() => initialSnapshot)();
+  const initialProfileValue = (() => initialSnapshot?.storage?.layout.profile ?? null)();
+  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
+  let selectedProfile = $state<StorageProfileId | null>(initialProfileValue);
   let preview = $state<StorageTransitionPreviewProjection | null>(null);
   let receipt = $state<StorageTransitionReceiptProjection | null>(null);
   let busy = $state(false);

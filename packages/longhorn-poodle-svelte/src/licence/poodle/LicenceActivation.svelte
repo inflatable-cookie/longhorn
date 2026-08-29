@@ -26,7 +26,7 @@
 
   let { controller, mode = "key", title = "Activate licence" }: Props = $props();
 
-  const licence = sampleLicenceController(controller);
+  const licence = sampleLicenceController(() => controller);
 
   function activate(detail: {
     credential: LicenceCredentialProjection;

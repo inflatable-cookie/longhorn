@@ -10,7 +10,7 @@
   } from "../../src/history-tree/svelte.ts";
 
   let { session }: { session: ForkHistorySession } = $props();
-  useForkHistorySession(session);
+  useForkHistorySession(() => session);
 </script>
 
 <button type="button" onclick={() => void session.loadBranches()}>Branches</button>

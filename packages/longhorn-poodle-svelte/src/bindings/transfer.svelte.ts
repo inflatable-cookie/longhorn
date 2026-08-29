@@ -53,10 +53,11 @@ export class TransferState {
 
   constructor(options: TransferStateOptions) {
     this.#options = options;
-    this.#client = options.client;
+    const client = options.client;
+    this.#client = client;
     this.#lifecycle = new ReactiveClientState({
       capability:
-        options.client === undefined
+        client === undefined
           ? {
               kind: "unsupported",
               reason:
@@ -66,7 +67,7 @@ export class TransferState {
           : {
               kind: "supported",
               connect: (listener, onFailure) =>
-                options.client!.connect(listener, onFailure),
+                client.connect(listener, onFailure),
             },
     });
   }

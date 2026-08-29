@@ -42,11 +42,17 @@ import type { UpdateController } from "@inflatable-cookie/longhorn/update";
  * that started the thing it renders would stop it on unmount and take the
  * state away from every other view of the same controller.
  */
-export function sampleUpdateController(controller: UpdateController) {
+export function sampleUpdateController(getController: () => UpdateController) {
+  let controller = getController();
   let notify = $state(0);
 
   $effect(() => {
-    const unobserve = controller.observe(() => {
+    const nextController = getController();
+    if (nextController !== controller) {
+      controller = nextController;
+      notify += 1;
+    }
+    const unobserve = nextController.observe(() => {
       notify += 1;
     });
     return () => unobserve();

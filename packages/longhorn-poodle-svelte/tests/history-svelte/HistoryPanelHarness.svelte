@@ -17,7 +17,7 @@
   } from "../../src/history/svelte.ts";
 
   let { session }: { session: HistorySession } = $props();
-  useHistorySession(session);
+  useHistorySession(() => session);
 
   const undoLabel = $derived(
     session.snapshot?.summary.nextUndoLabel

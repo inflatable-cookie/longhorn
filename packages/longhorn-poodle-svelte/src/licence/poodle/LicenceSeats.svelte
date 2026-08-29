@@ -23,7 +23,7 @@
 
   let { controller, title = "Activated machines", confirmRelease = true }: Props = $props();
 
-  const licence = sampleLicenceController(controller);
+  const licence = sampleLicenceController(() => controller);
   let releasing = $state<string | null>(null);
 
   function rename(detail: { machineId: string; label: string | null }): void {

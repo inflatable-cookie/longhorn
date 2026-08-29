@@ -23,17 +23,19 @@ For maintainers and agents:
 - [Roadmaps](roadmaps/README.md) — delivery planning, including the
   [generation index](roadmaps/generation-index.md) with the live next-task pointer
 - [Logs](logs/README.md) — batch evidence of completed work
+- [Triage](triage/README.md) — open observations awaiting promotion or disposition
 
 ## Current State
 
 Pre-1.0 private workspace. Generation g01 is complete (20 milestones, cards
-001-137, five migrated consumers). Generation g02 is active with
-application-update and licensing runways (cards 138-159), the memo-023
-release-audit suite (cards 200-224), and consumer-scoped credential slots
-(g02.028, card 225). The private `0.1.0` compatibility
-candidate spans the TypeScript packages and Rust crates enumerated — always
-currently — by the generated [API reference](reference/api-surface.md).
-Publication to npm and crates.io remains deferred.
+001-137, five migrated consumers). Generation g02 is active across
+application-update and licensing runways, the memo-023 release-audit suite
+(cards 200-224), the mixed-scale coordinate correction (card 226), and the
+agent-control arc through g02.035 (cards 227-240), with consumer-scoped
+credential slots at card 225. The private `0.1.0` compatibility candidate
+spans the TypeScript packages and Rust crates enumerated — always currently —
+by the generated [API reference](reference/api-surface.md). Publication to
+npm and crates.io remains deferred.
 
 The complete delivery history is preserved in the
 [roadmap generation index](roadmaps/generation-index.md).

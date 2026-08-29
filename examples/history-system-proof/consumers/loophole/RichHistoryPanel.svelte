@@ -12,7 +12,7 @@
   } from "@inflatable-cookie/longhorn-poodle-svelte/history/svelte";
 
   let { session }: { session: HistorySession } = $props();
-  useHistorySession(session);
+  useHistorySession(() => session);
 
   const undoLabel = $derived(
     session.snapshot?.summary.nextUndoLabel

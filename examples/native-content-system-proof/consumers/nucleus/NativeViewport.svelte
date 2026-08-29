@@ -7,7 +7,7 @@
   } from "@inflatable-cookie/longhorn-poodle-svelte/native-content";
 
   let { session }: { session: NativeContentSession } = $props();
-  useNativeContentSession(session);
+  useNativeContentSession(() => session);
 </script>
 
 <Surface asRole="region" label="Browser panel" padding="none">

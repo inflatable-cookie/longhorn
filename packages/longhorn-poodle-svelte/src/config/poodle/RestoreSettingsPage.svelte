@@ -44,7 +44,8 @@
     onSnapshot,
   }: ConfigOperationsPageProps = $props();
 
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshot);
+  const initialSnapshotValue = (() => initialSnapshot)();
+  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
   let selection = $state("hostPicker");
   let inspection = $state<RestoreInspectionProjection | null>(null);
   let inspectionGeneration = $state<number | null>(null);
