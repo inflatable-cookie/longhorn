@@ -5,7 +5,7 @@ handoff_mode: worker-pr-loop
 worker_mode: implementation
 dispatch_authority: orchestrator
 handoff: single-file-path-only
-status: ready-to-launch
+status: worker-complete
 owner: Tom / papercuts orchestrator
 created: 2026-08-29
 updated: 2026-08-29
@@ -36,30 +36,16 @@ choosing between live Figmatic instances.
 - **Repository:** `/Users/tom/Dev/projects/longhorn`
 - **Planning branch:** `main`
 - **Planning base commit:** `7d6a1d8ad644af815e1bbec55fa5ec1588700b52`
-- **Pushed main verification:** local `HEAD` and `origin/main` both resolved
-  to that SHA before this handoff was created.
-- **Planning checkout:** clean before this handoff file was created.
-- **Worker mode:** implementation worker dispatched by the orchestrator.
-- **Worker branch:** `worker/papercuts-wave13-dead-pid`
-- **Worker worktree:** launcher first. `.agents.local.env` was absent;
-  ask before creating a manual fallback. Never use `/tmp`.
-- **Required sibling worktree links:** none
-- **Ready work items, in order:**
-  1. Longhorn agent-control discovery directory keeps dead-pid files —
-     remove (or ignore and then unlink) discovery JSON whose pid is not
-     running, on mount / find-instance, not only on clean process exit.
-     Add-and-close this papercut in *this* repo's `PAPERCUTS.md`; the
-     filing lives in Figmatic
-- **Out of scope:** Endpoint URL duplication (wait for a third caller);
-  consumer AGENTS audit selector; rust-audit jetstream workspace
-  membership; editing Figmatic; GitHub workflows.
-- **Canonical refs:** Figmatic `PAPERCUTS.md` dead-pid entry;
-  Longhorn agent-control discovery under
-  `~/Library/Application Support/longhorn/state/agent-control`.
-- **Required validation:** a focused test that a discovery file with a
-  dead pid is not returned and is unlinked (or equivalently gone from
-  the directory). Do not require a live Figmatic window.
-- **PR URL:** pending
+- **Worker branch:** `t3code/sweep-dead-pid-discovery`
+- **Worker worktree:** `/Users/tom/.t3/worktrees/longhorn/t3code-73aa6d09`
+- **Done:** `publish_discovery` sweeps dead-pid files; `find-instance.ts`
+  unlinks them on lookup; Rust and finder fixtures assert unlink;
+  papercut add-and-closed in Longhorn `PAPERCUTS.md`; contract 022 updated.
+- **Out of scope left open:** Endpoint URL duplication; consumer AGENTS
+  audit selector; rust-audit jetstream workspace membership; Figmatic.
+- **Required validation:** `cargo test -p longhorn-agent-control --test
+  discovery` pass; `effigy check:agent-control-skill` pass.
+- **PR URL:** https://github.com/inflatable-cookie/longhorn/pull/15
 - **Merge authorisation:** absent; do not merge
 
 ## Boundaries
@@ -75,9 +61,7 @@ choosing between live Figmatic instances.
 
 ## Suggested Next Move
 
-Read this file from the top. Run the worktree-safety preflight. After
-the committed `HEAD` handoff checks out, find the discovery writer and
-sweep dead pids on mount.
+Orchestrator review of PR 15. Merge is operator-authorised only.
 
 ## Completion Protocol
 
