@@ -3,7 +3,7 @@
 // vocabulary (CONTROL_TOOL_NAMES) and the workspace version. Also runs
 // finder and install fixtures so qa covers Cards 235-236 in one selector.
 
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -331,6 +331,61 @@ async function runFinderFixtures(): Promise<void> {
     }
     if (!stdout.includes(tokenFor(livePid))) {
       throw new Error("paste line should carry the token");
+    }
+
+    // Unlink failure must not be reported as removal.
+    const stuckPid = 999_999_992;
+    await writeDiscovery(dir, "dev.example.stuck", stuckPid, 49154);
+    const stuckPath = join(dir, `dev.example.stuck-${stuckPid}.json`);
+    const failed = await scanDiscovery(
+      dir,
+      undefined,
+      (pid) => pid === livePid,
+      async () => {
+        throw Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+      },
+    );
+    if (failed.removed !== 0) {
+      throw new Error(`unlink failure counted as removed: ${failed.removed}`);
+    }
+    if (failed.unlinkFailed !== 1) {
+      throw new Error(`expected 1 unlink failure, got ${failed.unlinkFailed}`);
+    }
+    const failedDiagnostics = formatDiagnostics(failed, undefined);
+    if (failedDiagnostics.includes("removed")) {
+      throw new Error(`failed unlink reported as removed:\n${failedDiagnostics}`);
+    }
+    if (!failedDiagnostics.includes("skipped 1 stale file (dead pid; unlink failed)")) {
+      throw new Error(`diagnostics missing unlink-failed skip:\n${failedDiagnostics}`);
+    }
+    const afterFailed = await readdir(dir);
+    if (!afterFailed.includes(`dev.example.stuck-${stuckPid}.json`)) {
+      throw new Error(`stuck discovery file vanished without unlink: ${stuckPath}`);
+    }
+
+    if (process.platform !== "win32") {
+      const locked = await mkdtemp(join(tmpdir(), "agent-control-finder-locked-"));
+      try {
+        await writeDiscovery(locked, "dev.example.locked", stuckPid, 49155);
+        await chmod(locked, 0o555);
+        const lockedRun = await runFinder(["--discovery-dir", locked]);
+        if (lockedRun.code === 0) {
+          throw new Error("locked stale-only dir should exit nonzero");
+        }
+        if (lockedRun.stderr.includes("removed")) {
+          throw new Error(`read-only dir claimed removal:\n${lockedRun.stderr}`);
+        }
+        if (!lockedRun.stderr.includes("skipped 1 stale file (dead pid; unlink failed)")) {
+          throw new Error(`read-only dir missing unlink-failed skip:\n${lockedRun.stderr}`);
+        }
+        const lockedNames = await readdir(locked);
+        if (!lockedNames.includes(`dev.example.locked-${stuckPid}.json`)) {
+          throw new Error("read-only dir still lost the stale discovery file");
+        }
+      } finally {
+        await chmod(locked, 0o755).catch(() => {});
+        await rm(locked, { recursive: true, force: true });
+      }
     }
   } finally {
     await rm(dir, { recursive: true, force: true });

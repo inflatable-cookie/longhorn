@@ -28,7 +28,10 @@ export type LiveInstance = {
 
 export type ScanResult = {
   live: LiveInstance[];
-  stale: number;
+  /** Dead-pid files successfully unlinked. */
+  removed: number;
+  /** Dead-pid files still present because unlink failed. */
+  unlinkFailed: number;
   unreadable: number;
 };
 
@@ -99,6 +102,7 @@ export async function scanDiscovery(
   dir: string,
   appId: string | undefined,
   alive: (pid: number) => boolean = pidAlive,
+  removeFile: (path: string) => Promise<void> = unlink,
 ): Promise<ScanResult> {
   let names: string[];
   try {
@@ -106,12 +110,12 @@ export async function scanDiscovery(
   } catch (error) {
     const code = (error as { code?: string }).code;
     if (code === "ENOENT") {
-      return { live: [], stale: 0, unreadable: 0 };
+      return { live: [], removed: 0, unlinkFailed: 0, unreadable: 0 };
     }
     throw error;
   }
 
-  const result: ScanResult = { live: [], stale: 0, unreadable: 0 };
+  const result: ScanResult = { live: [], removed: 0, unlinkFailed: 0, unreadable: 0 };
   for (const name of names) {
     const path = join(dir, name);
     let text: string;
@@ -127,11 +131,12 @@ export async function scanDiscovery(
       continue;
     }
     if (!alive(file.pid)) {
-      result.stale += 1;
       try {
-        await unlink(path);
+        await removeFile(path);
+        result.removed += 1;
       } catch {
         // Best-effort: still skip a dead-pid file we cannot unlink.
+        result.unlinkFailed += 1;
       }
       continue;
     }
@@ -182,8 +187,13 @@ export function formatDiagnostics(scan: ScanResult, appId: string | undefined): 
       lines.push(`  appId=${file.appId} pid=${file.pid} port=${file.port}`);
     }
   }
-  if (scan.stale > 0) {
-    lines.push(`removed ${scan.stale} stale file${scan.stale === 1 ? "" : "s"} (dead pid)`);
+  if (scan.removed > 0) {
+    lines.push(`removed ${scan.removed} stale file${scan.removed === 1 ? "" : "s"} (dead pid)`);
+  }
+  if (scan.unlinkFailed > 0) {
+    lines.push(
+      `skipped ${scan.unlinkFailed} stale file${scan.unlinkFailed === 1 ? "" : "s"} (dead pid; unlink failed)`,
+    );
   }
   if (scan.unreadable > 0) {
     lines.push(`skipped ${scan.unreadable} unreadable file${scan.unreadable === 1 ? "" : "s"}`);
