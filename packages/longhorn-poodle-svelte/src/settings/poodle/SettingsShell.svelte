@@ -56,7 +56,7 @@
   let searchQuery = $state("");
   let focusTarget = $state<HTMLElement | null>(null);
 
-  useSettingsSession(session, resolveRenderer);
+  useSettingsSession(() => session, () => resolveRenderer);
 
   /**
    * Search narrows the nav rail; it does not replace the page.

@@ -20,7 +20,7 @@
 
   let { controller, confirmInstall = true }: Props = $props();
 
-  const update = sampleUpdateController(controller);
+  const update = sampleUpdateController(() => controller);
 
   const CHANNEL_LABELS: Record<Channel, string> = {
     production: "Production",

@@ -11,11 +11,17 @@ import type { LicenceController } from "@inflatable-cookie/longhorn/licence";
  * The lifecycle is deliberately not touched. Whoever constructed the
  * controller starts and stops it.
  */
-export function sampleLicenceController(controller: LicenceController) {
+export function sampleLicenceController(getController: () => LicenceController) {
+  let controller = getController();
   let notify = $state(0);
 
   $effect(() => {
-    const unobserve = controller.observe(() => {
+    const nextController = getController();
+    if (nextController !== controller) {
+      controller = nextController;
+      notify += 1;
+    }
+    const unobserve = nextController.observe(() => {
       notify += 1;
     });
     return () => unobserve();

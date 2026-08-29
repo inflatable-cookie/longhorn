@@ -19,7 +19,7 @@
 
   let { controller, confirmInstall = true }: Props = $props();
 
-  const update = sampleUpdateController(controller);
+  const update = sampleUpdateController(() => controller);
 
   function install(): void {
     const version = update.actionableVersion;

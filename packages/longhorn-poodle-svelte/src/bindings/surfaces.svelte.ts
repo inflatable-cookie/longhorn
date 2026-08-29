@@ -41,10 +41,11 @@ export class SurfaceState {
   #epoch: number | undefined;
 
   constructor(options: SurfaceStateOptions) {
-    this.#client = options.client;
+    const client = options.client;
+    this.#client = client;
     this.#lifecycle = new ReactiveClientState({
       capability:
-        options.client === undefined
+        client === undefined
           ? {
               kind: "unsupported",
               reason:
@@ -54,7 +55,7 @@ export class SurfaceState {
           : {
               kind: "supported",
               connect: (listener, onFailure) =>
-                options.client!.subscribe(listener, onFailure),
+                client.subscribe(listener, onFailure),
             },
       onSnapshot: (snapshot) => this.#acceptSnapshot(snapshot),
     });

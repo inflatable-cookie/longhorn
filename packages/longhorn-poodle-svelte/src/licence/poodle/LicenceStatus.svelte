@@ -18,7 +18,7 @@
 
   let { controller, title = "Licence" }: Props = $props();
 
-  const licence = sampleLicenceController(controller);
+  const licence = sampleLicenceController(() => controller);
 </script>
 
 {#if licence.activated && licence.usability !== undefined && licence.trustBasis !== undefined}

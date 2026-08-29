@@ -30,7 +30,7 @@
     onOpenChange = null,
   }: Props = $props();
 
-  const update = sampleUpdateController(controller);
+  const update = sampleUpdateController(() => controller);
 
   function install(): void {
     const version = update.actionableVersion;

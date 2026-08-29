@@ -6,7 +6,7 @@
   } from "../../src/commands/poodle.ts";
 
   let { session }: { session: CommandSession } = $props();
-  useCommandSession(session);
+  useCommandSession(() => session);
 </script>
 
 <button type="button" onclick={() => session.setOpen(true)}>

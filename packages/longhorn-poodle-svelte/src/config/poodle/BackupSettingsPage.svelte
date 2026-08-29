@@ -25,7 +25,8 @@
     onSnapshot,
   }: ConfigOperationsPageProps = $props();
 
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshot);
+  const initialSnapshotValue = (() => initialSnapshot)();
+  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
   let busy = $state(false);
   let error = $state<string | null>(null);
   let notice = $state<string | null>(null);

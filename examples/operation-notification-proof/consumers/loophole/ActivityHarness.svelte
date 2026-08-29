@@ -5,8 +5,8 @@
   import { useOperationSession, type OperationSession } from "@inflatable-cookie/longhorn-poodle-svelte/operation/svelte";
 
   let { operations, notifications }: { operations: OperationSession; notifications: NotificationSession } = $props();
-  useOperationSession(operations);
-  useNotificationSession(notifications);
+  useOperationSession(() => operations);
+  useNotificationSession(() => notifications);
 </script>
 
 <OperationPanel session={operations} title="Render queue" />

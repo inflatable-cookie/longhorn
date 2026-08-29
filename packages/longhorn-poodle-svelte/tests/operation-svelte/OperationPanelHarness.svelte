@@ -9,7 +9,7 @@
     session: OperationSession;
     shape: "soundcheck" | "loophole";
   } = $props();
-  useOperationSession(session);
+  useOperationSession(() => session);
 </script>
 
 <OperationPanel

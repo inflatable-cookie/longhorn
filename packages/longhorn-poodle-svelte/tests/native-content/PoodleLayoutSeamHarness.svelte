@@ -15,7 +15,7 @@
     mechanism: "child_view" | "backing_surface";
   } = $props();
 
-  useNativeContentSession(session);
+  useNativeContentSession(() => session);
 </script>
 
 <Surface
