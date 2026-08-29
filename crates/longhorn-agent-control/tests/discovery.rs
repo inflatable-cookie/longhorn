@@ -6,7 +6,7 @@ use std::path::Path;
 use longhorn_agent_control::{
     DISCOVERY_SCHEMA_VERSION, DiscoveryFile, InstanceToken, enumerate_discovery,
     enumerate_discovery_with, process_alive, publish_discovery, remove_discovery_file,
-    resolve_discovery_dir, resolve_discovery_dir_with_state_override,
+    resolve_discovery_dir, resolve_discovery_dir_with_state_override, sweep_stale_discovery,
 };
 use longhorn_config::{PlatformDirectoryFacts, TargetPlatform};
 use tempfile::TempDir;
@@ -139,16 +139,99 @@ fn a_dead_pid_marks_the_file_stale_under_the_real_probe() {
         token: InstanceToken::generate().unwrap(),
     };
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(
-        dir.join(format!("dev.example.loophole-{dead_pid}.json")),
-        serde_json::to_string(&file).unwrap(),
-    )
-    .unwrap();
+    let path = dir.join(format!("dev.example.loophole-{dead_pid}.json"));
+    std::fs::write(&path, serde_json::to_string(&file).unwrap()).unwrap();
 
     let scan = enumerate_discovery(&dir).unwrap();
     assert_eq!(scan.instances.len(), 1);
     assert!(scan.instances[0].is_stale());
     assert_eq!(scan.instances[0].file().pid, dead_pid);
+}
+
+#[cfg(unix)]
+#[test]
+fn sweep_unlinks_discovery_files_with_a_dead_pid() {
+    let root = TempDir::new().unwrap();
+    let dir = root.path().join("agent-control");
+
+    let mut child = std::process::Command::new("sh")
+        .args(["-c", "sleep 60"])
+        .spawn()
+        .unwrap();
+    let dead_pid = child.id();
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(!process_alive(dead_pid));
+
+    let live = publish_discovery(
+        &dir,
+        "dev.example.live",
+        49160,
+        InstanceToken::generate().unwrap(),
+    )
+    .unwrap();
+    let dead_path = dir.join(format!("dev.example.dead-{dead_pid}.json"));
+    let dead = DiscoveryFile {
+        schema_version: DISCOVERY_SCHEMA_VERSION,
+        app_id: "dev.example.dead".to_owned(),
+        pid: dead_pid,
+        port: 49161,
+        token: InstanceToken::generate().unwrap(),
+    };
+    std::fs::write(&dead_path, serde_json::to_string(&dead).unwrap()).unwrap();
+
+    let removed = sweep_stale_discovery(&dir).unwrap();
+    assert_eq!(removed, 1);
+    assert!(!dead_path.exists());
+    assert!(live.path().exists());
+
+    let scan = enumerate_discovery(&dir).unwrap();
+    assert_eq!(scan.instances.len(), 1);
+    assert!(scan.instances[0].is_live());
+    assert_eq!(scan.instances[0].file().pid, std::process::id());
+
+    live.remove().unwrap();
+}
+
+#[test]
+fn publish_sweeps_dead_pid_files_before_writing() {
+    let root = TempDir::new().unwrap();
+    let dir = root.path().join("agent-control");
+    std::fs::create_dir_all(&dir).unwrap();
+
+    // A pid that is not this process and is overwhelmingly not running.
+    let dead_pid = std::process::id().wrapping_add(100_000).max(2);
+    assert_ne!(dead_pid, std::process::id());
+    assert!(
+        !process_alive(dead_pid),
+        "fixture needs a dead pid; {dead_pid} is live"
+    );
+
+    let dead_path = dir.join(format!("dev.example.ghost-{dead_pid}.json"));
+    let dead = DiscoveryFile {
+        schema_version: DISCOVERY_SCHEMA_VERSION,
+        app_id: "dev.example.ghost".to_owned(),
+        pid: dead_pid,
+        port: 49162,
+        token: InstanceToken::generate().unwrap(),
+    };
+    std::fs::write(&dead_path, serde_json::to_string(&dead).unwrap()).unwrap();
+
+    let live = publish_discovery(
+        &dir,
+        "dev.example.fresh",
+        49163,
+        InstanceToken::generate().unwrap(),
+    )
+    .unwrap();
+
+    assert!(!dead_path.exists());
+    assert!(live.path().exists());
+    let scan = enumerate_discovery_with(&dir, |pid| pid == std::process::id()).unwrap();
+    assert_eq!(scan.instances.len(), 1);
+    assert!(scan.instances[0].is_live());
+
+    live.remove().unwrap();
 }
 
 #[test]

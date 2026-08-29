@@ -62,8 +62,8 @@ agent can use while the app runs unfocused in the background.
 - Each instance writes a discovery file at
   `$XDG_STATE_HOME/longhorn/agent-control/<app-id>-<pid>.json`
   (macOS: `~/Library/Application Support` state equivalent) containing app
-  id, pid, port, token, and schema version. Removed on clean exit; stale
-  files are detectable by dead pid.
+  id, pid, port, token, and schema version. Removed on clean exit; mount
+  and find-instance also unlink discovery files whose pid is dead.
 - Agents enumerate the directory to find live instances. Two agents may
   drive two instances, or interleave on one, without coordination.
 
@@ -164,8 +164,8 @@ Satisfied, with the proof named:
   packaged macOS — Card 238 freshness matrix v2
   (`examples/agent-control-proof/evidence/`)
 - Origin-rejection and bad-token fixtures — Cards 229-230
-- discovery lifecycle: create, enumerate, stale-pid detection, cleanup —
-  Cards 229-231
+- discovery lifecycle: create, enumerate, stale-pid detection and sweep,
+  cleanup — Cards 229-231
 - two concurrent clients interleaving on one instance without interference —
   Card 229 loopback journal plus Card 234 packaged two-client snapshot and
   listen streams

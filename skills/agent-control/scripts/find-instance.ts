@@ -7,7 +7,7 @@
 // Usage:
 //   bun find-instance.ts [--app-id <id>] [--discovery-dir <path>]
 
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -126,11 +126,16 @@ export async function scanDiscovery(
       result.unreadable += 1;
       continue;
     }
-    if (appId && file.appId !== appId) continue;
     if (!alive(file.pid)) {
       result.stale += 1;
+      try {
+        await unlink(path);
+      } catch {
+        // Best-effort: still skip a dead-pid file we cannot unlink.
+      }
       continue;
     }
+    if (appId && file.appId !== appId) continue;
     result.live.push({ path, file });
   }
   result.live.sort((left, right) => {
@@ -178,7 +183,7 @@ export function formatDiagnostics(scan: ScanResult, appId: string | undefined): 
     }
   }
   if (scan.stale > 0) {
-    lines.push(`skipped ${scan.stale} stale file${scan.stale === 1 ? "" : "s"} (dead pid)`);
+    lines.push(`removed ${scan.stale} stale file${scan.stale === 1 ? "" : "s"} (dead pid)`);
   }
   if (scan.unreadable > 0) {
     lines.push(`skipped ${scan.unreadable} unreadable file${scan.unreadable === 1 ? "" : "s"}`);

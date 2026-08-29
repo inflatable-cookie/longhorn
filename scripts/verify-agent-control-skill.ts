@@ -3,7 +3,7 @@
 // vocabulary (CONTROL_TOOL_NAMES) and the workspace version. Also runs
 // finder and install fixtures so qa covers Cards 235-236 in one selector.
 
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -263,6 +263,7 @@ async function runFinderFixtures(): Promise<void> {
     const stalePid = 999_999_991;
     await writeDiscovery(dir, "dev.example.live", livePid, 49152);
     await writeDiscovery(dir, "dev.example.stale", stalePid, 49153);
+    const stalePath = join(dir, `dev.example.stale-${stalePid}.json`);
     await writeFile(join(dir, "notes.txt"), "ignore me\n");
     await writeFile(join(dir, "broken.json"), "{not json\n");
 
@@ -282,8 +283,15 @@ async function runFinderFixtures(): Promise<void> {
     if (!found.stderr.includes("found 1 live instance")) {
       throw new Error(`diagnostics missing live count: ${found.stderr}`);
     }
-    if (!found.stderr.includes("skipped 1 stale file")) {
-      throw new Error(`diagnostics missing stale skip: ${found.stderr}`);
+    if (!found.stderr.includes("removed 1 stale file")) {
+      throw new Error(`diagnostics missing stale remove: ${found.stderr}`);
+    }
+    const afterFinder = await readdir(dir);
+    if (afterFinder.includes(`dev.example.stale-${stalePid}.json`)) {
+      throw new Error(`dead-pid discovery file was not unlinked: ${stalePath}`);
+    }
+    if (!afterFinder.includes(`dev.example.live-${livePid}.json`)) {
+      throw new Error("live discovery file was unlinked");
     }
 
     const filtered = await runFinder([

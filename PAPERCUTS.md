@@ -44,6 +44,16 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Closed
 
+### [x] Agent-control discovery directory keeps dead-pid files — 2026-08-29
+- Friction: Figmatic `find-instance.ts` skipped dozens of stale
+  `com.inflatablecookie.figmatic-*.json` files before live ones; discovery
+  only dropped files on clean exit.
+- Fix (2026-08-29): `publish_discovery` sweeps dead-pid files on mount;
+  `find-instance.ts` unlinks them on lookup. Focused Rust and finder fixtures
+  assert a dead-pid file is not returned and is gone from the directory.
+- Surface: `crates/longhorn-agent-control/src/discovery.rs`,
+  `skills/agent-control/scripts/find-instance.ts`, contract 022.
+
 ### [x] `deps link bun` refuses Bun registry package symlinks — 2026-08-27
 - Friction: after `bun install` in a fresh worktree, `effigy deps link bun
   ../poodle` refused Bun's registry-package symlinks as conflicting targets.

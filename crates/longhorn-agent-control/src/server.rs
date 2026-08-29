@@ -108,8 +108,8 @@ where
 /// Serves the control surface on 127.0.0.1 until `shutdown` resolves.
 ///
 /// Generates the instance token, binds, publishes the discovery file with
-/// the bound port, serves, and removes the file on the way out — clean
-/// exit removes it, a crash leaves it stale-detectable by dead pid.
+/// the bound port (after sweeping dead-pid leftovers), serves, and removes
+/// the file on the way out.
 pub async fn serve_control_surface<H>(
     config: ControlServerConfig,
     handler: H,

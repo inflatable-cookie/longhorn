@@ -3,8 +3,8 @@
 //! Each control-surface instance writes one file at
 //! `<state root>/longhorn/agent-control/<app-id>-<pid>.json` carrying app
 //! id, pid, port, token, and schema version. Agents enumerate the directory
-//! to find live instances; stale files are detectable by dead pid; clean
-//! exit removes the file.
+//! to find live instances. Clean exit removes the file; publish and the
+//! finder also unlink discovery files whose pid is already dead.
 //!
 //! Path resolution runs through the contract 004 storage-profile resolver
 //! with the fixed `longhorn` identity — never a hand-rolled dirs lookup —
@@ -187,8 +187,9 @@ impl DiscoveryInstance {
 }
 
 /// Publishes one instance's discovery file below `dir`, creating the
-/// directory when absent. The file is written owner-read-write only: it
-/// carries the bearer token, a credential.
+/// directory when absent. Sweeps dead-pid leftovers first so unclean exits
+/// do not accumulate. The file is written owner-read-write only: it carries
+/// the bearer token, a credential.
 pub fn publish_discovery(
     dir: &Path,
     app_id: &str,
@@ -201,6 +202,7 @@ pub fn publish_discovery(
         source,
     })?;
     narrow_directory_permissions(dir)?;
+    sweep_stale_discovery(dir)?;
 
     let pid = std::process::id();
     let file = DiscoveryFile {
@@ -215,6 +217,29 @@ pub fn publish_discovery(
     write_credential_file(&path, json.as_bytes())?;
 
     Ok(DiscoveryInstance { path, file })
+}
+
+/// Unlinks discovery files whose pid is not a live process. Returns how
+/// many files were removed. A missing directory is a no-op.
+pub fn sweep_stale_discovery(dir: &Path) -> Result<usize, DiscoveryError> {
+    sweep_stale_discovery_with(dir, process_alive)
+}
+
+/// Sweeps with an injected liveness probe — the deterministic form for
+/// fixtures.
+pub fn sweep_stale_discovery_with(
+    dir: &Path,
+    liveness: impl Fn(u32) -> bool,
+) -> Result<usize, DiscoveryError> {
+    let scan = enumerate_discovery_with(dir, liveness)?;
+    let mut removed = 0;
+    for record in scan.instances {
+        if !record.is_live() {
+            remove_discovery_file(record.path())?;
+            removed += 1;
+        }
+    }
+    Ok(removed)
 }
 
 /// Removes one discovery file by path. Idempotent: absence is success.
