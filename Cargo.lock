@@ -2919,6 +2919,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-jetstream-command-artifact-proof"
+version = "0.0.0"
+dependencies = [
+ "longhorn-command",
+ "longhorn-core",
+ "serde_json",
+]
+
+[[package]]
 name = "longhorn-licence"
 version = "0.1.0"
 dependencies = [
@@ -2931,6 +2940,19 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0",
  "ts-rs",
+]
+
+[[package]]
+name = "longhorn-loophole-command-artifact-proof"
+version = "0.0.0"
+dependencies = [
+ "longhorn-command",
+ "longhorn-command-config",
+ "longhorn-command-settings",
+ "longhorn-core",
+ "longhorn-settings",
+ "longhorn-tauri-command",
+ "serde_json",
 ]
 
 [[package]]

@@ -48,6 +48,8 @@ members = [
   "crates/longhorn-windowing",
   "crates/longhorn-windowing-config",
   "examples/agent-control-proof/src-tauri",
+  "examples/command-system-proof/rust/jetstream",
+  "examples/command-system-proof/rust/loophole",
   "examples/nucleus-no-surface-proof",
   "examples/packaged-update-proof",
   "examples/tauri-update-proof/src-tauri",

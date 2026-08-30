@@ -7,25 +7,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] Consumer repo omits target-local AGENTS audit selector — 2026-08-29
-- Friction: `effigy check:agent-instructions` is not defined in Longhorn, so the
-  consumer-safe installed-Northstar fallback is required for the AGENTS audit.
-- Impact: the standard review command fails before the actual audit, and the
-  replacement is not visible from the target task surface.
-- Possible fix: add a target-local read-only alias or document the fallback in
-  the Longhorn agent-instruction surface.
-- Surface: `effigy.toml`, `AGENTS.md`, installed Northstar catalog.
-
-### [ ] Rust audit discovery rejects an excluded example workspace — 2026-08-29
-- Friction: the Northstar Rust audit's Cargo metadata pass reaches
-  `examples/command-system-proof/rust/jetstream/Cargo.toml`, which declares
-  the root workspace but is not a member.
-- Impact: repository-scope Rust inspection stops before it can inventory units
-  or record findings.
-- Possible fix: make the example's workspace membership explicit or isolate it
-  as its own workspace before the audit route runs.
-- Surface: root `Cargo.toml`, `examples/command-system-proof/rust/jetstream/Cargo.toml`.
-
 ### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
@@ -43,6 +24,24 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   `crates/longhorn-licence/src/activation.rs`.
 
 ## Closed
+
+### [x] Consumer repo omits target-local AGENTS audit selector — 2026-08-29
+- Friction: `effigy check:agent-instructions` is not defined in Longhorn, so the
+  consumer-safe installed-Northstar fallback is required for the AGENTS audit.
+- Fix (2026-08-30): `AGENTS.md` Validation names the installed-Northstar
+  command. No target-local Rhai copy; `qa:docs:agent-defaults` stays separate.
+- Surface: `AGENTS.md`, installed Northstar catalog.
+
+### [x] Rust audit discovery rejects an excluded example workspace — 2026-08-29
+- Friction: the Northstar Rust audit's Cargo metadata pass reaches
+  `examples/command-system-proof/rust/jetstream/Cargo.toml`, which declares
+  the root workspace but is not a member.
+- Fix (2026-08-30): jetstream and sibling loophole joined root
+  `workspace.members`. Isolation with `[workspace]` would break the
+  command-system proof's private workspace copy that needs `.workspace =
+  true`.
+- Surface: root `Cargo.toml`,
+  `examples/command-system-proof/rust/{jetstream,loophole}/Cargo.toml`.
 
 ### [x] Agent-control discovery directory keeps dead-pid files — 2026-08-29
 - Friction: Figmatic `find-instance.ts` skipped dozens of stale
