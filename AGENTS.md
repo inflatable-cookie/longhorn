@@ -93,6 +93,16 @@ Use the narrowest relevant Effigy selector while working, then run
 relevant docs links/path checks and inspect the final diff. Never claim a
 green doctor result is full validation.
 
+Longhorn has no target-local `check:agent-instructions` task. AGENTS review
+uses the installed Northstar consumer-safe audit:
+
+```sh
+effigy --repo <installed-northstar> northstar/check:agent-instructions <this-repo>
+```
+
+`qa:docs:agent-defaults` stays a separate check; it forbids a current-directory
+repo override on the instruction surface.
+
 ## Style
 
 Use the compressed internal style in
