@@ -2920,7 +2920,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-jetstream-command-artifact-proof"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "longhorn-command",
  "longhorn-core",
@@ -2944,7 +2944,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-loophole-command-artifact-proof"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "longhorn-command",
  "longhorn-command-config",

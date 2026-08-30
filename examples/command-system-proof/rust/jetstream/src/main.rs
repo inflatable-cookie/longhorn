@@ -1,3 +1,6 @@
+//! Jetstream-shape command registry proof: core command graph only, no
+//! optional settings or Tauri edges.
+
 use longhorn_command::{
     CommandArgumentSchema, CommandBindingDefinition, CommandContextDefinition,
     CommandContextRevision, CommandContextSnapshot, CommandDefinition, CommandEffectiveKeymap,

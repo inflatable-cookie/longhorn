@@ -1,3 +1,6 @@
+//! Loophole-shape command registry proof: settings catalogue and selected
+//! optional command edges that Jetstream must not acquire.
+
 use longhorn_command::{
     AdmittedCommandInvocation, CommandAdmissionEngine, CommandArgumentSchema, CommandAvailability,
     CommandAvailabilityReason, CommandAvailabilityReasonCode, CommandAvailabilitySource,
