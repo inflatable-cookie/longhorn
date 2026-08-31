@@ -44,11 +44,13 @@ lets Poodle/Loophole map the existing error without parsing diagnostic detail.
 
 ## Worker Result
 
+- Architecture: history-tree owns the wire rejection enum; it has no
+  error-to-projection mapper (same as linear history). Hosts construct
+  `ForkNavigationResult::Rejected`. Enum-only Longhorn change is correct.
 - Added `ForkNavigationRejectionCode::AlreadyAtTarget` (`alreadyAtTarget`).
-- Focused protocol tests prove dedicated code + existing `unknownTarget` mapping.
+- Protocol tests prove the new wire variant and existing `unknownTarget`
+  serialize; they do not invent a Longhorn mapper.
 - Regenerated history-tree bindings; closed papercut.
-- Validation: history-tree `protocol` binary green; bindings check current;
-  `effigy qa:docs` and `effigy qa:northstar` green; `git diff --check` clean.
 - Downstream note: Loophole still maps `already_at_target` to `invalidRequest`
   until a separate adoption lane switches to `alreadyAtTarget`.
 

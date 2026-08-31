@@ -88,11 +88,15 @@ fn page_commands_are_revision_bound_and_reject_unknown_fields() {
 }
 
 #[test]
-fn already_at_target_maps_to_dedicated_wire_rejection_code() {
-    let error = ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget;
+fn already_at_target_wire_code_round_trips_with_existing_detail() {
+    // Longhorn owns the wire variant and the domain diagnostic string. Hosts
+    // (Loophole) assign the code when projecting domain errors; this crate has
+    // no error-to-rejection mapper.
+    let detail =
+        ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget.to_string();
     let rejection = ForkNavigationRejectionProjection {
         code: ForkNavigationRejectionCode::AlreadyAtTarget,
-        detail: error.to_string(),
+        detail,
         refresh_required: false,
     };
     let value = serde_json::to_value(&rejection).unwrap();
@@ -111,12 +115,13 @@ fn already_at_target_maps_to_dedicated_wire_rejection_code() {
 }
 
 #[test]
-fn unknown_entry_still_maps_to_unknown_target_wire_code() {
+fn unknown_target_wire_code_still_round_trips() {
     let entry_id = HistoryEntryId::new("entry:missing").unwrap();
-    let error = ForkNavigationError::<std::convert::Infallible>::UnknownEntry(entry_id);
+    let detail =
+        ForkNavigationError::<std::convert::Infallible>::UnknownEntry(entry_id).to_string();
     let rejection = ForkNavigationRejectionProjection {
         code: ForkNavigationRejectionCode::UnknownTarget,
-        detail: error.to_string(),
+        detail,
         refresh_required: false,
     };
     let value = serde_json::to_value(&rejection).unwrap();

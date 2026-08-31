@@ -19,8 +19,9 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   `invalidRequest` cases without parsing diagnostics.
 - Fix (2026-08-31): added `ForkNavigationRejectionCode::AlreadyAtTarget`
   (`alreadyAtTarget` on the wire). Existing detail string preserved; other
-  rejection codes unchanged. Focused protocol tests prove the dedicated code
-  and that `UnknownEntry` still projects as `unknownTarget`.
+  rejection codes unchanged. History-tree owns the wire variant only; hosts
+  (Loophole) still perform error-to-rejection mapping. Protocol tests prove
+  the new variant and existing `unknownTarget` serialize.
 - Surface: `crates/longhorn-history-tree/src/protocol/navigation.rs`,
   `crates/longhorn-history-tree/tests/protocol.rs`, generated history-tree
   bindings. Downstream Loophole/Poodle adoption is a separate lane.
