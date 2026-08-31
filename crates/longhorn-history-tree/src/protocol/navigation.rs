@@ -116,6 +116,8 @@ pub enum ForkNavigationRejectionCode {
     NothingToUndo,
     /// No preferred future can be redone.
     NothingToRedo,
+    /// Requested checkout is already the current target.
+    AlreadyAtTarget,
     /// Branch or entry target does not exist.
     UnknownTarget,
     /// Current product authorization rejected the operation.

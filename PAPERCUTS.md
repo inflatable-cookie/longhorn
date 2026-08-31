@@ -9,6 +9,23 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Closed
 
+### [x] Longhorn wire rejection lacks AlreadyAtTarget — 2026-08-31
+- Friction: `ForkNavigationError::AlreadyAtTarget` existed in Rust, but
+  `ForkNavigationRejectionCode` had no matching wire variant, so hosts collapsed
+  it to `invalidRequest` and sniffers recovered Poodle's `AlreadyAtTarget` from
+  detail text.
+- Impact: operator notices depended on host-language copy instead of a stable
+  code; `AlreadyAtTarget` could not be distinguished from other
+  `invalidRequest` cases without parsing diagnostics.
+- Fix (2026-08-31): added `ForkNavigationRejectionCode::AlreadyAtTarget`
+  (`alreadyAtTarget` on the wire). Existing detail string preserved; other
+  rejection codes unchanged. History-tree owns the wire variant only; hosts
+  (Loophole) still perform error-to-rejection mapping. Protocol tests prove
+  the new variant and existing `unknownTarget` serialize.
+- Surface: `crates/longhorn-history-tree/src/protocol/navigation.rs`,
+  `crates/longhorn-history-tree/tests/protocol.rs`, generated history-tree
+  bindings. Downstream Loophole/Poodle adoption is a separate lane.
+
 ### [x] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose

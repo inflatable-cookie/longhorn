@@ -1,9 +1,10 @@
 //! Exact metadata protocol and payload-boundary evidence.
 
-use longhorn_core::{HistoryId, HistoryRevision};
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
 use longhorn_history::HistoryAuthorityEpoch;
 use longhorn_history_tree::{
-    ForkBranchId, ForkBranchPageCommand, ForkHistoryProtocolVersion, ForkPathPageCommand,
+    ForkBranchId, ForkBranchPageCommand, ForkHistoryProtocolVersion, ForkNavigationError,
+    ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkPathPageCommand,
     ForkPathTargetProjection, ForkSnapshot, ForkSummaryProjection,
 };
 use serde_json::{Value, json};
@@ -84,4 +85,46 @@ fn page_commands_are_revision_bound_and_reject_unknown_fields() {
     let mut unknown = serde_json::to_value(command).unwrap();
     unknown["payload"] = json!({"consumer": "forbidden"});
     assert!(serde_json::from_value::<ForkPathPageCommand>(unknown).is_err());
+}
+
+#[test]
+fn already_at_target_wire_code_round_trips_with_existing_detail() {
+    // Longhorn owns the wire variant and the domain diagnostic string. Hosts
+    // (Loophole) assign the code when projecting domain errors; this crate has
+    // no error-to-rejection mapper.
+    let detail =
+        ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget.to_string();
+    let rejection = ForkNavigationRejectionProjection {
+        code: ForkNavigationRejectionCode::AlreadyAtTarget,
+        detail,
+        refresh_required: false,
+    };
+    let value = serde_json::to_value(&rejection).unwrap();
+    assert_eq!(value["code"], "alreadyAtTarget");
+    assert_eq!(
+        value["detail"],
+        "fork history is already at the requested target"
+    );
+    assert_eq!(value["refreshRequired"], false);
+    assert_ne!(value["code"], "invalidRequest");
+    assert_ne!(value["code"], "unknownTarget");
+
+    let round_trip: ForkNavigationRejectionProjection =
+        serde_json::from_value(value).unwrap();
+    assert_eq!(round_trip, rejection);
+}
+
+#[test]
+fn unknown_target_wire_code_still_round_trips() {
+    let entry_id = HistoryEntryId::new("entry:missing").unwrap();
+    let detail =
+        ForkNavigationError::<std::convert::Infallible>::UnknownEntry(entry_id).to_string();
+    let rejection = ForkNavigationRejectionProjection {
+        code: ForkNavigationRejectionCode::UnknownTarget,
+        detail,
+        refresh_required: false,
+    };
+    let value = serde_json::to_value(&rejection).unwrap();
+    assert_eq!(value["code"], "unknownTarget");
+    assert_eq!(value["detail"], "fork navigation entry does not exist");
 }

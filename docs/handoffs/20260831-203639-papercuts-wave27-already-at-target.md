@@ -1,13 +1,15 @@
 # Papercuts wave 27 — Longhorn AlreadyAtTarget wire code
 
 handoff: single-file-path-only
-status: ready-to-launch
+status: pr-open
 owner: Tom / papercuts orchestrator
 created: 2026-08-31
 updated: 2026-08-31
 handoff_path: /Users/tom/Dev/projects/longhorn/docs/handoffs/20260831-203639-papercuts-wave27-already-at-target.md
 base_required: pushed-main
 tags: [coordination, handoff, worker, pr, papercuts]
+pr: https://github.com/inflatable-cookie/longhorn/pull/20
+head: 50455fc55f16c0e0f197437058b7de49332ab485
 
 ## What This Thread Is Doing
 
@@ -33,10 +35,24 @@ lets Poodle/Loophole map the existing error without parsing diagnostic detail.
 - **Planning branch:** `main`
 - **Planning base commit:** `956e19716463c3ba2734b3bb85ec7bf982b8cc95`
 - **Worker branch:** `worker/papercuts-wave27-already-at-target`
+- **Worker head:** `50455fc55f16c0e0f197437058b7de49332ab485`
+- **PR:** https://github.com/inflatable-cookie/longhorn/pull/20
 - **Downstream owners:** Poodle/Loophole consume the wire code later; do not
   edit either repository in this lane.
 - **Related source entry:** Longhorn `PAPERCUTS.md`, “Longhorn wire rejection
-  lacks AlreadyAtTarget”.
+  lacks AlreadyAtTarget” — closed on this branch.
+
+## Worker Result
+
+- Architecture: history-tree owns the wire rejection enum; it has no
+  error-to-projection mapper (same as linear history). Hosts construct
+  `ForkNavigationResult::Rejected`. Enum-only Longhorn change is correct.
+- Added `ForkNavigationRejectionCode::AlreadyAtTarget` (`alreadyAtTarget`).
+- Protocol tests prove the new wire variant and existing `unknownTarget`
+  serialize; they do not invent a Longhorn mapper.
+- Regenerated history-tree bindings; closed papercut.
+- Downstream note: Loophole still maps `already_at_target` to `invalidRequest`
+  until a separate adoption lane switches to `alreadyAtTarget`.
 
 ## Boundaries
 

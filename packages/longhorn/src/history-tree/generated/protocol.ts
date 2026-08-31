@@ -7,7 +7,7 @@ export const FORK_HISTORY_ENTRY_POSITIONS = ["past","current","future"] as const
 export const FORK_HISTORY_PATH_TARGETS = ["default","branch","continuation"] as const;
 export const FORK_HISTORY_PATH_FLOORS = ["origin","anchor"] as const;
 export const FORK_HISTORY_NAVIGATION_TARGETS = ["undo","redo","checkout","checkoutBranchRoot","checkoutContinuation"] as const;
-export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
+export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = ["incompatibleProtocol","staleAuthority","foreignHistory","staleRevision","nothingToUndo","nothingToRedo","alreadyAtTarget","unknownTarget","unauthorized","applyFailed","rollbackFailed","invalidRequest"] as const;
 export const FORK_HISTORY_NAVIGATION_STATUSES = ["committed","rejected"] as const;
 export const FORK_HISTORY_CHANGED_KINDS = ["record","navigation","branchMetadata","retention","checkpoint","imported","reset"] as const;
 export const FORK_HISTORY_PRUNE_STATUSES = ["unchanged","pruned"] as const;
@@ -648,7 +648,7 @@ targetBranchId: ForkBranchId,
  */
 movedEntryIds: Array<HistoryEntryId>, };
 
-export type ForkNavigationRejectionCode = "incompatibleProtocol" | "staleAuthority" | "foreignHistory" | "staleRevision" | "nothingToUndo" | "nothingToRedo" | "unknownTarget" | "unauthorized" | "applyFailed" | "rollbackFailed" | "invalidRequest";
+export type ForkNavigationRejectionCode = "incompatibleProtocol" | "staleAuthority" | "foreignHistory" | "staleRevision" | "nothingToUndo" | "nothingToRedo" | "alreadyAtTarget" | "unknownTarget" | "unauthorized" | "applyFailed" | "rollbackFailed" | "invalidRequest";
 
 export type ForkNavigationRejectionProjection = { 
 /**
