@@ -9,7 +9,7 @@ handoff_path: /Users/tom/Dev/projects/longhorn/docs/handoffs/20260831-203639-pap
 base_required: pushed-main
 tags: [coordination, handoff, worker, pr, papercuts]
 pr: https://github.com/inflatable-cookie/longhorn/pull/20
-head: fb4cebed7fbb45b071556e429a083c1f4ca3e6d8
+head: 50455fc55f16c0e0f197437058b7de49332ab485
 
 ## What This Thread Is Doing
 
@@ -35,7 +35,7 @@ lets Poodle/Loophole map the existing error without parsing diagnostic detail.
 - **Planning branch:** `main`
 - **Planning base commit:** `956e19716463c3ba2734b3bb85ec7bf982b8cc95`
 - **Worker branch:** `worker/papercuts-wave27-already-at-target`
-- **Worker head:** `fb4cebed7fbb45b071556e429a083c1f4ca3e6d8`
+- **Worker head:** `50455fc55f16c0e0f197437058b7de49332ab485`
 - **PR:** https://github.com/inflatable-cookie/longhorn/pull/20
 - **Downstream owners:** Poodle/Loophole consume the wire code later; do not
   edit either repository in this lane.
