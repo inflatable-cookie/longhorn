@@ -1,19 +1,12 @@
 [package]
-name = "longhorn-browser"
+name = "longhorn-url"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Shared HTTPS endpoint URL classification for Longhorn capability crates"
 publish = false
-
-[dependencies]
-longhorn-licence.workspace = true
-longhorn-url.workspace = true
-serde.workspace = true
-
-[dev-dependencies]
-serde_json.workspace = true
 
 [lints]
 workspace = true

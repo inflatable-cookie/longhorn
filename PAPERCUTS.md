@@ -7,7 +7,9 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
-### [ ] Endpoint URL validation duplicated across capability crates — 2026-08-07
+## Closed
+
+### [x] Endpoint URL validation duplicated across capability crates — 2026-08-07
 - Friction: `longhorn-update::EndpointUrl` and `longhorn-licence::ActivationUrl`
   independently parse and validate an HTTPS URL. The rules differ on purpose
   (update allows loopback HTTP for a local shim; activation does not, because
@@ -16,14 +18,16 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Impact: a parsing bug fixed in one is not fixed in the other. The IPv6
   bracket case was caught in `longhorn-update` by a test; nothing guarantees
   the licence side gets the same scrutiny.
-- Possible fix: promote a shared URL primitive when a third caller appears.
-  Not `longhorn-core` today — two callers do not justify growing core an
-  HTTP concept, and coupling two optional capability crates so one cannot be
-  composed without the other is worse than the duplication.
-- Surface: `crates/longhorn-update/src/source.rs`,
-  `crates/longhorn-licence/src/activation.rs`.
-
-## Closed
+- Fix (2026-08-31): third caller `longhorn-browser::BrowserUrl` landed; shared
+  scheme/loopback classification moved to leaf crate `longhorn-url` (not
+  core). `EndpointUrl`, `ActivationUrl`, and `BrowserUrl` keep their public
+  types and policy differences; BrowserUrl's loopback helper now matches the
+  EndpointUrl authority rules (userinfo strip + `\` authority end). Origin
+  header policy in agent-control unchanged.
+- Surface: `crates/longhorn-url/`, `crates/longhorn-update/src/source.rs`,
+  `crates/longhorn-licence/src/activation.rs`,
+  `crates/longhorn-browser/src/url.rs`,
+  `docs/architecture/package-topology.md`.
 
 ### [x] Consumer repo omits target-local AGENTS audit selector — 2026-08-29
 - Friction: `effigy check:agent-instructions` is not defined in Longhorn, so the

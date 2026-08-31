@@ -47,11 +47,12 @@ discovery and validation entry points.
 | `longhorn-native-content-isolated-window` | generic process-isolated content coordination, bounded helper protocol, and injected lifecycle ports | core, native-content, serde |
 | `longhorn-native-content-backing-surface` | generic full-host storage evidence, viewport clipping, renderer lifecycle, and physical input admission | core, native-content, serde |
 | `longhorn-bridge` | exact-v1 bridge identity, authority-gated lifecycle, generic operation/reply, bounded retry/deduplication, ordered projection, optional job metadata, and feature-gated injected supervision | core |
-| `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, ed25519-dalek, serde |
+| `longhorn-licence` | optional pure licence policy: opaque entitlements, independent use/update windows, trust basis, lease and grace, clock-regression refusal, Ed25519 verification | core, url, ed25519-dalek, serde |
 | `longhorn-credential-keyring` | opt-in host-agnostic platform keychain backend for built-in and consumer-scoped credentials; locked is not absent | core, `keyring` |
-| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, the restart interlock (gate plus quiescence probes), and installation-provenance classification | core, semver, sha2 |
+| `longhorn-update` | optional pure update policy: channels, semver comparison, client-side staged rollout, mandatory-version floor, deferral, the restart interlock (gate plus quiescence probes), and installation-provenance classification | core, url, semver, sha2 |
 | `longhorn-update-install` | Longhorn's update installer, one implementation for every host: minisign verification, bounded extraction, atomic replacement, injected escalation, and the installation-provenance probe | update, minisign-verify, tar, flate2 |
-| `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | serde |
+| `longhorn-url` | shared HTTPS endpoint scheme classification and loopback-host parsing for capability URL newtypes; no HTTP client | none |
+| `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | url, licence, serde |
 | `longhorn-agent-control` | host-agnostic agent app-control core (contract 022): tool vocabulary, discovery-file lifecycle, per-instance bearer token, native-surface provider seam | core, config, sysinfo |
 | `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
