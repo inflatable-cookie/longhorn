@@ -1,9 +1,10 @@
 //! Exact metadata protocol and payload-boundary evidence.
 
-use longhorn_core::{HistoryId, HistoryRevision};
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
 use longhorn_history::HistoryAuthorityEpoch;
 use longhorn_history_tree::{
-    ForkBranchId, ForkBranchPageCommand, ForkHistoryProtocolVersion, ForkPathPageCommand,
+    ForkBranchId, ForkBranchPageCommand, ForkHistoryProtocolVersion, ForkNavigationError,
+    ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkPathPageCommand,
     ForkPathTargetProjection, ForkSnapshot, ForkSummaryProjection,
 };
 use serde_json::{Value, json};
@@ -84,4 +85,41 @@ fn page_commands_are_revision_bound_and_reject_unknown_fields() {
     let mut unknown = serde_json::to_value(command).unwrap();
     unknown["payload"] = json!({"consumer": "forbidden"});
     assert!(serde_json::from_value::<ForkPathPageCommand>(unknown).is_err());
+}
+
+#[test]
+fn already_at_target_maps_to_dedicated_wire_rejection_code() {
+    let error = ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget;
+    let rejection = ForkNavigationRejectionProjection {
+        code: ForkNavigationRejectionCode::AlreadyAtTarget,
+        detail: error.to_string(),
+        refresh_required: false,
+    };
+    let value = serde_json::to_value(&rejection).unwrap();
+    assert_eq!(value["code"], "alreadyAtTarget");
+    assert_eq!(
+        value["detail"],
+        "fork history is already at the requested target"
+    );
+    assert_eq!(value["refreshRequired"], false);
+    assert_ne!(value["code"], "invalidRequest");
+    assert_ne!(value["code"], "unknownTarget");
+
+    let round_trip: ForkNavigationRejectionProjection =
+        serde_json::from_value(value).unwrap();
+    assert_eq!(round_trip, rejection);
+}
+
+#[test]
+fn unknown_entry_still_maps_to_unknown_target_wire_code() {
+    let entry_id = HistoryEntryId::new("entry:missing").unwrap();
+    let error = ForkNavigationError::<std::convert::Infallible>::UnknownEntry(entry_id);
+    let rejection = ForkNavigationRejectionProjection {
+        code: ForkNavigationRejectionCode::UnknownTarget,
+        detail: error.to_string(),
+        refresh_required: false,
+    };
+    let value = serde_json::to_value(&rejection).unwrap();
+    assert_eq!(value["code"], "unknownTarget");
+    assert_eq!(value["detail"], "fork navigation entry does not exist");
 }
