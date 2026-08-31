@@ -1,5 +1,8 @@
 use std::{error::Error, fmt};
 
+use longhorn_url::{
+    ClassifiedEndpoint, EndpointClassificationError, LoopbackHttp, classify_endpoint,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// The longest URL this crate will hand to the operating system.
@@ -19,7 +22,8 @@ const MAX_BROWSER_URL_BYTES: usize = 2048;
 ///
 /// So this is an allowlist, not a denylist. HTTPS with a host, ASCII, no
 /// control characters, no whitespace, no embedded credentials, bounded length.
-/// Anything else is refused with a reason.
+/// Plain HTTP is accepted only for loopback, via the shared `longhorn-url`
+/// classifier. Anything else is refused with a reason.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BrowserUrl(String);
 
@@ -35,21 +39,19 @@ impl BrowserUrl {
         }
         // Scheme first. Everything below assumes the rest is a URL body, and
         // rejecting `javascript:` or `file:` after parsing a host would be a
-        // denylist by another name.
-        //
-        // HTTPS, with one exception mirrored from `EndpointUrl` in the update
-        // domain: plain HTTP is accepted for loopback and nothing else. A
-        // packaged proof's stub authorization server lives on 127.0.0.1, and
-        // loopback traffic cannot be intercepted off-host. Every rule below
-        // -- ASCII, no control characters, no credentials in the authority --
-        // still applies to a loopback URL, because the launcher is still
-        // handing a string to the operating system.
-        let rest = match value.strip_prefix("https://") {
-            Some(rest) => rest,
-            None => match value.strip_prefix("http://") {
-                Some(rest) if is_loopback_host(rest) => rest,
-                _ => return Err(BrowserUrlError::NotHttps),
-            },
+        // denylist by another name. Loopback HTTP stays available for a
+        // packaged proof's stub authorization server on 127.0.0.1.
+        let rest = match classify_endpoint(&value, LoopbackHttp::Allowed) {
+            Ok(ClassifiedEndpoint::Https { rest } | ClassifiedEndpoint::HttpLoopback { rest }) => {
+                rest
+            }
+            Err(EndpointClassificationError::MissingHost) => {
+                return Err(BrowserUrlError::MissingHost);
+            }
+            Err(
+                EndpointClassificationError::UnsupportedScheme
+                | EndpointClassificationError::InsecureScheme,
+            ) => return Err(BrowserUrlError::NotHttps),
         };
 
         if let Some((index, character)) = rest
@@ -78,7 +80,9 @@ impl BrowserUrl {
         }
         // `user:password@host` puts credentials in browser history and in any
         // launcher's argument logging, and it is also how a hostile URL
-        // disguises its real host from a reader.
+        // disguises its real host from a reader. Shared loopback classification
+        // accepts userinfo on a genuine loopback host; this launcher allowlist
+        // still refuses it.
         if authority.contains('@') {
             return Err(BrowserUrlError::EmbeddedCredentials);
         }
@@ -281,23 +285,6 @@ mod tests {
     }
 }
 
-/// Whether an `http://` remainder addresses loopback and only loopback.
-///
-/// Mirrored from the update domain's `EndpointUrl`, including the IPv6
-/// bracket handling: the authority brackets the address, so the port
-/// separator cannot be found by splitting on the first colon.
-fn is_loopback_host(rest: &str) -> bool {
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
-    let host = match authority.strip_prefix('[') {
-        Some(bracketed) => match bracketed.split_once(']') {
-            Some((address, _port)) => address,
-            None => return false,
-        },
-        None => authority.split(':').next().unwrap_or_default(),
-    };
-    matches!(host, "127.0.0.1" | "localhost" | "::1")
-}
-
 #[cfg(test)]
 mod loopback_tests {
     use super::*;
@@ -309,12 +296,49 @@ mod loopback_tests {
         assert!(BrowserUrl::new("http://localhost:8000/authorize").is_ok());
         assert!(BrowserUrl::new("http://[::1]:8000/").is_ok());
 
-        assert!(BrowserUrl::new("http://example.com/").is_err());
-        // The lookalikes a hostile URL would try: loopback as a prefix, a
-        // suffix, or a userinfo disguise.
-        assert!(BrowserUrl::new("http://127.0.0.1.evil.example/").is_err());
-        assert!(BrowserUrl::new("http://localhost.evil.example/").is_err());
-        assert!(BrowserUrl::new("http://evil.example@127.0.0.1/").is_err());
+        assert_eq!(
+            BrowserUrl::new("http://example.com/"),
+            Err(BrowserUrlError::NotHttps)
+        );
+        assert_eq!(
+            BrowserUrl::new("http://127.0.0.1.evil.example/"),
+            Err(BrowserUrlError::NotHttps)
+        );
+        assert_eq!(
+            BrowserUrl::new("http://localhost.evil.example/"),
+            Err(BrowserUrlError::NotHttps)
+        );
+    }
+
+    /// Shared classification accepts userinfo on genuine loopback; the launcher
+    /// allowlist still refuses credentials in the authority.
+    #[test]
+    fn loopback_http_with_userinfo_is_embedded_credentials() {
+        assert_eq!(
+            BrowserUrl::new("http://evil.example@127.0.0.1/"),
+            Err(BrowserUrlError::EmbeddedCredentials)
+        );
+        assert_eq!(
+            BrowserUrl::new("http://user@127.0.0.1:8000/authorize"),
+            Err(BrowserUrlError::EmbeddedCredentials)
+        );
+    }
+
+    /// WHATWG authority ends at `\`; a remote host disguised that way must not
+    /// become loopback HTTP for the launcher either.
+    #[test]
+    fn a_backslash_cannot_push_the_host_past_the_authority() {
+        for value in [
+            r"http://evil.example\@127.0.0.1/x",
+            r"http://evil.example\@localhost/x",
+            r"http://evil.example\@[::1]/x",
+        ] {
+            assert_eq!(
+                BrowserUrl::new(value),
+                Err(BrowserUrlError::NotHttps),
+                "{value}"
+            );
+        }
     }
 
     /// Every containment rule still applies to a loopback URL.

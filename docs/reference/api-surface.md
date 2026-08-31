@@ -54,6 +54,7 @@
 | `longhorn-transfer` | library | `bindings` | [source](../../crates/longhorn-transfer/src/lib.rs) |
 | `longhorn-update` | library | `bindings` | [source](../../crates/longhorn-update/src/lib.rs) |
 | `longhorn-update-install` | library | none | [source](../../crates/longhorn-update-install/src/lib.rs) |
+| `longhorn-url` | library | none | [source](../../crates/longhorn-url/src/lib.rs) |
 | `longhorn-windowing` | library | none | [source](../../crates/longhorn-windowing/src/lib.rs) |
 | `longhorn-windowing-config` | library | none | [source](../../crates/longhorn-windowing-config/src/lib.rs) |
 

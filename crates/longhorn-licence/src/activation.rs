@@ -2,6 +2,7 @@ use core::fmt;
 use std::error::Error;
 
 use ed25519_dalek::VerifyingKey;
+use longhorn_url::{EndpointClassificationError, LoopbackHttp, classify_endpoint};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
@@ -11,12 +12,8 @@ use crate::{LicenceKey, SignedLicence, Timestamp, VerificationError, VerifiedLic
 ///
 /// HTTPS only. Unlike an update artifact, nothing here is
 /// signature-verified end to end by a third party, and an activation request
-/// carries credentials.
-///
-/// Deliberately duplicated rather than shared with `longhorn-update`'s
-/// equivalent: both are optional capability crates, and coupling them so one
-/// cannot be composed without the other would cost more than thirty lines of
-/// validation. Promote to a shared primitive if a third caller appears.
+/// carries credentials. Loopback HTTP stays forbidden here even though the
+/// shared classifier can allow it for update and browser callers.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct ActivationUrl(String);
@@ -31,10 +28,13 @@ impl ActivationUrl {
     /// Validates and records a URL.
     pub fn new(value: impl Into<String>) -> Result<Self, ActivationUrlError> {
         let value = value.into();
-        match value.strip_prefix("https://") {
-            Some(rest) if !rest.is_empty() => Ok(Self(value)),
-            Some(_) => Err(ActivationUrlError::MissingHost),
-            None => Err(ActivationUrlError::NotHttps),
+        match classify_endpoint(&value, LoopbackHttp::Forbidden) {
+            Ok(_) => Ok(Self(value)),
+            Err(EndpointClassificationError::MissingHost) => Err(ActivationUrlError::MissingHost),
+            Err(
+                EndpointClassificationError::UnsupportedScheme
+                | EndpointClassificationError::InsecureScheme,
+            ) => Err(ActivationUrlError::NotHttps),
         }
     }
 

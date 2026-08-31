@@ -1,6 +1,7 @@
 use core::fmt;
 use std::error::Error;
 
+use longhorn_url::{EndpointClassificationError, LoopbackHttp, classify_endpoint};
 use serde::{Deserialize, Serialize};
 
 use crate::{Artifact, Channel};
@@ -12,6 +13,9 @@ use crate::{Artifact, Channel};
 /// signature-verified by the installer regardless, but a manifest is not —
 /// a tampered manifest cannot forge an artifact, though it can withhold one
 /// or pin an install to a stale version, so the transport still matters.
+///
+/// Scheme and loopback parsing live in `longhorn-url`; this newtype keeps the
+/// update-domain error vocabulary.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct EndpointUrl(String);
@@ -26,19 +30,16 @@ impl EndpointUrl {
     /// Validates and records a URL.
     pub fn new(value: impl Into<String>) -> Result<Self, EndpointUrlError> {
         let value = value.into();
-        if let Some(rest) = value.strip_prefix("https://") {
-            if rest.is_empty() {
-                return Err(EndpointUrlError::MissingHost);
+        match classify_endpoint(&value, LoopbackHttp::Allowed) {
+            Ok(_) => Ok(Self(value)),
+            Err(EndpointClassificationError::UnsupportedScheme) => {
+                Err(EndpointUrlError::UnsupportedScheme)
             }
-            return Ok(Self(value));
-        }
-        if let Some(rest) = value.strip_prefix("http://") {
-            if is_loopback_host(rest) {
-                return Ok(Self(value));
+            Err(EndpointClassificationError::InsecureScheme) => {
+                Err(EndpointUrlError::InsecureScheme)
             }
-            return Err(EndpointUrlError::InsecureScheme);
+            Err(EndpointClassificationError::MissingHost) => Err(EndpointUrlError::MissingHost),
         }
-        Err(EndpointUrlError::UnsupportedScheme)
     }
 
     /// Returns the URL.
@@ -46,35 +47,6 @@ impl EndpointUrl {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-}
-
-fn is_loopback_host(rest: &str) -> bool {
-    // The authority ends at the first '/', '\', '?' or '#'. The backslash is
-    // not decoration: WHATWG treats it as a path separator for special
-    // schemes, so a fetcher built on a conforming URL parser reads
-    // `http://evil.example\@127.0.0.1/x` as host `evil.example` with path
-    // `/@127.0.0.1/x`. Splitting on '/' alone would hand the rest to the
-    // userinfo rule below and call that authority loopback — licensing plain
-    // HTTP to a remote host, which is the exact hole userinfo stripping
-    // closed. This check must never be laxer than the parser that fetches.
-    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
-    // Userinfo ends at the last '@'. Without stripping it,
-    // `127.0.0.1:80@evil.example` parses as host `127.0.0.1` while the fetch
-    // goes to `evil.example` — over plaintext, since this check is what
-    // licenses plain HTTP.
-    let host_part = authority
-        .rsplit_once('@')
-        .map_or(authority, |(_, host)| host);
-    // IPv6 authorities bracket the address, so the port separator cannot be
-    // found by splitting on the first colon.
-    let host = match host_part.strip_prefix('[') {
-        Some(bracketed) => match bracketed.split_once(']') {
-            Some((address, _port)) => address,
-            None => return false,
-        },
-        None => host_part.split(':').next().unwrap_or_default(),
-    };
-    matches!(host, "127.0.0.1" | "localhost" | "::1")
 }
 
 impl TryFrom<String> for EndpointUrl {

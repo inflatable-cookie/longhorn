@@ -41,6 +41,7 @@ members = [
   "crates/longhorn-transfer",
   "crates/longhorn-update",
   "crates/longhorn-update-install",
+  "crates/longhorn-url",
   "crates/longhorn-tauri-config",
   "crates/longhorn-tauri-transfer",
   "crates/longhorn-tauri-update",
@@ -130,6 +131,7 @@ longhorn-surfaces-config = { path = "crates/longhorn-surfaces-config", version =
 longhorn-transfer = { path = "crates/longhorn-transfer", version = "0.1.0" }
 longhorn-update = { path = "crates/longhorn-update", version = "0.1.0" }
 longhorn-update-install = { path = "crates/longhorn-update-install", version = "0.1.0" }
+longhorn-url = { path = "crates/longhorn-url", version = "0.1.0" }
 longhorn-tauri-transfer = { path = "crates/longhorn-tauri-transfer", version = "0.1.0" }
 longhorn-tauri-update = { path = "crates/longhorn-tauri-update", version = "0.1.0" }
 longhorn-tauri-windowing = { path = "crates/longhorn-tauri-windowing", version = "0.1.0" }

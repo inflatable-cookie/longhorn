@@ -13,6 +13,7 @@ bindings = ["dep:ts-rs", "longhorn-core/bindings"]
 
 [dependencies]
 longhorn-core.workspace = true
+longhorn-url.workspace = true
 minisign-verify.workspace = true
 semver.workspace = true
 serde.workspace = true
