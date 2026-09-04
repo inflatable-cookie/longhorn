@@ -92,8 +92,7 @@ fn already_at_target_wire_code_round_trips_with_existing_detail() {
     // Longhorn owns the wire variant and the domain diagnostic string. Hosts
     // (Loophole) assign the code when projecting domain errors; this crate has
     // no error-to-rejection mapper.
-    let detail =
-        ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget.to_string();
+    let detail = ForkNavigationError::<std::convert::Infallible>::AlreadyAtTarget.to_string();
     let rejection = ForkNavigationRejectionProjection {
         code: ForkNavigationRejectionCode::AlreadyAtTarget,
         detail,
@@ -109,8 +108,7 @@ fn already_at_target_wire_code_round_trips_with_existing_detail() {
     assert_ne!(value["code"], "invalidRequest");
     assert_ne!(value["code"], "unknownTarget");
 
-    let round_trip: ForkNavigationRejectionProjection =
-        serde_json::from_value(value).unwrap();
+    let round_trip: ForkNavigationRejectionProjection = serde_json::from_value(value).unwrap();
     assert_eq!(round_trip, rejection);
 }
 
