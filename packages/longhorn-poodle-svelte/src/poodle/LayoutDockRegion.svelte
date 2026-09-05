@@ -1,11 +1,13 @@
 <script lang="ts">
   import { DockRegion } from "@inflatable-cookie/poodle-svelte";
   import type {
+    CrossWindowDragSourceBridge,
+    CrossWindowDragTargetBridge,
+  } from "@inflatable-cookie/poodle-core";
+  import type {
     DockCollapsedPosture,
     DockEdge,
     DockEmphasis,
-    DockExternalDragSource,
-    DockExternalDropTarget,
     DockSizing,
     ControlDensity,
     ControlSize,
@@ -46,8 +48,8 @@ import type {
     size?: ControlSize | null;
     sizeRole?: SemanticControlSizeRole;
     density?: ControlDensity | null;
-    externalDragSource?: DockExternalDragSource | null;
-    externalDropTarget?: DockExternalDropTarget | null;
+    crossWindowDragSource?: CrossWindowDragSourceBridge | null;
+    crossWindowDropTarget?: CrossWindowDragTargetBridge | null;
     body?: Snippet<[PanelRenderContext]>;
     panel?: Snippet<[PanelRenderContext]>;
   }
@@ -71,8 +73,8 @@ import type {
     size = null,
     sizeRole = "chrome",
     density = null,
-    externalDragSource = null,
-    externalDropTarget = null,
+    crossWindowDragSource = null,
+    crossWindowDropTarget = null,
     body,
     panel,
   }: Props = $props();
@@ -126,8 +128,8 @@ import type {
   {size}
   {sizeRole}
   {density}
-  {externalDragSource}
-  {externalDropTarget}
+  crossWindowDragSource={crossWindowDragSource ?? undefined}
+  crossWindowDropTarget={crossWindowDropTarget ?? undefined}
   dragZoneId={regionId}
   items={[...projection.items]}
   value={projection.state.active_panel_instance_id}

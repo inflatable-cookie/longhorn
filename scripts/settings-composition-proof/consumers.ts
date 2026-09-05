@@ -182,7 +182,7 @@ async function verifyConsumer(
   await assertImportsAbsent(stage, policy.forbiddenImports);
   await assertLonghornGraphExact(stage);
   const svelte = await installedPackage(stage, "svelte");
-  if (svelte.manifest.version !== "5.38.6") {
+  if (svelte.manifest.version !== "5.56.8") {
     throw new Error(`${shape} installed unexpected Svelte version`);
   }
   await assertSingleSvelteRuntime(stage);

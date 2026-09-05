@@ -66,7 +66,7 @@ on `@inflatable-cookie/longhorn` plus its Tauri peer — and six Rust crates:
     "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn",
     "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri",
     "@tauri-apps/api": "2.10.1",
-    "svelte": "5.38.6"
+    "svelte": "5.56.8"
   },
   "overrides": {
     "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn"

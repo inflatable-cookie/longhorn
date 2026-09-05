@@ -6,9 +6,9 @@
     "@inflatable-cookie/longhorn": "0.1.0",
     "@inflatable-cookie/longhorn-poodle-svelte": "0.1.0",
     "@inflatable-cookie/longhorn-tauri": "0.1.0",
-    "@inflatable-cookie/poodle-core": "0.2.2",
-    "@inflatable-cookie/poodle-svelte": "0.2.2",
-    "svelte": "5.38.6"
+    "@inflatable-cookie/poodle-core": "0.3.0",
+    "@inflatable-cookie/poodle-svelte": "0.3.0",
+    "svelte": "5.56.8"
   },
   "devDependencies": {
     "svelte-check": "4.7.4",

@@ -27,7 +27,7 @@ type ShapePolicy = {
 type ArtifactIdentity = { name: string; filename: string; sha256: string };
 
 const repoRoot = resolve(import.meta.dir, "..");
-const bunCommand = ["/usr/bin/env", "bun"] as const;
+const bunCommand = ["bun"] as const;
 const exampleRoot = join(repoRoot, "examples/greenfield-compositions");
 const receiptPath = join(repoRoot, "fixtures/greenfield/card125/composition-matrix-v1.json");
 const longhornTypescriptPackages = [
@@ -36,17 +36,15 @@ const longhornTypescriptPackages = [
   ["@inflatable-cookie/longhorn-tauri", "packages/longhorn-tauri"],
 ] as const;
 const poodlePackages = [
-  ["@inflatable-cookie/poodle-core", "packages/core"],
-  ["@inflatable-cookie/poodle-svelte", "packages/svelte/components"],
+  "@inflatable-cookie/poodle-core",
+  "@inflatable-cookie/poodle-svelte",
 ] as const;
-// Prefer POODLE_REPO, then a healthy `effigy deps link bun` library path, then
-// the sibling checkout. Isolated worktrees often have the link and no sibling.
-const poodleRoot = await resolvePoodleRoot();
-// Longhorn and Poodle no longer share a version. Longhorn's is its own
-// coordinated one; Poodle's is whatever the checkout this proof packs from
-// carries, which is the pinned release when POODLE_REPO names the release tag.
+// Published Poodle only. Sibling packing was the unpublished-preview path;
+// g16.109 pins exact public 0.3.0, so greenfield installs the registry
+// packages the lock already records.
 const LONGHORN_VERSION = "0.1.0";
-const POODLE_VERSION = poodleRelease().version;
+const publishedPoodle = poodleRelease();
+const POODLE_VERSION = publishedPoodle.version;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
@@ -137,32 +135,33 @@ try {
   await mkdir(typescriptArtifactRoot);
   await mkdir(rustArtifactRoot);
   await verifyExampleSources();
-  const poodle = await packPackages(poodleRoot, poodlePackages, typescriptArtifactRoot, POODLE_VERSION);
   const typescript = await packPackages(repoRoot, longhornTypescriptPackages, typescriptArtifactRoot, LONGHORN_VERSION);
-  const renderers = await verifyRenderers(new Map([...poodle.paths, ...typescript.paths]));
+  const poodleIdentities = publishedPoodle.packages.map((pkg) => ({
+    name: pkg.name,
+    filename: `${pkg.name.replace("@", "").replace("/", "-")}-${pkg.version}.tgz`,
+    sha256: pkg.integrity,
+  }));
+  const renderers = await verifyRenderers(typescript.paths);
   const rust = await verifyRustArtifacts();
   const report = {
     schema: "longhorn.greenfield-composition-matrix.v1",
     outcome: "pass",
     sources: {
       longhorn: await git(repoRoot, ["rev-parse", "HEAD"]),
-      poodle: await git(poodleRoot, ["rev-parse", "HEAD"]),
+      poodle: `${POODLE_VERSION}@registry`,
       selectedLonghornClean: await selectedSourcesClean(repoRoot, [
         ...longhornTypescriptPackages.map(([, path]) => path),
         ...allRustCrates.map((name) => `crates/${name}`),
       ]),
-      selectedPoodleClean: await selectedSourcesClean(
-        poodleRoot,
-        poodlePackages.map(([, path]) => path),
-      ),
+      selectedPoodleClean: true,
     },
     artifacts: {
       typescript: typescript.identities,
-      poodle: poodle.identities,
+      poodle: poodleIdentities,
       rust: rust.identities,
       sets: {
         typescript: artifactSet(typescript.identities),
-        poodle: artifactSet(poodle.identities),
+        poodle: artifactSet(poodleIdentities),
         rust: artifactSet(rust.identities),
       },
       packageManagerPublication: false,
@@ -423,8 +422,8 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     equalSet(installedLonghorn, policy.typescript, `${shape} TypeScript graph`);
     for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
     const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name.startsWith("poodle-")).map((name) => `@inflatable-cookie/${name}`).sort();
-    equalSet(installedPoodle, poodlePackages.map(([name]) => name), `${shape} Poodle graph`);
-    await assertOnePackage(stage, "svelte", "5.38.6");
+    equalSet(installedPoodle, [...poodlePackages], `${shape} Poodle graph`);
+    await assertOnePackage(stage, "svelte", "5.56.8");
     await assertOnePackage(stage, "@tauri-apps/api", "2.10.1");
     await assertSingleRuntime(stage, "svelte");
     await assertSingleRuntime(stage, "@tauri-apps/api");
@@ -456,7 +455,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     )];
     equalSet(selectedNames, policy.typescript, `${shape} selected imports`);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");
-    if (/workspace:|link:/.test(lock) || lock.includes(join(repoRoot, "packages")) || lock.includes(join(poodleRoot, "packages"))) {
+    if (/workspace:|link:/.test(lock) || lock.includes(join(repoRoot, "packages"))) {
       throw new Error(`${shape} renderer lock resolved live source`);
     }
     reports.push({
@@ -464,7 +463,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
       hierarchy: policy.hierarchy,
       typescriptPackages: installedLonghorn,
       poodlePackages: installedPoodle,
-      svelte: "5.38.6",
+      svelte: "5.56.8",
       tauriApi: "2.10.1",
       mountedLifecycleTests: 1,
       visibleFailure: true,
@@ -553,7 +552,7 @@ async function assertAbsent(stage: string, name: string): Promise<void> {
 async function assertArtifactInstall(stage: string, name: string): Promise<void> {
   const path = join(stage, "node_modules", ...name.split("/"));
   const resolved = await realpath(path);
-  if (resolved.includes(join(repoRoot, "packages")) || resolved.includes(join(poodleRoot, "packages"))) throw new Error(`${name} resolved live source`);
+  if (resolved.includes(join(repoRoot, "packages"))) throw new Error(`${name} resolved live source`);
 }
 async function assertOnePackage(stage: string, name: string, version: string): Promise<void> {
   const manifest = JSON.parse(await readFile(join(stage, "node_modules", ...name.split("/"), "package.json"), "utf8")) as { name: string; version: string };
@@ -582,47 +581,4 @@ async function run(command: string[], cwd: string): Promise<string> {
   const [stdout, stderr, exitCode] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
   if (exitCode !== 0) throw new Error(`${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`);
   return stdout;
-}
-
-async function resolvePoodleRoot(): Promise<string> {
-  if (process.env.POODLE_REPO) return resolve(process.env.POODLE_REPO);
-  const linked = healthyBunLibraryPath(poodlePackages.map(([name]) => name));
-  if (linked) return linked;
-  return resolve(join(repoRoot, "../poodle"));
-}
-
-function healthyBunLibraryPath(requiredPackages: readonly string[]): string | null {
-  const status = Bun.spawnSync(["effigy", "--json", "deps", "status", "bun"], {
-    cwd: repoRoot,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (status.exitCode !== 0) return null;
-  try {
-    const envelope = JSON.parse(status.stdout.toString()) as {
-      ok?: boolean;
-      result?: {
-        links?: Array<{
-          observed?: { state?: string };
-          desired?: {
-            key?: { library_path?: string };
-            packages?: Array<{ name?: string }>;
-          };
-        }>;
-      };
-    };
-    if (!envelope.ok || !envelope.result?.links) return null;
-    for (const link of envelope.result.links) {
-      if (link.observed?.state !== "healthy") continue;
-      const names = new Set(
-        (link.desired?.packages ?? []).map((pkg) => pkg.name).filter((name): name is string => Boolean(name)),
-      );
-      if (!requiredPackages.every((name) => names.has(name))) continue;
-      const libraryPath = link.desired?.key?.library_path;
-      if (libraryPath) return resolve(libraryPath);
-    }
-  } catch {
-    return null;
-  }
-  return null;
 }

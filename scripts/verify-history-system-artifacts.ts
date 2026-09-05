@@ -464,7 +464,7 @@ async function verifyTypescriptConsumer(
       await assertArtifactInstall(stage, artifact.name, POODLE_RELEASE.version);
     }
     const svelte = await installedPackage(stage, "svelte");
-    if (svelte.manifest.version !== "5.38.6") {
+    if (svelte.manifest.version !== "5.56.8") {
       throw new Error("Loophole installed unexpected Svelte version");
     }
     await assertSingleSvelteRuntime(stage);

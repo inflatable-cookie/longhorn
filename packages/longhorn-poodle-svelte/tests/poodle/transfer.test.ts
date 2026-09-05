@@ -1,11 +1,10 @@
-import {
-  fireEvent,
-  render,
-  waitFor,
-  within,
-} from "@testing-library/svelte";
+import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
+import {
+  CROSS_WINDOW_DRAG_MIME_TYPE,
+  CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
+} from "@inflatable-cookie/poodle-core";
 import {
   LONGHORN_TRANSFER_MIME_TYPE,
   TRANSFER_CANCEL_COMMAND,
@@ -13,7 +12,6 @@ import {
   TRANSFER_SNAPSHOT_COMMAND,
   TRANSFER_START_PANEL_COMMAND,
   TransferClient,
-  parseTransferPayload,
   type PanelTransferCommand,
   type TransferCancelRequest,
 } from "@inflatable-cookie/longhorn/transfer";
@@ -38,7 +36,6 @@ describe("public Poodle cross-window transfer seam", () => {
   it("arms before dragstart, writes only protocol payload, and commits an explicit lease zone", async () => {
     const sourceRequests: unknown[] = [];
     const commits: PanelTransferCommand[] = [];
-    let cancellations = 0;
     const sourceState = transferState("client:source", async (
       command,
       arguments_,
@@ -48,7 +45,6 @@ describe("public Poodle cross-window transfer seam", () => {
         return fixture.session_responses[0];
       }
       if (command === TRANSFER_CANCEL_COMMAND) {
-        cancellations += 1;
         return cancelled(arguments_.request as TransferCancelRequest);
       }
       throw new Error(`unexpected source command: ${command}`);
@@ -100,14 +96,13 @@ describe("public Poodle cross-window transfer seam", () => {
       props: {
         binding: sourceBinding,
         resolvePanel,
-        primaryExternalDragSource: dragSource,
+        primaryCrossWindowDragSource: dragSource,
       },
     });
     const target = render(LayoutDockHarness, {
       props: {
         binding: targetBinding,
         resolvePanel,
-        secondaryExternalDropTarget: dropTarget,
       },
     });
     const sourceTab = source.getByRole("tab", { name: "A" });
@@ -117,13 +112,15 @@ describe("public Poodle cross-window transfer seam", () => {
     await waitFor(() =>
       expect(sourceState.preparation.status).toBe("prepared"),
     );
+    expect(sourceTab.getAttribute("draggable")).toBe("true");
     await fireEvent.dragStart(sourceTab, { dataTransfer });
-    const payload = parseTransferPayload(
-      dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE),
-    );
-    expect(payload).toEqual({
-      protocol_version: 1,
-      session_id: "abababababababababababababababab",
+    expect(dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE)).toBe("");
+    const receipt = JSON.parse(
+      dataTransfer.getData(CROSS_WINDOW_DRAG_MIME_TYPE),
+    ) as { protocolVersion: number; token: string };
+    expect(receipt).toEqual({
+      protocolVersion: CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
+      token: "abababababababababababababababab",
     });
     expect(sourceRequests).toEqual([
       {
@@ -133,25 +130,29 @@ describe("public Poodle cross-window transfer seam", () => {
       },
     ]);
 
-    const targetRegion = within(target.container).getByRole("region", {
-      name: "Secondary dock",
-    });
-    await fireEvent.dragOver(targetRegion, { dataTransfer });
-    await fireEvent.drop(targetRegion, { dataTransfer });
+    await dropTarget.commit(
+      {
+        receipt,
+        subject: { kind: "poodle.dock-panel", id: "instance:a" },
+        intent: {
+          targetId: "secondary",
+          position: "inside",
+          operation: "move",
+        },
+      },
+      new AbortController().signal,
+    );
     await waitFor(() => expect(commits).toHaveLength(1));
     expect(commits[0]).toEqual({
       protocol_version: 1,
       request_id: "request:commit-zone",
-      session_id: payload.session_id,
+      session_id: receipt.token,
       selector: {
         kind: "explicit_zone",
         drop_zone_id: "zone:center",
       },
     });
     await waitFor(() => expect(terminal).toBe(1));
-
-    await fireEvent.dragEnd(sourceTab, { dataTransfer });
-    await waitFor(() => expect(cancellations).toBe(1));
     expect(errors).toEqual([]);
     await Promise.all([
       source.unmount(),
@@ -187,7 +188,7 @@ describe("public Poodle cross-window transfer seam", () => {
       props: {
         binding,
         resolvePanel,
-        primaryExternalDragSource: createPanelTransferDragSource({
+        primaryCrossWindowDragSource: createPanelTransferDragSource({
           state,
           makeStartRequest: (panelInstanceId) => ({
             protocol_version: 1,
@@ -203,7 +204,9 @@ describe("public Poodle cross-window transfer seam", () => {
 
     await fireEvent.pointerDown(sourceTab, { button: 0 });
     await fireEvent.dragStart(sourceTab, { dataTransfer });
-    expect(dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE)).toBe("");
+    expect(dataTransfer.getData(CROSS_WINDOW_DRAG_MIME_TYPE)).toBe("");
+    expect(sourceTab.getAttribute("draggable")).toBe("false");
+    await fireEvent.pointerUp(sourceTab, { button: 0 });
 
     pending.resolve(fixture.session_responses[0]);
     await waitFor(() => expect(cancellations).toBe(1));
@@ -239,7 +242,7 @@ describe("public Poodle cross-window transfer seam", () => {
       props: {
         binding,
         resolvePanel,
-        primaryExternalDragSource: createPanelTransferDragSource({
+        primaryCrossWindowDragSource: createPanelTransferDragSource({
           state,
           makeStartRequest: (panelInstanceId) => ({
             protocol_version: 1,

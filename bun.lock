@@ -5,8 +5,8 @@
     "": {
       "name": "longhorn-workspace",
       "devDependencies": {
-        "@inflatable-cookie/poodle-core": "0.2.2",
-        "@inflatable-cookie/poodle-svelte": "0.2.2",
+        "@inflatable-cookie/poodle-core": "0.3.0",
+        "@inflatable-cookie/poodle-svelte": "0.3.0",
         "@sveltejs/vite-plugin-svelte": "6.2.4",
         "@testing-library/svelte": "5.4.2",
         "@types/bun": "1.3.14",
@@ -27,10 +27,12 @@
       "version": "0.1.0",
       "peerDependencies": {
         "@inflatable-cookie/longhorn": "0.1.0",
-        "@inflatable-cookie/poodle-svelte": "0.2.2",
+        "@inflatable-cookie/poodle-core": "0.3.0",
+        "@inflatable-cookie/poodle-svelte": "0.3.0",
         "svelte": ">=5.38.6 <=5.56.8",
       },
       "optionalPeers": [
+        "@inflatable-cookie/poodle-core",
         "@inflatable-cookie/poodle-svelte",
       ],
     },
@@ -108,9 +110,9 @@
 
     "@inflatable-cookie/longhorn-tauri": ["@inflatable-cookie/longhorn-tauri@workspace:packages/longhorn-tauri"],
 
-    "@inflatable-cookie/poodle-core": ["@inflatable-cookie/poodle-core@0.2.2", "", { "bin": { "poodle-icons": "src/icons/build.mjs" } }, "sha512-8B6iCQhRDxmXibBXAQc4Qp8sIfSYih/u1uhtRE6UnKzcX4YcqV4ornXiF7fiF2faogdnt4nWiNrNBeBSXDaBPg=="],
+    "@inflatable-cookie/poodle-core": ["@inflatable-cookie/poodle-core@0.3.0", "", { "bin": { "poodle-icons": "dist/icons/build.mjs" } }, "sha512-/l1yl11lXFq3Th7DnXKYBtAuvUJRNfhRLluqs4HTov3MPEnN6htgDw/FFV0XZrKdEq9/cgs3M+U5lFRKP/aIPQ=="],
 
-    "@inflatable-cookie/poodle-svelte": ["@inflatable-cookie/poodle-svelte@0.2.2", "", { "dependencies": { "@inflatable-cookie/poodle-core": "0.2.2", "marked": "^18.0.9" }, "peerDependencies": { "svelte": ">=5.38.6 <6" } }, "sha512-BZIKZuqZ3DdoqvyGstuOgaOX23t4+kpXgu7U0BEY7zEsUbYvOrxte1iu+S2/AsIpqaND0BYL3Wu/N5z1ekzc2A=="],
+    "@inflatable-cookie/poodle-svelte": ["@inflatable-cookie/poodle-svelte@0.3.0", "", { "dependencies": { "@inflatable-cookie/poodle-core": "0.3.0" }, "peerDependencies": { "marked": "^18.0.9", "svelte": ">=5.56.8 <6" }, "optionalPeers": ["marked"] }, "sha512-MlbrMgXSdsKYEK9dOm+qedJpmc8I7DDzt6TDqYSlTQFSgM8iGtKsdJQuByVCNK2pZrl9GMFLIgXRxPW7keFvdw=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
@@ -291,8 +293,6 @@
     "lz-string": ["lz-string@1.5.0", "", { "bin": { "lz-string": "bin/bin.js" } }, "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
-
-    "marked": ["marked@18.0.9", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-/Sa4qiiHZxf0/FQdBBowr9q4r10krCwMvpK48FUBdXdUXScDxiQGR9zCPrFgRVR5LU3iySOiIjy09ZQvADir1w=="],
 
     "mri": ["mri@1.2.0", "", {}, "sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA=="],
 

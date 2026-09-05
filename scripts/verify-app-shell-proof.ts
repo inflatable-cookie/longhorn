@@ -136,7 +136,7 @@ try {
     }
     await assertImportsAbsent(stage, forbidden.imports);
     const svelte = await installedPackage(stage, "svelte");
-    if (svelte.manifest.version !== "5.38.6") {
+    if (svelte.manifest.version !== "5.56.8") {
       throw new Error(
         `${shape} installed unexpected Svelte ${svelte.manifest.version}`,
       );

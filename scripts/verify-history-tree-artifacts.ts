@@ -152,8 +152,9 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   // after a prune -- which is what protection guarantees and what a lying
   // origin row would depend on -- and a continuation run reports its anchor
   // instead. 53 since Card 213 added the envelope property suite. 57 since
-  // Card 222 pinned the host-facing error messages by content.
-  if (testCount !== 57) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // Card 222 pinned the host-facing error messages by content. 59 since
+  // AlreadyAtTarget added two protocol round-trips on the same crate.
+  if (testCount !== 59) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;
@@ -194,7 +195,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   if (shape === "loophole") {
     for (const pkg of POODLE_RELEASE.packages) await assertArtifactInstall(stage, pkg.name, POODLE_RELEASE.version);
     const svelte = await installedPackage(stage, "svelte");
-    if (svelte.manifest.version !== "5.38.6") throw new Error("Loophole installed unexpected Svelte version");
+    if (svelte.manifest.version !== "5.56.8") throw new Error("Loophole installed unexpected Svelte version");
     await assertSingleSvelteRuntime(stage);
   } else if ((await installedScope(stage, "@inflatable-cookie")).some((name) => name.startsWith("poodle-"))) throw new Error("document consumer acquired Poodle");
   const permissions = shape === "loophole" ? (JSON.parse(await readFile(join(stage, "consumers", shape, "capability.json"), "utf8")) as { permissions: string[] }).permissions : [];

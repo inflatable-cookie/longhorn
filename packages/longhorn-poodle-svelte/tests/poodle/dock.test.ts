@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   LayoutMutationRequest,
@@ -16,7 +16,61 @@ import {
   shapeDocument,
 } from "./support.ts";
 
+function box(
+  element: HTMLElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  const rect = {
+    x,
+    y,
+    width,
+    height,
+    top: y,
+    left: x,
+    right: x + width,
+    bottom: y + height,
+    toJSON() {
+      return this;
+    },
+  } as DOMRect;
+  element.getBoundingClientRect = () => rect;
+  element.setPointerCapture = vi.fn();
+  element.releasePointerCapture = vi.fn();
+  element.hasPointerCapture = () => false;
+}
+
+function layoutTabs(container: HTMLElement): void {
+  [...container.querySelectorAll<HTMLElement>("section")].forEach(
+    (region, regionIndex) => {
+      const originX = regionIndex * 400;
+      box(region, originX, 0, 400, 100);
+      [...region.querySelectorAll<HTMLElement>(".poodle-tabs__item")].forEach(
+        (item, index) => {
+          box(item, originX + index * 100, 0, 100, 30);
+          const tab = item.querySelector<HTMLElement>(".poodle-tabs__tab");
+          if (tab) box(tab, originX + index * 100, 0, 100, 30);
+        },
+      );
+    },
+  );
+}
+
 describe("LayoutDockRegion", () => {
+  beforeEach(() => {
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("accepts showTabs=false without dispatching", () => {
     // Strip omission is proven in Poodle's DockRegion tests. Here we only
     // assert the LayoutDockRegion forward stays mount-safe against the
@@ -78,12 +132,8 @@ describe("LayoutDockRegion", () => {
       props: { binding, resolvePanel },
     });
     const source = screen.getByRole("tab", { name: "A" });
-    const target = screen.getByRole("tab", { name: "B" });
-    const dataTransfer = new DataTransfer();
-
-    await fireEvent.dragStart(source, { dataTransfer });
-    await fireEvent.dragOver(target, { dataTransfer });
-    await fireEvent.drop(target, { dataTransfer });
+    source.focus();
+    await fireEvent.keyDown(source, { key: "ArrowRight", altKey: true });
 
     expect(requests[0]).toEqual({
       request_id: "request:poodle-1",
@@ -116,14 +166,43 @@ describe("LayoutDockRegion", () => {
     const screen = render(LayoutDockHarness, {
       props: { binding, resolvePanel },
     });
-    const dataTransfer = new DataTransfer();
+    layoutTabs(screen.container);
 
-    await fireEvent.dragStart(screen.getByRole("tab", { name: "A" }), {
-      dataTransfer,
+    const source = screen.getByRole("tab", { name: "A" });
+    await fireEvent.pointerDown(source, {
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      clientX: 50,
+      clientY: 15,
     });
-    const target = screen.getByRole("region", { name: "Secondary dock" });
-    await fireEvent.dragOver(target, { dataTransfer });
-    await fireEvent.drop(target, { dataTransfer });
+    await fireEvent.pointerMove(source, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      clientX: 90,
+      clientY: 15,
+    });
+    await fireEvent.pointerMove(source, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      clientX: 420,
+      clientY: 15,
+    });
+    await fireEvent.pointerUp(source, {
+      button: 0,
+      buttons: 0,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      clientX: 420,
+      clientY: 15,
+    });
 
     expect(requests[0]).toEqual({
       request_id: "request:poodle-1",

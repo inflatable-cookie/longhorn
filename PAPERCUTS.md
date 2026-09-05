@@ -5,6 +5,18 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Isolated proof `bun install` can miss cache package dirs — 2026-09-05
+- Friction: `effigy proof:artifacts` isolated consumers sometimes fail
+  `bun install --ignore-scripts` with `FileNotFound: failed opening
+  cache/package/version dir` for `vite` and friends after a successful
+  resolve. Retrying the same proof often passes.
+- Impact: `qa` / `proof:artifacts` is not deterministic on a warm Bun cache
+  when many isolated installs run back to back.
+- Plausible fix: give each isolated proof its own `BUN_INSTALL_CACHE_DIR`,
+  or retry that install once on this class of cache miss.
+- Surface: `scripts/*artifact*`, `scripts/settings-composition-proof/`,
+  `effigy proof:artifacts`.
+
 <!-- Keep entries short. Append newest entries at the top. Do not include secrets. -->
 
 ## Closed
