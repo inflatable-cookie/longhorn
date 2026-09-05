@@ -222,15 +222,11 @@ coordinator are gone.
 
 ## Renderer And Poodle
 
-Current same-window panel movement uses Poodle's local
-`application/x-poodle-panel-drag` payload and Aura-owned drag state. Current
-whole-Surface cross-window movement reports a screen point to the host.
-
-Poodle's current public `DockRegion` seam already supports
-`externalDragSource` and `externalDropTarget`, including pointer-time prepare,
-synchronous dragstart payload, explicit cancellation, and drop-time
-revalidation. Longhorn can therefore use the public seam without private DOM,
-MIME, portal, or component-state knowledge.
+Current same-window panel movement uses Poodle's shared drag substrate under
+one `DragDropProvider`. Cross-window movement uses the public
+`crossWindowDragSource` / `crossWindowDragTargetBridge` seam: only an opaque
+receipt leaves the window, and Longhorn maps that token onto its own transfer
+session.
 
 The target keeps Poodle local reorder for same-region presentation, but every
 gesture advertised as cross-window uses a host-created Longhorn session.

@@ -11,7 +11,7 @@ import { poodleRelease, poodleSveltePeerRange } from "./poodle-release.ts";
 const release = poodleRelease();
 const sveltePeerRange = poodleSveltePeerRange();
 
-if (sveltePeerRange !== ">=5.38.6 <6") {
+if (sveltePeerRange !== ">=5.56.8 <6") {
   throw new Error(
     `Poodle Svelte compatibility moved: the published adapter declares ${sveltePeerRange}`,
   );

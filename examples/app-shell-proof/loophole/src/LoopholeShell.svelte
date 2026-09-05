@@ -4,6 +4,7 @@
 
   import {
     Callout,
+    DragDropProvider,
     PageLoading,
     UiPresentationProvider,
     createThemeController,
@@ -207,19 +208,20 @@
           >
             <header><h1>{surface.label ?? surface.id}</h1></header>
             <div data-layout-container={surface.id}>
-              {#each schema.regions as region, index (region.id)}
-                <LayoutDockRegion
-                  {binding}
-                  containerId={surface.id}
-                  regionId={region.id}
-                  edge={edges[index]}
-                  {resolvePanel}
-                  ariaLabel={`${region.id} region`}
-                  externalDragSource={region.id === "primary" ? dragSource : null}
-                  externalDropTarget={region.id === "secondary" ? dropTarget : null}
-                  body={panelBody}
-                />
-              {/each}
+              <DragDropProvider crossWindowTargetBridge={dropTarget}>
+                {#each schema.regions as region, index (region.id)}
+                  <LayoutDockRegion
+                    {binding}
+                    containerId={surface.id}
+                    regionId={region.id}
+                    edge={edges[index]}
+                    {resolvePanel}
+                    ariaLabel={`${region.id} region`}
+                    crossWindowDragSource={region.id === "primary" ? dragSource : null}
+                    body={panelBody}
+                  />
+                {/each}
+              </DragDropProvider>
             </div>
           </article>
         {/each}

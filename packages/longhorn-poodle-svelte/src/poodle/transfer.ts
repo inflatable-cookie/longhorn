@@ -1,8 +1,14 @@
 import {
-  LONGHORN_TRANSFER_MIME_TYPE,
+  CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
+  decodeDockPanelSubject,
+  type CrossWindowDragReceipt,
+  type CrossWindowDragSourceBridge,
+  type CrossWindowDragTargetBridge,
+  type CrossWindowDragTargetEvent,
+  type DragDropCommitResult,
+} from "@inflatable-cookie/poodle-core";
+import {
   TRANSFER_PROTOCOL_VERSION,
-  parseTransferPayload,
-  serializeTransferPayload,
   type PanelSessionStartRequest,
   type PanelTransferCommand,
   type PanelTransferResponse,
@@ -10,10 +16,6 @@ import {
   type TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 import type { TransferState } from "@inflatable-cookie/longhorn-poodle-svelte/transfer";
-import type {
-  DockExternalDragSource,
-  DockExternalDropTarget,
-} from "@inflatable-cookie/poodle-svelte";
 
 export type PanelDropSelector =
   | {
@@ -38,97 +40,78 @@ export interface PanelTransferDropTargetOptions {
   readonly reportError: (error: unknown) => void;
   readonly onResponse?: (response: PanelTransferResponse) => void;
   readonly onTerminal?: () => void;
+  /** Required when `selector.kind` is `screen_point`. */
+  readonly screenPoint?: () => { readonly x: number; readonly y: number };
 }
 
 export function createPanelTransferDragSource(
   options: PanelTransferDragSourceOptions,
-): DockExternalDragSource {
+): CrossWindowDragSourceBridge {
   return {
-    async prepare(context) {
-      if (
-        context.event.altKey ||
-        context.event.ctrlKey ||
-        context.event.metaKey ||
-        context.event.shiftKey
-      ) {
-        return null;
-      }
-      const request = options.makeStartRequest(context.panel.value);
-      const response = await options.state.preparePanel(request);
-      notify(
-        options.onPreparation,
-        response,
-        options.reportError,
-      );
+    capabilities: {
+      pointer: true,
+      touch: false,
+      keyboardTargetPicker: false,
+    },
+    async prepare(request, signal) {
+      if (signal.aborted) return null;
+      const decoded = decodeDockPanelSubject(request.subject.id);
+      if (decoded === null) return null;
+
+      const startRequest = options.makeStartRequest(decoded.panelId);
+      const response = await options.state.preparePanel(startRequest);
+      notify(options.onPreparation, response, options.reportError);
       if (response.status !== "started") return null;
 
-      const payload = response.session.payload;
-      let terminal = false;
-      const cancel = () => {
-        if (terminal) return;
-        terminal = true;
-        void options.state.cancelPreparation().catch((error) => {
-          report(options.reportError, error);
-        });
-      };
-
-      return {
-        start(startContext) {
-          const current = options.state.preparation;
-          if (
-            current.status !== "prepared" ||
-            current.response.session.payload.session_id !==
-              payload.session_id ||
-            current.response.session.request_id !== request.request_id ||
-            startContext.panel.value !== request.panel_instance_id
-          ) {
-            startContext.event.preventDefault();
-            cancel();
-            report(
-              options.reportError,
-              new StalePanelTransferPreparationError(),
-            );
-            return;
-          }
-          startContext.dataTransfer.setData(
-            LONGHORN_TRANSFER_MIME_TYPE,
-            serializeTransferPayload(payload),
-          );
-          startContext.dataTransfer.effectAllowed = "move";
-        },
-        end: cancel,
-        cancel,
-      };
+      return receiptFor(response.session.payload.session_id);
     },
-    onPrepareError(error) {
-      report(options.reportError, error);
+    start() {
+      return () => undefined;
+    },
+    cancel() {
+      void options.state.cancelPreparation().catch((error) => {
+        report(options.reportError, error);
+      });
     },
   };
 }
 
 export function createPanelTransferDropTarget(
   options: PanelTransferDropTargetOptions,
-): DockExternalDropTarget {
+): CrossWindowDragTargetBridge {
+  const listeners = new Set<(event: CrossWindowDragTargetEvent) => void>();
   return {
-    canDrop({ dataTransfer }) {
-      return readPayload(dataTransfer) !== null;
+    capabilities: {
+      pointer: true,
+      touch: false,
+      keyboardTargetPicker: false,
     },
-    async drop({ event, dataTransfer }) {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    async commit(request, signal) {
+      if (signal.aborted) {
+        return { status: "rejected", reason: "aborted" };
+      }
       try {
-        const payload = readPayload(dataTransfer);
-        if (payload === null) {
-          throw new MissingPanelTransferPayloadError();
-        }
-        const request: PanelTransferCommand = {
+        const transferRequest: PanelTransferCommand = {
           protocol_version: TRANSFER_PROTOCOL_VERSION,
           request_id: options.nextRequestId(),
-          session_id: payload.session_id,
-          selector: resolveSelector(options.selector, event),
+          session_id: request.receipt.token,
+          selector: resolveSelector(options),
         };
-        const response = await options.state.commitPanel(request);
+        const response = await options.state.commitPanel(transferRequest);
         notify(options.onResponse, response, options.reportError);
+        return commitResult(response);
       } catch (error) {
         report(options.reportError, error);
+        return {
+          status: "failed",
+          reason: error instanceof Error ? error.message : String(error),
+        };
       } finally {
         notifyTerminal(options.onTerminal, options.reportError);
       }
@@ -136,54 +119,39 @@ export function createPanelTransferDropTarget(
   };
 }
 
-export class StalePanelTransferPreparationError extends Error {
-  constructor() {
-    super("panel dragstart has no matching prepared transfer session");
-    this.name = "StalePanelTransferPreparationError";
-  }
-}
-
-export class MissingPanelTransferPayloadError extends Error {
-  constructor() {
-    super("drop has no valid Longhorn transfer payload");
-    this.name = "MissingPanelTransferPayloadError";
-  }
-}
-
-function readPayload(dataTransfer: DataTransfer) {
-  const raw = dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE);
-  if (raw.length === 0) return null;
-  try {
-    return parseTransferPayload(raw);
-  } catch {
-    return null;
-  }
-}
-
-function resolveSelector(
-  selector: PanelDropSelector,
-  event: DragEvent,
-): TransferCommitSelector {
-  if (selector.kind === "explicit_zone") {
-    return {
-      kind: "explicit_zone",
-      drop_zone_id: selector.dropZoneId,
-    };
-  }
+function receiptFor(sessionId: string): CrossWindowDragReceipt {
   return {
-    kind: "screen_point",
-    point: screenPoint(event),
+    protocolVersion: CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
+    token: sessionId,
   };
 }
 
-function screenPoint(event: DragEvent): { x: number; y: number } {
+function resolveSelector(
+  options: PanelTransferDropTargetOptions,
+): TransferCommitSelector {
+  if (options.selector.kind === "explicit_zone") {
+    return {
+      kind: "explicit_zone",
+      drop_zone_id: options.selector.dropZoneId,
+    };
+  }
+  const point = options.screenPoint?.();
   if (
-    !Number.isSafeInteger(event.screenX) ||
-    !Number.isSafeInteger(event.screenY)
+    point === undefined ||
+    !Number.isSafeInteger(point.x) ||
+    !Number.isSafeInteger(point.y)
   ) {
     throw new RangeError("drop screen point must use integer screen DIPs");
   }
-  return { x: event.screenX, y: event.screenY };
+  return {
+    kind: "screen_point",
+    point: { x: point.x, y: point.y },
+  };
+}
+
+function commitResult(response: PanelTransferResponse): DragDropCommitResult {
+  if (response.status === "committed") return { status: "committed" };
+  return { status: "rejected", reason: response.abort.source.code };
 }
 
 function report(reporter: (error: unknown) => void, error: unknown): void {
@@ -216,3 +184,5 @@ function notifyTerminal(
     report(reporter, error);
   }
 }
+
+export type { CrossWindowDragReceipt };

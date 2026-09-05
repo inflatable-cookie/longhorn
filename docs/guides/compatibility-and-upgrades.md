@@ -42,8 +42,8 @@ resolution, and unpacked source aliases are not compatibility evidence.
 `@inflatable-cookie/longhorn-poodle-svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
 Svelte adapters commonly declare `>=5.38.6 <6`; consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
-range. The greenfield matrix proves one runtime at 5.38.6. Later consumer
-proofs resolve 5.56.8 where recorded.
+range. The greenfield matrix and Poodle 0.3.0 proofs resolve one runtime at
+5.56.8.
 
 Concretely, the generated surface says two different things about Svelte:
 
