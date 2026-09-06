@@ -206,18 +206,22 @@ pages and schemas remain downstream in consumers.
 
 The existing agent-control surface is a dev-only webview control boundary
 under contract 022. A production contextual-tool surface is a separate
-planned capability, not a feature flip. Longhorn would own typed namespaced
-tool/resource registration, schema discovery, exact app/PID/instance identity,
-version negotiation, credential-reference semantics, task/session/attempt
-admission, deadlines, cancellation, bounded concurrency, typed results/errors,
-non-replay of mutations, least-access, and approval handoff. Swallowtail owns
-reusable harness transport and connection/process lifecycle. Desktop owns
-skills, context/UX, domain schemas, tool implementations, content permissions,
-task scheduling, and transactions.
+planned capability, not a feature flip. Swallowtail owns the namespaced
+registration snapshot and the operation bridge's transport, listener, lease,
+correlation, and lifecycle kernel. Longhorn owns only a transport-neutral typed
+host dispatch and validation library over an already authenticated binding.
+Desktop owns tool names, input/output schemas, effects and business policy,
+bounded app-context disclosure, durable task/session/attempt admission, and
+packaging/distribution/startup. Desktop process incarnation plus Swallowtail
+operation generation are authority; PID is diagnostic only.
+
+The bridge is one operation kernel with the active Contract 060 WatcherBridge
+as a closed compatible profile. Longhorn adds no registry, listener, lease,
+correlation lifecycle, admission issuer, or standalone daemon in slice 1.
 
 The attachment seam and production contract remain proposed in
 `../contracts/023-production-contextual-agent-tool-boundary.md`; execution is
-blocked until the cross-repo decisions in
+blocked until the bilateral revisions and Desktop disclosure in
 `../specs/002-production-contextual-agent-tool-boundary.md` are settled.
 
 The canonical bootstrap, mutation, capability, artifact, and migration rules

@@ -5,16 +5,6 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
-### [ ] Isolated worktree Effigy status path is not writable — 2026-09-06
-- Friction: `effigy qa:docs` could not create its ignored task-status record
-  under `.effigy/runtime/tasks/active` in the isolated planning worktree.
-- Impact: normal Effigy docs validation cannot run from this worktree, so the
-  planning batch needs direct read-only checks or an approved writable runtime
-  path.
-- Plausible fix: make the managed worktree runtime directory writable during
-  worktree bootstrap, or allow a task-status root override.
-- Surface: Effigy task runtime, managed planning worktrees.
-
 ### [ ] Isolated proof `bun install` can miss cache package dirs — 2026-09-05
 - Friction: `effigy proof:artifacts` isolated consumers sometimes fail
   `bun install --ignore-scripts` with `FileNotFound: failed opening
