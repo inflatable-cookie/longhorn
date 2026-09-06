@@ -100,6 +100,13 @@ bindings, and capability-gated settings. Card 061 adds isolated rich/minimal
 artifact installs, native and renderer traces, exact boundary audits, and the
 composition guide. `g01.010` is complete.
 
+The production contextual app-tool boundary is a planning-only cross-repo gap:
+Swallowtail owns the registration snapshot and operation bridge kernel;
+Longhorn owns typed host dispatch/validation; Desktop owns tool schemas,
+bounded context disclosure, task/attempt admission, and packaging. Contract
+023 is proposed and blocked on counterpart reconciliation; it adds no runtime
+or release authority.
+
 Research memo 015 and compiled contract 008 bound typed linear history,
 transactional navigation, grouping, retention, persistence, transitions,
 metadata clients, and the private fork decision. Cards 062-065 implement the

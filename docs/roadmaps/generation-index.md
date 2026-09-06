@@ -47,6 +47,14 @@ picks order.
 Still open on the operator side: return the promoted Longhorn commit to
 Bovine Card 128 adoption (from g02.028).
 
+Production contextual app-tool planning is separately captured as blocked
+g02.036. It must not start from the dev-only contract 022 or duplicate
+Swallowtail's shared transport lane. Longhorn settles its typed dispatch and
+validation surface; Swallowtail settles the bridge/profile and route matrix;
+Desktop spec010 at `30a338f2` is the canonical context-disclosure and admission
+record. Planning ownership is aligned; promotion remains held for Contract060
+delivery evidence, exact-head reviews, and the final bilateral cross-check.
+
 The memo-023 release-audit suite — milestones g02.021-027, cards 200-224 — is
 complete except Card 218's remaining release machinery, noted below.
 

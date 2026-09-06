@@ -202,6 +202,28 @@ encryption authority. `@inflatable-cookie/longhorn-poodle-svelte/config/poodle` 
 pages, while `longhorn-settings-config` admits them by capability. Product
 pages and schemas remain downstream in consumers.
 
+### Production contextual app-tool boundary (planning)
+
+The existing agent-control surface is a dev-only webview control boundary
+under contract 022. A production contextual-tool surface is a separate
+planned capability, not a feature flip. Swallowtail owns the namespaced
+registration snapshot and the operation bridge's transport, listener, lease,
+correlation, and lifecycle kernel. Longhorn owns only a transport-neutral typed
+host dispatch and validation library over an already authenticated binding.
+Desktop owns tool names, input/output schemas, effects and business policy,
+bounded app-context disclosure, durable task/session/attempt admission, and
+packaging/distribution/startup. Desktop process incarnation plus Swallowtail
+operation generation are authority; PID is diagnostic only.
+
+The bridge is one operation kernel with the active Contract 060 WatcherBridge
+as a closed compatible profile. Longhorn adds no registry, listener, lease,
+correlation lifecycle, admission issuer, or standalone daemon in slice 1.
+
+The attachment seam and production contract remain proposed in
+`../contracts/023-production-contextual-agent-tool-boundary.md`; execution is
+blocked until the bilateral revisions and Desktop disclosure in
+`../specs/002-production-contextual-agent-tool-boundary.md` are settled.
+
 The canonical bootstrap, mutation, capability, artifact, and migration rules
 are in [Settings Composition](settings-composition.md). Card 048 proves modal,
 window, and panel hosts across four isolated app shapes.
