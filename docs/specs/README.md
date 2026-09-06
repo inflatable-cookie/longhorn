@@ -6,6 +6,7 @@ contracts.
 ## Active Specs
 
 - [001 Shared Desktop System Suite](001-shared-desktop-system-suite.md)
+- [002 Production Contextual Agent Tool Boundary](002-production-contextual-agent-tool-boundary.md)
 
 ## Lifecycle
 

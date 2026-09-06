@@ -39,6 +39,7 @@ shape and admission questions.
 | notifications | independent retained ledger plus transient projection | compiled boundary | Loophole domain records; Soundcheck outcome need |
 | native content islands | pure coordination plus separate host mechanisms | promoted split graph; production runway compiled | Nucleus, Soundcheck, Jetstream |
 | greenfield starter | composition examples and release guidance | runway | all consumers |
+| production contextual app tools | typed authenticated host boundary | provisional spec 002; no runtime authority | Desktop request; Swallowtail lane |
 
 ## Cross-System Shape
 
