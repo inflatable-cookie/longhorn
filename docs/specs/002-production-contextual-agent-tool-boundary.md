@@ -6,7 +6,9 @@ Updated: 2026-09-07
 Provenance: Desktop dispatch manifest refs `d4e56c5a` and `2381579f`; canonical
 Desktop decision `30a338f2` in `bovine-accelerator-desktop/docs/specs/010-contextual-chat-and-task-queue.md`
 Counterpart: Swallowtail PR [#254](https://github.com/inflatable-cookie/swallowtail/pull/254),
-reviewed proposal head `8276f0a99b2f1d24be6edc2d6a9efe38848df399`
+independently PASS at aligned head `2eae994844d5f6f14cf0238ee9e5a7d987939c94`
+(`5562936321`); proposal `swallowtail/docs/specs/014-shared-harness-capability-and-producer-boundary.md`,
+active bridge `swallowtail/docs/contracts/060-operation-scoped-watcher-http-bridge.md`
 Governing Longhorn evidence: `../triage/20260906-170000-bovine-production-mcp-request.md`,
 `../contracts/022-agent-app-control.md`, `../architecture/repo-authority-map.md`
 
@@ -23,17 +25,19 @@ policy, context disclosure, admission issuance, and packaging.
 
 | Surface | Longhorn proposal | Swallowtail proposal | Desktop statement | Active authority | Decision status |
 | --- | --- | --- | --- | --- | --- |
-| Registry identity and schema discovery | Consume one immutable typed snapshot; no registry, aliases, or identity issuer | PR254 spec 014 assigns the portable namespaced registration snapshot, schema digest/revision, and selection to Swallowtail | Spec 010 at `30a338f2` assigns the immutable executable catalogue to Swallowtail | Swallowtail; Longhorn validates the admitted snapshot | Aligned by operator direction; PR254 must retain this and not duplicate it |
-| Tool input/output schemas | Validate Desktop-supplied schemas and invoke typed callbacks; no schema authority | PR254 spec 014 currently lists input/output schemas under Longhorn, conflicting with Desktop | Spec 010 assigns names, I/O schemas, effects, and business policy to Desktop | Desktop owns schemas; Longhorn owns generic validation only | Genuine source conflict; Swallowtail revision required before promotion |
-| Transport, listener, lease, and correlation | Attach to an already authenticated operation binding; no listener, lease, bearer, or correlation lifecycle | PR254 spec 014 proposes one shared Contract060 operation bridge kernel and registered-server profile | Spec 010 assigns provider attachment, listener, transport, operation lease, and bridge lifecycle to Swallowtail | Swallowtail Contract060 kernel; `WatcherBridge` stays closed-compatible | Aligned if PR254 amends C060 without widening WatcherBridge or creating a second listener |
+| Registry identity and schema discovery | Consume one immutable typed snapshot; no registry, aliases, or identity issuer | PR254 spec 014 assigns the portable namespaced registration snapshot, schema digest/revision, and selection to Swallowtail | Spec 010 at `30a338f2` assigns the immutable executable catalogue to Swallowtail | Swallowtail; Longhorn validates the admitted snapshot | Ownership agrees; aligned PASS head `2eae9948`; no duplicate Longhorn authority |
+| Tool input/output schemas | Validate Desktop-supplied schemas and invoke typed callbacks; no schema authority | PR254 spec 014 at aligned PASS head assigns domain tool names and I/O schema authority to Desktop | Spec 010 assigns names, I/O schemas, effects, and business policy to Desktop | Desktop owns schemas; Longhorn owns generic validation only | Ownership agrees; aligned PASS head `2eae9948` |
+| Transport, listener, lease, and correlation | Attach to an already authenticated operation binding; no listener, lease, bearer, or correlation lifecycle | PR254 spec 014 assigns the shared Contract060 operation bridge kernel and registered-server profile to Swallowtail | Spec 010 assigns provider attachment, listener, transport, operation lease, and bridge lifecycle to Swallowtail | Swallowtail Contract060 kernel; `WatcherBridge` stays closed-compatible | Ownership agrees; future Contract060 amendment/delivery must preserve one kernel and no second listener |
 | Replay classification and admission | Consume trusted host binding; validate fields and dispatch; never infer authority from model args | PR254 spec 014 proposes effect/replay posture and exact operation/turn binding | Spec 010 makes Desktop issue durable task/attempt admission; fresh attempt on retry; no mutating replay | Desktop issues admission; Swallowtail binds operation generation; Longhorn validates | Retry/no-replay is already aligned; no new Longhorn authority |
-| Desktop context disclosure | Accept only bounded, already-admitted context; do not discover or broaden it | PR254 spec 014 says Desktop chooses context, skills, and references; Swallowtail validates bounds/digest | Spec 010 bounds selected workspace context, viewing/task separation, IDs, revisions, and exclusions | Desktop | Aligned; Desktop must publish the disclosure record and bounds |
+| Desktop context disclosure | Accept only bounded, already-admitted context; do not discover or broaden it | PR254 spec 014 says Desktop chooses context, skills, and references; Swallowtail validates bounds/digest | Spec 010 at `30a338f2` is the canonical disclosure and admission record | Desktop | Ownership agrees; consume spec010; no generic operator gate |
 
-The exact incompatibility is the current PR254 spec 014 ownership row for tool
-input/output schemas: it assigns them to Longhorn while Desktop `30a338f2`
-assigns them to Desktop. The operator direction resolves the intended split but
-does not itself amend Swallowtail. PR254 must revise that row before either
-producer plan can promote.
+The current planning ownership agrees: Swallowtail PR254/spec014 is independently
+PASS at `2eae994844d5f6f14cf0238ee9e5a7d987939c94`, with registry/schema discovery
+owned by Swallowtail and domain tool names/I/O schemas owned by Desktop. The
+remaining Swallowtail item is future active-contract promotion: amend and deliver
+Contract060 while preserving `WatcherBridge` as a closed compatible profile and
+one listener/lease/correlation kernel. That delivery gate is distinct from the
+now-aligned planning ownership.
 
 Contract 060 is not a consumer-tool transport. Its active contract,
 `swallowtail/docs/contracts/060-operation-scoped-watcher-http-bridge.md`, is a
@@ -95,17 +99,18 @@ valid result, refusal, cleanup, and no secret leakage.
 
 ## Open decisions before promotion
 
-- Swallowtail must amend PR254/spec014 and Contract060 consistently, preserving
+- Swallowtail's future Contract060 amendment and delivery evidence must preserve
   WatcherBridge's closed profile and one listener/lease/correlation kernel.
-- Desktop must publish the bounded app-context disclosure record and its exact
-  task/session/attempt admission schema through spec 010.
+- Desktop spec 010 at `30a338f2` is the canonical bounded app-context disclosure
+  and task/session/attempt admission record; no generic operator gate or extra
+  artifact is required unless a promoted contract names one.
 - The counterpart route matrix remains Swallowtail-owned; Longhorn consumes its
   released evidence rather than reopening Claude/Codex/Grok support as a
   Longhorn gate.
 
-Until those bilateral revisions land, this spec and g02.036 remain planning
-authority only. No producer contract promotion, runtime implementation, or
-release follows from this document.
+Until the Contract060 amendment/delivery evidence and independent exact-head
+reviews land, this spec and g02.036 remain planning authority only. No producer
+contract promotion, runtime implementation, or release follows from this document.
 
 ## Planned producer batches
 

@@ -15,7 +15,7 @@ policy, context disclosure, admission issuance, and packaging.
 
 ## Execution plan
 
-- [ ] Reconcile Swallowtail PR254/spec014 and Contract060 with this split;
+- [ ] Swallowtail delivers the future Contract060 amendment with this split;
       preserve WatcherBridge as a closed compatible profile.
 - [ ] Settle and promote Longhorn's typed dispatch/validation contract,
       credential-reference, protocol/schema, bounded result/error, and release
@@ -42,7 +42,8 @@ policy, context disclosure, admission issuance, and packaging.
 
 ## Readiness
 
-Blocked. No card is ready while Swallowtail has not revised PR254/Contract060
-and Desktop's disclosure/admission record is not published through its
-canonical spec. Longhorn-owned planning items are not additional operator
-gates; route support remains Swallowtail-owned.
+Blocked. PR254/spec014 is aligned and independently PASS at
+`2eae994844d5f6f14cf0238ee9e5a7d987939c94`; its future Contract060 amendment
+and delivery evidence remain a promotion gate. Desktop spec010 at `30a338f2`
+is the canonical disclosure/admission record. Longhorn-owned planning items
+are not additional operator gates; route support remains Swallowtail-owned.

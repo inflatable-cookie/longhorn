@@ -54,13 +54,29 @@ A claim proved on one backend does not close a host-tier contract.
 | [020 Host Adapter Boundary](020-host-adapter-boundary.md) | what a backend must provide, what it may not do, delegated capabilities, dual-backend evidence | active compiled boundary |
 | [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md) | validated built-in and consumer namespace/scope/purpose identities over one credential store | active compiled boundary |
 | [022 Agent App Control](022-agent-app-control.md) | dev-only stateless MCP control surface: semantic snapshot, in-page input, unfocused capture, command invocation | active |
-| [023 Production Contextual Agent Tool Boundary](023-production-contextual-agent-tool-boundary.md) | proposed production authenticated app-tool registry and admission seam | proposed; blocked |
+| [023 Production Contextual Agent Tool Boundary](023-production-contextual-agent-tool-boundary.md) | proposed transport-neutral typed host dispatch/validation abstraction; consumes Swallowtail registration and authenticated admission binding | proposed; blocked |
 
 ## Pending Contracts
 
-Contract 023 is proposed and blocked on Swallowtail attachment, credential,
-identity, admission, approval, retry, limits, client-support, and release-shape
-decisions. Contract 022 was promoted 2026-08-19 from Card 227's spike evidence
+Contract 023 is proposed. Its planning ownership is settled: Longhorn owns only
+the transport-neutral typed host dispatch/validation abstraction; Swallowtail
+owns namespaced registration and the bridge transport/listener/lease/correlation
+kernel; Desktop owns domain schemas, policy, bounded context, admission, and
+packaging. The remaining promotion and delivery gates are:
+
+- independent exact-head review of the Longhorn revision;
+- final bilateral cross-check against Swallowtail PR254/spec014, independently
+  PASS at `2eae994844d5f6f14cf0238ee9e5a7d987939c94`;
+- Swallowtail's future Contract060 amendment and delivery evidence, preserving
+  `WatcherBridge` as a closed compatible profile and one listener/lease/correlation
+  kernel; and
+- producer-owned route/protocol evidence plus Desktop's packaged host delivery,
+  using Desktop spec010 at `30a338f2` as the canonical context/admission record.
+
+Numeric limits and protocol mappings remain producer-settleable evidence, not a
+generic operator gate. Contract 023 does not own registry, listener, lease,
+correlation, admission issuance, or a standalone daemon. Contract 022 was
+promoted 2026-08-19 from Card 227's spike evidence
 (memo 024): stateless mount and 2026-07-28 negotiation proved on the wire,
 unfocused/occluded/minimized capture proved fresh, with the rAF/timer
 caveat folded into the contract's `wait_for` semantics.

@@ -1,6 +1,6 @@
 # 023 Production Contextual Agent Tool Boundary
 
-Status: proposed; blocked on counterpart revision and Desktop disclosure
+Status: proposed; blocked on Contract060 delivery evidence and final bilateral review
 Owner: Longhorn maintainers
 Depends on: 001, 006, 007, 010, 012, 015, 019, 020, 021, 022
 Related: `../specs/002-production-contextual-agent-tool-boundary.md`
