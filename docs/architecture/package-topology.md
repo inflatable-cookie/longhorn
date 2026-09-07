@@ -54,6 +54,7 @@ discovery and validation entry points.
 | `longhorn-url` | shared HTTPS endpoint scheme classification and loopback-host parsing for capability URL newtypes; no HTTP client | none |
 | `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | url, licence, serde |
 | `longhorn-agent-control` | host-agnostic agent app-control core (contract 022): tool vocabulary, discovery-file lifecycle, per-instance bearer token, native-surface provider seam | core, config, sysinfo |
+| `longhorn-agent-tool-dispatch` | opt-in transport-neutral production contextual-tool validation, exactly-once callback/result recording, cancellation terminality, and redacted evidence (contract 023) | none |
 | `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-agent-control` | Tauri host wiring for the contract 022 control surface: dev-feature-gated server mount, window scope, `command` through the host's contract-006 bridge; empty library feature-off | core, agent-control, tauri-config, Tauri |

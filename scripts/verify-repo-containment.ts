@@ -6,8 +6,8 @@
 // named foreign repositories; this catches the mechanism itself — any
 // `path =`, `file:`, or `join(repoRoot, "../…")` that leaves the tree.
 //
-// Deliberate exception: the greenfield proof packs Poodle from source, so it
-// may name a sibling checkout. Nothing else may.
+// Deliberate exceptions: the greenfield proof packs Poodle from source, and
+// g02.036 compiles one disposable exact-SHA Swallowtail source consumer.
 
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -15,7 +15,10 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dir, "..");
 
 /** Relative paths allowed to name a location outside the repository. */
-const ALLOWED_ESCAPES = new Set(["scripts/verify-greenfield-card125.ts"]);
+const ALLOWED_ESCAPES = new Set([
+  "scripts/verify-agent-tool-dispatch-source-consumer.ts",
+  "scripts/verify-greenfield-card125.ts",
+]);
 
 const SKIPPED = new Set([
   "node_modules",
@@ -56,8 +59,8 @@ if (findings.length > 0) {
   console.error(
     `Longhorn path references must resolve inside the repository.\n\n${lines.join("\n")}\n\n` +
       "A clean runner has no sibling checkouts and no machine-local packs. The\n" +
-      "only admitted escape is scripts/verify-greenfield-card125.ts, which packs\n" +
-      "Poodle from source under release.yml.",
+      "admitted escapes are the Poodle pack proof and g02.036's disposable\n" +
+      "exact-SHA source-consumer acceptance runner.",
   );
   process.exit(1);
 }

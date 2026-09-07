@@ -22,6 +22,10 @@ import { basename, join, relative, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 
+const ALLOWED_EXTERNAL_FIXTURES = new Set([
+  "scripts/verify-agent-tool-dispatch-source-consumer.ts",
+]);
+
 /**
  * Sibling repositories Longhorn depends on, rather than applications that
  * depend on Longhorn. Poodle is projected into by the binding tier, so the
@@ -91,6 +95,7 @@ async function scan(directory: string): Promise<void> {
 }
 
 function inspect(file: string, source: string): void {
+  if (ALLOWED_EXTERNAL_FIXTURES.has(file)) return;
   record(file, source, /process\.env\.([A-Z0-9_]+)_REPO\b/g, (match) =>
     DEPENDENCIES.has(match[1]!.toLowerCase().replaceAll("_", "-"))
       ? null

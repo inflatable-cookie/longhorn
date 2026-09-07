@@ -47,6 +47,14 @@ worktrees need before TypeScript checks; `check:bun-deps` guards
 `check:ts`/`check:svelte` when run alone. `consumer-absence.ts` and
 `poodle-release.ts` are shared modules, not entry points.
 
+`check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
+release/default contract-022 absence proof, and the generated API check.
+`proof:agent-tool-dispatch-source-consumer` additionally requires
+`AGENT_LONGHORN_REPO` and `AGENT_PROJECTS_ROOT`; it accepts only a clean
+Longhorn descendant of the promoted base and exact clean Swallowtail
+`d7e93e5552c5b272e55ddef8a531b5dd32e81bf0`, then compiles and runs the
+provider-free fixture outside both repositories.
+
 ## No consumer knowledge
 
 Longhorn keeps no code with direct knowledge of a consuming application. No
@@ -63,9 +71,16 @@ repository's working tree. A proof that reads a second repository can only be
 green when both are simultaneously in one state, which is not a property this
 repository can hold.
 
-`check:consumer-isolation`, a member of `qa`, enforces this. It names no
-consumer — it detects the mechanism, so a consumer arriving or leaving never
-requires editing it. Three things fail it:
+The g02.036 L1 acceptance fixture is deliberately different: it is created in
+`mktemp`, consumes exact clean Longhorn and Swallowtail source SHAs through
+machine-local symbolic keys, writes no dependency edge into either repository,
+and emits only a sanitized one-run receipt. It is acceptance evidence for the
+transport-neutral source seam, not a standing consumer claim or adoption pin.
+
+`check:consumer-isolation`, a member of `qa`, enforces this. Outside the single
+g02.036 source-consumer acceptance runner, it names no consumer — it detects
+the mechanism, so a consumer arriving or leaving never requires editing it.
+Three things fail it:
 
 - a `*_REPO` environment override
 - an absolute path into another checkout
@@ -77,11 +92,10 @@ should be argued for.
 
 `check:repo-containment`, also in `qa`, is stricter about location: Cargo
 `path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
-inside this tree. The only admitted escape is
-`scripts/verify-greenfield-card125.ts`, which packs Poodle from source under
-the release workflow. That script reads `POODLE_REPO` to locate the Poodle
-checkout (defaulting to the `../poodle` sibling); no other script takes a
-`*_REPO` override.
+inside this tree. The admitted escapes are `verify-greenfield-card125.ts`,
+which packs Poodle from source under the release workflow, and the disposable
+g02.036 source-consumer runner described above. No standing consumer proof may
+take a `*_REPO` override.
 
 `verify-greenfield-card125.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.

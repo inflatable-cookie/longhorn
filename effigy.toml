@@ -29,14 +29,17 @@ exclude = ["history/**"]
 # is genuinely members-only.
 "fmt:rust" = "sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
 "lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
+"lint:agent-tool-dispatch" = "cargo clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
+"test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this task — `cargo test` — because the doc tests
 # are part of the claim. The built-in remains a convenience for iteration.
 "docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
+"docs:agent-tool-dispatch" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-agent-tool-dispatch --no-deps --locked'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
 # are the only artefacts binding a Longhorn seam to a real host SDK, and until
@@ -78,6 +81,15 @@ exclude = ["history/**"]
 # release `workspace` gate runs — no separate release.gates line, per the
 # single-table rule in config/release.toml.
 "check:agent-control-release-absence" = "bun scripts/verify-agent-control-release-absence.ts"
+"check:agent-tool-dispatch-release-absence" = "bun scripts/verify-agent-tool-dispatch-release-absence.ts"
+"check:agent-tool-dispatch" = [
+  { task = "lint:agent-tool-dispatch" },
+  { task = "test:agent-tool-dispatch" },
+  { task = "docs:agent-tool-dispatch" },
+  { task = "check:agent-tool-dispatch-release-absence" },
+  { task = "check:api-reference" },
+]
+"proof:agent-tool-dispatch-source-consumer" = "bun scripts/verify-agent-tool-dispatch-source-consumer.ts"
 # Card 236: lock the skill's tool table to CONTROL_TOOL_NAMES and the
 # workspace version; also runs finder and install fixtures (Cards 235-236).
 "check:agent-control-skill" = "bun scripts/verify-agent-control-skill.ts"
@@ -164,6 +176,7 @@ qa = [
   { task = "check:consumer-isolation" },
   { task = "check:repo-containment" },
   { task = "check:agent-control-release-absence" },
+  { task = "check:agent-tool-dispatch-release-absence" },
   { task = "check:agent-control-skill" },
   { task = "proof:artifacts" },
   { task = "qa:docs" },

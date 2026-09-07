@@ -1,0 +1,12 @@
+[package]
+name = "longhorn-agent-tool-dispatch"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Transport-neutral typed host dispatch for contextual agent tools"
+publish = false
+
+[lints]
+workspace = true
