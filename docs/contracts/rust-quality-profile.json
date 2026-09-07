@@ -9,6 +9,7 @@
     "cargo_manifests": [
       "Cargo.toml",
       "crates/longhorn-agent-control/Cargo.toml",
+      "crates/longhorn-agent-tool-dispatch/Cargo.toml",
       "crates/longhorn-bindings/Cargo.toml",
       "crates/longhorn-bridge/Cargo.toml",
       "crates/longhorn-browser/Cargo.toml",

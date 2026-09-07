@@ -2748,6 +2748,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-agent-tool-dispatch"
+version = "0.1.0"
+
+[[package]]
 name = "longhorn-bindings"
 version = "0.1.0"
 dependencies = [

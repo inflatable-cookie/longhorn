@@ -5,6 +5,18 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Rust closeout scans an intentionally non-workspace example — 2026-09-07
+- Friction: Northstar Rust `closeout` runs Cargo metadata on `examples/greenfield-compositions/common-rust`, which intentionally has no workspace membership or local `[workspace]` table.
+- Impact: required everyday-authoring closeout stops before collecting evidence for an unrelated, valid workspace crate.
+- Plausible fix: honor profile ownership/exclusions before probing standalone Cargo manifests.
+- Surface: Northstar Rust quality `closeout`, Longhorn greenfield example manifests.
+
+### [ ] Cold code-graph refresh exceeds its default budget — 2026-09-07
+- Friction: `effigy graph explore` timed out after 120 seconds while indexing 2,135 of 2,588 files in a fresh worktree.
+- Impact: graph-first code navigation cannot answer the initial ownership query without a separate warm-up or timeout override.
+- Plausible fix: make cold indexing resumable within the default budget or surface a bounded automatic continuation.
+- Surface: `effigy graph explore`, cold worktree index.
+
 ### [ ] Isolated proof `bun install` can miss cache package dirs — 2026-09-05
 - Friction: `effigy proof:artifacts` isolated consumers sometimes fail
   `bun install --ignore-scripts` with `FileNotFound: failed opening

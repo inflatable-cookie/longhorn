@@ -202,11 +202,11 @@ encryption authority. `@inflatable-cookie/longhorn-poodle-svelte/config/poodle` 
 pages, while `longhorn-settings-config` admits them by capability. Product
 pages and schemas remain downstream in consumers.
 
-### Production contextual app-tool boundary (planning)
+### Production contextual app-tool boundary
 
 The existing agent-control surface is a dev-only webview control boundary
 under contract 022. A production contextual-tool surface is a separate
-planned capability, not a feature flip. Swallowtail owns the namespaced
+separate capability, not a feature flip. Swallowtail owns the namespaced
 registration snapshot and the operation bridge's transport, listener, lease,
 correlation, and lifecycle kernel. Longhorn owns only a transport-neutral typed
 host dispatch and validation library over an already authenticated binding.
@@ -215,14 +215,23 @@ bounded app-context disclosure, durable task/session/attempt admission, and
 packaging/distribution/startup. Desktop process incarnation plus Swallowtail
 operation generation are authority; PID is diagnostic only.
 
+The provider-free L1 baseline is implemented as the dependency-free,
+opt-in `longhorn-agent-tool-dispatch` crate. It validates the exact normalized
+registration revision, input/output schema version and digest, execution kind,
+trusted binding, live status, host-observed typed deadline, and positive bounds
+before invoking one injected callback. Its bound result recorder admits one
+bounded result, makes cancellation terminal, rejects duplicate and
+post-terminal settlement, never
+permits transport replay, and records only safe event kinds and counts.
+
 The bridge is one operation kernel with the active Contract 060 WatcherBridge
 as a closed compatible profile. Longhorn adds no registry, listener, lease,
 correlation lifecycle, admission issuer, or standalone daemon in slice 1.
 
-The attachment seam and production contract remain proposed in
-`../contracts/023-production-contextual-agent-tool-boundary.md`; execution is
-blocked until the bilateral revisions and Desktop disclosure in
-`../specs/002-production-contextual-agent-tool-boundary.md` are settled.
+The provider-free attachment seam is promoted in
+`../contracts/023-production-contextual-agent-tool-boundary.md`. Desktop
+adoption, provider execution, dependency changes, and production release remain
+held under `../roadmaps/g02/036-production-contextual-agent-tools.md`.
 
 The canonical bootstrap, mutation, capability, artifact, and migration rules
 are in [Settings Composition](settings-composition.md). Card 048 proves modal,

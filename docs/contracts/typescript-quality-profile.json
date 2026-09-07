@@ -97,6 +97,8 @@
           "scripts/test-count.ts",
           "scripts/verify-agent-control-release-absence.ts",
           "scripts/verify-agent-control-skill.ts",
+          "scripts/verify-agent-tool-dispatch-release-absence.ts",
+          "scripts/verify-agent-tool-dispatch-source-consumer.ts",
           "scripts/verify-app-shell-proof.ts",
           "scripts/verify-bridge-topology-artifacts.ts",
           "scripts/verify-bridge-topology-conformance.ts",
