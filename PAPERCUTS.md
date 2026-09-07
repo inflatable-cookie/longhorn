@@ -285,3 +285,9 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
   and refreshes on any content difference ("refreshed ... — content
   changed"); fixture pins it. Bit Soundcheck first: their same-version
   re-run no-opped over the pre-fix copy and needed a manual delete.
+
+## 2026-09-07 — Finder metadata breaks host-protocol scan
+
+`qa:docs` failed because `verify-host-protocol.ts` recursed into the ignored
+`packages/.DS_Store` file as a directory. Preserving that file outside the
+scan root restored PASS. Follow-up: filter directory entries before recursion.

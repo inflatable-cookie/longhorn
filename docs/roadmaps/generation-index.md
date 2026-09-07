@@ -20,6 +20,11 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
+**Current operator frontier:** [g02.036 L1](g02/036-production-contextual-agent-tools.md)
+provider-free typed dispatcher fixture is ready. Coordinator dispatches L1
+first; D1 waits for independent acceptance and merge. Prior adoption narrative
+below remains historical context, not a competing automatic dispatch.
+
 One live pointer lives here, updated in the same commit that closes a card —
 the running narrative that used to fill this section drifted into three
 competing pointers, which is how Card 216 came to exist. Card closeout detail
