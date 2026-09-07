@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 
 const LONGHORN_BASE = "c20ac0a208840ff6424f2d334f5bc0a09ff6a07e";
 const SWALLOWTAIL_SHA = "d7e93e5552c5b272e55ddef8a531b5dd32e81bf0";
+const CLEAN_RUNS = 32;
 const SAFE_OUTCOME =
   "provider-free-fixture:pass readiness=ready callbacks=once results=once cancellation=once replay=none redaction=safe";
 const scriptRoot = resolve(import.meta.dir, "..");
@@ -48,15 +49,19 @@ try {
     throw new Error("normalized manifest or lockfile hash is not reproducible");
   }
 
-  const outcome = (
-    await run(
-      ["cargo", "run", "--locked", "--quiet"],
-      first,
-      { CARGO_TARGET_DIR: join(first, "target") },
-    )
-  ).trim();
-  if (outcome !== SAFE_OUTCOME) {
-    throw new Error(`fixture returned an unexpected safe outcome: ${outcome}`);
+  for (let index = 0; index < CLEAN_RUNS; index += 1) {
+    const outcome = (
+      await run(
+        ["cargo", "run", "--locked", "--quiet"],
+        first,
+        { CARGO_TARGET_DIR: join(first, "target") },
+      )
+    ).trim();
+    if (outcome !== SAFE_OUTCOME) {
+      throw new Error(
+        `fixture run ${index + 1} returned an unexpected safe outcome: ${outcome}`,
+      );
+    }
   }
 
   const sourceGraphAfter = await sourceGraphDigests(longhornRoot, swallowtailRoot);
@@ -78,7 +83,7 @@ try {
     lockfileSha256: firstEvidence.lockSha256,
     commands: {
       generateLockfile: "pass-twice-identical",
-      lockedCompileRun: "pass",
+      lockedCompileRun: `pass-${CLEAN_RUNS}-consecutive`,
     },
     protocol: {
       readiness: "ready",
@@ -89,6 +94,7 @@ try {
       postTerminalReplay: 0,
       mutationReplay: 0,
       diagnostics: "redacted",
+      consecutiveCleanRuns: CLEAN_RUNS,
     },
     sourceGraphsUnchanged: true,
     temporaryFixtureRemoved: true,

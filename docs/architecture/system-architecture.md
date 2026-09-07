@@ -219,9 +219,10 @@ The provider-free L1 baseline is implemented as the dependency-free,
 opt-in `longhorn-agent-tool-dispatch` crate. It validates the exact normalized
 registration revision, input/output schema version and digest, execution kind,
 trusted binding, live status, host-observed typed deadline, and positive bounds
-before invoking one injected callback. Its bound result recorder admits one
-bounded result, makes cancellation terminal, rejects duplicate and
-post-terminal settlement, never
+before invoking one injected callback. The producer-declared bounds include a
+maximum retained-call lifetime for that exact binding. Its bound result
+recorder admits one bounded result, makes cancellation terminal, rejects
+duplicate and post-terminal settlement, never
 permits transport replay, and records only safe event kinds and counts.
 
 The bridge is one operation kernel with the active Contract 060 WatcherBridge

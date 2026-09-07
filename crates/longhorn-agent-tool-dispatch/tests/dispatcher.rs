@@ -18,7 +18,8 @@ fn schema(version: &str, digest: &str) -> SchemaIdentity {
 }
 
 fn bounds(result_bytes: usize) -> DispatchBounds {
-    DispatchBounds::new(1, 64, result_bytes, 16, 2, Duration::from_secs(5)).expect("fixture bounds")
+    DispatchBounds::new(8, 1, 64, result_bytes, 16, 2, Duration::from_secs(5))
+        .expect("fixture bounds")
 }
 
 fn registration(
@@ -317,8 +318,12 @@ fn registration_schema_kind_and_binding_refusals_precede_callback() {
 
 #[test]
 fn bounds_are_positive_and_enforced_before_callback() {
-    let invalid =
-        DispatchBounds::new(1, 64, 64, 16, 2, Duration::ZERO).expect_err("zero duration must fail");
+    let invalid_total = DispatchBounds::new(0, 1, 64, 64, 16, 2, Duration::from_secs(5))
+        .expect_err("zero calls per binding must fail");
+    assert_eq!(invalid_total.kind(), DispatchErrorKind::InvalidBounds);
+
+    let invalid = DispatchBounds::new(8, 1, 64, 64, 16, 2, Duration::ZERO)
+        .expect_err("zero duration must fail");
     assert_eq!(invalid.kind(), DispatchErrorKind::InvalidBounds);
 
     let calls = Arc::new(AtomicUsize::new(0));
@@ -330,7 +335,7 @@ fn bounds_are_positive_and_enforced_before_callback() {
         schema("1", "sha256:output"),
         ExecutionKind::NativeClient,
         DispatchEffect::Mutating,
-        DispatchBounds::new(2, 64, 64, 16, 2, Duration::from_secs(5)).expect("positive bounds"),
+        DispatchBounds::new(8, 2, 64, 64, 16, 2, Duration::from_secs(5)).expect("positive bounds"),
     )
     .expect("candidate registration");
     let (_, cancellation) = live_cancellation();
@@ -347,6 +352,66 @@ fn bounds_are_positive_and_enforced_before_callback() {
 
     assert_eq!(error.kind(), DispatchErrorKind::LimitExceeded);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn total_calls_are_bounded_by_the_producer_for_one_binding() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let registration = RegisteredCapability::new(
+        "registration-7",
+        "desktop/read_context",
+        schema("1", "sha256:input"),
+        schema("1", "sha256:output"),
+        ExecutionKind::NativeClient,
+        DispatchEffect::Mutating,
+        DispatchBounds::new(2, 1, 64, 64, 16, 2, Duration::from_secs(5)).expect("positive bounds"),
+    )
+    .expect("bounded registration");
+    assert_eq!(registration.bounds().max_calls_per_binding(), 2);
+    let dispatcher = RecordingDispatcher::new(
+        registration.clone(),
+        expected_binding(),
+        CompletingCallback {
+            calls: Arc::clone(&calls),
+            payload: b"result-secret".to_vec(),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+    for call_id in ["bounded-1", "bounded-2"] {
+        block_on(dispatcher.dispatch(
+            invocation(
+                call_id,
+                registration.clone(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        ))
+        .expect("producer-admitted call settles");
+    }
+    let error = block_on(dispatcher.dispatch(
+        invocation(
+            "bounded-3",
+            registration.clone(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    ))
+    .expect_err("producer lifetime bound must be enforced");
+    assert_eq!(error.kind(), DispatchErrorKind::LimitExceeded);
+    let duplicate = block_on(dispatcher.dispatch(
+        invocation(
+            "bounded-1",
+            registration,
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect_err("retained identity must still prevent replay");
+    assert_eq!(duplicate.kind(), DispatchErrorKind::DuplicateCall);
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
 
 #[test]

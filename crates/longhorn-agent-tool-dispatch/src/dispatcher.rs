@@ -10,8 +10,6 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-const MAX_REMEMBERED_CALLS: usize = 256;
-
 /// Sendable future returned by callback and dispatcher ports.
 pub type DispatchFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
@@ -36,7 +34,6 @@ enum Terminal {
 
 struct DispatcherState {
     active: BTreeSet<String>,
-    seen: BTreeSet<String>,
     terminal: BTreeMap<String, Terminal>,
     events: Vec<DispatchEvent>,
     callbacks: usize,
@@ -49,7 +46,6 @@ impl DispatcherState {
     fn new() -> Self {
         Self {
             active: BTreeSet::new(),
-            seen: BTreeSet::new(),
             terminal: BTreeMap::new(),
             events: Vec::new(),
             callbacks: 0,
@@ -206,12 +202,14 @@ where
             let admitted = AdmittedCall::from_invocation(&invocation);
             let recorder = {
                 let mut state = locked(&self.state);
-                if state.seen.contains(invocation.call_id()) {
+                if state.active.contains(invocation.call_id())
+                    || state.terminal.contains_key(invocation.call_id())
+                {
                     let error = DispatchError::new(DispatchErrorKind::DuplicateCall);
                     state.reject(error);
                     return Err(error);
                 }
-                if state.seen.len() >= MAX_REMEMBERED_CALLS
+                if state.callbacks >= self.expected_registration.bounds().max_calls_per_binding()
                     || state.active.len()
                         >= invocation.registration().bounds().max_outstanding_calls()
                 {
@@ -219,7 +217,6 @@ where
                     state.reject(error);
                     return Err(error);
                 }
-                state.seen.insert(invocation.call_id().to_owned());
                 state.active.insert(invocation.call_id().to_owned());
                 state.record(DispatchEventKind::Validated);
                 state.callbacks = state.callbacks.saturating_add(1);
@@ -333,7 +330,10 @@ impl<C> std::fmt::Debug for RecordingDispatcher<C> {
             .field("expected_registration", &self.expected_registration)
             .field("expected_binding", &self.expected_binding)
             .field("active_calls", &state.active.len())
-            .field("remembered_calls", &state.seen.len())
+            .field(
+                "remembered_calls",
+                &state.active.len().saturating_add(state.terminal.len()),
+            )
             .field("terminal_calls", &state.terminal.len())
             .field("callback", &"<consumer callback>")
             .finish()

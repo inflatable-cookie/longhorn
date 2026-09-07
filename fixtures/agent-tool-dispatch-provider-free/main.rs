@@ -32,6 +32,7 @@ impl longhorn::CancellationSource for BridgeCancellation {
 struct CallbackState {
     invocations: AtomicUsize,
     cancellation_observations: AtomicUsize,
+    retained_cancellation: Mutex<Option<longhorn::Cancellation>>,
     retained_cancel_result: Mutex<Option<longhorn::ResultRecorder>>,
 }
 
@@ -59,14 +60,18 @@ impl longhorn::RecordingCallback for CallbackPort {
 
         *self
             .0
+            .retained_cancellation
+            .lock()
+            .expect("retained cancellation lock") = Some(cancellation.clone());
+        *self
+            .0
             .retained_cancel_result
             .lock()
             .expect("retained result lock") = Some(result.clone());
         let state = Arc::clone(&self.0);
         Box::pin(async move {
-            poll_fn(|context| {
+            poll_fn(|_context| {
                 if !cancellation.is_cancelled() {
-                    context.waker().wake_by_ref();
                     return Poll::Pending;
                 }
                 state
@@ -272,6 +277,7 @@ fn longhorn_schema(version: &str, digest: &str) -> longhorn::SchemaIdentity {
 fn longhorn_bounds() -> longhorn::DispatchBounds {
     let bounds = swallowtail_runtime::RegisteredToolBounds::ceiling();
     longhorn::DispatchBounds::new(
+        16,
         bounds.max_outstanding_calls(),
         bounds.max_argument_bytes(),
         bounds.max_result_bytes(),
@@ -421,12 +427,22 @@ fn cancelled_call_is_terminal_once() {
     adapter.bind(longhorn_binding(lease.generation().get()));
     let mut pending = lease.call(request("call-cancel", FIXTURE_NATIVE_TOOL));
     assert!(matches!(poll_fixture_once(&mut pending), Poll::Pending));
+    let cancellation = adapter
+        .callbacks
+        .retained_cancellation
+        .lock()
+        .expect("retained cancellation lock")
+        .clone()
+        .expect("cancel callback retained cancellation");
 
     let closer = services.clone();
     let turn = conformance_turn("turn-cancel");
     let close = std::thread::spawn(move || {
         closer.close_operation_bridges(&turn, OperationBridgeCleanupCause::Cancellation)
     });
+    while !cancellation.is_cancelled() {
+        std::thread::yield_now();
+    }
     let outer = drive_fixture(pending).expect("adapter returns a typed terminal outcome");
     assert!(outer.failure().is_some());
     assert_eq!(

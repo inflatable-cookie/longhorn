@@ -61,6 +61,7 @@ pub enum DispatchEffect {
 /// Positive limits fixed before callback dispatch.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct DispatchBounds {
+    max_calls_per_binding: usize,
     max_outstanding_calls: usize,
     max_argument_bytes: usize,
     max_result_bytes: usize,
@@ -71,7 +72,9 @@ pub struct DispatchBounds {
 
 impl DispatchBounds {
     /// Creates one positive bound set.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
+        max_calls_per_binding: usize,
         max_outstanding_calls: usize,
         max_argument_bytes: usize,
         max_result_bytes: usize,
@@ -80,6 +83,7 @@ impl DispatchBounds {
         max_call_duration: Duration,
     ) -> Result<Self, DispatchError> {
         let bounds = Self {
+            max_calls_per_binding,
             max_outstanding_calls,
             max_argument_bytes,
             max_result_bytes,
@@ -92,7 +96,8 @@ impl DispatchBounds {
     }
 
     pub(crate) fn validate(self) -> Result<(), DispatchError> {
-        if self.max_outstanding_calls == 0
+        if self.max_calls_per_binding == 0
+            || self.max_outstanding_calls == 0
             || self.max_argument_bytes == 0
             || self.max_result_bytes == 0
             || self.max_progress_item_bytes == 0
@@ -106,12 +111,22 @@ impl DispatchBounds {
     }
 
     pub(crate) fn fits_within(self, ceiling: Self) -> bool {
-        self.max_outstanding_calls <= ceiling.max_outstanding_calls
+        self.max_calls_per_binding <= ceiling.max_calls_per_binding
+            && self.max_outstanding_calls <= ceiling.max_outstanding_calls
             && self.max_argument_bytes <= ceiling.max_argument_bytes
             && self.max_result_bytes <= ceiling.max_result_bytes
             && self.max_progress_item_bytes <= ceiling.max_progress_item_bytes
             && self.max_queued_progress_items <= ceiling.max_queued_progress_items
             && self.max_call_duration <= ceiling.max_call_duration
+    }
+
+    /// Returns the maximum calls retained for one exact trusted binding.
+    ///
+    /// Reaching this producer-declared lifetime bound rejects further unique
+    /// calls while preserving retained identities for duplicate refusal.
+    #[must_use]
+    pub const fn max_calls_per_binding(self) -> usize {
+        self.max_calls_per_binding
     }
 
     /// Returns the maximum concurrent callbacks.
