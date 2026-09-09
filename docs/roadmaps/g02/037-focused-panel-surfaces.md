@@ -1,19 +1,22 @@
-# 177 Focused Panel Surfaces
+# g02.037 Focused Panel Surfaces
 
 Status: in progress
 Owner: Tom
-Roadmap: g02 planning checkpoint
 Governing refs: contract 002; contract 014
 Depends on: none
-Auto-start next card: no
 
-## Objective
+Absorbed from Card 177 (in progress at migration time), promoted to a
+top-level task in the flattened-task migration: the card had no
+owning task — its roadmap line was the g02 planning checkpoint — so it
+could not absorb into an existing `g02.NNN` outcome.
+
+## Outcome
 
 A Surface can present one panel full-surface, with no regional layout and no
 panel tabs. Loophole holds this app-side today; the concept belongs in the
 Surface model.
 
-## Why This Exists
+## Why this exists
 
 The legacy application had it as a surface `habitat`, and Loophole rebuilt it
 by convention: a `focusSurfacePanels` map from surface id to panel definition
@@ -65,16 +68,13 @@ register. `NoSurfaceMigration` stays.
 
 ### Surface transfer is unaffected; panel transfer is where the guard belongs
 
-The brief asks whether a focused-panel Surface can be a transfer target. In the
-session-based *surface* transfer protocol a Surface moves wholesale between
-windows, so a focused Surface moves like any other and needs no new rejection.
-
-The interaction the consumer actually guards against is a *panel* being dropped
-onto a focus surface, which is `longhorn-transfer`, a different protocol. That
-guard needs container-to-surface visibility and is the same composition-layer
+A focused Surface moves wholesale between windows in the session-based surface
+transfer protocol like any other and needs no new rejection. Dropping a panel
+onto a focus surface is `longhorn-transfer`, a different protocol; that guard
+needs container-to-surface visibility and is the same composition-layer
 question as the container invariant above.
 
-## Steps
+## Work
 
 1. `SurfacePresentation` in `longhorn-surfaces`: `regional`, or
    `focused_panel` carrying a `PanelDefinitionId`. Defaults to `regional`.
@@ -88,10 +88,29 @@ question as the container invariant above.
 6. Document the container invariant as a consumer obligation until a
    composition-layer owner exists.
 
-## Acceptance Criteria
+## Acceptance criteria
 
 - `SurfaceRecord` carries presentation, defaulting to regional
 - a document written without the field still loads
 - the mutation command sets and clears focus, with typed rejections
 - `effigy qa` green, including `check:bindings`
 - a focus Surface survives snapshot → mutate → snapshot unchanged
+
+## Stop conditions
+
+- Stop on a contract contradiction with 002 or 014, or failed evidence gates.
+- The container invariant stays a documented consumer obligation; do not widen
+  `LayoutContainerInventory` to police it without an operator decision.
+
+## Evidence
+
+On completion, record: outcome, validation actually run, PR link, reviewed
+exact head, merge commit, and material limits.
+
+## Next task
+
+None named. On completion, Chatterbox planning resumes from the g02 frontier.
+
+## Absorbed records
+
+- Card 177: in progress — promoted to this task; scope, decisions, steps, and acceptance inline above.

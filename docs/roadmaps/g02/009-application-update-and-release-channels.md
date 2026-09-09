@@ -16,7 +16,7 @@ outside the boundary.
 
 ## Generation Runway
 
-Ninth g02 milestone, and the first that is not remediation.
+Ninth g02 task, and the first that is not remediation.
 
 Card 150 was compiled as a gate on the belief that no store records the
 schema that wrote it. That was wrong — all four stores already stamp and
@@ -88,39 +88,40 @@ source adapters are the only check path rather than a duplicate of one.
 
 ## Execution Plan
 
-### Batch 1. Cross-channel store compatibility
+### Stage 1. Cross-channel store compatibility
 
-- [x] [Card 150](batch-cards/150-store-schema-stamping-and-forward-refusal.md)
+- [x] Card 150
   proves the existing forward-refusal end-to-end per store and gives it one
   shared classification
 
-### Batch 2. Update policy and sources
+### Stage 2. Update policy and sources
 
-- [x] [Card 151](batch-cards/151-update-policy-channels-and-rollout.md)
+- [x] Card 151
   builds `longhorn-update`: manifest model, channel resolution, semver
   comparison, client-side rollout, deferral state
-- [x] [Card 152](batch-cards/152-update-source-adapters.md) defines the
+- [x] Card 152 defines the
   `UpdateSource` trait and the four default adapters
 
-### Batch 3. Install and client surface
+### Stage 3. Install and client surface
 
-- [x] [Card 196](batch-cards/196-longhorn-is-the-update-controller.md)
+- [x] Card 196
   (complete 2026-08-12) builds the two pieces that did not exist: the download adapter, and the controller
   that sequences check, fetch, verify, gate and install and holds the state
   Card 190's snapshot projects
-- [ ] [Card 153](batch-cards/153-restart-interlock-and-tauri-install.md)
+- [x] Card 153
+  (complete; central correction reversed by the 2026-08-12 operator decision below)
   builds `longhorn-tauri-update`: quiescence receipt, plugin wiring, install
   — findings recorded, quiescence contract landed, and `longhorn-tauri-update`
   carries the probes and gate; the concrete installer awaits Card 159
-- [x] [Card 197](batch-cards/197-cask-detection-is-backwards.md) (complete
+- [x] Card 197 (complete
   2026-08-13) fixes Homebrew cask detection, which Card 159's packaged run
   proved was inverted — a cask install classified as self-managed and would
   have been offered an in-place update
-- [x] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
+- [x] Card 159
   (update half complete 2026-08-13; the licence half belongs to g02.010)
   builds the packaged proof application Card 153's host wiring waits on,
   shared with g02.010
-- [x] [Card 154](batch-cards/154-update-client-surface.md) (complete
+- [x] Card 154 (complete
   2026-08-13) builds the update client surface: validation, checked port,
   client, controller, and the three binding components over Poodle's
   rendering
@@ -179,7 +180,7 @@ classification to explain a channel rejoin.
 
 ## Consumer Guardrail Exception
 
-This milestone adds two crates (`longhorn-update`, `longhorn-tauri-update`
+This task adds two crates (`longhorn-update`, `longhorn-tauri-update`
 — the latter absorbed back into `longhorn-update` on 2026-08-09)
 and one package (`packages/update`). The g02 remediation guardrail against
 crate and package additions was scoped to remediation and does not bind new
@@ -188,7 +189,7 @@ feature; nothing here blocks on them.
 
 ## Next Task
 
-None. The milestone is complete.
+None. The task is complete.
 
 An application can follow a channel, be offered a release, download and verify
 it, refuse to install while work is in flight, install it, and come back — and
@@ -212,10 +213,25 @@ reaches nobody who is not already in settings.
 update proofs carry an `icons/icon.png`; `cargo check` and `clippy` pass on the
 rest because `generate_context!` only demands one when bundling. So `effigy qa`
 is green while four packaged proofs cannot be packaged, and their purpose is to
-be run. Not this milestone's to fix, and it should not stay unrecorded.
+be run. Not this task's to fix, and it should not stay unrecorded.
 
 Card 159's licence half — keychain persistence and the RFC 8252 browser flow —
 belongs to g02.010 and waits on the platform `CredentialStore` decision and
 Card 158.
 
 Previously: Card 159, Card 197, Card 154, Card 190 step 4, Card 196.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 150: complete — store schema stamping and forward refusal (proof-and-classification; gates nothing).
+- Card 151: complete — update policy, channels, rollout.
+- Card 152: complete — update source adapters.
+- Card 153: complete — restart interlock findings recorded, quiescence contract landed; host wiring carried by Cards 196/159 (checkbox staleness corrected in migration).
+- Card 154: complete 2026-08-13 — update client surface.
+- Card 159: complete — shared packaged proof (update half 2026-08-13; licence half with g02.010).
+- Card 190: complete — update protocol surface (steps 1-3 landed 2026-08-12, step 4 on 2026-08-13).
+- Card 196: complete 2026-08-12 — Longhorn as update controller (download adapter + sequencing controller).
+- Card 197: complete 2026-08-13 — cask detection correction.
+- Card 198: complete 2026-08-13 — packaged-proof convention repair (cross-cutting record).

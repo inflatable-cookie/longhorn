@@ -14,14 +14,14 @@ teardown, wake, and cleanup failures leave evidence without becoming errors.
 
 ## Generation Runway
 
-Fifth g02 milestone. Runs after 002-004 settle which swallow sites survive.
+Fifth g02 task. Runs after 002-004 settle which swallow sites survive.
 Additive and optional; default behavior stays silent-tolerant.
 
 ## Execution Plan
 
-### Batch 1. Seam and instrumentation
+### Stage 1. Seam and instrumentation
 
-- [x] [Card 145](batch-cards/145-diagnostics-seam-and-swallow-instrumentation.md)
+- [x] Card 145
   defines the seam and instruments the audited swallow sites across the
   tauri-* command layers, native-content adapters, and restore cleanup
 
@@ -48,3 +48,9 @@ Additive and optional; default behavior stays silent-tolerant.
 
 Promote Card 146 when Card 145 closes (146 may run earlier; it is
 independent).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 145: complete — diagnostics seam and swallow instrumentation.

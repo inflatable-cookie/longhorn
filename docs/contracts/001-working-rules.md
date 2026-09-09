@@ -10,16 +10,18 @@ Depends on: `../architecture/system-architecture.md`
 - Use `vision -> research/spec -> architecture + contracts -> roadmap ->
   execution -> evidence -> closeout`.
 - Specs are provisional. Promote durable shape and rules before execution.
-- A ready batch card defines scope, governing refs, steps, acceptance,
+- A ready Northstar task defines scope, governing refs, steps, acceptance,
   evidence, stop conditions, and continuation.
-- Roadmaps are multi-batch lanes. Cards carry step detail.
+- The generation README owns the roadmap and approved frontier; each
+  `gNN.NNN` file is the sole executable planning unit. Keep "queue task" and
+  "Effigy task" distinct from "Northstar task."
 - Keep one live next-task pointer in roadmap front doors.
 
 ## Intent
 
 - Stop when multiple plausible package boundaries require product priority.
 - Stop when a consumer break needs operator policy.
-- Do not mark a card ready while an intent checkpoint governs its scope.
+- Do not mark a task ready while an intent checkpoint governs its scope.
 
 ## Refactoring
 
@@ -40,14 +42,14 @@ Depends on: `../architecture/system-architecture.md`
 - real library behavior, not placeholder APIs
 - at least one migrated consumer for an extraction lane
 - dependent docs and fixtures current
-- validation recorded in a batch log
+- validation recorded in a log
 - unresolved limits named
 
 ## Autonomy
 
 - Bare `continue` is standing operator authority to begin the next bounded
-  card or planning batch named by the roadmap front doors.
-- A planned card may move into execution when its governing refs, scope,
+  Northstar task named by the roadmap front doors.
+- A planned task may move into execution when its governing refs, scope,
   evidence, and stop conditions are complete; it need not pause for repeated
   authorization.
 - Stop on missing contracts, contradictions, failed evidence, or unclear

@@ -36,8 +36,10 @@ for (const packageName of heldPackages) {
 }
 
 // Freshness: a row that awaits closed work is stale by definition. Resolve
-// the milestone (g02.NNN) and card (NNN) references in each row's Awaits and
-// Trigger columns against the roadmap files' status lines.
+// the task (g02.NNN) references in each row's Awaits and Trigger columns
+// against the task files' status lines, and the absorbed card (NNN)
+// references against the `Card NNN: <state>` records those files carry since
+// the flattened-task migration removed `batch-cards/`.
 const { readdir } = await import("node:fs/promises");
 
 async function statusIndex(directory: string): Promise<Map<string, string>> {
@@ -51,7 +53,12 @@ async function statusIndex(directory: string): Promise<Map<string, string>> {
 }
 
 const milestones = await statusIndex("docs/roadmaps/g02");
-const cards = await statusIndex("docs/roadmaps/g02/batch-cards");
+const cards = new Map<string, string>();
+for (const [file, content] of milestones) {
+  for (const match of content.matchAll(/^Card (\d{3}): (.+)$/gm)) {
+    cards.set(`${match[1]}-absorbed-in-${file}`, `Status: ${match[2]}`);
+  }
+}
 
 function isClosed(reference: string, files: Map<string, string>, prefix: string): boolean {
   for (const [file, content] of files) {

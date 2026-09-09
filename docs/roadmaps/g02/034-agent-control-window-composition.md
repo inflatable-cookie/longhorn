@@ -19,7 +19,7 @@ preview island stops being a black rectangle.
 
 ## Generation Runway
 
-- [x] [Card 238](batch-cards/238-agent-control-screenshot-composition.md)
+- [x] Card 238
       — fixture, mechanism characterization, composition path, packaged
       proof, contract/guide truthfulness, Figmatic rerun handback.
 
@@ -39,3 +39,9 @@ preview island stops being a black rectangle.
 
 After completion: Figmatic PR 14 reruns on the landed revision; the
 remaining three consumer adoptions continue.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 238: complete 2026-08-20 — screenshot composition.

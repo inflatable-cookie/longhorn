@@ -21,7 +21,7 @@ Memo 023's quality lanes found disciplined code with a few structural debts:
 one state machine copied three times and already drifting, six hand-rolled
 hex encoders, six near-identical adapter error scaffolds, and four direct
 dependencies a major version behind. Pre-1.0 is exactly when these are cheap.
-This milestone is the g02.007-shaped sweep applied to what the audit found.
+This task is the g02.007-shaped sweep applied to what the audit found.
 
 ## Planning Gaps
 
@@ -35,9 +35,9 @@ This milestone is the g02.007-shaped sweep applied to what the audit found.
 
 ## Execution Plan
 
-### Batch 1. One state machine
+### Stage 1. One state machine
 
-- [x] [Card 221](batch-cards/221-native-content-generation-hoist.md): hoist the
+- [x] Card 221: hoist the
   attach-generation state machine from the three mechanism adapters into
   `longhorn-native-content`; per-mechanism error enums stay; the three known
   divergences are reconciled against contract 017's single statement of the
@@ -46,9 +46,9 @@ This milestone is the g02.007-shaped sweep applied to what the audit found.
   module with nine rule tests; both divergences proved mechanism-specific and
   contract 017 gained the two clauses it was missing.
 
-### Batch 2. One idiom, written down
+### Stage 2. One idiom, written down
 
-- [x] [Card 222](batch-cards/222-shared-primitives-and-idiom-codification.md) — landed 2026-08-15:
+- [x] Card 222 — landed 2026-08-15:
   hex helper into `longhorn-core`; `bounded_text!` macro unification; adapter
   error-scaffold convergence or recorded per-adapter policy; the
   `Display`-via-`{self:?}` decision; `#[allow(missing_docs)]` removed from the
@@ -56,9 +56,9 @@ This milestone is the g02.007-shaped sweep applied to what the audit found.
   misplacement fixed structurally (lib+bin); the panic-invariant idiom
   codified in contracts so audits can check it mechanically.
 
-### Batch 3. The dependency sweep
+### Stage 3. The dependency sweep
 
-- [x] [Card 223](batch-cards/223-dependency-sweep-and-measured-costs.md) — landed 2026-08-15 (ts-rs 12 landed; clone costs measured and kept; doctor green-by-choice):
+- [x] Card 223 — landed 2026-08-15 (ts-rs 12 landed; clone costs measured and kept; doctor green-by-choice):
   `keyring` 4, `ed25519-dalek` 3, `base64` 0.23, `ts-rs` 12 (with generator
   hardening), `=tauri-build` pin rationale or removal; lockfile duplicates
   noted as upstream-pinned; the mutation clone-cost measurement; the
@@ -103,7 +103,7 @@ memo 023 (M-native-content, M-missing-docs, M-display, low-tier quality,
 
 ## Next Task
 
-Milestone complete — the audit suite's execution runway is closed. What
+Task complete — the audit suite's execution runway is closed. What
 remains open from it: Card 210 (operator decision recorded), Card 218
 (Poodle v0.2.0), and the workflow-edit items in 219/220 (approval).
 
@@ -112,3 +112,11 @@ remains open from it: Card 210 (operator decision recorded), Card 218
 After Card 223's `ts-rs` decision. If the generator hardening outgrows the
 card, that is a shape question for the bindings crate — pause there rather
 than shipping a string-split parser against an unpinned dependency.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 221: complete 2026-08-15 — generation hoist.
+- Card 222: complete 2026-08-15 — primitives and idiom codification.
+- Card 223: complete 2026-08-15 — dependency sweep and measured costs.

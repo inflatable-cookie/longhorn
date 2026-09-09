@@ -47,13 +47,14 @@ effigy qa
 
 ## Current State
 
-Pre-1.0 private workspace. Generation g01 is complete (20 milestones, cards
+Pre-1.0 private workspace. Generation g01 is complete (20 tasks, cards
 001-137, five migrated consumers: Nucleus, Loophole, Soundcheck, Split-shell,
-Jetstream). Generation g02 is active across workspace-integrity remediation,
-application update and licensing, release-audit hardening, consumer-scoped
-credential slots, the agent-control arc through g02.035 (cards 138-240), and
-the production contextual-tool L1 baseline in g02.036. Per-app agent-control
-adoption remains consumer-owned. The private `0.1.0`
+Jetstream). Generation g02 is active as one executable task per `g02.NNN`
+file, across workspace-integrity remediation, application update and
+licensing, release-audit hardening, consumer-scoped credential slots, the
+agent-control arc through g02.035, and the production contextual-tool L1
+baseline in g02.036. Per-app agent-control adoption remains consumer-owned.
+The private `0.1.0`
 compatibility candidate spans 18 TypeScript packages and 42 Rust crates;
 package-manager publication remains deferred. The [generation index](docs/roadmaps/generation-index.md)
 owns the live next-task pointer.

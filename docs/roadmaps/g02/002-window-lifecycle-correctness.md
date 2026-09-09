@@ -14,20 +14,20 @@ host, and close the small lifecycle races the audit recorded.
 
 ## Generation Runway
 
-Second g02 milestone. Bounded to `longhorn-tauri-windowing`; the pure
+Second g02 task. Bounded to `longhorn-tauri-windowing`; the pure
 `longhorn-windowing` coordinator semantics stay fixed.
 
 ## Execution Plan
 
-### Batch 1. Event-loop deferral and wake delivery
+### Stage 1. Event-loop deferral and wake delivery
 
-- [x] [Card 139](batch-cards/139-event-loop-flush-deferral-and-timer-wakes.md)
+- [x] Card 139
   defers event-path flushes off the event loop, replaces the parked-thread
   scheduler with cancelable timer wakes, and reports wake delivery failures
 
-### Batch 2. Retag coherence and installation safety
+### Stage 2. Retag coherence and installation safety
 
-- [x] [Card 140](batch-cards/140-retag-coherence-install-safety-and-race-closure.md)
+- [x] Card 140
   migrates coordinator state on retag, validates labels before installation,
   and closes the recorded reveal, retained-normal, resurrection, and
   registry-poison races
@@ -59,3 +59,10 @@ Second g02 milestone. Bounded to `longhorn-tauri-windowing`; the pure
 ## Next Task
 
 Promote Card 141 (g02.003).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 139: complete — event-loop flush deferral and timer wakes.
+- Card 140: complete — retag coherence, install safety, race closure.

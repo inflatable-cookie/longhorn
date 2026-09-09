@@ -2,14 +2,14 @@
 
 Status: ready
 Owner: Tom
-Governing refs: contract 012; contract 013; contract 020
+Governing refs: contract 012; contract 013; contract 020; absorbed Card 192 (step 1 complete; steps 2-3 need Poodle's redesigned shell)
 Depends on: none
 
 ## Outcome
 
 `longhorn-poodle-svelte` binds Longhorn authorities to Poodle components. Five
 of its thirteen components do more than that: they make layout decisions and
-ship CSS to enforce them. This milestone moves the design to Poodle, keeps the
+ship CSS to enforce them. This task moves the design to Poodle, keeps the
 binding here, and adds the check that stops it happening again.
 
 Reported from field use of Soundcheck's settings dialog: "the layout is bad,
@@ -63,31 +63,78 @@ they render Longhorn's keymap, storage, backup and restore domains, and that
 content is not general-purpose. What moves is the layout: they compose Poodle
 primitives and carry no CSS, the standard the eight bindings already meet.
 
-## Execution Plan
+## Work
 
-- [ ] **Batch 1. Poodle owns the settings shell.** A ground-up redesign, not a
-      port: the concept is right and the execution is wrong in almost every
-      way. Poodle's card, dispatched with the prompt in the batch log.
-- [ ] **Batch 2. Longhorn binds it** (Card 192). `SettingsShell` becomes a
-      binding with no CSS, the label rule and the duplicate close go, and the
-      four remaining components lose their style blocks.
-- [ ] **Batch 3. The rule becomes a check.** No `<style>` block in
-      `longhorn-poodle-svelte`. Not before batch 2, or the check fails on the
-      five files it exists to prevent.
+### Stage 1. Poodle owns the settings shell
+
+A ground-up redesign, not a port: the concept is right and the execution is
+wrong in almost every way. Poodle's task, dispatched with the prompt in the
+batch log.
+
+### Stage 2. Longhorn binds it (absorbed Card 192)
+
+Step 1 is complete 2026-08-12 and both faults it fixed are Longhorn's, not
+CSS: group labels are exactly the section's (with a test), and the per-page
+close is conditional — only `host === "modal"` renders a `Dialog`, so the
+`window` and `panel` hosts keep their page-header close as their only way
+out. Deleting it outright would have left two of three hosts unclosable; the
+redesigned shell should carry one close in its own chrome for every host.
+`offers exactly one close per host, whichever host it is` asserts all three.
+
+Remaining, blocked on stage 1:
+
+- Replace the composition with Poodle's shell, feeding it the
+  `SettingsSession` this file already reads. No layout decisions, no
+  `<style>` block.
+- Keep every behaviour the current file owns that is not layout: the
+  close guard (`session.requestClose()` may refuse), the search wiring,
+  deep-link routing to an anchor, and the focus restore Poodle's Dialog
+  fix depends on.
+- Under a hundred lines. If it will not fit, the shell is missing
+  something and that is stage 1's problem, not a reason to keep layout
+  here.
+- Strip the other four (`KeybindingSettings`, `BackupSettingsPage`,
+  `RestoreSettingsPage`, `StorageSettingsPage`) per the surveyed table:
+  grid/gap patterns become `Stack`/`Grid columns=…`; content stays. The one
+  real gap is text wrapping (`Text`/`Code` have no wrap control) — papercut
+  it; do not reintroduce the rule locally. Anything else Poodle lacks:
+  papercut rather than writing CSS here.
+
+### Stage 3. The rule becomes a check
+
+No `<style>` block in `longhorn-poodle-svelte`. Not before stage 2, or the
+check fails on the five files it exists to prevent.
+
+### Acceptance
+
+- `effigy qa` passes.
+- No `<style>` block remains in `longhorn-poodle-svelte`.
+- The settings binding is under a hundred lines.
+- A test asserts a refused close still surfaces its reason — the behaviour
+  most likely lost in a rewrite.
+- A worked example: the Soundcheck dialog, with the two step-1 faults gone.
+- The tests above, named in the evidence log.
+- The before-and-after CSS count for the package: 152 lines to zero.
+- Any papercut raised against Poodle, with what the page needed.
+
+### Stop conditions
+
+- Stop if the shell cannot express the close guard. A settings dialog that
+  cannot be refused loses unsaved edits, and moving the design is not worth
+  that.
+- Stop if a page needs more than two papercuts to lose its CSS. That means
+  the redesign missed a class of layout these pages depend on, and the answer
+  is another round in Poodle rather than a Longhorn workaround. The survey
+  found exactly one gap across all four, so a page hitting two is a signal
+  that something changed.
 
 ## Goals
 
-- [ ] No component in `longhorn-poodle-svelte` contains a `<style>` block.
-- [ ] The settings dialog scrolls, its navigation sits on a surface, its group
-      labels read as one thing, and it has one close.
-- [ ] Longhorn ships no general-purpose component. Where a Poodle equivalent
-      exists, the Longhorn file is a binding to it.
-
-## Acceptance Criteria
-
-- [ ] `effigy qa` passes.
-- [ ] A check fails the build on a `<style>` block in this package.
-- [ ] The settings binding is under a hundred lines.
+- No component in `longhorn-poodle-svelte` contains a `<style>` block.
+- The settings dialog scrolls, its navigation sits on a surface, its group
+  labels read as one thing, and it has one close.
+- Longhorn ships no general-purpose component. Where a Poodle equivalent
+  exists, the Longhorn file is a binding to it.
 
 ## Explicit Non-goals
 
@@ -99,10 +146,14 @@ primitives and carry no CSS, the standard the eight bindings already meet.
 
 ## Next Task
 
-Batch 1, in Poodle. Batch 2 cannot start until the shell exists.
+Stage 1, in Poodle. Stage 2 cannot start until the shell exists.
 
 ## Planning Checkpoint
 
-After batch 1. Whether the four remaining components can drop their CSS
+After stage 1. Whether the four remaining components can drop their CSS
 entirely depends on what the redesigned shell gives them to compose, and one
 worked example answers that better than a guess.
+
+## Absorbed records
+
+- Card 192: in progress — step 1 complete 2026-08-12 (two non-CSS faults with tests, plus the conditional-close correction); steps 2-3 need Poodle's redesigned shell (stage 1). Scope, survey table, acceptance, evidence, and stop conditions absorbed inline above.

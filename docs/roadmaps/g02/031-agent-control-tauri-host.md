@@ -15,10 +15,10 @@ scan proving the entire surface is absent when the dev feature is off.
 
 ## Generation Runway
 
-- [x] [Card 230](batch-cards/230-agent-control-tauri-plugin.md) — plugin,
+- [x] Card 230 — plugin,
       server mount behind the dev feature flag, localhost binding, window
       enumeration and targeting, release-absence artifact scan.
-- [x] [Card 231](batch-cards/231-agent-control-capture.md) — WKWebView
+- [x] Card 231 — WKWebView
       snapshot capture wired per the g02.029 evidence, including the
       recorded occluded/minimized behavior; packaged macOS
       unfocused-capture proof.
@@ -30,3 +30,10 @@ scan proving the entire surface is absent when the dev feature is off.
   minimized-window behavior recorded honestly rather than claimed.
 - The plugin adds no authority: it reaches app behavior only through
   existing command and IPC boundaries (contracts 006, 010).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 230: complete 2026-08-19 — Tauri plugin.
+- Card 231: complete 2026-08-19 — unfocused capture.

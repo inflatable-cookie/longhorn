@@ -34,7 +34,7 @@ checks and independent exact-head callback-order review before merge.
 - Selected skill/projection: `70909172`.
 - Qualified Codex binding: `d7e93e5552c5b272e55ddef8a531b5dd32e81bf0`.
 
-No card may replace these with an unreconciled branch head. A newer accepted
+No scope may replace these with an unreconciled branch head. A newer accepted
 Swallowtail head may be used only after source-equivalence or focused review.
 This revision is a source-equivalent rebase of the accepted composition plan
 onto `a7aae310`; PR142's merged passage/context surface is preserved and remains
@@ -88,7 +88,7 @@ fixture does not make consumer production code ready.
 
 ## Exact composition surface
 
-The promoted cards consume these merged public seams rather than inventing a
+The promoted scopes consume these merged public seams rather than inventing a
 parallel adapter:
 
 1. Desktop builds `RegisteredToolDeclaration` values and passes them into
@@ -115,7 +115,7 @@ Provider-direct MCP stays withheld. Claude Card116 remains Unqualified on
 ATTACH-01. Grok Card118 remains withheld. No parity claim follows from this
 fixture.
 
-## Card L1 — Longhorn typed dispatcher fixture
+## Scope L1 — Longhorn typed dispatcher fixture
 
 Status after promotion: ready.
 
@@ -149,7 +149,7 @@ one callback and one result exactly once, cancellation exactly once, and no
 post-terminal or mutation replay. The receipt pins the accepted L1 SHA and the
 Swallowtail source SHA plus deterministic sanitized manifest/lockfile hashes.
 
-## Card D1 — Desktop provider-free mounted composition
+## Scope D1 — Desktop provider-free mounted composition
 
 Status after promotion: blocked on accepted L1 artifact, then ready.
 

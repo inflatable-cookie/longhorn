@@ -1,6 +1,6 @@
 # g02.017 Fork Retention And Deletion
 
-Status: ready
+Status: in progress — stages 1-2 complete 2026-08-12; stage 3 deferred to field evidence (header read `ready`, corrected in migration to match the generation runway)
 Owner: Tom
 Governing refs: contract 011; contract 012; contract 017
 Depends on: g02.016 (complete)
@@ -12,7 +12,7 @@ reports this from field use before it has shipped the feature widely: a session
 of ordinary editing produces forks faster than an operator produces intent, and
 none of them go away.
 
-This milestone gives the operator a way to delete a fork they know they do not
+This task gives the operator a way to delete a fork they know they do not
 need, and gives the host a way to keep the graph inside a budget without being
 asked. Both are missing today, and the second is worse than missing — it is
 present, unreachable, and would not work if it were reached.
@@ -58,7 +58,7 @@ which makes the name clause redundant as well as harmful.
 
 ## Operator Decisions — settled 2026-08-12
 
-Three, and they close both planning gaps this milestone opened with.
+Three, and they close both planning gaps this task opened with.
 
 **Deleting a fork is irreversible, and the deletion is not itself undoable.**
 
@@ -105,19 +105,19 @@ revision twice and has to report two outcomes in one receipt.
 
 ## Execution Plan
 
-- [x] **Batch 1. Delete one fork** (Card 185, complete 2026-08-12). An explicit, irreversible
+- [x] **Stage 1. Delete one fork** (Card 185, complete 2026-08-12). An explicit, irreversible
       subtree removal taking the same handle `CheckoutContinuation` takes, with
       a protocol command, a Tauri command and a controller method. Rejects
       deleting the line the operator is on or inside.
-- [x] **Batch 2. Retention that can prune** (Card 186, complete 2026-08-12). Measure the
+- [x] **Stage 2. Retention that can prune** (Card 186, complete 2026-08-12). Measure the
       budget against the unprotected share, drop the name clause from
       protection, and give `prune_to` a surface so a host can hold a budget
       without writing Rust. Both fixes are needed: either alone leaves a fully
       protected graph unprunable, one loudly and one quietly.
-- [ ] **Batch 3. Bulk selection, if the field asks for it.** Deleting forks one
+- [ ] **Stage 3. Bulk selection, if the field asks for it.** Deleting forks one
       at a time is fine for a handful and wrong for two hundred. A
-      delete-many-by-predicate belongs here, not in batch 1, and only once
-      batch 1 has shown what an operator actually reaches for.
+      delete-many-by-predicate belongs here, not in stage 1, and only once
+      stage 1 has shown what an operator actually reaches for.
 
 ## Goals
 
@@ -151,13 +151,12 @@ revision twice and has to report two outcomes in one receipt.
 
 ## Next Task
 
-Batches 1 and 2 are complete. Batch 3 is bulk selection and waits for the
+Stages 1-2 are complete. Stage 3 is bulk selection and waits for the
 field: deleting one at a time is fine for a handful, and only use will say
-whether an operator reaches for more. Batch 3 waits for batch 1 to ship and
+whether an operator reaches for more. Stage 3 waits for stage 1 to ship and
 for the field to say whether one-at-a-time is enough.
 
-## Planning Checkpoint
+## Absorbed records
 
-After Card 186. By then a consumer will have set a real budget against a real
-graph, which is the first evidence that the unprotected-share measure is the
-one an operator can reason about.
+- Card 185: complete 2026-08-12 — delete one fork.
+- Card 186: complete 2026-08-12 — retention that can prune. The planning checkpoint (a consumer setting a real budget against a real graph) is the evidence stage 3 waits on.
