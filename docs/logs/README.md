@@ -4,6 +4,12 @@ Logs record meaningful batch evidence of completed work, not individual
 tasks. They are the maintainers' record — adopters do not need to read them;
 start with the [adoption guides](../guides/README.md) instead.
 
+## 2026-09
+
+### 2026-09-09
+
+- [Flattened-task Switchover Closeout](2026-09/09-flattened-task-switchover-closeout.md)
+
 ## 2026-08
 
 ### 2026-08-22

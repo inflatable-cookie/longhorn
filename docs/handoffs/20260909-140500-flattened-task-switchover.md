@@ -4,7 +4,7 @@ title: "Flatten Northstar tasks and compact historic generations in longhorn"
 handoff_mode: worker-pr-loop
 worker_mode: implementation
 dispatch_authority: orchestrator
-status: ready-to-launch
+status: closed
 base_required: pushed-main
 queue_dispatch: northstar-queue
 queue_approval: "The operator authorized Chatterbox on 2026-09-09 to orchestrate the flattened-task migration across projects without Orchestrator-tagged Paseo threads, and explicitly required Northstar Queue for dispatch."
@@ -118,3 +118,24 @@ retire only the queue-owned migration threads/workspace. Final report must give
 historic classifications, preservation manifest, old-to-new mapping, exact
 changes, validation/review evidence, retained exceptions, new frontier, and
 whether normal dispatch resumed.
+
+## Closeout
+
+Closed after PR #24 merged into `main` at
+`3a381d2278458bc66ae633ef05d3794991789da8`, with the worker head
+`206405f98733a49675ecc20be28469d28f3c5450` as the second parent. The accepted
+exact-head review is comment 5602877188; it resolves all three required
+findings from comment 5602775230.
+
+The migration result is complete: g01 is compacted at
+`docs/roadmaps/archive/g01.md`, its 261 removed paths are frozen in the
+preservation manifest, and g02 has one executable task per `gNN.NNN` with no
+active `batch-cards/` tree. The generation index still points at the approved
+`g02.036` L1 frontier. No new task or planning direction was selected.
+
+Post-merge validation on integration `main`: `effigy qa:docs`,
+`effigy qa:northstar`, `effigy held-surface`, and `git diff --check` pass.
+`effigy check:ts` remains deferred because the local linked
+`@inflatable-cookie/poodle-core` is 0.2.2 while the repository declares 0.3.0;
+existing `longhorn-poodle-svelte` imports then fail on missing drag exports.
+This is outside the docs-only migration and was not repaired in closeout.
