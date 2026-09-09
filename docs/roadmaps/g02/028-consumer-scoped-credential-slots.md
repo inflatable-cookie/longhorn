@@ -15,7 +15,7 @@ built-in keyring names.
 
 ## Generation Runway
 
-- [x] [Card 225](batch-cards/225-consumer-scoped-credential-slot-value.md)
+- [x] Card 225
       replaces the closed enum, migrates built-in callers and backends, and
       proves scoped isolation.
 
@@ -33,3 +33,9 @@ publishing adoption. Bovine composition stays in Bovine.
 ## Next Task
 
 Return the promoted Longhorn commit to Bovine Card 128 adoption.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 225: complete — consumer-scoped credential slot value.

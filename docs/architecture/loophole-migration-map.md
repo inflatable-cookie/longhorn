@@ -3,7 +3,7 @@
 Status: frozen baseline; storage cutover complete; window cutover ready
 Owner: Tom
 Updated: 2026-08-01
-Governing refs: contracts 002-014; `../roadmaps/g01/015-loophole-full-hosting-migration.md`
+Governing refs: contracts 002-014; `../roadmaps/archive/g01.md`
 
 ## Baseline
 

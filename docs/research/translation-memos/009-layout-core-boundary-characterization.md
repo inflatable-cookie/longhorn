@@ -118,5 +118,5 @@ Promoted into:
 - `../../architecture/package-topology.md`
 - `../../contracts/002-composable-workspace-hosting.md`
 - `../../contracts/014-layout-container-region-and-panel-core.md`
-- `../../roadmaps/g01/005-layout-container-region-and-panel-core.md`
+- `../../roadmaps/archive/g01.md`
 - Cards 023 through 027

@@ -15,7 +15,7 @@ server and enumerates no features.
 
 ## Generation Runway
 
-Tenth g02 milestone, and the second non-remediation one. Shares the adapter
+Tenth g02 task, and the second non-remediation one. Shares the adapter
 posture of g02.009 deliberately: `ActivationSource` is the same shape as
 `UpdateSource`, so a consumer who has integrated one already knows the
 other.
@@ -25,35 +25,35 @@ whether a release may be taken.
 
 ## Execution Plan
 
-### Batch 1. Licence core
+### Stage 1. Licence core
 
-- [x] [Card 155](batch-cards/155-licence-model-and-entitlement-evaluation.md)
+- [x] Card 155
   builds `longhorn-licence`: verified licence, trust basis, entitlements,
   the two windows, lease and grace, clock-regression refusal
 
-### Batch 2. Acquisition
+### Stage 2. Acquisition
 
-- [x] [Card 156](batch-cards/156-activation-source-adapters.md) defines
+- [x] Card 156 defines
   `ActivationSource` and the signed-file and token-redemption reference
   adapters
 
-### Batch 3. Host and surface
+### Stage 3. Host and surface
 
-- [ ] [Card 157](batch-cards/157-tauri-licence-host-and-secure-storage.md)
+- [x] Card 157 (complete 2026-08-14)
   builds `longhorn-tauri-licence`: secure credential storage, the RFC 8252
   loopback flow, persistence — PKCE, callback validation, machine identity
   and the credential seam are complete; browser launch, platform backend and
   persistence need a packaged proof application
-- [ ] [Card 159](batch-cards/159-update-and-licence-packaged-proof.md)
+- [x] Card 159 (complete; shared packaged proof)
   builds the shared packaged proof application both host cards wait on
-- [x] [Card 193](batch-cards/193-licence-protocol-surface.md) (complete
+- [x] Card 193 (complete
   2026-08-12) gives the licence domain a wire protocol — snapshot, commands, rejection codes, changed event —
   which Card 158 assumed existed
-- [ ] [Card 158](batch-cards/158-licence-client-surface.md) builds the licence
+- [x] Card 158 builds the licence (Longhorn side complete 2026-08-13)
   client surface: activation, expiry, entitlement reads. Longhorn side complete
   2026-08-13; step 4 carved out because no protocol exposes the seats, and the
   Svelte rendering is Poodle's
-- [ ] [Card 199](batch-cards/199-which-machines-hold-a-seat.md) gives the
+- [x] Card 199 (complete 2026-08-13) gives the
   protocol a seat list, so a customer who has changed laptop can release the
   old one without a support conversation
 
@@ -65,7 +65,7 @@ memo 020 licensing
                       └─ 157 host and storage ─ 158 client surface
 ```
 
-156 and 157 are independent of each other. The milestone is independent of
+156 and 157 are independent of each other. The task is independent of
 g02.009 except at the update window, which Card 155 models and the updater
 reads.
 
@@ -87,7 +87,7 @@ reads.
 - [x] a consumer-implemented adapter inherits evaluation with no extra
   wiring
 - [x] a large backwards clock movement is refused
-- [ ] licence state refuses a newer schema, per Card 150
+- [x] licence state refuses a newer schema, per Card 150
 - [x] no crate exposes an enforcement call
 
 ## Explicit Non-goals
@@ -100,7 +100,7 @@ reads.
 
 ## Next Task
 
-None. The milestone is complete.
+None. The task is complete.
 
 An application can hold a licence and answer "entitled?" without enforcing;
 activate by key, account sign-in or file with a mistyped key never reading as
@@ -115,3 +115,15 @@ Consumer adoption — composing the authority behind `LicenceHostAuthority` in
 Soundcheck or Nucleus — follows separately, as update adoption does.
 
 Previously: the two operator steps, Cards 157/158/199, Card 193.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 155: complete — licence model and entitlement evaluation.
+- Card 156: complete — activation source adapters.
+- Card 157: complete 2026-08-14 — Tauri licence host and secure storage (checkbox staleness corrected in migration).
+- Card 158: complete 2026-08-13 — licence client surface (checkbox staleness corrected in migration).
+- Card 159: complete — shared packaged proof (licence half 2026-08-14; update half with g02.009).
+- Card 193: complete 2026-08-12 — licence protocol surface.
+- Card 199: complete 2026-08-13 — seat list protocol (checkbox staleness corrected in migration).

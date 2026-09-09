@@ -20,7 +20,7 @@ seams the audit found ungated are gated.
 Memo 023's largest coverage finding is not a missing test — it is a deleted
 one: Card 179 removed the layout suites with the crates and never ported them,
 so the mutation semantics contract 002's absorbed sections specify are
-untested. Everything else in this milestone is the same shape: surfaces that
+untested. Everything else in this task is the same shape: surfaces that
 grew faster than their evidence.
 
 ## Planning Gaps
@@ -33,9 +33,9 @@ grew faster than their evidence.
 
 ## Execution Plan
 
-### Batch 1. The post-179 hole
+### Stage 1. The post-179 hole
 
-- [x] [Card 211](batch-cards/211-port-the-layout-suites.md): port the deleted
+- [x] Card 211: port the deleted
   layout-model and layout-config suites onto `longhorn-surfaces` and
   `longhorn-surfaces-config`; dispose of `BoundedLayoutReplayStore`; fix the
   stale container comment in the presentation test. **Landed 2026-08-15** —
@@ -44,9 +44,9 @@ grew faster than their evidence.
   semantics. Replay is tested again; its absence of production callers is the
   register's fact to carry.
 
-### Batch 2. Protocol evidence
+### Stage 2. Protocol evidence
 
-- [x] [Card 212](batch-cards/212-licence-update-fixtures-and-seam-strings.md):
+- [x] Card 212:
   golden fixtures for the licence and update protocols; the boundary test
   derives its domain list instead of transcribing it; the `longhorn-tauri`
   invoke/event strings get a conformance check against the Rust constants;
@@ -54,17 +54,17 @@ grew faster than their evidence.
   and gated, boundary test derived (proven with a planted domain),
   `check:tauri-seam-strings` in `qa` (proven red both directions).
 
-### Batch 3. Generated input
+### Stage 3. Generated input
 
-- [x] [Card 213](batch-cards/213-fuzz-the-three-parsers.md): property/fuzz
+- [x] Card 213: property/fuzz
   coverage for the zip backup inspector, `parse_utc_timestamp`, and the
   history envelope decoders — `proptest` is already a workspace dependency.
   **Landed 2026-08-15** — six properties at 64 cases each, ~0.2s added, zero
   findings. The parsers held.
 
-### Batch 4. Uniform coverage
+### Stage 4. Uniform coverage
 
-- [x] [Card 214](batch-cards/214-port-parity-and-keyring-coverage.md): tests
+- [x] Card 214: tests
   for the five untested `longhorn-tauri` raw ports; settings-navigation joins
   the parity fixture; bridge-job listeners gain a failure channel and
   malformed-event tests; keyring contract tests get a mock backend; the
@@ -107,16 +107,16 @@ Four independent cards; order by release risk, 211 first.
 
 ## Explicit Non-goals
 
-- Coverage metrics or percentage targets. This milestone restores specific,
+- Coverage metrics or percentage targets. This task restores specific,
   named evidence — it does not instrument the tree.
 - Re-testing what the audit verified strong (bridge authorization negatives,
   update verification, licence trust basis).
 
 ## Next Task
 
-Milestone complete. The remaining audit suite: g02.025 docs spine (Card 215
+Task complete. The remaining audit suite: g02.025 docs spine (Card 215
 first), g02.027 consolidation (Card 221). One open finding from this
-milestone needs an operator decision: the settings sidebar label divergence
+task needs an operator decision: the settings sidebar label divergence
 recorded on Card 214.
 
 ## Planning Checkpoint
@@ -124,3 +124,12 @@ recorded on Card 214.
 After Card 211. The port will show whether contract 002's absorbed sections
 describe the engine as built or as designed — any divergence there is a
 contract correction, and Card 215 (g02.025) absorbs it.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 211: complete 2026-08-15 — layout suite port.
+- Card 212: complete 2026-08-15 — licence/update fixtures and seam strings.
+- Card 213: complete 2026-08-15 — parser fuzz properties.
+- Card 214: complete 2026-08-15 — port parity and keyring coverage.

@@ -15,18 +15,18 @@ exposed as MCP tools.
 
 ## Generation Runway
 
-- [x] [Card 232](batch-cards/232-agent-control-webview-shim.md) — TS shim
+- [x] Card 232 — TS shim
       in `longhorn`: semantic tree with stamped refs, synthetic dispatch
       (click, type, press, scroll, drag), wait_for predicate evaluation;
       ref-staleness fixtures.
-- [x] [Card 233](batch-cards/233-agent-control-semantic-tools.md) — tools
+- [x] Card 233 — tools
       wired through the plugin: snapshot, input, wait_for over the shim;
       event push over `subscriptions/listen` (console, errors,
       navigation).
-- [x] [Card 234](batch-cards/234-agent-control-end-to-end-proof.md) —
+- [x] Card 234 —
       packaged end-to-end proof: an MCP client drives the app unfocused;
       two clients interleave on one instance without interference;
-      milestone and contract 022 evidence closeout.
+      task and contract 022 evidence closeout.
 
 ## Acceptance
 
@@ -36,3 +36,11 @@ exposed as MCP tools.
   documented where consumers will read them.
 - No native chrome is clicked anywhere in the proof; dialogs and menus go
   through commands.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 232: complete 2026-08-19 — webview shim.
+- Card 233: complete 2026-08-19 — semantic tools.
+- Card 234: complete 2026-08-19 — end-to-end proof.

@@ -14,20 +14,20 @@ close the client-binding lifecycle races in the Tauri transfer host.
 
 ## Generation Runway
 
-Third g02 milestone. Bounded to `longhorn-surface-transfer` and
+Third g02 task. Bounded to `longhorn-surface-transfer` and
 `longhorn-tauri-transfer`; coordinator and wire protocol semantics stay fixed.
 
 ## Execution Plan
 
-### Batch 1. Consumed-session aborts and reconciliation evidence
+### Stage 1. Consumed-session aborts and reconciliation evidence
 
-- [x] [Card 141](batch-cards/141-consumed-abort-truth-and-reconciliation-evidence.md)
+- [x] Card 141
   marks post-consumption Surface-commit failures `.consumed()` and replaces
   post-publication asserts with `HostReconciliationRequired`
 
-### Batch 2. Client binding lifecycle races
+### Stage 2. Client binding lifecycle races
 
-- [x] [Card 142](batch-cards/142-client-binding-races-and-ordered-events.md)
+- [x] Card 142
   closes the snapshot/destroy binding leak and orders client-changed
   emission against epoch advancement
 
@@ -57,3 +57,10 @@ Third g02 milestone. Bounded to `longhorn-surface-transfer` and
 ## Next Task
 
 Promote Card 143 (g02.004).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 141: complete — consumed-abort truth and reconciliation evidence.
+- Card 142: complete — client binding races and ordered events.

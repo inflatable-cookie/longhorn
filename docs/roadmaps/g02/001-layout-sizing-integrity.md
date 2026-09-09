@@ -14,14 +14,14 @@ materialize a ratio above 100% or a schema whose bounds exceed it.
 
 ## Generation Runway
 
-First g02 milestone. Bounded to `longhorn-layout` plus regenerated bindings
+First g02 task. Bounded to `longhorn-layout` plus regenerated bindings
 and fixtures; no protocol field changes.
 
 ## Execution Plan
 
-### Batch 1. Validating deserialization and schema caps
+### Stage 1. Validating deserialization and schema caps
 
-- [x] [Card 138](batch-cards/138-layout-ratio-serde-and-schema-caps.md)
+- [x] Card 138
   gives `LayoutRatio` a validating `Deserialize` and caps sizing schema
   bounds at 100%
 
@@ -48,3 +48,9 @@ and fixtures; no protocol field changes.
 ## Next Task
 
 Promote Card 139 (g02.002).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 138: complete — validating LayoutRatio serde and sizing schema caps.

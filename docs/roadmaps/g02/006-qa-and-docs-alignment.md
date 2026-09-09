@@ -14,21 +14,21 @@ closeout drift.
 
 ## Generation Runway
 
-Sixth g02 milestone. Independent of 001-005; may interleave. Docs sweep runs
+Sixth g02 task. Independent of 001-005; may interleave. Docs sweep runs
 last so it records whatever g02 work has landed.
 
 ## Execution Plan
 
-### Batch 1. QA surface and package hygiene
+### Stage 1. QA surface and package hygiene
 
-- [x] [Card 146](batch-cards/146-qa-selectors-and-package-hygiene.md)
+- [x] Card 146
   fixes the dangling history fixture selectors, completes the bindings and
   client-ts aggregates, and settles peer-range, bridge-peer, workspace
   protocol, and cargo version conventions
 
-### Batch 2. Front-door truth sweep
+### Stage 2. Front-door truth sweep
 
-- [x] [Card 147](batch-cards/147-front-door-truth-sweep.md)
+- [x] Card 147
   rewrites the stale README state, contract-index readiness, g01 batch-card
   index, CHANGELOG counts, and regenerates the API surface
 
@@ -61,3 +61,10 @@ last so it records whatever g02 work has landed.
 
 g02 planning checkpoint: characterize the next shared gap or extend the
 runway from consumer evidence.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 146: complete — QA selectors and package hygiene.
+- Card 147: complete — front-door truth sweep.

@@ -15,26 +15,26 @@ same host-agnostic core, and pays only for the host adapter it selects.
 
 ## Generation Runway
 
-Twelfth g02 milestone. Opened by measurement: 12.5% of the Rust is
+Twelfth g02 task. Opened by measurement: 12.5% of the Rust is
 Tauri-bound and the domain crates are already neutral, so the work is
 finishing a separation that mostly exists rather than creating one.
 
 ## Execution Plan
 
-### Batch 1. Make the existing separation honest
+### Stage 1. Make the existing separation honest
 
-- [x] [Card 161](batch-cards/161-host-tier-positioning-and-leak-fixes.md)
+- [x] Card 161
   restates positioning, tiers the contracts, and closes the two leaks
 
-### Batch 2. Delegated capability
+### Stage 2. Delegated capability
 
-- [x] [Card 162](batch-cards/162-native-update-execution.md) builds the
+- [x] Card 162 builds the
   update installer — for every host, as it turned out — under one
   conformance suite
 
-### Batch 3. Second backend
+### Stage 3. Second backend
 
-- [x] [Card 163](batch-cards/163-gpui-host-adapter.md) implements the
+- [x] Card 163 implements the
   minimal GPUI host adapter that validates or refutes contract 020
 
 ## Dependency Shape
@@ -77,12 +77,12 @@ memo 021 dual-backend positioning
 
 ## Next Task
 
-The milestone is closed. Two follow-up cards came out of it:
+The task is closed. Two follow-up cards came out of it:
 
-- [Card 168](batch-cards/168-installation-provenance.md) — complete. Fixed a
+- Card 168 — complete. Fixed a
   live defect: a Homebrew-managed application self-updated and desynced
   `brew` silently.
-- [Card 169](batch-cards/169-poodle-projection-tier.md) — complete. Six
+- Card 169 — complete. Six
   domains projected into `poodle-specs` — notifications, config, settings,
   operation, licence and update — and four of them drawn in a real GPUI
   window through `poodle-render` and `poodle-gpui-node-backend`. Zero Poodle
@@ -101,3 +101,15 @@ Earlier follow-ups, all now done:
   out of `longhorn-tauri-update`. Done 2026-08-09, and more thoroughly than
   planned: the whole crate had no Tauri code, so it was absorbed into
   `longhorn-update` rather than partially drained.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 161: complete — host-tier positioning and leak fixes.
+- Card 162: complete — native update execution (one installer for both hosts).
+- Card 163: complete — GPUI host adapter.
+- Card 168: complete — installation provenance (g02.012 follow-up).
+- Card 169: complete — Poodle projection tier (g02.012 follow-up).
+- Card 170: complete 2026-08-09 — generated projection labels (follow-up chain via Card 169; no roadmap line).
+- Card 171: complete 2026-08-09 — cross-backend projection parity (follow-up chain via Cards 169-170; no roadmap line).

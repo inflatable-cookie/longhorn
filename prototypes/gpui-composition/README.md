@@ -35,5 +35,5 @@ holds.
 ## Gate
 
 Covered by `effigy check:prototypes`, which runs outside `qa` and inside the
-release gates. See [Card 172](../../docs/roadmaps/g02/batch-cards/172-gpui-build-cadence.md)
+release gates. See [g02.015](../../docs/roadmaps/g02/015-gpui-composition-and-live-evidence.md)
 for why the cadence is that and not the workspace.

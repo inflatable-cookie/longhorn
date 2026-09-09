@@ -2,7 +2,7 @@
 
 ## Generation Runway
 
-| Milestone | State | Outcome |
+| Task | State | Outcome |
 | --- | --- | --- |
 | [g02.001](001-layout-sizing-integrity.md) | complete | serde-proof layout ratio and sizing invariants |
 | [g02.002](002-window-lifecycle-correctness.md) | complete | non-blocking event loop, coherent retag, safe install, timer wakes |
@@ -11,9 +11,9 @@
 | [g02.005](005-injectable-diagnostics-seam.md) | complete | evidence for every best-effort failure swallow |
 | [g02.006](006-qa-and-docs-alignment.md) | complete | resolving QA selectors, package hygiene, truthful front doors |
 | [g02.007](007-dependency-refresh-sweep.md) | complete | current dependency graph with conformance-backed pin decisions |
-| [g02.008](008-distribution-candidate-v2.md) | operator-held | candidate receipt v2 over the refreshed graph |
-| [g02.009](009-application-update-and-release-channels.md) | in progress | in-app update: channels, client-side rollout, source adapters, restart safety |
-| [g02.010](010-licensing-entitlement-and-activation.md) | ready | licensing: opaque entitlements, use/update windows, activation adapters |
+| [g02.008](008-distribution-candidate-v2.md) | blocked — coordinated Poodle re-freeze outstanding | candidate receipt v2 over the refreshed graph |
+| [g02.009](009-application-update-and-release-channels.md) | complete — 2026-08-13 | in-app update: channels, client-side rollout, source adapters, restart safety |
+| [g02.010](010-licensing-entitlement-and-activation.md) | complete — 2026-08-14 | licensing: opaque entitlements, use/update windows, activation adapters |
 | [g02.011](011-ipc-boundary-validation.md) | complete | IPC boundary validation derived from the Rust authority |
 | [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
@@ -39,7 +39,8 @@
 | [g02.033](033-agent-control-adoption-kit.md) | done 2026-08-19 | adoption kit: composition guide, canonical drift-locked skill, one-command install, dogfood proof |
 | [g02.034](034-agent-control-window-composition.md) | done 2026-08-20 | screenshot composes child webviews: whole-window truth for multiwebview apps |
 | [g02.035](035-agent-control-child-webview-targeting.md) | done 2026-08-20 | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
-| [g02.036](036-production-contextual-agent-tools.md) | planning blocked | production authenticated app-tool registry and Swallowtail attachment seam |
+| [g02.036](036-production-contextual-agent-tools.md) | L1 ready; D1 blocked on accepted L1; production held | production authenticated app-tool registry and Swallowtail attachment seam |
+| [g02.037](037-focused-panel-surfaces.md) | in progress | a Surface presents one panel full-surface, with no regional layout or tabs |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -145,7 +146,7 @@ proved fresh in every window state with the islands attached.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
-milestones harden the evidence envelope and the surfaces that grew faster
+tasks harden the evidence envelope and the surfaces that grew faster
 than their proof.
 
 009, 010 and 011 are independent of 001-008 and of the poodle release
@@ -156,20 +157,17 @@ asks the licence whether a release may be taken. 011 touches neither.
 
 Research memo 018 promotes the post-g01 workspace audit. All findings sit
 inside contracts 004, 010, 011, 012, 014, and 017; no new contract gates
-execution. Cards 138-147 compile the six-milestone remediation runway.
-The remediation milestones and the dependency refresh sweep (Cards
+execution. Cards 138-147 compile the six-task remediation runway.
 138-148) are complete. Card 149 part 1 (bridge optional peer, candidate
-verifier, diagnostics guide) is done; receipt generation is operator-held
-on nucleus manifest quiescence.
+verifier, diagnostics guide) is done; receipt generation is blocked on the
+coordinated Poodle re-freeze (g02.008).
 
 Research memo 019 opens the generation past remediation: contract 018
-compiles the in-app update boundary, and Cards 150-154 (g02.009) execute it.
-Cards 150-152 are complete. Card 153 has its mechanism findings recorded and
-its quiescence contract landed; its host wiring waits on a packaged proof
-application.
+compiles the in-app update boundary, and Cards 150-154 (g02.009) executed it;
+g02.009 is complete 2026-08-13.
 
-Research memo 020 compiles contract 019 over licensing. Cards 155-158
-(g02.010) are ready.
+Research memo 020 compiles contract 019 over licensing. Cards 155-159 plus
+193/199 executed it; g02.010 is complete 2026-08-14.
 
 Research memo 021 repositions the framework: Tauri and GPUI become two
 first-class, permanent hosts. Measurement found the separation largely
@@ -200,7 +198,7 @@ zero reachable panic on untrusted input); the findings concentrate in the
 evidence envelope — extraction that is not bounded against link entries, a
 docs spine still specifying the Card 179 deletion, deleted-not-ported layout
 test suites, and gates that drift by hand-transcription. Cards 200-223
-compile the remediation into milestones g02.021-027, all inside existing
+compile the remediation into tasks g02.021-027, all inside existing
 contracts. Card 218's Poodle precondition is met at public 0.2.2 — g16.008
 removed the linked-Poodle exemption (step 5) and unblocked g02.014 — but the
 card does not close with it: step 1 is obsolete and steps 2-4 need
@@ -213,13 +211,13 @@ runtime unknowns positive — rmcp mounts statelessly in-process and Claude
 Code negotiates 2026-07-28 session-free; `takeSnapshot` is fresh
 unfocused, occluded, and minimized — plus one new finding folded into the
 contract: WKWebView stops rAF while not key, so waiting is DOM-relative.
-Memo 024 and contract 022 are promoted; g02.030 (Cards 228-229) is ready.
+Memo 024 and contract 022 are promoted; g02.030 (Cards 228-229) is complete.
 
 g02.011 opens from measurement rather than a memo. The audit's P2-10 finding
 named 5,330 lines; Card 160's inventory turned that into a coverage table
 showing nine of thirteen packages never validate keys at the IPC boundary,
 and 29 hardcoded bounds with no link to the 55 Rust constants defining them.
-All three new milestones are independent of the poodle release currently
+All three new tasks are independent of the poodle release currently
 blocking the v0.1.0 tag.
 
 ## Candidate Runway
@@ -232,10 +230,10 @@ tiered by readiness. None auto-starts; the operator picks.
 
 | Candidate | Evidence | Shape |
 | --- | --- | --- |
-| Dependency refresh sweep | 37 transitive crates behind within compatible ranges; four held-back pins under frozen evidence: rusqlite 0.31→0.40 (SQLite CVE bumps), zip 5.1→8.6 (backup-archive determinism), ts-rs 11→12 (full bindings regen), sha2 0.10→0.11 | one card, ordered before candidate v2: compatible `cargo update`, then each held-back crate with its conformance suite (SQLite adapter proofs, archive-determinism regression, bindings and fixture diff) |
-| Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/41; bridge optional-peer demotion deferred here (Card 146) | one card, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
-| Diagnostics adoption | Card 145 seam has no consumer guide | one small card: composition-guide section plus one consumer-shape example |
-| Agent-control stdio proxy client | g02.033 skill connects dynamically (ephemeral port + token); a static `.mcp.json` needs a command-based proxy | one card: `longhorn-agent-control-client` binary — discovers the live instance, proxies stdio↔streamable-HTTP; distribution decision (crate bin vs npm) inside the card |
+| Dependency refresh sweep | 37 transitive crates behind within compatible ranges; four held-back pins under frozen evidence: rusqlite 0.31→0.40 (SQLite CVE bumps), zip 5.1→8.6 (backup-archive determinism), ts-rs 11→12 (full bindings regen), sha2 0.10→0.11 | one task, ordered before candidate v2: compatible `cargo update`, then each held-back crate with its conformance suite (SQLite adapter proofs, archive-determinism regression, bindings and fixture diff) |
+| Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/41; bridge optional-peer demotion deferred here (Card 146) | one task, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
+| Diagnostics adoption | Card 145 seam has no consumer guide | one small task: composition-guide section plus one consumer-shape example |
+| Agent-control stdio proxy client | g02.033 skill connects dynamically (ephemeral port + token); a static `.mcp.json` needs a command-based proxy | one task: `longhorn-agent-control-client` binary — discovers the live instance, proxies stdio↔streamable-HTTP; distribution decision (crate bin vs npm) inside the task |
 | ~~Child-webview semantic targeting~~ — promoted to g02.035 on 2026-08-20 by operator decision (Figmatic preview-input triage) | | |
 
 ### Tier B — needs new evidence or a contract extension first
@@ -270,6 +268,16 @@ migration must not change the invoke wire surface.
 **These guardrails scope to remediation.** g02.009 and g02.010 are new
 capability work and add crates and packages deliberately. The additions are
 inert until composed; consumers pick them up when they adopt the feature.
+
+## Collapsed planning-checkpoint records
+
+Four closed card records had no owning task and needed no new task ID in the
+flattened-task migration: Card 178 (superseded by Card 179 on 2026-08-10),
+Card 179 (complete 2026-08-11 — surfaces absorb containers; contracts 002 and
+014 carry the outcome), Card 180 (complete 2026-08-11 — pre-release
+simplification audit, every finding closed as keep-as-is), and Card 226
+(complete 2026-08-17 — mixed-scale desktop mapping; contract 009 carries the
+correction). Git history is their full-fidelity archive.
 
 ## Continuation
 

@@ -12,7 +12,7 @@ authority — except tagged unions, which are 181 of them across all twelve
 domains. Those stay on a lenient path, and where a consumer needed strictness
 it was written by hand.
 
-This milestone generates the per-variant map and adopts it, so the answer to
+This task generates the per-variant map and adopts it, so the answer to
 "which keys does this variant allow" comes from the enum rather than from
 somebody's memory of it.
 
@@ -59,9 +59,9 @@ second to each.
 ## Scope
 
 The generator, then adoption. Emitting a map nobody reads is inert, so the
-batches split by what adoption actually costs rather than by domain count.
+stages split by what adoption actually costs rather than by domain count.
 
-The survey that set that split, taken 2026-08-12 after batch 1:
+The survey that set that split, taken 2026-08-12 after Stage 1:
 
 | | Domains | Per-variant key lists today |
 | --- | --- | --- |
@@ -75,36 +75,36 @@ one. The measure was wrong before the card was written, not after.
 
 ## Execution Plan
 
-- [x] **Batch 1. Generate it, and delete the hand-written three** (Card 187,
+- [x] **Stage 1. Generate it, and delete the hand-written three** (Card 187,
       complete 2026-08-12).
       A per-variant map beside the flat one, and `history-tree` adopting it in
       place of `PATH_TARGET_FIELDS`, `NAVIGATION_TARGET_FIELDS` and the inline
       `ForkPruneResult` keys.
-- [x] **Batch 2. Replace the inline key lists** (Card 188, complete
+- [x] **Stage 2. Replace the inline key lists** (Card 188, complete
       2026-08-12). Three domains
       hand-write per-variant keys today, as literal arrays inside a switch
       rather than as a named map: `native-content` 32, `operation` 25,
-      `notifications` 12. Same second-copy argument as batch 1, same
+      `notifications` 12. Same second-copy argument as Stage 1, same
       demonstrated drift, and replacing them changes nothing a consumer sends
       unless a list is already wrong — in which case finding it is the point.
-- [x] **Batch 3. Add strictness to the eight that have none** (Card 194,
+- [x] **Stage 3. Add strictness to the eight that have none** (Card 194,
       complete 2026-08-12 — six domains; bridge is externally tagged and out). `bridge`,
       `commands`, `config`, `history`, `settings`, `surfaces`,
       `surface-transfer` and `transfer` validate no union per variant at all.
       Each gains a check it never had, so each can start rejecting a payload it
       used to accept. That is a behaviour change per domain and wants its own
-      evidence, separate from batch 2's replacements.
-- [x] **Batch 4. Make the warning an error** (Card 195, complete
+      evidence, separate from Stage 2's replacements.
+- [x] **Stage 4. Make the warning an error** (Card 195, complete
       2026-08-12). Once nothing is skipped, a union
       the generator cannot parse should fail the build rather than print. Not
-      before, or every generate fails on the domains batches 2 and 3 have not
+      before, or every generate fails on the domains Stage 2 and 3 have not
       reached.
 
 ## Goals
 
 - [x] No hand-written per-variant key list survives in any `validation.ts`.
       Checked by a test rather than by reading, which is how the last four in
-      `history` were found — after batch 3 had recorded the goal as met.
+      `history` were found — after Stage 3 had recorded the goal as met.
 - [x] A variant that gains a field is rejected at the boundary until the
       bindings are regenerated, the same as a plain object today.
 - [x] The generator's "not in the field map" warning goes to zero. Removed
@@ -125,13 +125,13 @@ one. The measure was wrong before the card was written, not after.
 ## Explicit Non-goals
 
 - No runtime type checking. The map holds names, as the flat one does. A field
-  that keeps its name and changes type is not this milestone's problem.
-- No change to the lenient path's behaviour in domains batch 2 has not reached.
+  that keeps its name and changes type is not this task's problem.
+- No change to the lenient path's behaviour in domains Stage 2 has not reached.
   Emitting a map nobody reads is inert, and that is the point of splitting it.
 
 ## Next Task
 
-None. The milestone is closed.
+None. The task is closed.
 
 **One question leaves it open elsewhere: bridge's tagging.** Its six unions are
 externally tagged -- `"unsupported" | { "finite": … }` -- so the variant is the
@@ -142,7 +142,7 @@ a modelling decision and wants its own card, not a line in this one.
 
 ## Planning Checkpoint
 
-Answered after batch 1: not eleven cards, and not one. Two, split by whether a
+Answered after Stage 1: not eleven cards, and not one. Two, split by whether a
 domain already hand-writes the lists.
 
 **Answered 2026-08-12: proceed.** The checkpoint asked whether eight boundaries
@@ -156,10 +156,19 @@ than argued:
 - The `kind:` literals in consumer code are their own app domains — nucleus's
   `schema`, `class`, `directory`, `message` — not protocol payloads.
 
-So a payload batch 3 would newly reject is one TypeScript already disallows.
+So a payload Stage 3 would newly reject is one TypeScript already disallows.
 The residual risk is a consumer bypassing the client, and four repos were
 checked of seven.
 
 The second concern stands and is not resolved by that: Card 188 verified 44 of
-its 69 replaced lists only at the weaker attribution-free standard. Batch 3
+its 69 replaced lists only at the weaker attribution-free standard. Stage 3
 must not inherit a belief that the earlier lists were audited per variant.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 187: complete 2026-08-12 — per-variant map generation.
+- Card 188: complete 2026-08-12 — inline key list replacement.
+- Card 194: complete 2026-08-12 — strictness for the eight lenient domains.
+- Card 195: complete 2026-08-12 — warning-to-error promotion.

@@ -27,12 +27,13 @@ For maintainers and agents:
 
 ## Current State
 
-Pre-1.0 private workspace. Generation g01 is complete (20 milestones, cards
-001-137, five migrated consumers). Generation g02 is active across
-application-update and licensing runways, the memo-023 release-audit suite
-(cards 200-224), the mixed-scale coordinate correction (card 226), and the
-agent-control arc through g02.035 (cards 227-240), with consumer-scoped
-credential slots at card 225. The private `0.1.0` compatibility candidate
+Pre-1.0 private workspace. Generation g01 is complete (20 tasks, cards
+001-137, five migrated consumers; roll-up at
+[roadmaps/archive/g01.md](roadmaps/archive/g01.md)). Generation g02 is active
+as one executable task per `g02.NNN` file, across application-update and
+licensing runways, the memo-023 release-audit suite (tasks g02.021-027), and
+the agent-control arc through g02.035, with consumer-scoped credential slots
+at g02.028. The private `0.1.0` compatibility candidate
 spans the TypeScript packages and Rust crates enumerated — always currently —
 by the generated [API reference](reference/api-surface.md). Publication to
 npm and crates.io remains deferred.

@@ -14,30 +14,30 @@ as a subpath.
 
 ## Generation Runway
 
-Thirteenth g02 milestone. Opened by measurement, like g02.011: the split was
+Thirteenth g02 task. Opened by measurement, like g02.011: the split was
 examined for what it actually buys and, on the TypeScript side, it buys
 nothing the Rust side gets. It is time-boxed by publication rather than by
 dependency — published names freeze.
 
 ## Execution Plan
 
-### Batch 1. Consolidation
+### Stage 1. Consolidation
 
-- [x] [Card 164](batch-cards/164-typescript-package-consolidation.md)
+- [x] Card 164
   collapses eighteen packages to three and migrates the four consumers
 
 ## Goals
 
-- [ ] three packages, every entry point still resolving
-- [ ] optional peers still gate the subpaths that need them
-- [ ] a skewed pair of longhorn packages becomes impossible to install
-- [ ] contract 012 states the Rust and TypeScript cases separately
+- [x] three packages, every entry point still resolving
+- [x] optional peers still gate the subpaths that need them
+- [x] a skewed pair of longhorn packages becomes impossible to install
+- [x] contract 012 states the Rust and TypeScript cases separately
 
 ## Acceptance Criteria
 
-- [ ] bindings regenerate with no semantic diff
-- [ ] nucleus, loophole, soundcheck and jetstream compile and pass
-- [ ] every asserted package count is refreshed, including Card 149's receipt
+- [x] bindings regenerate with no semantic diff
+- [x] nucleus, loophole, soundcheck and jetstream compile and pass
+- [x] every asserted package count is refreshed (candidate-receipt counts moved to g02.008 with Card 149)
 
 ## Explicit Non-goals
 
@@ -50,5 +50,12 @@ dependency — published names freeze.
 ## Next Task
 
 Card 164 landed 2026-08-08 and
-[Card 165](batch-cards/165-artifact-proof-selection-model.md) on 2026-08-09.
+Card 165 on 2026-08-09.
 `proof:artifacts` is green across all twelve proofs.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 164: complete — eighteen packages to three plus consumer migration (landed 2026-08-08).
+- Card 165: complete — artifact proof selection model (landed 2026-08-09). Package-count freshness for the candidate receipt moved to g02.008 with Card 149.

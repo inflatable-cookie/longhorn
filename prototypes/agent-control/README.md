@@ -1,6 +1,6 @@
 # Agent Control Spike (card 227)
 
-Throwaway proof for card 227 (`docs/roadmaps/g02/batch-cards/227-agent-control-spike.md`),
+Throwaway proof for card 227 (absorbed into [g02.029](../../docs/roadmaps/g02/029-agent-control-spike.md)),
 answering research memo 024's two runtime gaps:
 
 1. A stateless MCP server (rmcp, streamable HTTP) mounts and serves inside a

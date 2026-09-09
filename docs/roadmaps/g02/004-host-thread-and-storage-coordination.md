@@ -14,21 +14,21 @@ restore phases, and make lock-poison handling consistent with the workspace.
 
 ## Generation Runway
 
-Fourth g02 milestone. Bounded to `longhorn-config` coordination/restore and
+Fourth g02 task. Bounded to `longhorn-config` coordination/restore and
 the `longhorn-tauri-{config,settings,command}` command layers; storage
 formats and the invoke wire surface stay fixed.
 
 ## Execution Plan
 
-### Batch 1. Off-main-thread storage commands
+### Stage 1. Off-main-thread storage commands
 
-- [x] [Card 143](batch-cards/143-async-storage-commands-and-lock-waiting.md)
+- [x] Card 143
   makes storage-heavy commands async over `spawn_blocking` and takes the
   coordination wait off the event thread
 
-### Batch 2. Restore self-heal and poison consistency
+### Stage 2. Restore self-heal and poison consistency
 
-- [x] [Card 144](batch-cards/144-restore-self-heal-and-poison-consistency.md)
+- [x] Card 144
   recovers terminal restore phases on bare load and surfaces coordination
   poison as typed errors
 
@@ -59,3 +59,10 @@ formats and the invoke wire surface stay fixed.
 ## Next Task
 
 Promote Card 145 (g02.005).
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 143: complete — async storage commands and lock waiting.
+- Card 144: complete — restore self-heal and poison consistency.

@@ -17,7 +17,7 @@ facts instead of documentation.
 
 ## Generation Runway
 
-- [x] [Card 227](batch-cards/227-agent-control-spike.md) builds the
+- [x] Card 227 builds the
       standalone prototype and records both probe results in memo 024.
 
 ## Acceptance
@@ -36,3 +36,9 @@ facts instead of documentation.
 Done 2026-08-19: memo 024 and contract 022 promoted from the spike
 evidence (PR 2); g02.030 compiled to ready (Cards 228-229). Dispatch
 g02.030 next.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 227: complete 2026-08-19 — agent control spike.

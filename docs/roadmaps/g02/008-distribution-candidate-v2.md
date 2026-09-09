@@ -4,7 +4,7 @@ Status: blocked — awaiting a coordinated Poodle re-freeze
 Owner: Tom
 Updated: 2026-08-04
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt; g02
-candidate runway
+candidate runway; absorbed Card 149 (blocked card record below)
 Depends on: g02.007
 
 ## Outcome
@@ -16,16 +16,75 @@ commit-pinned proofs. Includes the diagnostics-seam adoption guidance.
 
 ## Generation Runway
 
-Eighth g02 milestone, closes the Tier A lane.
+Eighth g02 task, closes the Tier A lane.
 
-## Execution Plan
+## Work
 
-### Batch 1. Candidate receipt and adoption guidance
+Absorbed from Card 149 (blocked; stop condition fired — needs a coordinated
+re-freeze with Poodle). Single remaining outcome: freeze the second private
+compatibility candidate over the refreshed graph and clear the two deferrals
+parked behind the Card 127 receipt.
 
-- [~] [Card 149] (part 1 complete; receipt generation operator-held on
-  nucleus quiescence)(batch-cards/149-distribution-candidate-v2.md)
-  demotes the bridge peer, regenerates the candidate receipt and proofs,
-  and documents diagnostics-seam adoption
+### Done: part 1
+
+The bridge `@inflatable-cookie/longhorn-tauri` dependency is an optional peer, asserted by
+the bridge package test, the bridge-topology and operation-notification
+artifact proofs, and the five proof consumers; the card149 candidate verifier
+exists with truthful package/crate counts; the diagnostics-seam adoption
+section is in `docs/guides/system-composition.md`.
+
+Three of the four staleness kinds the verifier found are fixed: counts are
+derived (the receipt enumerates every package and is compared whole); the
+private consumer path comes from `LONGHORN_PRIVATE_CONSUMER`, with an unset
+value recording a named omission rather than silently covering one graph
+fewer; the entry points at `loophole-legacy`, with the greenfield app
+deliberately unpinned while it is being designed.
+
+### Blocked: receipt generation
+
+Poodle's artifact set changed and is changing (`packages/styles` and
+`packages/svelte/icons-lucide` gone; the vendored Lucide catalogue being
+removed). Not fixable from here. Resume, in order:
+
+1. Poodle settles its package set and says what it is.
+2. Update the artifact family list in `scripts/private-candidate-card149/artifacts.ts` to match.
+3. `LONGHORN_PRIVATE_CONSUMER=<path> bun scripts/verify-private-candidate-card149.ts --write`
+4. Wire the card149 generate/proof/docs-check tasks into `effigy.toml`.
+5. Supersede the Card 127 receipt with a pointer — archived, not rewritten.
+6. Refresh the candidate reference doc and CHANGELOG, then full QA.
+
+A receipt that pins five external repositories goes stale at the rate of the
+fastest-moving one. Whatever replaces this should either run often enough to
+fail early, or pin fewer things.
+
+### Acceptance criteria
+
+- optional-peer shape asserted end to end (done: bridge package test, topology artifact proof, proof consumers)
+- candidate verifier passes against the live tree
+- superseded receipt archived, not rewritten
+- full `effigy qa` passes
+
+### Evidence required
+
+- new receipt digest and verifier receipts
+- supersession record
+- QA receipts
+
+### Stop conditions
+
+- a consumer `file:` install breaks on the peer shape
+- Poodle artifact set drift forces a coordinated re-freeze (fired)
+
+### Gate
+
+Receipt generation freezes consumer graphs and asserts clean *selected*
+manifests — not whole trees. Nucleus, loophole, jetstream, figmatic, and
+kimi-shell are clean; soundcheck carries an uncommitted `zip = "8.6.0"` line
+owned by the soundcheck thread.
+
+## Absorbed records
+
+- Card 149: blocked — stop condition fired; coordinated Poodle re-freeze outstanding. Scope, steps, acceptance, evidence, and stop conditions absorbed inline above.
 
 ## Goals
 
@@ -51,8 +110,8 @@ Eighth g02 milestone, closes the Tier A lane.
 
 ## Next Task
 
-A coordinated re-freeze with Poodle, once its package set settles. Card 149
-carries the sequence.
+A coordinated re-freeze with Poodle, once its package set settles. The resume
+sequence lives in Work above.
 
 The hold recorded here as "operator-held on nucleus quiescence" was wrong for
 most of its life: consumer trees cleared, and the verifier then failed on four

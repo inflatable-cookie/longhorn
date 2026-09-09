@@ -21,7 +21,7 @@ accurate doc in the repo, and the handwritten spine is the drift. Three docs
 still specify the layout-container model deleted 2026-08-10; contract 002
 contradicts its own absorbed section; the generation index contradicts itself
 on publication. Reference quality means the spine is evidence, not folklore —
-this milestone is the sweep.
+this task is the sweep.
 
 ## Planning Gaps
 
@@ -34,9 +34,9 @@ this milestone is the sweep.
 
 ## Execution Plan
 
-### Batch 1. Architecture and contracts
+### Stage 1. Architecture and contracts
 
-- [x] [Card 215](batch-cards/215-post-179-architecture-sweep.md): rewrite
+- [x] Card 215: rewrite
   `system-architecture.md`'s hosting/layout sections against the
   Surface-as-layout model; revise contract 002's pre-absorption body; break
   the 002↔014 pointer loop; resolve the "no Surface package" acceptance
@@ -47,9 +47,9 @@ this milestone is the sweep.
   contract recording what it actually asserts. Card 211's empty divergence
   list meant restating sufficed.
 
-### Batch 2. Registers and indexes
+### Stage 2. Registers and indexes
 
-- [x] [Card 216](batch-cards/216-front-door-truth-and-register-freshness.md):
+- [x] Card 216:
   single-source or delete the handwritten package/crate counts; held-surface
   rows corrected and a freshness gate added to `verify-held-surface.ts`;
   generation index reduced to one next-task pointer; contract-index statuses
@@ -59,9 +59,9 @@ this milestone is the sweep.
   first run; the index has one pointer; the receipt is annotated, not
   rewritten.
 
-### Batch 3. Guides
+### Stage 3. Guides
 
-- [x] [Card 217](batch-cards/217-guide-repair.md): guide repair, verified in
+- [x] Card 217: guide repair, verified in
   a scratch consumer. **Landed 2026-08-15** — installable manifest, frozen
   receipt named as history, Surface-as-layout throughout, and the four
   stragglers the 215 sweep missed caught by review.
@@ -103,11 +103,19 @@ architecture stops being wrong before anything points at it.
 
 ## Next Task
 
-Milestone complete. g02.027 (Cards 221-223) remains in the audit suite, plus
+Task complete. g02.027 (Cards 221-223) remains in the audit suite, plus
 the blocked 210 and held 218.
 
 ## Planning Checkpoint
 
-After Batch 1. If revising contract 002's body surfaces behavior the absorbed
+After Stage 1. If revising contract 002's body surfaces behavior the absorbed
 sections never specified (the Card 211 port may find some), that feeds back
 here as a contract amendment, not prose.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 215: complete 2026-08-15 — post-179 architecture sweep.
+- Card 216: complete 2026-08-15 — front-door truth and register freshness.
+- Card 217: complete 2026-08-15 — guide repair.

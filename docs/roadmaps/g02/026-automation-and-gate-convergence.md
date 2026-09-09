@@ -39,9 +39,9 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 
 ## Execution Plan
 
-### Batch 1. The exemption's exit
+### Stage 1. The exemption's exit
 
-- [ ] [Card 218](batch-cards/218-linked-poodle-exit-gate.md):
+- [ ] Card 218:
   `poodle-release.ts` verifies integrity bytes, not a version string;
   `ci-rehearse` sees bun global-link state; pack-level typecheck of
   `longhorn-poodle-svelte` against registry Poodle. **Held whole on
@@ -53,9 +53,9 @@ off. Contract 012's distribution claims depend on this envelope being honest.
   exemption's exit, so the card needs recompiling before it is ready. Nothing
   else in g02.026 depends on this.
 
-### Batch 2. One declaration per fact
+### Stage 2. One declaration per fact
 
-- [x] [Card 219](batch-cards/219-gate-hygiene-and-single-sourcing.md): lazy
+- [x] Card 219: lazy
   `poodleRoot` plus documented `POODLE_REPO`; `check:runner-tools` joins `qa`;
   `ci.yml` routes through effigy selectors; MSRV single-sourced from
   `rust-toolchains.env` with a `Cargo.toml` cross-check; duplicate
@@ -85,9 +85,9 @@ off. Contract 012's distribution claims depend on this envelope being honest.
   resolving it. `health` is now `fmt:rust` + `check:runner-tools` and
   `effigy doctor` finishes in about eight seconds, compiling nothing.
 
-### Batch 3. Seeing the supply chain
+### Stage 3. Seeing the supply chain
 
-- [x] [Card 220](batch-cards/220-supply-chain-visibility.md): `deny.toml` with
+- [x] Card 220: `deny.toml` with
   the 13 known unmaintained advisories explicitly allowed and dated, wired to
   CI; committed `gen/schemas` policy decided and gated; CI toolchain pinned;
   workflow actions pinned; `npm install -g npm@latest` out of the
@@ -131,20 +131,24 @@ hardening off the critical path.
 
 ## Explicit Non-goals
 
-- Publishing anything. g02.014 owns publication; this milestone makes its
+- Publishing anything. g02.014 owns publication; this task makes its
   evidence honest.
 - Changing `.github/workflows/` trigger policy — push/PR absence is
   deliberate and documented; workflow edits still need explicit approval.
 
 ## Next Task
 
-Card 219. It fixes the gate that currently fails for the wrong reason (H3)
-and the guard that runs nowhere (H4) — both cheap, both load-bearing for
-every other card in this suite.
+Recompile Card 218's remainder (steps 2-4) as release hardening — integrity-byte
+verification in `poodle-release.ts`, bun link-state awareness in `ci-rehearse`,
+pack-level typecheck against registry Poodle — or fold it into whichever
+release lane owns the runner environment. Evidence owed: the rehearsal output
+showing link-state detection, and the pack-level typecheck passing against a
+registry install. The stage-2 checkpoint is met
+(selector routing landed with approval); the runner-environment trust question
+it gated still applies to the recompiled work.
 
-## Planning Checkpoint
+## Absorbed records
 
-After Batch 2. If selector-routing `ci.yml` surfaces tasks that only exist
-locally (effigy version split-brain), that resolves before Card 218's
-remaining runner-environment work is trusted to mean the same thing on the
-runner.
+- Card 218: needs recompile — step 5 landed 2026-08-24 (g16.008 removed the exemption); step 1 obsolete with the `linkedPoodleAccepted` field; steps 2-4 open as release hardening under a framing that is no longer the exemption's exit. Scope, steps, acceptance, evidence, and stop conditions live in this task's Stage 1 above and the card's recompile note in git history.
+- Card 219: complete 2026-08-15 — gate hygiene and single-sourcing.
+- Card 220: complete 2026-08-15 — supply-chain visibility.

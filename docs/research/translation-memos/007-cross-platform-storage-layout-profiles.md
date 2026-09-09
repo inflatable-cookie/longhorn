@@ -226,5 +226,5 @@ Promoted into:
 - `../../architecture/system-architecture.md`
 - `../../architecture/package-topology.md`
 - `../../contracts/004-configuration-storage-backup-and-recovery.md`
-- `../../roadmaps/g01/002-configuration-backup-and-recovery.md`
+- `../../roadmaps/archive/g01.md`
 - cards 011 and 012

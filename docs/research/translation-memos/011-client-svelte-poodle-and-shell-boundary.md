@@ -139,5 +139,5 @@ Promoted into:
 - `../../architecture/repo-authority-map.md`
 - `../../contracts/012-distribution-and-compatibility.md`
 - `../../contracts/013-svelte-and-poodle-adapter-lifecycle.md`
-- `../../roadmaps/g01/007-typescript-svelte-poodle-and-app-shell.md`
+- `../../roadmaps/archive/g01.md`
 - Cards 036 through 041

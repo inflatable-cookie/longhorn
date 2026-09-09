@@ -63,10 +63,10 @@ commands from another repository.
   choice, or changed package boundary prevents safe progress.
 - Normal tasks use the current checkout. Do not start a worker loop or create
   another worktree unless an explicit handoff authorizes that route.
-- Bare `continue` authorizes the next bounded card or planning batch named by
+- Bare `continue` authorizes the next bounded Northstar task named by
   the roadmap front doors. Do not invent work when no lane is ready.
 - A change is complete when behavior, affected docs and fixtures, validation,
-  and any governing batch evidence agree; name unresolved limits.
+  and any governing task evidence agree; name unresolved limits.
 
 ## Repository Edges
 

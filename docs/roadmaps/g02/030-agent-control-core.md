@@ -16,10 +16,10 @@ conformance proved without any host.
 
 ## Generation Runway
 
-- [x] [Card 228](batch-cards/228-agent-control-core-crate.md) — core
+- [x] Card 228 — core
       crate: tool schema, discovery file (app id, pid, port, token, schema
       version), token generation, provider seam.
-- [x] [Card 229](batch-cards/229-agent-control-stateless-server.md) —
+- [x] Card 229 —
       stateless server assembly over rmcp: no minted session ids, Origin
       rejection, bad-token rejection, discovery lifecycle fixtures
       including stale-pid detection.
@@ -31,3 +31,10 @@ conformance proved without any host.
   clean exit.
 - Origin and token failures reject before any tool executes.
 - The crate compiles with no host dependency; contract 012 gates pass.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 228: complete 2026-08-19 — core crate.
+- Card 229: complete 2026-08-19 — stateless server.

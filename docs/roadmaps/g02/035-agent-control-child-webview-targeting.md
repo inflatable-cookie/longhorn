@@ -20,10 +20,10 @@ operator's hands for marquee selection.
 
 ## Generation Runway
 
-- [x] [Card 239](batch-cards/239-agent-control-webview-targeting.md) —
+- [x] Card 239 —
       vocabulary and plumbing: opt-in config, `webview` addressing,
       webview-scoped refs, typed refusals, conformance fixtures.
-- [x] [Card 240](batch-cards/240-agent-control-child-drive-proof.md) —
+- [x] Card 240 —
       packaged proof driving an opted-in island unfocused; skill, guide,
       and contract truthfulness; Figmatic handback.
 
@@ -43,3 +43,10 @@ operator's hands for marquee selection.
 
 After completion: Figmatic opts in `figmatic-preview` and automates its
 preview acceptance; remaining consumer adoptions continue.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 239: complete 2026-08-20 — webview targeting.
+- Card 240: complete 2026-08-20 — child drive proof.

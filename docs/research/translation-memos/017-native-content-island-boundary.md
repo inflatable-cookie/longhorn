@@ -277,7 +277,7 @@ Promoted into:
 - `../../architecture/system-inventory.md`
 - `../../contracts/017-native-content-island-coordination.md`
 - `../../specs/001-shared-desktop-system-suite.md`
-- `../../roadmaps/g01/013-native-content-islands-prototype.md`
+- `../../roadmaps/archive/g01.md`
 
 ## Card 086 Promotion Outcome
 

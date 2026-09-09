@@ -14,7 +14,7 @@ in-memory-only are proved against a running window.
 
 ## Generation Runway
 
-Fifteenth g02 milestone, and the first that exists to *use* the tier rather
+Fifteenth g02 task, and the first that exists to *use* the tier rather
 than build it. g02.012 established two first-class hosts; cards 169-171 built
 the projection tier and proved it against both backends. Everything since has
 been evidence, and the evidence has hit the ceiling a real application removes.
@@ -28,43 +28,43 @@ Named here rather than buried, because one of them governs the whole shape.
   Effigy change rather than a workspace change, as anticipated.
 - **Longhorn does not own the first product target.** Memo 021 names a small
   audio-conversion application, and the authority map puts Soundcheck's
-  workflows and desktop policy in Soundcheck. This milestone owns the
+  workflows and desktop policy in Soundcheck. This task owns the
   *composition surface and the in-repo evidence*; the consumer conversion is
   the consumer's, and this roadmap must not imply otherwise.
 
 ## Execution Plan
 
-### Batch 1. Decide where a GPUI build runs
+### Stage 1. Decide where a GPUI build runs
 
-- [x] [Card 172](batch-cards/172-gpui-build-cadence.md) chose a named selector
+- [x] Card 172 chose a named selector
   wired to release. `effigy check:prototypes` covers all six prototypes in 1.3s
   warm, outside `qa`. Measured first: `gpui` is 757 packages and 3.3 GiB linked,
   but 37s cold — heavy in disk and CPU, not wall clock, so what kept the
   exclusion is that the cost lands on four selectors and every cache rather
   than that it is large.
 
-### Batch 2. Composition surface
+### Stage 2. Composition surface
 
-- [x] [Card 173](batch-cards/173-gpui-composition-guide.md) —
+- [x] Card 173 —
   `docs/guides/gpui-composition.md`. Leads with the three platform facilities a
   webview gives away and GPUI does not, then names all eight seams in one list.
   Nothing invented; the stop condition did not fire.
-- [x] [Card 174](batch-cards/174-gpui-worked-example.md) —
+- [x] Card 174 —
   `prototypes/gpui-composition`, gated by `check:prototypes` with no selector
   change. It confirmed the `Critical:` prefix on a real surface, which no test
   could, and found its own date bug on the first run.
 
-Batch 2 closes the milestone's composition half: a guide, an example that
+Stage 2 closes the task's composition half: a guide, an example that
 compiles, and the two readable against each other.
 
-### Batch 3. Live evidence for the last two ceilings
+### Stage 3. Live evidence for the last two ceilings
 
-- [x] [Card 175](batch-cards/175-live-cross-window-drag.md) — three real drags
+- [x] Card 175 — three real drags
   through the window server: to the other window in both directions, and to an
   empty display off both. Found that `on_mouse_up` never fires for a
   cross-window release, and that a window cannot be observed from inside its
   own event callback.
-- [x] [Card 176](batch-cards/176-live-teardown-under-load.md): a real teardown
+- [x] Card 176: a real teardown
   with a real flush in flight. **Real store landed** — 18-20ms per atomic
   write — and it found a window that grew by its titlebar every restart. The
   **Answered.** A window moved just before it closes loses its placement: the
@@ -104,7 +104,7 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
 ## Acceptance Criteria
 
 - [x] the composition guide assembles a window, a projection, and
-  `HostServices`, and its example compiles under whatever cadence Batch 1 chose
+  `HostServices`, and its example compiles under whatever cadence Stage 1 chose
   — `docs/guides/gpui-composition.md`'s Composition Order supplies
   `HostServices` (step 3), implements `GpuiWindowBackend` (step 4), and projects
   with `longhorn-poodle` (step 6); `prototypes/gpui-composition` compiles under
@@ -124,12 +124,12 @@ contract 020 (ceilings stated)      memo 022 (divergences closed)
   workflows in consumer repos, and a Longhorn roadmap does not schedule them.
 - A GPUI application framework. Longhorn supplies adapters and projections; the
   application is the application's.
-- Moving `gpui` into the default workspace. Batch 1 may decide a slower cadence
+- Moving `gpui` into the default workspace. Stage 1 may decide a slower cadence
   is the answer, and that is not the same thing.
 
 ## Next Task
 
-None — the milestone closed 2026-08-17.
+None — the task closed 2026-08-17.
 
 Card 176 took the three observations. Keeping the example frontmost was the
 hard part, exactly as anticipated; the answer was a driver that verifies the
@@ -138,11 +138,21 @@ and exits non-zero naming the failed check. That guard is the reusable piece.
 
 One Card 175 criterion of the same shape stays open — a window moved mid-drag,
 which needs the window to stay in front while it is moved. It is recorded on
-Card 175 and does not hold this milestone: the guard above is what a later
+Card 175 and does not hold this task: the guard above is what a later
 attempt would build on.
 
 ## Planning Checkpoint
 
-After Batch 2. If the composition guide cannot be written without inventing
-surface Longhorn does not have, that is a contract 020 gap and this milestone
+After Stage 2. If the composition guide cannot be written without inventing
+surface Longhorn does not have, that is a contract 020 gap and this task
 pauses rather than filling it in with plausible API.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 172: complete — GPUI build cadence decision.
+- Card 173: complete — composition guide.
+- Card 174: complete — worked example.
+- Card 175: complete — live cross-window drag.
+- Card 176: complete — live teardown under load.

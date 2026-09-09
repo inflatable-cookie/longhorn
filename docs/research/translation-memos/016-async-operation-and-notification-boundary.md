@@ -283,5 +283,5 @@ Promoted into:
 - `../../contracts/015-async-operation-lifecycle.md`
 - `../../contracts/016-notification-ledger-and-projection.md`
 - `../../specs/001-shared-desktop-system-suite.md`
-- `../../roadmaps/g01/012-async-operations-and-notifications.md`
+- `../../roadmaps/archive/g01.md`
 

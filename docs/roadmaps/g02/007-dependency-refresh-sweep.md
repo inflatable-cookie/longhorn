@@ -14,13 +14,13 @@ current graph instead of re-freezing a stale one.
 
 ## Generation Runway
 
-Seventh g02 milestone, first Tier A candidate. Ordered before g02.008.
+Seventh g02 task, first Tier A candidate. Ordered before g02.008.
 
 ## Execution Plan
 
-### Batch 1. Compatible drift and held-back evaluations
+### Stage 1. Compatible drift and held-back evaluations
 
-- [x] [Card 148](batch-cards/148-dependency-refresh-sweep.md)
+- [x] Card 148
   applies the compatible `cargo update`, then evaluates rusqlite, zip,
   ts-rs, and sha2 individually with their conformance suites
 
@@ -50,3 +50,9 @@ Seventh g02 milestone, first Tier A candidate. Ordered before g02.008.
 ## Next Task
 
 Promote g02.008 when Card 148 closes.
+
+## Absorbed records
+
+Absorbed from `batch-cards/` in the flattened-task migration; the directory is removed and git history is the full-fidelity archive.
+
+- Card 148: complete — compatible drift plus rusqlite/zip/ts-rs/sha2 evaluations.

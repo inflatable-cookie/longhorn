@@ -1,6 +1,6 @@
 # g02.016 Fork History Field Corrections
 
-Status: ready
+Status: complete — 2026-08-12 (stages 1-3 landed as Cards 181-184; the header still read `ready` after the body closed, corrected in migration)
 Owner: Tom
 Governing refs: contract 011; contract 012; contract 017
 Depends on: none
@@ -10,7 +10,7 @@ Depends on: none
 Loophole shipped fork history end-to-end — pulse-history on
 `longhorn-history-tree`, HistoryCentre bound through `longhorn-tauri-history-tree`
 and `longhorn-poodle-svelte` — and sent back five items from real use. This
-milestone takes them: three remove workaround code standing in Loophole today,
+task takes them: three remove workaround code standing in Loophole today,
 two extend the surface for the HistoryCentre v2 redesign.
 
 The value is the provenance. These are not inferred gaps; each one cost a
@@ -65,20 +65,20 @@ Items 2, 3 and 5 are confirmed as described.
 
 ## Execution Plan
 
-- [x] **Batch 1. Remove the workarounds** (Card 181, complete 2026-08-12). Items 2, 1 and 3.
+- [x] **Stage 1. Remove the workarounds** (Card 181, complete 2026-08-12). Items 2, 1 and 3.
       `ForkHistoryController` refreshes its branches page alongside path;
       the Tauri crates agree on one re-export style; `Checkout` expresses a
       branch-root target. Ordered by the field's own priority.
-- [x] **Batch 2. Host-supplied `recorded_at`** (Card 182, complete 2026-08-12). Optional, consumer-supplied, carried inert from
+- [x] **Stage 2. Host-supplied `recorded_at`** (Card 182, complete 2026-08-12). Optional, consumer-supplied, carried inert from
       `HistoryEntryMetadata` through the envelope to `ForkEntryRecord` and the
       generated types, in both history domains.
-- [ ] **Batch 3. Topological tree projection** (Card 183, unblocked; ready to
-      plan against Poodle's shipped stitcher). A single paged `ForkTreePage` in ancestry order with branch
-      and lane annotations, moving the stitch into the authority.
+- [x] **Stage 3. Topological tree projection** (Card 183, complete 2026-08-12; Card 184, complete 2026-08-12).
+      Reading the stitcher changed the shape: not a single paged `ForkTreePage` in ancestry order, but a
+      node-centric fork projection (see below), plus checkout continuation.
 
 ## What Reading The Stitcher Changed
 
-Batch 3 was scoped as "a single paged `ForkTreePage` in ancestry order with
+Stage 3 was scoped as "a single paged `ForkTreePage` in ancestry order with
 branch and lane annotations" -- the shape Poodle's HistoryCentre v2 builds
 client-side, moved into the authority. Reading
 `poodle/packages/core/src/history-center.ts` showed the shape is the defect.
@@ -99,25 +99,25 @@ directly, and the renderer recurses instead of laying out a tree.
 
 ## Goals
 
-- [ ] Loophole deletes its branches-reload retry loop, its command wrappers and
+- [x] Loophole deletes its branches-reload retry loop, its command wrappers and
       its checkout special-casing, and nothing replaces them.
-- [ ] A consumer that loads branches once and keeps editing sees a current page
+- [x] A consumer that loads branches once and keeps editing sees a current page
       without asking for one.
-- [ ] The ten Tauri crates answer the same question the same way.
+- [x] The ten Tauri crates answer the same question the same way.
 - [x] Version captions can show a time without the history crates owning a
       clock.
 
 ## Acceptance Criteria
 
-- [ ] `ForkHistoryController.refresh()` leaves snapshot, path and branches on
+- [x] `ForkHistoryController.refresh()` leaves snapshot, path and branches on
       one revision, or fails as one.
-- [ ] `loadBranches` no longer throws a projection gap on the first mismatch
+- [x] `loadBranches` no longer throws a projection gap on the first mismatch
       after a mutation.
-- [ ] Every `longhorn-tauri-*` crate re-exports its commands the same way, and
+- [x] Every `longhorn-tauri-*` crate re-exports its commands the same way, and
       a test or doc states which way.
-- [ ] A branch with an empty head can be checked out without the consumer
+- [x] A branch with an empty head can be checked out without the consumer
       special-casing `AlreadyAtTarget` or `UnknownTarget`.
-- [ ] Loophole's workaround code is gone, not merely unused.
+- [x] Loophole's workaround code is gone, not merely unused.
 
 ## Explicit Non-goals
 
@@ -127,15 +127,13 @@ directly, and the renderer recurses instead of laying out a tree.
 
 ## Next Task
 
-Batches 1 and 2 are complete and both planning gaps are closed. Card 183 is the
-remaining work: read Poodle's HistoryCentre v2 stitcher, then compile the
-topological `ForkTreePage` against what it actually consumes.
+None. Stages 1-3 are complete and both planning gaps are closed. Loophole can
+delete all three workarounds now. The command wrappers never needed a release
+— see item 1 above.
 
-Loophole can delete all three workarounds now. The command wrappers never
-needed a release — see item 1 above.
+## Absorbed records
 
-## Planning Checkpoint
-
-Before Batch 3. Card 183 moves a stitch from a consumer into the authority, so
-what the projection emits should be settled against Poodle's shipped stitcher
-rather than designed ahead of it.
+- Card 181: complete 2026-08-12 — workaround removal (items 2, 1, 3).
+- Card 182: complete 2026-08-12 — host-supplied `recorded_at`.
+- Card 183: complete 2026-08-12 — node-centric fork projection (the paged-`ForkTreePage` scope was reshaped by the stitcher reading recorded above).
+- Card 184: complete 2026-08-12 — checkout continuation.
