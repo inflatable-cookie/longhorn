@@ -146,7 +146,7 @@ proved fresh in every window state with the islands attached.
 
 021-027 are independent of each other and of 014-020; all execute inside
 existing contracts. The audit found the engineering core sound — these
-milestones harden the evidence envelope and the surfaces that grew faster
+tasks harden the evidence envelope and the surfaces that grew faster
 than their proof.
 
 009, 010 and 011 are independent of 001-008 and of the poodle release

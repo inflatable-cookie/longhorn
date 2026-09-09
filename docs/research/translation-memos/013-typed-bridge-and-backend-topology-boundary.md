@@ -218,5 +218,5 @@ Promoted into:
 - `../../contracts/007-optional-backend-topology.md`
 - `../../contracts/010-rust-typescript-ipc-and-events.md`
 - `../../contracts/012-distribution-and-compatibility.md`
-- `../../roadmaps/g01/009-typed-bridge-and-optional-backend-topology.md`
+- `../../roadmaps/archive/g01.md`
 

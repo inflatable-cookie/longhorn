@@ -206,7 +206,7 @@ Promoted into:
 - `../../architecture/system-inventory.md`
 - `../../contracts/008-history-kernel-boundary.md`
 - `../../specs/001-shared-desktop-system-suite.md`
-- `../../roadmaps/g01/011-history-kernel-and-branching-prototype.md`
+- `../../roadmaps/archive/g01.md`
 
 ## Post-prototype Decision
 

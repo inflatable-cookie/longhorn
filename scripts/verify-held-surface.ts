@@ -55,7 +55,7 @@ async function statusIndex(directory: string): Promise<Map<string, string>> {
 const milestones = await statusIndex("docs/roadmaps/g02");
 const cards = new Map<string, string>();
 for (const [file, content] of milestones) {
-  for (const match of content.matchAll(/^Card (\d{3}): (.+)$/gm)) {
+  for (const match of content.matchAll(/^- Card (\d{3}): (.+)$/gm)) {
     cards.set(`${match[1]}-absorbed-in-${file}`, `Status: ${match[2]}`);
   }
 }

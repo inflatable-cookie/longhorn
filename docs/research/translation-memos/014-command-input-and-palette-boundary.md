@@ -226,5 +226,5 @@ Promoted into:
 - `../../contracts/006-command-action-and-input.md`
 - `../../contracts/010-rust-typescript-ipc-and-events.md`
 - `../../contracts/013-svelte-and-poodle-adapter-lifecycle.md`
-- `../../roadmaps/g01/010-command-registry-keymaps-and-palette.md`
+- `../../roadmaps/archive/g01.md`
 - Cards 056-061

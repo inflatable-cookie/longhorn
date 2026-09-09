@@ -4,7 +4,7 @@ Status: promoted
 Owner: Tom
 Updated: 2026-08-02
 Contracts: 003-007, 009-010, 012-017
-Roadmap: `../roadmaps/g01/016-secondary-consumers-and-greenfield-release.md`
+Roadmap: `../roadmaps/archive/g01.md`
 
 ## Boundary
 

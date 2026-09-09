@@ -108,5 +108,5 @@ Promoted into:
 - `../../architecture/system-inventory.md`
 - `../../architecture/package-topology.md`
 - `../../contracts/005-settings-and-system-registration.md`
-- `../../roadmaps/g01/008-settings-registry-and-shell.md`
+- `../../roadmaps/archive/g01.md`
 - Cards 042-048

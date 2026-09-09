@@ -118,7 +118,7 @@ best-effort; systemically there is no diagnostic seam.
 
 `README.md` ends four commits early ("Card 070 ready"), never records
 g01.017-020 or g01 completion. `docs/contracts/contract-index.md` readiness
-lines are stale. `docs/roadmaps/g01/batch-cards/README.md` holds Card 074
+lines are stale. `docs/roadmaps/archive/g01.md` (the compacted g01 roll-up) records Card 074
 under Ready and a divergent next-task pointer competing with the generation
 index. `CHANGELOG.md` counts 17/36 against actual 18/38 and has no fork-tree
 entry. Contract 004 `Updated:` header missed `f2a78690`.

@@ -157,5 +157,5 @@ Promoted into:
 - `../../architecture/system-inventory.md`
 - `../../contracts/002-composable-workspace-hosting.md`
 - `../../contracts/011-cross-window-transfer.md`
-- `../../roadmaps/g01/006-optional-surfaces-and-cross-window-drag.md`
+- `../../roadmaps/archive/g01.md`
 - Cards 028 through 035
