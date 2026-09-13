@@ -21,3 +21,11 @@ tasks are closed; the roll-up lives in
 
 The [generation index](generation-index.md) owns the only live next-task
 pointer. Consumer adoption does not auto-start Longhorn work.
+<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:fe262f1cd23bed7d7eb2b16eeb98ac23cff1a0bda3ddfdb2d11409d57a0a572a -->
+| Generation | Disposition | Runway state |
+| --- | --- | --- |
+| g02 | open | planning_required |
+| Task | Status | Stage | Revision | Record digest |
+| --- | --- | --- | --- | --- |
+| g02.038 | complete | none | 8 | sha256:7a76e636abf326e7ce7391e8f18279e6e8792d51686c82ec34f97ca1a1350855 |
+<!-- northstar:lifecycle:end -->
