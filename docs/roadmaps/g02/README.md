@@ -41,7 +41,7 @@
 | [g02.035](035-agent-control-child-webview-targeting.md) | done 2026-08-20 | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
 | [g02.036](036-production-contextual-agent-tools.md) | L1 ready; D1 blocked on accepted L1; production held | production authenticated app-tool registry and Swallowtail attachment seam |
 | [g02.037](037-focused-panel-surfaces.md) | in progress | a Surface presents one panel full-surface, with no regional layout or tabs |
-| [g02.039](039-poodle-041-adoption.md) | ready | every Longhorn Poodle pin on published 0.4.1; one identity end to end |
+| [g02.039](039-poodle-041-adoption.md) | ready | every Longhorn Poodle pin on published 0.4.2; one identity end to end |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
