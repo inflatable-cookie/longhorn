@@ -125,15 +125,15 @@ A release candidate requires:
 
 ## Current Poodle Checkpoint
 
-**Public registry, exact 0.3.0, adopted 2026-09-05 by g16.109.** There is no
+**Public registry, exact 0.4.2, adopted 2026-09-14 by g02.039.** There is no
 packed preview artifact any more. Longhorn resolves Poodle the way any
 consumer does.
 
-- npm: `@inflatable-cookie/poodle-core@0.3.0` and
-  `@inflatable-cookie/poodle-svelte@0.3.0`, both `latest` on the public
+- npm: `@inflatable-cookie/poodle-core@0.4.2` and
+  `@inflatable-cookie/poodle-svelte@0.4.2`, both `latest` on the public
   registry. Exact, not a range: the adapter's peer is exact, and a range on
   either side would let the two skew.
-- Rust: git tag `v0.3.0` at `85609d941a208ff2f854e9f7c0e457089cc77d0e`. One
+- Rust: git tag `v0.4.2` at `d2438aef7d34df31b958d172c9c162e83063d83c`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
   two sources for one crate are two incompatible types.
 - `gpui` resolves from crates.io at `0.2.2` on both sides of the graph, the
