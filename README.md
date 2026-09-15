@@ -55,6 +55,8 @@ licensing, release-audit hardening, consumer-scoped credential slots, the
 agent-control arc through g02.035, and the production contextual-tool L1
 baseline in g02.036. Per-app agent-control adoption remains consumer-owned.
 The private `0.1.0`
-compatibility candidate spans 18 TypeScript packages and 42 Rust crates;
-package-manager publication remains deferred. The [generation index](docs/roadmaps/generation-index.md)
+compatibility candidate spans the three TypeScript packages and the Rust
+crates enumerated — always currently — by the
+[generated API reference](docs/reference/api-surface.md); package-manager
+publication remains deferred. The [generation index](docs/roadmaps/generation-index.md)
 owns the live next-task pointer.

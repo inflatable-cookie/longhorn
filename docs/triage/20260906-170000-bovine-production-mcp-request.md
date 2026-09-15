@@ -1,6 +1,6 @@
 # Bovine request: production MCP infrastructure
 
-Status: operator-authorised consumer request; Longhorn planning settlement needed
+Status: operator-authorised consumer request; provider-free L1/D1 tracked in g02.036, production settlement open
 Requester: Acowtancy Desktop Chatterbox, Tom direction 2026-09-06
 
 Tom explicitly requests a production version of the MCP server infrastructure
@@ -52,7 +52,9 @@ Use a generic consumer fixture; do not move Bovine product policy into Longhorn.
 
 ## Placement and disposition
 
-At request capture, Paseo returned no live agents rooted in the Longhorn checkout
-and no active Longhorn workspace. No identity was revived or replacement created.
-Route this intake to Longhorn's next live planning owner. Promote into its
-contract/roadmap after settlement and remove this note on full promotion.
+Provider-free settlement lives in
+[g02.036](../roadmaps/g02/036-production-contextual-agent-tools.md) (L1 ready,
+D1 blocked on accepted L1). Production adoption, provider execution,
+dependency changes, and releases stay held. Keep this note open until
+production settlement is promoted into a contract/roadmap lane; remove it on
+full promotion.

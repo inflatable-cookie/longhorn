@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-16
+Updated: 2026-09-15
 
 ## Positioning
 
@@ -70,70 +70,18 @@ promoted 2026-08-19 from Card 227's spike evidence
 unfocused/occluded/minimized capture proved fresh, with the rAF/timer
 caveat folded into the contract's `wait_for` semantics.
 
-## Roadmap Readiness
+## Delivery Readiness
 
-`g01.001`, the configuration domain store, coordinated atomic mutation,
-debounced mutation, explicit flush, and bounded coordinated backup capture are
-complete. Verified ZIP publication and safe operational retention are
-complete. Restore inspection, confirmation-bound planning, private staging,
-journaled publication, exact rollback, crash recovery, coordinated load-sets,
-safe migration rewrite, and optional binary age v1 envelopes are complete.
-Custom backup adapters, separate consistency groups, SQLite native snapshot
-proof, donor-shaped conformance, cross-platform storage profiles, fixed
-bootstrap selection, journaled profile transition, legacy discovery, and
-receipt-bound cleanup are complete. `g01.002` and `g01.003` are complete,
-including typed geometry, display inventory/correlation, placement resolution,
-and deterministic desired/live planning. The Tauri host boundary is complete
-through Card 022 packaged macOS proof. Contract 014's layout-core foundation
-is implemented through Cards 023-027 and `g01.005` is complete. `g01.006` is
-complete through Cards 028-035. Contract 011
-remains current after the Surface foundation checkpoint; bounded sessions,
-leases, target resolution, same-document panel moves, whole-Surface moves,
-opt-in provision cleanup, checked clients, and Tauri host assembly are
-implemented. Card 035 adds passing direct and Surface-enabled packaged macOS
-proofs and boundary audits. Research memo 011 and revised contracts 011-013
-compile g01.007 into Cards 036-041. Cards 036-040 are complete. Poodle's public
-drag seam and exact preview artifact are recorded. Card 039 completes the
-Surface-free public layout binding slice. Card 040 completes armed transfer,
-checked leases, compatible reveal, and titlebar actions. Card 041 completes
-three isolated artifact-installed shell shapes and closes `g01.007`.
-Research memo 012 and compiled contract 005 make Cards 042-048 the completed
-g01.008 settings runway. Card 048 proves four artifact-installed compositions,
-exact optional boundaries, and one Svelte/Poodle runtime.
-Research memo 013 compiles contracts 007 and 010. Cards 049-055 implement,
-artifact-prove, and close g01.009. Research memo 014 compiles contract 006
-against the bridge, config, settings, Svelte, and Poodle foundations. Cards
-056-061 and g01.010 are complete. Research memo 015 revalidates Loophole
-history and compiles contract 008. Cards 062-069 and g01.011 are complete.
-Research memo 016 promotes separate operation and notification authorities
-through contracts 015-016. Cards 075-081 implement and artifact-prove both
-systems; g01.012 is complete. Research memo 017 and contract 017 promote the
-native-content coordination boundary. Cards 082-085 provide retained private
-evidence. Card 086 selects the split production graph and compiles g01.018.
-Cards 087-093 are complete. Nucleus Cards 094-101 complete its no-Surface
-migration, including the public Poodle geometry seam, accepted project checks,
-private artifacts, canonical storage, native host, renderer, Browser,
-rollback, and closeout.
+The contract register above is the contract-readiness authority. Delivery
+sequencing, the open lanes, and the live next-task pointer belong to the
+[generation index](../roadmaps/generation-index.md); this index does not carry
+roadmap history.
 
-Loophole Card 102 freezes the current full hierarchy, generic Echo transfer,
-stable product storage identity, public Poodle drag seam, and 83-variant Pulse
-history boundary. g01.015 is compiled through Card 112. Cards 103-108 complete
-the storage, artifact-admission, display/window, layout, and regional Surface
-authority slices. Card 109 owns renderer and transfer composition.
-g01 is complete through Card 137, including the secondary-consumer
-migrations, the private compatibility candidate, the optional fork-tree
-layer, grouped-adapter absence restore, and child-view navigation.
-Generation g02 delivered the memo-018 remediation (Cards 138-147), the
-update and licensing runways (g02.009, g02.010), and the memo-023
-release-audit suite (cards 200-223) is the live runway. Publication is
-scoped and queued: the `@inflatable-cookie` scope was claimed 2026-08-09 and
-the v0.1.0 tag waits on Poodle v0.2.0 (g02.014).
-
-Research memo 020 compiles contract 019 over licensing. Longhorn owns the
-licence shape and its evaluation; applications own the backend, the purchase
-model, and what an absent entitlement means. Two independently optional
-windows — use and update — express subscription, perpetual-with-maintenance,
-trial, and freemium without Longhorn naming any of them, and the update
-window is what contract 018's updater consults before offering a release.
-Longhorn answers "entitled?" and never enforces. Cards 155-158 (g02.010)
-execute it.
+- Contract 002 supersedes contract 014.
+- Contract 022 is active as the dev-only agent-control surface; production
+  builds exclude it.
+- Contract 023 is promoted for the provider-free L1 in g02.036 only.
+  Production adoption, provider execution, dependency changes, and releases
+  remain held.
+- Contract 012's publication clause is deferred; g02.014 owns the first
+  publication lane.

@@ -1,6 +1,5 @@
 # g02.039 Poodle 0.4.2 Adoption
 
-Status: ready
 Owner: Tom
 Created: 2026-09-14
 Governing refs: contracts 012 and 013; Poodle CHANGELOG 0.4.0/0.4.2 at tag
