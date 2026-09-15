@@ -3,7 +3,7 @@
 //!
 //! This crate composes the host-agnostic `longhorn-agent-control` server
 //! inside a running Tauri application: it mounts the stateless MCP server on
-//! a background thread, implements [`ControlHandler`] against the app's
+//! a background thread, implements [`ControlHandler`](longhorn_agent_control::ControlHandler) against the app's
 //! windows, and routes `command` invocations into the app's contract-006
 //! registry through the host-supplied [`CommandBridge`].
 //!

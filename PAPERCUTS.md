@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Broken intra-doc link escapes qa and only fails the release gate — 2026-09-15
+- Friction: `longhorn-tauri-agent-control`'s crate-root doc comment linked `[`ControlHandler`]`, which is not re-exported at the root. `effigy qa` does not run rustdoc, so the crate was green locally while the release gate `rustdoc` (`RUSTDOCFLAGS="-D warnings"`, `rustdoc::broken-intra-doc-links`) failed on the first `release prepare --check-gates`.
+- Impact: a release-gate-only failure that local qa never surfaces; the first real gate run stops before `qa`, `floor`, or `source` run at all.
+- Plausible fix: add a bounded rustdoc check to `qa`, or keep the release-shaped placement and call it out in the release runbook.
+- Surface: `crates/longhorn-tauri-agent-control/src/lib.rs`; `effigy.toml` `qa`; `config/release.toml` gate `rustdoc`.
+
 ### [ ] private-candidate release gate asserts exact CHANGELOG prose — 2026-09-15
 - Friction: `verify-private-candidate-docs-card127.ts` requires literal substrings in `CHANGELOG.md` ("deterministic private `0.1.0` candidate", "36 Rust", "seven consumer"). A legitimate clarification that dropped one word and reflowed two lines failed the release gate's first step, before any real check ran.
 - Impact: any human edit near the Card 127 note can block the entire release gate run for reasons unrelated to the release.
