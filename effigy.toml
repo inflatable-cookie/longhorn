@@ -74,6 +74,11 @@ exclude = ["history/**"]
 "check:tauri-seam-strings" = "bun scripts/verify-tauri-seam-strings.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
 "check:repo-containment" = "bun scripts/verify-repo-containment.ts"
+# g02.026 stage 1: report the machine's bun global-link state and fail when a
+# dependency resolves through a link that leaves the repository. A registered
+# link that nothing resolves through is reported, not failed -- poisoning
+# requires an active resolution.
+"check:bun-links" = "bun scripts/check-bun-links.ts"
 "check:runner-tools" = "bun scripts/check-runner-tools.ts"
 # Contract 022's release-absence claim, both directions: feature-off release
 # artifacts carry no control-surface code and no core-crate graph edge, with
@@ -103,9 +108,14 @@ exclude = ["history/**"]
 # published poodle-svelte 0.1.0 shipped none of the SettingsShell,
 # UpdateCenter and UpdateStatus components the adapter imports, and 0.2.2
 # ships all three.
-"proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+#
+# `pack-typecheck` is the Card 218 remainder: the packed adapter typechecked
+# against a bare stage whose only Poodle source is the registry, proving the
+# published peer range resolves from npm.
+"proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands pack-typecheck; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+"proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
 
-# Pre-release rehearsal of the four machine properties that made local qa green
+# Pre-release rehearsal of the five machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
 "ci:rehearse" = "bash scripts/ci-rehearse.sh"
 
