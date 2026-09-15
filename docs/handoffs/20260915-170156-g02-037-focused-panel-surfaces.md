@@ -12,6 +12,7 @@ updated: 2026-09-15
 base_required: pushed-main
 queue_dispatch: northstar-queue
 queue_approval: "Operator-confirmed direction in this conversation on 2026-09-15: unblock and finish the open g02 work, then cut the first release; dispatch through northstar-queue."
+roadmap: docs/roadmaps/g02/037-focused-panel-surfaces.md
 tags: [coordination, handoff, worker, pr, g02, release-sequence]
 ---
 
