@@ -1,6 +1,9 @@
 # Effigy local state
 .effigy/
 
+# Effigy release-prepared state (operator-local; consumed by `release execute`)
+.release-prepared.json
+
 # Operator-local agent worktree defaults (AGENTS_WORKTREE_CONTAINER_DIR, …)
 .agents.local.env
 

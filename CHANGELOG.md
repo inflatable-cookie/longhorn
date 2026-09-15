@@ -1,8 +1,8 @@
 # Changelog
 
-All notable Longhorn changes are recorded here. Releases are source-only
-annotated Git tags from the canonical repository; consumers depend on them
-with `git` + `tag` dependencies.
+All notable Longhorn changes are recorded here. A release tags the repository
+and publishes the three TypeScript packages to npm; consumers take the Rust
+crates by git tag and the packages by version.
 
 ## [Unreleased]
 
@@ -58,7 +58,8 @@ with `git` + `tag` dependencies.
 - Standardized canonical-id storage defaults, stable storage-name overrides,
   profile transitions, backup, restore, and receipt-bound cleanup.
 
-- Card 127 produced the deterministic private `0.1.0` candidate binding 17 TypeScript
-  packages, 36 Rust crates, five exact Poodle artifacts, and seven consumer
-  graphs. Package-manager publication, registry ownership, and hosted
-  releases remain deferred.
+- The private `0.1.0` candidate at Card 127 bound 17 TypeScript packages and 36
+  Rust crates across five exact Poodle artifacts and seven consumer graphs.
+  The tree now produces three TypeScript packages and 49 Rust crates: the
+  TypeScript packages publish to npm, and the Rust crates set `publish = false`
+  and are taken by git tag.

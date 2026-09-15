@@ -53,6 +53,41 @@ The 2026-08-09 posture, ordering, and Poodle-version decision below are kept
 as the record of how the lane was compiled. The recompiled remaining steps
 above supersede them where they differ.
 
+## Release runbook — 0.1.0
+
+Run from the canonical checkout on `main`, clean and synced with `origin`.
+Steps 1-3 are preparation; steps 4-6 are the irreversible publish and the
+consumer sweep.
+
+1. **Preconditions, once, at npmjs.com.**
+   - The `@inflatable-cookie` scope is owned.
+   - A trusted publisher is configured for each of
+     `@inflatable-cookie/longhorn`,
+     `@inflatable-cookie/longhorn-poodle-svelte`, and
+     `@inflatable-cookie/longhorn-tauri`, naming this repository and
+     `release.yml`. A package that does not exist yet has no settings page, so
+     a brand-new package may need a one-time token publish before trusted
+     publishing can be configured. Verify before release night — the workflow
+     fails closed otherwise.
+   - No `NPM_TOKEN` exists in the repository.
+2. **Validate the release gates.** `effigy release status --check-gates` runs
+   all seven configured gates, including `effigy qa`, the MSRV floor, and the
+   source consumer. This is the long pole; budget for it.
+3. **Prepare.** `effigy release prepare --check-gates --yes --version 0.1.0`
+   promotes `[Unreleased]` to `[0.1.0] - <date>`, resets `[Unreleased]`, syncs
+   `Cargo.lock`, and writes local `.release-prepared.json` (gitignored). Commit
+   `CHANGELOG.md` and `Cargo.lock`, then push `main`.
+4. **Dry-run the publish.** `gh workflow run release.yml --ref main -f
+   dry-run=true`. The version-agrees-with-tag check is skipped on a non-tag
+   ref, so this exercises packing, the QA gate, and the OIDC setup without
+   publishing.
+5. **Tag and publish.** `git tag v0.1.0 && git push origin v0.1.0`, then
+   `gh workflow run release.yml --ref v0.1.0 -f dry-run=false`. Dispatch
+   against the tag, never `main`.
+6. **Repoint consumers** (cross-repo, operator-owned): move every `file:`
+   Poodle and Longhorn reference to the published versions, then run each
+   repository's own checks.
+
 ## Work
 
 Absorbed from Card 166 (ready). Poodle Card 020 took six publish-intent

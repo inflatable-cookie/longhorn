@@ -83,5 +83,5 @@ roadmap history.
 - Contract 023 is promoted for the provider-free L1 in g02.036 only.
   Production adoption, provider execution, dependency changes, and releases
   remain held.
-- Contract 012's publication clause is deferred; g02.014 owns the first
-  publication lane.
+- Contract 012's publication clause is live: g02.014 publishes the three
+  TypeScript packages at `0.1.0` and tags `v0.1.0`.

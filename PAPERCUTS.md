@@ -5,6 +5,17 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] release.yml clones Poodle v0.1.0 for a proof that reads no checkout — 2026-09-15
+- Friction: `.github/workflows/release.yml` clones Poodle `v0.1.0` beside the workspace before `effigy qa`, but the greenfield proof now installs Poodle from the registry (`poodleRelease()`) and reads no source checkout. The comment claiming "Source is the point -- packing is what the proof does" is stale, and the tag is three minor releases behind the 0.4.2 the manifests pin.
+- Impact: a dead CI step on every release, cloning the wrong release, and a comment that misstates what the proof proves.
+- Plausible fix: delete the "Check out Poodle beside Longhorn" step; the proof and its containment exception already stand alone.
+- Surface: `.github/workflows/release.yml` lines ~118-136; needs explicit workflow approval.
+
+### [x] Effigy release state file is not gitignored — 2026-09-15
+- Friction: `effigy release prepare` writes `.release-prepared.json` at the repository root and it was not gitignored, so a prepared release dirtied the shared checkout.
+- Fix: added `.release-prepared.json` to `.gitignore`.
+- Surface: `.gitignore`.
+
 ### [ ] Poodle Text has no wrap control for long unbroken strings — 2026-09-15
 - Friction: settings pages render digests, paths, and archive hashes that need `overflow-wrap: anywhere`; Poodle `Text`/`Code` expose no wrap control, so g02.020 dropped two local rules with no Poodle-owned replacement.
 - Impact: long digests and paths in the Backup/Restore settings pages can overflow their Surface on narrow widths.

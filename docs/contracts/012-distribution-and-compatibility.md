@@ -26,8 +26,10 @@ policy remain consumer-owned.
 - Poodle adapter work pins one exact published Poodle version. The preview era
   -- one exact source commit plus a packable artifact, claiming no range --
   ended when Poodle released publicly; see the checkpoint below.
-- Package names are working names until registry ownership is verified before
-  first publication.
+- Package names are fixed once published. The `@inflatable-cookie` scope was
+  claimed on 2026-08-09, and the three TypeScript packages publish from
+  `0.1.0` (g02.014); consumers migrate to the published versions at their next
+  uptake.
 
 ## Dependency Discipline
 
@@ -70,13 +72,12 @@ policy remain consumer-owned.
 
 ## Consumer Adoption
 
-- Package-manager publication is scoped and queued, no longer deferred on
-  names: the `@inflatable-cookie` scope was claimed on 2026-08-09, the three
-  TypeScript packages are publishable (`publishConfig.access: public`), and
-  the v0.1.0 tag waited on a Poodle release carrying the components the
-  adapter imports (g02.014). Poodle is published at `0.4.2` (g02.039), so that
-  precondition is met and the linked-Poodle exemption is gone (Card 218 step
-  5). Rust crates stay `publish = false`; consumers take them by git tag.
+- Package-manager publication happens at `0.1.0`: the `@inflatable-cookie`
+  scope was claimed on 2026-08-09, the three TypeScript packages are
+  publishable (`publishConfig.access: public`), and Poodle is published at
+  `0.4.2` (g02.039), so the adapter's precondition is met and the linked-Poodle
+  exemption is gone (Card 218 step 5). Rust crates stay `publish = false`;
+  consumers take them by git tag.
 - Private consumer repos may merge explicit sibling path or `file:` sources.
   Each adopted graph records the exact clean Longhorn and Poodle commits.
 - Moving branch references and unrecorded dirty sources are not valid pins.
