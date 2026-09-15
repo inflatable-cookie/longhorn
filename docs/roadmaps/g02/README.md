@@ -21,7 +21,7 @@
 | [g02.015](015-gpui-composition-and-live-evidence.md) | complete | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
 | [g02.017](017-fork-retention-and-deletion.md) | blocked — stage 3 awaits field evidence | an operator can delete a fork; retention can prune, which today it cannot |
-| [g02.020](020-no-design-in-the-authority.md) | ready — strip five remaining CSS surfaces, then the no-style check | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
+| [g02.020](020-no-design-in-the-authority.md) | complete — PR #27, hooks closed | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | blocked — stage 2 is Poodle/Loophole renderer work | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | complete | the 181 tagged unions validate per variant, from the Rust enums |
 | [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
@@ -29,7 +29,7 @@
 | [g02.023](023-credential-and-activation-hardening.md) | complete | the credential path matches the config-age discipline |
 | [g02.024](024-coverage-restoration.md) | complete | the test surface matches the code surface again |
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
-| [g02.026](026-automation-and-gate-convergence.md) | ready — 219/220 complete; 218 remainder recompiled as release hardening | gates mean what they claim; one declaration per fact |
+| [g02.026](026-automation-and-gate-convergence.md) | complete — PR #28, hooks closed | gates mean what they claim; one declaration per fact |
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 | [g02.028](028-consumer-scoped-credential-slots.md) | complete | one shared store admits isolated consumer-owned scope without product policy |
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
@@ -55,13 +55,13 @@ first release. Recompiled from the post-g02.039 state.
 
 | Order | Task | State | Role |
 | --- | --- | --- | --- |
-| 1 | [g02.020](020-no-design-in-the-authority.md) | ready | boundary: no design in the authority |
-| 2 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
-| 3 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
+| 1 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
 
-1-2 are independent and dispatch in parallel; 3 is the terminus and follows
-them. Parked lanes do not gate the release: g02.036 (L1 evidence and D1
-blocked; production held), g02.008 (deferred), g02.019 and g02.017
+g02.020 and g02.026 are complete (PRs #27 and #28), so g02.014 is the only
+lane left. It is operator-driven: the Longhorn prep is small, then publishing,
+tagging, and consumer repointing are acts only the operator and CI can perform.
+Parked lanes do not gate the release: g02.036 (L1 evidence and D1 blocked;
+production held), g02.008 (deferred), g02.019 and g02.017
 (Poodle/downstream, field evidence).
 
 ## Dependency Shape

@@ -1,6 +1,5 @@
 # g02.026 Automation And Gate Convergence
 
-Status: ready — release hardening
 Owner: Tom
 Updated: 2026-09-15
 Governing refs: contract 012; memo 023

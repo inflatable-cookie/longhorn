@@ -32,18 +32,15 @@ over licensing as g02.010 (Cards 155-158).
 existing lanes, then cut the first release. The runway lives on the
 [g02 runway](g02/README.md#release-sequence); this is the single live pointer.
 
-1. [g02.020](g02/020-no-design-in-the-authority.md) no design in the
-   authority — ready
-2. [g02.026](g02/026-automation-and-gate-convergence.md) Card 218 remainder —
-   ready (release hardening)
-3. [g02.014](g02/014-first-publication.md) first publication — release
+1. [g02.014](g02/014-first-publication.md) first publication — release
    terminus: publish the three TypeScript packages, tag `v0.1.0`, repoint
    consumers
 
-1-2 are independent and dispatch in parallel; 3 follows. Parked and
-non-gating: g02.036 (L1 evidence and D1 blocked; production held), g02.008
-(deferred), g02.019 and g02.017 (Poodle/downstream, field evidence). Task
-closeout detail lives on the tasks themselves.
+g02.020 and g02.026 completed on 2026-09-15 (PRs #27 and #28), so g02.014 is
+the only remaining lane and it is operator-driven. Parked and non-gating:
+g02.036 (L1 evidence and D1 blocked; production held), g02.008 (deferred),
+g02.019 and g02.017 (Poodle/downstream, field evidence). Task closeout detail
+lives on the tasks themselves.
 
 ## Memo 023 Release-audit Suite
 

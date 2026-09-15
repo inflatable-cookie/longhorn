@@ -1,4 +1,5 @@
-Status: ready — shell binding landed; strip the remaining five surfaces and add the no-style check
+# g02.020 No Design In The Authority
+
 Owner: Tom
 Updated: 2026-09-15
 Governing refs: contract 012; contract 013; contract 020; absorbed Card 192
