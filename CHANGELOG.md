@@ -58,8 +58,8 @@ crates by git tag and the packages by version.
 - Standardized canonical-id storage defaults, stable storage-name overrides,
   profile transitions, backup, restore, and receipt-bound cleanup.
 
-- The private `0.1.0` candidate at Card 127 bound 17 TypeScript packages and 36
-  Rust crates across five exact Poodle artifacts and seven consumer graphs.
-  The tree now produces three TypeScript packages and 49 Rust crates: the
-  TypeScript packages publish to npm, and the Rust crates set `publish = false`
-  and are taken by git tag.
+- The deterministic private `0.1.0` candidate at Card 127 bound 17 TypeScript
+  packages and 36 Rust crates across five exact Poodle artifacts and seven consumer
+  graphs. The tree now produces three TypeScript packages and 49 Rust crates:
+  the TypeScript packages publish to npm, and the Rust crates set
+  `publish = false` and are taken by git tag.

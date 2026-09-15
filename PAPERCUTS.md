@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] private-candidate release gate asserts exact CHANGELOG prose — 2026-09-15
+- Friction: `verify-private-candidate-docs-card127.ts` requires literal substrings in `CHANGELOG.md` ("deterministic private `0.1.0` candidate", "36 Rust", "seven consumer"). A legitimate clarification that dropped one word and reflowed two lines failed the release gate's first step, before any real check ran.
+- Impact: any human edit near the Card 127 note can block the entire release gate run for reasons unrelated to the release.
+- Plausible fix: read the candidate version and counts from the frozen receipt and assert them structurally rather than matching prose.
+- Surface: `scripts/verify-private-candidate-docs-card127.ts`; `config/release.toml` gate `private-candidate`.
+
 ### [ ] release.yml clones Poodle v0.1.0 for a proof that reads no checkout — 2026-09-15
 - Friction: `.github/workflows/release.yml` clones Poodle `v0.1.0` beside the workspace before `effigy qa`, but the greenfield proof now installs Poodle from the registry (`poodleRelease()`) and reads no source checkout. The comment claiming "Source is the point -- packing is what the proof does" is stale, and the tag is three minor releases behind the 0.4.2 the manifests pin.
 - Impact: a dead CI step on every release, cloning the wrong release, and a comment that misstates what the proof proves.
