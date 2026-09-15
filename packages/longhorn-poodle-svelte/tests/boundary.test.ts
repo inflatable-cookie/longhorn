@@ -105,6 +105,19 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
     expect(offenders).toEqual([]);
   });
 
+  // Contract 013: a binding composes Poodle primitives and carries no CSS. A
+  // `<style>` block in this package is a layout decision made on the wrong
+  // side of the boundary (g02.020 stage 3).
+  it("ships no <style> blocks", async () => {
+    const files = await sourceFiles(resolve(packageRoot, "src"));
+    const offenders: string[] = [];
+    for (const file of files) {
+      const text = await readFile(file, "utf8");
+      if (/<style[\s>]/.test(text)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   // Poodle must be *declared* as a published version, never as a path into a
   // checkout beside this one. A package that ships a path dependency is
   // uninstallable for everyone who is not the author.

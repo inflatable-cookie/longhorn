@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Field, Select, type SelectOption } from "@inflatable-cookie/poodle-svelte";
+  import { Field, Select, Stack, type SelectOption } from "@inflatable-cookie/poodle-svelte";
   import { UPDATE_CHANNELS, type Channel, type UpdateController } from "@inflatable-cookie/longhorn/update";
 
   import { sampleUpdateController } from "./UpdateSurface.svelte.ts";
@@ -44,7 +44,7 @@
   const selected = $derived(update.channel);
 </script>
 
-<div class="longhorn-update-settings">
+<Stack gap="lg">
   <Field
     id="longhorn-update-channel"
     label="Release channel"
@@ -61,11 +61,4 @@
   </Field>
 
   <UpdateStatus {controller} {confirmInstall} />
-</div>
-
-<style>
-  .longhorn-update-settings {
-    display: grid;
-    gap: var(--poodle-space-lg, 1rem);
-  }
-</style>
+</Stack>
