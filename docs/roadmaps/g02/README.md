@@ -308,12 +308,13 @@ pointer.
   declared Queue dependencies and may run without changing product priority.
   Existing next-task text continues to describe product sequencing; this entry
   authorizes no sibling product work.
-<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:af69e30a0832fb859ae100a63eedc948adfa0f7e49340c4c0a3424de0cb57cbd -->
+<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:eb8051b74db5f7572ac3b4da922b178510b2c756d8716f3bc2ab018a8a4b3f78 -->
 | Generation | Disposition | Runway state |
 | --- | --- | --- |
 | g02 | open | planning_required |
 | Task | Status | Stage | Revision | Record digest |
 | --- | --- | --- | --- | --- |
+| g02.020 | complete | none | 8 | sha256:070656c53d6870a5fbe4ad0f330aadcdaa493f9a584a3590442cb557d924213e |
 | g02.038 | complete | none | 8 | sha256:7a76e636abf326e7ce7391e8f18279e6e8792d51686c82ec34f97ca1a1350855 |
 | g02.039 | complete | none | 8 | sha256:f37506b19afd8705484d9c4e270c5fd42b8faf6feb3533ddac9a47cb183dc6a4 |
 <!-- northstar:lifecycle:end -->
