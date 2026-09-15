@@ -283,7 +283,7 @@
         <Surface asRole="region" label="Change storage profile">
           <Field id="longhorn-storage-profile" label="Storage profile">
             <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
-              <Stack direction="row" align="end">
+              <Stack>
                 <Select
                   id="longhorn-storage-profile"
                   value={selectedProfile}

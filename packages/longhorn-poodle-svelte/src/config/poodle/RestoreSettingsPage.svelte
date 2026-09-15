@@ -347,7 +347,7 @@
       <Surface asRole="region" label="Select restore archive">
         <Field id="longhorn-restore-archive" label="Backup archive">
           <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
-            <Stack direction="row" align="end">
+            <Stack>
               <Select
                 id="longhorn-restore-archive"
                 value={selection}
