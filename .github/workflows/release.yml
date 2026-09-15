@@ -123,6 +123,13 @@ jobs:
       - name: Full QA gate
         run: effigy qa
 
+      # The `prototypes` release gate compiles the GPUI prototypes, whose build
+      # scripts compile Metal shaders through `gpui`. Xcode 16+ ships `metal`
+      # as a stub until the toolchain component is downloaded, so install it
+      # before the gates run.
+      - name: Install the Metal toolchain
+        run: xcodebuild -downloadComponent MetalToolchain
+
       - name: Release gates
         run: effigy release:gates
 
