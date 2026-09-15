@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Prototype release gate needs the Metal toolchain — 2026-09-15
+- Friction: the `prototypes` release gate runs `cargo check --all-targets` over the GPUI prototypes, whose build scripts compile Metal shaders through `gpui` 0.2.2. On a machine without the Metal toolchain (Xcode 16+ split it into a downloadable component) the gate fails with `cannot execute tool 'metal'`, even though `XcodeDefault.xctoolchain/usr/bin/metal` exists as a stub.
+- Impact: `effigy release status --check-gates` cannot go fully green locally, and the same gate runs in `release.yml` on `macos-latest`, whose Metal toolchain availability is unverified since the GPUI prototypes landed (2026-08-17) — after the last green release dry run (2026-08-10).
+- Plausible fix: add `xcodebuild -downloadComponent MetalToolchain` to the release/CI setup before the prototype gate, or scope the gate to prototypes that do not compile shaders.
+- Surface: `config/release.toml` gate `prototypes`; `.github/workflows/release.yml`; `prototypes/gpui-*`.
+
 ### [ ] Broken intra-doc link escapes qa and only fails the release gate — 2026-09-15
 - Friction: `longhorn-tauri-agent-control`'s crate-root doc comment linked `[`ControlHandler`]`, which is not re-exported at the root. `effigy qa` does not run rustdoc, so the crate was green locally while the release gate `rustdoc` (`RUSTDOCFLAGS="-D warnings"`, `rustdoc::broken-intra-doc-links`) failed on the first `release prepare --check-gates`.
 - Impact: a release-gate-only failure that local qa never surfaces; the first real gate run stops before `qa`, `floor`, or `source` run at all.
