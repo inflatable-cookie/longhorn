@@ -40,7 +40,7 @@
 | [g02.034](034-agent-control-window-composition.md) | done 2026-08-20 | screenshot composes child webviews: whole-window truth for multiwebview apps |
 | [g02.035](035-agent-control-child-webview-targeting.md) | done 2026-08-20 | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
 | [g02.036](036-production-contextual-agent-tools.md) | L1 implemented and merged; evidence closeout blocked on a reviewed Swallowtail descendant; D1 blocked; production held | production authenticated app-tool registry and Swallowtail attachment seam |
-| [g02.037](037-focused-panel-surfaces.md) | ready | a Surface presents one panel full-surface, with no regional layout or tabs |
+| [g02.037](037-focused-panel-surfaces.md) | complete — Card 177, `e4903980` (2026-08-10) | a Surface presents one panel full-surface, with no regional layout or tabs |
 | [g02.039](039-poodle-041-adoption.md) | complete | every Longhorn Poodle pin on published 0.4.2; one identity end to end |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
@@ -55,12 +55,11 @@ first release. Recompiled from the post-g02.039 state.
 
 | Order | Task | State | Role |
 | --- | --- | --- | --- |
-| 1 | [g02.037](037-focused-panel-surfaces.md) | ready | product: focused panel surfaces |
-| 2 | [g02.020](020-no-design-in-the-authority.md) | ready | boundary: no design in the authority |
-| 3 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
-| 4 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
+| 1 | [g02.020](020-no-design-in-the-authority.md) | ready | boundary: no design in the authority |
+| 2 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
+| 3 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
 
-1-3 are independent and dispatch in parallel; 4 is the terminus and follows
+1-2 are independent and dispatch in parallel; 3 is the terminus and follows
 them. Parked lanes do not gate the release: g02.036 (L1 evidence and D1
 blocked; production held), g02.008 (deferred), g02.019 and g02.017
 (Poodle/downstream, field evidence).
