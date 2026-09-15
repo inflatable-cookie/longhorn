@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-09
 
+### 2026-09-15
+
+- [g02.037 Focused Panel Surfaces Closeout](2026-09/15-g02-037-focused-panel-surfaces.md)
+
 ### 2026-09-09
 
 - [Flattened-task Switchover Closeout](2026-09/09-flattened-task-switchover-closeout.md)

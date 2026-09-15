@@ -1,6 +1,6 @@
 # g02.037 Focused Panel Surfaces
 
-Status: ready
+Status: complete — Card 177; merged at `e4903980` (2026-08-10)
 Owner: Tom
 Governing refs: contract 002; contract 014
 Depends on: none
@@ -104,12 +104,36 @@ question as the container invariant above.
 
 ## Evidence
 
-On completion, record: outcome, validation actually run, PR link, reviewed
-exact head, merge commit, and material limits.
+- Outcome delivered by `e4903980` (2026-08-10, Card 177): `SurfaceRecord`
+  carries `presentation` (`regional` or `focused_panel` with a
+  `PanelDefinitionId`), and `SetSurfacePresentation` sets it with a typed
+  `UnknownSurface` rejection. The field defaults to `regional`, so a document
+  written before the change loads unchanged.
+- `effigy qa` was green at that commit, including `check:bindings` and all
+  twelve artifact proofs. Bindings and fixtures are current on `main`; the
+  presentation mutation tests live in
+  `crates/longhorn-surfaces/tests/surface_contract/mutation/presentation.rs`.
+- Contract 002 states the container invariant — a focused Surface's container
+  holds exactly that panel — as a consumer obligation, and states that a
+  consumer can put a container into a state the Surface record no longer
+  describes.
+
+Material limits: Longhorn records the focused panel and does not police
+container contents; widening `LayoutContainerInventory` to carry panel
+membership was considered and rejected. Refusing a panel dropped onto a focused
+Surface stays panel transfer's composition-layer concern.
+
+## Queue disposition — 2026-09-15
+
+This lane was dispatched to northstar-queue against already-merged work. The
+worker found a zero diff and no PR possible; task
+`641c2d5a-ff81-4a43-8ce7-3d8285eb5296` was cancelled with that disposition, and
+the stale dispatch handoff was removed. Closeout is canonical here because no
+merge exists to close.
 
 ## Next task
 
-None named. On completion, Chatterbox planning resumes from the g02 frontier.
+None. Chatterbox planning resumes from the [g02 runway](README.md).
 
 ## Absorbed records
 

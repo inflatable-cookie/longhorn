@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Planning status headers lag merged implementation — 2026-09-15
+- Friction: g02.037 read `in progress` (then, after refresh, `ready`) while all six Work steps had been merged on `main` since 2026-08-10 (`e4903980`). A queue dispatch was consumed on already-merged work and ended blocked with a zero diff and no PR possible. g02.036 L1 read `ready` while its crate was already merged.
+- Impact: dispatch capacity is spent on phantom lanes, workers file terminal blocked reports, and the runway overstates open work.
+- Plausible fix: the refresh/recompile pass must verify each `ready`/`in progress` lane against the code — search for the named symbols and the merged commit — before publishing it to the runway or dispatching it.
+- Surface: `docs/roadmaps/g02/*` status headers; the refresh planning-completeness step.
+
 ### [ ] Queue pre-dispatch needs a `roadmap:` frontmatter field the handoff template omits — 2026-09-15
 - Friction: `task.pre_dispatch` refuses a committed worker handoff with "handoff does not reference a Northstar roadmap task" unless the handoff frontmatter carries an explicit `roadmap: docs/roadmaps/gNN/NNN-<slug>.md` field. The generic Northstar handoff template and the Queue skill's required-fields list do not name it, so the first dispatch dry-run fails at the hook.
 - Impact: every new queue dispatch pays a rejected submission and a second commit/push cycle before task identity binds.
