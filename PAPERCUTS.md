@@ -8,8 +8,14 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 ### [ ] Poodle Text has no wrap control for long unbroken strings — 2026-09-15
 - Friction: settings pages render digests, paths, and archive hashes that need `overflow-wrap: anywhere`; Poodle `Text`/`Code` expose no wrap control, so g02.020 dropped two local rules with no Poodle-owned replacement.
 - Impact: long digests and paths in the Backup/Restore settings pages can overflow their Surface on narrow widths.
-- Plausible fix: a `wrap` prop on `Text` (and `Code`) mapping to `overflow-wrap`.
+- Possible fix: a `wrap` prop on `Text` (and `Code`) mapping to `overflow-wrap`.
 - Surface: `@inflatable-cookie/poodle-svelte` Text/Code; `longhorn-poodle-svelte` Backup/Restore settings pages.
+
+### [ ] Queue pre-dispatch needs a `roadmap:` frontmatter field the handoff template omits — 2026-09-15
+- Friction: `task.pre_dispatch` refuses a committed worker handoff with "handoff does not reference a Northstar roadmap task" unless the handoff frontmatter carries an explicit `roadmap: docs/roadmaps/gNN/NNN-<slug>.md` field. The generic Northstar handoff template and the Queue skill's required-fields list do not name it, so the first dispatch dry-run fails at the hook.
+- Impact: every new queue dispatch pays a rejected submission and a second commit/push cycle before task identity binds.
+- Plausible fix: add `roadmap:` to the handoff template frontmatter and to the Queue skill's required-fields list.
+- Surface: Northstar `assets/templates/northstar-handoff.md.template`, Queue `skills/northstar-queue/SKILL.md`, `scripts/lifecycle-queue-hook.ts`.
 
 ### [ ] Rust closeout scans an intentionally non-workspace example — 2026-09-07
 - Friction: Northstar Rust `closeout` runs Cargo metadata on `examples/greenfield-compositions/common-rust`, which intentionally has no workspace membership or local `[workspace]` table.

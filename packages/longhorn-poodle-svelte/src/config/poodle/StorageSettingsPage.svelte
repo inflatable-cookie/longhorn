@@ -4,6 +4,7 @@
     Callout,
     ConfirmAction,
     DetailItem,
+    Field,
     FormActions,
     Grid,
     Select,
@@ -200,158 +201,161 @@
 </script>
 
 <div aria-busy={busy}>
-<Stack gap="md">
-  {#if error}
-    <Callout tone="danger" title="Storage operation failed" message={error} announceMode="assertive" />
-  {/if}
-  {#if notice}
-    <Callout tone="success" title="Storage operation complete" message={notice} announceMode="polite" />
-  {/if}
+  <Stack gap="md">
+    {#if error}
+      <Callout tone="danger" title="Storage operation failed" message={error} announceMode="assertive" />
+    {/if}
+    {#if notice}
+      <Callout tone="success" title="Storage operation complete" message={notice} announceMode="polite" />
+    {/if}
 
-  <!-- Three different situations used to render this one warning: the first
-       read still in flight, a read that failed, and a host that genuinely
-       composed no storage diagnostics. Only the third is what the message claims, and a
-       Retry beside the other two is either pointless or premature. The load
-       is now its own state, so what a reader sees is what happened. -->
-  {#if storage === null && snapshot === null && busy}
-    <Callout tone="pending" title="Loading storage diagnostics" announceMode="polite" />
-  {:else if snapshot === null}
-    <Callout
-      tone="warning"
-      title="Settings could not be read"
-      message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
-    >
-      {#snippet actions()}
-        <Button onClick={() => void refresh()}>Retry</Button>
-      {/snippet}
-    </Callout>
-  {:else if storage === null}
-    <Callout
-      tone="warning"
-      title="Storage diagnostics unavailable"
-      message="This host did not compose storage diagnostics for this window."
-    >
-      {#snippet actions()}
-        <Button onClick={() => void refresh()} loading={busy}>Retry</Button>
-      {/snippet}
-    </Callout>
-  {:else}
-    {#if storage.bootstrap.state === "recoveryRequired"}
+    <!-- Three different situations used to render this one warning: the first
+         read still in flight, a read that failed, and a host that genuinely
+         composed no storage diagnostics. Only the third is what the message claims, and a
+         Retry beside the other two is either pointless or premature. The load
+         is now its own state, so what a reader sees is what happened. -->
+    {#if storage === null && snapshot === null && busy}
+      <Callout tone="pending" title="Loading storage diagnostics" announceMode="polite" />
+    {:else if snapshot === null}
       <Callout
-        tone="danger"
-        title="Storage recovery required"
-        message={storage.bootstrap.detail}
-        announceMode="assertive"
+        tone="warning"
+        title="Settings could not be read"
+        message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
       >
         {#snippet actions()}
-          <ConfirmAction
-            title="Recover storage selection?"
-            description="The host will inspect the journal and locator before choosing a safe terminal state."
-            tone="warning"
-            triggerLabel="Recover"
-            confirmLabel="Run recovery"
-            onConfirm={recover}
-          />
+          <Button onClick={() => void refresh()}>Retry</Button>
         {/snippet}
       </Callout>
-    {/if}
-
-    {#each storage.layout.warnings as warning (warning)}
-      <Callout tone="warning" title="Profile consequence" message={warning} />
-    {/each}
-
-    <Surface asRole="region" label="Active storage identity">
-      <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
-        <DetailItem label="Profile" value={profileLabel(storage.layout.profile)} />
-        <DetailItem label="Application identity" value={storage.layout.canonicalApplicationId} />
-        <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
-        <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
-        <DetailItem label="Platform" value={storage.layout.platform} />
-        <DetailItem label="Layout digest" value={storage.layout.layoutDigest} truncateValue={true} />
-      </Grid>
-    </Surface>
-
-    <Table
-      columns={rootColumns}
-      rows={rootRows}
-      caption="Resolved storage roots"
-      ariaLabel="Resolved storage roots"
-    />
-
-    {#if canTransition}
-      <Surface asRole="region" label="Change storage profile">
-        <Stack gap="sm">
-          <label for="longhorn-storage-profile">Storage profile</label>
-          <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
-            <Select
-              id="longhorn-storage-profile"
-              value={selectedProfile}
-              options={profileOptions}
-              native={true}
-              disabled={busy}
-              onValueChange={(value) => (selectedProfile = value as StorageProfileId)}
-            />
-            <Button
-              variant="secondary"
-              disabled={busy || selectedProfile === storage.layout.profile}
-              onClick={() => void inspect()}
-            >
-              Inspect change
-            </Button>
-          </Grid>
-        </Stack>
-      </Surface>
-    {/if}
-
-    {#if preview}
-      <Surface asRole="region" label="Storage transition preview">
-        <h3>Transition preview</h3>
-        <p>{preview.domains.length} registered domain action(s).</p>
-        {#if preview.unknownSourcePaths.length > 0}
-          <Callout
-            tone="warning"
-            title="Unregistered files will be retained"
-            message={preview.unknownSourcePaths.join(", ")}
-          />
-        {/if}
-        {#each preview.conflicts as conflict (`${conflict.kind}:${conflict.path ?? ""}`)}
-          <Callout tone="danger" title={conflict.kind} message={conflict.detail} />
-        {/each}
-        <FormActions>
-          <Button variant="ghost" onClick={() => (preview = null)}>Cancel</Button>
-          {#if preview.conflicts.length === 0}
+    {:else if storage === null}
+      <Callout
+        tone="warning"
+        title="Storage diagnostics unavailable"
+        message="This host did not compose storage diagnostics for this window."
+      >
+        {#snippet actions()}
+          <Button onClick={() => void refresh()} loading={busy}>Retry</Button>
+        {/snippet}
+      </Callout>
+    {:else}
+      {#if storage.bootstrap.state === "recoveryRequired"}
+        <Callout
+          tone="danger"
+          title="Storage recovery required"
+          message={storage.bootstrap.detail}
+          announceMode="assertive"
+        >
+          {#snippet actions()}
             <ConfirmAction
-              title="Change storage profile?"
-              description="The host will recheck this exact evidence, journal the transition, and commit the locator last."
+              title="Recover storage selection?"
+              description="The host will inspect the journal and locator before choosing a safe terminal state."
               tone="warning"
-              triggerLabel="Confirm transition"
-              confirmLabel="Change profile"
-              onConfirm={execute}
-            >
-              <p>Confirmation digest: {preview.confirmationDigest}</p>
-            </ConfirmAction>
-          {/if}
-        </FormActions>
-      </Surface>
-    {/if}
+              triggerLabel="Recover"
+              confirmLabel="Run recovery"
+              onConfirm={recover}
+            />
+          {/snippet}
+        </Callout>
+      {/if}
 
-    {#if receipt && receipt.retainedSourcePaths.length > 0}
-      <Callout
-        tone="info"
-        title="Old storage retained"
-        message={`${receipt.retainedSourcePaths.length} source path(s) remain available for rollback.`}
-      >
-        {#snippet actions()}
-          <ConfirmAction
-            title="Remove retained old storage?"
-            description="Cleanup is authorized only by this committed transition receipt and cannot be undone."
-            triggerLabel="Clean up old storage"
-            confirmLabel="Remove exact paths"
-            onConfirm={cleanup}
-          />
-        {/snippet}
-      </Callout>
+      {#each storage.layout.warnings as warning (warning)}
+        <Callout tone="warning" title="Profile consequence" message={warning} />
+      {/each}
+
+      <Surface asRole="region" label="Active storage identity">
+        <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
+          <DetailItem label="Profile" value={profileLabel(storage.layout.profile)} />
+          <DetailItem label="Application identity" value={storage.layout.canonicalApplicationId} />
+          <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
+          <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
+          <DetailItem label="Platform" value={storage.layout.platform} />
+          <DetailItem label="Layout digest" value={storage.layout.layoutDigest} truncateValue={true} />
+        </Grid>
+      </Surface>
+
+      <Table
+        columns={rootColumns}
+        rows={rootRows}
+        caption="Resolved storage roots"
+        ariaLabel="Resolved storage roots"
+      />
+
+      {#if canTransition}
+        <Surface asRole="region" label="Change storage profile">
+          <Field id="longhorn-storage-profile" label="Storage profile">
+            <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
+              <Stack direction="row" align="end">
+                <Select
+                  id="longhorn-storage-profile"
+                  value={selectedProfile}
+                  options={profileOptions}
+                  native={true}
+                  disabled={busy}
+                  onValueChange={(value) => (selectedProfile = value as StorageProfileId)}
+                />
+              </Stack>
+              <Stack direction="row" align="end">
+                <Button
+                  variant="secondary"
+                  disabled={busy || selectedProfile === storage.layout.profile}
+                  onClick={() => void inspect()}
+                >
+                  Inspect change
+                </Button>
+              </Stack>
+            </Grid>
+          </Field>
+        </Surface>
+      {/if}
+
+      {#if preview}
+        <Surface asRole="region" label="Storage transition preview">
+          <h3>Transition preview</h3>
+          <p>{preview.domains.length} registered domain action(s).</p>
+          {#if preview.unknownSourcePaths.length > 0}
+            <Callout
+              tone="warning"
+              title="Unregistered files will be retained"
+              message={preview.unknownSourcePaths.join(", ")}
+            />
+          {/if}
+          {#each preview.conflicts as conflict (`${conflict.kind}:${conflict.path ?? ""}`)}
+            <Callout tone="danger" title={conflict.kind} message={conflict.detail} />
+          {/each}
+          <FormActions>
+            <Button variant="ghost" onClick={() => (preview = null)}>Cancel</Button>
+            {#if preview.conflicts.length === 0}
+              <ConfirmAction
+                title="Change storage profile?"
+                description="The host will recheck this exact evidence, journal the transition, and commit the locator last."
+                tone="warning"
+                triggerLabel="Confirm transition"
+                confirmLabel="Change profile"
+                onConfirm={execute}
+              >
+                <p>Confirmation digest: {preview.confirmationDigest}</p>
+              </ConfirmAction>
+            {/if}
+          </FormActions>
+        </Surface>
+      {/if}
+
+      {#if receipt && receipt.retainedSourcePaths.length > 0}
+        <Callout
+          tone="info"
+          title="Old storage retained"
+          message={`${receipt.retainedSourcePaths.length} source path(s) remain available for rollback.`}
+        >
+          {#snippet actions()}
+            <ConfirmAction
+              title="Remove retained old storage?"
+              description="Cleanup is authorized only by this committed transition receipt and cannot be undone."
+              triggerLabel="Clean up old storage"
+              confirmLabel="Remove exact paths"
+              onConfirm={cleanup}
+            />
+          {/snippet}
+        </Callout>
+      {/if}
     {/if}
-  {/if}
-</Stack>
+  </Stack>
 </div>

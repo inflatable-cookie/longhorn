@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, Callout, FormActions, Grid, Stack, TextInput } from "@inflatable-cookie/poodle-svelte";
+  import { Button, Callout, FormActions, Grid, Stack, TextInput } from "@inflatable-cookie/poodle-svelte";
 
   import type {
     CommandKeymapConflict,
@@ -55,80 +55,84 @@
 </script>
 
 <section aria-label="Keybindings">
-<Stack gap="sm">
-  <TextInput
-    type="search"
-    value={query}
-    ariaLabel="Search keybindings"
-    placeholder="Search commands"
-    onValueChange={(value) => onQueryChange?.(value)}
-    onClear={() => onQueryChange?.("")}
-  />
+  <Stack gap="sm">
+    <TextInput
+      type="search"
+      value={query}
+      ariaLabel="Search keybindings"
+      placeholder="Search commands"
+      onValueChange={(value) => onQueryChange?.(value)}
+      onClear={() => onQueryChange?.("")}
+    />
 
-  {#if conflicts.length > 0}
-    <Callout tone="warning">
-      {conflicts.length} unresolved keybinding
-      {conflicts.length === 1 ? " conflict" : " conflicts"}
-    </Callout>
-  {/if}
+    {#if conflicts.length > 0}
+      <Callout tone="warning">
+        {conflicts.length} unresolved keybinding
+        {conflicts.length === 1 ? " conflict" : " conflicts"}
+      </Callout>
+    {/if}
 
-  {#if captureBindingId !== undefined}
-    <Callout tone="info">
-      {capturedLabel ?? "Press a shortcut"}
-      <Button variant="ghost" onClick={() => onCancelCapture?.()}>
-        Cancel capture
+    {#if captureBindingId !== undefined}
+      <Callout tone="info">
+        {capturedLabel ?? "Press a shortcut"}
+        <Button variant="ghost" onClick={() => onCancelCapture?.()}>
+          Cancel capture
+        </Button>
+      </Callout>
+    {/if}
+
+    <Stack gap="md" asRole="list">
+      {#each visible as record (record.id)}
+        <div data-command-id={record.id} role="listitem">
+          <Grid columns="minmax(0, 1fr) auto auto" gap="sm">
+            <Stack direction="row" align="center">
+              <Stack gap="sm">
+                <strong>{record.label}</strong>
+                {#if record.description}
+                  <small>{record.description}</small>
+                {/if}
+              </Stack>
+            </Stack>
+            <Stack direction="row" align="center">
+              <span>
+                {record.shortcuts.map(({ label }) => label).join(", ") || "Unbound"}
+              </span>
+            </Stack>
+            <Stack direction="row" gap="sm" wrap={true}>
+              {#each record.bindings as binding (binding.id)}
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => onCapture?.(binding.id)}
+                >
+                  Change {binding.id}
+                </Button>
+              {/each}
+            </Stack>
+          </Grid>
+        </div>
+      {/each}
+    </Stack>
+
+    <FormActions>
+      <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>
+        Reset
       </Button>
-    </Callout>
-  {/if}
-
-  <Stack gap="md">
-    {#each visible as record (record.id)}
-      <div data-command-id={record.id}>
-        <Grid columns="minmax(0, 1fr) auto auto" gap="sm">
-          <Stack gap="sm">
-            <strong>{record.label}</strong>
-            {#if record.description}
-              <small>{record.description}</small>
-            {/if}
-          </Stack>
-          <span>
-            {record.shortcuts.map(({ label }) => label).join(", ") || "Unbound"}
-          </span>
-          <Stack direction="row" gap="sm" wrap={true}>
-            {#each record.bindings as binding (binding.id)}
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onCapture?.(binding.id)}
-              >
-                Change {binding.id}
-              </Button>
-            {/each}
-          </Stack>
-        </Grid>
-      </div>
-    {/each}
+      <Button
+        variant="secondary"
+        disabled={!dirty || busy}
+        onClick={() => onCancel?.()}
+      >
+        Cancel
+      </Button>
+      <Button
+        variant="primary"
+        loading={busy}
+        disabled={!dirty}
+        onClick={() => onApply?.()}
+      >
+        Apply
+      </Button>
+    </FormActions>
   </Stack>
-
-  <FormActions>
-    <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>
-      Reset
-    </Button>
-    <Button
-      variant="secondary"
-      disabled={!dirty || busy}
-      onClick={() => onCancel?.()}
-    >
-      Cancel
-    </Button>
-    <Button
-      variant="primary"
-      loading={busy}
-      disabled={!dirty}
-      onClick={() => onApply?.()}
-    >
-      Apply
-    </Button>
-  </FormActions>
-</Stack>
 </section>
