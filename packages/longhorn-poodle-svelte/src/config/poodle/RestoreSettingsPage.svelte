@@ -5,8 +5,10 @@
     ConfirmAction,
     DetailItem,
     FormActions,
+    Grid,
     RadioGroup,
     Select,
+    Stack,
     Surface,
   } from "@inflatable-cookie/poodle-svelte";
   import type { RadioGroupOption, SelectOption } from "@inflatable-cookie/poodle-svelte";
@@ -289,7 +291,8 @@
   }
 </script>
 
-<div class="longhorn-config-page" aria-busy={activity !== "idle"}>
+<div aria-busy={activity !== "idle"}>
+<Stack gap="md">
   {#if error}
     <Callout tone="danger" title="Restore operation failed" message={error} announceMode="assertive" />
   {/if}
@@ -341,32 +344,34 @@
     </Callout>
   {:else}
     <Surface asRole="region" label="Select restore archive">
-      <div class="longhorn-config-flow">
+      <Stack gap="sm">
         <label for="longhorn-restore-archive">Backup archive</label>
-        <Select
-          id="longhorn-restore-archive"
-          value={selection}
-          options={archiveOptions}
-          native={true}
-          disabled={activity !== "idle" || !canInspect}
-          onValueChange={(value) => (selection = value)}
-        />
-        <Button
-          variant="secondary"
-          loading={activity === "inspecting"}
-          disabled={activity !== "idle" || !canInspect}
-          onClick={() => void inspect()}
-        >
-          Inspect archive
-        </Button>
-      </div>
+        <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
+          <Select
+            id="longhorn-restore-archive"
+            value={selection}
+            options={archiveOptions}
+            native={true}
+            disabled={activity !== "idle" || !canInspect}
+            onValueChange={(value) => (selection = value)}
+          />
+          <Button
+            variant="secondary"
+            loading={activity === "inspecting"}
+            disabled={activity !== "idle" || !canInspect}
+            onClick={() => void inspect()}
+          >
+            Inspect archive
+          </Button>
+        </Grid>
+      </Stack>
       <p>Paths, unlock material, and archive bytes remain inside host authority.</p>
     </Surface>
 
     {#if inspection}
       <Surface asRole="region" label="Verified archive inspection">
         <h3>Verified archive</h3>
-        <div class="longhorn-config-details">
+        <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
           <DetailItem label="Archive" value={inspection.archiveId} />
           <DetailItem label="Created" value={inspection.createdAt} />
           <DetailItem label="Integrity" value={RESTORE_INTEGRITY_LABELS[inspection.integrity]} />
@@ -374,19 +379,19 @@
           <DetailItem label="Application identity" value={identityLabel(inspection.identity.application)} />
           <DetailItem label="Producer identity" value={identityLabel(inspection.identity.producer)} />
           <DetailItem label="Archive digest" value={inspection.archiveSha256} truncateValue={true} />
-        </div>
+        </Grid>
       </Surface>
 
       <section aria-label="Restore conflict choices">
         <h3>Domain choices</h3>
         {#each inspection.domains as domain (domain.domainId)}
           <Surface asRole="group" label={domain.domainId}>
-            <div class="longhorn-config-domain">
-              <div>
+            <Grid columns="minmax(0, 1fr) minmax(12rem, auto)" gap="md">
+              <Stack gap="sm">
                 <strong>{domain.domainId}</strong>
                 <p>{compatibilityLabel(domain.compatibility)}</p>
                 <small>{domain.storageClass} · {domain.consistencyGroup} · {domain.sourceState}</small>
-              </div>
+              </Stack>
               <RadioGroup
                 ariaLabel={`Restore choice for ${domain.domainId}`}
                 value={choices[domain.domainId]}
@@ -397,7 +402,7 @@
                 disabled={activity !== "idle"}
                 onValueChange={(value) => choose(domain.domainId, value)}
               />
-            </div>
+            </Grid>
             {#if domain.compatibility.status === "customAdapterReady" && canExecuteAdapter}
               <ConfirmAction
                 title={`Restore ${domain.domainId} with ${domain.compatibility.adapter}?`}
@@ -414,11 +419,11 @@
       {#if inspection.consistencyGroups.length > 0}
         <Surface asRole="region" label="Archive consistency groups">
           <h3>Consistency groups</h3>
-          <ul>
+          <Stack gap="sm">
             {#each inspection.consistencyGroups as group (group.id)}
-              <li><strong>{group.id}</strong>: {group.mode} via {group.authority}</li>
+              <span><strong>{group.id}</strong>: {group.mode} via {group.authority}</span>
             {/each}
-          </ul>
+          </Stack>
         </Surface>
       {/if}
 
@@ -451,18 +456,18 @@
           {plan.receipt.selected} selected; {plan.receipt.skipped} preserved;
           {plan.receipt.migrations} migration(s).
         </p>
-        <ul>
+        <Stack gap="sm">
           {#each plan.entries as entry (entry.domainId)}
-            <li>
+            <span>
               <strong>{entry.domainId}</strong>: {entry.choice}
               {#if entry.action} → {entry.action}{/if}
               {#if entry.current?.state === "present"}
                 ({entry.current.byteLength} bytes, {entry.current.sha256})
               {/if}
-            </li>
+            </span>
           {/each}
-        </ul>
-        <p class="longhorn-config-digest">{plan.confirmationDigest}</p>
+        </Stack>
+        <p>{plan.confirmationDigest}</p>
         {#if canExecute}
           <ConfirmAction
             title="Publish this exact restore plan?"
@@ -520,33 +525,5 @@
       message={`${recoveryReceipt.outcome}; ${recoveryReceipt.domainIds.length} domain(s) considered.`}
     />
   {/if}
+</Stack>
 </div>
-
-<style>
-  .longhorn-config-page,
-  .longhorn-config-details,
-  .longhorn-config-flow {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .longhorn-config-details {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  }
-
-  .longhorn-config-domain {
-    align-items: start;
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 1fr) minmax(12rem, auto);
-  }
-
-  .longhorn-config-domain p {
-    margin-block: 0.25rem;
-  }
-
-  .longhorn-config-digest,
-  small {
-    overflow-wrap: anywhere;
-  }
-</style>

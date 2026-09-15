@@ -5,6 +5,8 @@
     ConfirmAction,
     DetailItem,
     FormActions,
+    Grid,
+    Stack,
     Surface,
     Table,
   } from "@inflatable-cookie/poodle-svelte";
@@ -139,7 +141,8 @@
   }
 </script>
 
-<div class="longhorn-config-page" aria-busy={busy}>
+<div aria-busy={busy}>
+<Stack gap="md">
   {#if error}
     <Callout tone="danger" title="Backup operation failed" message={error} announceMode="assertive" />
   {/if}
@@ -194,12 +197,12 @@
     {/if}
 
     <Surface asRole="region" label="Backup status">
-      <div class="longhorn-config-details">
+      <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
         <DetailItem label="Operational root" value={backup.inventory.root} />
         <DetailItem label="Inventory complete" value={backup.inventory.complete ? "Yes" : "No"} />
         <DetailItem label="Valid archives" value={backup.inventory.archives.length} />
         <DetailItem label="Encryption" value={backup.encryption.state} />
-      </div>
+      </Grid>
     </Surface>
 
     <section aria-label="Operational backups">
@@ -207,30 +210,28 @@
       {#if backup.inventory.archives.length === 0}
         <p>No valid same-app backups found.</p>
       {:else}
-        <ul class="longhorn-config-archives">
+        <Stack gap="md">
           {#each backup.inventory.archives as archive (archive.archiveSha256)}
-            <li>
-              <Surface asRole="group" label={`Backup ${archive.archiveId}`}>
-                <div class="longhorn-config-archive">
-                  <div>
-                    <strong>{archive.createdAt}</strong>
-                    <p>{archive.path}</p>
-                    <small>{archive.archiveSha256}</small>
-                  </div>
-                  {#if canExport}
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => void exportArchive(archive)}
-                    >
-                      Export…
-                    </Button>
-                  {/if}
-                </div>
-              </Surface>
-            </li>
+            <Surface asRole="group" label={`Backup ${archive.archiveId}`}>
+              <Stack direction="row" justify="between" align="center" gap="md">
+                <Stack gap="sm">
+                  <strong>{archive.createdAt}</strong>
+                  <p>{archive.path}</p>
+                  <small>{archive.archiveSha256}</small>
+                </Stack>
+                {#if canExport}
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void exportArchive(archive)}
+                  >
+                    Export…
+                  </Button>
+                {/if}
+              </Stack>
+            </Surface>
           {/each}
-        </ul>
+        </Stack>
       {/if}
     </section>
 
@@ -279,44 +280,14 @@
           confirmLabel="Delete proven archives"
           onConfirm={applyRetention}
         >
-          <ul>
+          <Stack gap="sm">
             {#each backup.retention.deletionPaths as path (path)}
-              <li>{path}</li>
+              <span>{path}</span>
             {/each}
-          </ul>
+          </Stack>
         </ConfirmAction>
       </Surface>
     {/if}
   {/if}
+</Stack>
 </div>
-
-<style>
-  .longhorn-config-page,
-  .longhorn-config-details,
-  .longhorn-config-archives {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .longhorn-config-details {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  }
-
-  .longhorn-config-archives {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .longhorn-config-archive {
-    align-items: center;
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-  }
-
-  .longhorn-config-archive p,
-  .longhorn-config-archive small {
-    overflow-wrap: anywhere;
-  }
-</style>

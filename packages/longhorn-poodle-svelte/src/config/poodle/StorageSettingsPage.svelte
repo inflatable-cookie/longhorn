@@ -5,7 +5,9 @@
     ConfirmAction,
     DetailItem,
     FormActions,
+    Grid,
     Select,
+    Stack,
     Surface,
     Table,
   } from "@inflatable-cookie/poodle-svelte";
@@ -197,7 +199,8 @@
   }
 </script>
 
-<div class="longhorn-config-page" aria-busy={busy}>
+<div aria-busy={busy}>
+<Stack gap="md">
   {#if error}
     <Callout tone="danger" title="Storage operation failed" message={error} announceMode="assertive" />
   {/if}
@@ -258,14 +261,14 @@
     {/each}
 
     <Surface asRole="region" label="Active storage identity">
-      <div class="longhorn-config-details">
+      <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
         <DetailItem label="Profile" value={profileLabel(storage.layout.profile)} />
         <DetailItem label="Application identity" value={storage.layout.canonicalApplicationId} />
         <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
         <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
         <DetailItem label="Platform" value={storage.layout.platform} />
         <DetailItem label="Layout digest" value={storage.layout.layoutDigest} truncateValue={true} />
-      </div>
+      </Grid>
     </Surface>
 
     <Table
@@ -277,24 +280,26 @@
 
     {#if canTransition}
       <Surface asRole="region" label="Change storage profile">
-        <div class="longhorn-config-flow">
+        <Stack gap="sm">
           <label for="longhorn-storage-profile">Storage profile</label>
-          <Select
-            id="longhorn-storage-profile"
-            value={selectedProfile}
-            options={profileOptions}
-            native={true}
-            disabled={busy}
-            onValueChange={(value) => (selectedProfile = value as StorageProfileId)}
-          />
-          <Button
-            variant="secondary"
-            disabled={busy || selectedProfile === storage.layout.profile}
-            onClick={() => void inspect()}
-          >
-            Inspect change
-          </Button>
-        </div>
+          <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
+            <Select
+              id="longhorn-storage-profile"
+              value={selectedProfile}
+              options={profileOptions}
+              native={true}
+              disabled={busy}
+              onValueChange={(value) => (selectedProfile = value as StorageProfileId)}
+            />
+            <Button
+              variant="secondary"
+              disabled={busy || selectedProfile === storage.layout.profile}
+              onClick={() => void inspect()}
+            >
+              Inspect change
+            </Button>
+          </Grid>
+        </Stack>
       </Surface>
     {/if}
 
@@ -348,27 +353,5 @@
       </Callout>
     {/if}
   {/if}
+</Stack>
 </div>
-
-<style>
-  .longhorn-config-page,
-  .longhorn-config-flow,
-  .longhorn-config-details {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .longhorn-config-details {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  }
-
-  .longhorn-config-flow {
-    align-items: end;
-    grid-template-columns: minmax(12rem, 1fr) auto;
-  }
-
-  .longhorn-config-flow > label {
-    grid-column: 1 / -1;
-    font-weight: 600;
-  }
-</style>

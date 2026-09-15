@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Poodle Text has no wrap control for long unbroken strings — 2026-09-15
+- Friction: settings pages render digests, paths, and archive hashes that need `overflow-wrap: anywhere`; Poodle `Text`/`Code` expose no wrap control, so g02.020 dropped two local rules with no Poodle-owned replacement.
+- Impact: long digests and paths in the Backup/Restore settings pages can overflow their Surface on narrow widths.
+- Plausible fix: a `wrap` prop on `Text` (and `Code`) mapping to `overflow-wrap`.
+- Surface: `@inflatable-cookie/poodle-svelte` Text/Code; `longhorn-poodle-svelte` Backup/Restore settings pages.
+
 ### [ ] Rust closeout scans an intentionally non-workspace example — 2026-09-07
 - Friction: Northstar Rust `closeout` runs Cargo metadata on `examples/greenfield-compositions/common-rust`, which intentionally has no workspace membership or local `[workspace]` table.
 - Impact: required everyday-authoring closeout stops before collecting evidence for an unrelated, valid workspace crate.

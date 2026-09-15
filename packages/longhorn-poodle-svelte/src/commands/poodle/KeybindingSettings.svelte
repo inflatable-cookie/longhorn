@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Callout, TextInput } from "@inflatable-cookie/poodle-svelte";
+    import { Button, Callout, FormActions, Grid, Stack, TextInput } from "@inflatable-cookie/poodle-svelte";
 
   import type {
     CommandKeymapConflict,
@@ -55,6 +55,7 @@
 </script>
 
 <section aria-label="Keybindings">
+<Stack gap="sm">
   <TextInput
     type="search"
     value={query}
@@ -80,32 +81,36 @@
     </Callout>
   {/if}
 
-  <ul>
+  <Stack gap="md">
     {#each visible as record (record.id)}
-      <li data-command-id={record.id}>
-        <span>
-          <strong>{record.label}</strong>
-          {#if record.description}
-            <small>{record.description}</small>
-          {/if}
-        </span>
-        <span>
-          {record.shortcuts.map(({ label }) => label).join(", ") || "Unbound"}
-        </span>
-        {#each record.bindings as binding (binding.id)}
-          <Button
-            variant="secondary"
-            disabled={busy}
-            onClick={() => onCapture?.(binding.id)}
-          >
-            Change {binding.id}
-          </Button>
-        {/each}
-      </li>
+      <div data-command-id={record.id}>
+        <Grid columns="minmax(0, 1fr) auto auto" gap="sm">
+          <Stack gap="sm">
+            <strong>{record.label}</strong>
+            {#if record.description}
+              <small>{record.description}</small>
+            {/if}
+          </Stack>
+          <span>
+            {record.shortcuts.map(({ label }) => label).join(", ") || "Unbound"}
+          </span>
+          <Stack direction="row" gap="sm" wrap={true}>
+            {#each record.bindings as binding (binding.id)}
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => onCapture?.(binding.id)}
+              >
+                Change {binding.id}
+              </Button>
+            {/each}
+          </Stack>
+        </Grid>
+      </div>
     {/each}
-  </ul>
+  </Stack>
 
-  <footer>
+  <FormActions>
     <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>
       Reset
     </Button>
@@ -124,32 +129,6 @@
     >
       Apply
     </Button>
-  </footer>
+  </FormActions>
+</Stack>
 </section>
-
-<style>
-  section,
-  li,
-  li > span:first-child {
-    display: grid;
-    gap: 0.5rem;
-  }
-
-  ul {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  li {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-  }
-
-  footer {
-    display: flex;
-    justify-content: end;
-    gap: 0.5rem;
-  }
-</style>
