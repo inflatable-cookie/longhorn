@@ -1,9 +1,29 @@
-# g02.020 No Design In The Authority
-
-Status: blocked — stage 2 needs Poodle's redesigned settings shell (stage 1, a Poodle lane)
+Status: ready — shell binding landed; strip the remaining five surfaces and add the no-style check
 Owner: Tom
-Governing refs: contract 012; contract 013; contract 020; absorbed Card 192 (step 1 complete; steps 2-3 need Poodle's redesigned shell)
+Updated: 2026-09-15
+Governing refs: contract 012; contract 013; contract 020; absorbed Card 192
 Depends on: none
+
+## Recompiled state — 2026-09-15
+
+The Poodle dependency resolved: Poodle's `SettingsShell` (contract updated
+2026-08-12, published by 0.2.2 and current at 0.4.2) carries the redesigned
+shell, and Longhorn's binding already moved to it (`ec226f5a`). Both faults
+from step 1 are fixed: group labels are the section's own label, and the
+dialog's close is the only one.
+
+Remaining:
+
+- Strip the `<style>` block from the five surfaces that still ship one:
+  `UpdateSettings.svelte` (6 CSS lines), `StorageSettingsPage.svelte` (22),
+  `BackupSettingsPage.svelte` (30), `RestoreSettingsPage.svelte` (28),
+  `KeybindingSettings.svelte` (26) — 112 lines total. Compose Poodle
+  `Stack`/`Grid` instead; papercut anything Poodle lacks (text wrapping is
+  the known one) rather than reintroducing local CSS.
+- Stage 3: add the check that fails on any `<style>` block in
+  `longhorn-poodle-svelte`.
+- Evidence: the before-and-after CSS count, the Soundcheck worked example, and
+  any papercut raised against Poodle.
 
 ## Outcome
 
@@ -146,7 +166,8 @@ check fails on the five files it exists to prevent.
 
 ## Next Task
 
-Stage 1, in Poodle. Stage 2 cannot start until the shell exists.
+Strip the five remaining `<style>` blocks and add the stage-3 check. See the
+recompiled state above.
 
 ## Planning Checkpoint
 

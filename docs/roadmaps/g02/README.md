@@ -21,7 +21,7 @@
 | [g02.015](015-gpui-composition-and-live-evidence.md) | complete | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
 | [g02.017](017-fork-retention-and-deletion.md) | blocked — stage 3 awaits field evidence | an operator can delete a fork; retention can prune, which today it cannot |
-| [g02.020](020-no-design-in-the-authority.md) | blocked — needs Poodle's redesigned settings shell | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
+| [g02.020](020-no-design-in-the-authority.md) | ready — strip five remaining CSS surfaces, then the no-style check | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
 | [g02.019](019-the-origin-position.md) | blocked — stage 2 is Poodle/Loophole renderer work | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | complete | the 181 tagged unions validate per variant, from the Rust enums |
 | [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
@@ -57,13 +57,14 @@ first release. Recompiled from the post-g02.039 state.
 | --- | --- | --- | --- |
 | 1 | [g02.037](037-focused-panel-surfaces.md) | ready | product: focused panel surfaces |
 | 2 | [g02.036 L1](036-production-contextual-agent-tools.md) | ready | product: provider-free typed dispatcher fixture |
-| 3 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
-| 4 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
+| 3 | [g02.020](020-no-design-in-the-authority.md) | ready | boundary: no design in the authority |
+| 4 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
+| 5 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
 
-1-3 are independent and dispatch in parallel; 4 is the terminus and follows
-them. Parked lanes do not gate the release: g02.008 (deferred), g02.020 and
-g02.019 (Poodle/downstream), g02.017 (field evidence), g02.036 D1 (blocked on
-accepted L1), production contextual tools (operator-held).
+1-4 are independent and dispatch in parallel; 5 is the terminus and follows
+them. Parked lanes do not gate the release: g02.008 (deferred), g02.019 and
+g02.017 (Poodle/downstream, field evidence), g02.036 D1 (blocked on accepted
+L1), production contextual tools (operator-held).
 
 ## Dependency Shape
 

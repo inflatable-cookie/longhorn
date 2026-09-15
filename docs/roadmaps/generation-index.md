@@ -35,17 +35,18 @@ existing lanes, then cut the first release. The runway lives on the
 1. [g02.037](g02/037-focused-panel-surfaces.md) focused panel surfaces — ready
 2. [g02.036 L1](g02/036-production-contextual-agent-tools.md) provider-free
    typed dispatcher fixture — ready
-3. [g02.026](g02/026-automation-and-gate-convergence.md) Card 218 remainder —
+3. [g02.020](g02/020-no-design-in-the-authority.md) no design in the
+   authority — ready
+4. [g02.026](g02/026-automation-and-gate-convergence.md) Card 218 remainder —
    ready (release hardening)
-4. [g02.014](g02/014-first-publication.md) first publication — release
+5. [g02.014](g02/014-first-publication.md) first publication — release
    terminus: publish the three TypeScript packages, tag `v0.1.0`, repoint
    consumers
 
-1-3 are independent and dispatch in parallel; 4 follows. Parked and
-non-gating: g02.008 (deferred), g02.020 and g02.019 (Poodle/downstream),
-g02.017 (field evidence), g02.036 D1 (blocked on accepted L1), and production
-contextual tools (operator-held). Task closeout detail lives on the tasks
-themselves.
+1-4 are independent and dispatch in parallel; 5 follows. Parked and
+non-gating: g02.008 (deferred), g02.019 and g02.017 (Poodle/downstream, field
+evidence), g02.036 D1 (blocked on accepted L1), and production contextual
+tools (operator-held). Task closeout detail lives on the tasks themselves.
 
 ## Memo 023 Release-audit Suite
 
