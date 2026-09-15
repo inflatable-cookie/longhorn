@@ -1,8 +1,23 @@
 # g02.036 Production Contextual Agent Tools
 
-Status: L1 ready; D1 consumer successor blocked on accepted L1; production held
+Status: L1 implemented and merged; L1 evidence closeout blocked on a reviewed Swallowtail descendant; D1 blocked; production held
 Owner: Longhorn maintainers; Desktop Coordinator owns delivery
 Governing refs: contract 023, Swallowtail Contract063, Desktop contract031
+
+## Recompiled state — 2026-09-15
+
+L1 is no longer a fresh implementation lane. The typed dispatcher crate
+`longhorn-agent-tool-dispatch` is implemented and merged (`4bd962a3`,
+`0a5e60fa`, 2026-09-07), and `effigy check:agent-tool-dispatch` (clippy, tests,
+rustdoc, release-absence, API reference) is green on `main`.
+
+What remains for L1 is evidence closeout: the isolated source-consumer receipt
+(`proof:agent-tool-dispatch-source-consumer`). That proof pins Swallowtail
+`d7e93e5552c5b272e55ddef8a531b5dd32e81bf0`; Swallowtail has since moved
+(current HEAD `a085d5c95c409e5c69fd0d4e6150a41c91f20ff1`), so the receipt needs
+a separately reviewed source-compatible descendant before it can be produced.
+D1 stays blocked on the accepted L1 artifact, and production stays held. None
+of this gates the first release.
 
 ## Promotion authority and dispatch
 
@@ -117,7 +132,7 @@ fixture.
 
 ## Scope L1 — Longhorn typed dispatcher fixture
 
-Status after promotion: ready.
+Status: implemented and merged; evidence closeout outstanding.
 
 Scope: a new opt-in Longhorn host-dispatch crate/module, its generic fixture,
 public API baseline and focused docs. Contract022 remains byte-for-byte
