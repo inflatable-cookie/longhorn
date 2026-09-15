@@ -21,13 +21,14 @@ tasks are closed; the roll-up lives in
 
 The [generation index](generation-index.md) owns the only live next-task
 pointer. Consumer adoption does not auto-start Longhorn work.
-<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:eb8051b74db5f7572ac3b4da922b178510b2c756d8716f3bc2ab018a8a4b3f78 -->
+<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:36e33b13405a246aba97f4283fd48a8b37bd1cfd7a77ea523e42c1a0d04e34b9 -->
 | Generation | Disposition | Runway state |
 | --- | --- | --- |
 | g02 | open | planning_required |
 | Task | Status | Stage | Revision | Record digest |
 | --- | --- | --- | --- | --- |
 | g02.020 | complete | none | 8 | sha256:070656c53d6870a5fbe4ad0f330aadcdaa493f9a584a3590442cb557d924213e |
+| g02.026 | complete | none | 8 | sha256:c3cc3ac84dab66ea08d83fbd8695d6f9cec6cc363d50e756d94bc1b9a73f6780 |
 | g02.038 | complete | none | 8 | sha256:7a76e636abf326e7ce7391e8f18279e6e8792d51686c82ec34f97ca1a1350855 |
 | g02.039 | complete | none | 8 | sha256:f37506b19afd8705484d9c4e270c5fd42b8faf6feb3533ddac9a47cb183dc6a4 |
 <!-- northstar:lifecycle:end -->
