@@ -321,3 +321,17 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 `qa:docs` failed because `verify-host-protocol.ts` recursed into the ignored
 `packages/.DS_Store` file as a directory. Preserving that file outside the
 scan root restored PASS. Follow-up: filter directory entries before recursion.
+
+## 2026-09-15 — npm registry serves metadata for a version whose tarball 404s
+
+- Friction: `@types/node` 26.6.0 published minutes earlier; `npm view` and the
+  packument listed it, but the CDN returned 404 for the tarball for ~2 minutes.
+  The settings-composition proof's fresh `bun install` (unpinned resolution)
+  failed on it; a polled retry went green with no code change.
+- Impact: any proof or gate that resolves a fresh registry release at
+  install time can fail spuriously right after an upstream publish, and the
+  failure reads as a broken gate.
+- Plausible fix: retry-with-backoff around registry installs in proof
+  staging, or pin the transitive resolution in the staged manifests.
+- Affected surface: `scripts/settings-composition-proof/`,
+  `scripts/verify-pack-typecheck.ts`, any future registry-install proof.

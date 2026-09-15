@@ -15,7 +15,7 @@ Every script here is reachable from a selector. Nothing in this directory is
 meant to be run by remembering it exists — if something is worth keeping, it is
 worth wiring, and if it is not wired it should be deleted.
 
-`proof:artifacts`, a member of `qa`, runs thirteen of them in order:
+`proof:artifacts`, a member of `qa`, runs fourteen of them in order:
 
 | script | proves |
 | --- | --- |
@@ -32,6 +32,7 @@ worth wiring, and if it is not wired it should be deleted.
 | `verify-greenfield-card125.ts` | the greenfield compositions carry no donor vocabulary |
 | `verify-guides-card126.ts` | the guides match the generated API surface |
 | `verify-documented-commands.ts` | every command the examples' READMEs name exists |
+| `verify-pack-typecheck.ts` | the packed adapter typechecks against a bare stage whose only Poodle source is the registry |
 
 The rest are wired individually: `check:api-reference` runs
 `generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
@@ -49,6 +50,9 @@ worktrees need before TypeScript checks; `check:bun-deps` guards
 
 `check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
 release/default contract-022 absence proof, and the generated API check.
+`check:bun-links` (wired into `ci:rehearse`) reports the machine's bun
+global-link state and fails when a dependency resolves through a link that
+leaves the repository.
 `proof:agent-tool-dispatch-source-consumer` additionally requires
 `AGENT_LONGHORN_REPO` and `AGENT_PROJECTS_ROOT`; it accepts only a clean
 Longhorn descendant of the promoted base and exact clean Swallowtail
@@ -58,11 +62,14 @@ provider-free fixture outside both repositories.
 ## No consumer knowledge
 
 Longhorn keeps no code with direct knowledge of a consuming application. No
-script resolves a sibling repository or reads a consumer's manifest, and only
-`verify-greenfield-card125.ts` takes a `*_REPO` environment override
-(`POODLE_REPO`, for the admitted Poodle-pack escape). Twenty-three verifiers
-that did were deleted on 2026-08-10, along with the frozen receipts they
-asserted against; both remain in git history.
+script resolves a sibling repository or reads a consumer's manifest, and no
+standing proof outside the disposable g02.036 source-consumer acceptance
+runner takes a `*_REPO` environment override: the Poodle-pack escape
+(`POODLE_REPO`) stopped being consumed when greenfield moved to the registry
+release, while `AGENT_LONGHORN_REPO` and `AGENT_PROJECTS_ROOT` stage that
+fixture in `mktemp` rather than letting a gate resolve a live sibling. Twenty-
+three verifiers that did were deleted on 2026-08-10, along with the frozen
+receipts they asserted against; both remain in git history.
 
 Consumer *names* may still appear as vocabulary — a test graph shaped like a
 real application's, an example named for the topology it exercises. What may
@@ -92,23 +99,23 @@ should be argued for.
 
 `check:repo-containment`, also in `qa`, is stricter about location: Cargo
 `path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
-inside this tree. The admitted escapes are `verify-greenfield-card125.ts`,
-which packs Poodle from source under the release workflow, and the disposable
-g02.036 source-consumer runner described above. No standing consumer proof may
-take a `*_REPO` override.
+inside this tree. Its allowed-escape list still names `verify-greenfield-card125.ts`
+and the disposable g02.036 source-consumer runner described above; no standing
+consumer proof may take a `*_REPO` override.
 
 `verify-greenfield-card125.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.
 
 ## CI rehearsal
 
-`effigy ci:rehearse` reproduces the four developer-machine properties that hid
+`effigy ci:rehearse` reproduces the five developer-machine properties that hid
 defects from local `qa` during the first release runs:
 
 1. `check:repo-containment` + `check:consumer-isolation` — no sibling path
-2. `check:runner-tools` — scripts must not invoke `rg`
-3. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
-4. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
+2. `check:bun-links` — no active bun global link; registered ones are reported
+3. `check:runner-tools` — scripts must not invoke `rg`
+4. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
+5. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
    and a cold cache
 
 Not a substitute for dispatching `release.yml`. Run it before a release when
@@ -120,8 +127,10 @@ Not a substitute for dispatching `release.yml`. Run it before a release when
   artifact workspace.
 - `KEEP_GREENFIELD_COMPOSITION_PROOF=1` does the same for the greenfield
   composition proof.
+- `KEEP_PACK_TYPECHECK=1` retains the pack-typecheck stage (the packed
+  tarballs, the registry install, and the unpacked adapter tree).
 
-Neither attempts registry publication.
+None attempts registry publication.
 
 ## Language
 
