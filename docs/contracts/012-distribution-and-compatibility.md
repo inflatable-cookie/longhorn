@@ -74,7 +74,7 @@ policy remain consumer-owned.
   names: the `@inflatable-cookie` scope was claimed on 2026-08-09, the three
   TypeScript packages are publishable (`publishConfig.access: public`), and
   the v0.1.0 tag waited on a Poodle release carrying the components the
-  adapter imports (g02.014). Public Poodle 0.2.2 carries them, so that
+  adapter imports (g02.014). Poodle is published at `0.4.2` (g02.039), so that
   precondition is met and the linked-Poodle exemption is gone (Card 218 step
   5). Rust crates stay `publish = false`; consumers take them by git tag.
 - Private consumer repos may merge explicit sibling path or `file:` sources.

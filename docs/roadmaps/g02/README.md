@@ -11,25 +11,25 @@
 | [g02.005](005-injectable-diagnostics-seam.md) | complete | evidence for every best-effort failure swallow |
 | [g02.006](006-qa-and-docs-alignment.md) | complete | resolving QA selectors, package hygiene, truthful front doors |
 | [g02.007](007-dependency-refresh-sweep.md) | complete | current dependency graph with conformance-backed pin decisions |
-| [g02.008](008-distribution-candidate-v2.md) | blocked — coordinated Poodle re-freeze outstanding | candidate receipt v2 over the refreshed graph |
+| [g02.008](008-distribution-candidate-v2.md) | deferred — superseded by g02.014; candidate receipt is a publication non-goal | candidate receipt v2 over the refreshed graph |
 | [g02.009](009-application-update-and-release-channels.md) | complete — 2026-08-13 | in-app update: channels, client-side rollout, source adapters, restart safety |
 | [g02.010](010-licensing-entitlement-and-activation.md) | complete — 2026-08-14 | licensing: opaque entitlements, use/update windows, activation adapters |
 | [g02.011](011-ipc-boundary-validation.md) | complete | IPC boundary validation derived from the Rust authority |
 | [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
-| [g02.014](014-first-publication.md) | ready | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
+| [g02.014](014-first-publication.md) | ready — release terminus | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
 | [g02.015](015-gpui-composition-and-live-evidence.md) | complete | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
-| [g02.017](017-fork-retention-and-deletion.md) | in progress | an operator can delete a fork; retention can prune, which today it cannot |
-| [g02.020](020-no-design-in-the-authority.md) | ready | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
-| [g02.019](019-the-origin-position.md) | in progress | the state the operator started from is a position they can name and return to |
+| [g02.017](017-fork-retention-and-deletion.md) | blocked — stage 3 awaits field evidence | an operator can delete a fork; retention can prune, which today it cannot |
+| [g02.020](020-no-design-in-the-authority.md) | blocked — needs Poodle's redesigned settings shell | the authority binds; the design system designs. No CSS in longhorn-poodle-svelte |
+| [g02.019](019-the-origin-position.md) | blocked — stage 2 is Poodle/Loophole renderer work | the state the operator started from is a position they can name and return to |
 | [g02.018](018-tagged-union-boundary-validation.md) | complete | the 181 tagged unions validate per variant, from the Rust enums |
 | [g02.021](021-update-supply-chain-hardening.md) | complete | the update install path's stated properties are true |
 | [g02.022](022-bridge-session-and-event-lifecycle.md) | complete | events respect read authority; sessions end with their window |
 | [g02.023](023-credential-and-activation-hardening.md) | complete | the credential path matches the config-age discipline |
 | [g02.024](024-coverage-restoration.md) | complete | the test surface matches the code surface again |
 | [g02.025](025-docs-spine-reconciliation.md) | complete | the handwritten spine describes the system that exists |
-| [g02.026](026-automation-and-gate-convergence.md) | in progress — 219/220 landed; 218 unheld, step 5 landed, remainder needs recompile | gates mean what they claim; one declaration per fact |
+| [g02.026](026-automation-and-gate-convergence.md) | ready — 219/220 complete; 218 remainder recompiled as release hardening | gates mean what they claim; one declaration per fact |
 | [g02.027](027-structural-consolidation-and-dependency-sweep.md) | complete | rules stated once are implemented once |
 | [g02.028](028-consumer-scoped-credential-slots.md) | complete | one shared store admits isolated consumer-owned scope without product policy |
 | [g02.029](029-agent-control-spike.md) | complete | memo 024's two runtime unknowns answered with recorded prototype evidence |
@@ -40,13 +40,30 @@
 | [g02.034](034-agent-control-window-composition.md) | done 2026-08-20 | screenshot composes child webviews: whole-window truth for multiwebview apps |
 | [g02.035](035-agent-control-child-webview-targeting.md) | done 2026-08-20 | opt-in child-webview semantic targeting: agents drive the preview island, default closed |
 | [g02.036](036-production-contextual-agent-tools.md) | L1 ready; D1 blocked on accepted L1; production held | production authenticated app-tool registry and Swallowtail attachment seam |
-| [g02.037](037-focused-panel-surfaces.md) | in progress | a Surface presents one panel full-surface, with no regional layout or tabs |
+| [g02.037](037-focused-panel-surfaces.md) | ready | a Surface presents one panel full-surface, with no regional layout or tabs |
 | [g02.039](039-poodle-041-adoption.md) | complete | every Longhorn Poodle pin on published 0.4.2; one identity end to end |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
 [system inventory](../../architecture/system-inventory.md#planning-gaps)
 remain uncommitted.
+
+## Release Sequence
+
+Operator direction 2026-09-15: unblock and finish existing work, then cut the
+first release. Recompiled from the post-g02.039 state.
+
+| Order | Task | State | Role |
+| --- | --- | --- | --- |
+| 1 | [g02.037](037-focused-panel-surfaces.md) | ready | product: focused panel surfaces |
+| 2 | [g02.036 L1](036-production-contextual-agent-tools.md) | ready | product: provider-free typed dispatcher fixture |
+| 3 | [g02.026](026-automation-and-gate-convergence.md) | ready | release hardening: Card 218 remainder |
+| 4 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
+
+1-3 are independent and dispatch in parallel; 4 is the terminus and follows
+them. Parked lanes do not gate the release: g02.008 (deferred), g02.020 and
+g02.019 (Poodle/downstream), g02.017 (field evidence), g02.036 D1 (blocked on
+accepted L1), production contextual tools (operator-held).
 
 ## Dependency Shape
 

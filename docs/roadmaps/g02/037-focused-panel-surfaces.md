@@ -1,6 +1,6 @@
 # g02.037 Focused Panel Surfaces
 
-Status: in progress
+Status: ready
 Owner: Tom
 Governing refs: contract 002; contract 014
 Depends on: none

@@ -1,11 +1,21 @@
 # g02.008 Distribution Candidate V2
 
-Status: blocked — awaiting a coordinated Poodle re-freeze
+Status: deferred — superseded by g02.014; the candidate receipt is a publication non-goal
 Owner: Tom
-Updated: 2026-08-04
+Updated: 2026-09-15
 Governing refs: contracts 001, 003, 012, and 013; Card 127 receipt; g02
 candidate runway; absorbed Card 149 (blocked card record below)
 Depends on: g02.007
+
+## Disposition — deferred 2026-09-15
+
+The blocker this lane waited on is gone: Poodle settled its package set and
+is published at 0.4.2 (g02.039). The lane stays deferred because the
+cross-repository candidate receipt is an explicit non-goal of the publication
+lane, which supersedes it for the first release. g02.014 retires the Poodle
+half of the artifact proofs; the Card 127 receipt stays frozen history.
+Reopen only if a future release needs a cross-repository candidate receipt
+again.
 
 ## Outcome
 

@@ -2,7 +2,7 @@
 
 Status: ready
 Owner: Tom
-Updated: 2026-08-11
+Updated: 2026-09-15
 Governing refs: contract 012; absorbed Card 166 (ready card record below)
 Depends on: g02.013 complete
 
@@ -21,6 +21,37 @@ claimed on 2026-08-09, which satisfies that clause and opens this.
 It follows g02.013 by necessity rather than by preference. Publishing before
 the two consolidations would have meant deprecating twenty-one names that had
 existed for exactly one release — eighteen from Longhorn, three from Poodle.
+
+## Recompiled state — 2026-09-15
+
+The Poodle precondition is met and most of the manifest work already landed,
+so this lane is now the release terminus, not a from-scratch publication. It
+follows g02.037, g02.036 L1, and g02.026 stage 1 in the
+[release sequence](README.md#release-sequence).
+
+Done:
+
+- Poodle is published at `0.4.2` (g02.039). The root manifest, the
+  `longhorn-poodle-svelte` peer, and every example pin carry exact `0.4.2`.
+- The three TypeScript packages are publishable: no `private`, each has
+  `publishConfig.access: "public"`, MIT license, and `files`.
+- `scripts/poodle-evidence.ts` is deleted and the Poodle artifact proofs are
+  retired (Work step 2's retiral).
+- The clients CI lane is green (2026-08-11), and every workflow is
+  `workflow_dispatch` only.
+
+Remaining:
+
+1. Longhorn release prep: confirm the `[release]` config and `release.yml` are
+   current, update contract 012's publication clause, and record the release
+   in `CHANGELOG.md`.
+2. Publish the three TypeScript packages under trusted publishing.
+3. Tag `v0.1.0` and dispatch `release.yml` against the tag.
+4. Repoint consumers off `file:` paths (external to this repository).
+
+The 2026-08-09 posture, ordering, and Poodle-version decision below are kept
+as the record of how the lane was compiled. The recompiled remaining steps
+above supersede them where they differ.
 
 ## Work
 
@@ -136,7 +167,10 @@ green after six failed runs, each a developer-machine property a runner does
 not share (sibling checkouts, cargo caches, uncoloured output, missing `rg`);
 reproductions in PAPERCUTS.md.
 
-### The first release ships against Poodle 0.2.0 — 2026-08-11
+### The first release ships against Poodle 0.2.0 — 2026-08-11 (superseded 2026-09-15)
+
+**Superseded:** the release now ships against Poodle `0.4.2` (g02.039), not
+`0.2.0`. The paragraph below is the record of the 2026-08-11 decision.
 
 Longhorn's first published version depends on Poodle 0.2.0, not 0.1.0:
 Longhorn already needs unreleased Poodle (`7827bd7d` forwards a DockRegion

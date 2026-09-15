@@ -1,6 +1,6 @@
 # g02.019 The Origin Position
 
-Status: in progress — stage 1 complete 2026-08-12
+Status: blocked — stage 1 complete 2026-08-12; stage 2 is Poodle/Loophole renderer work
 Owner: Tom
 Governing refs: contract 011; contract 012; contract 017
 Depends on: g02.016 (complete)

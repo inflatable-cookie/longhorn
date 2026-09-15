@@ -1,12 +1,10 @@
 # g02.026 Automation And Gate Convergence
 
-Status: in progress — 219 and 220 landed in full 2026-08-15 (workflow edits
-approved); Card 218 is part-landed and needs recompiling
+Status: ready — release hardening
 Owner: Tom
-Updated: 2026-08-24
+Updated: 2026-09-15
 Governing refs: contract 012; memo 023
-Depends on: nothing outstanding — Card 218's Poodle precondition is met at
-public 0.2.2, which also unblocks g02.014
+Depends on: nothing outstanding
 
 ## Outcome
 
@@ -39,19 +37,27 @@ off. Contract 012's distribution claims depend on this envelope being honest.
 
 ## Execution Plan
 
-### Stage 1. The exemption's exit
+### Stage 1. Release hardening (recompiled 2026-09-15)
 
-- [ ] Card 218:
-  `poodle-release.ts` verifies integrity bytes, not a version string;
-  `ci-rehearse` sees bun global-link state; pack-level typecheck of
-  `longhorn-poodle-svelte` against registry Poodle. **Held whole on
-  2026-08-15**, then **part-landed 2026-08-24**: g16.008 removed the exemption
-  from `effigy.toml`'s `proof:artifacts` (step 5) once public Poodle 0.2.2
-  shipped `SettingsShell`, `UpdateCenter` and `UpdateStatus`. The release gate
-  on `linkedPoodleAccepted` (step 1) went obsolete with the field. The three
-  remaining items are release hardening under a framing that is no longer the
-  exemption's exit, so the card needs recompiling before it is ready. Nothing
-  else in g02.026 depends on this.
+Card 218's exemption-exit framing is gone — Poodle published the components,
+g16.008 deleted the exemption, and the `linkedPoodleAccepted` gate went
+obsolete with the field. Three items survive as release hardening, all
+needed before the first publish:
+
+- [ ] `poodle-release.ts` verifies the Poodle **integrity bytes**, not a
+      version string, against the published artifacts.
+- [ ] `ci-rehearse` detects and reports the bun global-link state, so a
+      release rehearsal cannot pass on a machine whose links mask a missing
+      published dependency.
+- [ ] Pack-level typecheck of `longhorn-poodle-svelte` against the **registry**
+      Poodle, proving the published peer range resolves from npm, not from a
+      sibling checkout.
+
+Acceptance: the three checks pass on a clean runner with no `POODLE_REPO` and
+no sibling Poodle checkout. Evidence owed: the rehearsal output showing
+link-state detection, and the pack-level typecheck passing against a registry
+install. Stop if a Poodle-side gap blocks the registry typecheck; record it and
+escalate rather than reintroducing a local shortcut.
 
 ### Stage 2. One declaration per fact
 
@@ -138,17 +144,13 @@ hardening off the critical path.
 
 ## Next Task
 
-Recompile Card 218's remainder (steps 2-4) as release hardening — integrity-byte
-verification in `poodle-release.ts`, bun link-state awareness in `ci-rehearse`,
-pack-level typecheck against registry Poodle — or fold it into whichever
-release lane owns the runner environment. Evidence owed: the rehearsal output
-showing link-state detection, and the pack-level typecheck passing against a
-registry install. The stage-2 checkpoint is met
-(selector routing landed with approval); the runner-environment trust question
-it gated still applies to the recompiled work.
+Stage 1 (release hardening) above. It precedes g02.014 in the
+[release sequence](README.md#release-sequence). The stage-2 checkpoint is met;
+the runner-environment trust question it gated still applies to this work.
 
 ## Absorbed records
 
-- Card 218: needs recompile — step 5 landed 2026-08-24 (g16.008 removed the exemption); step 1 obsolete with the `linkedPoodleAccepted` field; steps 2-4 open as release hardening under a framing that is no longer the exemption's exit. Scope, steps, acceptance, evidence, and stop conditions live in this task's Stage 1 above and the card's recompile note in git history.
+- Card 218: recompiled 2026-09-15 as release hardening (see Stage 1). Steps 1
+  and 5 are obsolete; step 5 landed 2026-08-24 (g16.008 removed the exemption).
 - Card 219: complete 2026-08-15 — gate hygiene and single-sourcing.
 - Card 220: complete 2026-08-15 — supply-chain visibility.

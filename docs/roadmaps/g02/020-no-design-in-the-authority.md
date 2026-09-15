@@ -1,6 +1,6 @@
 # g02.020 No Design In The Authority
 
-Status: ready
+Status: blocked — stage 2 needs Poodle's redesigned settings shell (stage 1, a Poodle lane)
 Owner: Tom
 Governing refs: contract 012; contract 013; contract 020; absorbed Card 192 (step 1 complete; steps 2-3 need Poodle's redesigned shell)
 Depends on: none

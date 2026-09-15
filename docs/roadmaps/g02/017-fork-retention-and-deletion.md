@@ -1,6 +1,6 @@
 # g02.017 Fork Retention And Deletion
 
-Status: in progress — stages 1-2 complete 2026-08-12; stage 3 deferred to field evidence (header read `ready`, corrected in migration to match the generation runway)
+Status: blocked — stages 1-2 complete 2026-08-12; stage 3 awaits field evidence (header read `ready`, corrected in migration to match the generation runway)
 Owner: Tom
 Governing refs: contract 011; contract 012; contract 017
 Depends on: g02.016 (complete)
