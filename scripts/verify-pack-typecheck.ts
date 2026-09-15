@@ -48,15 +48,24 @@ const CORE = "@inflatable-cookie/poodle-core";
 const SVELTE = "@inflatable-cookie/poodle-svelte";
 
 const stage = await mkdtemp(join(tmpdir(), "longhorn-pack-typecheck-"));
-/** Tarballs in the stage, filled after packing. A module-level binding so the
- * helper functions see it without relying on a try-block closure. */
-const packs: string[] = [];
+/** Tarballs in the stage and each packed package's manifest version, filled
+ * after packing. Module-level bindings so the helper functions see them
+ * without relying on a try-block closure. */
+const packs = new Set<string>();
+const versions = new Map<string, string>();
+/** Root-manifest devDependency pins, filled once. Module-level so the helpers
+ * see it without relying on a try-block closure. */
+const rootPins = new Map<string, string>();
 
 try {
   const release = poodleRelease();
-  const root = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as {
-    devDependencies?: Record<string, string>;
-  };
+  for (const [name, pin] of Object.entries(
+    (JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as {
+      devDependencies?: Record<string, string>;
+    }).devDependencies ?? {},
+  )) {
+    rootPins.set(name, pin);
+  }
   const adapterManifest = JSON.parse(
     await readFile(join(repoRoot, ADAPTER_PACKAGE, "package.json"), "utf8"),
   ) as {
@@ -66,13 +75,28 @@ try {
 
   // Pack the release's own tarballs into the stage: it installs the published
   // artifact, not the working tree.
-  for (const name of [LONGHORN_PACKAGE, ADAPTER_PACKAGE]) {
-    run(["bun", "pm", "pack", "--ignore-scripts", "--destination", stage],
-      join(repoRoot, name));
+  for (const [name, directory] of [
+    [LONGHORN, LONGHORN_PACKAGE],
+    [ADAPTER, ADAPTER_PACKAGE],
+  ] as const) {
+    versions.set(
+      name,
+      (JSON.parse(
+        await readFile(join(repoRoot, directory, "package.json"), "utf8"),
+      ) as { version: string }).version,
+    );
+    run(
+      ["bun", "pm", "pack", "--ignore-scripts", "--destination", stage],
+      join(repoRoot, directory),
+    );
   }
-  packs.push(
-    ...(await readdir(stage)).filter((entry) => entry.endsWith(".tgz")),
-  );
+  packs.clear();
+  for (const entry of await readdir(stage)) {
+    if (entry.endsWith(".tgz")) packs.add(entry);
+  }
+  if (packs.size !== 2) {
+    throw new Error(`expected exactly two packed tarballs in ${stage}, got ${[...packs].join(", ")}`);
+  }
 
   // Install the peer ranges exactly as the published manifest declares them.
   // npm is the only source of the Poodle entries here, which is the claim.
@@ -88,8 +112,8 @@ try {
       svelte: adapterManifest.peerDependencies.svelte!,
     },
     devDependencies: {
-      "svelte-check": root.devDependencies?.["svelte-check"]!,
-      typescript: root.devDependencies?.typescript!,
+      "svelte-check": rootTool("svelte-check"),
+      typescript: rootTool("typescript"),
     },
     // The adapter peer-depends on `longhorn`, which is not on npm yet: both
     // packages publish together in one release. Pin the peer to the packed
@@ -102,6 +126,29 @@ try {
   };
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   run(["bun", "install", "--ignore-scripts"], stage);
+
+  // The installed Longhorn packages must be the packed ones, inside the stage.
+  // Without this, an ambiguous tarball pin could silently install something
+  // other than the release identity the manifests declare.
+  for (const name of [LONGHORN, ADAPTER]) {
+    const installed = join(stage, "node_modules", ...name.split("/"));
+    const manifestInstalled = JSON.parse(
+      await readFile(join(installed, "package.json"), "utf8"),
+    ) as { name: string; version: string };
+    if (
+      manifestInstalled.name !== name ||
+      manifestInstalled.version !== versions.get(name)
+    ) {
+      throw new Error(
+        `${name} installed as ${manifestInstalled.name}@${manifestInstalled.version}, ` +
+          `expected ${name}@${versions.get(name)}`,
+      );
+    }
+    const target = await realpath(installed);
+    if (relative(await realpath(stage), target).startsWith("..")) {
+      throw new Error(`${name} resolved outside the stage: ${target}`);
+    }
+  }
 
   // What npm served must be the pinned release, resolved inside the stage --
   // not a sibling checkout reached through a link -- with the same integrity
@@ -246,15 +293,27 @@ function typecheck(command: readonly string[]): void {
   }
 }
 
-/** Scoped names pack with `@` and `/` folded into `-`:
- * `@inflatable-cookie/longhorn` → `inflatable-cookie-longhorn-<version>.tgz`. */
+/** The exact tarball name bun packs for this package:
+ * `@inflatable-cookie/longhorn` → `inflatable-cookie-longhorn-<version>.tgz`.
+ * Prefix matching is not enough here: `inflatable-cookie-longhorn-` is also a
+ * prefix of the adapter's tarball, so the version read from the packed
+ * manifest makes the match exact instead of order-dependent. */
 function packPath(name: string): string {
-  const prefix = `${name.replace(/^@/, "").replace("/", "-")}-`;
-  const match = packs.find((entry) => entry.startsWith(prefix));
-  if (!match) {
-    throw new Error(`no packed tarball for ${name} in ${stage}`);
+  const expected = `${name.replace(/^@/, "").replace("/", "-")}-${versions.get(name)}.tgz`;
+  if (!packs.has(expected)) {
+    throw new Error(`no packed tarball for ${name}: expected ${expected} in ${stage}`);
   }
-  return match;
+  return expected;
+}
+
+/** Tool pins come from the root manifest; a missing one must fail the proof
+ * rather than let `bun x` fetch an unpinned version at run time. */
+function rootTool(name: string): string {
+  const pin = rootPins.get(name);
+  if (!pin) {
+    throw new Error(`the root manifest no longer pins ${name}; the proof needs the pin`);
+  }
+  return pin;
 }
 
 /** bun.lock is JSONC; the registry entry shape is the same one

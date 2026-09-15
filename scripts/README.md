@@ -63,11 +63,13 @@ provider-free fixture outside both repositories.
 
 Longhorn keeps no code with direct knowledge of a consuming application. No
 script resolves a sibling repository or reads a consumer's manifest, and no
-script takes a `*_REPO` environment override: the last one (`POODLE_REPO`, for
-the admitted Poodle-pack escape) stopped being consumed when greenfield moved
-to the registry release. Twenty-three verifiers that did were deleted on
-2026-08-10, along with the frozen receipts they asserted against; both remain
-in git history.
+standing proof outside the disposable g02.036 source-consumer acceptance
+runner takes a `*_REPO` environment override: the Poodle-pack escape
+(`POODLE_REPO`) stopped being consumed when greenfield moved to the registry
+release, while `AGENT_LONGHORN_REPO` and `AGENT_PROJECTS_ROOT` stage that
+fixture in `mktemp` rather than letting a gate resolve a live sibling. Twenty-
+three verifiers that did were deleted on 2026-08-10, along with the frozen
+receipts they asserted against; both remain in git history.
 
 Consumer *names* may still appear as vocabulary — a test graph shaped like a
 real application's, an example named for the topology it exercises. What may
@@ -128,7 +130,7 @@ Not a substitute for dispatching `release.yml`. Run it before a release when
 - `KEEP_PACK_TYPECHECK=1` retains the pack-typecheck stage (the packed
   tarballs, the registry install, and the unpacked adapter tree).
 
-Neither attempts registry publication.
+None attempts registry publication.
 
 ## Language
 
