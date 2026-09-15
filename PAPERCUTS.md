@@ -5,10 +5,9 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
-### [ ] Prototype release gate needs the Metal toolchain — 2026-09-15
-- Friction: the `prototypes` release gate runs `cargo check --all-targets` over the GPUI prototypes, whose build scripts compile Metal shaders through `gpui` 0.2.2. On a machine without the Metal toolchain (Xcode 16+ split it into a downloadable component) the gate fails with `cannot execute tool 'metal'`, even though `XcodeDefault.xctoolchain/usr/bin/metal` exists as a stub.
-- Impact: `effigy release status --check-gates` cannot go fully green locally, and the same gate runs in `release.yml` on `macos-latest`, whose Metal toolchain availability is unverified since the GPUI prototypes landed (2026-08-17) — after the last green release dry run (2026-08-10).
-- Plausible fix: add `xcodebuild -downloadComponent MetalToolchain` to the release/CI setup before the prototype gate, or scope the gate to prototypes that do not compile shaders.
+### [x] Prototype release gate needs the Metal toolchain — 2026-09-15
+- Friction: the `prototypes` release gate runs `cargo check --all-targets` over the GPUI prototypes, whose build scripts compile Metal shaders through `gpui` 0.2.2. Without the Metal toolchain (Xcode 16+ split it into a downloadable component) the gate fails with `cannot execute tool 'metal'`, even though `XcodeDefault.xctoolchain/usr/bin/metal` exists as a stub.
+- Fix: `release.yml` installs the component (`xcodebuild -downloadComponent MetalToolchain`) before `effigy release:gates`; this machine installed it too, and the gate now passes.
 - Surface: `config/release.toml` gate `prototypes`; `.github/workflows/release.yml`; `prototypes/gpui-*`.
 
 ### [ ] Broken intra-doc link escapes qa and only fails the release gate — 2026-09-15
@@ -23,11 +22,10 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Plausible fix: read the candidate version and counts from the frozen receipt and assert them structurally rather than matching prose.
 - Surface: `scripts/verify-private-candidate-docs-card127.ts`; `config/release.toml` gate `private-candidate`.
 
-### [ ] release.yml clones Poodle v0.1.0 for a proof that reads no checkout — 2026-09-15
-- Friction: `.github/workflows/release.yml` clones Poodle `v0.1.0` beside the workspace before `effigy qa`, but the greenfield proof now installs Poodle from the registry (`poodleRelease()`) and reads no source checkout. The comment claiming "Source is the point -- packing is what the proof does" is stale, and the tag is three minor releases behind the 0.4.2 the manifests pin.
-- Impact: a dead CI step on every release, cloning the wrong release, and a comment that misstates what the proof proves.
-- Plausible fix: delete the "Check out Poodle beside Longhorn" step; the proof and its containment exception already stand alone.
-- Surface: `.github/workflows/release.yml` lines ~118-136; needs explicit workflow approval.
+### [x] release.yml clones Poodle v0.1.0 for a proof that reads no checkout — 2026-09-15
+- Friction: `.github/workflows/release.yml` cloned Poodle `v0.1.0` beside the workspace before `effigy qa`, but the greenfield proof now installs Poodle from the registry (`poodleRelease()`) and reads no source checkout. The comment claiming "Source is the point -- packing is what the proof does" was stale, and the tag was three minor releases behind the 0.4.2 the manifests pin.
+- Fix: the step and its comment are gone; `release.yml` records why there is no checkout.
+- Surface: `.github/workflows/release.yml`.
 
 ### [x] Effigy release state file is not gitignored — 2026-09-15
 - Friction: `effigy release prepare` writes `.release-prepared.json` at the repository root and it was not gitignored, so a prepared release dirtied the shared checkout.

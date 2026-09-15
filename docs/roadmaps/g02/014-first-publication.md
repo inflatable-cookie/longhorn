@@ -74,8 +74,9 @@ consumer sweep.
    all seven configured gates, including `effigy qa`, the MSRV floor, and the
    source consumer. This is the long pole; budget for it. On macOS the
    `prototypes` gate needs the Metal toolchain
-   (`xcodebuild -downloadComponent MetalToolchain`); without it the gate fails
-   before any repository code is at fault.
+   (`xcodebuild -downloadComponent MetalToolchain`); `release.yml` installs it
+   on the runner. Without it locally the gate fails before any repository code
+   is at fault.
 3. **Prepare.** `effigy release prepare --check-gates --yes --version 0.1.0`
    promotes `[Unreleased]` to `[0.1.0] - <date>`, resets `[Unreleased]`, syncs
    `Cargo.lock`, and writes local `.release-prepared.json` (gitignored). Commit
