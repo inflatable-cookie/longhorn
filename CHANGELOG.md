@@ -6,8 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
-### Added
+## [0.1.0] - 2026-09-16
 
+### Added
 - Strict-ready Northstar documentation spine.
 - Initial five-application Tauri extraction audit.
 - Composable Rust and TypeScript systems for storage, backup/recovery,
@@ -29,21 +30,7 @@ crates by git tag and the packages by version.
   (`longhorn_core::install_best_effort_diagnostics`) observing tolerated
   event-emit, adapter-teardown, and journal-cleanup failures.
 
-### Fixed
-
-- Layout ratios validate on deserialization; sizing bounds above 100% are
-  unrepresentable.
-- Window lifecycle: event-thread flush deferral, shared cancelable timer
-  wakes, coherent retag state migration, typed install-label validation, and
-  closure of the recorded reveal/retained-normal/destroy races.
-- Transfer: truthful `session_consumed` aborts, post-publication
-  reconciliation evidence instead of asserts, snapshot/destroy client-slot
-  race closure, and epoch-ordered client-changed events.
-- Storage: all 22 config/settings/command Tauri commands run off the main
-  thread; bare loads self-heal terminal restore journals.
-
 ### Changed
-
 - **Collapsed the eighteen TypeScript packages into three**, grouped by peer
   requirement rather than by domain: `@inflatable-cookie/longhorn` (no peers),
   `@inflatable-cookie/longhorn-poodle-svelte`, and
@@ -57,9 +44,20 @@ crates by git tag and the packages by version.
   shared systems while retaining product authority downstream.
 - Standardized canonical-id storage defaults, stable storage-name overrides,
   profile transitions, backup, restore, and receipt-bound cleanup.
-
 - The deterministic private `0.1.0` candidate at Card 127 bound 17 TypeScript
   packages and 36 Rust crates across five exact Poodle artifacts and seven consumer
   graphs. The tree now produces three TypeScript packages and 49 Rust crates:
   the TypeScript packages publish to npm, and the Rust crates set
   `publish = false` and are taken by git tag.
+
+### Fixed
+- Layout ratios validate on deserialization; sizing bounds above 100% are
+  unrepresentable.
+- Window lifecycle: event-thread flush deferral, shared cancelable timer
+  wakes, coherent retag state migration, typed install-label validation, and
+  closure of the recorded reveal/retained-normal/destroy races.
+- Transfer: truthful `session_consumed` aborts, post-publication
+  reconciliation evidence instead of asserts, snapshot/destroy client-slot
+  race closure, and epoch-ordered client-changed events.
+- Storage: all 22 config/settings/command Tauri commands run off the main
+  thread; bare loads self-heal terminal restore journals.
