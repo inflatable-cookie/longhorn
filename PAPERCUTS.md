@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Release QA uses the runner's latest stable clippy, local uses older — 2026-09-16
+- Friction: `effigy qa` in `release.yml` runs on `dtolnay/rust-toolchain@stable`, which tracks the newest stable. Rust 1.98 added `clippy::chunks_exact_to_as_chunks`; the same gate was green locally on 1.97 and red on the runner, stopping the dry run before any publish step.
+- Impact: a release can fail on a lint that did not exist when the code was written or last validated locally, with no local signal.
+- Plausible fix: pin the runner's stable toolchain (or assert local/runner parity) so new lints are adopted deliberately rather than mid-release; locally, `rustup update` and re-run `effigy qa` before release.
+- Surface: `.github/workflows/release.yml`, `.github/workflows/ci.yml`, `release-baselines/rust-toolchains.env`.
+
 ### [x] Prototype release gate needs the Metal toolchain — 2026-09-15
 - Friction: the `prototypes` release gate runs `cargo check --all-targets` over the GPUI prototypes, whose build scripts compile Metal shaders through `gpui` 0.2.2. Without the Metal toolchain (Xcode 16+ split it into a downloadable component) the gate fails with `cannot execute tool 'metal'`, even though `XcodeDefault.xctoolchain/usr/bin/metal` exists as a stub.
 - Fix: `release.yml` installs the component (`xcodebuild -downloadComponent MetalToolchain`) before `effigy release:gates`; this machine installed it too, and the gate now passes.

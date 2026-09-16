@@ -61,7 +61,7 @@ fn parse_session_id(value: &str) -> Result<DragSessionId, DragSessionIdParseErro
         });
     }
     let mut entropy = [0_u8; 16];
-    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in value.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         entropy[index] = parse_hex(pair[0])
             .and_then(|high| parse_hex(pair[1]).map(|low| high << 4 | low))
             .ok_or(DragSessionIdParseError::InvalidHex { index: index * 2 })?;
