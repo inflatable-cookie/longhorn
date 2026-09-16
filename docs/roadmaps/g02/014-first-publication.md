@@ -117,11 +117,13 @@ Queue worker; acowtancy and figmatic got a brief to their Paseo chatterbox.
 | `acowtancy` (`apps/bovine-desktop`) | TS `file:`; Rust `path` | brief sent to its Paseo chatterbox |
 | `kimi-shell` (`src-tauri`) | Rust `path` | dispatched (`e4043348`) |
 
-Poodle version sweep, wider than this list: `nucleus`, `soundcheck`,
-`soundcheck-library`, `jetstream`, `loophole`, `finch`, `underlay-reference`,
-`songsprout`, `compli-me`, and `contact-patch` are on `0.3.0`; `nightfire` on
-`0.2.2`; `figmatic` on `0.4.1`; published is `0.4.2`. `acowtancy` and `underlay`
-are current.
+Poodle version sweep, wider than the Longhorn list. Current: `acowtancy`,
+`underlay`, and `soundcheck-library`. Moving with their Longhorn tasks:
+`nucleus`, `soundcheck`, `loophole`, `finch`, and `jetstream`. Handled by its own
+chatterbox: `figmatic`. Dispatched as a dedicated Poodle-update lane: `compli-me`
+(`3d567abc`), `contact-patch` (`da04f77a`), `songsprout` (`6be4fe01`),
+`underlay-reference` (`e84c8a69`), `nightfire` (`92e8870c`), and jetstream's
+Rust `poodle-*` path deps (`e95302b9`).
 
 ## Work
 
