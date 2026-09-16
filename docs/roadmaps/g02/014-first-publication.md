@@ -100,21 +100,22 @@ consumer sweep.
 
 ## Consumer repoint status
 
-Every consumer, its current Longhorn dependency form, and whether it has moved
-to the published release. Each row is a separate authorized write in that
-repository; update it here as each lands.
+Every consumer, its current Longhorn dependency form, and how its repoint is
+being driven. Each row is a separate authorized write in that repository;
+update it here as each lands. Seven repos got a roadmap task and a dispatched
+Queue worker; acowtancy and figmatic got a brief to their Paseo chatterbox.
 
 | Repo | Longhorn dependency | State |
 | --- | --- | --- |
-| `loophole` (`apps/desktop`) | TS `file:`; Rust `path` | outstanding |
-| `nucleus` (`apps/desktop`) | TS `file:`; Rust `path` | outstanding |
-| `soundcheck` | TS `file:`; Rust `path` | outstanding |
-| `soundcheck-library` | Rust `git rev` | outstanding |
-| `jetstream` (`editor-ui`, `crates/jetstream-editor-tauri`) | TS `file:`; Rust `git rev` | outstanding |
-| `figmatic` (`studio`, `crates/figmatic-studio`) | TS `file:`; Rust `path` | outstanding |
-| `finch` (`app-tauri`) | TS `file:`; Rust `path` | outstanding |
-| `acowtancy` (`apps/bovine-desktop`) | TS `file:`; Rust `path` | outstanding |
-| `kimi-shell` (`src-tauri`) | Rust `path` | outstanding |
+| `loophole` (`apps/desktop`) | TS `file:`; Rust `path` | dispatched (`7608c5f7`) |
+| `nucleus` (`apps/desktop`) | TS `file:`; Rust `path` | dispatched (`53737506`) |
+| `soundcheck` | TS `file:`; Rust `path` | dispatched (`da789d92`) |
+| `soundcheck-library` | Rust `git rev` | dispatched (`ea12d6f4`) |
+| `jetstream` (`editor-ui`, `crates/jetstream-editor-tauri`) | TS `file:`; Rust `git rev` | dispatched (`844920e0`) |
+| `figmatic` (`studio`, `crates/figmatic-studio`) | TS `file:`; Rust `path` | brief sent to its Paseo chatterbox |
+| `finch` (`app-tauri`) | TS `file:`; Rust `path` | dispatched (`7cd4b15a`) |
+| `acowtancy` (`apps/bovine-desktop`) | TS `file:`; Rust `path` | brief sent to its Paseo chatterbox |
+| `kimi-shell` (`src-tauri`) | Rust `path` | dispatched (`e4043348`) |
 
 Poodle version sweep, wider than this list: `nucleus`, `soundcheck`,
 `soundcheck-library`, `jetstream`, `loophole`, `finch`, `underlay-reference`,
