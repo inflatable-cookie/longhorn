@@ -48,6 +48,6 @@ reverted: five free functions (`discover_legacy_storage`,
 internal and zero external callers — they are fully dead public API, not
 ConfigStore-internal helpers. Narrowing them to `pub(crate)` surfaces
 dead-code lints, and deleting them would remove documented migration
-behavior. They remain public, unused, and harmless in a private workspace.
+behavior. They remain public, unused, and harmless.
 Decision deferred: contract them with a real caller, or delete when the
 retention/transition runway next touches them.

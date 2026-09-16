@@ -14,10 +14,11 @@ Svelte/TypeScript and need any of: config storage with backup/restore,
 window and display management, a settings system, commands and keymaps,
 history, or native-content hosting.
 
-Longhorn is pre-1.0 and private: packages are not on npm or crates.io. This
-repo is also a working laboratory — most docs record how systems were built
-and proven, not just how to use them. Start with the adoption guides below;
-treat the rest as background.
+Longhorn is pre-1.0. The three TypeScript packages publish to npm under
+`@inflatable-cookie`; the Rust crates set `publish = false` and are taken by
+git tag. This repo is also a working laboratory — most docs record how
+systems were built and proven, not just how to use them. Start with the
+adoption guides below; treat the rest as background.
 
 ## Start Here
 
@@ -47,16 +48,16 @@ effigy qa
 
 ## Current State
 
-Pre-1.0 private workspace. Generation g01 is complete (20 tasks, cards
-001-137, five migrated consumers: Nucleus, Loophole, Soundcheck, Split-shell,
-Jetstream). Generation g02 is active as one executable task per `g02.NNN`
-file, across workspace-integrity remediation, application update and
-licensing, release-audit hardening, consumer-scoped credential slots, the
-agent-control arc through g02.035, and the production contextual-tool L1
-baseline in g02.036. Per-app agent-control adoption remains consumer-owned.
-The private `0.1.0`
-compatibility candidate spans the three TypeScript packages and the Rust
-crates enumerated — always currently — by the
-[generated API reference](docs/reference/api-surface.md); package-manager
-publication remains deferred. The [generation index](docs/roadmaps/generation-index.md)
-owns the live next-task pointer.
+Pre-1.0 workspace. Generation g01 is complete (20 tasks, cards 001-137, five
+migrated consumers: Nucleus, Loophole, Soundcheck, Split-shell, Jetstream).
+Generation g02 is active as one executable task per `g02.NNN` file, across
+workspace-integrity remediation, application update and licensing,
+release-audit hardening, consumer-scoped credential slots, the agent-control
+arc through g02.035, and the production contextual-tool L1 baseline in
+g02.036. Per-app agent-control adoption remains consumer-owned.
+
+`0.1.0` published 2026-09-16: the three TypeScript packages on npm under
+`@inflatable-cookie`, and the Rust crates enumerated — always currently — by
+the [generated API reference](docs/reference/api-surface.md), taken by git
+tag `v0.1.0`. The [generation index](docs/roadmaps/generation-index.md) owns
+the live next-task pointer.

@@ -1,8 +1,8 @@
 # g02.014 First Publication
 
-Status: ready
+Status: published and tagged 2026-09-16; consumer repoint outstanding
 Owner: Tom
-Updated: 2026-09-15
+Updated: 2026-09-16
 Governing refs: contract 012; absorbed Card 166 (ready card record below)
 Depends on: g02.013 complete
 

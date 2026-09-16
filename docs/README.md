@@ -1,9 +1,9 @@
 # Longhorn Docs
 
-The documentation for Longhorn, a pre-1.0 private workspace of shared Rust
-and Svelte/TypeScript systems for Tauri desktop apps. Package-manager
-publication is deferred; this repo records both how the systems work and how
-they were built.
+The documentation for Longhorn, a pre-1.0 workspace of shared Rust and
+Svelte/TypeScript systems for Tauri desktop apps. The TypeScript packages
+publish to npm; the Rust crates are taken by git tag. This repo records both
+how the systems work and how they were built.
 
 ## Start Here
 
@@ -27,16 +27,19 @@ For maintainers and agents:
 
 ## Current State
 
-Pre-1.0 private workspace. Generation g01 is complete (20 tasks, cards
-001-137, five migrated consumers; roll-up at
+Pre-1.0 workspace. Generation g01 is complete (20 tasks, cards 001-137, five
+migrated consumers; roll-up at
 [roadmaps/archive/g01.md](roadmaps/archive/g01.md)). Generation g02 is active
 as one executable task per `g02.NNN` file, across application-update and
 licensing runways, the memo-023 release-audit suite (tasks g02.021-027), and
 the agent-control arc through g02.035, with consumer-scoped credential slots
-at g02.028. The private `0.1.0` compatibility candidate
-spans the TypeScript packages and Rust crates enumerated — always currently —
-by the generated [API reference](reference/api-surface.md). Publication to
-npm and crates.io remains deferred.
+at g02.028.
+
+`0.1.0` published 2026-09-16 spans the TypeScript packages and Rust crates
+enumerated — always currently — by the generated
+[API reference](reference/api-surface.md). The three TypeScript packages are
+on npm under `@inflatable-cookie`; the Rust crates stay off crates.io and are
+taken by git tag `v0.1.0`.
 
 The complete delivery history is preserved in the
 [roadmap generation index](roadmaps/generation-index.md).

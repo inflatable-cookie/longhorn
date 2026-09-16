@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-09
 
+### 2026-09-16
+
+- [First Publication — 0.1.0](2026-09/16-first-publication.md)
+
 ### 2026-09-15
 
 - [g02.037 Focused Panel Surfaces Closeout](2026-09/15-g02-037-focused-panel-surfaces.md)

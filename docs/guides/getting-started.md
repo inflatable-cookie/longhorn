@@ -14,15 +14,17 @@ This is the smallest proven shape — two Longhorn TypeScript packages (plus the
 Poodle renderer packages) and six Rust crates. Work through it once and you
 know the pattern every larger composition builds on.
 
-> **Temporary note.** Longhorn is unpublished: there is no npm/crates.io
-> install of it today. The working TypeScript path is `file:` dependencies
-> against sibling checkouts (step 4); the published-version path arrives with
-> g02.014. Poodle is published — `@inflatable-cookie/poodle-core` and
-> `@inflatable-cookie/poodle-svelte` resolve from npm at `0.4.2`, the version
-> Longhorn pins. The
+> **Publishing status.** `0.1.0` is on npm —
+> `@inflatable-cookie/longhorn`,
+> `@inflatable-cookie/longhorn-poodle-svelte`, and
+> `@inflatable-cookie/longhorn-tauri` — and Poodle resolves from npm at
+> `0.4.2`, the version Longhorn pins. This guide still walks the `file:`
+> sibling path because that is what the proofs use; installing by version is
+> the shorter route. The
 > [private 0.1 candidate](../reference/private-0-1-candidate.md) receipt is
 > frozen history — it records the 17-tarball TypeScript layout of 2026-08-02;
-> the tree produces three tarballs today. The Rust steps are stable.
+> the tree produces three tarballs today. The Rust steps are stable: crates
+> are taken by git tag.
 
 ## 1. Prerequisites
 
@@ -127,9 +129,8 @@ The `overrides` block is required, not optional. `longhorn-poodle-svelte` and
 install reaches the registry for `0.1.0` and 404s — for a package that is
 already on disk. Point the override at the same path as the dependency.
 
-Once Longhorn publishes — the published-version path arrives with g02.014 —
-depend by version and delete the `overrides` entry. It exists only to keep
-`file:` installs off the registry.
+Longhorn `0.1.0` is published — depend by version and delete the `overrides`
+entry. It exists only to keep `file:` installs off the registry.
 
 The 17-tarball `npm install ./artifacts/...` recipe this section used to
 carry is frozen with the

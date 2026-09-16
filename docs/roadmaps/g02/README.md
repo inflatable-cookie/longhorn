@@ -17,7 +17,7 @@
 | [g02.011](011-ipc-boundary-validation.md) | complete | IPC boundary validation derived from the Rust authority |
 | [g02.012](012-dual-backend-host-positioning.md) | complete | two first-class hosts: Tauri and GPUI, one host-agnostic core |
 | [g02.013](013-typescript-package-graph.md) | complete | eighteen TypeScript packages to three, grouped by peer requirement |
-| [g02.014](014-first-publication.md) | ready — release terminus | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
+| [g02.014](014-first-publication.md) | published `0.1.0`, tagged `v0.1.0`; consumer repoint outstanding | Poodle and Longhorn on public npm; consumers on versions; v0.1.0 tagged |
 | [g02.015](015-gpui-composition-and-live-evidence.md) | complete | one guide assembles a GPUI application; contract 020's last two ceilings proved live |
 | [g02.016](016-fork-history-field-corrections.md) | complete | five fork-history items from Loophole's field use; three delete live workarounds |
 | [g02.017](017-fork-retention-and-deletion.md) | blocked — stage 3 awaits field evidence | an operator can delete a fork; retention can prune, which today it cannot |
@@ -55,11 +55,11 @@ first release. Recompiled from the post-g02.039 state.
 
 | Order | Task | State | Role |
 | --- | --- | --- | --- |
-| 1 | [g02.014](014-first-publication.md) | ready | release terminus: publish, tag, repoint |
+| 1 | [g02.014](014-first-publication.md) | published + tagged | release terminus: publish, tag, repoint |
 
-g02.020 and g02.026 are complete (PRs #27 and #28), so g02.014 is the only
-lane left. It is operator-driven: the Longhorn prep is small, then publishing,
-tagging, and consumer repointing are acts only the operator and CI can perform.
+g02.020 and g02.026 are complete (PRs #27 and #28). g02.014 is published:
+`0.1.0` is on npm (three packages) and `v0.1.0` is tagged at `7e81daa2`. What
+remains is the consumer repoint, which is cross-repo and operator-owned.
 Parked lanes do not gate the release: g02.036 (L1 evidence and D1 blocked;
 production held), g02.008 (deferred), g02.019 and g02.017
 (Poodle/downstream, field evidence).
