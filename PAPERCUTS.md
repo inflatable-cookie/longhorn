@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Consumer repoint dispatches need a declared cross-repo Rust identity edge — 2026-09-16
+- Friction: soundcheck (g04.034) and soundcheck-library (g01.008) share one `longhorn-core`/`longhorn-history` identity: soundcheck reaches the library by path, so its lock carried both the new `?tag=v0.1.0` copy and the library's older `?rev=` copy. Dispatched in parallel with no `queue.dependsOn`, soundcheck hit `E0308` cross-identity errors and blocked until the library merged.
+- Impact: a coupled pair ran concurrently and one lane stalled; the dependency should have been declared at submission, not discovered from the failure.
+- Plausible fix: declare `queue.dependsOn` for consumer pairs that share a crate identity (soundcheck → soundcheck-library), or group them as one lane.
+- Surface: Longhorn consumer dispatch (g02.014); soundcheck's path dep on soundcheck-library.
+
 ### [ ] Release QA uses the runner's latest stable clippy, local uses older — 2026-09-16
 - Friction: `effigy qa` in `release.yml` runs on `dtolnay/rust-toolchain@stable`, which tracks the newest stable. Rust 1.98 added `clippy::chunks_exact_to_as_chunks`; the same gate was green locally on 1.97 and red on the runner, stopping the dry run before any publish step.
 - Impact: a release can fail on a lint that did not exist when the code was written or last validated locally, with no local signal.

@@ -109,8 +109,8 @@ Queue worker; acowtancy and figmatic got a brief to their Paseo chatterbox.
 | --- | --- | --- |
 | `loophole` (`apps/desktop`) | TS `file:`; Rust `path` | dispatched (`7608c5f7`) |
 | `nucleus` (`apps/desktop`) | TS `file:`; Rust `path` | dispatched (`53737506`) |
-| `soundcheck` | TS `file:`; Rust `path` | dispatched (`da789d92`) |
-| `soundcheck-library` | Rust `git rev` | dispatched (`ea12d6f4`) |
+| `soundcheck` | TS `file:`; Rust `path` | resuming (`da789d92`) — was blocked on the library merge |
+| `soundcheck-library` | Rust `git rev` | complete (PR #14) |
 | `jetstream` (`editor-ui`, `crates/jetstream-editor-tauri`) | TS `file:`; Rust `git rev` | dispatched (`844920e0`) |
 | `figmatic` (`studio`, `crates/figmatic-studio`) | TS `file:`; Rust `path` | brief sent to its Paseo chatterbox |
 | `finch` (`app-tauri`) | TS `file:`; Rust `path` | dispatched (`7cd4b15a`) |
