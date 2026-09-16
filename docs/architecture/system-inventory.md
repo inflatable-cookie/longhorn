@@ -175,14 +175,22 @@ fresh action admission. `g01.012` is complete.
 
 ## Consumer Repos
 
-| Repo/app | Intended role |
-| --- | --- |
-| `loophole/aura` + `loophole/echo` | full hierarchy donor and advanced conformance consumer |
-| `nucleus/apps/desktop` + `nucleus-workspaces` | no-Surface donor and simple conformance consumer |
-| `soundcheck` | single-window persistence, job, event, and native-inspection specimen |
-| `jetstream` editor | snapshot bridge, shortcut, and embedded-native-surface specimen |
-| `<private-consumer>` | greenfield-simple preference, split, tree-state, dialog specimen |
-| `poodle` | external visual primitive authority |
+Every repository that depends on Longhorn, verified against its manifests. The
+dependency column is the pre-repoint state: each `file:`, `path`, or `git rev`
+becomes the published version or tag `v0.1.0` (g02.014).
+
+| Repo/app | Longhorn dependency | Intended role |
+| --- | --- | --- |
+| `loophole` (`apps/desktop`) | TS `file:`; Rust `path` | full hierarchy donor and advanced conformance consumer |
+| `nucleus` (`apps/desktop`) | TS `file:`; Rust `path` | no-Surface donor and simple conformance consumer |
+| `soundcheck` | TS `file:`; Rust `path` | single-window persistence, job, event, and native-inspection specimen |
+| `soundcheck-library` | Rust `git rev` | shared library crate consumed by soundcheck |
+| `jetstream` (`editor-ui`, `crates/jetstream-editor-tauri`) | TS `file:`; Rust `git rev` | snapshot bridge, shortcut, and embedded-native-surface specimen |
+| `figmatic` (`studio`, `crates/figmatic-studio`) | TS `file:`; Rust `path` | agent-control and child-webview consumer |
+| `finch` (`app-tauri`) | TS `file:`; Rust `path` | Tauri composition consumer |
+| `acowtancy` (`apps/bovine-desktop`) | TS `file:`; Rust `path` | contextual-agent consumer |
+| `kimi-shell` (`src-tauri`) | Rust `path` | minimal shell consumer (no TypeScript dependency) |
+| `poodle` | — | external visual primitive authority |
 
 ## External And Host Surfaces
 

@@ -88,9 +88,39 @@ consumer sweep.
 5. **Tag and publish.** `git tag v0.1.0 && git push origin v0.1.0`, then
    `gh workflow run release.yml --ref v0.1.0 -f dry-run=false`. Dispatch
    against the tag, never `main`.
-6. **Repoint consumers** (cross-repo, operator-owned): move every `file:`
-   Poodle and Longhorn reference to the published versions, then run each
-   repository's own checks.
+6. **Repoint consumers** (cross-repo; each repository needs its own authorized
+   write). Longhorn consumers: `loophole`, `nucleus`, `soundcheck`,
+   `soundcheck-library`, `jetstream`, `figmatic`, `finch`, `acowtancy`
+   (`apps/bovine-desktop`), and `kimi-shell` (Rust only). Move every
+   `file:`/`path`/`git rev` reference to the published versions and tag
+   `v0.1.0`, then run each repository's own checks. The full inventory, with
+   each repo's dependency form, is in
+   `docs/architecture/system-inventory.md#consumer-repos`; the Poodle version
+   sweep is wider than the Longhorn list.
+
+## Consumer repoint status
+
+Every consumer, its current Longhorn dependency form, and whether it has moved
+to the published release. Each row is a separate authorized write in that
+repository; update it here as each lands.
+
+| Repo | Longhorn dependency | State |
+| --- | --- | --- |
+| `loophole` (`apps/desktop`) | TS `file:`; Rust `path` | outstanding |
+| `nucleus` (`apps/desktop`) | TS `file:`; Rust `path` | outstanding |
+| `soundcheck` | TS `file:`; Rust `path` | outstanding |
+| `soundcheck-library` | Rust `git rev` | outstanding |
+| `jetstream` (`editor-ui`, `crates/jetstream-editor-tauri`) | TS `file:`; Rust `git rev` | outstanding |
+| `figmatic` (`studio`, `crates/figmatic-studio`) | TS `file:`; Rust `path` | outstanding |
+| `finch` (`app-tauri`) | TS `file:`; Rust `path` | outstanding |
+| `acowtancy` (`apps/bovine-desktop`) | TS `file:`; Rust `path` | outstanding |
+| `kimi-shell` (`src-tauri`) | Rust `path` | outstanding |
+
+Poodle version sweep, wider than this list: `nucleus`, `soundcheck`,
+`soundcheck-library`, `jetstream`, `loophole`, `finch`, `underlay-reference`,
+`songsprout`, `compli-me`, and `contact-patch` are on `0.3.0`; `nightfire` on
+`0.2.2`; `figmatic` on `0.4.1`; published is `0.4.2`. `acowtancy` and `underlay`
+are current.
 
 ## Work
 

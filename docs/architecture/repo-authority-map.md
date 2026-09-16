@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-08-02
+Updated: 2026-09-16
 Architecture: `system-architecture.md`, `system-inventory.md`,
 `secondary-consumer-migration-map.md`
 
@@ -21,6 +21,11 @@ authority and migrate through explicit batches. Poodle remains independent.
 | `nucleus` | agent workspace policy, resources, server data, panel and Browser policy | storage, protected window, registered layout, checked renderer, native content | project/task/runtime authority |
 | `soundcheck` | plugin-library workflows and desktop policy | stable-name storage, config, window, settings/recovery, operation, isolated-window coordination | soundcheck-library SQLite/scan plus Signal plugin, DAW, sync, and inspection policy |
 | `jetstream` | engine/editor and native renderer | bridge, command/keymap, backing-surface coordination | command execution, frame/render/WGPU/world/input authority |
+| `soundcheck-library` | plugin-library domain data | shared `longhorn-core` / `longhorn-history` identity | plugin-library SQLite/scan policy |
+| `figmatic` | studio product policy and the agent-control composition | config, settings, display, native content, operation, notifications, agent-control | studio product authority |
+| `finch` | product policy | config, core, settings, windowing, display | product authority |
+| `acowtancy` (`apps/bovine-desktop`) | contextual-agent product policy | config, command, operation, settings, windowing, agent-control | Bovine product authority |
+| `kimi-shell` | shell product policy | config, display, windowing | shell product authority |
 | `<private-consumer>` | content workspace | minimal config/settings and public Poodle artifacts | content/navigation/editorial/Git domain; no forced layout |
 
 ## Cross-Repo Rules
