@@ -46,7 +46,7 @@
         "runner": "effigy"
       },
       "timeoutMs": 60000,
-      "target": "reviewed_head"
+      "target": "prospective_merge"
     },
     {
       "allowedPaths": [
@@ -151,5 +151,5 @@
       "target": "integration_base"
     }
   ],
-  "schema": "paseo.queue.control.v3"
+  "schema": "paseo.queue.control.v4"
 }
