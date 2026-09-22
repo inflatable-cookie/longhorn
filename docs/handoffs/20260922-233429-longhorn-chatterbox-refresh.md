@@ -57,8 +57,10 @@ failure the local gates could not see.
 
 **Thread and workspace.** Source Chatterbox `18b7b953-373a-4599-8aed-a29ff2a726cf`,
 in workspace `wks_edde3deb8d63dbd7` — `/Users/tom/Dev/projects/longhorn`,
-`local` isolation, title "Longhorn release". `main` is clean at `0cea8d3f` and
-pushed.
+`local` isolation, title "Longhorn release". `main` is clean and pushed. The
+last substantive commit is `0cea8d3f`; this handoff and the file-selection
+triage note are the only commits on top of it, so expect `main` to be one or two
+ahead of that name.
 
 **Queue preflight.** Clean. `node bin/northstar-transfer-origin.mjs preflight`
 returned plan `f6b208af5507a10701f36151f92bced0e95881e24825b05b24faa6d3528e86c4`
