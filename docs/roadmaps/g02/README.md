@@ -85,6 +85,13 @@ plus npm publish — once all merge:
 `g02.042` follows `g02.041`; `g02.043` and `g02.044` are independent. This
 release is operator-owned per policy; no consumer request authorizes it.
 
+The stdio carrier's acceptance set is the measured Swallowtail routes —
+`claude-agent.sdk`, and `grok-build.acp` version-scoped `1.0.4`/`1.0.5`.
+`direct-http` is empty for those routes, so the carrier is their only path;
+the carrier itself is generic client-side infrastructure any stdio-only harness
+may spawn. Evidence: Swallowtail `g06.014` at `7fe38435`, Research 336 scope note
+at `fdf313b3`.
+
 On publish, notify the acowtancy Desktop Oracle
 (`ead33773-22cb-4f81-aac7-1c7ac1ad8528`) with the tag and its commit, the npm
 versions and integrity for the three packages, and the frozen Rust tag identity

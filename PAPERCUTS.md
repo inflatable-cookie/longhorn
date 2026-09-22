@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Editing a dispatched task file breaks hook-owned closeout — 2026-09-22
+- Friction: `g02.044`'s task file was updated three times on `main` (measured route evidence, scope corrections) after its handoff was committed. The `task.closeout` hook refused with "task path ... changed outside its generated lifecycle block since its pinned planning blob", then — once reverted — with "Integration HEAD moved from the event base". Recovery needed the task file reverted to the pinned blob **and** an explicit operator `retry_hook`: the automatic closeout-base renewal is capped at three attempts and cannot renew a stale-base occurrence.
+- Impact: a legitimate mid-flight planning clarification can wedge closeout, and the repair is non-obvious.
+- Plausible fix: record post-dispatch evidence outside the task file (a triage note, the runway, or a reference), or let the closeout hook accept a reported planning-blob mutation explicitly.
+- Surface: `.paseo/queue.json` closeout hook; `docs/roadmaps/gNN/*` post-dispatch edits; `server/hooks.ts` `rollRepairedCloseoutOccurrence`.
+
 ### [ ] Consumer repoint dispatches need a declared cross-repo Rust identity edge — 2026-09-16
 - Friction: soundcheck (g04.034) and soundcheck-library (g01.008) share one `longhorn-core`/`longhorn-history` identity: soundcheck reaches the library by path, so its lock carried both the new `?tag=v0.1.0` copy and the library's older `?rev=` copy. Dispatched in parallel with no `queue.dependsOn`, soundcheck hit `E0308` cross-identity errors and blocked until the library merged.
 - Impact: a coupled pair ran concurrently and one lane stalled; the dependency should have been declared at submission, not discovered from the failure.
