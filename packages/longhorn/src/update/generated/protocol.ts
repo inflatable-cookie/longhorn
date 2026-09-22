@@ -88,13 +88,37 @@ version: string,
  */
 cause: DeferralCause, };
 
+export type UpdateStagedArtifactProjection = { 
+/**
+ * The version the bytes were verified for.
+ */
+version: string, 
+/**
+ * The channel the bytes were fetched for.
+ */
+channel: Channel, 
+/**
+ * SHA-256 of the verified bytes, lowercase hex.
+ */
+digest: string, };
+
 export type UpdateProgressProjection = { "state": "idle" } | { "state": "downloading", 
+/**
+ * Bytes received so far.
+ */
+received: number, 
+/**
+ * Bytes the source said to expect, when it said.
+ */
+expected: number | null, 
 /**
  * How far through, when the source reports a length.
  *
  * Absent rather than zero when it does not. A source with no content
  * length cannot produce a fraction, and a bar that invents one is
- * worse than a bar that says it does not know.
+ * worse than a bar that says it does not know. Kept on the wire beside
+ * the byte counts because the clamp and the absent case are the
+ * protocol's answer, not each surface's.
  */
 fraction: number | null, } | { "state": "verifying" } | { "state": "readyToInstall", 
 /**
@@ -105,6 +129,20 @@ version: string, } | { "state": "installing",
  * The version being installed.
  */
 version: string, };
+
+export type UpdateProgressEvent = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: UpdateProtocolVersion, 
+/**
+ * Live authority lifetime the transfer was started under.
+ */
+authorityEpoch: number, 
+/**
+ * What the transfer reports right now.
+ */
+progress: UpdateProgressProjection, };
 
 export type UpdateSnapshot = { 
 /**
@@ -134,6 +172,13 @@ availability: UpdateAvailabilityProjection,
  * The standing deferral, when one applies.
  */
 deferral: UpdateDeferralProjection | null, 
+/**
+ * The retained verified artifact, when one is staged.
+ *
+ * Survives across calls: a deferred install keeps it, an explicit cancel
+ * discards it, and a verification failure never creates it.
+ */
+staged: UpdateStagedArtifactProjection | null, 
 /**
  * What is in flight.
  */
@@ -182,7 +227,7 @@ version: string,
  */
 cause: DeferralCause, };
 
-export type UpdateInstallCommand = { 
+export type UpdatePrepareCommand = { 
 /**
  * Exact metadata protocol line.
  */
@@ -192,9 +237,33 @@ protocolVersion: UpdateProtocolVersion,
  */
 authorityEpoch: number, 
 /**
- * The version to install.
+ * The version to prepare.
  */
 version: string, };
+
+export type UpdateApplyCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: UpdateProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: number, 
+/**
+ * The version the caller believes is staged.
+ */
+version: string, };
+
+export type UpdateCancelCommand = { 
+/**
+ * Exact metadata protocol line.
+ */
+protocolVersion: UpdateProtocolVersion, 
+/**
+ * Authority lifetime observed by the caller.
+ */
+authorityEpoch: number, };
 
 export type UpdateInstallAuthorizationProjection = { "status": "approved" } | { "status": "deferred", 
 /**

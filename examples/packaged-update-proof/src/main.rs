@@ -37,9 +37,9 @@ use flate2::{Compression, write::GzEncoder};
 use longhorn_update::{
     ArtifactFetch, ArtifactKey, BuildIdentity, Channel, ChannelManifest, CheckKind, FetchError,
     FetchProgress, InstallFailure, InstallId, InstallProvenance, OutstandingWork, QuiescenceKind,
-    QuiescenceProbe, SourceRequest, StaticJsonSource, TargetTriple, UpdateCheckCommand,
-    UpdateController, UpdateGate, UpdateInstallCommand, UpdateInstaller, UpdateOutcomeProjection,
-    UpdateProtocolVersion, verify_artifact,
+    QuiescenceProbe, SourceRequest, StaticJsonSource, TargetTriple, UpdateApplyCommand,
+    UpdateCheckCommand, UpdateController, UpdateGate, UpdateInstaller, UpdateOutcomeProjection,
+    UpdatePrepareCommand, UpdateProgressProjection, UpdateProtocolVersion, verify_artifact,
 };
 use longhorn_update_install::{NativeInstaller, detect_provenance};
 use minisign::KeyPair;
@@ -160,6 +160,7 @@ fn run(app: &Path) -> Result<Value, String> {
         && executable_bits_survived
         && sequence.offered
         && sequence.transferred
+        && sequence.staged_retained
         && sequence.gate_deferred
         && sequence.installed
         // Absent when the machine has no cask installed. Not a failure: the
@@ -182,6 +183,7 @@ fn run(app: &Path) -> Result<Value, String> {
             "executableBitsSurviveTheRoundTrip": executable_bits_survived,
             "aLoopbackManifestYieldsAnOffer": sequence.offered,
             "theArtifactArrivesOverARealSocket": sequence.transferred,
+            "aDeferredInstallRetainsTheStagedArtifact": sequence.staged_retained,
             "workInFlightDefersTheInstallAfterTheTransfer": sequence.gate_deferred,
             "aQuiescentHostInstallsTheOfferedVersion": sequence.installed,
             "aRealCaskInstallClassifiesAsExternallyManaged": match &externally_managed {
@@ -209,6 +211,7 @@ fn run(app: &Path) -> Result<Value, String> {
             "progressReports": sequence.reports,
             "fractionAtCompletion": sequence.final_fraction,
             "fetchCalls": sequence.fetch_calls,
+            "stagedRetained": sequence.staged_retained,
             "installedVersionAfterSequence": sequence.version_after,
             "rejections": sequence.rejections,
         },
@@ -540,6 +543,7 @@ struct SequenceOutcome {
     rejections: Vec<String>,
     offered: bool,
     transferred: bool,
+    staged_retained: bool,
     gate_deferred: bool,
     installed: bool,
     reports: usize,
@@ -660,16 +664,37 @@ fn drive_controller(
             )
     );
 
-    // The gate sits between verify and install, so a busy host still pays for
-    // the transfer. Proving that ordering needs the busy run first.
+    // Prepare fetches, verifies and retains; the gate runs at apply, so a
+    // busy host pays for the transfer and then keeps it. Proving the retention
+    // needs the busy apply first: "Later" must not mean "download again".
     let busy = BusyProbe;
-    let install_command = UpdateInstallCommand {
+    let prepare_command = UpdatePrepareCommand {
         protocol_version: UpdateProtocolVersion::CURRENT,
         authority_epoch: controller.authority_epoch(),
         version: next.to_string(),
     };
-    let deferred = controller.install(
-        &install_command,
+    let mut observed = Vec::new();
+    let prepared = controller.prepare(&prepare_command, &mut |progress| {
+        observed.push(progress.clone())
+    });
+    let prepared_ok = matches!(
+        &prepared,
+        UpdateOutcomeProjection::Committed { snapshot }
+            if snapshot.staged.is_some()
+                && snapshot.progress
+                    == UpdateProgressProjection::ReadyToInstall {
+                        version: next.to_string(),
+                    }
+    );
+    let transferred = fetch.calls.get() >= 2 && bundle_version(&installed)? == current.to_string();
+
+    let apply_command = UpdateApplyCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: controller.authority_epoch(),
+        version: next.to_string(),
+    };
+    let deferred = controller.apply(
+        &apply_command,
         &UpdateGate::new(vec![&busy]),
         &NativeInstaller::new(&installed),
     );
@@ -677,16 +702,28 @@ fn drive_controller(
         &deferred,
         UpdateOutcomeProjection::Committed { snapshot } if snapshot.deferral.is_some()
     );
-    let transferred = fetch.calls.get() >= 2 && bundle_version(&installed)? == current.to_string();
+    let staged_retained = prepared_ok
+        && matches!(
+            &deferred,
+            UpdateOutcomeProjection::Committed { snapshot }
+                if snapshot.staged.is_some()
+                    && snapshot.progress
+                        == UpdateProgressProjection::ReadyToInstall {
+                            version: next.to_string(),
+                        }
+        );
+    let transfers_after_deferral = fetch.calls.get();
 
-    let applied = controller.install(
-        &install_command,
+    let applied = controller.apply(
+        &apply_command,
         &UpdateGate::new(Vec::new()),
         &NativeInstaller::new(&installed),
     );
     let version_after = bundle_version(&installed)?;
     let installed_ok = matches!(&applied, UpdateOutcomeProjection::Committed { .. })
         && version_after == next.to_string();
+    // A deferred apply that later succeeds must not re-transfer anything.
+    let staged_without_refetch = staged_retained && transfers_after_deferral == fetch.calls.get();
 
     let reports = fetch.reports.borrow();
     let rejections = [&deferred, &applied]
@@ -699,10 +736,11 @@ fn drive_controller(
     Ok(SequenceOutcome {
         rejections,
         offered,
-        transferred,
+        transferred: transferred && staged_without_refetch,
+        staged_retained,
         gate_deferred,
         installed: installed_ok,
-        reports: reports.len(),
+        reports: observed.len(),
         final_fraction: reports.last().and_then(|progress| progress.fraction()),
         fetch_calls: fetch.calls.get(),
         version_after,

@@ -21,7 +21,9 @@ fn every_command_appears_in_exactly_one_permission() {
         "longhorn_update_check",
         "longhorn_update_select_channel",
         "longhorn_update_defer",
-        "longhorn_update_install",
+        "longhorn_update_prepare",
+        "longhorn_update_apply",
+        "longhorn_update_cancel",
     ] {
         let granting: Vec<&str> = files
             .iter()
@@ -39,11 +41,13 @@ fn every_command_appears_in_exactly_one_permission() {
         .iter()
         .map(|(_, body)| body.matches("\"longhorn_update_").count())
         .sum();
-    assert_eq!(declared, 5, "the examples grant a command the crate lacks");
+    assert_eq!(declared, 7, "the examples grant a command the crate lacks");
 }
 
 /// Card 190 step 2. Authorizing an install is not covered by permission to
 /// look for one: the first reads, the second replaces the running application.
+/// The staged protocol splits the install into a staging half and a replace
+/// half, and both stay in the one permission that is never bundled with check.
 #[test]
 fn installing_is_its_own_capability_and_is_never_bundled_with_checking() {
     let install = file("examples/permissions/install-update.toml");
@@ -51,12 +55,13 @@ fn installing_is_its_own_capability_and_is_never_bundled_with_checking() {
     let read = file("examples/permissions/read-update.toml");
     let mutate = file("examples/permissions/mutate-update.toml");
 
-    assert_eq!(install.matches("\"longhorn_update_").count(), 1);
-    assert!(install.contains("longhorn_update_install"));
+    assert_eq!(install.matches("\"longhorn_update_").count(), 2);
+    assert!(install.contains("longhorn_update_prepare"));
+    assert!(install.contains("longhorn_update_apply"));
     for other in [&check, &read, &mutate] {
         assert!(
-            !other.contains("longhorn_update_install"),
-            "install must not ride along with another permission"
+            !other.contains("longhorn_update_prepare") && !other.contains("longhorn_update_apply"),
+            "replacing the application must not ride along with another permission"
         );
     }
 

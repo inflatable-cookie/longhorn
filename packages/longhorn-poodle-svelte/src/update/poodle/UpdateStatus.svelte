@@ -23,7 +23,11 @@
 
   function install(): void {
     const version = update.actionableVersion;
-    if (version !== undefined) void controller.install(version);
+    if (version === undefined) return;
+    // Two halves of one button. A retained artifact is applied; anything else
+    // is staged first, and the surface's progress then says when to restart.
+    if (update.progress?.state === "readyToInstall") void controller.apply(version);
+    else void controller.prepare(version);
   }
 
   // "Not now", which is the operator's own decision rather than the gate's.

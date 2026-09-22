@@ -23,10 +23,11 @@ mod provenance;
 mod restart;
 mod rollout;
 mod source;
+mod staged;
 mod verify;
 
 pub use channel::{BuildIdentity, Channel};
-pub use controller::UpdateController;
+pub use controller::{PreparedTransfer, UpdateController, UpdatePrepareStart};
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};
 pub use deferral::{Deferral, DeferralCause};
 pub use fetch::{ArtifactFetch, FetchError, FetchProgress, MAX_ARTIFACT_BYTES};
@@ -38,11 +39,12 @@ pub use install::{
 pub use manifest::{Artifact, ChannelManifest, TargetTriple, TargetTripleError};
 pub use probes::{CountingProbe, operation_probe, transfer_session_probe};
 pub use protocol::{
-    UPDATE_PROTOCOL_VERSION, UpdateAvailabilityProjection, UpdateChangedEvent, UpdateChangedKind,
-    UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection,
-    UpdateInstallAuthorizationProjection, UpdateInstallCommand, UpdateOutcomeProjection,
-    UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
-    UpdateSelectChannelCommand, UpdateSnapshot,
+    UPDATE_PROTOCOL_VERSION, UpdateApplyCommand, UpdateAvailabilityProjection, UpdateCancelCommand,
+    UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand, UpdateDeferCommand,
+    UpdateDeferralProjection, UpdateInstallAuthorizationProjection, UpdateOutcomeProjection,
+    UpdatePrepareCommand, UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion,
+    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateStagedArtifactProjection,
 };
 pub use provenance::{InstallLocation, InstallManager, InstallProvenance, classify_install};
 pub use restart::{OutstandingWork, QuiescenceKind, QuiescenceProbe, QuiescenceReceipt};
@@ -51,4 +53,5 @@ pub use source::{
     EndpointUrl, EndpointUrlError, GitHubReleasesSource, ObjectStorageSource, SourceError,
     SourceRequest, StaticJsonSource, UpdateSource,
 };
+pub use staged::{ArtifactDigest, StagedArtifact};
 pub use verify::{ArtifactKey, ArtifactKeyError, VerifiedArtifact, verify_artifact};

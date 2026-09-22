@@ -1,9 +1,12 @@
 import type {
+  UpdateApplyCommand,
+  UpdateCancelCommand,
   UpdateChangedEvent,
   UpdateCheckCommand,
   UpdateDeferCommand,
-  UpdateInstallCommand,
   UpdateOutcomeProjection,
+  UpdatePrepareCommand,
+  UpdateProgressEvent,
   UpdateSelectChannelCommand,
   UpdateSnapshot,
 } from "./generated/protocol.ts";
@@ -21,8 +24,11 @@ export interface UpdatePort {
   check(command: UpdateCheckCommand): Promise<unknown>;
   selectChannel(command: UpdateSelectChannelCommand): Promise<unknown>;
   defer(command: UpdateDeferCommand): Promise<unknown>;
-  install(command: UpdateInstallCommand): Promise<unknown>;
+  prepare(command: UpdatePrepareCommand): Promise<unknown>;
+  apply(command: UpdateApplyCommand): Promise<unknown>;
+  cancel(command: UpdateCancelCommand): Promise<unknown>;
   listen?(listener: (event: unknown) => void): UpdateUnlisten | Promise<UpdateUnlisten>;
+  listenProgress?(listener: (event: unknown) => void): UpdateUnlisten | Promise<UpdateUnlisten>;
 }
 
 /** The same seam after validation. */
@@ -31,6 +37,9 @@ export interface CheckedUpdatePort {
   check(command: UpdateCheckCommand): Promise<UpdateOutcomeProjection>;
   selectChannel(command: UpdateSelectChannelCommand): Promise<UpdateOutcomeProjection>;
   defer(command: UpdateDeferCommand): Promise<UpdateOutcomeProjection>;
-  install(command: UpdateInstallCommand): Promise<UpdateOutcomeProjection>;
+  prepare(command: UpdatePrepareCommand): Promise<UpdateOutcomeProjection>;
+  apply(command: UpdateApplyCommand): Promise<UpdateOutcomeProjection>;
+  cancel(command: UpdateCancelCommand): Promise<UpdateOutcomeProjection>;
   listen(listener: (event: UpdateChangedEvent) => void): Promise<UpdateUnlisten>;
+  listenProgress(listener: (event: UpdateProgressEvent) => void): Promise<UpdateUnlisten>;
 }

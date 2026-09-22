@@ -10,11 +10,14 @@ import {
   UPDATE_PROGRESS_STATES,
   UPDATE_PROTOCOL_VERSION,
   UPDATE_REJECTION_CODES,
+  type UpdateApplyCommand,
+  type UpdateCancelCommand,
   type UpdateChangedEvent,
   type UpdateCheckCommand,
   type UpdateDeferCommand,
-  type UpdateInstallCommand,
   type UpdateOutcomeProjection,
+  type UpdatePrepareCommand,
+  type UpdateProgressEvent,
   type UpdateSelectChannelCommand,
   type UpdateSnapshot,
 } from "./generated/protocol.ts";
@@ -43,6 +46,13 @@ export function assertUpdateSnapshot(value: unknown): asserts value is UpdateSna
   version(root.installedVersion, "$.installedVersion");
   availability(root.availability, "$.availability");
   progress(root.progress, "$.progress");
+  if (root.staged !== null) {
+    const staged = object(root.staged, "$.staged");
+    exact(staged, "$.staged", UPDATE_FIELDS.UpdateStagedArtifactProjection);
+    version(staged.version, "$.staged.version");
+    oneOf(staged.channel, "$.staged.channel", UPDATE_CHANNELS);
+    digest(staged.digest, "$.staged.digest");
+  }
   if (root.deferral !== null) {
     const deferral = object(root.deferral, "$.deferral");
     exact(deferral, "$.deferral", UPDATE_FIELDS.UpdateDeferralProjection);
@@ -87,9 +97,31 @@ export function assertUpdateDeferCommand(value: unknown): asserts value is Updat
   cause(root.cause, "$.cause");
 }
 
-export function assertUpdateInstallCommand(value: unknown): asserts value is UpdateInstallCommand {
-  commandBase(value, UPDATE_FIELDS.UpdateInstallCommand);
+export function assertUpdatePrepareCommand(value: unknown): asserts value is UpdatePrepareCommand {
+  commandBase(value, UPDATE_FIELDS.UpdatePrepareCommand);
   version(object(value, "$").version, "$.version");
+}
+
+export function assertUpdateApplyCommand(value: unknown): asserts value is UpdateApplyCommand {
+  commandBase(value, UPDATE_FIELDS.UpdateApplyCommand);
+  version(object(value, "$").version, "$.version");
+}
+
+export function assertUpdateCancelCommand(value: unknown): asserts value is UpdateCancelCommand {
+  commandBase(value, UPDATE_FIELDS.UpdateCancelCommand);
+}
+
+/**
+ * The live progress channel, which carries a report rather than an
+ * invalidation. It is the only thing that shows bytes while a transfer runs.
+ */
+export function assertUpdateProgressEvent(value: unknown): asserts value is UpdateProgressEvent {
+  noPayload(value);
+  const root = object(value, "$");
+  exact(root, "$", UPDATE_FIELDS.UpdateProgressEvent);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  progress(root.progress, "$.progress");
 }
 
 function availability(value: unknown, path: string): void {
@@ -123,7 +155,11 @@ function progress(value: unknown, path: string): void {
   // Absent rather than zero when the source declares no length. A validator
   // that coerced `null` to 0 here would put back the invented number the
   // protocol went out of its way to avoid.
-  if (root.state === "downloading") fraction(root.fraction, `${path}.fraction`);
+  if (root.state === "downloading") {
+    count(root.received, `${path}.received`);
+    optionalCount(root.expected, `${path}.expected`);
+    fraction(root.fraction, `${path}.fraction`);
+  }
   if (root.state === "readyToInstall" || root.state === "installing") {
     version(root.version, `${path}.version`);
   }
@@ -182,6 +218,9 @@ function object(value: unknown, path: string): Record<string, unknown> { if (val
 function exact(value: Record<string, unknown>, path: string, expected: readonly string[]): void { const actual = Object.keys(value).sort(); const wanted = [...expected].sort(); if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) fail(path, `unexpected keys: ${actual.join(",")}`); }
 function protocol(value: unknown, path: string): void { if (value !== UPDATE_PROTOCOL_VERSION) fail(path, `expected exact protocol ${UPDATE_PROTOCOL_VERSION}`); }
 function positive(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) fail(path, "expected positive safe integer"); }
+function count(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) fail(path, "expected a non-negative safe byte count"); }
+function optionalCount(value: unknown, path: string): void { if (value !== null) count(value, path); }
+function digest(value: unknown, path: string): void { if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) fail(path, "expected 64 lowercase hex digits"); }
 function string(value: unknown, path: string): void { if (typeof value !== "string") fail(path, "expected string"); }
 function optionalString(value: unknown, path: string): void { if (value !== null) string(value, path); }
 /** Versions are strings on the wire, as `semver::Version` serialises them. */

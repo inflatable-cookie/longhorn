@@ -10,9 +10,18 @@
     "deferral": null,
     "installedVersion": "1.3.0-nightly.4",
     "progress": {
-      "state": "readyToInstall",
-      "version": "1.3.0-nightly.5"
+      "state": "verifying"
     },
+    "protocolVersion": 1,
+    "staged": null
+  },
+  "applyCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1,
+    "version": "1.3.0-nightly.5"
+  },
+  "cancelCommand": {
+    "authorityEpoch": 7,
     "protocolVersion": 1
   },
   "changedEvent": {
@@ -45,11 +54,6 @@
     "unknownProgressState": "seeding",
     "unknownRejectionCode": "futureRejection"
   },
-  "installCommand": {
-    "authorityEpoch": 7,
-    "protocolVersion": 1,
-    "version": "1.3.0-nightly.5"
-  },
   "managedSnapshot": {
     "authorityEpoch": 7,
     "availability": {
@@ -63,7 +67,8 @@
     "progress": {
       "state": "idle"
     },
-    "protocolVersion": 1
+    "protocolVersion": 1,
+    "staged": null
   },
   "outcomes": [
     {
@@ -84,10 +89,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "committed"
     },
@@ -110,10 +118,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -136,10 +147,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -162,10 +176,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -188,10 +205,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -214,10 +234,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -240,10 +263,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -266,10 +292,13 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     },
@@ -292,14 +321,32 @@
         },
         "installedVersion": "1.3.0-nightly.4",
         "progress": {
+          "expected": 54,
           "fraction": 0.5,
+          "received": 27,
           "state": "downloading"
         },
-        "protocolVersion": 1
+        "protocolVersion": 1,
+        "staged": null
       },
       "status": "rejected"
     }
   ],
+  "prepareCommand": {
+    "authorityEpoch": 7,
+    "protocolVersion": 1,
+    "version": "1.3.0-nightly.5"
+  },
+  "progressEvent": {
+    "authorityEpoch": 7,
+    "progress": {
+      "expected": 54,
+      "fraction": 0.5,
+      "received": 27,
+      "state": "downloading"
+    },
+    "protocolVersion": 1
+  },
   "protocolVersion": 1,
   "selectChannelCommand": {
     "authorityEpoch": 7,
@@ -323,10 +370,32 @@
     },
     "installedVersion": "1.3.0-nightly.4",
     "progress": {
+      "expected": 54,
       "fraction": 0.5,
+      "received": 27,
       "state": "downloading"
     },
-    "protocolVersion": 1
+    "protocolVersion": 1,
+    "staged": null
+  },
+  "stagedSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "state": "upToDate"
+    },
+    "channel": "nightly",
+    "deferral": null,
+    "installedVersion": "1.3.0-nightly.4",
+    "progress": {
+      "state": "readyToInstall",
+      "version": "1.3.0-nightly.5"
+    },
+    "protocolVersion": 1,
+    "staged": {
+      "channel": "nightly",
+      "digest": "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
+      "version": "1.3.0-nightly.5"
+    }
   },
   "upToDateSnapshot": {
     "authorityEpoch": 7,
@@ -340,7 +409,8 @@
       "state": "installing",
       "version": "1.3.0"
     },
-    "protocolVersion": 1
+    "protocolVersion": 1,
+    "staged": null
   },
   "withheldSnapshot": {
     "authorityEpoch": 7,
@@ -352,8 +422,12 @@
     "deferral": null,
     "installedVersion": "1.3.0-nightly.4",
     "progress": {
-      "state": "verifying"
+      "expected": null,
+      "fraction": null,
+      "received": 4096,
+      "state": "downloading"
     },
-    "protocolVersion": 1
+    "protocolVersion": 1,
+    "staged": null
   }
 }
