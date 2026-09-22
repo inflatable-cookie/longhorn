@@ -35,11 +35,12 @@ use std::{
 
 use flate2::{Compression, write::GzEncoder};
 use longhorn_update::{
-    ArtifactFetch, ArtifactKey, BuildIdentity, Channel, ChannelManifest, CheckKind, FetchError,
-    FetchProgress, InstallFailure, InstallId, InstallProvenance, OutstandingWork, QuiescenceKind,
-    QuiescenceProbe, SourceRequest, StaticJsonSource, TargetTriple, UpdateApplyCommand,
-    UpdateCheckCommand, UpdateController, UpdateGate, UpdateInstaller, UpdateOutcomeProjection,
-    UpdatePrepareCommand, UpdateProgressProjection, UpdateProtocolVersion, verify_artifact,
+    AdmissionAuthority, AdmissionLease, AdmissionRefusal, ArtifactFetch, ArtifactKey,
+    BuildIdentity, Channel, ChannelManifest, CheckKind, FetchError, FetchProgress, InstallFailure,
+    InstallId, InstallProvenance, OutstandingWork, QuiescenceKind, QuiescenceProbe, SourceRequest,
+    StaticJsonSource, TargetTriple, UpdateApplyCommand, UpdateCheckCommand, UpdateController,
+    UpdateGate, UpdateInstaller, UpdateOutcomeProjection, UpdatePrepareCommand,
+    UpdateProgressProjection, UpdateProtocolVersion, verify_artifact,
 };
 use longhorn_update_install::{NativeInstaller, detect_provenance};
 use minisign::KeyPair;
@@ -695,7 +696,7 @@ fn drive_controller(
     };
     let deferred = controller.apply(
         &apply_command,
-        &UpdateGate::new(vec![&busy]),
+        &UpdateGate::new(vec![&busy], &GRANTING_ADMISSION),
         &NativeInstaller::new(&installed),
     );
     let gate_deferred = matches!(
@@ -716,7 +717,7 @@ fn drive_controller(
 
     let applied = controller.apply(
         &apply_command,
-        &UpdateGate::new(Vec::new()),
+        &UpdateGate::new(Vec::new(), &GRANTING_ADMISSION),
         &NativeInstaller::new(&installed),
     );
     let version_after = bundle_version(&installed)?;
@@ -758,6 +759,23 @@ impl QuiescenceProbe for BusyProbe {
         })
     }
 }
+
+/// Grants the admission lease immediately. This proof is about staged
+/// retention across a deferred apply; the lease's own lifetime is proved by
+/// the crate's admission tests (`interlock.rs` and `controller.rs`).
+struct GrantingAdmission;
+
+impl AdmissionAuthority for GrantingAdmission {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        Ok(Box::new(GrantedLease))
+    }
+}
+
+struct GrantedLease;
+
+impl AdmissionLease for GrantedLease {}
+
+const GRANTING_ADMISSION: GrantingAdmission = GrantingAdmission;
 
 /// Classifies a Homebrew cask installed on this machine, when there is one.
 ///

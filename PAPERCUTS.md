@@ -374,3 +374,19 @@ scan root restored PASS. Follow-up: filter directory entries before recursion.
   staging, or pin the transitive resolution in the staged manifests.
 - Affected surface: `scripts/settings-composition-proof/`,
   `scripts/verify-pack-typecheck.ts`, any future registry-install proof.
+
+## 2026-09-22 — Vitest SSR import test times out under a full `effigy qa` run
+
+- Friction: `effigy qa` failed in `test:vitest` only on
+  `packages/longhorn-poodle-svelte/tests/native-content/ssr.test.ts`
+  ("imports without browser globals") with `Test timed out in 5000ms`, while
+  the Rust workspace was compiling in the same run. An immediate
+  `effigy test:vitest` re-run passed 36/36 files, 139/139 tests with no change.
+- Impact: a green tree can read red once, and the failure text points at an
+  unrelated native-content import rather than at load.
+- Plausible fix: give that test a longer `testTimeout`, or warm the module
+  graph before the timed section; alternatively keep the Rust and TS gates in
+  separate invocations so transform/collect does not compete with a full
+  workspace build.
+- Affected surface: `packages/longhorn-poodle-svelte/tests/native-content/ssr.test.ts`,
+  `effigy test:vitest`, `effigy qa`.

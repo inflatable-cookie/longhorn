@@ -9,13 +9,14 @@ use std::cell::{Cell, RefCell};
 use std::io::Cursor;
 
 use longhorn_update::{
-    Applied, Artifact, ArtifactFetch, ArtifactKey, BuildIdentity, Channel, ChannelManifest,
-    CheckKind, DeferralCause, FetchError, FetchProgress, InstallFailure, InstallId, InstallManager,
-    InstallProvenance, OutstandingWork, QuiescenceKind, QuiescenceProbe, SourceError,
-    SourceRequest, TargetTriple, UpdateApplyCommand, UpdateCancelCommand, UpdateCheckCommand,
-    UpdateController, UpdateDeferCommand, UpdateGate, UpdateInstaller, UpdateOutcomeProjection,
-    UpdatePrepareCommand, UpdatePrepareStart, UpdateProgressProjection, UpdateProtocolVersion,
-    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSource, VerifiedArtifact,
+    AdmissionAuthority, AdmissionLease, AdmissionRefusal, Applied, Artifact, ArtifactFetch,
+    ArtifactKey, BuildIdentity, Channel, ChannelManifest, CheckKind, DeferralCause, FetchError,
+    FetchProgress, InstallFailure, InstallId, InstallManager, InstallProvenance, OutstandingWork,
+    QuiescenceKind, QuiescenceProbe, SourceError, SourceRequest, TargetTriple, UpdateApplyCommand,
+    UpdateCancelCommand, UpdateCheckCommand, UpdateController, UpdateDeferCommand, UpdateGate,
+    UpdateInstaller, UpdateOutcomeProjection, UpdatePrepareCommand, UpdatePrepareStart,
+    UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
+    UpdateSelectChannelCommand, UpdateSource, VerifiedArtifact,
 };
 use minisign::KeyPair;
 use semver::Version;
@@ -170,6 +171,142 @@ impl UpdateInstaller for Refusing {
     fn apply(&self, _artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
         Err(InstallFailure::NotWritable {
             detail: "read-only bundle".to_owned(),
+        })
+    }
+}
+
+/// Grants every lease. The sequencing tests are about the controller, not the
+/// barrier; the barrier's own behaviour is proved in `interlock.rs` and in the
+/// lease-lifetime tests at the end of this file.
+struct Granting;
+
+impl AdmissionAuthority for Granting {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        Ok(Box::new(Granted))
+    }
+}
+
+/// The lease `Granting` hands out. It blocks nothing, which is why the tests
+/// that check the barrier do not use it.
+struct Granted;
+
+impl AdmissionLease for Granted {}
+
+/// One shared instance, so a gate can borrow it for `'static` without a local
+/// binding in every test.
+const GRANTING: Granting = Granting;
+
+/// Grants one exclusive lease at a time, so an acquisition from inside the
+/// installer is refused while the controller holds the first.
+struct ExclusiveAuthority {
+    held: Cell<bool>,
+    acquisitions: Cell<u32>,
+    refusals: Cell<u32>,
+    releases: Cell<u32>,
+}
+
+impl ExclusiveAuthority {
+    fn new() -> Self {
+        Self {
+            held: Cell::new(false),
+            acquisitions: Cell::new(0),
+            refusals: Cell::new(0),
+            releases: Cell::new(0),
+        }
+    }
+}
+
+impl AdmissionAuthority for ExclusiveAuthority {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        if self.held.get() {
+            self.refusals.set(self.refusals.get() + 1);
+            return Err(AdmissionRefusal::new("a write is in flight"));
+        }
+        self.held.set(true);
+        self.acquisitions.set(self.acquisitions.get() + 1);
+        Ok(Box::new(ExclusiveLease { authority: self }))
+    }
+}
+
+/// The one lease an [`ExclusiveAuthority`] grants; dropping it is the release.
+struct ExclusiveLease<'authority> {
+    authority: &'authority ExclusiveAuthority,
+}
+
+impl AdmissionLease for ExclusiveLease<'_> {}
+
+impl Drop for ExclusiveLease<'_> {
+    fn drop(&mut self) {
+        self.authority.held.set(false);
+        self.authority
+            .releases
+            .set(self.authority.releases.get() + 1);
+    }
+}
+
+/// Never grants, so the unacquirable-lease path is reachable.
+struct NoAdmission;
+
+impl AdmissionAuthority for NoAdmission {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        Err(AdmissionRefusal::new("an index rebuild is running"))
+    }
+}
+
+/// Records whether replacement ran and what the barrier looked like while it
+/// did. The acquisition attempt inside `apply` stands in for the new
+/// conflicting work the lease exists to refuse.
+struct LeaseWatchingInstaller<'authority> {
+    authority: &'authority ExclusiveAuthority,
+    calls: Cell<u32>,
+    conflicting_work_refused: Cell<bool>,
+    conflicting_work_started: Cell<bool>,
+}
+
+impl<'authority> LeaseWatchingInstaller<'authority> {
+    fn new(authority: &'authority ExclusiveAuthority) -> Self {
+        Self {
+            authority,
+            calls: Cell::new(0),
+            conflicting_work_refused: Cell::new(false),
+            conflicting_work_started: Cell::new(false),
+        }
+    }
+}
+
+impl UpdateInstaller for LeaseWatchingInstaller<'_> {
+    fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        self.calls.set(self.calls.get() + 1);
+        match self.authority.acquire() {
+            Ok(_) => self.conflicting_work_started.set(true),
+            Err(_) => self.conflicting_work_refused.set(true),
+        }
+        Ok(Applied {
+            version: artifact.version().clone(),
+            relaunched: false,
+        })
+    }
+}
+
+/// Counts calls, so a test can prove the installer was never reached.
+struct CountingInstaller {
+    calls: Cell<u32>,
+}
+
+impl CountingInstaller {
+    fn new() -> Self {
+        Self {
+            calls: Cell::new(0),
+        }
+    }
+}
+
+impl UpdateInstaller for CountingInstaller {
+    fn apply(&self, artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        self.calls.set(self.calls.get() + 1);
+        Ok(Applied {
+            version: artifact.version().clone(),
+            relaunched: false,
         })
     }
 }
@@ -362,7 +499,7 @@ fn a_stale_authority_epoch_is_refused_on_every_command() {
             authority_epoch: stale,
             version: "1.4.0".to_owned(),
         },
-        &UpdateGate::new(Vec::new()),
+        &UpdateGate::new(Vec::new(), &GRANTING),
         &Installer,
     );
     let cancelled = controller.cancel(&UpdateCancelCommand {
@@ -402,7 +539,11 @@ fn the_whole_sequence_prepares_then_applies_and_leaves_the_new_version_up_to_dat
     assert_eq!(staged.version, "1.4.0");
     assert_eq!(staged.channel, Channel::Production);
 
-    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let applied = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
 
     let snapshot = committed(&applied);
     assert_eq!(snapshot.installed_version, "1.4.0");
@@ -454,7 +595,11 @@ fn a_deferred_install_retains_the_staged_artifact_and_applies_later() {
     prepare_quietly(&mut controller, &prepare("1.4.0"));
 
     let busy = Busy;
-    let deferred = controller.apply(&apply("1.4.0"), &UpdateGate::new(vec![&busy]), &Installer);
+    let deferred = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(vec![&busy], &GRANTING),
+        &Installer,
+    );
 
     // Committed, not rejected: a refused install carries its reason, and the
     // deferral is the reason.
@@ -473,7 +618,11 @@ fn a_deferred_install_retains_the_staged_artifact_and_applies_later() {
         "the verified bytes survive the deferral"
     );
 
-    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let applied = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
 
     assert_eq!(committed(&applied).installed_version, "1.4.0");
     assert_eq!(fetch.calls(), 1, "Later must not re-download");
@@ -495,7 +644,11 @@ fn a_cancel_discards_the_staged_artifact_and_returns_to_idle() {
     assert!(snapshot.staged.is_none());
 
     // Nothing is staged, so a later apply has nothing to consume.
-    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let applied = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
     assert_eq!(rejection(&applied), UpdateRejectionCode::NoOffer);
 }
 
@@ -674,7 +827,11 @@ fn an_artifact_signed_by_another_key_is_refused_and_never_staged() {
     );
 
     // And there is nothing for an installer to reach.
-    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let applied = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
     assert_eq!(rejection(&applied), UpdateRejectionCode::NoOffer);
 }
 
@@ -689,7 +846,11 @@ fn a_failed_replacement_keeps_the_staged_artifact() {
     controller.check(&command, &manifest, CheckKind::UserInitiated);
     prepare_quietly(&mut controller, &prepare("1.4.0"));
 
-    let outcome = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Refusing);
+    let outcome = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Refusing,
+    );
 
     assert_eq!(rejection(&outcome), UpdateRejectionCode::NotWritable);
     assert!(controller.snapshot().staged.is_some());
@@ -712,12 +873,20 @@ fn an_apply_naming_a_different_version_refuses_and_keeps_the_staged_one() {
     controller.check(&command, &manifest, CheckKind::UserInitiated);
     prepare_quietly(&mut controller, &prepare("1.4.0"));
 
-    let outcome = controller.apply(&apply("1.9.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let outcome = controller.apply(
+        &apply("1.9.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
 
     assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
     assert!(controller.snapshot().staged.is_some());
 
-    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    let applied = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
     assert_eq!(committed(&applied).installed_version, "1.4.0");
 }
 
@@ -827,4 +996,107 @@ fn a_channel_switch_advances_the_epoch_and_refuses_pre_switch_commands() {
         CheckKind::Automatic,
     );
     committed(&current);
+}
+
+/// The lease's lifetime is the critical section. A new conflicting acquisition
+/// from inside the installer must be refused, and the barrier must lift only
+/// after `apply` has returned — not before the swap, and not later.
+#[test]
+fn the_admission_lease_is_held_through_apply_and_released_after() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let authority = ExclusiveAuthority::new();
+    let installer = LeaseWatchingInstaller::new(&authority);
+    let gate = UpdateGate::new(Vec::new(), &authority);
+
+    let applied = controller.apply(&apply("1.4.0"), &gate, &installer);
+
+    assert_eq!(committed(&applied).installed_version, "1.4.0");
+    assert_eq!(installer.calls.get(), 1, "replacement ran");
+    assert!(
+        installer.conflicting_work_refused.get(),
+        "new conflicting work must be refused while the barrier is held"
+    );
+    assert!(
+        !installer.conflicting_work_started.get(),
+        "nothing conflicting may start during the swap"
+    );
+    assert_eq!(authority.acquisitions.get(), 1);
+    assert!(
+        !authority.held.get(),
+        "the barrier lifts once apply has returned"
+    );
+    assert_eq!(authority.releases.get(), 1);
+}
+
+/// No bypass: a lease the host will not grant defers, and the installer is
+/// never reached. The staged artifact survives for a later attempt.
+#[test]
+fn an_unacquirable_lease_defers_and_nothing_installs() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let installer = CountingInstaller::new();
+    let deferred = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &NoAdmission),
+        &installer,
+    );
+
+    let snapshot = committed(&deferred);
+    assert_eq!(
+        installer.calls.get(),
+        0,
+        "an unacquired lease must install nothing"
+    );
+    assert_eq!(snapshot.installed_version, "1.3.0");
+    assert_eq!(
+        snapshot.deferral.as_ref().map(|deferral| &deferral.cause),
+        Some(&DeferralCause::WorkInFlight {
+            detail: "an index rebuild is running".to_owned(),
+        }),
+        "the host's reason travels with the refusal"
+    );
+    assert_eq!(
+        snapshot.progress,
+        UpdateProgressProjection::ReadyToInstall {
+            version: "1.4.0".to_owned(),
+        },
+        "a refused lease is a deferral, not a cancellation"
+    );
+    assert!(snapshot.staged.is_some(), "the bytes survive for a retry");
+}
+
+/// The barrier is tied to the call rather than to success: a replacement that
+/// fails still releases it, or the host would be wedged behind a lease nothing
+/// holds.
+#[test]
+fn a_failed_replacement_still_releases_the_lease() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let authority = ExclusiveAuthority::new();
+    let outcome = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &authority),
+        &Refusing,
+    );
+
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::NotWritable);
+    assert_eq!(authority.acquisitions.get(), 1);
+    assert_eq!(authority.releases.get(), 1);
+    assert!(!authority.held.get());
 }

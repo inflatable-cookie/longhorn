@@ -44,7 +44,10 @@ use longhorn_transfer::{
     TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest,
     TransferSourceAuthority, TransferTargetBinding,
 };
-use longhorn_update::{InstallAuthorization, UpdateGate, transfer_session_probe};
+use longhorn_update::{
+    AdmissionAuthority, AdmissionLease, AdmissionRefusal, InstallAuthorization, UpdateGate,
+    transfer_session_probe,
+};
 use serde_json::{Value, json};
 use tauri::{Manager, State, WindowEvent};
 
@@ -239,16 +242,33 @@ impl Proof {
     fn authorization(&self) -> (usize, bool, Option<String>) {
         let open = self.coordinator.session_count();
         let probe = transfer_session_probe(|| open);
-        let gate = UpdateGate::new(vec![&probe]);
+        let gate = UpdateGate::new(vec![&probe], &GRANTING_ADMISSION);
         let version = semver::Version::new(1, 0, 0);
         match gate.authorize(&version) {
-            InstallAuthorization::Approved => (open, true, None),
+            InstallAuthorization::Held(_) => (open, true, None),
             InstallAuthorization::Deferred(deferral) => {
                 (open, false, Some(format!("{:?}", deferral.cause)))
             }
         }
     }
 }
+
+/// Grants the admission lease immediately. This proof is about a genuinely
+/// open transfer session refusing the install; the lease's own lifetime is
+/// proved by the crate's admission tests.
+struct GrantingAdmission;
+
+impl AdmissionAuthority for GrantingAdmission {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        Ok(Box::new(GrantedLease))
+    }
+}
+
+struct GrantedLease;
+
+impl AdmissionLease for GrantedLease {}
+
+const GRANTING_ADMISSION: GrantingAdmission = GrantingAdmission;
 
 type Shared = Mutex<Proof>;
 

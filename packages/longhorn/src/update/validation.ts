@@ -4,6 +4,7 @@ import {
   UPDATE_CHANGED_KINDS,
   UPDATE_CHANNELS,
   UPDATE_DEFERRAL_CAUSES,
+  UPDATE_INSTALL_AUTHORIZATION_STATUSES,
   UPDATE_INSTALL_MANAGERS,
   UPDATE_OFFER_REASONS,
   UPDATE_OUTCOME_STATUSES,
@@ -15,6 +16,7 @@ import {
   type UpdateChangedEvent,
   type UpdateCheckCommand,
   type UpdateDeferCommand,
+  type UpdateInstallAuthorizationProjection,
   type UpdateOutcomeProjection,
   type UpdatePrepareCommand,
   type UpdateProgressEvent,
@@ -122,6 +124,21 @@ export function assertUpdateProgressEvent(value: unknown): asserts value is Upda
   protocol(root.protocolVersion, "$.protocolVersion");
   positive(root.authorityEpoch, "$.authorityEpoch");
   progress(root.progress, "$.progress");
+}
+
+/**
+ * The gate's answer: an exclusive admission lease is held, or the install was
+ * deferred with its reason. There is no fourth state, and no "approved" one —
+ * authorization is a held value, not a point-in-time flag.
+ */
+export function assertUpdateInstallAuthorization(
+  value: unknown,
+): asserts value is UpdateInstallAuthorizationProjection {
+  noPayload(value);
+  const root = object(value, "$");
+  oneOf(root.status, "$.status", UPDATE_INSTALL_AUTHORIZATION_STATUSES);
+  exact(root, "$", variantFields("UpdateInstallAuthorizationProjection", root, "$"));
+  if (root.status === "deferred") cause(root.cause, "$.cause");
 }
 
 function availability(value: unknown, path: string): void {
