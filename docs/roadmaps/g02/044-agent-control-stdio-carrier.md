@@ -39,9 +39,15 @@ consumer-supplied HTTP entry is unsettleable from frozen Swallowtail artifacts.
 So `carrier-required` means "this Swallowtail route cannot reach the production
 MCP without the carrier" — never "this harness cannot" — and this is not a
 dependency map for a consumer outside Swallowtail. Swallowtail recorded the same
-scope note in Research 336 at `fdf313b3`. Figmatic's harness acceptance is a
-separate finding on Figmatic's own configuration surface, and the carrier is
-**not** sized for it here.
+scope note in Research 336 at `fdf313b3`.
+
+The carrier itself is **generic client-side infrastructure**: a harness-side
+stdio→HTTP bridge that discovers the live app instance and fronts its endpoint.
+Any consumer's stdio-only harness may spawn it, and whether a given harness needs
+it is that harness's own business — so it takes no per-consumer sizing, and the
+route list is a measured acceptance set to validate against, not a boundary on
+who may use the carrier. Figmatic, for instance, publishes a local MCP endpoint
+for any MCP-capable harness and names none, so there is nothing to size there.
 
 - **`direct-http`: none.** No Swallowtail route accepts a consumer-supplied
   streamable-HTTP MCP entry, so for those routes the carrier is the only path to
@@ -102,7 +108,7 @@ separate finding on Figmatic's own configuration surface, and the carrier is
 | Semantics preserved | a harness driving the carrier sees the same tools, results, errors, and cancellation as the HTTP client |
 | No widened exposure | the carrier binds only the discovered loopback instance with its bearer; it exposes no new listener |
 | Opt-in | a build without the carrier contains none of it |
-| Measured need | validated against `claude-agent.sdk` and `grok-build.acp` (version-scoped `1.0.4`/`1.0.5`); no other route is a carrier dependent |
+| Measured need | validated against the measured Swallowtail set, `claude-agent.sdk` and `grok-build.acp` (version-scoped `1.0.4`/`1.0.5`); the carrier is generic client-side infrastructure, so this set is what to validate against, not a boundary on who may use it |
 
 Validation uses the focused agent-control selectors plus an end-to-end run
 against the harnesses the evidence names, then `effigy qa`. An independent
