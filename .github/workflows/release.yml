@@ -209,7 +209,19 @@ jobs:
         run: |
           set -euo pipefail
           for dir in packages/longhorn packages/longhorn-poodle-svelte packages/longhorn-tauri; do
-            (cd "$dir" && npm publish --access public)
+            (
+              cd "$dir"
+              # Idempotent: a partially published release is re-run to completion
+              # without republishing what already landed and without a version
+              # error aborting the loop before the remaining packages.
+              name=$(node -p "require('./package.json').name")
+              version=$(node -p "require('./package.json').version")
+              if npm view "$name@$version" version >/dev/null 2>&1; then
+                echo "already published: $name@$version"
+              else
+                npm publish --access public
+              fi
+            )
           done
 
       # if-no-files-found: error, not the default warn. The first green run
