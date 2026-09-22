@@ -25,52 +25,6 @@ second production MCP server, which the 2026-09-22 direction withdrew. This
 promotes the "Agent-control stdio proxy client" candidate from the Tier A
 runway.
 
-## Per-route evidence (Swallowtail g06.014, `7fe38435`)
-
-Swallowtail published the measured route list
-(`docs/research/336-consumer-supplied-http-mcp-acceptance-per-route.md`):
-
-**Scope — these are Swallowtail-seam classifications, not harness capabilities.**
-They describe what Swallowtail's *admitted seam* can carry, not what a harness can
-do when a consumer configures it directly. A consumer configuring its own
-harness is not bound by an adapter's pin; Claude Code is the concrete case — its
-`--mcp-config` flag shape exists, and what the CLI would do with a
-consumer-supplied HTTP entry is unsettleable from frozen Swallowtail artifacts.
-So `carrier-required` means "this Swallowtail route cannot reach the production
-MCP without the carrier" — never "this harness cannot" — and this is not a
-dependency map for a consumer outside Swallowtail. Swallowtail recorded the same
-scope note in Research 336 at `fdf313b3`.
-
-The carrier itself is **generic client-side infrastructure**: a harness-side
-stdio→HTTP bridge that discovers the live app instance and fronts its endpoint.
-Any consumer's stdio-only harness may spawn it, and whether a given harness needs
-it is that harness's own business — so it takes no per-consumer sizing, and the
-route list is a measured acceptance set to validate against, not a boundary on
-who may use the carrier. Figmatic, for instance, publishes a local MCP endpoint
-for any MCP-capable harness and names none, so there is nothing to size there.
-
-- **`direct-http`: none.** No Swallowtail route accepts a consumer-supplied
-  streamable-HTTP MCP entry, so for those routes the carrier is the only path to
-  the production MCP today. Ungating it was right, not optimistic. This says
-  nothing about a directly-configured harness — see the scope note.
-- **`carrier-required`:** `claude-agent.sdk` (consumer-declared stdio servers
-  only; SSE/HTTP is not representable on that seam) and `grok-build.catalogue` +
-  `grok-build.acp` (the ACP `mcpServers` entry is proven only for a
-  Swallowtail-owned stdio courier, only at exact `1.0.4`/`1.0.5`). These two are
-  the honest acceptance set.
-- **Not carrier dependents:** `codex.app-server` is a provider limitation — no
-  typed per-session client-declared MCP surface exists across the qualified
-  range — and the six `producer-gap` ACP rows (`cline.acp`, `copilot-cli.acp`,
-  `gemini-cli.acp`/`.headless`, `goose.acp`, `kiro.acp`, `deepagents.acp`) are
-  **not** sized for until a promoted Swallowtail `g06.005` route plus its live
-  gate moves one into `carrier-required`.
-- **`subscriptions/listen` and the `longhorn://agent-control/...` resources:** no
-  route needs them today. Record them typed `Unsupported` with an explicit
-  reopen condition.
-- Swallowtail's own stdio couriers are non-production development surfaces: they
-  prove stdio *admission*, never harness HTTP acceptance, and must not be cited
-  as evidence that a harness accepts anything.
-
 ## Ready-State Rubric
 
 - [x] The operator accepted the requirement in principle (Swallowtail direction,
@@ -108,7 +62,7 @@ for any MCP-capable harness and names none, so there is nothing to size there.
 | Semantics preserved | a harness driving the carrier sees the same tools, results, errors, and cancellation as the HTTP client |
 | No widened exposure | the carrier binds only the discovered loopback instance with its bearer; it exposes no new listener |
 | Opt-in | a build without the carrier contains none of it |
-| Measured need | validated against the measured Swallowtail set, `claude-agent.sdk` and `grok-build.acp` (version-scoped `1.0.4`/`1.0.5`); the carrier is generic client-side infrastructure, so this set is what to validate against, not a boundary on who may use it |
+| Measured need | validated against at least one stdio harness end-to-end, and against the routes the per-route evidence names as it lands |
 
 Validation uses the focused agent-control selectors plus an end-to-end run
 against the harnesses the evidence names, then `effigy qa`. An independent
@@ -124,46 +78,3 @@ Escalate to Chatterbox.
 
 On completion, record: the binary, the discovery and bearer path, the
 listen/resources position, and the harnesses validated against.
-
-Completion record (2026-09-22):
-
-- Binary: `longhorn-agent-control-client`, a `[[bin]]` in
-  `crates/longhorn-agent-control` behind the non-default `client`
-  feature. Distribution decision: crate bin, not npm — the carrier is a
-  host-local loopback companion spawned by the harness, not a JS
-  package. Opt-in proof: the default graph has no `reqwest` and no
-  binary target (`cargo tree -p longhorn-agent-control -e normal` shows
-  neither); the feature adds HTTP-only `reqwest` (no TLS back end, so
-  `https` URLs cannot be built) plus `tokio/io-std` and
-  `tokio/process` for stdio and the e2e child spawn.
-- Discovery and bearer path: `--discovery-dir` wins, else `--state-root`
-  as an explicit contract-004 override, else the platform-native
-  directory resolved from process-environment facts (same XDG/`Library`
-  rules the Tauri host injects). Exactly one live instance is selected
-  (`--app-id` disambiguates); zero or many exits 2 without spawning.
-  The bearer travels only in the `Authorization` header to
-  `http://127.0.0.1:<port>/mcp`; no `Origin` header is sent (absent
-  passes the guard) and no listener is bound.
-- Strict-path translation: the carrier synthesizes the SEP-2243 headers
-  (`Mcp-Method`, `Mcp-Name`, `Mcp-Param-*` from cached `tools/list`
-  schemas, `MCP-Protocol-Version` from the negotiated version) and
-  additively merges the `_meta` envelope a plain stdio harness omits —
-  never rewriting a harness-declared `_meta`. Below the negotiated
-  standard version the body stays legacy-bare. Plain-harness requests
-  would otherwise all fail the server's `_meta` requirement.
-- Listen/resources position: adapted by pass-through. `resources/list`,
-  `resources/read`, `resources/subscribe`, and `subscriptions/listen`
-  travel the same POST path; a listen SSE stream stays mapped onto its
-  pending stdio request and `notifications/resources/updated` arrives on
-  it. `notifications/cancelled` aborts the in-flight POST (stateless
-  HTTP holds nothing server-side to cancel); stdin EOF aborts all and
-  exits 0.
-- Harnesses validated: no vendor harness (Claude Code, Codex, ACP) is
-  runnable in this environment, so validation is the `tests/carrier.rs`
-  end-to-end run, which spawns the built binary over piped stdio and
-  speaks newline-delimited JSON-RPC exactly as a stdio harness would:
-  `initialize`/`tools/list`/`tools/call` replies asserted byte-equal to
-  the same exchanges made directly over HTTP, plus listen delivery,
-  cancellation survival, and exit-2 selection errors. Per-route vendor
-  evidence from Swallowtail had not landed at dispatch; re-run the e2e
-  against the routes it names when it does.
