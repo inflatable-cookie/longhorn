@@ -6,6 +6,16 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **A stdio carrier fronts the contract 022 server for harnesses that cannot
+  consume a streamable-HTTP MCP entry.** `longhorn-agent-control-client`
+  discovers the live instance through the discovery file, connects to its
+  loopback endpoint with the per-instance bearer, and fronts it over stdio —
+  one server, one registered catalogue, one policy, one dispatch path. It holds
+  no catalogue and exposes no listener, and it is opt-in like `agent-control`.
+  `subscriptions/listen` and the `longhorn://agent-control/...` resources are
+  typed `Unsupported` over stdio with an explicit reopen condition.
+
 ### Changed
 - **The agent-control server is a compile-time opt-in a packaged consumer may enable.**
   `longhorn-tauri-agent-control`'s `dev` feature is now `agent-control`. A
