@@ -7,6 +7,7 @@ import {
   type UpdateProgressProjection,
   type UpdateRejectionCode,
   type UpdateSnapshot,
+  type UpdateStagedArtifactProjection,
 } from "./generated/protocol.ts";
 import type { UpdatePort, UpdateUnlisten } from "./ports.ts";
 
@@ -60,6 +61,15 @@ export class UpdateController {
   #lifecycle = 0;
   #pending = false;
   #unlisten: UpdateUnlisten[] = [];
+  /**
+   * The most recent live progress report.
+   *
+   * Held apart from the snapshot because it is *out of band*: a transfer
+   * publishes bytes while the controller's retained state still says what it
+   * said before the transfer began. It is cleared when the command that
+   * started the transfer settles, so a stale report cannot outlive it.
+   */
+  #liveProgress?: UpdateProgressProjection;
 
   constructor(options: UpdateControllerOptions) {
     this.#client = new UpdateClient(options.port);
@@ -68,7 +78,16 @@ export class UpdateController {
   get status(): UpdateControllerStatus { return this.#status; }
   get snapshot(): UpdateSnapshot | undefined { return this.#snapshot; }
   get availability(): UpdateAvailabilityProjection | undefined { return this.#snapshot?.availability; }
-  get progress(): UpdateProgressProjection | undefined { return this.#snapshot?.progress; }
+  /**
+   * What the transfer is doing right now.
+   *
+   * A live report wins over the snapshot, because the snapshot is only as
+   * fresh as the last commit and the transfer deliberately does not hold the
+   * authority while it runs.
+   */
+  get progress(): UpdateProgressProjection | undefined { return this.#liveProgress ?? this.#snapshot?.progress; }
+  /** The retained verified artifact, when one is staged. */
+  get staged(): UpdateStagedArtifactProjection | undefined { return this.#snapshot?.staged ?? undefined; }
   get channel(): Channel | undefined { return this.#snapshot?.channel; }
   get installedVersion(): string | undefined { return this.#snapshot?.installedVersion; }
   get pending(): boolean { return this.#pending; }
@@ -123,7 +142,7 @@ export class UpdateController {
     const snapshot = this.#snapshot;
     if (snapshot === undefined) return "hidden";
 
-    switch (snapshot.progress.state) {
+    switch (this.progress?.state) {
       case "downloading":
       case "verifying":
       case "installing":
@@ -131,6 +150,7 @@ export class UpdateController {
       case "readyToInstall":
         return "attention";
       case "idle":
+      case undefined:
         break;
     }
 
@@ -160,6 +180,16 @@ export class UpdateController {
         return;
       }
       this.#unlisten.push(unlisten);
+      const unlistenProgress = await this.#client.listenProgress((event) => {
+        if (!this.#started || lifecycle !== this.#lifecycle) return;
+        this.#liveProgress = event.progress;
+        this.#notify();
+      });
+      if (!this.#started || lifecycle !== this.#lifecycle) {
+        await unlistenProgress();
+        return;
+      }
+      this.#unlisten.push(unlistenProgress);
       await this.refresh();
     } catch (error) {
       if (this.#started && lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
@@ -208,10 +238,29 @@ export class UpdateController {
     );
   }
 
-  /** Fetches, verifies, gates and installs. */
-  async install(version: string): Promise<void> {
+  /** Fetches, verifies and retains an update for a later apply. */
+  async prepare(version: string): Promise<void> {
     await this.#command((client, epoch) =>
-      client.install({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
+      client.prepare({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
+    );
+  }
+
+  /**
+   * Applies the retained staged artifact, replacing the application.
+   *
+   * A gate refusal is a deferral: the artifact stays staged and the surface
+   * can offer the restart again.
+   */
+  async apply(version: string): Promise<void> {
+    await this.#command((client, epoch) =>
+      client.apply({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
+    );
+  }
+
+  /** Discards the retained staged artifact. */
+  async cancel(): Promise<void> {
+    await this.#command((client, epoch) =>
+      client.cancel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch }),
     );
   }
 
@@ -227,11 +276,13 @@ export class UpdateController {
     }
     const lifecycle = this.#lifecycle;
     this.#pending = true;
+    this.#liveProgress = undefined;
     this.#notify();
     try {
       const outcome = await run(this.#client, epoch);
       if (lifecycle !== this.#lifecycle) return;
       this.#snapshot = outcome.snapshot;
+      this.#liveProgress = undefined;
       this.#lastRejection = outcome.status === "rejected" ? outcome.code : undefined;
       this.#setStatus({ kind: "ready" });
     } catch (error) {

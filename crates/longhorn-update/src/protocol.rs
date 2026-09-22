@@ -11,7 +11,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Channel, Deferral, DeferralCause, InstallManager, OfferReason, UpdateAvailability};
+use crate::{
+    Channel, Deferral, DeferralCause, FetchProgress, InstallManager, OfferReason,
+    UpdateAvailability,
+};
 
 /// Exact update protocol line.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -74,6 +77,33 @@ pub enum UpdateAvailabilityProjection {
         /// What manages the install.
         manager: InstallManager,
     },
+}
+
+impl From<FetchProgress> for UpdateProgressProjection {
+    fn from(progress: FetchProgress) -> Self {
+        Self::Downloading {
+            received: progress.received,
+            expected: progress.expected,
+            fraction: progress.fraction(),
+        }
+    }
+}
+
+/// The retained staged artifact's identity, as a client reads it.
+///
+/// The bytes themselves never cross the boundary: an application that needs
+/// them is the installer, and it receives a `VerifiedArtifact` directly. What
+/// a surface needs is what is waiting and which artifact it is.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UpdateStagedArtifactProjection {
+    /// The version the bytes were verified for.
+    pub version: String,
+    /// The channel the bytes were fetched for.
+    pub channel: Channel,
+    /// SHA-256 of the verified bytes, lowercase hex.
+    pub digest: String,
 }
 
 impl UpdateAvailabilityProjection {
@@ -141,17 +171,33 @@ pub enum UpdateProgressProjection {
     /// Nothing in flight.
     Idle,
     /// Fetching the artifact.
+    ///
+    /// Since the 2026-09-22 amendment this is reported **while the transfer
+    /// runs**, out of band from the controller state, so a surface renders
+    /// byte progress instead of waiting for a long call to return.
     Downloading {
+        /// Bytes received so far.
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
+        received: u64,
+        /// Bytes the source said to expect, when it said.
+        #[cfg_attr(feature = "bindings", ts(type = "number | null"))]
+        expected: Option<u64>,
         /// How far through, when the source reports a length.
         ///
         /// Absent rather than zero when it does not. A source with no content
         /// length cannot produce a fraction, and a bar that invents one is
-        /// worse than a bar that says it does not know.
+        /// worse than a bar that says it does not know. Kept on the wire beside
+        /// the byte counts because the clamp and the absent case are the
+        /// protocol's answer, not each surface's.
         fraction: Option<f64>,
     },
     /// Checking the artifact before it is offered for install.
     Verifying,
     /// Downloaded and verified; waiting for the operator or for quiescence.
+    ///
+    /// A **retained** state since the 2026-09-22 amendment. A deferred
+    /// ("Later") install leaves this in place and keeps the staged artifact;
+    /// only `apply`, `cancel`, or a channel switch moves it.
     ReadyToInstall {
         /// The version waiting.
         version: String,
@@ -189,6 +235,11 @@ pub struct UpdateSnapshot {
     pub availability: UpdateAvailabilityProjection,
     /// The standing deferral, when one applies.
     pub deferral: Option<UpdateDeferralProjection>,
+    /// The retained verified artifact, when one is staged.
+    ///
+    /// Survives across calls: a deferred install keeps it, an explicit cancel
+    /// discards it, and a verification failure never creates it.
+    pub staged: Option<UpdateStagedArtifactProjection>,
     /// What is in flight.
     pub progress: UpdateProgressProjection,
 }
@@ -236,21 +287,52 @@ pub struct UpdateDeferCommand {
     pub cause: DeferralCause,
 }
 
-/// Authorize an install.
+/// Fetch, verify, and retain an update for a later apply.
 ///
-/// Longhorn authorizes; the application installs. Card 153 settled that, so
-/// this returns a decision and never an installed state.
+/// The first half of the staged protocol. Prepare reaches the network and
+/// holds verified bytes; it replaces nothing, so authorizing an install is no
+/// longer covered by permission to fetch one.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct UpdateInstallCommand {
+pub struct UpdatePrepareCommand {
     /// Exact metadata protocol line.
     pub protocol_version: UpdateProtocolVersion,
     /// Authority lifetime observed by the caller.
     #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub authority_epoch: u64,
-    /// The version to install.
+    /// The version to prepare.
     pub version: String,
+}
+
+/// Apply the retained staged artifact.
+///
+/// The second half. Names the version it believes is staged so a surface whose
+/// snapshot is behind refuses rather than replacing the application with a
+/// release it never showed.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UpdateApplyCommand {
+    /// Exact metadata protocol line.
+    pub protocol_version: UpdateProtocolVersion,
+    /// Authority lifetime observed by the caller.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub authority_epoch: u64,
+    /// The version the caller believes is staged.
+    pub version: String,
+}
+
+/// Discard the retained staged artifact.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UpdateCancelCommand {
+    /// Exact metadata protocol line.
+    pub protocol_version: UpdateProtocolVersion,
+    /// Authority lifetime observed by the caller.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub authority_epoch: u64,
 }
 
 /// The answer to an install request.
@@ -302,6 +384,26 @@ pub struct UpdateChangedEvent {
     pub authority_epoch: u64,
     /// Coarse invalidation category.
     pub kind: UpdateChangedKind,
+}
+
+/// One live progress report, published while a transfer runs.
+///
+/// Separate from `UpdateChangedEvent`, which is a payload-free invalidation
+/// hint: reading a snapshot during the transfer returns whatever the retained
+/// state is, and this is the channel that carries the bytes as they arrive.
+/// The authority epoch travels with it so a surface can ignore a report from a
+/// lifetime it no longer holds.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UpdateProgressEvent {
+    /// Exact metadata protocol line.
+    pub protocol_version: UpdateProtocolVersion,
+    /// Live authority lifetime the transfer was started under.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
+    pub authority_epoch: u64,
+    /// What the transfer reports right now.
+    pub progress: UpdateProgressProjection,
 }
 
 /// Why an update command was refused.

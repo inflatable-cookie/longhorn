@@ -1,10 +1,11 @@
-# Changing what this install follows, and declining a version. Neither reaches
-# the network and neither replaces anything, so they sit together and apart
-# from both check and install.
+# Changing what this install follows, declining a version, and discarding a
+# staged artifact. None reaches the network and none replaces anything, so they
+# sit together and apart from both check and install.
 [[permission]]
 identifier = "allow-longhorn-update-mutate"
-description = "Allows selecting a Longhorn release channel and deferring a version."
+description = "Allows selecting a Longhorn release channel, deferring a version, and discarding a staged update."
 commands.allow = [
   "longhorn_update_select_channel",
   "longhorn_update_defer",
+  "longhorn_update_cancel",
 ]

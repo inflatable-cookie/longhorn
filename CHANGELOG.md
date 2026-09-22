@@ -6,6 +6,19 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Changed
+- **The update install is staged, and progress is observable while it runs.**
+  `UpdateController::install` becomes `prepare` (fetch, verify, retain an
+  identity-bound staged artifact), `apply` (replace the application with it),
+  and `cancel` (discard it). `ReadyToInstall` is a retained state that survives
+  a deferred "Later" install, and byte progress is published out of band on
+  `UpdateProgressEvent` (`longhorn://update/progress`) rather than only when the
+  call returns. Verification is unchanged: `apply` still accepts only a
+  `VerifiedArtifact`, and a failed verification discards rather than stages.
+  The Tauri install permission grants `longhorn_update_prepare` and
+  `longhorn_update_apply`; `longhorn_update_cancel` sits with the other local
+  mutations. Contract 018 amended 2026-09-22.
+
 ## [0.1.0] - 2026-09-16
 
 ### Added

@@ -20,6 +20,7 @@ function snapshot(overrides: Partial<UpdateSnapshot> = {}): UpdateSnapshot {
     installedVersion: "1.3.0",
     availability: { state: "upToDate" },
     deferral: null,
+    staged: null,
     progress: { state: "idle" },
     ...overrides,
   };
@@ -33,14 +34,26 @@ const OFFER = snapshot({
 class Port implements UpdatePort {
   state: UpdateSnapshot = snapshot();
   #listeners: ((event: unknown) => void)[] = [];
+  #progressListeners: ((event: unknown) => void)[] = [];
   async snapshot(): Promise<unknown> { return this.state; }
   async check(): Promise<unknown> { return this.#committed(); }
   async selectChannel(): Promise<unknown> { return this.#committed(); }
   async defer(): Promise<unknown> { return this.#committed(); }
-  async install(): Promise<unknown> { return this.#committed(); }
+  async prepare(): Promise<unknown> { return this.#committed(); }
+  async apply(): Promise<unknown> { return this.#committed(); }
+  async cancel(): Promise<unknown> { return this.#committed(); }
   listen(listener: (event: unknown) => void) {
     this.#listeners.push(listener);
     return () => {};
+  }
+  listenProgress(listener: (event: unknown) => void) {
+    this.#progressListeners.push(listener);
+    return () => {};
+  }
+  notifyProgress(progress: UpdateSnapshot["progress"]): void {
+    for (const listener of this.#progressListeners) {
+      listener({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: 1, progress });
+    }
   }
   notify(): void {
     for (const listener of this.#listeners) {
@@ -117,6 +130,35 @@ describe("update surface bindings", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     expect(document.body.textContent).toContain("1.4.0");
+    mounted.unmount();
+  });
+
+  /**
+   * The reason the adapter listens to the progress channel at all. The
+   * authority does not hold its lock across the transfer, so the snapshot read
+   * during a download still says what it said before it started; only the live
+   * channel moves the bar.
+   */
+  it("exposes byte progress published out of band", async () => {
+    const port = new Port();
+    port.state = OFFER;
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+
+    port.notifyProgress({
+      state: "downloading",
+      received: 50,
+      expected: 100,
+      fraction: 0.5,
+    });
+
+    await waitFor(() => expect(controller.progress).toEqual({
+      state: "downloading",
+      received: 50,
+      expected: 100,
+      fraction: 0.5,
+    }));
     mounted.unmount();
   });
 });

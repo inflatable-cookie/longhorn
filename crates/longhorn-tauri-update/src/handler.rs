@@ -1,23 +1,35 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use longhorn_update::{
-    UpdateCheckCommand, UpdateDeferCommand, UpdateInstallCommand, UpdateOutcomeProjection,
-    UpdateSelectChannelCommand, UpdateSnapshot,
+    ArtifactFetch, MAX_ARTIFACT_BYTES, UpdateApplyCommand, UpdateCancelCommand, UpdateCheckCommand,
+    UpdateDeferCommand, UpdateOutcomeProjection, UpdatePrepareCommand, UpdatePrepareStart,
+    UpdateProgressEvent, UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
 };
 
 use crate::{UpdateHostAuthority, UpdateHostError, UpdateHostService};
 
 /// Shared injected assembly used by Tauri and conformance tests.
+///
+/// Holds the transfer port as well as the authority so the authoritative state
+/// is not locked while a transfer runs: `prepare` takes the lock to compose the
+/// request, releases it, transfers, and takes it again to retain the result.
+///
+/// The port is an `Arc` rather than a borrow because Tauri managed state has to
+/// be `'static`. A consumer builds one fetch, hands a clone here, and lends the
+/// same instance to the `UpdateController` it injects as authority.
 pub struct UpdateHandlerAssembly<A> {
     authority: Mutex<A>,
+    fetch: Arc<dyn ArtifactFetch + Send + Sync>,
 }
 
 impl<A> UpdateHandlerAssembly<A> {
-    /// Binds one explicitly injected consumer authority.
+    /// Binds one explicitly injected consumer authority and the transfer port
+    /// the assembly drives on its behalf.
     #[must_use]
-    pub const fn new(authority: A) -> Self {
+    pub fn new(authority: A, fetch: Arc<dyn ArtifactFetch + Send + Sync>) -> Self {
         Self {
             authority: Mutex::new(authority),
+            fetch,
         }
     }
 
@@ -65,11 +77,48 @@ where
         self.with_authority(|authority| authority.defer(caller, command))?
     }
 
-    fn install(
+    fn prepare(
         &self,
         caller: &str,
-        command: UpdateInstallCommand,
+        command: UpdatePrepareCommand,
+        progress: &mut dyn FnMut(UpdateProgressEvent),
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        self.with_authority(|authority| authority.install(caller, command))?
+        // The lock is released here. Everything between this and the second
+        // `with_authority` is the transfer, which is why `begin_prepare` and
+        // `complete_prepare` exist as two calls at all.
+        let start = self.with_authority(|authority| authority.begin_prepare(caller, command))??;
+        let transfer = match start {
+            UpdatePrepareStart::Refused(outcome) => return Ok(outcome),
+            UpdatePrepareStart::Transfer(transfer) => transfer,
+        };
+
+        let epoch = transfer.authority_epoch();
+        let delivered = self
+            .fetch
+            .fetch(transfer.request(), MAX_ARTIFACT_BYTES, &mut |report| {
+                progress(UpdateProgressEvent {
+                    protocol_version: UpdateProtocolVersion::CURRENT,
+                    authority_epoch: epoch,
+                    progress: report.into(),
+                });
+            });
+
+        self.with_authority(|authority| authority.complete_prepare(caller, transfer, delivered))?
+    }
+
+    fn apply(
+        &self,
+        caller: &str,
+        command: UpdateApplyCommand,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+        self.with_authority(|authority| authority.apply(caller, command))?
+    }
+
+    fn cancel(
+        &self,
+        caller: &str,
+        command: UpdateCancelCommand,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+        self.with_authority(|authority| authority.cancel(caller, command))?
     }
 }

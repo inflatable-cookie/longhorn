@@ -2,10 +2,11 @@
 
 use longhorn_update::{
     Channel, Deferral, DeferralCause, InstallManager, OfferReason, UPDATE_PROTOCOL_VERSION,
-    UpdateAvailability, UpdateAvailabilityProjection, UpdateChangedEvent, UpdateChangedKind,
-    UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection,
-    UpdateInstallAuthorizationProjection, UpdateInstallCommand, UpdateOffer,
-    UpdateProgressProjection, UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateApplyCommand, UpdateAvailability, UpdateAvailabilityProjection, UpdateCancelCommand,
+    UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand, UpdateDeferCommand,
+    UpdateDeferralProjection, UpdateInstallAuthorizationProjection, UpdateOffer,
+    UpdatePrepareCommand, UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion,
+    UpdateSelectChannelCommand, UpdateSnapshot, UpdateStagedArtifactProjection,
 };
 use semver::Version;
 
@@ -48,14 +49,22 @@ fn ahead_of_channel_projects_distinctly_from_up_to_date() {
 /// wrong claim.
 #[test]
 fn a_download_without_a_content_length_reports_no_fraction() {
-    let unknown = UpdateProgressProjection::Downloading { fraction: None };
+    let unknown = UpdateProgressProjection::Downloading {
+        received: 4_096,
+        expected: None,
+        fraction: None,
+    };
     let known = UpdateProgressProjection::Downloading {
+        received: 0,
+        expected: Some(8_192),
         fraction: Some(0.0),
     };
     assert_ne!(unknown, known);
 
     let encoded = serde_json::to_value(&unknown).expect("encode");
     assert_eq!(encoded["state"], "downloading");
+    assert_eq!(encoded["received"], 4_096);
+    assert!(encoded["expected"].is_null());
     assert!(encoded["fraction"].is_null());
     assert_eq!(round_trip(&unknown), unknown);
 }
@@ -91,9 +100,15 @@ fn every_progress_state_round_trips() {
     for progress in [
         UpdateProgressProjection::Idle,
         UpdateProgressProjection::Downloading {
+            received: 27,
+            expected: Some(54),
             fraction: Some(0.5),
         },
-        UpdateProgressProjection::Downloading { fraction: None },
+        UpdateProgressProjection::Downloading {
+            received: 4_096,
+            expected: None,
+            fraction: None,
+        },
         UpdateProgressProjection::Verifying,
         UpdateProgressProjection::ReadyToInstall {
             version: "1.3.0".to_owned(),
@@ -104,6 +119,26 @@ fn every_progress_state_round_trips() {
     ] {
         assert_eq!(round_trip(&progress), progress);
     }
+}
+
+/// The channel that carries byte progress while the transfer runs. It is not
+/// an invalidation hint: it carries the report itself, because a snapshot read
+/// during the transfer still shows the retained state.
+#[test]
+fn a_live_progress_report_round_trips_with_its_epoch() {
+    let event = UpdateProgressEvent {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 7,
+        progress: UpdateProgressProjection::Downloading {
+            received: 512,
+            expected: Some(1_024),
+            fraction: Some(0.5),
+        },
+    };
+    assert_eq!(round_trip(&event), event);
+    let encoded = serde_json::to_value(&event).expect("encode");
+    assert_eq!(encoded["authorityEpoch"], 7);
+    assert_eq!(encoded["progress"]["state"], "downloading");
 }
 
 #[test]
@@ -124,15 +159,26 @@ fn every_command_round_trips_and_carries_the_protocol_line() {
         version: "1.3.0".to_owned(),
         cause: DeferralCause::UserPostponed,
     };
-    let install = UpdateInstallCommand {
+    let prepared = UpdatePrepareCommand {
         protocol_version: UpdateProtocolVersion::CURRENT,
         authority_epoch: epoch,
         version: "1.3.0".to_owned(),
     };
+    let applied = UpdateApplyCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: epoch,
+        version: "1.3.0".to_owned(),
+    };
+    let cancelled = UpdateCancelCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: epoch,
+    };
     assert_eq!(round_trip(&check), check);
     assert_eq!(round_trip(&select), select);
     assert_eq!(round_trip(&defer), defer);
-    assert_eq!(round_trip(&install), install);
+    assert_eq!(round_trip(&prepared), prepared);
+    assert_eq!(round_trip(&applied), applied);
+    assert_eq!(round_trip(&cancelled), cancelled);
     assert_eq!(
         serde_json::to_value(&check).expect("encode")["protocolVersion"],
         UPDATE_PROTOCOL_VERSION
@@ -162,6 +208,7 @@ fn the_snapshot_round_trips_with_and_without_a_deferral() {
         installed_version: "1.2.9".to_owned(),
         availability: UpdateAvailabilityProjection::UpToDate,
         deferral: None,
+        staged: None,
         progress: UpdateProgressProjection::Idle,
     };
     assert_eq!(round_trip(&base), base);
@@ -178,6 +225,35 @@ fn the_snapshot_round_trips_with_and_without_a_deferral() {
         deferred.deferral.as_ref().expect("deferral").version,
         "1.3.0"
     );
+}
+
+/// The retained artifact is visible as its own identity, so a surface can say
+/// what is waiting and `apply` can be held to it.
+#[test]
+fn a_staged_snapshot_projects_its_identity() {
+    let staged = UpdateStagedArtifactProjection {
+        version: "1.3.0".to_owned(),
+        channel: Channel::Beta,
+        digest: "ab".repeat(32),
+    };
+    let snapshot = UpdateSnapshot {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 7,
+        channel: Channel::Production,
+        installed_version: "1.2.9".to_owned(),
+        availability: UpdateAvailabilityProjection::UpToDate,
+        deferral: None,
+        staged: Some(staged.clone()),
+        progress: UpdateProgressProjection::ReadyToInstall {
+            version: "1.3.0".to_owned(),
+        },
+    };
+
+    let encoded = serde_json::to_value(&snapshot).expect("encode");
+    assert_eq!(encoded["staged"]["version"], "1.3.0");
+    assert_eq!(encoded["staged"]["channel"], "beta");
+    assert_eq!(encoded["progress"]["state"], "readyToInstall");
+    assert_eq!(round_trip(&snapshot), snapshot);
 }
 
 #[test]

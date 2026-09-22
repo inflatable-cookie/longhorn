@@ -2,11 +2,14 @@ import { describe, expect, test } from "bun:test";
 
 import {
   UpdateValidationError,
+  assertUpdateApplyCommand,
+  assertUpdateCancelCommand,
   assertUpdateChangedEvent,
   assertUpdateCheckCommand,
   assertUpdateDeferCommand,
-  assertUpdateInstallCommand,
   assertUpdateOutcome,
+  assertUpdatePrepareCommand,
+  assertUpdateProgressEvent,
   assertUpdateSelectChannelCommand,
   assertUpdateSnapshot,
 } from "../../src/update/validation.ts";
@@ -17,15 +20,19 @@ describe("Rust-generated update protocol", () => {
     const value = fixture();
     assertUpdateSnapshot(value.snapshot);
     assertUpdateSnapshot(value.managedSnapshot);
+    assertUpdateSnapshot(value.stagedSnapshot);
     assertUpdateSnapshot(value.aheadSnapshot);
     assertUpdateSnapshot(value.withheldSnapshot);
     assertUpdateSnapshot(value.upToDateSnapshot);
     assertUpdateCheckCommand(value.checkCommand);
     assertUpdateSelectChannelCommand(value.selectChannelCommand);
     assertUpdateDeferCommand(value.deferCommand);
-    assertUpdateInstallCommand(value.installCommand);
+    assertUpdatePrepareCommand(value.prepareCommand);
+    assertUpdateApplyCommand(value.applyCommand);
+    assertUpdateCancelCommand(value.cancelCommand);
     value.outcomes.forEach(assertUpdateOutcome);
     assertUpdateChangedEvent(value.changedEvent);
+    assertUpdateProgressEvent(value.progressEvent);
   });
 
   test("carries one rejection per protocol rejection code, channelMismatch included", () => {
@@ -46,6 +53,46 @@ describe("Rust-generated update protocol", () => {
       ].sort(),
     );
     expect(value.outcomes.some((outcome) => outcome.status === "committed")).toBe(true);
+  });
+
+  /**
+   * The retained artifact is its own identity: version, channel and digest.
+   * A staged snapshot with no digest, or a digest that is not one, is a
+   * surface claiming to know what it is holding when it does not.
+   */
+  test("a staged artifact must carry its version, channel and digest", () => {
+    const value = fixture();
+    const staged = value.stagedSnapshot.staged;
+    expect(staged).not.toBeNull();
+    expect(staged?.digest).toHaveLength(64);
+
+    const shortDigest = clone(value.stagedSnapshot) as unknown as Record<string, unknown>;
+    (shortDigest.staged as { digest: unknown }).digest = "abc";
+    expect(() => assertUpdateSnapshot(shortDigest)).toThrow(/hex/);
+
+    const unknownChannel = clone(value.stagedSnapshot) as unknown as Record<string, unknown>;
+    (unknownChannel.staged as { channel: unknown }).channel = "canary";
+    expect(() => assertUpdateSnapshot(unknownChannel)).toThrow();
+
+    const missing = clone(value.stagedSnapshot) as unknown as Record<string, unknown>;
+    delete (missing.staged as Record<string, unknown>).digest;
+    expect(() => assertUpdateSnapshot(missing)).toThrow(/unexpected keys/);
+  });
+
+  /** The live channel carries a report, so a zero-byte report is valid and a
+   * negative one is not. */
+  test("a live progress event carries byte counts", () => {
+    const value = fixture();
+    assertUpdateProgressEvent(value.progressEvent);
+    expect(value.progressEvent.progress.state).toBe("downloading");
+
+    const negative = clone(value.progressEvent) as unknown as Record<string, unknown>;
+    (negative.progress as { received: unknown }).received = -1;
+    expect(() => assertUpdateProgressEvent(negative)).toThrow(/byte count/);
+
+    const missing = clone(value.progressEvent) as unknown as Record<string, unknown>;
+    delete (missing.progress as Record<string, unknown>).expected;
+    expect(() => assertUpdateProgressEvent(missing)).toThrow(/unexpected keys/);
   });
 
   test("rejects future versions, variants, fields, and product payloads", () => {

@@ -1,5 +1,6 @@
 use longhorn_update::{
-    UpdateCheckCommand, UpdateDeferCommand, UpdateInstallCommand, UpdateOutcomeProjection,
+    FetchError, PreparedTransfer, UpdateApplyCommand, UpdateCancelCommand, UpdateCheckCommand,
+    UpdateDeferCommand, UpdateOutcomeProjection, UpdatePrepareCommand, UpdatePrepareStart,
     UpdateSelectChannelCommand, UpdateSnapshot,
 };
 
@@ -14,6 +15,14 @@ use crate::UpdateHostError;
 /// `check` takes no manifest: retrieving one is the consumer's, because the
 /// consumer is where the transport is. `UpdateController::manifest_request`
 /// composes the request it should use.
+///
+/// # Why prepare is two calls
+///
+/// A staged prepare transfers the artifact, and a host that serializes its
+/// authority behind one lock would hold that lock for the whole transfer if it
+/// were one call. `begin_prepare` and `complete_prepare` are the seam that lets
+/// the transfer run outside the lock: the only state touched while bytes arrive
+/// is the progress report, which travels out of band.
 pub trait UpdateHostAuthority: Send {
     /// Returns the caller-authorized update state.
     fn snapshot(&mut self, caller: &str) -> Result<UpdateSnapshot, UpdateHostError>;
@@ -42,14 +51,43 @@ pub trait UpdateHostAuthority: Send {
         command: UpdateDeferCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
 
-    /// Fetches, verifies, gates and installs.
+    /// Validates the offer and composes the transfer.
     ///
-    /// Its own capability, separate from `check`. Authorizing an install is
-    /// not covered by permission to look for one: the first reads, the second
-    /// replaces the running application.
-    fn install(
+    /// Returns the request the host transfers, or an ordinary refusal. Nothing
+    /// is retained until [`Self::complete_prepare`].
+    fn begin_prepare(
         &mut self,
         caller: &str,
-        command: UpdateInstallCommand,
+        command: UpdatePrepareCommand,
+    ) -> Result<UpdatePrepareStart, UpdateHostError>;
+
+    /// Verifies and retains what the transfer delivered.
+    ///
+    /// Takes the transfer's outcome rather than its bytes so the controller
+    /// maps a transport failure onto its own typed rejection. A verification
+    /// failure discards; it never stages.
+    fn complete_prepare(
+        &mut self,
+        caller: &str,
+        transfer: PreparedTransfer,
+        delivered: Result<Vec<u8>, FetchError>,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
+
+    /// Applies the retained staged artifact.
+    ///
+    /// Its own capability, separate from `check` and from `begin_prepare`.
+    /// Staging verified bytes is not covered by permission to replace the
+    /// running application, and vice versa.
+    fn apply(
+        &mut self,
+        caller: &str,
+        command: UpdateApplyCommand,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
+
+    /// Discards the retained staged artifact.
+    fn cancel(
+        &mut self,
+        caller: &str,
+        command: UpdateCancelCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
 }

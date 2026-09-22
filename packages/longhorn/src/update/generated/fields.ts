@@ -5,10 +5,14 @@
 
 export const UPDATE_FIELDS: Record<string, readonly string[]> = {
   "UpdateDeferralProjection": ["version", "cause"],
-  "UpdateSnapshot": ["protocolVersion", "authorityEpoch", "channel", "installedVersion", "availability", "deferral", "progress"],
+  "UpdateStagedArtifactProjection": ["version", "channel", "digest"],
+  "UpdateProgressEvent": ["protocolVersion", "authorityEpoch", "progress"],
+  "UpdateSnapshot": ["protocolVersion", "authorityEpoch", "channel", "installedVersion", "availability", "deferral", "staged", "progress"],
   "UpdateCheckCommand": ["protocolVersion", "authorityEpoch"],
   "UpdateSelectChannelCommand": ["protocolVersion", "authorityEpoch", "channel"],
   "UpdateDeferCommand": ["protocolVersion", "authorityEpoch", "version", "cause"],
-  "UpdateInstallCommand": ["protocolVersion", "authorityEpoch", "version"],
+  "UpdatePrepareCommand": ["protocolVersion", "authorityEpoch", "version"],
+  "UpdateApplyCommand": ["protocolVersion", "authorityEpoch", "version"],
+  "UpdateCancelCommand": ["protocolVersion", "authorityEpoch"],
   "UpdateChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
 };

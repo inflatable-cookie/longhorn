@@ -1,20 +1,21 @@
-//! The controller's acceptance, from Card 196.
+//! The controller's acceptance, from Card 196 and the 2026-09-22 staged
+//! amendment.
 //!
 //! Every port is a fake here, which is the point: the controller performs no
 //! work, so a test can substitute every side effect and still exercise the
 //! whole sequence.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::io::Cursor;
 
 use longhorn_update::{
     Applied, Artifact, ArtifactFetch, ArtifactKey, BuildIdentity, Channel, ChannelManifest,
     CheckKind, DeferralCause, FetchError, FetchProgress, InstallFailure, InstallId, InstallManager,
     InstallProvenance, OutstandingWork, QuiescenceKind, QuiescenceProbe, SourceError,
-    SourceRequest, TargetTriple, UpdateCheckCommand, UpdateController, UpdateDeferCommand,
-    UpdateGate, UpdateInstallCommand, UpdateInstaller, UpdateOutcomeProjection,
-    UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
-    UpdateSelectChannelCommand, UpdateSource, VerifiedArtifact,
+    SourceRequest, TargetTriple, UpdateApplyCommand, UpdateCancelCommand, UpdateCheckCommand,
+    UpdateController, UpdateDeferCommand, UpdateGate, UpdateInstaller, UpdateOutcomeProjection,
+    UpdatePrepareCommand, UpdatePrepareStart, UpdateProgressProjection, UpdateProtocolVersion,
+    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSource, VerifiedArtifact,
 };
 use minisign::KeyPair;
 use semver::Version;
@@ -106,6 +107,50 @@ impl ArtifactFetch for Fetch {
     }
 }
 
+/// Reports several progress values from inside the transfer, and records
+/// whether the observer ran while the transfer was on the stack.
+struct Streaming<'flag> {
+    bytes: Vec<u8>,
+    reports: Vec<FetchProgress>,
+    calls: RefCell<u32>,
+    transferring: &'flag Cell<bool>,
+}
+
+impl ArtifactFetch for Streaming<'_> {
+    fn fetch(
+        &self,
+        _request: &SourceRequest,
+        _limit: u64,
+        report: &mut dyn FnMut(FetchProgress),
+    ) -> Result<Vec<u8>, FetchError> {
+        *self.calls.borrow_mut() += 1;
+        self.transferring.set(true);
+        for progress in &self.reports {
+            report(*progress);
+        }
+        self.transferring.set(false);
+        Ok(self.bytes.clone())
+    }
+}
+
+/// Fails the transfer itself, so a typed fetch failure is reachable.
+struct Broken {
+    error: FetchError,
+    calls: RefCell<u32>,
+}
+
+impl ArtifactFetch for Broken {
+    fn fetch(
+        &self,
+        _request: &SourceRequest,
+        _limit: u64,
+        _report: &mut dyn FnMut(FetchProgress),
+    ) -> Result<Vec<u8>, FetchError> {
+        *self.calls.borrow_mut() += 1;
+        Err(self.error.clone())
+    }
+}
+
 struct Installer;
 
 impl UpdateInstaller for Installer {
@@ -113,6 +158,18 @@ impl UpdateInstaller for Installer {
         Ok(Applied {
             version: artifact.version().clone(),
             relaunched: false,
+        })
+    }
+}
+
+/// An installer that refuses, to prove the staged artifact survives a failed
+/// replacement.
+struct Refusing;
+
+impl UpdateInstaller for Refusing {
+    fn apply(&self, _artifact: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        Err(InstallFailure::NotWritable {
+            detail: "read-only bundle".to_owned(),
         })
     }
 }
@@ -140,7 +197,7 @@ fn manifest(signature: &str) -> ChannelManifest {
 fn controller<'port>(
     signing: &Signing,
     source: &'port Source,
-    fetch: &'port Fetch,
+    fetch: &'port dyn ArtifactFetch,
     provenance: InstallProvenance,
 ) -> UpdateController<'port> {
     UpdateController::new(
@@ -180,6 +237,49 @@ fn check(signing: &Signing) -> (UpdateCheckCommand, ChannelManifest) {
         },
         manifest(&signing.signature(ARTIFACT)),
     )
+}
+
+fn prepare(version: &str) -> UpdatePrepareCommand {
+    UpdatePrepareCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+        version: version.to_owned(),
+    }
+}
+
+fn apply(version: &str) -> UpdateApplyCommand {
+    UpdateApplyCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+        version: version.to_owned(),
+    }
+}
+
+fn cancel() -> UpdateCancelCommand {
+    UpdateCancelCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+    }
+}
+
+/// Runs the whole one-call prepare with an observer that throws its reports
+/// away, which is every test that is not about progress.
+fn prepare_quietly(
+    controller: &mut UpdateController<'_>,
+    command: &UpdatePrepareCommand,
+) -> UpdateOutcomeProjection {
+    controller.prepare(command, &mut |_| {})
+}
+
+/// Starts a split transfer, or fails the test with the refusal.
+fn transfer(
+    controller: &mut UpdateController<'_>,
+    command: &UpdatePrepareCommand,
+) -> longhorn_update::PreparedTransfer {
+    match controller.begin_prepare(command) {
+        UpdatePrepareStart::Transfer(transfer) => transfer,
+        UpdatePrepareStart::Refused(outcome) => panic!("refused as {outcome:?}"),
+    }
 }
 
 #[test]
@@ -222,7 +322,7 @@ fn a_check_records_an_offer_and_projects_it() {
 
 /// Card 190's acceptance, which had nothing that could refuse it.
 #[test]
-fn a_stale_authority_epoch_is_refused_on_all_four_commands() {
+fn a_stale_authority_epoch_is_refused_on_every_command() {
     let signing = Signing::new();
     let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
     let mut controller = controller(&signing, &source, &fetch, writable());
@@ -248,8 +348,16 @@ fn a_stale_authority_epoch_is_refused_on_all_four_commands() {
         version: "1.4.0".to_owned(),
         cause: DeferralCause::UserPostponed,
     });
-    let installed = controller.install(
-        &UpdateInstallCommand {
+    let prepared = controller.prepare(
+        &UpdatePrepareCommand {
+            protocol_version: UpdateProtocolVersion::CURRENT,
+            authority_epoch: stale,
+            version: "1.4.0".to_owned(),
+        },
+        &mut |_| {},
+    );
+    let applied = controller.apply(
+        &UpdateApplyCommand {
             protocol_version: UpdateProtocolVersion::CURRENT,
             authority_epoch: stale,
             version: "1.4.0".to_owned(),
@@ -257,35 +365,50 @@ fn a_stale_authority_epoch_is_refused_on_all_four_commands() {
         &UpdateGate::new(Vec::new()),
         &Installer,
     );
+    let cancelled = controller.cancel(&UpdateCancelCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: stale,
+    });
 
-    for outcome in [&checked, &selected, &deferred, &installed] {
+    for outcome in [
+        &checked, &selected, &deferred, &prepared, &applied, &cancelled,
+    ] {
         assert_eq!(rejection(outcome), UpdateRejectionCode::StaleAuthority);
     }
     assert_eq!(fetch.calls(), 0, "a stale caller must not start a transfer");
 }
 
 #[test]
-fn the_whole_sequence_installs_and_leaves_the_new_version_up_to_date() {
+fn the_whole_sequence_prepares_then_applies_and_leaves_the_new_version_up_to_date() {
     let signing = Signing::new();
     let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
     let mut controller = controller(&signing, &source, &fetch, writable());
     let (command, manifest) = check(&signing);
     controller.check(&command, &manifest, CheckKind::UserInitiated);
 
-    let outcome = controller.install(
-        &UpdateInstallCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
-            authority_epoch: 1,
+    let prepared = prepare_quietly(&mut controller, &prepare("1.4.0"));
+    let snapshot = committed(&prepared);
+    assert_eq!(
+        snapshot.progress,
+        UpdateProgressProjection::ReadyToInstall {
             version: "1.4.0".to_owned(),
-        },
-        &UpdateGate::new(Vec::new()),
-        &Installer,
+        }
     );
+    assert_eq!(
+        snapshot.installed_version, "1.3.0",
+        "prepare replaces nothing"
+    );
+    let staged = snapshot.staged.as_ref().expect("a staged artifact");
+    assert_eq!(staged.version, "1.4.0");
+    assert_eq!(staged.channel, Channel::Production);
 
-    let snapshot = committed(&outcome);
+    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+
+    let snapshot = committed(&applied);
     assert_eq!(snapshot.installed_version, "1.4.0");
     assert_eq!(snapshot.progress, UpdateProgressProjection::Idle);
-    assert_eq!(fetch.calls(), 1);
+    assert!(snapshot.staged.is_none());
+    assert_eq!(fetch.calls(), 1, "apply must not re-download");
 }
 
 /// The milestone's "better than the plugin" case. Downloading eighty
@@ -306,15 +429,7 @@ fn an_externally_managed_install_never_starts_a_transfer() {
     let (command, manifest) = check(&signing);
 
     let checked = controller.check(&command, &manifest, CheckKind::UserInitiated);
-    let installed = controller.install(
-        &UpdateInstallCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
-            authority_epoch: 1,
-            version: "1.4.0".to_owned(),
-        },
-        &UpdateGate::new(Vec::new()),
-        &Installer,
-    );
+    let prepared = prepare_quietly(&mut controller, &prepare("1.4.0"));
 
     // The offer survives. It is not an error state, and a surface that showed
     // it as one would be hiding a version the user can install themselves.
@@ -322,41 +437,216 @@ fn an_externally_managed_install_never_starts_a_transfer() {
         committed(&checked).availability,
         longhorn_update::UpdateAvailabilityProjection::ManagedElsewhere { .. }
     ));
-    assert_eq!(rejection(&installed), UpdateRejectionCode::NoOffer);
+    assert_eq!(rejection(&prepared), UpdateRejectionCode::NoOffer);
     assert_eq!(fetch.calls(), 0);
 }
 
-/// The gate sits between verify and install, so the transfer has already
-/// happened. That is deliberate — see the controller's module note.
+/// The gate runs at apply, so a busy host pays for the transfer and then keeps
+/// what it downloaded. The retained artifact is the whole point of the staged
+/// protocol: "Later" must not mean "download again".
 #[test]
-fn work_in_flight_defers_the_install_after_the_transfer() {
+fn a_deferred_install_retains_the_staged_artifact_and_applies_later() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let busy = Busy;
+    let deferred = controller.apply(&apply("1.4.0"), &UpdateGate::new(vec![&busy]), &Installer);
+
+    // Committed, not rejected: a refused install carries its reason, and the
+    // deferral is the reason.
+    let snapshot = committed(&deferred);
+    assert_eq!(snapshot.installed_version, "1.3.0");
+    assert!(snapshot.deferral.is_some());
+    assert_eq!(
+        snapshot.progress,
+        UpdateProgressProjection::ReadyToInstall {
+            version: "1.4.0".to_owned(),
+        },
+        "a refused install is deferred, not cancelled"
+    );
+    assert!(
+        snapshot.staged.is_some(),
+        "the verified bytes survive the deferral"
+    );
+
+    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+
+    assert_eq!(committed(&applied).installed_version, "1.4.0");
+    assert_eq!(fetch.calls(), 1, "Later must not re-download");
+}
+
+#[test]
+fn a_cancel_discards_the_staged_artifact_and_returns_to_idle() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let cancelled = controller.cancel(&cancel());
+
+    let snapshot = committed(&cancelled);
+    assert_eq!(snapshot.progress, UpdateProgressProjection::Idle);
+    assert!(snapshot.staged.is_none());
+
+    // Nothing is staged, so a later apply has nothing to consume.
+    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    assert_eq!(rejection(&applied), UpdateRejectionCode::NoOffer);
+}
+
+/// A cancel that arrives while the host is running the transfer cannot stop
+/// it; it discards what arrives instead of retaining it.
+#[test]
+fn a_cancel_during_a_split_transfer_discards_what_arrives() {
     let signing = Signing::new();
     let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
     let mut controller = controller(&signing, &source, &fetch, writable());
     let (command, manifest) = check(&signing);
     controller.check(&command, &manifest, CheckKind::UserInitiated);
 
-    let busy = Busy;
-    let outcome = controller.install(
-        &UpdateInstallCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
-            authority_epoch: 1,
-            version: "1.4.0".to_owned(),
-        },
-        &UpdateGate::new(vec![&busy]),
-        &Installer,
-    );
+    let transfer = transfer(&mut controller, &prepare("1.4.0"));
+    controller.cancel(&cancel());
+    let completed = controller.complete_prepare(&transfer, Ok(ARTIFACT.to_vec()));
 
-    // Committed, not rejected: a refused install carries its reason, and the
-    // deferral is the reason.
-    let snapshot = committed(&outcome);
-    assert_eq!(snapshot.installed_version, "1.3.0");
-    assert!(snapshot.deferral.is_some());
-    assert_eq!(fetch.calls(), 1);
+    let snapshot = committed(&completed);
+    assert_eq!(snapshot.progress, UpdateProgressProjection::Idle);
+    assert!(snapshot.staged.is_none());
+}
+
+/// A byte report is observed while the transfer runs, not only after the call
+/// returns. The flag is the proof: every observer call happened with the
+/// transfer still on the stack.
+#[test]
+fn a_byte_report_is_observed_during_the_transfer() {
+    let signing = Signing::new();
+    let (source, _) = (Source, Fetch::serving(ARTIFACT));
+    let transferring = Cell::new(false);
+    let fetch = Streaming {
+        bytes: ARTIFACT.to_vec(),
+        reports: vec![
+            FetchProgress::of(9, 27),
+            FetchProgress::of(18, 27),
+            FetchProgress::of(27, 27),
+        ],
+        calls: RefCell::new(0),
+        transferring: &transferring,
+    };
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let mut observed = Vec::new();
+    let outcome = controller.prepare(&prepare("1.4.0"), &mut |progress| {
+        observed.push((progress.clone(), transferring.get()));
+    });
+
+    assert_eq!(observed.len(), 3, "every report reaches the observer");
+    assert!(
+        observed.iter().all(|(_, during)| *during),
+        "a report observed outside the transfer is not live progress"
+    );
+    assert_eq!(
+        observed.first().unwrap().0,
+        UpdateProgressProjection::Downloading {
+            received: 9,
+            expected: Some(27),
+            fraction: Some(1.0 / 3.0),
+        }
+    );
+    assert_eq!(
+        observed.last().unwrap().0,
+        UpdateProgressProjection::Downloading {
+            received: 27,
+            expected: Some(27),
+            fraction: Some(1.0),
+        }
+    );
+    // The call still lands on the retained state, not on the last report.
+    assert_eq!(
+        committed(&outcome).progress,
+        UpdateProgressProjection::ReadyToInstall {
+            version: "1.4.0".to_owned(),
+        }
+    );
+}
+
+/// Card 190 built the `Option<f64>` fraction and had nothing that could reach
+/// the absent case end to end.
+#[test]
+fn a_host_that_reports_no_length_leaves_the_fraction_absent() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::silent(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let mut observed = Vec::new();
+    let outcome = controller.prepare(&prepare("1.4.0"), &mut |progress| {
+        observed.push(progress.clone());
+    });
+
+    // A host that reports nothing never reaches the observer at all, which is
+    // the same answer as a source with no content length.
+    assert!(
+        observed.is_empty(),
+        "a silent host reports nothing to observe"
+    );
+    assert_eq!(
+        committed(&outcome).progress,
+        UpdateProgressProjection::ReadyToInstall {
+            version: "1.4.0".to_owned(),
+        }
+    );
+    assert_eq!(FetchProgress::unbounded(0).fraction(), None);
+}
+
+/// A failure is typed on the prepare outcome, and nothing is retained.
+#[test]
+fn fetch_failures_are_typed_and_stage_nothing() {
+    let signing = Signing::new();
+    let (source, _) = (Source, Fetch::serving(ARTIFACT));
+    let cases = [
+        (
+            FetchError::Interrupted {
+                detail: "reset".to_owned(),
+            },
+            UpdateRejectionCode::Unreachable,
+        ),
+        (
+            FetchError::Unavailable {
+                detail: "404".to_owned(),
+            },
+            UpdateRejectionCode::Unavailable,
+        ),
+    ];
+
+    for (error, code) in cases {
+        let fetch = Broken {
+            error,
+            calls: RefCell::new(0),
+        };
+        let mut controller = controller(&signing, &source, &fetch, writable());
+        let (command, manifest) = check(&signing);
+        controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+        let outcome = prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+        assert_eq!(rejection(&outcome), code);
+        assert_eq!(
+            controller.snapshot().progress,
+            UpdateProgressProjection::Idle
+        );
+        assert!(controller.snapshot().staged.is_none());
+    }
 }
 
 #[test]
-fn an_artifact_signed_by_another_key_is_refused_before_the_installer() {
+fn an_artifact_signed_by_another_key_is_refused_and_never_staged() {
     let signing = Signing::new();
     let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
     let mut controller = controller(&signing, &source, &fetch, writable());
@@ -371,44 +661,111 @@ fn an_artifact_signed_by_another_key_is_refused_before_the_installer() {
         CheckKind::UserInitiated,
     );
 
-    let outcome = controller.install(
-        &UpdateInstallCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
-            authority_epoch: 1,
-            version: "1.4.0".to_owned(),
-        },
-        &UpdateGate::new(Vec::new()),
-        &Installer,
-    );
+    let outcome = prepare_quietly(&mut controller, &prepare("1.4.0"));
 
     assert_eq!(rejection(&outcome), UpdateRejectionCode::SignatureRejected);
+    assert_eq!(
+        controller.snapshot().progress,
+        UpdateProgressProjection::Idle
+    );
+    assert!(
+        controller.snapshot().staged.is_none(),
+        "a failed verification is discarded, never retained"
+    );
+
+    // And there is nothing for an installer to reach.
+    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    assert_eq!(rejection(&applied), UpdateRejectionCode::NoOffer);
 }
 
-/// Card 190 built the `Option<f64>` fraction and had nothing that could reach
-/// the absent case end to end.
+/// Replacement failure is not verification failure: the bytes are still
+/// verified, so they stay staged for a retry.
 #[test]
-fn a_host_that_reports_no_length_leaves_the_fraction_absent() {
+fn a_failed_replacement_keeps_the_staged_artifact() {
     let signing = Signing::new();
-    let (source, fetch) = (Source, Fetch::silent(ARTIFACT));
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let outcome = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Refusing);
+
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::NotWritable);
+    assert!(controller.snapshot().staged.is_some());
+    assert_eq!(
+        controller.snapshot().progress,
+        UpdateProgressProjection::ReadyToInstall {
+            version: "1.4.0".to_owned(),
+        }
+    );
+}
+
+/// An apply that names a version this controller did not stage refuses, rather
+/// than replacing the application with a release the surface never showed.
+#[test]
+fn an_apply_naming_a_different_version_refuses_and_keeps_the_staged_one() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+
+    let outcome = controller.apply(&apply("1.9.0"), &UpdateGate::new(Vec::new()), &Installer);
+
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
+    assert!(controller.snapshot().staged.is_some());
+
+    let applied = controller.apply(&apply("1.4.0"), &UpdateGate::new(Vec::new()), &Installer);
+    assert_eq!(committed(&applied).installed_version, "1.4.0");
+}
+
+/// The split prepare is what lets a host release its shared-state lock across
+/// the transfer, so the two halves have to agree about what they are doing.
+#[test]
+fn a_split_prepare_retains_what_the_transfer_delivered() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
     let mut controller = controller(&signing, &source, &fetch, writable());
     let (command, manifest) = check(&signing);
     controller.check(&command, &manifest, CheckKind::UserInitiated);
 
-    let busy = Busy;
-    controller.install(
-        &UpdateInstallCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
-            authority_epoch: 1,
-            version: "1.4.0".to_owned(),
-        },
-        &UpdateGate::new(vec![&busy]),
-        &Installer,
+    let transfer = transfer(&mut controller, &prepare("1.4.0"));
+    assert_eq!(transfer.version(), &version("1.4.0"));
+    assert_eq!(transfer.authority_epoch(), 1);
+    let delivered = fetch.fetch(
+        transfer.request(),
+        longhorn_update::MAX_ARTIFACT_BYTES,
+        &mut |_| {},
     );
+    let outcome = controller.complete_prepare(&transfer, delivered);
 
-    // A host that reports nothing is the same answer as a source with no
-    // content length: no fraction, rather than zero.
-    assert_eq!(FetchProgress::unbounded(0).fraction(), None);
-    assert_eq!(fetch.calls(), 1);
+    let snapshot = committed(&outcome);
+    let staged = snapshot.staged.as_ref().expect("a staged artifact");
+    assert_eq!(staged.digest.len(), 64);
+}
+
+/// A channel switch during a split transfer replaces the authority lifetime,
+/// so the delivered bytes belong to a context that is gone.
+#[test]
+fn a_channel_switch_during_a_transfer_discards_the_delivery() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let transfer = transfer(&mut controller, &prepare("1.4.0"));
+    controller.select_channel(&UpdateSelectChannelCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+        channel: Channel::Beta,
+    });
+    let outcome = controller.complete_prepare(&transfer, Ok(ARTIFACT.to_vec()));
+
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::StaleAuthority);
+    assert!(controller.snapshot().staged.is_none());
 }
 
 /// Switching channel drops the old channel's answer rather than showing it

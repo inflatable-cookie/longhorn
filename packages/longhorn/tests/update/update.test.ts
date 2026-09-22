@@ -26,10 +26,17 @@ function snapshot(overrides: Partial<UpdateSnapshot> = {}): UpdateSnapshot {
     installedVersion: "1.3.0",
     availability: { state: "upToDate" },
     deferral: null,
+    staged: null,
     progress: { state: "idle" },
     ...overrides,
   };
 }
+
+const STAGED = {
+  version: "1.4.0",
+  channel: "production" as Channel,
+  digest: "ab".repeat(32),
+};
 
 function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection {
   return { status: "committed", snapshot: value };
@@ -37,6 +44,7 @@ function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection 
 
 class Port implements UpdatePort {
   calls: string[] = [];
+  #progressListener?: (event: unknown) => void;
   constructor(
     private state: UpdateSnapshot = snapshot(),
     private outcome: (command: string) => UpdateOutcomeProjection = () => committed(this.state),
@@ -45,8 +53,16 @@ class Port implements UpdatePort {
   async check(): Promise<unknown> { this.calls.push("check"); return this.outcome("check"); }
   async selectChannel(): Promise<unknown> { this.calls.push("selectChannel"); return this.outcome("selectChannel"); }
   async defer(): Promise<unknown> { this.calls.push("defer"); return this.outcome("defer"); }
-  async install(): Promise<unknown> { this.calls.push("install"); return this.outcome("install"); }
+  async prepare(): Promise<unknown> { this.calls.push("prepare"); return this.outcome("prepare"); }
+  async apply(): Promise<unknown> { this.calls.push("apply"); return this.outcome("apply"); }
+  async cancel(): Promise<unknown> { this.calls.push("cancel"); return this.outcome("cancel"); }
   async listen(): Promise<() => void> { this.calls.push("listen"); return () => {}; }
+  async listenProgress(listener: (event: unknown) => void): Promise<() => void> {
+    this.calls.push("listenProgress");
+    this.#progressListener = listener;
+    return () => { this.#progressListener = undefined; };
+  }
+  emitProgress(event: unknown): void { this.#progressListener?.(event); }
 }
 
 describe("update validation", () => {
@@ -75,13 +91,29 @@ describe("update validation", () => {
    * zero, would put back the invented number the protocol avoided.
    */
   test("a downloading state with no fraction passes, and zero is not substituted", () => {
-    const progress: UpdateProgressProjection = { state: "downloading", fraction: null };
+    const progress: UpdateProgressProjection = {
+      state: "downloading",
+      received: 4_096,
+      expected: null,
+      fraction: null,
+    };
     expect(() => assertUpdateSnapshot(snapshot({ progress }))).not.toThrow();
   });
 
   test("a fraction outside zero to one is rejected", () => {
-    const progress = { state: "downloading", fraction: 1.5 } as unknown as UpdateProgressProjection;
+    const progress = { state: "downloading", received: 1, expected: 2, fraction: 1.5 } as unknown as UpdateProgressProjection;
     expect(() => assertUpdateSnapshot(snapshot({ progress }))).toThrow(UpdateValidationError);
+  });
+
+  test("a negative byte count is rejected", () => {
+    const progress = { state: "downloading", received: -1, expected: null, fraction: null } as unknown as UpdateProgressProjection;
+    expect(() => assertUpdateSnapshot(snapshot({ progress }))).toThrow(UpdateValidationError);
+  });
+
+  test("a staged identity is validated as its own shape", () => {
+    expect(() => assertUpdateSnapshot(snapshot({ staged: STAGED }))).not.toThrow();
+    const bad = { ...STAGED, digest: "not-a-digest" };
+    expect(() => assertUpdateSnapshot(snapshot({ staged: bad }))).toThrow(UpdateValidationError);
   });
 
   test("a rejected outcome carries a known code and the state as it remains", () => {
@@ -109,7 +141,7 @@ describe("update client", () => {
     const client = new UpdateClient(port);
 
     await expect(
-      client.install({
+      client.prepare({
         protocolVersion: UPDATE_PROTOCOL_VERSION,
         authorityEpoch: 3,
         version: "",
@@ -124,7 +156,9 @@ describe("update client", () => {
       check: async () => committed(),
       selectChannel: async () => committed(),
       defer: async () => committed(),
-      install: async () => committed(),
+      prepare: async () => committed(),
+      apply: async () => committed(),
+      cancel: async () => committed(),
     });
 
     await expect(new UpdateClient(port).snapshot()).rejects.toThrow(UpdateValidationError);
@@ -138,7 +172,9 @@ describe("update client", () => {
       check: async () => committed(),
       selectChannel: async () => committed(),
       defer: async () => committed(),
-      install: async () => committed(),
+      prepare: async () => committed(),
+      apply: async () => committed(),
+      cancel: async () => committed(),
       listen: (listener) => {
         expect(() => listener({ kind: "not a kind" })).toThrow(UpdateValidationError);
         leaked = true;
@@ -157,6 +193,34 @@ describe("update client", () => {
 
     expect(leaked).toBeTrue();
     expect(delivered?.kind).toBe("checked");
+  });
+
+  test("a live progress report is validated before the listener sees it", async () => {
+    let sawDownloding = false;
+    const port = createDirectUpdatePort({
+      snapshot: async () => snapshot(),
+      check: async () => committed(),
+      selectChannel: async () => committed(),
+      defer: async () => committed(),
+      prepare: async () => committed(),
+      apply: async () => committed(),
+      cancel: async () => committed(),
+      listenProgress: (listener) => {
+        expect(() => listener({ state: "downloading" })).toThrow(UpdateValidationError);
+        listener({
+          protocolVersion: UPDATE_PROTOCOL_VERSION,
+          authorityEpoch: 3,
+          progress: { state: "downloading", received: 1, expected: 2, fraction: 0.5 },
+        });
+        return () => {};
+      },
+    });
+
+    await new UpdateClient(port).listenProgress((event) => {
+      sawDownloding = event.progress.state === "downloading";
+    });
+
+    expect(sawDownloding).toBeTrue();
   });
 
   test("the serialized port survives a structured-clone round trip", async () => {
@@ -210,20 +274,26 @@ describe("update controller", () => {
    * a reason, not a failure. A surface that reported it as one would tell a
    * customer their update is broken when nothing is.
    */
-  test("a gated install stays ready and shows its reason", async () => {
+  test("a gated apply stays ready and shows its reason", async () => {
     const cause: DeferralCause = { cause: "workInFlight", detail: "1 open transfer session" };
-    const gated = snapshot({ deferral: { version: "1.4.0", cause } });
+    const gated = snapshot({
+      deferral: { version: "1.4.0", cause },
+      staged: STAGED,
+      progress: { state: "readyToInstall", version: "1.4.0" },
+    });
     const controller = new UpdateController({
       port: new Port(snapshot(), () => committed(gated)),
     });
 
     await controller.start();
-    await controller.install("1.4.0");
+    await controller.apply("1.4.0");
 
     expect(controller.status).toEqual({ kind: "ready" });
     expect(controller.deferral).toEqual({ version: "1.4.0", cause });
     expect(controller.lastRejection).toBeUndefined();
     expect(controller.installedVersion).toBe("1.3.0");
+    // A refused install is not a cancellation: the artifact stays staged.
+    expect(controller.staged).toEqual(STAGED);
   });
 
   test("a rejection is distinct from a deferral and carries its code", async () => {
@@ -236,7 +306,7 @@ describe("update controller", () => {
     });
 
     await controller.start();
-    await controller.install("1.4.0");
+    await controller.apply("1.4.0");
 
     expect(controller.status).toEqual({ kind: "ready" });
     expect(controller.lastRejection).toBe("notWritable");
@@ -252,7 +322,7 @@ describe("update controller", () => {
     });
 
     await controller.start();
-    await controller.install("1.4.0");
+    await controller.prepare("1.4.0");
     expect(controller.lastRejection).toBe("unreachable");
 
     refuse = false;
@@ -274,7 +344,9 @@ describe("update controller", () => {
         },
         selectChannel: async () => committed(),
         defer: async () => committed(),
-        install: async () => committed(),
+        prepare: async () => committed(),
+        apply: async () => committed(),
+        cancel: async () => committed(),
       },
     });
 
@@ -295,6 +367,25 @@ describe("update controller", () => {
     expect(String((controller.status as { error: unknown }).error)).toContain("has not been read");
   });
 
+  test("the staged protocol sends prepare, apply and cancel as their own commands", async () => {
+    const port = new Port();
+    const controller = new UpdateController({ port });
+
+    await controller.start();
+    await controller.prepare("1.4.0");
+    await controller.apply("1.4.0");
+    await controller.cancel();
+
+    expect(port.calls).toEqual([
+      "listen",
+      "listenProgress",
+      "snapshot",
+      "prepare",
+      "apply",
+      "cancel",
+    ]);
+  });
+
   test("stop releases the listener and returns to idle", async () => {
     let released = false;
     const controller = new UpdateController({
@@ -303,7 +394,9 @@ describe("update controller", () => {
         check: async () => committed(),
         selectChannel: async () => committed(),
         defer: async () => committed(),
-        install: async () => committed(),
+        prepare: async () => committed(),
+        apply: async () => committed(),
+        cancel: async () => committed(),
         listen: () => () => {
           released = true;
         },
@@ -327,6 +420,51 @@ describe("update controller", () => {
     await controller.start();
 
     expect(notifications).toBeGreaterThan(0);
+  });
+
+  /**
+   * The reason the progress channel exists. A snapshot read during the
+   * transfer still shows the retained state, because the host does not hold
+   * the authority across the download.
+   */
+  test("a live report wins over the snapshot while the transfer runs", async () => {
+    const port = new Port();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    port.emitProgress({
+      protocolVersion: UPDATE_PROTOCOL_VERSION,
+      authorityEpoch: 3,
+      progress: { state: "downloading", received: 5, expected: 10, fraction: 0.5 },
+    });
+
+    expect(controller.progress).toEqual({
+      state: "downloading",
+      received: 5,
+      expected: 10,
+      fraction: 0.5,
+    });
+    expect(controller.presence).toBe("quiet");
+  });
+
+  test("the live report is dropped when the command that started it settles", async () => {
+    const retained = snapshot({
+      staged: STAGED,
+      progress: { state: "readyToInstall", version: "1.4.0" },
+    });
+    const port = new Port(snapshot(), () => committed(retained));
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    port.emitProgress({
+      protocolVersion: UPDATE_PROTOCOL_VERSION,
+      authorityEpoch: 3,
+      progress: { state: "downloading", received: 5, expected: 10, fraction: 0.5 },
+    });
+    await controller.prepare("1.4.0");
+
+    expect(controller.progress).toEqual({ state: "readyToInstall", version: "1.4.0" });
+    expect(controller.staged).toEqual(STAGED);
   });
 });
 
@@ -396,7 +534,12 @@ describe("update presence", () => {
   });
 
   test("work in flight is quiet, and ready-to-install asks again", async () => {
-    const downloading: UpdateProgressProjection = { state: "downloading", fraction: null };
+    const downloading: UpdateProgressProjection = {
+      state: "downloading",
+      received: 4_096,
+      expected: null,
+      fraction: null,
+    };
     const ready: UpdateProgressProjection = { state: "readyToInstall", version: "1.4.0" };
     expect(await presence(snapshot({ progress: downloading }))).toBe("quiet");
     expect(await presence(snapshot({ progress: { state: "verifying" } }))).toBe("quiet");

@@ -2,10 +2,11 @@ use std::error::Error;
 
 use longhorn_update::{
     Channel, DeferralCause, InstallManager, OfferReason, UPDATE_PROTOCOL_VERSION,
-    UpdateAvailabilityProjection, UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand,
-    UpdateDeferCommand, UpdateDeferralProjection, UpdateInstallAuthorizationProjection,
-    UpdateInstallCommand, UpdateOutcomeProjection, UpdateProgressProjection, UpdateProtocolVersion,
-    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateApplyCommand, UpdateAvailabilityProjection, UpdateCancelCommand, UpdateChangedEvent,
+    UpdateChangedKind, UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection,
+    UpdateInstallAuthorizationProjection, UpdateOutcomeProjection, UpdatePrepareCommand,
+    UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
+    UpdateSelectChannelCommand, UpdateSnapshot, UpdateStagedArtifactProjection,
 };
 use ts_rs::TS;
 
@@ -75,12 +76,16 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         deferral_cause.clone(),
         availability.clone(),
         UpdateDeferralProjection::decl(config()),
+        UpdateStagedArtifactProjection::decl(config()),
         progress.clone(),
+        UpdateProgressEvent::decl(config()),
         UpdateSnapshot::decl(config()),
         UpdateCheckCommand::decl(config()),
         UpdateSelectChannelCommand::decl(config()),
         UpdateDeferCommand::decl(config()),
-        UpdateInstallCommand::decl(config()),
+        UpdatePrepareCommand::decl(config()),
+        UpdateApplyCommand::decl(config()),
+        UpdateCancelCommand::decl(config()),
         authorization.clone(),
         rejection_code.clone(),
         outcome.clone(),

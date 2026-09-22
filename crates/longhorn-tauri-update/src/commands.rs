@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use longhorn_update::{
-    UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand, UpdateDeferCommand,
-    UpdateInstallCommand, UpdateOutcomeProjection, UpdateProtocolVersion,
-    UpdateSelectChannelCommand, UpdateSnapshot,
+    UpdateApplyCommand, UpdateCancelCommand, UpdateChangedEvent, UpdateChangedKind,
+    UpdateCheckCommand, UpdateDeferCommand, UpdateOutcomeProjection, UpdatePrepareCommand,
+    UpdateProgressEvent, UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
@@ -11,6 +11,14 @@ use crate::UpdateHostError;
 
 /// Non-durable committed update invalidation hint.
 pub const UPDATE_CHANGED_EVENT: &str = "longhorn://update/changed";
+
+/// Live byte progress, published while a transfer runs.
+///
+/// Separate from `UPDATE_CHANGED_EVENT` because it carries a value rather than
+/// an invalidation: a snapshot read during the transfer still shows the
+/// retained state, so this is the only channel that reports bytes as they
+/// arrive.
+pub const UPDATE_PROGRESS_EVENT: &str = "longhorn://update/progress";
 
 /// Object-safe update surface retained in Tauri managed state.
 pub trait UpdateHostService: Send + Sync {
@@ -34,11 +42,27 @@ pub trait UpdateHostService: Send + Sync {
         caller: &str,
         command: UpdateDeferCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Fetches, verifies, gates and installs.
-    fn install(
+    /// Fetches, verifies and retains, reporting progress as bytes arrive.
+    ///
+    /// The authority lock is not held across the transfer; the report is the
+    /// only thing the transfer touches.
+    fn prepare(
         &self,
         caller: &str,
-        command: UpdateInstallCommand,
+        command: UpdatePrepareCommand,
+        progress: &mut dyn FnMut(UpdateProgressEvent),
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
+    /// Applies the retained staged artifact.
+    fn apply(
+        &self,
+        caller: &str,
+        command: UpdateApplyCommand,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
+    /// Discards the retained staged artifact.
+    fn cancel(
+        &self,
+        caller: &str,
+        command: UpdateCancelCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
 }
 
@@ -97,14 +121,46 @@ pub fn longhorn_update_defer<R: Runtime>(
     emitting(&window, state.service.defer(window.label(), command)?)
 }
 
-/// Fetches, verifies, gates and installs.
+/// Fetches, verifies and retains an update for a later apply.
+///
+/// Runs on a blocking thread so the transfer does not hold the main thread,
+/// and byte progress leaves through `UPDATE_PROGRESS_EVENT` while it runs.
 #[tauri::command]
-pub fn longhorn_update_install<R: Runtime>(
+pub async fn longhorn_update_prepare<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
-    command: UpdateInstallCommand,
+    command: UpdatePrepareCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(&window, state.service.install(window.label(), command)?)
+    let service = Arc::clone(&state.service);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        let outcome = service.prepare(&label, command, &mut |event| {
+            emitting_progress(&window, event);
+        })?;
+        emitting(&window, outcome)
+    })
+    .await
+    .map_err(|_| UpdateHostError::state_unavailable())?
+}
+
+/// Applies the retained staged artifact, replacing the application.
+#[tauri::command]
+pub fn longhorn_update_apply<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriUpdateState>,
+    command: UpdateApplyCommand,
+) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+    emitting(&window, state.service.apply(window.label(), command)?)
+}
+
+/// Discards the retained staged artifact.
+#[tauri::command]
+pub fn longhorn_update_cancel<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriUpdateState>,
+    command: UpdateCancelCommand,
+) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+    emitting(&window, state.service.cancel(window.label(), command)?)
 }
 
 /// Publishes a trusted update invalidation hint after an external commit.
@@ -153,4 +209,12 @@ fn emitting<R: Runtime>(
         longhorn_core::report_best_effort_failure("update.changed-emit", error);
     }
     Ok(outcome)
+}
+
+/// Publishes one live progress report. A failed render is informational, not a
+/// reason for the transfer to stop reporting.
+fn emitting_progress<R: Runtime>(window: &WebviewWindow<R>, event: UpdateProgressEvent) {
+    if let Err(error) = window.emit(UPDATE_PROGRESS_EVENT, event) {
+        longhorn_core::report_best_effort_failure("update.progress-emit", error);
+    }
 }

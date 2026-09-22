@@ -20,7 +20,7 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
   },
   "UpdateProgressProjection": {
     "idle": ["state"],
-    "downloading": ["state", "fraction"],
+    "downloading": ["state", "received", "expected", "fraction"],
     "verifying": ["state"],
     "readyToInstall": ["state", "version"],
     "installing": ["state", "version"],
