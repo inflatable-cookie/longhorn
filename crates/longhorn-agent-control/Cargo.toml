@@ -8,6 +8,12 @@ repository.workspace = true
 description = "Host-agnostic core of the Longhorn agent app-control surface (contract 022)"
 publish = false
 
+[features]
+# Off by default. The `evaluate` MCP tool stays listed so a packaged
+# `agent-control` build answers typed `Unsupported`; this feature is what
+# compiles the JS escape hatch (contract 022; expected only in dev/test).
+agent-control-evaluate = []
+
 [dependencies]
 axum.workspace = true
 base64.workspace = true

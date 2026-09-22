@@ -1,16 +1,18 @@
 ---
 name: agent-control
-description: Drive a running Longhorn app through its dev MCP control surface instead of OS computer use. Use when testing the running app, driving the UI, taking screenshots of the app, clicking or typing in the app without stealing focus, or finding a local agent-control instance.
+description: Drive a running Longhorn app through its MCP control surface instead of OS computer use. Use when testing the running app, driving the UI, taking screenshots of the app, clicking or typing in the app without stealing focus, or finding a local agent-control instance.
 longhorn_version: "0.1.0"
 ---
 
 # Agent Control
 
-For a Longhorn app built with the `dev` feature, this surface is the way
-to drive the UI. Do not use OS computer use, screenshots of the desktop,
-or synthetic system input against that app. The server exists only in
-dev builds, binds `127.0.0.1` only, and treats the per-instance bearer
-token as a credential.
+For a Longhorn app built with the `agent-control` feature, this surface is
+the way to drive the UI. Do not use OS computer use, screenshots of the
+desktop, or synthetic system input against that app. The server exists
+only when that compile-time feature is on and the application mounts it,
+binds `127.0.0.1` only, and treats the per-instance bearer token as a
+credential. Packaged builds omit `evaluate` unless `agent-control-evaluate`
+is also enabled; the registered command catalogue is the allowed agency.
 
 ## 1. Use this, then confirm the app is running
 
@@ -28,7 +30,8 @@ bun skills/agent-control/scripts/find-instance.ts --app-id com.example.app
 
 Exit 0 prints the instance URL and a ready-to-paste `claude mcp add`
 line (the token appears only there). Exit nonzero means nothing live —
-start the app's **dev** build and rerun; do not fall back to OS input.
+start the app's **agent-control** build and rerun; do not fall back to OS
+input.
 
 ## 2. Discovery
 
@@ -177,7 +180,7 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | `click` | `element` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
 | `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. Some apps compose no registry at all: every `command` then answers `Unsupported` naming that — drive the UI through snapshot/input and report menu-only gaps to the operator. |
 | `drag` | `source` (ref), `target` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted in-page drag, ref-to-ref, two-point (source center → target center); HTML5 DnD plus pointer/mouse down-move-up; no OS drag-and-drop and no interpolated pixel path |
-| `evaluate` | `js`, `window?`, `webview?` | JSON `value` | escape hatch; full in-app code execution |
+| `evaluate` | `js`, `window?`, `webview?` | JSON `value` | escape hatch; full in-app code execution. Packaged `agent-control` omits it and answers `Unsupported` unless `agent-control-evaluate` is enabled |
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
 | `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?`, `webview?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
@@ -274,9 +277,11 @@ Do not assume another-Space window state works (unproved). Capture and
 semantic tools are macOS-only; `Unsupported` elsewhere is the answer,
 not a prompt to screenshot the desktop.
 
-Release builds contain none of this server. If the finder finds
-nothing and the app is a release/packaged-without-dev binary, stop and
-tell the operator. Never try to enable the surface at runtime.
+Builds without `agent-control` contain none of this server. If the finder
+finds nothing and the app is a default/featureless binary, stop and tell
+the operator. Never try to enable the surface at runtime. If `evaluate`
+answers `Unsupported` naming the omitted feature, use `snapshot` / input /
+`command` instead; do not fall back to OS input.
 
 If a child webview you need to drive answers `Unsupported` naming opt-in
 absence, stop and ask the operator to opt that label in at mount. Do not

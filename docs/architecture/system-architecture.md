@@ -204,9 +204,10 @@ pages and schemas remain downstream in consumers.
 
 ### Production contextual app-tool boundary
 
-The existing agent-control surface is a dev-only webview control boundary
-under contract 022. A production contextual-tool surface is a separate
-separate capability, not a feature flip. Swallowtail owns the namespaced
+The existing agent-control surface is a compile-time opt-in webview control
+boundary under contract 022 (`agent-control`, with `evaluate` split). A
+production contextual-tool surface is a separate capability, not a feature
+flip. Swallowtail owns the namespaced
 registration snapshot and the operation bridge's transport, listener, lease,
 correlation, and lifecycle kernel. Longhorn owns only a transport-neutral typed
 host dispatch and validation library over an already authenticated binding.

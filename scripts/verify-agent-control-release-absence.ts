@@ -1,16 +1,14 @@
-// Proves contract 022's total-exclusion claim for the agent control surface:
-// a release build of `longhorn-tauri-agent-control` without the `dev` feature
-// contains no server, route, token, or discovery code — and does not even
-// pull the core crate into the dependency graph (feature unification pulling
-// it in is a stop condition, not a footnote).
+// Proves contract 022's compile-time opt-in for the agent control surface:
+// three feature states of `longhorn-tauri-agent-control`, each with a
+// positive control so a broken scan cannot pass vacuously.
 //
-// Both directions are proven, each with a positive control so a broken scan
-// cannot pass vacuously:
-//
-//   feature off — `cargo tree` shows no `longhorn-agent-control`, no core
-//     rlib exists in the build, and the plugin artifact carries neither the
-//     core crate's symbol prefix nor its source-path strings;
-//   feature on — the same probes must FIND the surface, proving the markers
+//   neither feature — `cargo tree` shows no `longhorn-agent-control`, no
+//     core rlib exists in the build, and the plugin artifact carries neither
+//     the core crate's symbol prefix nor its source-path strings;
+//   `agent-control` only — the server is present and `evaluate` markers are
+//     absent from the core artifact; isolated tests prove the tool answers
+//     typed `Unsupported`;
+//   both features — the same probes FIND `evaluate`, proving the markers
 //     are live and the scan can detect what it forbids.
 //
 // Builds run release-shaped in isolated target dirs under
@@ -35,13 +33,30 @@ const SCAN_ROOT = join(repoRoot, "target", "agent-control-scan");
 const CORE_MARKERS = ["longhorn_agent_control", "longhorn-agent-control/src"];
 const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl"];
 const MARKERS = [...CORE_MARKERS, ...SHIM_MARKERS];
+// Present only when `agent-control-evaluate` compiles the JS escape hatch
+// into server instructions (mcp.rs). Doc comments do not reach the rlib.
+const EVALUATE_MARKERS = ["full code execution in the app"];
+
+type FeatureSet = "off" | "agent-control" | "agent-control-evaluate";
 
 type BuildResult = {
+  features: FeatureSet;
   targetDir: string;
   tree: string;
   pluginRlib: string;
   coreRlib: string | null;
 };
+
+function featureArgs(features: FeatureSet): string[] {
+  switch (features) {
+    case "off":
+      return ["--no-default-features"];
+    case "agent-control":
+      return ["--features", "agent-control"];
+    case "agent-control-evaluate":
+      return ["--features", "agent-control,agent-control-evaluate"];
+  }
+}
 
 async function run(command: readonly string[], env: Record<string, string>) {
   const subprocess = Bun.spawn(command, {
@@ -61,9 +76,25 @@ async function run(command: readonly string[], env: Record<string, string>) {
   return stdout;
 }
 
-async function build(features: "on" | "off"): Promise<BuildResult> {
-  const featureArgs =
-    features === "on" ? ["--features", "dev"] : ["--no-default-features"];
+// `cargo test -- FILTER --exact` exits 0 with `running 0 tests` when the
+// filter matches nothing (a cfg'd-out name, a rename). The scan must not
+// pass that as a positive control.
+async function runExactTest(command: readonly string[], testName: string) {
+  const output = await run(command, { CARGO_TERM_COLOR: "never" });
+  if (!output.includes(testName)) {
+    throw new Error(
+      `expected cargo to run ${testName}, but the name is missing from output:\n${output}`,
+    );
+  }
+  if (!/test result: ok\. 1 passed;/.test(output)) {
+    throw new Error(
+      `expected exactly one passing test ${testName}; cargo can exit 0 with running 0 tests:\n${output}`,
+    );
+  }
+}
+
+async function build(features: FeatureSet): Promise<BuildResult> {
+  const args = featureArgs(features);
   const targetDir = join(SCAN_ROOT, features);
   const env = { CARGO_TARGET_DIR: targetDir };
 
@@ -92,7 +123,7 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
       "normal",
       "--prefix",
       "none",
-      ...featureArgs,
+      ...args,
     ],
     {},
   );
@@ -105,7 +136,7 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
       "--release",
       "--locked",
       "--lib",
-      ...featureArgs,
+      ...args,
     ],
     env,
   );
@@ -115,7 +146,8 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
     (entry) => entry.startsWith("liblonghorn_agent_control-") && entry.endsWith(".rlib"),
   );
   const pluginRlibs = entries.filter(
-    (entry) => entry.startsWith("liblonghorn_tauri_agent_control-") && entry.endsWith(".rlib"),
+    (entry) =>
+      entry.startsWith("liblonghorn_tauri_agent_control-") && entry.endsWith(".rlib"),
   );
 
   if (features === "off") {
@@ -132,11 +164,11 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
   } else {
     if (!tree.includes(CORE)) {
       throw new Error(
-        `feature-on dependency graph is missing ${CORE} — the scan's positive control cannot see the surface:\n${tree}`,
+        `${features} dependency graph is missing ${CORE} — the scan's positive control cannot see the surface:\n${tree}`,
       );
     }
     if (coreRlibs.length === 0) {
-      throw new Error("feature-on build produced no core-crate rlib");
+      throw new Error(`${features} build produced no core-crate rlib`);
     }
   }
   if (pluginRlibs.length !== 1) {
@@ -145,6 +177,7 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
     );
   }
   return {
+    features,
     targetDir,
     tree,
     pluginRlib: join(depsDir, pluginRlibs[0]!),
@@ -152,64 +185,146 @@ async function build(features: "on" | "off"): Promise<BuildResult> {
   };
 }
 
-async function markerHits(path: string): Promise<string[]> {
+async function markerHits(path: string, markers: readonly string[]): Promise<string[]> {
   const bytes = await readFile(path);
-  return MARKERS.filter((marker) => bytes.includes(marker));
+  return markers.filter((marker) => bytes.includes(marker));
+}
+
+async function proveServerPresent(buildResult: BuildResult): Promise<{
+  pluginMarkersFound: string[];
+  coreMarkersFound: string[];
+}> {
+  if (buildResult.coreRlib === null) {
+    throw new Error(`${buildResult.features} build produced no core-crate rlib`);
+  }
+  const pluginHits = await markerHits(buildResult.pluginRlib, MARKERS);
+  if (!pluginHits.includes(CORE_MARKERS[0]!)) {
+    throw new Error(
+      `${buildResult.features} release artifact does not reference ${CORE_MARKERS[0]} — the scan would pass vacuously`,
+    );
+  }
+  const missingShim = SHIM_MARKERS.filter((marker) => !pluginHits.includes(marker));
+  if (missingShim.length > 0) {
+    throw new Error(
+      `${buildResult.features} plugin artifact is missing shim markers: ${missingShim.join(", ")} — the gated injectable is not in the feature-on build`,
+    );
+  }
+  const coreHits = await markerHits(buildResult.coreRlib, CORE_MARKERS);
+  const missingCore = CORE_MARKERS.filter((marker) => !coreHits.includes(marker));
+  if (missingCore.length > 0) {
+    throw new Error(
+      `${buildResult.features} core artifact is missing markers the scan forbids feature-off: ${missingCore.join(", ")} — the scan would pass vacuously`,
+    );
+  }
+  return { pluginMarkersFound: pluginHits, coreMarkersFound: coreHits };
 }
 
 const off = await build("off");
-const on = await build("on");
+const packaged = await build("agent-control");
+const withEvaluate = await build("agent-control-evaluate");
 
-// The artifact a featureless build ships must carry no reference to the
-// gated surface.
-const offHits = await markerHits(off.pluginRlib);
+const offHits = await markerHits(off.pluginRlib, MARKERS);
 if (offHits.length > 0) {
   throw new Error(
     `feature-off release artifact carries gated surface markers: ${offHits.join(", ")}`,
   );
 }
-// Positive control: the feature-on plugin references the core crate, and
-// the core artifact it links carries both markers — the scan can detect
-// everything it forbids.
-if (on.coreRlib === null) {
-  throw new Error("feature-on build produced no core-crate rlib");
-}
-const onHits = await markerHits(on.pluginRlib);
-if (!onHits.includes(CORE_MARKERS[0]!)) {
+
+const packagedHits = await proveServerPresent(packaged);
+const packagedEvaluate = await markerHits(packaged.coreRlib!, EVALUATE_MARKERS);
+if (packagedEvaluate.length > 0) {
   throw new Error(
-    `feature-on release artifact does not reference ${CORE_MARKERS[0]} — the scan would pass vacuously`,
+    `agent-control-only core artifact carries evaluate markers: ${packagedEvaluate.join(", ")}`,
   );
 }
-const missingShim = SHIM_MARKERS.filter((marker) => !onHits.includes(marker));
-if (missingShim.length > 0) {
+
+const evaluateHits = await proveServerPresent(withEvaluate);
+const evaluatePresent = await markerHits(withEvaluate.coreRlib!, EVALUATE_MARKERS);
+const missingEvaluate = EVALUATE_MARKERS.filter(
+  (marker) => !evaluatePresent.includes(marker),
+);
+if (missingEvaluate.length > 0) {
   throw new Error(
-    `feature-on plugin artifact is missing shim markers: ${missingShim.join(", ")} — the gated injectable is not in the feature-on build`,
+    `agent-control-evaluate core artifact is missing evaluate markers: ${missingEvaluate.join(", ")} — the scan would pass vacuously`,
   );
 }
-const coreHits = await markerHits(on.coreRlib);
-const missingCore = CORE_MARKERS.filter((marker) => !coreHits.includes(marker));
-if (missingCore.length > 0) {
-  throw new Error(
-    `feature-on core artifact is missing markers the scan forbids feature-off: ${missingCore.join(", ")} — the scan would pass vacuously`,
-  );
-}
+
+// Isolated `-p` tests: workspace unification from the proof example would
+// otherwise compile `agent-control-evaluate` into every crate test.
+await runExactTest(
+  [
+    "cargo",
+    "test",
+    "-p",
+    CORE,
+    "--locked",
+    "--test",
+    "conformance",
+    "evaluate_answers_typed_unsupported",
+    "--",
+    "--exact",
+  ],
+  "evaluate_answers_typed_unsupported",
+);
+await runExactTest(
+  [
+    "cargo",
+    "test",
+    "-p",
+    PLUGIN,
+    "--features",
+    "agent-control",
+    "--locked",
+    "--test",
+    "mount",
+    "evaluate_answers_typed_unsupported",
+    "--",
+    "--exact",
+  ],
+  "evaluate_answers_typed_unsupported",
+);
+await runExactTest(
+  [
+    "cargo",
+    "test",
+    "-p",
+    CORE,
+    "--features",
+    "agent-control-evaluate",
+    "--locked",
+    "--test",
+    "conformance",
+    "two_clients_interleave_without_cross_talk",
+    "--",
+    "--exact",
+  ],
+  "two_clients_interleave_without_cross_talk",
+);
 
 console.log(
   JSON.stringify(
     {
-      schema: "longhorn.agent-control-release-absence.v1",
+      schema: "longhorn.agent-control-release-absence.v2",
       outcome: "pass",
-      featureOff: {
+      defaultOff: {
         coreInGraph: false,
         coreArtifacts: 0,
         markersFound: offHits,
       },
-      featureOn: {
+      agentControl: {
         coreInGraph: true,
-        pluginMarkersFound: onHits,
-        coreMarkersFound: coreHits,
+        pluginMarkersFound: packagedHits.pluginMarkersFound,
+        coreMarkersFound: packagedHits.coreMarkersFound,
+        evaluateMarkersFound: packagedEvaluate,
+      },
+      agentControlEvaluate: {
+        coreInGraph: true,
+        pluginMarkersFound: evaluateHits.pluginMarkersFound,
+        coreMarkersFound: evaluateHits.coreMarkersFound,
+        evaluateMarkersFound: evaluatePresent,
       },
       markers: MARKERS,
+      evaluateMarkers: EVALUATE_MARKERS,
     },
     null,
     2,

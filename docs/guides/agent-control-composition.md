@@ -1,7 +1,7 @@
 # Compose Agent App Control
 
 Status: checked private adoption guidance
-Updated: 2026-08-20
+Updated: 2026-09-22
 Governing contracts: [022](../contracts/022-agent-app-control.md),
 [003](../contracts/003-extraction-and-consumer-migration.md),
 [006](../contracts/006-command-action-and-input.md),
@@ -11,8 +11,8 @@ Governing contracts: [022](../contracts/022-agent-app-control.md),
 
 Agents testing a Longhorn app through OS computer use steal focus and the
 pointer. The contract 022 control surface is the replacement: a
-dev-build-only MCP server inside the app. This guide is the Rust half — how
-a consumer app mounts it. The agent half is the skill at
+compile-time opt-in MCP server inside the app. This guide is the Rust half
+— how a consumer app mounts it. The agent half is the skill at
 `skills/agent-control/`; install it with
 `effigy agent-control:install-skill -- <git-repo>` (from the Longhorn
 checkout).
@@ -39,13 +39,17 @@ open -g -a ../../target/release/bundle/macos/Longhorn\ Agent\ Control\ Proof.app
 `open -g` launches without stealing focus. Discovery appears at
 `~/Library/Application Support/longhorn/state/agent-control/dev.example.longhorn-agent-control-proof-<pid>.json`.
 
-## 1. The `dev` Feature Never Reaches Release
+## 1. The `agent-control` Feature Is A Compile-Time Opt-In
 
-The entire surface sits behind `longhorn-tauri-agent-control`'s off-by-default
-`dev` cargo feature. A featureless build is an empty library: no server,
-route, token, discovery, or shim code, and no runtime toggle can enable it.
-Longhorn's `effigy check:agent-control-release-absence` proves both
-directions for this repo; a consumer must keep the same compile-time gate.
+The entire surface sits behind `longhorn-tauri-agent-control`'s
+off-by-default `agent-control` cargo feature. A featureless build is an
+empty library: no server, route, token, discovery, or shim code, and no
+runtime toggle can enable it. The application starts the server with
+`mount_agent_control`; enabling the feature does not start it. Longhorn's
+`effigy check:agent-control-release-absence` proves three states for this
+repo: neither feature (no surface), `agent-control` only (server present,
+`evaluate` omitted), and both features (`evaluate` present). A consumer
+must keep the same compile-time gate.
 
 ```toml
 # src-tauri/Cargo.toml
@@ -53,18 +57,25 @@ directions for this repo; a consumer must keep the same compile-time gate.
 longhorn-tauri-agent-control = "0.1.0"
 
 [features]
-dev = ["longhorn-tauri-agent-control/dev"]
+agent-control = ["longhorn-tauri-agent-control/agent-control"]
+# Dev/test only. Packaged builds omit this; `evaluate` then answers typed
+# Unsupported. The registered command catalogue is the allowed agency.
+agent-control-evaluate = [
+  "agent-control",
+  "longhorn-tauri-agent-control/agent-control-evaluate",
+]
 ```
 
-Enable `dev` only on local and CI debug/dev profiles. Never enable it on
-`[profile.release]`, a release CI job, or a tagged build. The proof app
-enables the feature unconditionally because that app is not a product.
+A packaged consumer enables `agent-control`, not `agent-control-evaluate`.
+Loopback binding, the per-instance bearer token, and Origin validation do
+not change. The proof app enables both features unconditionally because
+that app is not a product.
 
 The symbols (`mount_agent_control`, `CommandBridge`, `AgentControlConfig`)
-exist only with the feature. Gate the composition:
+exist only with `agent-control`. Gate the composition:
 
 ```rust
-#[cfg(feature = "dev")]
+#[cfg(feature = "agent-control")]
 {
     // mount here
 }
@@ -142,9 +153,9 @@ matching the real window; a child whose snapshot fails fails the call
 typed rather than silently dropping out of the image. Freshness holds per
 webview in every probed window state (frontmost, unfocused, occluded,
 minimized). A genuinely native (non-webview) island is not captured — no
-provider ships for that seam. The plugin's `dev` feature enables tauri's
-`unstable` feature for this; release builds are unaffected because the
-whole dependency is dev-gated.
+provider ships for that seam. The plugin's `agent-control` feature enables
+tauri's `unstable` feature for this; builds without `agent-control` are
+unaffected because the whole dependency is feature-gated.
 
 ### Applications without a command registry
 
@@ -169,20 +180,20 @@ tells them to report the gap rather than click native chrome.
 ## 3. Mount From `setup`
 
 ```rust
-#[cfg(feature = "dev")]
+#[cfg(feature = "agent-control")]
 use longhorn_tauri_agent_control::{
     AgentControlConfig, AgentControlHandle, mount_agent_control,
 };
 
 const APP_ID: &str = "com.example.app"; // canonical application id
 
-#[cfg(feature = "dev")]
+#[cfg(feature = "agent-control")]
 struct AgentControlState {
     agent_control: std::sync::Mutex<Option<AgentControlHandle>>,
 }
 
 // inside tauri::Builder::setup:
-#[cfg(feature = "dev")]
+#[cfg(feature = "agent-control")]
 {
     let bridge = std::sync::Arc::new(AppCommandBridge::new(/* ... */));
     let agent_control = mount_agent_control(
@@ -218,7 +229,7 @@ Hook both. `Option::take` makes the second fire a no-op.
 
 ```rust
 app.run(|app, event| {
-    #[cfg(feature = "dev")]
+    #[cfg(feature = "agent-control")]
     if let tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit = event
         && let Some(state) = app.try_state::<AgentControlState>()
         && let Some(agent_control) = state.agent_control.lock().expect("state poisoned").take()
@@ -230,16 +241,16 @@ app.run(|app, event| {
 
 ## What The App Gets
 
-Once mounted in a `dev` build, an agent can:
+Once mounted, an agent can:
 
 | Tool | What it does |
 | --- | --- |
 | `snapshot` | semantic tree with live-DOM refs |
 | `click`, `type`, `press`, `scroll`, `drag` | untrusted in-page DOM events; never moves the OS pointer; never requires focus |
-| `evaluate` | JS in the page; escape hatch; full code execution |
+| `evaluate` | JS in the page; escape hatch; full code execution; omitted without `agent-control-evaluate` (typed `Unsupported`) |
 | `wait_for` | DOM-relative predicates only |
 | `screenshot` | fresh image of the whole window, child webviews composed in; occluded, unfocused, and minimized; macOS only |
-| `command` | invoke a registered contract-006 command by id |
+| `command` | invoke a registered contract-006 command by id; in a packaged build this catalogue is the allowed agency |
 | `list_windows`, `resize_window` | window scope |
 
 Page events ride `subscriptions/listen` as `resources/updated` on
@@ -256,7 +267,11 @@ directory lists every live instance. File name is `<app-id>-<pid>.json`.
   input is untrusted by contract.
 - Capture, `evaluate`, or the semantic tools on non-macOS hosts. Those
   compile and answer typed `Unsupported` (contract 020).
-- The server in a release build. Absence is the feature.
+- The server without `agent-control`. Absence is the feature. Enabling
+  `agent-control` still does not start the server — the application calls
+  `mount_agent_control`.
+- `evaluate` in a packaged `agent-control` build. That tool answers typed
+  `Unsupported` unless `agent-control-evaluate` is also enabled.
 - Time-only or animation-frame waits. WKWebView coalesces timers in every
   window state and stops `requestAnimationFrame` while the window is not
   key. `wait_for` is DOM-relative on purpose.
