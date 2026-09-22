@@ -102,6 +102,17 @@ and capture render/resize/keyboard evidence, with fixture and native evidence
 distinguished from the actual packaged `g05.180` proof. The release stays held;
 the next signal is a consumer prerelease PASS or a concrete remaining defect.
 
+**Consumer prerelease PASS — 2026-09-22.** The Desktop 179 worker passed the
+linked candidate `608a7eed`: consumer route tests 5/5, upstream route regressions
+3/3, the real Settings flow (progress / Cancel / Ready / Later) and a constrained
+and zoomed render verified, on top of the already-recorded native updater 15/15,
+installer 146/146, and publication/trust 14/14. Root cause corrected to the
+route-commit race. 179 no longer gates the release; it waits for the released
+artifact. Release-owner comparison: tested `608a7eed` is an ancestor of the
+release candidate `ce34f42b`, whose only delta is one docs commit, and all seven
+release gates are green at `ce34f42b`. The single remaining gate is the
+operator-owned tag and `release.yml` publish.
+
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
   (contract 018 amended 2026-09-22), for the `acowtancy` Desktop lane
   (`g05.179`).
