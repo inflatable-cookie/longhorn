@@ -5,16 +5,20 @@ Tauri host wiring for the Longhorn agent app-control surface
 host-agnostic `longhorn-agent-control` MCP server inside a running Tauri
 application and implements its `ControlHandler` against the app's windows.
 
-The entire surface sits behind the off-by-default `dev` cargo feature. A
-build without the feature compiles to an empty library: no server, route,
-token, or discovery code exists in the artifact, and no runtime toggle can
-enable it. `effigy check:agent-control-release-absence` proves both
-directions; the release gate runs it through `effigy qa`.
+The entire surface sits behind the off-by-default `agent-control` cargo
+feature. A build without the feature compiles to an empty library: no
+server, route, token, or discovery code exists in the artifact, and no
+runtime toggle can enable it. A consumer may enable `agent-control` in a
+packaged build; the application still has to call `mount_agent_control`.
+`evaluate` is a second opt-in (`agent-control-evaluate`), off by default
+and expected only in dev/test. `effigy check:agent-control-release-absence`
+proves the three feature states; the release gate runs it through
+`effigy qa`.
 
 Composition, from the app's `setup` closure:
 
 ```rust,ignore
-#[cfg(feature = "dev")]
+#[cfg(feature = "agent-control")]
 let agent_control = longhorn_tauri_agent_control::mount_agent_control(
     app.handle(),
     longhorn_tauri_agent_control::AgentControlConfig::new("com.example.app")
@@ -28,11 +32,13 @@ callback — hook `RunEvent::Exit` (and `ExitRequested` where it fires; a
 macOS quit delivers `Exit` alone) — so a clean exit removes the discovery
 file. The
 host supplies a `CommandBridge` over its own contract-006 registry — the
-plugin adds no authority of its own.
+plugin adds no authority of its own. In a packaged build that catalogue is
+the allowed agency.
 
-Wired tools: the full contract 022 surface on macOS (`snapshot`, `click`,
+Wired tools: the contract 022 surface on macOS (`snapshot`, `click`,
 `type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`, `screenshot`,
-`command`, window ops). Semantic and input tools take an optional
+`command`, window ops). Without `agent-control-evaluate`, `evaluate`
+answers typed `Unsupported`. Semantic and input tools take an optional
 `webview` label; omit it for the UI webview. Name child labels at mount
 with `AgentControlConfig::with_semantic_child` — opting in asserts the
 child's content is the app's own to drive. Synthetic input is untrusted

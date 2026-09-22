@@ -13,7 +13,7 @@ tauri-build.workspace = true
 [dependencies]
 longhorn-command.workspace = true
 longhorn-core.workspace = true
-longhorn-tauri-agent-control = { workspace = true, features = ["dev"] }
+longhorn-tauri-agent-control = { workspace = true, features = ["agent-control", "agent-control-evaluate"] }
 serde_json.workspace = true
 tauri = { workspace = true, features = ["wry", "unstable"] }
 

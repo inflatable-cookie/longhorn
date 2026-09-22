@@ -8,7 +8,7 @@
 //! the fixture adds no client dependency: one POST per connection,
 //! `Connection: close`, chunked bodies de-framed by hand.
 
-#![cfg(feature = "dev")]
+#![cfg(feature = "agent-control")]
 
 use std::{
     io::{Read, Write},
@@ -419,6 +419,32 @@ fn mounted_server_serves_the_vocabulary_and_window_scope() {
     assert_eq!(receipt.bound.ip().to_string(), "127.0.0.1");
     assert_eq!(receipt.bound.port(), mounted.port);
     assert!(!mounted.discovery_path.exists());
+    drop(mounted.state_root);
+}
+
+#[cfg(not(feature = "agent-control-evaluate"))]
+#[test]
+fn evaluate_answers_typed_unsupported() {
+    let (_app, mounted) = mount();
+    let client = McpPost::authed(mounted.port, &mounted.token);
+
+    let reply = client.call("evaluate", json!({ "js": "1 + 1" }));
+    assert_eq!(reply.status, 200, "{}", reply.body);
+    let (is_error, content) = tool_content(&reply);
+    assert!(
+        is_error,
+        "evaluate must fail typed without the feature: {content}"
+    );
+    assert_eq!(content["error"], "unsupported", "{content}");
+    assert!(
+        content["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("agent-control-evaluate"),
+        "{content}"
+    );
+
+    mounted.handle.shutdown().unwrap();
     drop(mounted.state_root);
 }
 

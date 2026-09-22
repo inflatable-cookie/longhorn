@@ -25,7 +25,7 @@ use super::args::{
     ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs, ResizeWindowArgs, ScreenshotArgs,
     ScrollArgs, SnapshotArgs, TypeArgs, WaitForArgs,
 };
-use crate::{ControlHandler, EvaluateRequest, ToolError};
+use crate::{ControlHandler, EvaluateRequest, EvaluateResult, ToolError};
 
 use super::events;
 
@@ -45,6 +45,19 @@ fn json_result<T: Serialize>(outcome: Result<T, ToolError>) -> Result<CallToolRe
         Err(error) => {
             ContentBlock::json(&error).map(|content| CallToolResult::error(vec![content]))
         }
+    }
+}
+
+/// Server instructions. The evaluate-on wording is also the artifact-scan
+/// marker for `agent-control-evaluate` (`full code execution in the app`).
+fn instructions() -> &'static str {
+    #[cfg(feature = "agent-control-evaluate")]
+    {
+        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch (full code execution in the app), wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained."
+    }
+    #[cfg(not(feature = "agent-control-evaluate"))]
+    {
+        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate answers typed Unsupported unless agent-control-evaluate is enabled, wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained."
     }
 }
 
@@ -119,13 +132,26 @@ where
     }
 
     #[tool(
-        description = "Run JavaScript in the page and return the JSON result. Escape hatch, not the primary path; full code execution in the app."
+        description = "Run JavaScript in the page and return the JSON result. Escape hatch, not the primary path. Packaged agent-control builds omit execution and answer typed Unsupported unless agent-control-evaluate is enabled."
     )]
     async fn evaluate(
         &self,
         Parameters(args): Parameters<EvaluateArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.evaluate(args.into_request()?).await)
+        let request = args.into_request()?;
+        #[cfg(feature = "agent-control-evaluate")]
+        {
+            json_result::<EvaluateResult>(self.handler.evaluate(request).await)
+        }
+        #[cfg(not(feature = "agent-control-evaluate"))]
+        {
+            let _ = request;
+            json_result::<EvaluateResult>(Err(ToolError::Unsupported {
+                message:
+                    "evaluate is omitted from this build; enable the agent-control-evaluate feature"
+                        .to_owned(),
+            }))
+        }
     }
 
     #[tool(
@@ -256,13 +282,11 @@ where
                 .enable_resources_subscribe()
                 .build(),
         )
-            .with_server_info(Implementation::new(
-                "longhorn-agent-control",
-                env!("CARGO_PKG_VERSION"),
-            ))
-            .with_instructions(
-                "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch, wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained.",
-            )
+        .with_server_info(Implementation::new(
+            "longhorn-agent-control",
+            env!("CARGO_PKG_VERSION"),
+        ))
+        .with_instructions(instructions())
     }
 
     fn accepted_subscription_filter(

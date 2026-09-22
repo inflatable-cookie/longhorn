@@ -8,11 +8,14 @@ repository.workspace = true
 publish = false
 
 [features]
-# The entire agent control surface (contract 022) is dev-build-only and off
-# by default. Enabling `dev` pulls the core server crate into the dependency
-# graph; a featureless build compiles to an empty library carrying no server,
-# route, token, or discovery code, and no runtime toggle can enable it.
-dev = [
+# The entire agent control surface (contract 022) is a compile-time opt-in
+# and off by default. Enabling `agent-control` pulls the core server crate
+# into the dependency graph; a featureless build compiles to an empty library
+# carrying no server, route, token, or discovery code, and no runtime toggle
+# can enable it. A consumer may enable `agent-control` in a packaged build;
+# the application still has to call `mount_agent_control`. `evaluate` is a
+# second opt-in, off by default, expected only in dev/test.
+agent-control = [
   "dep:longhorn-agent-control",
   "dep:longhorn-core",
   "dep:longhorn-tauri-config",
@@ -24,6 +27,10 @@ dev = [
   "dep:objc2-app-kit",
   "dep:objc2-foundation",
   "dep:objc2-web-kit",
+]
+agent-control-evaluate = [
+  "agent-control",
+  "longhorn-agent-control/agent-control-evaluate",
 ]
 
 [dependencies]
@@ -39,7 +46,7 @@ serde_json = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 # The Card 231 capture bridge: macOS-only, public WKWebView API through
-# objc2, all of it behind the same `dev` feature.
+# objc2, all of it behind the same `agent-control` feature.
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = { workspace = true, optional = true }
 objc2 = { workspace = true, optional = true }
@@ -48,7 +55,7 @@ objc2-foundation = { workspace = true, optional = true }
 objc2-web-kit = { workspace = true, optional = true }
 
 [dev-dependencies]
-longhorn-tauri-agent-control = { path = ".", features = ["dev"] }
+longhorn-tauri-agent-control = { path = ".", features = ["agent-control"] }
 serde_json.workspace = true
 tauri = { workspace = true, features = ["test"] }
 tempfile.workspace = true
