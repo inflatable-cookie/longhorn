@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Release version bump leaves the agent-control skill stamp stale — 2026-09-22
+- Friction: `skills/agent-control/SKILL.md` carries `longhorn_version: "0.1.0"`, and `check:agent-control-skill` requires it to match the workspace version. A `0.2.0` bump fails that check ("skill longhorn_version 0.1.0 does not match workspace 0.2.0") until the stamp is updated by hand; the release tool does not know about it.
+- Impact: another manual release-bump follow-up outside `effigy release prepare`.
+- Plausible fix: teach the release sync about the skill stamp, or derive the stamp from the workspace version at check time instead of storing it.
+- Surface: `skills/agent-control/SKILL.md`; `scripts/verify-agent-control-skill.ts`; release tooling.
+
 ### [ ] Release version bump stales the workspace-excluded prototype locks — 2026-09-22
 - Friction: `effigy release prepare --version 0.2.0` bumps `workspace.package.version` and syncs the root `Cargo.lock`, but the eight `prototypes/*/Cargo.lock` files pin the `longhorn-*` crates at the old version. The `prototypes` gate then fails (`cargo check --locked` refuses a stale lock), and `[release] sync-files` supports only `Cargo.lock` and `package.json` (effigy-release `resolve_sync_files`), so the tool cannot fix it. Pre-bumping by hand also blocks the tool (`--version ... must be greater than current version`).
 - Impact: a version-bumping release cannot use `effigy release prepare`; the 49 internal pins, the root lock, the eight prototype locks, and the changelog promotion had to be done by hand with the gates run manually.

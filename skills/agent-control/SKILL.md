@@ -1,7 +1,7 @@
 ---
 name: agent-control
 description: Drive a running Longhorn app through its MCP control surface instead of OS computer use. Use when testing the running app, driving the UI, taking screenshots of the app, clicking or typing in the app without stealing focus, or finding a local agent-control instance.
-longhorn_version: "0.1.0"
+longhorn_version: "0.2.0"
 ---
 
 # Agent Control

@@ -32,6 +32,15 @@ agent-control-evaluate = [
   "agent-control",
   "longhorn-agent-control/agent-control-evaluate",
 ]
+# Migration forward for the 2026-09-22 rename. `dev` was the only surface
+# feature before `agent-control` split it into the surface and the evaluate
+# opt-in; the old `dev` enabled both, so this forwards to the pair. Consumers
+# pinned to 0.1 name `dev` in their own feature forwarding, and cannot rename
+# that first: against the pinned release the name would not resolve, and
+# against a local link the crate has no `dev`. This forward lets them link and
+# validate against the 0.2.0 candidate, then migrate their forwarding on uptake.
+# Temporary by construction — remove at the next breaking release.
+dev = ["agent-control-evaluate"]
 
 [dependencies]
 longhorn-core = { workspace = true, optional = true }
