@@ -43,7 +43,7 @@ taken by git tag `v0.1.0`.
 
 The complete delivery history is preserved in the
 [roadmap generation index](roadmaps/generation-index.md).
-<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:45a1fd7b1451b900159480403c107f38380b2e37291515f052d4e3c2536bebb1 -->
+<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:67c7b0f8b6ea27fc6995e354aa3600bf1fed8fa4192868398ff065e5fa85988b -->
 | Generation | Disposition | Runway state |
 | --- | --- | --- |
 | g02 | open | planning_required |
@@ -54,4 +54,5 @@ The complete delivery history is preserved in the
 | g02.038 | complete | none | 8 | sha256:7a76e636abf326e7ce7391e8f18279e6e8792d51686c82ec34f97ca1a1350855 |
 | g02.039 | complete | none | 8 | sha256:f37506b19afd8705484d9c4e270c5fd42b8faf6feb3533ddac9a47cb183dc6a4 |
 | g02.040 | complete | none | 8 | sha256:057c72544bb197dfbb649330eb0bbd17561e911f43d39ea118fe70c75486dc46 |
+| g02.041 | complete | none | 8 | sha256:365665d50017539b80c8fd719c4690b63964bb5cd61dcded409ad4d1bf77c55d |
 <!-- northstar:lifecycle:end -->
