@@ -53,7 +53,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [019 Licensing, Entitlement, And Activation](019-licensing-entitlement-and-activation.md) | licence shape, trust basis, opaque entitlements, use/update windows, activation adapters, lease and fail-open | active compiled boundary |
 | [020 Host Adapter Boundary](020-host-adapter-boundary.md) | what a backend must provide, what it may not do, delegated capabilities, dual-backend evidence | active compiled boundary |
 | [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md) | validated built-in and consumer namespace/scope/purpose identities over one credential store | active compiled boundary |
-| [022 Agent App Control](022-agent-app-control.md) | compile-time opt-in MCP control surface: semantic snapshot, in-page input, unfocused capture, command invocation | active |
+| [022 Agent App Control](022-agent-app-control.md) | compile-time opt-in MCP control surface: semantic input, capture, commands, and agent-answerable JS path selection | active; selection amendment pending g02.045 evidence |
 | [023 Production Contextual Agent Tool Boundary](023-production-contextual-agent-tool-boundary.md) | transport-neutral typed dispatch/validation record; production MCP role withdrawn | withdrawn for production MCP; contract 022 opt-in server is the production MCP |
 
 ## Pending Contracts
@@ -79,7 +79,9 @@ roadmap history.
 
 - Contract 002 supersedes contract 014.
 - Contract 022 is active as the compile-time opt-in agent-control surface; a
-  consumer may ship it in a packaged build with `evaluate` omitted.
+  consumer may ship it in a packaged build with `evaluate` omitted. Its
+  agent-answerable `open`/folder/`save` amendment is ready for g02.045;
+  HTML file inputs and Rust-side pickers remain outside that route.
 - Contract 023's production MCP role is withdrawn (operator direction
   2026-09-22). The contract 022 opt-in server is the production MCP.
 - Contract 012's publication clause is live: `0.1.0` published 2026-09-16 —

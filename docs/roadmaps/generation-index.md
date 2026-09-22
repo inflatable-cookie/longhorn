@@ -28,9 +28,12 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**Release sequence (operator direction 2026-09-15):** finish and unblock the
-existing lanes, then cut the first release. The runway lives on the
-[g02 runway](g02/README.md#release-sequence); this is the single live pointer.
+**Next Longhorn lane:** [g02.045](g02/045-agent-answerable-file-selection.md)
+agent-answerable Tauri file and folder selection is ready for implementation,
+with Figmatic as the live acceptance target. Contract 022 owns the boundary.
+Execution has not been dispatched; a ready card is not Queue authorization.
+The [g02 runway](g02/README.md#current-ready-frontier) is the single live
+pointer. The release sequence below is history, not the current frontier.
 
 1. [g02.014](g02/014-first-publication.md) first publication — **published
    2026-09-16**: the three TypeScript packages on npm, `v0.1.0` tagged at

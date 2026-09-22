@@ -3,8 +3,10 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-09-22 — the server becomes a compile-time opt-in a consumer may
-ship in a packaged build (`agent-control`), with `evaluate` split behind
+Updated: 2026-09-22 — agent-answerable JS file and folder selection is admitted
+for dev and packaged opt-ins, including save targets (operator direction;
+g02.045 executes). Prior: the server becomes a compile-time opt-in a
+consumer may ship in a packaged build (`agent-control`), with `evaluate` split behind
 `agent-control-evaluate`; the dev-only stance is replaced (operator direction
 from the Figmatic lane, 2026-09-22). Prior: child-webview semantic targeting
 admitted, opt-in per label at mount, default closed (operator decision;
@@ -38,13 +40,14 @@ agent can use while the app runs unfocused in the background.
   negotiate earlier revisions with older clients; stateless behavior does
   not change per revision.
 - Event push uses the `subscriptions/listen` request-scoped SSE stream.
-  Console output, page errors, and navigation events are MCP resources
-  (`longhorn://agent-control/{console,error,navigation}`); subscribers opt
-  in by URI and receive `notifications/resources/updated`. rmcp 3.1.3's
+  Console output, page errors, navigation, and pending selection requests are
+  MCP resources (`longhorn://agent-control/{console,error,navigation,selection}`);
+  subscribers opt in by URI and receive `notifications/resources/updated`. rmcp 3.1.3's
   listen sink rejects custom notifications and logging, so those events
   do not ride as first-class MCP notification methods. Request-scoped
-  notifications (progress) stay on their own request stream. The resource
-  body carries the bounded event ring and the drop counter.
+  notifications (progress) stay on their own request stream. The page-event
+  resource bodies carry bounded event rings and drop counters; the selection
+  resource carries current pending requests.
 - Closing a request's response stream cancels that request.
 
 ### Availability And Security
@@ -123,9 +126,11 @@ agent can use while the app runs unfocused in the background.
   or private API. If any hosted visible webview's snapshot fails, the call
   fails typed rather than returning an image that silently omits a surface.
 - `command`: invoke a registered contract-006 command by id. This is the
-  route to behavior behind native menus and dialogs; agents do not click
-  native chrome. An application that composes no command registry mounts
-  the provided no-command bridge, and every invocation answers typed
+  route to registered application behavior behind native menus; agents do not
+  click native chrome. UI-local picker calls are not necessarily registered
+  commands and use the selection seam below. An application that composes
+  no command registry mounts the provided no-command bridge, and every
+  invocation answers typed
   `Unsupported`; bridging unauthorized invoke surface into `command` is
   not admitted (Figmatic adoption finding, 2026-08-19). In a packaged build the
   registered catalogue is the allowed agency: the consumer replaces the
@@ -133,10 +138,50 @@ agent can use while the app runs unfocused in the background.
   whole of what the server can invoke.
 - Window operations: list windows, resize, per-window targeting.
 
+### Agent-Answerable Selection
+
+- Longhorn owns a bounded pending-selection seam for Tauri's JS `open` and
+  `save` calls. Its `longhorn` TypeScript entry point preserves their result
+  shapes: one path or `null` for single selection, path array or `null` for
+  multiple selection, and one path or `null` for save. Directory selection
+  is an `open` request with directory intent. The caller's existing handling
+  of the returned path remains app-owned.
+- A pending request has a unique id, requesting app instance, window and
+  webview, selection kind, multiplicity, filters, title, and optional default path.
+  The default path is a hint, never an answer. The pending state is readable
+  and updated on the selection resource so a subscribed agent can discover
+  a request before its timeout. An unanswered request expires with a typed
+  error; a request cannot be answered after expiry or by another instance.
+  Cancellation and shutdown also settle it explicitly.
+- `answer_selection { id, paths }` supplies the selection; `reject_selection
+  { id, reason }` declines it and resolves the app call as `null` (the
+  plugin's cancellation result). Unknown, expired, already-settled, malformed,
+  or kind-incompatible answers fail typed. Single, multiple, directory, and
+  save cardinality and shape are checked before delivery; an `open` answer
+  must name an existing file or directory of the requested kind. No default path or
+  silent native-dialog fallback is allowed for an agent-routed request.
+- The selection route is available under `agent-control` in both dev and
+  packaged builds. A build without that feature contains no selection
+  control surface. The same loopback, bearer, and Origin boundary applies.
+  The bearer grants path-selection authority, including a save target, but
+  Longhorn does not read or write the selected path. The consumer retains
+  its own path validation, authorization, and write behavior.
+- The TypeScript entry point routes an agent-originated picker call to the
+  pending-selection seam before a native panel opens. Human-originated calls
+  still call `@tauri-apps/plugin-dialog` with the original options and result
+  behavior. An active server alone must not capture a human picker. A panel
+  already open cannot be answered retroactively. Consumers opt in at their
+  picker call sites; Longhorn does not patch the plugin globally.
+- HTML `<input type="file">` and Rust-side native picker calls are separate
+  mechanisms outside this selection route. The former needs real `File`
+  objects and a byte bridge; the latter does not cross the JS entry point.
+
 ### Boundaries
 
-- Native menus, native dialogs, and OS-level input are out of scope.
-  Dev builds may register mock dialog responders; that seam is app-owned.
+- Native menus, native dialogs, and OS-level input remain out of scope.
+  Longhorn answers an opted-in app selection before a native dialog opens;
+  it never operates the OS panel. Consumer workflow and path policy stay
+  app-owned.
 - Non-webview content (GPUI, native-content islands) is visible in
   screenshots only, never a semantic target. A child *webview* island is
   semantic only when its label is opted in at mount (see Tool Surface);
@@ -214,9 +259,13 @@ Narrowed, explicitly:
 - Listen delivers page events as `resources/updated` on the three URIs
   above, not as custom MCP notification methods.
 
+The selection amendment is pending g02.045 evidence: typed request lifecycle,
+human/native parity, packaged and dev feature states, and Figmatic's live
+folder-selection flow. The existing proof list above does not claim these yet.
+
 ## Stop Conditions
 
 Stop if an agent needs trusted OS-level input, native-chrome interaction,
-release-build availability, remote (non-localhost) access, or driving a
+remote (non-localhost) access, or driving a
 native surface beyond screenshots. Each moves the security or host boundary
 and needs its own contract or a provider under a revised one.

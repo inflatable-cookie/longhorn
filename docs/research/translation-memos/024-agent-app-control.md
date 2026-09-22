@@ -140,7 +140,10 @@ evidence.
 - ~~Which protocol revisions current agent clients negotiate~~ — closed by
   Card 227: Claude Code 2.1.235 speaks 2026-07-28 session-free;
   rmcp 3.1.3 supports it but defaults to 2025-11-25 (see Findings).
-- Mock dialog responders are app-owned; their seam shape is deferred until
-  a consumer needs one.
+- Mock dialog responders were deferred as app-owned. The 2026-09-22
+  Figmatic need changed that decision: contract 022 now owns an
+  agent-answerable JS selection seam for `open`/folder/`save`, compiled as
+  g02.045. Longhorn answers a path before an OS panel opens; HTML file
+  inputs and Rust-side pickers remain separate.
 - No provider for native surfaces ships under contract 022; the seam is
   admitted, the first provider needs its own evidence.
