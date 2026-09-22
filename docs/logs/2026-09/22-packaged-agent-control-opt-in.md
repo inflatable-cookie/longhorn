@@ -18,7 +18,7 @@ the per-instance bearer token, and Origin validation are unchanged.
   marshal through the capture `eval_js` path; listen still reads the shim
   event ring through `ControlHandler::evaluate`.
 - `check:agent-control-release-absence` proves three release artifacts
-  (`longhorn.agent-control-release-absence.v2`): neither feature, 
+  (`longhorn.agent-control-release-absence.v2`): neither feature,
   `agent-control` only (server present, evaluate markers absent), both
   features (evaluate markers present). Isolated `-p` tests cover the
   Unsupported answer and the evaluate-on interleave fixture.

@@ -504,7 +504,19 @@ async fn listen_delivers_the_first_event_after_subscribe() {
         "listen never acknowledged: {buf}"
     );
 
-    stub.push_console("only-once");
+    #[cfg(feature = "agent-control-evaluate")]
+    {
+        let eval = exchange(
+            app,
+            McpRequest::authed(&token).evaluate("console.log('only-once')"),
+        )
+        .await;
+        assert_eq!(eval.status, StatusCode::OK, "{}", eval.body);
+    }
+    #[cfg(not(feature = "agent-control-evaluate"))]
+    {
+        stub.push_console("only-once");
+    }
 
     assert!(
         pull_until(

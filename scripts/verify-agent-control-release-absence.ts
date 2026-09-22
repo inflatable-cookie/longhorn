@@ -76,6 +76,23 @@ async function run(command: readonly string[], env: Record<string, string>) {
   return stdout;
 }
 
+// `cargo test -- FILTER --exact` exits 0 with `running 0 tests` when the
+// filter matches nothing (a cfg'd-out name, a rename). The scan must not
+// pass that as a positive control.
+async function runExactTest(command: readonly string[], testName: string) {
+  const output = await run(command, { CARGO_TERM_COLOR: "never" });
+  if (!output.includes(testName)) {
+    throw new Error(
+      `expected cargo to run ${testName}, but the name is missing from output:\n${output}`,
+    );
+  }
+  if (!/test result: ok\. 1 passed;/.test(output)) {
+    throw new Error(
+      `expected exactly one passing test ${testName}; cargo can exit 0 with running 0 tests:\n${output}`,
+    );
+  }
+}
+
 async function build(features: FeatureSet): Promise<BuildResult> {
   const args = featureArgs(features);
   const targetDir = join(SCAN_ROOT, features);
@@ -234,7 +251,7 @@ if (missingEvaluate.length > 0) {
 
 // Isolated `-p` tests: workspace unification from the proof example would
 // otherwise compile `agent-control-evaluate` into every crate test.
-await run(
+await runExactTest(
   [
     "cargo",
     "test",
@@ -247,9 +264,9 @@ await run(
     "--",
     "--exact",
   ],
-  {},
+  "evaluate_answers_typed_unsupported",
 );
-await run(
+await runExactTest(
   [
     "cargo",
     "test",
@@ -264,9 +281,9 @@ await run(
     "--",
     "--exact",
   ],
-  {},
+  "evaluate_answers_typed_unsupported",
 );
-await run(
+await runExactTest(
   [
     "cargo",
     "test",
@@ -281,7 +298,7 @@ await run(
     "--",
     "--exact",
   ],
-  {},
+  "two_clients_interleave_without_cross_talk",
 );
 
 console.log(

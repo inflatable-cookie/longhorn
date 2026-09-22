@@ -7,6 +7,13 @@ crates by git tag and the packages by version.
 ## [Unreleased]
 
 ### Changed
+- **The agent-control server is a compile-time opt-in a packaged consumer may enable.**
+  `longhorn-tauri-agent-control`'s `dev` feature is now `agent-control`. A
+  build without it still contains none of the surface. `evaluate` sits behind
+  a second feature, `agent-control-evaluate`, off by default and expected
+  only in dev/test; a packaged `agent-control` build answers typed
+  `Unsupported`. Loopback binding, the per-instance bearer token, and Origin
+  validation are unchanged. Contract 022 amended 2026-09-22.
 - **The update install is staged, and progress is observable while it runs.**
   `UpdateController::install` becomes `prepare` (fetch, verify, retain an
   identity-bound staged artifact), `apply` (replace the application with it),

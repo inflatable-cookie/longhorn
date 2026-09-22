@@ -1,8 +1,8 @@
 //! Card 232 injectable shim and the host-side marshalling onto it.
 //!
 //! The JS asset is the bundled `packages/longhorn/src/agent-control` IIFE.
-//! Injection is gated with this module behind `dev`; the release-absence
-//! scan forbids the asset markers in a featureless build.
+//! Injection is gated with this module behind `agent-control`; the
+//! release-absence scan forbids the asset markers in a featureless build.
 
 use std::time::{Duration, Instant};
 
