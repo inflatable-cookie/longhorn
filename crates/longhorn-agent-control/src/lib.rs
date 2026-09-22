@@ -8,6 +8,8 @@
 //! (g02.031) or a GPUI host mounts the router and implements
 //! [`ControlHandler`].
 
+#[cfg(feature = "client")]
+pub mod carrier;
 mod discovery;
 mod handler;
 mod provider;

@@ -65,6 +65,11 @@ agent can use while the app runs unfocused in the background.
   Cards 228-229 implement and fixture this rule.
 - `evaluate` and command invocation are full code execution in the app.
   The token is the entire trust boundary; treat its file like a credential.
+- Harnesses that cannot speak streamable HTTP reach the same instance
+  through the Longhorn-owned stdio carrier `longhorn-agent-control-client`
+  (opt-in `client` feature): it fronts the discovered instance with its
+  bearer over stdio, one POST per message, and owns no catalogue,
+  registry, lease, or listener. No second production MCP server exists.
 
 ### Discovery
 
