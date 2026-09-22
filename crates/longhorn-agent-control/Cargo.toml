@@ -13,6 +13,12 @@ publish = false
 # `agent-control` build answers typed `Unsupported`; this feature is what
 # compiles the JS escape hatch (contract 022; expected only in dev/test).
 agent-control-evaluate = []
+# g02.044: the stdio carrier is opt-in. A build without `client` contains
+# none of it: no binary target (see `[[bin]]` below) and no HTTP client in
+# the graph.
+# `tokio/process` is for the end-to-end test only: it spawns the built
+# binary as a child harness would. `tokio/io-std` is the carrier's stdio.
+client = ["dep:reqwest", "tokio/io-std", "tokio/process"]
 
 [dependencies]
 axum.workspace = true
@@ -20,6 +26,7 @@ base64.workspace = true
 getrandom.workspace = true
 longhorn-config.workspace = true
 longhorn-core.workspace = true
+reqwest = { workspace = true, optional = true }
 rmcp.workspace = true
 schemars.workspace = true
 secrecy.workspace = true
@@ -27,6 +34,11 @@ serde.workspace = true
 serde_json.workspace = true
 sysinfo.workspace = true
 tokio.workspace = true
+
+[[bin]]
+name = "longhorn-agent-control-client"
+path = "src/bin/longhorn-agent-control-client.rs"
+required-features = ["client"]
 
 [dev-dependencies]
 http-body-util.workspace = true
