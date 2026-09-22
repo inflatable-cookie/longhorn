@@ -30,8 +30,10 @@ runway.
 - [x] The operator accepted the requirement in principle (Swallowtail direction,
       2026-09-22).
 - [x] Ownership is Longhorn — not Swallowtail, and not a general-purpose adapter.
-- [ ] Dispatch is gated on the per-route harness evidence naming the routes that
-      need the carrier.
+- [x] The operator directed the carrier into the `0.2.0` release (2026-09-22), so
+      dispatch is not gated on the per-route evidence; validation uses the
+      harnesses that evidence names as it lands, and at minimum one stdio
+      harness.
 - [x] UI classification is none.
 
 ## Work
@@ -60,7 +62,7 @@ runway.
 | Semantics preserved | a harness driving the carrier sees the same tools, results, errors, and cancellation as the HTTP client |
 | No widened exposure | the carrier binds only the discovered loopback instance with its bearer; it exposes no new listener |
 | Opt-in | a build without the carrier contains none of it |
-| Measured need | the harnesses the carrier is validated against are the ones the per-route evidence names |
+| Measured need | validated against at least one stdio harness end-to-end, and against the routes the per-route evidence names as it lands |
 
 Validation uses the focused agent-control selectors plus an end-to-end run
 against the harnesses the evidence names, then `effigy qa`. An independent

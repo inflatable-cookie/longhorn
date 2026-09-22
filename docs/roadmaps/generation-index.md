@@ -40,6 +40,8 @@ existing lanes, then cut the first release. The runway lives on the
    ready, after g02.041
 4. [g02.043](g02/043-packaged-agent-control-opt-in.md) packaged agent-control
    opt-in — ready
+5. [g02.044](g02/044-agent-control-stdio-carrier.md) agent-control stdio
+   carrier — ready
 
 g02.020 and g02.026 completed on 2026-09-15 (PRs #27 and #28). g02.014's
 Longhorn side is done; only the cross-repo consumer repoint remains. g02.041 and

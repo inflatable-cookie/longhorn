@@ -45,7 +45,7 @@
 | [g02.041](041-staged-update-protocol.md) | ready | staged update protocol: prepare/apply, live progress, Later/cancel/error lifecycle |
 | [g02.042](042-exclusive-admission-lease.md) | ready — after g02.041 | exclusive admission lease held through apply |
 | [g02.043](043-packaged-agent-control-opt-in.md) | ready | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
-| [g02.044](044-agent-control-stdio-carrier.md) | planned — dispatch gated on per-route harness evidence | stdio carrier fronting the single contract 022 instance |
+| [g02.044](044-agent-control-stdio-carrier.md) | ready — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -70,7 +70,7 @@ production held), g02.008 (deferred), g02.019 and g02.017
 
 ### Next Release — 0.2.0
 
-Operator-approved 2026-09-22. Three lanes ship as Longhorn `0.2.0` — git tag
+Operator-approved 2026-09-22. Four lanes ship as Longhorn `0.2.0` — git tag
 plus npm publish — once all merge:
 
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
@@ -78,9 +78,12 @@ plus npm publish — once all merge:
   (`g05.179`).
 - `g02.043` packaged `agent-control` opt-in (contract 022 amended; contract
   023's production MCP role withdrawn), for the Figmatic lane.
+- `g02.044` agent-control stdio carrier for the harnesses that cannot consume a
+  streamable-HTTP MCP entry (operator direction 2026-09-22), for the Bovine
+  Desktop lane.
 
-`g02.042` follows `g02.041`; `g02.043` is independent. This release is
-operator-owned per policy; no consumer request authorizes it.
+`g02.042` follows `g02.041`; `g02.043` and `g02.044` are independent. This
+release is operator-owned per policy; no consumer request authorizes it.
 
 On publish, notify the acowtancy Desktop Oracle
 (`ead33773-22cb-4f81-aac7-1c7ac1ad8528`) with the tag and its commit, the npm
