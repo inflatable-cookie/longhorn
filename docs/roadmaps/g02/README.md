@@ -85,6 +85,15 @@ resolving the complete closure before tests. The release prep is committed
 (version `0.2.0`, all seven gates green) but untagged; hold the tag and publish
 until the Desktop evidence lands.
 
+**Link acceptance — 2026-09-22.** The Desktop consumer verified candidate
+`93eae3bf` and the app-scoped `effigy deps link` now closes the complete 21-crate
+closure (including `longhorn-tauri-agent-control`), with the three Bun package
+links installed. The `dev` migration forward solved the actual link cycle and
+preserves the old `dev` semantics, so `93eae3bf` is the **accepted candidate for
+ongoing proof**. This is **link acceptance only**: host, UI, race, and restart
+integration evidence is still pending, and the release stays held for the
+consumer behavioral report.
+
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
   (contract 018 amended 2026-09-22), for the `acowtancy` Desktop lane
   (`g05.179`).
