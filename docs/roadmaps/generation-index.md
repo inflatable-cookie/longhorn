@@ -35,12 +35,17 @@ existing lanes, then cut the first release. The runway lives on the
 1. [g02.014](g02/014-first-publication.md) first publication — **published
    2026-09-16**: the three TypeScript packages on npm, `v0.1.0` tagged at
    `7e81daa2`; consumer repoint outstanding
+2. [g02.041](g02/041-staged-update-protocol.md) staged update protocol — ready
+3. [g02.042](g02/042-exclusive-admission-lease.md) exclusive admission lease —
+   ready, after g02.041
 
 g02.020 and g02.026 completed on 2026-09-15 (PRs #27 and #28). g02.014's
-Longhorn side is done; only the cross-repo consumer repoint remains. Parked
-and non-gating: g02.036 (L1 evidence and D1 blocked; production held), g02.008
-(deferred), g02.019 and g02.017 (Poodle/downstream, field evidence). Task
-closeout detail lives on the tasks themselves.
+Longhorn side is done; only the cross-repo consumer repoint remains. g02.041 and
+g02.042 carry the operator-approved 2026-09-22 contract 018 amendment and ship
+as Longhorn `0.2.0` (operator-owned release) for the `acowtancy` Desktop lane
+`g05.179`. Parked and non-gating: g02.036 (L1 evidence and D1 blocked;
+production held), g02.008 (deferred), g02.019 and g02.017 (Poodle/downstream,
+field evidence). Task closeout detail lives on the tasks themselves.
 
 ## Memo 023 Release-audit Suite
 

@@ -42,6 +42,8 @@
 | [g02.036](036-production-contextual-agent-tools.md) | L1 implemented and merged; evidence closeout blocked on a reviewed Swallowtail descendant; D1 blocked; production held | production authenticated app-tool registry and Swallowtail attachment seam |
 | [g02.037](037-focused-panel-surfaces.md) | complete — Card 177, `e4903980` (2026-08-10) | a Surface presents one panel full-surface, with no regional layout or tabs |
 | [g02.039](039-poodle-041-adoption.md) | complete | every Longhorn Poodle pin on published 0.4.2; one identity end to end |
+| [g02.041](041-staged-update-protocol.md) | ready | staged update protocol: prepare/apply, live progress, Later/cancel/error lifecycle |
+| [g02.042](042-exclusive-admission-lease.md) | ready — after g02.041 | exclusive admission lease held through apply |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -63,6 +65,15 @@ remains is the consumer repoint, which is cross-repo and operator-owned.
 Parked lanes do not gate the release: g02.036 (L1 evidence and D1 blocked;
 production held), g02.008 (deferred), g02.019 and g02.017
 (Poodle/downstream, field evidence).
+
+### Next Release — 0.2.0
+
+Operator-approved 2026-09-22. `g02.041` and `g02.042` add a staged update
+protocol and an exclusive admission lease, amending contract 018 (2026-09-22).
+They ship as Longhorn `0.2.0` — git tag plus npm publish — once both merge, and
+the `acowtancy` Desktop lane (`g05.179`) adopts the released artifact.
+`g02.042` follows `g02.041`. This release is operator-owned per policy; the
+consumer request does not authorize it.
 
 ## Dependency Shape
 

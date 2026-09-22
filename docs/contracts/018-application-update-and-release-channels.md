@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-09
+Updated: 2026-09-22
 Architecture: `../architecture/system-architecture.md`
 Research: `../research/translation-memos/019-application-update-and-release-channels.md`
 
@@ -163,14 +163,49 @@ terms as the macOS path.
 ## Restart Readiness
 
 - No update installs while Longhorn-owned work is in flight. The updater
-  obtains a quiescence receipt from the lifecycle coordinator before
-  handing over.
+  obtains a quiescence receipt from the lifecycle coordinator and an
+  exclusive admission lease (see below) before handing over.
 - Quiescence covers pending flushes, uncommitted transfer sessions, and
   in-flight async operations.
 - A refused restart is deferred, not cancelled, and the deferral is
   surfaced with its reason.
 - Restart readiness is a Longhorn responsibility. A consuming application is
   never asked to determine it.
+
+## Staged Download And Install
+
+**Amended 2026-09-22.** The install sequence is staged rather than one call, so
+a surface can show observable byte progress, offer "Restart to update or
+Later", and hold the admission barrier through replacement. This replaces the
+earlier single-call stance.
+
+- A prepare step fetches, verifies, and retains an **identity-bound verified
+  staged artifact**: the version, channel, and artifact digest travel with the
+  bytes. Exactly one staged artifact is retained per controller.
+- Verification is unchanged. `apply` still accepts only a `VerifiedArtifact`,
+  and the staged handle never holds unverified bytes. There is no configuration
+  under which a staged artifact is unverified, and an artifact that fails
+  verification is discarded, not retained.
+- The staged artifact survives across calls: a deferred ("Later") install
+  retains it, an explicit cancel discards it, and a failure reports a typed
+  error. A refused install is still deferred, never cancelled.
+- Progress is observable **while the transfer runs**, out of band from the
+  controller lock, so a surface renders byte progress rather than waiting for a
+  long call to return.
+
+## Exclusive Admission Lease
+
+- Authorization is no longer a point-in-time answer. `UpdateGate` acquires an
+  **exclusive admission lease** from a host-supplied admission authority and
+  holds it from authorization through `apply`, refusing new conflicting work for
+  the critical section.
+- The lease is host-supplied: Longhorn owns the gate, and the application owns
+  what "conflicting work" means. Longhorn never learns the application's
+  operations.
+- A lease that cannot be acquired is a deferral carrying its reason, never a
+  failure, and never a silent bypass of the gate.
+- The lease is released only after `apply` returns, so no conflicting work can
+  start during the replacement.
 
 ## Store Compatibility Across Channels
 
