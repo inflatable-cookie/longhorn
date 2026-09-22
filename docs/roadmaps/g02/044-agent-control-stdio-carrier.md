@@ -30,9 +30,23 @@ runway.
 Swallowtail published the measured route list
 (`docs/research/336-consumer-supplied-http-mcp-acceptance-per-route.md`):
 
-- **`direct-http`: none.** No route accepts a consumer-supplied streamable-HTTP
-  MCP entry, so the carrier is the only path to the production MCP for every
-  Swallowtail route today. Ungating it was right, not optimistic.
+**Scope — these are Swallowtail-seam classifications, not harness capabilities.**
+They describe what Swallowtail's *admitted seam* can carry, not what a harness can
+do when a consumer configures it directly. A consumer configuring its own
+harness is not bound by an adapter's pin; Claude Code is the concrete case — its
+`--mcp-config` flag shape exists, and what the CLI would do with a
+consumer-supplied HTTP entry is unsettleable from frozen Swallowtail artifacts.
+So `carrier-required` means "this Swallowtail route cannot reach the production
+MCP without the carrier" — never "this harness cannot" — and this is not a
+dependency map for a consumer outside Swallowtail. Swallowtail recorded the same
+scope note in Research 336 at `fdf313b3`. Figmatic's harness acceptance is a
+separate finding on Figmatic's own configuration surface, and the carrier is
+**not** sized for it here.
+
+- **`direct-http`: none.** No Swallowtail route accepts a consumer-supplied
+  streamable-HTTP MCP entry, so for those routes the carrier is the only path to
+  the production MCP today. Ungating it was right, not optimistic. This says
+  nothing about a directly-configured harness — see the scope note.
 - **`carrier-required`:** `claude-agent.sdk` (consumer-declared stdio servers
   only; SSE/HTTP is not representable on that seam) and `grok-build.catalogue` +
   `grok-build.acp` (the ACP `mcpServers` entry is proven only for a
