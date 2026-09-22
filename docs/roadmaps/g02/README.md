@@ -45,6 +45,7 @@
 | [g02.041](041-staged-update-protocol.md) | ready | staged update protocol: prepare/apply, live progress, Later/cancel/error lifecycle |
 | [g02.042](042-exclusive-admission-lease.md) | ready — after g02.041 | exclusive admission lease held through apply |
 | [g02.043](043-packaged-agent-control-opt-in.md) | ready | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
+| [g02.044](044-agent-control-stdio-carrier.md) | planned — dispatch gated on per-route harness evidence | stdio carrier fronting the single contract 022 instance |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -273,7 +274,7 @@ tiered by readiness. None auto-starts; the operator picks.
 | Dependency refresh sweep | 37 transitive crates behind within compatible ranges; four held-back pins under frozen evidence: rusqlite 0.31→0.40 (SQLite CVE bumps), zip 5.1→8.6 (backup-archive determinism), ts-rs 11→12 (full bindings regen), sha2 0.10→0.11 | one task, ordered before candidate v2: compatible `cargo update`, then each held-back crate with its conformance suite (SQLite adapter proofs, archive-determinism regression, bindings and fixture diff) |
 | Distribution candidate v2 | Card 127 receipt frozen at 17/36; repo is 18/41; bridge optional-peer demotion deferred here (Card 146) | one task, after the sweep: new private candidate receipt superseding Card 127 over the refreshed graph, bridge peer demotion, refreshed counts, commit-pinned proof re-frozen |
 | Diagnostics adoption | Card 145 seam has no consumer guide | one small task: composition-guide section plus one consumer-shape example |
-| Agent-control stdio proxy client | g02.033 skill connects dynamically (ephemeral port + token); a static `.mcp.json` needs a command-based proxy | one task: `longhorn-agent-control-client` binary — discovers the live instance, proxies stdio↔streamable-HTTP; distribution decision (crate bin vs npm) inside the task |
+| ~~Agent-control stdio proxy client~~ — promoted to g02.044 on 2026-09-22 by operator direction (Swallowtail stdio-carrier requirement) | | |
 | ~~Child-webview semantic targeting~~ — promoted to g02.035 on 2026-08-20 by operator decision (Figmatic preview-input triage) | | |
 
 ### Tier B — needs new evidence or a contract extension first
