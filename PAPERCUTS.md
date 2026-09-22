@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] Release version bump stales the workspace-excluded prototype locks — 2026-09-22
+- Friction: `effigy release prepare --version 0.2.0` bumps `workspace.package.version` and syncs the root `Cargo.lock`, but the eight `prototypes/*/Cargo.lock` files pin the `longhorn-*` crates at the old version. The `prototypes` gate then fails (`cargo check --locked` refuses a stale lock), and `[release] sync-files` supports only `Cargo.lock` and `package.json` (effigy-release `resolve_sync_files`), so the tool cannot fix it. Pre-bumping by hand also blocks the tool (`--version ... must be greater than current version`).
+- Impact: a version-bumping release cannot use `effigy release prepare`; the 49 internal pins, the root lock, the eight prototype locks, and the changelog promotion had to be done by hand with the gates run manually.
+- Plausible fix: teach release sync about workspace-excluded lockfiles, add a repo-owned pre-gate step that refreshes them, or make the prototype manifests version-agnostic.
+- Surface: `config/release.toml` (`sync-files`); `prototypes/*/Cargo.lock`; effigy-release `resolve_sync_files`; `Cargo.toml` internal version pins.
+
 ### [ ] Editing a dispatched task file breaks hook-owned closeout — 2026-09-22
 - Friction: `g02.044`'s task file was updated three times on `main` (measured route evidence, scope corrections) after its handoff was committed. The `task.closeout` hook refused with "task path ... changed outside its generated lifecycle block since its pinned planning blob", then — once reverted — with "Integration HEAD moved from the event base". Recovery needed the task file reverted to the pinned blob **and** an explicit operator `retry_hook`: the automatic closeout-base renewal is capped at three attempts and cannot renew a stale-base occurrence.
 - Impact: a legitimate mid-flight planning clarification can wedge closeout, and the repair is non-obvious.

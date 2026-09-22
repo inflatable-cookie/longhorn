@@ -6,6 +6,8 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-22
+
 ### Added
 - **A stdio carrier fronts the contract 022 server for harnesses that cannot
   consume a streamable-HTTP MCP entry.** `longhorn-agent-control-client`
