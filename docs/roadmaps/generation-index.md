@@ -38,6 +38,8 @@ existing lanes, then cut the first release. The runway lives on the
 2. [g02.041](g02/041-staged-update-protocol.md) staged update protocol — ready
 3. [g02.042](g02/042-exclusive-admission-lease.md) exclusive admission lease —
    ready, after g02.041
+4. [g02.043](g02/043-packaged-agent-control-opt-in.md) packaged agent-control
+   opt-in — ready
 
 g02.020 and g02.026 completed on 2026-09-15 (PRs #27 and #28). g02.014's
 Longhorn side is done; only the cross-repo consumer repoint remains. g02.041 and

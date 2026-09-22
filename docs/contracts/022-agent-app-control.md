@@ -3,15 +3,19 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-08-20 — child-webview semantic targeting admitted, opt-in
-per label at mount, default closed (operator decision; g02.035 executes).
+Updated: 2026-09-22 — the server becomes a compile-time opt-in a consumer may
+ship in a packaged build (`agent-control`), with `evaluate` split behind
+`agent-control-evaluate`; the dev-only stance is replaced (operator direction
+from the Figmatic lane, 2026-09-22). Prior: child-webview semantic targeting
+admitted, opt-in per label at mount, default closed (operator decision;
+g02.035 executes).
 Prior: g02.034 evidence closeout (Card 238): `screenshot`
 composes the whole window across child webviews; the tool-surface claim,
 native-surface boundary, required evidence, and narrowings updated to the
 proved mechanism
 Depends on: contracts 001, 006, 010, 012, 020
 Affects: new `longhorn-agent-control`, new `longhorn-tauri-agent-control`,
-`longhorn` (TS shim), all app consumers in dev builds
+`longhorn` (TS shim), and consumers that opt in at compile time
 
 ## Problem
 
@@ -45,8 +49,13 @@ agent can use while the app runs unfocused in the background.
 
 ### Availability And Security
 
-- The server exists only behind a dev feature flag. Release builds contain
-  none of it. No runtime toggle can enable it in a release build.
+- The server exists behind one compile-time feature on the Tauri host:
+  `agent-control`. A build without it contains none of it, and no runtime
+  toggle can enable it. A consumer may enable `agent-control` in a packaged or
+  production build — the feature is the opt-in, and the application starts the
+  server, so it is never silently on. `evaluate` sits behind a separate
+  `agent-control-evaluate` feature, off by default and expected only in
+  dev/test builds; a packaged surface omits it.
 - Binds 127.0.0.1 only. Requires a per-instance bearer token. Validates
   `Origin`: a present `Origin` must be a loopback origin, everything else
   is rejected before dispatch. This is the DNS-rebinding defense and is
@@ -88,7 +97,9 @@ agent can use while the app runs unfocused in the background.
   dispatched in-page. They never move the OS pointer and never require
   focus. Documented honestly as untrusted events: native hover, OS
   drag-and-drop, and `isTrusted` checks are out of scope.
-- `evaluate`: run JS in the page. Escape hatch, not the primary path.
+- `evaluate`: run JS in the page. Escape hatch, not the primary path, and
+  behind the `agent-control-evaluate` feature; a packaged build omits it and
+  the tool answers typed `Unsupported`.
 - `wait_for`: predicate over the semantic tree or page state, bounded by
   timeout. Waiting is DOM-relative, never time- or animation-relative:
   WKWebView coalesces DOM timers in every window state and stops
@@ -111,7 +122,10 @@ agent can use while the app runs unfocused in the background.
   native chrome. An application that composes no command registry mounts
   the provided no-command bridge, and every invocation answers typed
   `Unsupported`; bridging unauthorized invoke surface into `command` is
-  not admitted (Figmatic adoption finding, 2026-08-19).
+  not admitted (Figmatic adoption finding, 2026-08-19). In a packaged build the
+  registered catalogue is the allowed agency: the consumer replaces the
+  no-command bridge with its own typed commands, and those commands are the
+  whole of what the server can invoke.
 - Window operations: list windows, resize, per-window targeting.
 
 ### Boundaries
@@ -140,18 +154,21 @@ agent can use while the app runs unfocused in the background.
 
 ## Compatibility And Migration
 
-Additive. No consumer changes until an app opts in by enabling the dev
-feature and mounting the plugin. Discovery file schema carries a version
-field from day one; pre-1.0, schema breaks bump it without compatibility
-reads.
+Additive. No consumer changes until an app opts in by enabling the
+`agent-control` feature and mounting the plugin; a packaged consumer enables
+`agent-control` (not `agent-control-evaluate`) and registers its typed
+catalogue. Discovery file schema carries a version field from day one;
+pre-1.0, schema breaks bump it without compatibility reads.
 
 ## Required Evidence
 
 Satisfied, with the proof named:
 
-- release-build artifact scan proving the server, routes, token code, and
-  the injected shim asset are absent — `effigy check:agent-control-release-absence`
-  (Cards 230-233)
+- artifact scan proving a build without `agent-control` contains no server,
+  routes, token code, or shim asset, and that a packaged `agent-control` build
+  contains the server but not `evaluate` —
+  `effigy check:agent-control-release-absence` (Cards 230-233; re-scoped
+  g02.043)
 - stateless conformance: tool calls with no session id succeed; minted
   session ids never appear in responses — Card 229 conformance fixtures
 - ref stability fixtures: snapshot, mutate DOM, re-resolve; stale ref fails

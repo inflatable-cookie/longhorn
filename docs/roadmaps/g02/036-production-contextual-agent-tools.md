@@ -19,6 +19,12 @@ a separately reviewed source-compatible descendant before it can be produced.
 D1 stays blocked on the accepted L1 artifact, and production stays held. None
 of this gates the first release.
 
+**Superseded production path — 2026-09-22.** Contract 023's production MCP role
+is withdrawn (operator direction from the Figmatic lane). The production MCP is
+now the contract 022 opt-in server (`agent-control`, g02.043), and D1's
+provider-free composition is no longer the production route. L1's typed
+dispatch and validation remain valid as a record.
+
 ## Promotion authority and dispatch
 
 Operator-confirmed 2026-09-07; independently accepted Desktop PR144 merged

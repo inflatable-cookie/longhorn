@@ -1,9 +1,20 @@
 # 023 Production Contextual Agent Tool Boundary
 
-Status: promoted for provider-free L1 only; production adoption held
+Status: withdrawn for the production MCP role (operator direction 2026-09-22); retained as the typed dispatch/validation record. The contract 022 opt-in server is the production MCP.
 Owner: Longhorn maintainers
 Depends on: 001, 006, 007, 010, 012, 015, 019, 020, 021, 022
 Related: `../specs/002-production-contextual-agent-tool-boundary.md`
+
+## Withdrawal — 2026-09-22
+
+Operator direction from the Figmatic lane withdraws this contract's production
+MCP role. The production MCP is the contract 022 server, enabled by a consumer
+at compile time (`agent-control`) and bounded by the consumer's registered typed
+command catalogue. This contract is retained as the record of the typed
+dispatch/validation boundary it defined; its Swallowtail-owned listener,
+registry, lease, correlation lifecycle, and admission issuer are withdrawn, and
+no second production MCP exists. Nothing here permits a competing listener
+alongside the contract 022 server.
 
 ## Scope
 
@@ -15,8 +26,9 @@ Swallowtail as reconciled in `../specs/002-production-contextual-agent-tool-boun
 
 ## Required shape
 
-- Separate production capability and feature boundary; contract 022 remains
-  dev-only and unchanged.
+- Separate production capability and feature boundary. Superseded 2026-09-22:
+  contract 022 is the packaged opt-in server and this contract defines no
+  competing production MCP.
 - Consume Swallowtail's immutable namespaced registration snapshot and exact
   schema digest/revision; Longhorn has no registration authority.
 - Validate the trusted Desktop/Swallowtail host binding: process incarnation,
