@@ -40,6 +40,7 @@ export class SettingsSessionDocument {
   #registry = $state.raw<SettingsRegistrySnapshot | undefined>(undefined);
   #projection = $state.raw<SettingsRegistryProjection | undefined>(undefined);
   #route = $state.raw<SettingsRoute | undefined>(undefined);
+  #routeGeneration = 0;
   #focusRevision = $state(0);
   #renderers = new Map<string, SettingsPageRenderer>();
   #scopes = new Map<SettingsScopeId, SettingsScopeState>();
@@ -125,17 +126,26 @@ export class SettingsSessionDocument {
   async installRoute(route: SettingsRoute): Promise<void> {
     const registry = this.requiredRegistry();
     const { page } = resolveSettingsDeepLink(registry, route);
+    // Scopes start asynchronously, so a route with scopes can commit after a
+    // later navigation that had none. A renderer-only page exposes it: it
+    // commits immediately, then the scopes of the page it was navigated away
+    // from finish and overwrite it. Last navigation wins, not last scope to
+    // settle.
+    const generation = ++this.#routeGeneration;
     await Promise.all(
       page.readableScopeIds.map((scopeId) =>
         this.#scopeState(registry, scopeId).start(),
       ),
     );
+    if (generation !== this.#routeGeneration) return;
     this.#route = route;
     this.#pageSession(page);
     this.#focusRevision += 1;
   }
 
   async clearAuthority(): Promise<void> {
+    // Any route install still awaiting its scope starts is superseded.
+    this.#routeGeneration += 1;
     for (const page of this.#pages.values()) {
       page.stop();
     }
