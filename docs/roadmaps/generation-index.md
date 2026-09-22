@@ -35,13 +35,24 @@ existing lanes, then cut the first release. The runway lives on the
 1. [g02.014](g02/014-first-publication.md) first publication — **published
    2026-09-16**: the three TypeScript packages on npm, `v0.1.0` tagged at
    `7e81daa2`; consumer repoint outstanding
-2. [g02.041](g02/041-staged-update-protocol.md) staged update protocol — ready
+2. [g02.041](g02/041-staged-update-protocol.md) staged update protocol —
+   complete, in `0.2.0`
 3. [g02.042](g02/042-exclusive-admission-lease.md) exclusive admission lease —
-   ready, after g02.041
+   complete, in `0.2.0`
 4. [g02.043](g02/043-packaged-agent-control-opt-in.md) packaged agent-control
-   opt-in — ready
+   opt-in — complete, in `0.2.0`
 5. [g02.044](g02/044-agent-control-stdio-carrier.md) agent-control stdio
-   carrier — ready
+   carrier — complete, in `0.2.0`
+
+**Longhorn `0.2.0` published 2026-09-22** — tag `v0.2.0` at `df09c25a`, the
+three npm packages at `0.2.0` (`latest`). It carries the staged update protocol
+and exclusive admission lease (`g02.041`/`g02.042`), the packaged
+`agent-control` opt-in (`g02.043`), the stdio carrier (`g02.044`), and the
+Settings route-commit race fix. The first publish run went out partially (a
+trusted-publisher mismatch on the two adapters, npm's 404 answer) and the
+idempotent re-dispatch completed it; registry integrity matches the packed
+artifact. What remains is the cross-repo consumer repoint and Desktop taking the
+released artifact for the packaged private A→B proof (`g05.180`).
 
 g02.020 and g02.026 completed on 2026-09-15 (PRs #27 and #28). g02.014's
 Longhorn side is done; only the cross-repo consumer repoint remains. g02.041 and

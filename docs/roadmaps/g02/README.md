@@ -42,10 +42,10 @@
 | [g02.036](036-production-contextual-agent-tools.md) | L1 implemented and merged; D1 blocked; production path superseded by g02.043 | production authenticated app-tool registry and Swallowtail attachment seam |
 | [g02.037](037-focused-panel-surfaces.md) | complete — Card 177, `e4903980` (2026-08-10) | a Surface presents one panel full-surface, with no regional layout or tabs |
 | [g02.039](039-poodle-041-adoption.md) | complete | every Longhorn Poodle pin on published 0.4.2; one identity end to end |
-| [g02.041](041-staged-update-protocol.md) | ready | staged update protocol: prepare/apply, live progress, Later/cancel/error lifecycle |
-| [g02.042](042-exclusive-admission-lease.md) | ready — after g02.041 | exclusive admission lease held through apply |
-| [g02.043](043-packaged-agent-control-opt-in.md) | ready | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
-| [g02.044](044-agent-control-stdio-carrier.md) | ready — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
+| [g02.041](041-staged-update-protocol.md) | complete — in `0.2.0` | staged update protocol: prepare/apply, live progress, Later/cancel/error lifecycle |
+| [g02.042](042-exclusive-admission-lease.md) | complete — in `0.2.0` | exclusive admission lease held through apply |
+| [g02.043](043-packaged-agent-control-opt-in.md) | complete — in `0.2.0` | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
+| [g02.044](044-agent-control-stdio-carrier.md) | complete — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -112,6 +112,23 @@ artifact. Release-owner comparison: tested `608a7eed` is an ancestor of the
 release candidate `ce34f42b`, whose only delta is one docs commit, and all seven
 release gates are green at `ce34f42b`. The single remaining gate is the
 operator-owned tag and `release.yml` publish.
+
+**Released — 2026-09-22.** `0.2.0` is published: `@inflatable-cookie/longhorn`,
+`-poodle-svelte`, and `-tauri` all at `0.2.0` (`latest`), tag `v0.2.0` at
+`df09c25a`. The first publish run went out
+partially — `@inflatable-cookie/longhorn@0.2.0` landed before
+the adapters failed on a trusted-publisher mismatch (npm answers that with 404,
+not 403), and the loop's `set -e` stopped before them. The operator fixed the
+two adapters' trusted publishers and the publish step was made idempotent; the
+re-dispatch completed the release. Registry integrity matches the run's packed
+artifact byte-for-byte. See the
+[publication log](../../logs/2026-09/22-longhorn-0-2-0-publication.md).
+
+The released commit `df09c25a` is a descendant of the accepted candidate
+`608a7eed`; the delta is release metadata (version surface, regenerated API
+reference) and the workflow guard — no runtime change. The next signal is
+Desktop taking the released artifact for the packaged private A→B proof
+(`g05.180`).
 
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
   (contract 018 amended 2026-09-22), for the `acowtancy` Desktop lane

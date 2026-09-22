@@ -8,6 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-09-22
 
+- [Longhorn 0.2.0 Publication](2026-09/22-longhorn-0-2-0-publication.md)
 - [Packaged Agent-Control Opt-In](2026-09/22-packaged-agent-control-opt-in.md)
 
 ### 2026-09-16
