@@ -1,8 +1,9 @@
 //! Longhorn's own agent-control proof composition (Cards 230-231, 238).
 //!
 //! A minimal Tauri app that composes `longhorn-tauri-agent-control` behind
-//! its `dev` feature — this app exists to prove the dev control surface and
-//! is never shipped. Its contract-006 registry registers window-state
+//! `agent-control` and `agent-control-evaluate` — this app exists to prove
+//! the control surface, including the JS escape hatch, and is never shipped.
+//! Its contract-006 registry registers window-state
 //! commands so the packaged freshness matrix can minimize and restore the
 //! window through the same `command` tool an agent would use, plus a `ping`
 //! command proving the registry round trip.

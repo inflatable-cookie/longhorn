@@ -6,6 +6,7 @@ import type {
   UpdateChangedEvent,
   UpdateCheckCommand,
   UpdateDeferCommand,
+  UpdateInstallAuthorizationProjection,
   UpdateOutcomeProjection,
   UpdatePrepareCommand,
   UpdateProgressEvent,
@@ -27,6 +28,8 @@ export interface UpdateFixture {
   readonly prepareCommand: UpdatePrepareCommand;
   readonly applyCommand: UpdateApplyCommand;
   readonly cancelCommand: UpdateCancelCommand;
+  readonly authorizationHeld: UpdateInstallAuthorizationProjection;
+  readonly authorizationDeferred: UpdateInstallAuthorizationProjection;
   readonly outcomes: readonly UpdateOutcomeProjection[];
   readonly changedEvent: UpdateChangedEvent;
   readonly progressEvent: UpdateProgressEvent;

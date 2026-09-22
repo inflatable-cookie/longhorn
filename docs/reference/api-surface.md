@@ -9,7 +9,7 @@
 
 | Crate | Kind | Features | Source reference |
 | --- | --- | --- | --- |
-| `longhorn-agent-control` | library | `client`, `default` | [source](../../crates/longhorn-agent-control/README.md) |
+| `longhorn-agent-control` | library | `agent-control-evaluate`, `client` | [source](../../crates/longhorn-agent-control/README.md) |
 | `longhorn-agent-tool-dispatch` | library | none | [source](../../crates/longhorn-agent-tool-dispatch/README.md) |
 | `longhorn-bindings` | library | none | [source](../../crates/longhorn-bindings/src/lib.rs) |
 | `longhorn-bridge` | library | `bindings`, `supervision` | [source](../../crates/longhorn-bridge/README.md) |
@@ -38,7 +38,7 @@
 | `longhorn-surface-windowing` | library | none | [source](../../crates/longhorn-surface-windowing/src/lib.rs) |
 | `longhorn-surfaces` | library | `bindings` | [source](../../crates/longhorn-surfaces/src/lib.rs) |
 | `longhorn-surfaces-config` | library | none | [source](../../crates/longhorn-surfaces-config/src/lib.rs) |
-| `longhorn-tauri-agent-control` | library | `dev` | [source](../../crates/longhorn-tauri-agent-control/README.md) |
+| `longhorn-tauri-agent-control` | library | `agent-control`, `agent-control-evaluate` | [source](../../crates/longhorn-tauri-agent-control/README.md) |
 | `longhorn-tauri-bridge` | library | none | [source](../../crates/longhorn-tauri-bridge/README.md) |
 | `longhorn-tauri-command` | library | none | [source](../../crates/longhorn-tauri-command/README.md) |
 | `longhorn-tauri-config` | library | none | [source](../../crates/longhorn-tauri-config/README.md) |

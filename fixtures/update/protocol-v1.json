@@ -20,6 +20,16 @@
     "protocolVersion": 1,
     "version": "1.3.0-nightly.5"
   },
+  "authorizationDeferred": {
+    "cause": {
+      "cause": "workInFlight",
+      "detail": "a rebuild is running"
+    },
+    "status": "deferred"
+  },
+  "authorizationHeld": {
+    "status": "held"
+  },
   "cancelCommand": {
     "authorityEpoch": 7,
     "protocolVersion": 1
@@ -48,6 +58,7 @@
     "unknownChangedKind": "futureKind",
     "unknownChannel": "canary",
     "unknownDeferralCause": "postponedByPolicy",
+    "unknownInstallAuthorizationStatus": "approved",
     "unknownInstallManager": "macports",
     "unknownOfferReason": "mandatory",
     "unknownOutcomeStatus": "uncertain",

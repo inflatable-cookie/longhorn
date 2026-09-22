@@ -3,10 +3,10 @@ use std::error::Error;
 use longhorn_update::{
     Channel, DeferralCause, InstallManager, OfferReason, UpdateApplyCommand,
     UpdateAvailabilityProjection, UpdateCancelCommand, UpdateChangedEvent, UpdateChangedKind,
-    UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection, UpdateOutcomeProjection,
-    UpdatePrepareCommand, UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion,
-    UpdateRejectionCode, UpdateSelectChannelCommand, UpdateSnapshot,
-    UpdateStagedArtifactProjection,
+    UpdateCheckCommand, UpdateDeferCommand, UpdateDeferralProjection,
+    UpdateInstallAuthorizationProjection, UpdateOutcomeProjection, UpdatePrepareCommand,
+    UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
+    UpdateSelectChannelCommand, UpdateSnapshot, UpdateStagedArtifactProjection,
 };
 use serde_json::{json, to_value};
 
@@ -169,6 +169,15 @@ pub fn render() -> Result<String, Box<dyn Error>> {
             protocol_version: UpdateProtocolVersion::CURRENT,
             authority_epoch: epoch,
         })?,
+        // The held-lease and deferral pair. The lease is a local capability, so
+        // the wire says one is held rather than carrying it; the refusal
+        // carries the host's own reason for the barrier it would not grant.
+        "authorizationHeld": to_value(UpdateInstallAuthorizationProjection::Held)?,
+        "authorizationDeferred": to_value(UpdateInstallAuthorizationProjection::Deferred {
+            cause: DeferralCause::WorkInFlight {
+                detail: "a rebuild is running".into(),
+            },
+        })?,
         "outcomes": outcomes.map(to_value).into_iter().collect::<Result<Vec<_>, _>>()?,
         "changedEvent": to_value(UpdateChangedEvent {
             protocol_version: UpdateProtocolVersion::CURRENT,
@@ -190,6 +199,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
             "unknownOfferReason": "mandatory",
             "unknownInstallManager": "macports",
             "unknownDeferralCause": "postponedByPolicy",
+            "unknownInstallAuthorizationStatus": "approved",
             "unknownAvailabilityState": "pending",
             "unknownProgressState": "seeding",
             "unknownRejectionCode": "futureRejection",

@@ -16,10 +16,14 @@ use serde::{Deserialize, Serialize};
 pub enum DeferralCause {
     /// The user chose to wait.
     UserPostponed,
-    /// Longhorn-owned work was in flight.
+    /// Longhorn-owned work was in flight, or the host's admission authority
+    /// refused the update's exclusive admission lease.
     ///
     /// Raised by the restart interlock, which is the only thing that knows
-    /// whether a transfer is mid-commit or a flush is pending.
+    /// whether a transfer is mid-commit or a flush is pending, and by
+    /// `UpdateGate` when the host will not grant the lease. In the second case
+    /// the detail is the host's own display text: Longhorn relays it and never
+    /// learns what the application's conflicting work is.
     WorkInFlight {
         /// What was in flight, for display.
         detail: String,

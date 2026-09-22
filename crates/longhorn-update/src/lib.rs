@@ -9,6 +9,7 @@
 //!
 //! Everything is pure. No network, no filesystem, no clock.
 
+mod admission;
 mod channel;
 mod controller;
 mod decision;
@@ -26,6 +27,7 @@ mod source;
 mod staged;
 mod verify;
 
+pub use admission::{AdmissionAuthority, AdmissionLease, AdmissionRefusal};
 pub use channel::{BuildIdentity, Channel};
 pub use controller::{PreparedTransfer, UpdateController, UpdatePrepareStart};
 pub use decision::{CheckKind, OfferReason, UpdateAvailability, UpdateOffer, evaluate};

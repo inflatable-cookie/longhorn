@@ -437,6 +437,12 @@ impl<'port> UpdateController<'port> {
     /// The gate runs here rather than at prepare time: downloading while the
     /// user has work in flight is harmless, and a refusal is a deferral that
     /// leaves the artifact staged for a later apply.
+    ///
+    /// Since the 2026-09-22 amendment the gate returns a held exclusive
+    /// admission lease, and this method keeps it alive across
+    /// [`UpdateInstaller::apply`] — released only once replacement has
+    /// returned. An install with an unacquired lease is unreachable from
+    /// here: the only way past the match below is a `Held`.
     pub fn apply<I: UpdateInstaller>(
         &mut self,
         command: &UpdateApplyCommand,
@@ -456,18 +462,30 @@ impl<'port> UpdateController<'port> {
         }
         let version = staged.version().clone();
 
-        if let InstallAuthorization::Deferred(deferral) = gate.authorize(&version) {
-            // Not a failure, and not a cancellation: a refused install carries
-            // its reason and the artifact stays staged for the next attempt.
-            self.deferral = Some(deferral);
-            self.staged = Some(staged);
-            return self.commit();
-        }
+        // Authorization is a held answer now: `Held` owns the exclusive
+        // admission lease, and this binding keeps it alive until the
+        // replacement has returned.
+        let lease = match gate.authorize(&version) {
+            InstallAuthorization::Held(lease) => lease,
+            InstallAuthorization::Deferred(deferral) => {
+                // Not a failure, and not a cancellation: a refused install
+                // carries its reason and the artifact stays staged for the
+                // next attempt.
+                self.deferral = Some(deferral);
+                self.staged = Some(staged);
+                return self.commit();
+            }
+        };
 
         self.progress = UpdateProgressProjection::Installing {
             version: version.to_string(),
         };
-        match installer.apply(staged.verified()) {
+        let applied = installer.apply(staged.verified());
+        // The barrier is released only once replacement has returned. Dropping
+        // it here rather than at scope end makes the ordering explicit: work
+        // that started mid-swap is the failure the lease exists to prevent.
+        drop(lease);
+        match applied {
             Ok(_) => {
                 self.deferral = None;
                 self.availability = UpdateAvailability::UpToDate;

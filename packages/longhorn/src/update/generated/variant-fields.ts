@@ -26,7 +26,7 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
     "installing": ["state", "version"],
   },
   "UpdateInstallAuthorizationProjection": {
-    "approved": ["status"],
+    "held": ["status"],
     "deferred": ["status", "cause"],
   },
   "UpdateOutcomeProjection": {

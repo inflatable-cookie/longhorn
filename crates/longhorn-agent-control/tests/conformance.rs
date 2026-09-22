@@ -458,7 +458,7 @@ async fn event_resources_are_listed_and_readable() {
 async fn listen_delivers_the_first_event_after_subscribe() {
     let token = InstanceToken::generate().unwrap();
     let stub = StubHandler::empty_ring();
-    let app = control_router(stub, token.clone());
+    let app = control_router(stub.clone(), token.clone());
 
     let response = app
         .clone()
@@ -504,12 +504,19 @@ async fn listen_delivers_the_first_event_after_subscribe() {
         "listen never acknowledged: {buf}"
     );
 
-    let eval = exchange(
-        app,
-        McpRequest::authed(&token).evaluate("console.log('only-once')"),
-    )
-    .await;
-    assert_eq!(eval.status, StatusCode::OK, "{}", eval.body);
+    #[cfg(feature = "agent-control-evaluate")]
+    {
+        let eval = exchange(
+            app,
+            McpRequest::authed(&token).evaluate("console.log('only-once')"),
+        )
+        .await;
+        assert_eq!(eval.status, StatusCode::OK, "{}", eval.body);
+    }
+    #[cfg(not(feature = "agent-control-evaluate"))]
+    {
+        stub.push_console("only-once");
+    }
 
     assert!(
         pull_until(
@@ -647,6 +654,34 @@ async fn browser_origins_are_rejected_before_dispatch() {
     assert_eq!(stub.invocation_count(), 0, "tools/list runs no tool");
 }
 
+#[cfg(not(feature = "agent-control-evaluate"))]
+#[tokio::test]
+async fn evaluate_answers_typed_unsupported() {
+    let (app, token, stub) = app();
+
+    let response = exchange(app, McpRequest::authed(&token).evaluate("1 + 1")).await;
+    assert_eq!(response.status, StatusCode::OK, "{}", response.body);
+    let body = response.json();
+    let result = &body["result"];
+    assert_eq!(result["isError"], json!(true), "{body}");
+    let content: Value =
+        serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(content["error"], "unsupported", "{content}");
+    assert!(
+        content["message"]
+            .as_str()
+            .unwrap_or("")
+            .contains("agent-control-evaluate"),
+        "{content}"
+    );
+    assert_eq!(
+        stub.invocation_count(),
+        0,
+        "omitted evaluate must not reach the host handler"
+    );
+}
+
+#[cfg(feature = "agent-control-evaluate")]
 #[tokio::test]
 async fn two_clients_interleave_without_cross_talk() {
     let (app, token, stub) = app();

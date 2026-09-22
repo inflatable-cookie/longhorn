@@ -12,7 +12,9 @@ Host-agnostic core of the agent app-control surface
   redacted `Debug`
 - the stateless MCP streamable-HTTP server assembly over rmcp
   (`legacy_session_mode: false`; bearer token and `Origin` rejection run
-  before tool dispatch), as an axum router a host mounts
+  before tool dispatch), as an axum router a host mounts. `evaluate` is
+  behind the off-by-default `agent-control-evaluate` feature; without it
+  the listed tool answers typed `Unsupported`
 - page events as MCP resources (`longhorn://agent-control/{console,error,navigation}`)
   over `subscriptions/listen` — rmcp's listen sink carries
   `resources/updated`, not custom notifications

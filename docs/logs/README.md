@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-09
 
+### 2026-09-22
+
+- [Packaged Agent-Control Opt-In](2026-09/22-packaged-agent-control-opt-in.md)
+
 ### 2026-09-16
 
 - [First Publication — 0.1.0](2026-09/16-first-publication.md)

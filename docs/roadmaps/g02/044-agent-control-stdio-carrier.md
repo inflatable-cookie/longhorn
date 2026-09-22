@@ -25,6 +25,52 @@ second production MCP server, which the 2026-09-22 direction withdrew. This
 promotes the "Agent-control stdio proxy client" candidate from the Tier A
 runway.
 
+## Per-route evidence (Swallowtail g06.014, `7fe38435`)
+
+Swallowtail published the measured route list
+(`docs/research/336-consumer-supplied-http-mcp-acceptance-per-route.md`):
+
+**Scope — these are Swallowtail-seam classifications, not harness capabilities.**
+They describe what Swallowtail's *admitted seam* can carry, not what a harness can
+do when a consumer configures it directly. A consumer configuring its own
+harness is not bound by an adapter's pin; Claude Code is the concrete case — its
+`--mcp-config` flag shape exists, and what the CLI would do with a
+consumer-supplied HTTP entry is unsettleable from frozen Swallowtail artifacts.
+So `carrier-required` means "this Swallowtail route cannot reach the production
+MCP without the carrier" — never "this harness cannot" — and this is not a
+dependency map for a consumer outside Swallowtail. Swallowtail recorded the same
+scope note in Research 336 at `fdf313b3`.
+
+The carrier itself is **generic client-side infrastructure**: a harness-side
+stdio→HTTP bridge that discovers the live app instance and fronts its endpoint.
+Any consumer's stdio-only harness may spawn it, and whether a given harness needs
+it is that harness's own business — so it takes no per-consumer sizing, and the
+route list is a measured acceptance set to validate against, not a boundary on
+who may use the carrier. Figmatic, for instance, publishes a local MCP endpoint
+for any MCP-capable harness and names none, so there is nothing to size there.
+
+- **`direct-http`: none.** No Swallowtail route accepts a consumer-supplied
+  streamable-HTTP MCP entry, so for those routes the carrier is the only path to
+  the production MCP today. Ungating it was right, not optimistic. This says
+  nothing about a directly-configured harness — see the scope note.
+- **`carrier-required`:** `claude-agent.sdk` (consumer-declared stdio servers
+  only; SSE/HTTP is not representable on that seam) and `grok-build.catalogue` +
+  `grok-build.acp` (the ACP `mcpServers` entry is proven only for a
+  Swallowtail-owned stdio courier, only at exact `1.0.4`/`1.0.5`). These two are
+  the honest acceptance set.
+- **Not carrier dependents:** `codex.app-server` is a provider limitation — no
+  typed per-session client-declared MCP surface exists across the qualified
+  range — and the six `producer-gap` ACP rows (`cline.acp`, `copilot-cli.acp`,
+  `gemini-cli.acp`/`.headless`, `goose.acp`, `kiro.acp`, `deepagents.acp`) are
+  **not** sized for until a promoted Swallowtail `g06.005` route plus its live
+  gate moves one into `carrier-required`.
+- **`subscriptions/listen` and the `longhorn://agent-control/...` resources:** no
+  route needs them today. Record them typed `Unsupported` with an explicit
+  reopen condition.
+- Swallowtail's own stdio couriers are non-production development surfaces: they
+  prove stdio *admission*, never harness HTTP acceptance, and must not be cited
+  as evidence that a harness accepts anything.
+
 ## Ready-State Rubric
 
 - [x] The operator accepted the requirement in principle (Swallowtail direction,
@@ -62,7 +108,7 @@ runway.
 | Semantics preserved | a harness driving the carrier sees the same tools, results, errors, and cancellation as the HTTP client |
 | No widened exposure | the carrier binds only the discovered loopback instance with its bearer; it exposes no new listener |
 | Opt-in | a build without the carrier contains none of it |
-| Measured need | validated against at least one stdio harness end-to-end, and against the routes the per-route evidence names as it lands |
+| Measured need | validated against the measured Swallowtail set, `claude-agent.sdk` and `grok-build.acp` (version-scoped `1.0.4`/`1.0.5`); the carrier is generic client-side infrastructure, so this set is what to validate against, not a boundary on who may use it |
 
 Validation uses the focused agent-control selectors plus an end-to-end run
 against the harnesses the evidence names, then `effigy qa`. An independent

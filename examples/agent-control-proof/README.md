@@ -2,10 +2,11 @@
 
 Longhorn's own proof composition for the contract 022 control surface
 (Cards 230-234): a consumer-shaped Tauri app that mounts
-`longhorn-tauri-agent-control` behind its `dev` feature. This app exists to
-prove the dev control surface; it is never shipped, and the feature is what
-keeps every line of that surface out of release artifacts (proven by
-`effigy check:agent-control-release-absence`).
+`longhorn-tauri-agent-control` behind `agent-control` and
+`agent-control-evaluate`. This app exists to prove the control surface,
+including the JS escape hatch; it is never shipped. A product build enables
+`agent-control` only. `effigy check:agent-control-release-absence` proves
+the three feature states.
 
 The page keeps the Card 231 hue-encoded ticker and adds a small form-and-list
 UI (click, type, drag-reorder, hash navigation) so an agent can drive it

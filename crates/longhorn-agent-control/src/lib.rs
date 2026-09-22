@@ -4,7 +4,9 @@
 //! The contract's vocabulary as types: tool requests, results, and errors;
 //! the discovery-file lifecycle; the per-instance bearer token; the
 //! native-surface provider seam; and the stateless MCP streamable-HTTP
-//! server assembly (Card 229) over rmcp. No host dependency — a Tauri host
+//! server assembly (Card 229) over rmcp. The `evaluate` JS escape hatch is
+//! behind the off-by-default `agent-control-evaluate` feature; without it the
+//! tool answers typed `Unsupported`. No host dependency — a Tauri host
 //! (g02.031) or a GPUI host mounts the router and implements
 //! [`ControlHandler`].
 
