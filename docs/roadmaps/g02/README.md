@@ -75,6 +75,12 @@ the `acowtancy` Desktop lane (`g05.179`) adopts the released artifact.
 `g02.042` follows `g02.041`. This release is operator-owned per policy; the
 consumer request does not authorize it.
 
+On publish, notify the acowtancy Desktop Oracle
+(`ead33773-22cb-4f81-aac7-1c7ac1ad8528`) with the tag and its commit, the npm
+versions and integrity for the three packages, and the frozen Rust tag identity
+— `g05.179` adoption does not trigger from the merge alone. Tracked in
+`docs/triage/20260922-000000-longhorn-0-2-0-release-notification.md`.
+
 ## Dependency Shape
 
 ```text
