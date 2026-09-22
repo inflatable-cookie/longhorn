@@ -94,6 +94,14 @@ ongoing proof**. This is **link acceptance only**: host, UI, race, and restart
 integration evidence is still pending, and the release stays held for the
 consumer behavioral report.
 
+**Settings fix accepted — 2026-09-22.** Candidate `608a7eed` (the zero-scope
+route-commit race fix in `SettingsSessionDocument.installRoute`; last navigation
+wins) is verified clean by the Desktop consumer. The same 179 worker resumed at
+Queue v824 to unskip `renders the live updater inside the real Settings route`
+and capture render/resize/keyboard evidence, with fixture and native evidence
+distinguished from the actual packaged `g05.180` proof. The release stays held;
+the next signal is a consumer prerelease PASS or a concrete remaining defect.
+
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
   (contract 018 amended 2026-09-22), for the `acowtancy` Desktop lane
   (`g05.179`).
