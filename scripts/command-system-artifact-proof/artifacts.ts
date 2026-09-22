@@ -70,7 +70,7 @@ export async function packTypescriptArtifacts(
     );
     const path = join(
       artifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.1.0.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-0.2.0.tgz`,
     );
     await inspectNpmArtifact(name, path, artifactRoot);
     paths.set(name, path);
@@ -106,7 +106,7 @@ async function inspectNpmArtifact(
     readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     readonly exports?: Record<string, unknown>;
   };
-  if (manifest.name !== name || manifest.version !== "0.1.0") {
+  if (manifest.name !== name || manifest.version !== "0.2.0") {
     throw new Error(`${name} packed identity mismatch`);
   }
   // Card 164: the framework tier is one package with no dependencies and no
@@ -188,7 +188,7 @@ export async function packAndCheckRustArtifacts(
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
       throw new Error(`${name} package inventory is incomplete`);
     }
-    const archive = join(artifactRoot, `${name}-0.1.0.private.tar.gz`);
+    const archive = join(artifactRoot, `${name}-0.2.0.private.tar.gz`);
     await run(
       ["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`],
       repoRoot,
@@ -359,20 +359,20 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
-longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
-longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
-longhorn-command = { path = "crates/longhorn-command", version = "0.1.0" }
-longhorn-command-config = { path = "crates/longhorn-command-config", version = "0.1.0" }
-longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "0.1.0" }
-longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "0.1.0" }
+longhorn-core = { path = "crates/longhorn-core", version = "0.2.0" }
+longhorn-config = { path = "crates/longhorn-config", version = "0.2.0" }
+longhorn-settings = { path = "crates/longhorn-settings", version = "0.2.0" }
+longhorn-command = { path = "crates/longhorn-command", version = "0.2.0" }
+longhorn-command-config = { path = "crates/longhorn-command-config", version = "0.2.0" }
+longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "0.2.0" }
+longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "0.2.0" }
 ${workspaceDependencies([
   "cap-std",
   "fs4",

@@ -42,7 +42,7 @@ const poodlePackages = [
 // Published Poodle only. Sibling packing was the unpublished-preview path;
 // g16.109 pins exact public 0.3.0, so greenfield installs the registry
 // packages the lock already records.
-const LONGHORN_VERSION = "0.1.0";
+const LONGHORN_VERSION = "0.2.0";
 const publishedPoodle = poodleRelease();
 const POODLE_VERSION = publishedPoodle.version;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
@@ -481,7 +481,7 @@ async function verifyRustArtifacts() {
   for (const name of allRustCrates) {
     const inventory = await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory incomplete`);
-    const archive = join(rustArtifactRoot, `${name}-0.1.0.private.tar`);
+    const archive = join(rustArtifactRoot, `${name}-0.2.0.private.tar`);
     await run(["tar", "-cf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xf", archive, "-C", workspace], repoRoot);
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });

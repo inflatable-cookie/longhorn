@@ -50,7 +50,7 @@ export async function packTypescriptArtifacts(
     );
     const path = join(
       artifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.1.0.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-0.2.0.tgz`,
     );
     paths.set(name, path);
     identities.push(await inspectNpmArtifact(name, path, repoRoot));
@@ -71,7 +71,7 @@ export async function packAndCheckRustArtifacts(
     await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     const archive = join(
       artifactRoot,
-      `${name}-0.1.0.private.tar.gz`,
+      `${name}-0.2.0.private.tar.gz`,
     );
     await run(
       [
@@ -206,19 +206,19 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.1.0" }
-longhorn-config = { path = "crates/longhorn-config", version = "0.1.0" }
-longhorn-settings = { path = "crates/longhorn-settings", version = "0.1.0" }
-longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.1.0" }
-longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "0.1.0" }
-longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.1.0" }
+longhorn-core = { path = "crates/longhorn-core", version = "0.2.0" }
+longhorn-config = { path = "crates/longhorn-config", version = "0.2.0" }
+longhorn-settings = { path = "crates/longhorn-settings", version = "0.2.0" }
+longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.2.0" }
+longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "0.2.0" }
+longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.2.0" }
 ${workspaceDependencies([
   "cap-std",
   "fs4",

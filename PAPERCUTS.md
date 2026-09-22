@@ -5,6 +5,18 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] `effigy release:gates` runs three of the seven declared gates — 2026-09-22
+- Friction: `effigy.toml` defines `release:gates` as `[release:floor, release:source-consumer, check:prototypes]`, while `config/release.toml`'s `[release.gates]` declares seven (private-candidate, advisories, rustdoc, prototypes, workspace, floor, source). Running `effigy release:gates` therefore skips `workspace = effigy qa`, `private-candidate`, `advisories`, and `rustdoc` — the same-named selector is not the declared gate set.
+- Impact: a local pre-release run reports green while the runner's `effigy qa` fails. That is how the 0.2.0 `check:api-reference` drift was first seen, on CI.
+- Plausible fix: make `release:gates` resolve the declared table (or rename the subset), and note in the runbook that `effigy release status --check-gates` is the full set.
+- Surface: `effigy.toml` `release:gates`; `config/release.toml` `[release.gates]`.
+
+### [ ] The release version is hardcoded across the artifact proofs — 2026-09-22
+- Friction: the 0.2.0 bump required editing thirteen artifact-proof scripts (`LONGHORN_VERSION = "0.1.0"`, tarball names, generated Cargo manifests), two package manifests' peer on `@inflatable-cookie/longhorn`, two boundary tests, and regenerating the API reference twice (the peer change moves it again).
+- Impact: a version-bumping release is a wide mechanical sweep, and a missed occurrence only surfaces as a proof failure.
+- Plausible fix: derive the release version from one source (the root manifest or `packages/longhorn/package.json`) in the proofs, and assert it at those sites.
+- Surface: `scripts/*artifact*`, `scripts/verify-*-artifacts.ts`, `packages/*/package.json`, `packages/*/tests/boundary.test.ts`, `docs/reference/api-surface.md`.
+
 ### [ ] Release version bump leaves the agent-control skill stamp stale — 2026-09-22
 - Friction: `skills/agent-control/SKILL.md` carries `longhorn_version: "0.1.0"`, and `check:agent-control-skill` requires it to match the workspace version. A `0.2.0` bump fails that check ("skill longhorn_version 0.1.0 does not match workspace 0.2.0") until the stamp is updated by hand; the release tool does not know about it.
 - Impact: another manual release-bump follow-up outside `effigy release prepare`.
