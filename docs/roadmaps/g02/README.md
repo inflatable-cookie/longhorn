@@ -73,6 +73,18 @@ production held), g02.008 (deferred), g02.019 and g02.017
 Operator-approved 2026-09-22. Four lanes ship as Longhorn `0.2.0` — git tag
 plus npm publish — once all merge:
 
+**Release held — 2026-09-22.** The operator requires `effigy deps link` against
+the current Longhorn checkout plus real Desktop consumer acceptance evidence
+before the release. Desktop ruling `2c5d72d5` permits the local development proof
+while preserving released-only client packaging. The `g05.179` worker is resumed
+and validating candidate `1b56973e` (current `main`); the release decision stays
+**contingent on that evidence** — the resumed task is not release approval. An
+app-scoped Cargo link surfaced an unused `longhorn-tauri-agent-control` patch
+(remaining old source); Effigy rolled the link back cleanly and the worker is
+resolving the complete closure before tests. The release prep is committed
+(version `0.2.0`, all seven gates green) but untagged; hold the tag and publish
+until the Desktop evidence lands.
+
 - `g02.041` staged update protocol and `g02.042` exclusive admission lease
   (contract 018 amended 2026-09-22), for the `acowtancy` Desktop lane
   (`g05.179`).
