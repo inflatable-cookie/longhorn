@@ -7,6 +7,7 @@ import {
   assertUpdateChangedEvent,
   assertUpdateCheckCommand,
   assertUpdateDeferCommand,
+  assertUpdateInstallAuthorization,
   assertUpdateOutcome,
   assertUpdatePrepareCommand,
   assertUpdateProgressEvent,
@@ -30,6 +31,8 @@ describe("Rust-generated update protocol", () => {
     assertUpdatePrepareCommand(value.prepareCommand);
     assertUpdateApplyCommand(value.applyCommand);
     assertUpdateCancelCommand(value.cancelCommand);
+    assertUpdateInstallAuthorization(value.authorizationHeld);
+    assertUpdateInstallAuthorization(value.authorizationDeferred);
     value.outcomes.forEach(assertUpdateOutcome);
     assertUpdateChangedEvent(value.changedEvent);
     assertUpdateProgressEvent(value.progressEvent);
@@ -93,6 +96,28 @@ describe("Rust-generated update protocol", () => {
     const missing = clone(value.progressEvent) as unknown as Record<string, unknown>;
     delete (missing.progress as Record<string, unknown>).expected;
     expect(() => assertUpdateProgressEvent(missing)).toThrow(/unexpected keys/);
+  });
+
+  /**
+   * A held lease has no reason to state and a deferral has nothing else: the
+   * discriminator is the whole difference between "the barrier is held" and
+   * "the barrier was refused".
+   */
+  test("the authorization projection is held or deferred with its cause", () => {
+    const value = fixture();
+    expect(value.authorizationHeld.status).toBe("held");
+    expect("cause" in value.authorizationHeld).toBe(false);
+    expect(value.authorizationDeferred.status).toBe("deferred");
+    if (value.authorizationDeferred.status !== "deferred") throw new Error("unreachable");
+    expect(value.authorizationDeferred.cause.cause).toBe("workInFlight");
+
+    const stale = clone(value.authorizationHeld) as unknown as Record<string, unknown>;
+    stale.status = value.incompatibility.unknownInstallAuthorizationStatus;
+    expect(() => assertUpdateInstallAuthorization(stale)).toThrow();
+
+    const missingCause = clone(value.authorizationDeferred) as unknown as Record<string, unknown>;
+    delete missingCause.cause;
+    expect(() => assertUpdateInstallAuthorization(missingCause)).toThrow(/unexpected keys/);
   });
 
   test("rejects future versions, variants, fields, and product payloads", () => {

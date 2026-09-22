@@ -16,13 +16,31 @@ use longhorn_licence::{
     TokenRedemptionSource, TrustBasis, Usability, asserted_remotely, usability, verify,
 };
 use longhorn_update::{
-    Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, DeferralCause, EndpointUrl,
-    InstallId, InstallProvenance, QuiescenceKind, Rollout, RolloutFraction, StaticJsonSource,
-    TargetTriple, UpdateAvailability, UpdateSource, evaluate,
+    AdmissionAuthority, AdmissionLease, AdmissionRefusal, Artifact, BuildIdentity, Channel,
+    ChannelManifest, CheckKind, DeferralCause, EndpointUrl, InstallId, InstallProvenance,
+    QuiescenceKind, Rollout, RolloutFraction, StaticJsonSource, TargetTriple, UpdateAvailability,
+    UpdateSource, evaluate,
 };
 use longhorn_update::{CountingProbe, InstallAuthorization, UpdateGate, transfer_session_probe};
 use semver::Version;
 use serde_json::{Value, json};
+
+/// Grants the admission lease immediately. The harness's gate claims are about
+/// the quiescence receipt; the lease's lifetime is proved by the crate's own
+/// admission tests.
+struct GrantingAdmission;
+
+impl AdmissionAuthority for GrantingAdmission {
+    fn acquire(&self) -> Result<Box<dyn AdmissionLease + '_>, AdmissionRefusal> {
+        Ok(Box::new(GrantedLease))
+    }
+}
+
+struct GrantedLease;
+
+impl AdmissionLease for GrantedLease {}
+
+const GRANTING_ADMISSION: GrantingAdmission = GrantingAdmission;
 
 /// Produces the update-flow evidence record.
 ///
@@ -126,15 +144,15 @@ pub fn update_evidence() -> Value {
 
     let idle = transfer_session_probe(|| 0);
     let quiescent: Vec<&dyn longhorn_update::QuiescenceProbe> = vec![&idle];
-    let gate = UpdateGate::new(quiescent);
-    assert_eq!(
+    let gate = UpdateGate::new(quiescent, &GRANTING_ADMISSION);
+    assert!(matches!(
         gate.authorize(&version_1_1_0),
-        InstallAuthorization::Approved
-    );
+        InstallAuthorization::Held(_)
+    ));
 
     let busy = transfer_session_probe(|| 1);
     let busy_probes: Vec<&dyn longhorn_update::QuiescenceProbe> = vec![&busy];
-    let gate = UpdateGate::new(busy_probes);
+    let gate = UpdateGate::new(busy_probes, &GRANTING_ADMISSION);
     let InstallAuthorization::Deferred(deferral) = gate.authorize(&version_1_1_0) else {
         panic!("an open transfer session must refuse the install");
     };
@@ -145,7 +163,7 @@ pub fn update_evidence() -> Value {
     let sessions = transfer_session_probe(|| 1);
     let operations = longhorn_update::operation_probe(|| 3);
     let probes: Vec<&dyn longhorn_update::QuiescenceProbe> = vec![&flushes, &sessions, &operations];
-    let receipt = UpdateGate::new(probes).quiescence();
+    let receipt = UpdateGate::new(probes, &GRANTING_ADMISSION).quiescence();
     assert_eq!(
         receipt.detail(),
         "2 pending flushes, 1 open transfer session, 3 running operations"

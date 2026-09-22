@@ -344,12 +344,17 @@ pub struct UpdateCancelCommand {
     tag = "status"
 )]
 pub enum UpdateInstallAuthorizationProjection {
-    /// Nothing is in flight; the application may install.
-    Approved,
-    /// Something is in flight. Not a failure, and the reason is the point:
-    /// a refused restart that does not say why reads as a broken updater.
+    /// The exclusive admission lease is held. Nothing conflicting can start
+    /// until the caller's critical section ends.
+    ///
+    /// The lease itself is a local capability and never crosses the wire, so
+    /// this states that one is held rather than carrying it.
+    Held,
+    /// Something is in flight, or the host's admission authority refused the
+    /// lease. Not a failure, and the reason is the point: a refused restart
+    /// that does not say why reads as a broken updater.
     Deferred {
-        /// What was in flight.
+        /// What was in flight, or why the lease was refused.
         cause: DeferralCause,
     },
 }

@@ -18,6 +18,16 @@ crates by git tag and the packages by version.
   The Tauri install permission grants `longhorn_update_prepare` and
   `longhorn_update_apply`; `longhorn_update_cancel` sits with the other local
   mutations. Contract 018 amended 2026-09-22.
+- **Update authorization is a held exclusive admission lease.** `UpdateGate`
+  acquires a lease from a host-supplied `AdmissionAuthority`, and
+  `InstallAuthorization` carries it: the held variant replaces the old
+  point-in-time `Approved` (`held` on the wire, was `approved`). The controller
+  keeps the lease alive across `apply` and drops it only once replacement has
+  returned, so no new conflicting work starts during the swap. A lease the host
+  will not grant is an ordinary deferral whose `WorkInFlight` detail is the
+  host's own reason — never a failure and never an install. Quiescence stays
+  the precondition; the lease is the barrier, and Longhorn still learns no
+  application operation. Contract 018 amended 2026-09-22.
 
 ## [0.1.0] - 2026-09-16
 

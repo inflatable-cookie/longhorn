@@ -78,6 +78,12 @@ pub trait UpdateHostAuthority: Send {
     /// Its own capability, separate from `check` and from `begin_prepare`.
     /// Staging verified bytes is not covered by permission to replace the
     /// running application, and vice versa.
+    ///
+    /// The implementation acquires the exclusive admission lease from its
+    /// injected `AdmissionAuthority` and holds it for this whole call, so no
+    /// conflicting work starts during replacement. A lease it cannot acquire
+    /// is an ordinary deferral in the returned outcome, carrying its reason —
+    /// never an adapter error, and never an install.
     fn apply(
         &mut self,
         caller: &str,

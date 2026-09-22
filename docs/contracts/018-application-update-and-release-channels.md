@@ -50,8 +50,10 @@ release serves both hosts. Longhorn diverges only where the plugin's approach
 is unsafe to copy: no shell interpolation, classified failures, and bounded
 extraction. See `longhorn-update-install`.
 
-Authorization is unchanged and remains host-agnostic: `UpdateGate::authorize`
-answers whether an install may proceed, whoever performs it.
+Authorization remains host-agnostic: `UpdateGate::authorize` answers whether
+an install may proceed, whoever performs it. Since the 2026-09-22 amendment
+the answer is a held exclusive admission lease rather than a point-in-time
+flag; see `Exclusive Admission Lease` below.
 
 **Windows is the open edge.** Longhorn's installer covers macOS bundle
 replacement. NSIS and MSI are unimplemented, and the plugin is the obvious

@@ -53,6 +53,10 @@ pub trait UpdateHostService: Send + Sync {
         progress: &mut dyn FnMut(UpdateProgressEvent),
     ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
     /// Applies the retained staged artifact.
+    ///
+    /// The authority holds the exclusive admission lease across this call and
+    /// answers with a deferral (carrying its cause) when the host will not
+    /// grant one. A deferral is an outcome, not a host error.
     fn apply(
         &self,
         caller: &str,
@@ -144,6 +148,9 @@ pub async fn longhorn_update_prepare<R: Runtime>(
 }
 
 /// Applies the retained staged artifact, replacing the application.
+///
+/// The whole call runs under the consumer's exclusive admission lease; a
+/// refused lease returns a deferred outcome rather than an adapter error.
 #[tauri::command]
 pub fn longhorn_update_apply<R: Runtime>(
     window: WebviewWindow<R>,
