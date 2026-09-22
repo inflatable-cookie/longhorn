@@ -340,7 +340,7 @@ pointer.
   Queue control manifest to the accepted v4 prospective-merge shape. It runs
   without changing product priority and authorizes no sibling product work.
 
-<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:e304b9a42ebf1acd6f8c1b90b9f595a3713feaacd610ab6df5bcf55fb947bce5 -->
+<!-- northstar:lifecycle:begin schema=northstar.lifecycle.projection.v2 digest=sha256:2c54f95f94521a3543df2a4149dfbecae65b45b3311837452cdad7e7590e8243 -->
 | Generation | Disposition | Runway state |
 | --- | --- | --- |
 | g02 | open | planning_required |
@@ -354,4 +354,5 @@ pointer.
 | g02.041 | complete | none | 8 | sha256:365665d50017539b80c8fd719c4690b63964bb5cd61dcded409ad4d1bf77c55d |
 | g02.042 | complete | none | 8 | sha256:312260b4fae2df0cbe6cebbcbc278af676d1814f73449b28acd5b8e82455216c |
 | g02.043 | complete | none | 8 | sha256:c75dbb8b2ca27dd01e5d14b8e9399cc492ee6c06b49d832207374b14d3f99d91 |
+| g02.044 | complete | none | 8 | sha256:0f217dc0485674ec3da54ab81c584c97b9f83ca8003b530268dd90fb2f428f7c |
 <!-- northstar:lifecycle:end -->
