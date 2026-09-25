@@ -15,6 +15,8 @@ pub const CONSOLE_URI: &str = "longhorn://agent-control/console";
 pub const ERROR_URI: &str = "longhorn://agent-control/error";
 /// Same-document navigations (pushState, replaceState, hashchange, popstate).
 pub const NAVIGATION_URI: &str = "longhorn://agent-control/navigation";
+/// Current pending agent-answerable file/folder selection requests.
+pub const SELECTION_URI: &str = "longhorn://agent-control/selection";
 
 pub fn all_resources() -> Vec<Resource> {
     vec![
@@ -27,11 +29,17 @@ pub fn all_resources() -> Vec<Resource> {
         Resource::new(NAVIGATION_URI, "navigation")
             .with_description("In-page navigation events")
             .with_mime_type("application/json"),
+        Resource::new(SELECTION_URI, "selection")
+            .with_description("Pending agent-answerable file and folder selection requests")
+            .with_mime_type("application/json"),
     ]
 }
 
 pub fn known_uri(uri: &str) -> bool {
-    matches!(uri, CONSOLE_URI | ERROR_URI | NAVIGATION_URI)
+    matches!(
+        uri,
+        CONSOLE_URI | ERROR_URI | NAVIGATION_URI | SELECTION_URI
+    )
 }
 
 pub fn kind_for_uri(uri: &str) -> Option<&'static str> {
@@ -39,6 +47,7 @@ pub fn kind_for_uri(uri: &str) -> Option<&'static str> {
         CONSOLE_URI => Some("console"),
         ERROR_URI => Some("error"),
         NAVIGATION_URI => Some("navigation"),
+        SELECTION_URI => Some("selection"),
         _ => None,
     }
 }
@@ -48,6 +57,7 @@ pub fn uri_for_kind(kind: &str) -> Option<&'static str> {
         "console" => Some(CONSOLE_URI),
         "error" => Some(ERROR_URI),
         "navigation" => Some(NAVIGATION_URI),
+        "selection" => Some(SELECTION_URI),
         _ => None,
     }
 }

@@ -35,6 +35,10 @@ const cratesWithoutPorts = new Map([
     "native-content-child-view",
     "child-view adapter exposes no `#[tauri::command]` seam strings",
   ],
+  [
+    "agent-control",
+    "contract 022; binder and command name live in the peerless package; consumer call sites inject invoke",
+  ],
 ]);
 
 function walk(directory: string, suffix: string, files: string[] = []): string[] {

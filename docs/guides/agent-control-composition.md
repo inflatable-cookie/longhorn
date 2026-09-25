@@ -217,6 +217,58 @@ opt-in above; skip it when no child webview should be a semantic target.
 Mount injects the in-page shim as an initialization script. The app does
 not mount a separate JavaScript package for snapshot or input.
 
+## 3b. Replace plugin-dialog at picker call sites
+
+Do not import `@tauri-apps/plugin-dialog` from UI handlers that an agent
+must drive. Bind Longhorn's replacement and pass the plugin functions
+through — Longhorn does not depend on the plugin package:
+
+```ts
+import { bindFileSelection } from "@inflatable-cookie/longhorn/agent-control";
+import { open as pluginOpen, save as pluginSave } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
+
+export const { open, save } = bindFileSelection({
+  invoke: (command, args) => invoke(command, args),
+  pluginOpen,
+  pluginSave,
+});
+```
+
+Register the begin-selection command next to your other Longhorn handlers
+and allow it on the window that hosts picker call sites:
+
+```rust
+.invoke_handler(tauri::generate_handler![
+    longhorn_tauri_agent_control::longhorn_agent_control_begin_selection,
+])
+```
+
+```toml
+# src-tauri/permissions/agent-control.toml
+[[permission]]
+identifier = "allow-begin-selection"
+description = "Allows the renderer to begin an agent-originated file or folder picker."
+commands.allow = ["longhorn_agent_control_begin_selection"]
+```
+
+```json
+"permissions": ["core:default", "allow-begin-selection"]
+```
+
+Agent-originated `open`/`save` (synthetic click/type/press/drag, or
+`evaluate`) publish a pending request and wait for `answer_selection` /
+`reject_selection`. Human-originated calls pass the original options to
+plugin-dialog unchanged, even while the control server is running. An
+active server is not evidence that a human picker should be captured.
+Do not globally monkey-patch the plugin. `save` selects a target path;
+Longhorn never writes it. HTML file inputs and Rust-side pickers stay
+outside this seam.
+
+The `agent-control` feature is required for the begin-selection command
+and shim origin tracking. A default build has neither; keep calling
+plugin-dialog there.
+
 ## 4. Hook Both `ExitRequested` And `Exit`
 
 Clean shutdown removes the discovery file (it carries the bearer token).
@@ -251,10 +303,12 @@ Once mounted, an agent can:
 | `wait_for` | DOM-relative predicates only |
 | `screenshot` | fresh image of the whole window, child webviews composed in; occluded, unfocused, and minimized; macOS only |
 | `command` | invoke a registered contract-006 command by id; in a packaged build this catalogue is the allowed agency |
+| `answer_selection`, `reject_selection` | settle an agent-originated JS `open`/`save`; human pickers keep plugin-dialog |
 | `list_windows`, `resize_window` | window scope |
 
 Page events ride `subscriptions/listen` as `resources/updated` on
-`longhorn://agent-control/{console,error,navigation}`.
+`longhorn://agent-control/{console,error,navigation,selection}`. Selection
+carries pending picker state so a late subscriber can still answer.
 
 Discovery lives under the contract 004 `longhorn` identity's state root
 plus `agent-control/`, not under the app's own storage identity — so one
@@ -262,7 +316,9 @@ directory lists every live instance. File name is `<app-id>-<pid>.json`.
 
 ## What The App Must Not Expect
 
-- Native menus, native dialogs, or OS-level input. Use `command`.
+- Native menus, native dialogs, or OS-level input. Use `command`. File
+  and folder pickers that go through `bindFileSelection` are answered
+  over MCP; do not expect Longhorn to drive an already-open OS panel.
 - Trusted events (`isTrusted`, native hover, OS drag-and-drop). Synthetic
   input is untrusted by contract.
 - Capture, `evaluate`, or the semantic tools on non-macOS hosts. Those

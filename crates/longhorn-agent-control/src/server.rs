@@ -32,7 +32,9 @@ use rmcp::transport::streamable_http_server::{
 };
 use tokio::net::TcpListener;
 
-use crate::{ControlHandler, DiscoveryError, InstanceToken, TokenError, publish_discovery};
+use crate::{
+    ControlHandler, DiscoveryError, InstanceToken, SelectionRegistry, TokenError, publish_discovery,
+};
 
 /// Configuration for one control-surface server instance.
 #[derive(Clone, Debug)]
@@ -87,13 +89,18 @@ pub struct ServeReceipt {
 /// `/mcp` behind the bearer-token and `Origin` guard. Hosts mounting the
 /// surface into a larger app compose this router; the guard is inside it,
 /// so mounting cannot forget the trust boundary.
-pub fn control_router<H>(handler: H, token: InstanceToken) -> Router
+pub fn control_router<H>(handler: H, token: InstanceToken, registry: SelectionRegistry) -> Router
 where
     H: ControlHandler,
 {
     let handler = Arc::new(handler);
     let service = StreamableHttpService::new(
-        move || Ok(mcp::AgentControlMcp::new(Arc::clone(&handler))),
+        move || {
+            Ok(mcp::AgentControlMcp::new(
+                Arc::clone(&handler),
+                registry.clone(),
+            ))
+        },
         Arc::new(LocalSessionManager::default()),
         StreamableHttpServerConfig::default().with_legacy_session_mode(false),
     );
@@ -113,6 +120,7 @@ where
 pub async fn serve_control_surface<H>(
     config: ControlServerConfig,
     handler: H,
+    registry: SelectionRegistry,
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<ServeReceipt, ServeError>
 where
@@ -132,9 +140,11 @@ where
     )
     .map_err(ServeError::Discovery)?;
 
-    let serve_result = axum::serve(listener, control_router(handler, token))
+    let serve_result = axum::serve(listener, control_router(handler, token, registry.clone()))
         .with_graceful_shutdown(shutdown)
         .await;
+
+    registry.shutdown();
 
     // Clean exit removes the file; removal failure surfaces even when
     // serving itself succeeded, because a leftover live-pid file is a

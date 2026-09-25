@@ -12,9 +12,9 @@ use rmcp::{ErrorData, schemars::JsonSchema};
 use serde::Deserialize;
 
 use crate::{
-    ClickRequest, CommandRequest, DragRequest, EvaluateRequest, KeyModifier, PressRequest,
-    ResizeWindowRequest, ScreenshotRequest, ScrollRequest, SnapshotRequest, TypeRequest,
-    WaitForRequest, WaitPredicate, WebviewLabel,
+    AnswerSelectionRequest, ClickRequest, CommandRequest, DragRequest, EvaluateRequest,
+    KeyModifier, PressRequest, RejectSelectionRequest, ResizeWindowRequest, ScreenshotRequest,
+    ScrollRequest, SnapshotRequest, TypeRequest, WaitForRequest, WaitPredicate, WebviewLabel,
 };
 
 /// Invalid wire input; surfaced as a JSON-RPC invalid-params error.
@@ -387,6 +387,50 @@ impl ResizeWindowArgs {
         let size = ClientSize::new(self.width, self.height)
             .map_err(|error| invalid_params(format!("invalid window size: {error}")))?;
         Ok(ResizeWindowRequest { window, size })
+    }
+}
+
+/// `answer_selection` arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AnswerSelectionArgs {
+    /// Pending selection id.
+    pub id: String,
+    /// Chosen paths.
+    pub paths: Vec<String>,
+}
+
+impl AnswerSelectionArgs {
+    /// Validates into the vocabulary request.
+    pub fn into_request(self) -> Result<AnswerSelectionRequest, ErrorData> {
+        let id = crate::SelectionId::new(self.id.clone())
+            .map_err(|_| invalid_params(format!("invalid selection id {:?}", self.id)))?;
+        Ok(AnswerSelectionRequest {
+            id,
+            paths: self.paths,
+        })
+    }
+}
+
+/// `reject_selection` arguments.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct RejectSelectionArgs {
+    /// Pending selection id.
+    pub id: String,
+    /// Agent-supplied reason.
+    pub reason: String,
+}
+
+impl RejectSelectionArgs {
+    /// Validates into the vocabulary request.
+    pub fn into_request(self) -> Result<RejectSelectionRequest, ErrorData> {
+        let id = crate::SelectionId::new(self.id.clone())
+            .map_err(|_| invalid_params(format!("invalid selection id {:?}", self.id)))?;
+        Ok(RejectSelectionRequest {
+            id,
+            reason: self.reason,
+        })
     }
 }
 

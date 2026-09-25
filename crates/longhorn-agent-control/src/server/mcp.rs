@@ -22,10 +22,14 @@ use rmcp::{
 };
 
 use super::args::{
-    ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs, ResizeWindowArgs, ScreenshotArgs,
-    ScrollArgs, SnapshotArgs, TypeArgs, WaitForArgs,
+    AnswerSelectionArgs, ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs,
+    RejectSelectionArgs, ResizeWindowArgs, ScreenshotArgs, ScrollArgs, SnapshotArgs, TypeArgs,
+    WaitForArgs,
 };
-use crate::{ControlHandler, EvaluateRequest, EvaluateResult, ToolError};
+use crate::{
+    AnswerSelectionResult, ControlHandler, EvaluateRequest, EvaluateResult, RejectSelectionResult,
+    SelectionRegistry, ToolError,
+};
 
 use super::events;
 
@@ -33,6 +37,7 @@ use super::events;
 #[derive(Clone)]
 pub(super) struct AgentControlMcp<H> {
     handler: Arc<H>,
+    registry: SelectionRegistry,
 }
 
 /// Maps a handler outcome onto a tool result: success as JSON content,
@@ -53,11 +58,11 @@ fn json_result<T: Serialize>(outcome: Result<T, ToolError>) -> Result<CallToolRe
 fn instructions() -> &'static str {
     #[cfg(feature = "agent-control-evaluate")]
     {
-        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch (full code execution in the app), wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained."
+        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate JS as an escape hatch (full code execution in the app), wait on DOM-relative predicates, capture fresh window images, invoke registered commands for native-chrome behavior, and answer pending file/folder selection with answer_selection/reject_selection. Subscribe to longhorn://agent-control/{console,error,navigation,selection} over subscriptions/listen for page events and pending pickers. Stateless: every call is self-contained."
     }
     #[cfg(not(feature = "agent-control-evaluate"))]
     {
-        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate answers typed Unsupported unless agent-control-evaluate is enabled, wait on DOM-relative predicates, capture fresh window images, and invoke registered commands for native-chrome behavior. Subscribe to longhorn://agent-control/{console,page-error,navigation} over subscriptions/listen for page events. Stateless: every call is self-contained."
+        "Longhorn agent app control (contract 022): snapshot the semantic tree, act by element ref with untrusted synthetic events, evaluate answers typed Unsupported unless agent-control-evaluate is enabled, wait on DOM-relative predicates, capture fresh window images, invoke registered commands for native-chrome behavior, and answer pending file/folder selection with answer_selection/reject_selection. Subscribe to longhorn://agent-control/{console,error,navigation,selection} over subscriptions/listen for page events and pending pickers. Stateless: every call is self-contained."
     }
 }
 
@@ -66,8 +71,8 @@ impl<H> AgentControlMcp<H>
 where
     H: ControlHandler,
 {
-    pub(super) fn new(handler: Arc<H>) -> Self {
-        Self { handler }
+    pub(super) fn new(handler: Arc<H>, registry: SelectionRegistry) -> Self {
+        Self { handler, registry }
     }
 
     #[tool(
@@ -209,6 +214,36 @@ where
         json_result(self.handler.resize_window(args.into_request()?).await)
     }
 
+    #[tool(
+        description = "Answer a pending agent-originated file or folder picker with paths. Single open and save take one path; multiple open takes one or more. Open paths must exist as the requested kind (file or directory). Save chooses a target; Longhorn never writes it. Unknown, expired, settled, or malformed answers fail typed."
+    )]
+    async fn answer_selection(
+        &self,
+        Parameters(args): Parameters<AnswerSelectionArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let request = args.into_request()?;
+        json_result::<AnswerSelectionResult>(
+            self.registry
+                .answer(&request.id, &request.paths)
+                .map(|()| AnswerSelectionResult {}),
+        )
+    }
+
+    #[tool(
+        description = "Reject a pending agent-originated picker. The app call resolves as null, the plugin's cancellation result. Unknown, expired, or already-settled ids fail typed."
+    )]
+    async fn reject_selection(
+        &self,
+        Parameters(args): Parameters<RejectSelectionArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let request = args.into_request()?;
+        json_result::<RejectSelectionResult>(
+            self.registry
+                .reject(&request.id)
+                .map(|()| RejectSelectionResult {}),
+        )
+    }
+
     async fn read_events(
         &self,
         since_seq: u64,
@@ -299,6 +334,7 @@ where
                     .resource_subscription(events::CONSOLE_URI)
                     .resource_subscription(events::ERROR_URI)
                     .resource_subscription(events::NAVIGATION_URI)
+                    .resource_subscription(events::SELECTION_URI)
                     .build(),
             ),
         )
@@ -317,6 +353,14 @@ where
         request: ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> Result<rmcp::model::ReadResourceResponse, ErrorData> {
+        if request.uri == events::SELECTION_URI {
+            let body = serde_json::to_string(&self.registry.resource_body()).map_err(|error| {
+                ErrorData::internal_error(format!("selection resource JSON: {error}"), None)
+            })?;
+            return Ok(
+                ReadResourceResult::new(vec![ResourceContents::text(body, request.uri)]).into(),
+            );
+        }
         if !events::known_uri(&request.uri) {
             return Err(ErrorData::resource_not_found(
                 format!("unknown resource {}", request.uri),
@@ -331,10 +375,22 @@ where
         let sink = context.sink().clone();
         let accepted = context.accepted().clone();
         let mut seq = 0_u64;
+        let mut selection_generation = self.registry.generation();
+        let selection_subscribed = accepted
+            .resource_subscriptions
+            .as_ref()
+            .is_some_and(|uris| uris.iter().any(|item| item == events::SELECTION_URI));
         loop {
             tokio::select! {
                 () = context.cancelled() => break,
                 () = tokio::time::sleep(std::time::Duration::from_millis(50)) => {
+                    if selection_subscribed {
+                        let current = self.registry.generation();
+                        if current != selection_generation {
+                            selection_generation = current;
+                            let _ = sink.notify_resource_updated(events::SELECTION_URI).await;
+                        }
+                    }
                     match self.read_events(seq).await {
                         Ok((events, _next_seq, _dropped)) => {
                             // Cursor is the last delivered event seq, not

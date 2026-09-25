@@ -316,6 +316,7 @@ fn mounted_server_serves_the_vocabulary_and_window_scope() {
         .map(|tool| tool["name"].as_str().unwrap())
         .collect();
     for expected in [
+        "answer_selection",
         "snapshot",
         "click",
         "type",
@@ -328,6 +329,7 @@ fn mounted_server_serves_the_vocabulary_and_window_scope() {
         "command",
         "list_windows",
         "resize_window",
+        "reject_selection",
     ] {
         assert!(tools.contains(&expected), "missing tool {expected}");
     }

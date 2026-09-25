@@ -376,8 +376,9 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn evaluate(&self, request: EvaluateRequest) -> Result<EvaluateResult, ToolError> {
+        let marked = format!("{}\n{}", crate::shim::MARK_AGENT_ORIGIN_JS, request.js);
         let (_, _, value) = self
-            .eval_js(&request.window, &request.webview, request.js)
+            .eval_js(&request.window, &request.webview, marked)
             .await?;
         Ok(EvaluateResult { value })
     }

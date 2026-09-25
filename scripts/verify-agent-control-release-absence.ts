@@ -30,7 +30,11 @@ const SCAN_ROOT = join(repoRoot, "target", "agent-control-scan");
 // source path (panic locations record it). Both are absent when the core
 // crate is not in the graph; the hyphen-free plugin crate's own name can
 // never produce either.
-const CORE_MARKERS = ["longhorn_agent_control", "longhorn-agent-control/src"];
+const CORE_MARKERS = [
+  "longhorn_agent_control",
+  "longhorn-agent-control/src",
+  "longhorn://agent-control/selection",
+];
 const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl"];
 const MARKERS = [...CORE_MARKERS, ...SHIM_MARKERS];
 // Present only when `agent-control-evaluate` compiles the JS escape hatch

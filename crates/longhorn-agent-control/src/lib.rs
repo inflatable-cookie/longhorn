@@ -15,6 +15,7 @@ pub mod carrier;
 mod discovery;
 mod handler;
 mod provider;
+mod selection;
 mod server;
 mod token;
 mod tools;
@@ -27,15 +28,21 @@ pub use discovery::{
 };
 pub use handler::ControlHandler;
 pub use provider::{NativeSurfaceAction, NativeSurfaceProvider};
+pub use selection::{
+    BeginSelectionError, BeginSelectionRequest, DEFAULT_SELECTION_TTL, PendingSelection,
+    SelectionFilter, SelectionKind, SelectionOutcome, SelectionRegistry, SelectionResource,
+    SelectionWait, path_string, plugin_result,
+};
 pub use server::{
     ControlServerConfig, ServeError, ServeReceipt, control_router, serve_control_surface,
 };
 pub use token::{InstanceToken, TokenError};
 pub use tools::{
-    ActionReceipt, CONTROL_TOOL_NAMES, ClickRequest, CommandRequest, CommandResult, DragRequest,
-    ElementRef, EvaluateRequest, EvaluateResult, KeyModifier, ListWindowsRequest,
-    ListWindowsResult, PageState, PressRequest, ResizeWindowRequest, ScreenshotRequest,
-    ScreenshotResult, ScrollRequest, SemanticNode, SnapshotRequest, SnapshotResult, ToolError,
-    TypeRequest, WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel, WebviewTarget,
-    WindowInfo, WindowTarget,
+    ActionReceipt, AnswerSelectionRequest, AnswerSelectionResult, CONTROL_TOOL_NAMES, ClickRequest,
+    CommandRequest, CommandResult, DragRequest, ElementRef, EvaluateRequest, EvaluateResult,
+    KeyModifier, ListWindowsRequest, ListWindowsResult, PageState, PressRequest,
+    RejectSelectionRequest, RejectSelectionResult, ResizeWindowRequest, ScreenshotRequest,
+    ScreenshotResult, ScrollRequest, SelectionId, SemanticNode, SnapshotRequest, SnapshotResult,
+    ToolError, TypeRequest, WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel,
+    WebviewTarget, WindowInfo, WindowTarget,
 };

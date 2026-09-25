@@ -98,6 +98,8 @@ export type AgentControlApi = {
   ) => ShimResult<Record<string, never>>;
   drag: (source: string, target: string) => ShimResult<Record<string, never>>;
   waitFor: (predicate: WaitPredicate) => ShimResult<{ holds: boolean }>;
+  markAgentOrigin: () => void;
+  isAgentOriginated: () => boolean;
   readEvents: (sinceSeq?: number) => {
     events: PageEvent[];
     nextSeq: number;
@@ -114,7 +116,11 @@ export type ShimWorld = {
   KeyboardEvent: typeof KeyboardEvent;
   Event: typeof Event;
   InputEvent?: typeof InputEvent;
-  addEventListener: (type: string, listener: (event: Event) => void) => void;
+  addEventListener: (
+    type: string,
+    listener: (event: Event) => void,
+    options?: boolean | { capture?: boolean },
+  ) => void;
   onunhandledrejection?: ((event: Event) => void) | null;
 } & Record<string, unknown>;
 
@@ -703,18 +709,56 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   });
 }
 
+function installOriginTracking(world: ShimWorld): Pick<
+  AgentControlApi,
+  "markAgentOrigin" | "isAgentOriginated"
+> {
+  let agentOriginSeq = 0;
+  let humanOriginSeq = 0;
+  const markHuman = (event: Event) => {
+    if (event.isTrusted) humanOriginSeq = agentOriginSeq + 1;
+  };
+  world.addEventListener("pointerdown", markHuman, true);
+  world.addEventListener("keydown", markHuman, true);
+  world.addEventListener("click", markHuman, true);
+  return {
+    markAgentOrigin: () => {
+      agentOriginSeq = humanOriginSeq + 1;
+    },
+    isAgentOriginated: () => agentOriginSeq > humanOriginSeq,
+  };
+}
+
 export function installAgentControlShim(world: ShimWorld): AgentControlApi {
   const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
   if (existing) return existing;
   const readEvents = installEventRing(world);
+  const origin = installOriginTracking(world);
   const api: AgentControlApi = {
     snapshot: () => snapshot(world),
-    click: (element) => click(world, element),
-    type: (element, text) => typeInto(world, element, text),
-    press: (key, modifiers, element) => press(world, key, modifiers, element),
-    scroll: (deltaX, deltaY, element) => scroll(world, deltaX, deltaY, element),
-    drag: (source, target) => drag(world, source, target),
+    click: (element) => {
+      origin.markAgentOrigin();
+      return click(world, element);
+    },
+    type: (element, text) => {
+      origin.markAgentOrigin();
+      return typeInto(world, element, text);
+    },
+    press: (key, modifiers, element) => {
+      origin.markAgentOrigin();
+      return press(world, key, modifiers, element);
+    },
+    scroll: (deltaX, deltaY, element) => {
+      origin.markAgentOrigin();
+      return scroll(world, deltaX, deltaY, element);
+    },
+    drag: (source, target) => {
+      origin.markAgentOrigin();
+      return drag(world, source, target);
+    },
     waitFor: (predicate) => waitFor(world, predicate),
+    markAgentOrigin: origin.markAgentOrigin,
+    isAgentOriginated: origin.isAgentOriginated,
     readEvents,
   };
   world[SHIM_GLOBAL] = api;

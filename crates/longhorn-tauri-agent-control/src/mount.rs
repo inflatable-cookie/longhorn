@@ -22,8 +22,8 @@ use std::{
 };
 
 use longhorn_agent_control::{
-    ControlServerConfig, DiscoveryError, ServeError, ServeReceipt, resolve_discovery_dir,
-    resolve_discovery_dir_with_state_override, serve_control_surface,
+    ControlServerConfig, DiscoveryError, SelectionRegistry, ServeError, ServeReceipt,
+    resolve_discovery_dir, resolve_discovery_dir_with_state_override, serve_control_surface,
 };
 use longhorn_tauri_config::{TauriDirectorySnapshot, platform_directory_facts};
 use tauri::{AppHandle, Manager, Runtime};
@@ -31,26 +31,17 @@ use tokio::sync::oneshot;
 
 use crate::{bridge::CommandBridge, handler::TauriControlHandler, shim::SHIM_SOURCE};
 
-/// Registers the in-page shim as a Tauri initialization script so every
-/// document load re-arms it. Existing windows also get an immediate `eval`.
-struct AgentControlShimPlugin;
-
-impl<R: Runtime> tauri::plugin::Plugin<R> for AgentControlShimPlugin {
-    fn name(&self) -> &'static str {
-        "longhorn-agent-control-shim"
-    }
-
-    fn initialization_script(&self) -> Option<String> {
-        Some(SHIM_SOURCE.to_owned())
-    }
-
-    fn on_page_load(
-        &mut self,
-        webview: &tauri::Webview<R>,
-        _payload: &tauri::webview::PageLoadPayload<'_>,
-    ) {
-        let _ = webview.eval(SHIM_SOURCE);
-    }
+fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::new("longhorn-agent-control")
+        .setup(move |app, _api| {
+            app.manage(registry);
+            Ok(())
+        })
+        .js_init_script(SHIM_SOURCE.to_owned())
+        .on_page_load(|webview, _payload| {
+            let _ = webview.eval(SHIM_SOURCE);
+        })
+        .build()
 }
 
 /// What one mount needs from the composing app.
@@ -235,9 +226,11 @@ pub fn mount_agent_control<R: Runtime>(
     }
     .map_err(AgentControlMountError::Discovery)?;
 
+    let registry = SelectionRegistry::new(format!("{}:{}", config.app_id, std::process::id()));
+
     // Initialization script for windows created after this mount; eval for
     // windows that already exist (the proof app and the mount fixtures).
-    let _ = app.plugin(AgentControlShimPlugin);
+    let _ = app.plugin(agent_control_plugin(registry.clone()));
     // Walk every webview of every window: `webview_windows()` excludes any
     // window hosting a child webview with a different label (Figmatic
     // adoption finding, 2026-08-20).
@@ -254,6 +247,7 @@ pub fn mount_agent_control<R: Runtime>(
         port: config.port,
     };
     let (shutdown, signaled) = oneshot::channel::<()>();
+    let registry_for_server = registry.clone();
     let thread = thread::spawn(move || {
         let runtime = match tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
@@ -267,9 +261,14 @@ pub fn mount_agent_control<R: Runtime>(
                 ))));
             }
         };
-        runtime.block_on(serve_control_surface(server_config, handler, async move {
-            let _ = signaled.await;
-        }))
+        runtime.block_on(serve_control_surface(
+            server_config,
+            handler,
+            registry_for_server,
+            async move {
+                let _ = signaled.await;
+            },
+        ))
     });
 
     Ok(AgentControlHandle {

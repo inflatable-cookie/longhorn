@@ -1,0 +1,6 @@
+{
+  "identifier": "begin-selection",
+  "description": "Window that hosts picker call sites using bindFileSelection.",
+  "windows": ["main"],
+  "permissions": ["allow-begin-selection"]
+}
