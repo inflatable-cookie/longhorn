@@ -52,6 +52,9 @@ exclude = ["history/**"]
 # instead, because "the host seam still matches its SDK" is a claim that must
 # hold before a tag rather than before every commit.
 "check:prototypes" = "sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"
+# Pre-gate only: refresh excluded prototype locks (and the root lock) after a
+# Longhorn version bump. Does not replace or weaken check:prototypes --locked.
+"sync:prototype-locks" = "bun scripts/sync-prototype-locks.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"

@@ -19,6 +19,11 @@ pre-1-0 = true
 #
 # The sync is not optional: prepare bumps the version before gating, so without
 # it every `--locked` gate refuses to run in the window between.
+#
+# Prepare still cannot see the eight workspace-excluded prototype locks.
+# After a coordinated version bump, run `effigy sync:prototype-locks` before
+# `--locked` prototype checks. That selector is a pre-gate step; do not fold
+# it into this table or weaken `prototypes = "effigy check:prototypes"`.
 sync-files = ["Cargo.lock"]
 tag-format = "v{version}"
 initial-tag-current-version = true

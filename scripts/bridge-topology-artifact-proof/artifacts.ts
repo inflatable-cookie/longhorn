@@ -68,7 +68,7 @@ export async function packTypescriptArtifacts(
     );
     const path = join(
       artifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.0.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
     );
     await inspectNpmArtifact(name, path, artifactRoot);
     paths.set(name, path);
@@ -111,7 +111,7 @@ export async function packAndCheckRustArtifacts(
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
       throw new Error(`${name} package inventory is incomplete`);
     }
-    const archive = join(artifactRoot, `${name}-0.2.0.private.tar.gz`);
+    const archive = join(artifactRoot, `${name}-0.2.1.private.tar.gz`);
     await run(
       ["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`],
       repoRoot,
@@ -158,7 +158,7 @@ async function inspectNpmArtifact(
     readonly peerDependencies?: Record<string, string>;
     readonly exports?: Record<string, unknown>;
   };
-  if (packedManifest.name !== name || packedManifest.version !== "0.2.0") {
+  if (packedManifest.name !== name || packedManifest.version !== "0.2.1") {
     throw new Error(`${name} packed identity mismatch`);
   }
   const expectedDependencies: Record<string, readonly string[]> = {
@@ -173,7 +173,7 @@ async function inspectNpmArtifact(
   );
   if (
     name === "@inflatable-cookie/longhorn-bridge" &&
-    packedManifest.peerDependencies?.["@inflatable-cookie/longhorn-tauri"] !== "0.2.0"
+    packedManifest.peerDependencies?.["@inflatable-cookie/longhorn-tauri"] !== "0.2.1"
   ) {
     throw new Error(
       "@inflatable-cookie/longhorn-bridge must keep @inflatable-cookie/longhorn-tauri as an optional peer",
@@ -390,16 +390,16 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.0" }
-longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.0", default-features = false }
-longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "0.2.0" }
+longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
+longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.1", default-features = false }
+longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "0.2.1" }
 ${workspaceDependencies([
   "proptest",
   "serde",

@@ -184,7 +184,7 @@ async function assertArtifactInstall(stage: string, name: string) {
   if (installed.realPath.includes("/Dev/projects/longhorn/packages/")) {
     throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
   }
-  if (installed.manifest.version !== "0.2.0") {
+  if (installed.manifest.version !== "0.2.1") {
     throw new Error(`${name} installed unexpected version`);
   }
   return { name, version: installed.manifest.version };

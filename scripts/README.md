@@ -138,6 +138,24 @@ Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.
 
+## Prototype lock sync
+
+Effigy `release prepare` syncs the root `Cargo.lock` only. The eight
+`prototypes/*/Cargo.lock` files are separate workspaces, so a Longhorn version
+bump leaves them stale and `check:prototypes --locked` fails.
+
+After bumping `workspace.package.version` and the internal Longhorn pins:
+
+```sh
+effigy sync:prototype-locks
+```
+
+The selector rewrites only Longhorn path-package versions in the root lock
+and each excluded prototype lock, then proves each lock with
+`cargo metadata --locked --offline`. `cargo update` is not used: it
+re-resolves third-party crates. The selector is a pre-gate maintenance step;
+it does not change `check:prototypes` or `[release.gates]`.
+
 ## Release gates
 
 - `check-release-floor.sh` — enforces the declared MSRV
