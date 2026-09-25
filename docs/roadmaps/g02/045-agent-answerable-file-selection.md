@@ -2,7 +2,8 @@
 
 Owner: Tom
 Created: 2026-09-22
-State: Longhorn implementation merged in PR #34; Figmatic live acceptance open
+State: Longhorn implementation and source-linked Figmatic acceptance proved;
+publication pending operator decision
 Governing refs: contract 022 (`Protocol`, `Availability And Security`,
 `Agent-Answerable Selection`), contracts 006 and 010
 Depends on: g02.043 and g02.044 (complete)
@@ -122,8 +123,14 @@ passed; reviewer reran focused registry/MCP, TypeScript origin/selection,
 and release-absence checks. The [implementation log](../../logs/2026-09/25-agent-answerable-selection-implementation.md)
 records the evidence and limits.
 
-The Figmatic fresh-leaf New or Import project proof has **not** run. This
-card's consumer acceptance row remains open until a Figmatic-owned call-site
-adoption uses a source-linked Longhorn candidate, answers the pending folder
-request over MCP, and records the live result. Queue `done` closes the
-Longhorn PR loop; it does not claim the consumer proof or a release.
+Figmatic's g01.052 branch at `d77c3d16` records a fresh-leaf New project
+proof against clean Longhorn `db0b6baf` through machine-local Effigy
+Cargo/Bun links. A semantic MCP click produced a pending directory request;
+`answer_selection` with an existing disposable folder opened Prepare/Designs
+while the window stayed unfocused. Consumer evidence is
+`figmatic/docs/logs/2026-09/25-154800-g01-052-agent-answerable-project-selection.md`
+at that commit on Figmatic's retained pre-PR branch. This
+satisfies this card's “New or Import” live acceptance row; Import shares the
+call site and has focused test coverage. Figmatic has not merged its adoption.
+Queue `done` closes the Longhorn PR loop. A published npm/Rust identity and
+Figmatic's clean-install continuation remain separate, operator-owned work.

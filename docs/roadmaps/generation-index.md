@@ -30,8 +30,9 @@ over licensing as g02.010 (Cards 155-158).
 
 **No ready Longhorn implementation lane.**
 [g02.045](g02/045-agent-answerable-file-selection.md) merged through PR #34;
-Figmatic's live source-linked folder-selection proof remains open. The next
-signal is that consumer evidence, then an operator-owned release decision.
+Figmatic g01.052 proved the fresh-leaf New project flow against source-linked
+Longhorn. The next move is an operator-owned release decision and gated
+publication for exact consumer pins.
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.
 

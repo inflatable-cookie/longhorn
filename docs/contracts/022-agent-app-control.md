@@ -262,8 +262,12 @@ Narrowed, explicitly:
 The g02.045 implementation merged through PR #34. Registry/MCP and TypeScript
 fixtures, human/native routing, and feature-state release-absence checks pass
 ([implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)).
-Figmatic's live fresh-leaf folder-selection flow is still unproved. The
-existing proof list above does not claim it.
+Figmatic g01.052 proved the fresh-leaf New project flow on its retained branch
+against source-linked Longhorn `db0b6baf`: semantic click, pending directory
+request, MCP answer, and project view unfocused. Publication and Figmatic's
+exact-pin clean-install continuation remain open. The existing proof list
+above predates this amendment; the [implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)
+owns the source-linked evidence.
 
 ## Stop Conditions
 

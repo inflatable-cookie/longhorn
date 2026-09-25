@@ -21,11 +21,24 @@ approved exact head `fc9ad714` after focused selection registry/MCP,
 TypeScript origin/selection, and release-absence checks. Review found no
 blocking change.
 
-**Open consumer gate:** Figmatic has not yet replaced its folder-picker
-call sites or run the fresh-leaf New/Import project flow through MCP with
-this source candidate. The Figmatic Chatterbox owns that consumer route.
-The Longhorn package manifests still say `0.2.0`, and the published
-`v0.2.0` artifacts predate this implementation. A source link can support
-consumer acceptance; a new tag/npm publish needs an operator release
-choice after the evidence. HTML file inputs and Rust-side pickers remain
-outside this seam.
+**Consumer evidence received 2026-09-25:** Figmatic g01.052 proof commit
+`d77c3d16bb5f81bb6357f56c73e3ba64864f323b` on its retained pre-PR
+branch used machine-local Effigy Cargo/Bun links to clean Longhorn
+`db0b6baf`. From a fresh storage leaf, semantic MCP click on New project
+published pending selection `sel_IMpvVWNBzRHT4T38` (`open`, directory,
+single). `answer_selection` supplied an existing disposable folder; the
+app opened project `db2d3251-f481-4a4c-8b15-6526de9bdcc1` at
+Prepare/Designs with `focused: false`. No human picker or OS input was used.
+Six focused JS tests, nine Rust tests, and dev Cargo check passed. Import
+shares the call site and has a focused test but was not live-clicked.
+Figmatic's evidence file is
+`docs/logs/2026-09/25-154800-g01-052-agent-answerable-project-selection.md`
+at that commit. This satisfies g02.045's source-linked live acceptance row;
+the Figmatic branch is not merged.
+
+**Publication gate:** Longhorn manifests still say `0.2.0`, and published
+`v0.2.0` predates this implementation. Figmatic is blocked before PR on an
+exact published npm version and Rust tag, then must remove source links and
+run clean-install QA. A new tag/npm publish requires the operator's release
+choice and gates. HTML file inputs and Rust-side pickers remain outside
+this seam.
