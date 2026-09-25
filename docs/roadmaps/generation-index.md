@@ -28,11 +28,12 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**No ready Longhorn implementation lane.**
+**[g02.046](g02/046-agent-selection-release-candidate.md) is ready.**
 [g02.045](g02/045-agent-answerable-file-selection.md) merged through PR #34;
 Figmatic g01.052 proved the fresh-leaf New project flow against source-linked
-Longhorn. The next move is an operator-owned release decision and gated
-publication for exact consumer pins.
+Longhorn. The operator chose and authorised `0.2.1`. A reviewed candidate must
+sync the eight excluded prototype locks before gated publication can supply
+exact consumer pins.
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.
 

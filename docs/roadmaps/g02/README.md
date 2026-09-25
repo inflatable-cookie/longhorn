@@ -47,6 +47,7 @@
 | [g02.043](043-packaged-agent-control-opt-in.md) | complete — in `0.2.0` | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
 | [g02.044](044-agent-control-stdio-carrier.md) | complete — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
 | [g02.045](045-agent-answerable-file-selection.md) | Longhorn merged — PR #34; source-linked Figmatic acceptance proved; release pending | agent-answerable Tauri `open`/folder/`save` |
+| [g02.046](046-agent-selection-release-candidate.md) | ready — `0.2.1` candidate and excluded prototype lock sync | reviewed release candidate for g02.045 |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -55,11 +56,14 @@ remain uncommitted.
 
 ### Current Ready Frontier
 
-No Longhorn implementation lane is ready. `g02.045` merged through PR #34,
+`g02.046` is ready for Queue delivery. `g02.045` merged through PR #34,
 Queue closeout is complete, and Figmatic g01.052 proved the fresh-leaf New
 project flow on its retained branch against source-linked Longhorn `db0b6baf`.
-The next Longhorn move is an operator-owned release decision and gated
-publication so Figmatic can replace source links with exact npm/Rust pins.
+The operator chose and authorised `0.2.1`. Exact-commit CI at `d159d272`
+passed after the approved Rust-floor workflow fix. Seven pre-prepare gates
+passed; prepare then exposed the known excluded prototype lock sync gap and
+rolled back cleanly. The candidate batch precedes gated publication so
+Figmatic can replace source links with exact npm/Rust pins.
 HTML file input and Rust-side pickers remain separate, uncommitted follow-ups.
 
 ## Release Sequence
