@@ -17,6 +17,7 @@ const seamCommands = new Map([
 const seamEvents = new Map([
   ["longhorn://native-content/changed", "consumer-emitted; contract 017 native-content islands"],
   ["longhorn://surfaces/changed", "consumer-emitted; surfaces window-host projection"],
+  ["longhorn://agent-control/selection", "contract 022; MCP resource, not a Tauri event"],
 ]);
 
 // Rust-only surface with no renderer wiring, consumer-filled by contract 010.
@@ -34,6 +35,7 @@ const seamEventsRustOnly = new Map([
   ["longhorn://agent-control/console", "contract 022; MCP resource, not a Tauri event"],
   ["longhorn://agent-control/error", "contract 022; MCP resource, not a Tauri event"],
   ["longhorn://agent-control/navigation", "contract 022; MCP resource, not a Tauri event"],
+  ["longhorn://agent-control/selection", "contract 022; MCP resource, not a Tauri event"],
 ]);
 
 function walk(directory: string, suffix: string, files: string[] = []): string[] {

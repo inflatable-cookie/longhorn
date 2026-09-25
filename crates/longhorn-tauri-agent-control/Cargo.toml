@@ -19,6 +19,7 @@ agent-control = [
   "dep:longhorn-agent-control",
   "dep:longhorn-core",
   "dep:longhorn-tauri-config",
+  "dep:serde",
   "dep:serde_json",
   "dep:tauri",
   "dep:tokio",
@@ -51,6 +52,7 @@ longhorn-core = { workspace = true, optional = true }
 tauri = { workspace = true, optional = true, features = ["wry", "unstable"] }
 longhorn-agent-control = { workspace = true, optional = true }
 longhorn-tauri-config = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 

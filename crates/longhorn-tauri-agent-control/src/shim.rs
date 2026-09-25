@@ -15,6 +15,10 @@ use serde_json::{Value, json};
 /// install no-ops if the global is already present.
 pub const SHIM_SOURCE: &str = include_str!("agent_control_shim.js");
 
+/// Marks the current turn as agent-originated so a picker called from
+/// `evaluate` is captured. Input tools mark origin inside the shim.
+pub const MARK_AGENT_ORIGIN_JS: &str = "globalThis.__longhornAgentControl && globalThis.__longhornAgentControl.markAgentOrigin && globalThis.__longhornAgentControl.markAgentOrigin()";
+
 const POLL: Duration = Duration::from_millis(50);
 
 /// Wraps a shim call so the page has the shim and returns JSON text.

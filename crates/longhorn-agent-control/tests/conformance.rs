@@ -24,8 +24,8 @@ use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
     ActionReceipt, CONTROL_TOOL_NAMES, CommandResult, ControlHandler, ControlServerConfig,
     ElementRef, EvaluateResult, InstanceToken, ListWindowsResult, PageState, ScreenshotResult,
-    SemanticNode, SnapshotResult, ToolError, WaitForResult, control_router, enumerate_discovery,
-    serve_control_surface,
+    SelectionRegistry, SemanticNode, SnapshotResult, ToolError, WaitForResult, control_router,
+    enumerate_discovery, serve_control_surface,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -250,7 +250,11 @@ impl ControlHandler for StubHandler {
 fn app() -> (Router, InstanceToken, StubHandler) {
     let token = InstanceToken::generate().unwrap();
     let stub = StubHandler::default();
-    (control_router(stub.clone(), token.clone()), token, stub)
+    (
+        control_router(stub.clone(), token.clone(), SelectionRegistry::new("test")),
+        token,
+        stub,
+    )
 }
 
 /// The `_meta` envelope revision 2026-07-28 requires (Card 227 capture).
@@ -335,6 +339,14 @@ impl McpRequest {
             "tools/call",
             Some("evaluate"),
             json!({ "name": "evaluate", "arguments": { "js": js }, "_meta": meta() }),
+        )
+    }
+
+    fn tools_call(self, name: &str, arguments: Value) -> Request<Body> {
+        self.post(
+            "tools/call",
+            Some(name),
+            json!({ "name": name, "arguments": arguments, "_meta": meta() }),
         )
     }
 
@@ -434,6 +446,7 @@ async fn event_resources_are_listed_and_readable() {
             "longhorn://agent-control/console",
             "longhorn://agent-control/error",
             "longhorn://agent-control/navigation",
+            "longhorn://agent-control/selection",
         ]
     );
 
@@ -458,7 +471,7 @@ async fn event_resources_are_listed_and_readable() {
 async fn listen_delivers_the_first_event_after_subscribe() {
     let token = InstanceToken::generate().unwrap();
     let stub = StubHandler::empty_ring();
-    let app = control_router(stub.clone(), token.clone());
+    let app = control_router(stub.clone(), token.clone(), SelectionRegistry::new("test"));
 
     let response = app
         .clone()
@@ -732,6 +745,7 @@ async fn discovery_lifetime_tracks_the_server() {
     let server = tokio::spawn(serve_control_surface(
         config,
         StubHandler::default(),
+        SelectionRegistry::new("dev.example.conformance"),
         async {
             let _ = shutdown_rx.await;
         },
@@ -790,4 +804,129 @@ async fn discovery_lifetime_tracks_the_server() {
     let receipt = server.await.unwrap().unwrap();
     assert_eq!(receipt.bound.port(), port);
     assert!(enumerate_discovery(&dir).unwrap().instances.is_empty());
+}
+
+#[tokio::test]
+async fn answer_selection_settles_a_pending_request_over_mcp() {
+    use std::fs::File;
+
+    use longhorn_agent_control::{BeginSelectionRequest, SelectionKind, path_string};
+
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::default();
+    let registry = SelectionRegistry::new("app:1");
+    let app = control_router(stub, token.clone(), registry.clone());
+
+    let dir = TempDir::new().unwrap();
+    let file = dir.path().join("leaf.txt");
+    File::create(&file).unwrap();
+
+    let wait = registry
+        .begin(BeginSelectionRequest {
+            kind: SelectionKind::Open,
+            directory: false,
+            multiple: false,
+            filters: Vec::new(),
+            title: Some("Open".to_owned()),
+            default_path: None,
+            window: Some("main".to_owned()),
+            webview: None,
+        })
+        .unwrap();
+    let id = wait.id().as_str().to_owned();
+
+    let listed = exchange(
+        app.clone(),
+        McpRequest::authed(&token).resources_read("longhorn://agent-control/selection"),
+    )
+    .await;
+    assert_eq!(listed.status, StatusCode::OK, "{}", listed.body);
+    let payload = listed.json();
+    let text = payload["result"]["contents"][0]["text"]
+        .as_str()
+        .expect("selection resource text");
+    let body: Value = serde_json::from_str(text).unwrap();
+    assert_eq!(body["pending"][0]["id"], id);
+    assert_eq!(body["pending"][0]["instance"], "app:1");
+    assert_eq!(body["pending"][0]["kind"], "open");
+
+    let answered = exchange(
+        app.clone(),
+        McpRequest::authed(&token).tools_call(
+            "answer_selection",
+            json!({ "id": id, "paths": [path_string(&file)] }),
+        ),
+    )
+    .await;
+    assert_eq!(answered.status, StatusCode::OK, "{}", answered.body);
+    let answered_json = answered.json();
+    assert_eq!(
+        answered_json["result"]["isError"],
+        json!(false),
+        "{answered_json}"
+    );
+
+    let outcome = wait.await;
+    assert!(
+        matches!(outcome, longhorn_agent_control::SelectionOutcome::Answered(ref paths) if *paths == [path_string(&file)]),
+        "{outcome:?}"
+    );
+
+    let duplicate = exchange(
+        app,
+        McpRequest::authed(&token).tools_call(
+            "answer_selection",
+            json!({ "id": id, "paths": [path_string(&file)] }),
+        ),
+    )
+    .await;
+    let dup_json = duplicate.json();
+    assert_eq!(dup_json["result"]["isError"], json!(true), "{dup_json}");
+    let error: Value =
+        serde_json::from_str(dup_json["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(error["error"], "settledSelection");
+}
+
+#[tokio::test]
+async fn reject_selection_resolves_the_waiter_as_plugin_null() {
+    use longhorn_agent_control::{BeginSelectionRequest, SelectionKind};
+
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::default();
+    let registry = SelectionRegistry::new("app:1");
+    let app = control_router(stub, token.clone(), registry.clone());
+
+    let wait = registry
+        .begin(BeginSelectionRequest {
+            kind: SelectionKind::Open,
+            directory: true,
+            multiple: false,
+            filters: Vec::new(),
+            title: None,
+            default_path: None,
+            window: None,
+            webview: None,
+        })
+        .unwrap();
+    let id = wait.id().as_str().to_owned();
+
+    let rejected = exchange(
+        app,
+        McpRequest::authed(&token).tools_call(
+            "reject_selection",
+            json!({ "id": id, "reason": "cancelled by agent" }),
+        ),
+    )
+    .await;
+    assert_eq!(rejected.status, StatusCode::OK, "{}", rejected.body);
+    let rejected_json = rejected.json();
+    assert_eq!(
+        rejected_json["result"]["isError"],
+        json!(false),
+        "{rejected_json}"
+    );
+    assert_eq!(
+        wait.await,
+        longhorn_agent_control::SelectionOutcome::Rejected
+    );
 }

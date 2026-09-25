@@ -18,3 +18,16 @@ export {
   type ToolErrorBody,
   type WaitPredicate,
 } from "./shim.ts";
+export {
+  BEGIN_SELECTION_COMMAND,
+  SELECTION_RESOURCE_URI,
+  bindFileSelection,
+  type DialogFilter,
+  type FileSelectionApi,
+  type FileSelectionPorts,
+  type FileSelectionWorld,
+  type OpenDialogOptions,
+  type OpenDialogResult,
+  type SaveDialogOptions,
+  type SaveDialogResult,
+} from "./selection.ts";

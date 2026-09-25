@@ -23,6 +23,8 @@ mod bridge;
 #[cfg(all(feature = "agent-control", target_os = "macos"))]
 mod capture;
 #[cfg(feature = "agent-control")]
+mod commands;
+#[cfg(feature = "agent-control")]
 mod handler;
 #[cfg(feature = "agent-control")]
 mod mount;
@@ -31,6 +33,11 @@ mod shim;
 
 #[cfg(feature = "agent-control")]
 pub use bridge::{CommandBridge, NoCommandBridge};
+// Glob so this file never names `longhorn_agent_control_*`. rustc records
+// cfg'd-out pub-use idents in the feature-off rlib, and the release-absence
+// scan treats that substring as a core-crate leak.
+#[cfg(feature = "agent-control")]
+pub use commands::*;
 #[cfg(feature = "agent-control")]
 pub use handler::TauriControlHandler;
 #[cfg(feature = "agent-control")]

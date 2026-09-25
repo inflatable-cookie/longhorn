@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-begin-selection"
+description = "Allows the renderer to begin an agent-originated file or folder picker."
+commands.allow = ["longhorn_agent_control_begin_selection"]

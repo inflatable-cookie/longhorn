@@ -177,12 +177,14 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 
 | Tool | Arguments | Result | Limits |
 | --- | --- | --- | --- |
+| `answer_selection` | `id`, `paths` | empty result | settle one pending picker; open paths must exist as the requested kind; save is one target, never a Longhorn write |
 | `click` | `element` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted click; `UnresolvedRef` → re-snapshot |
 | `command` | `command` (id), `argument?` | `output?` | contract-006 registry; native menus/dialogs go here, not click. There is no `list_commands` tool — get the id from the operator or the app's composition (the proof worked example registers `proof:ping`). Do not invent ids. Some apps compose no registry at all: every `command` then answers `Unsupported` naming that — drive the UI through snapshot/input and report menu-only gaps to the operator. |
 | `drag` | `source` (ref), `target` (ref), `window?`, `webview?` | `ActionReceipt` | untrusted in-page drag, ref-to-ref, two-point (source center → target center); HTML5 DnD plus pointer/mouse down-move-up; no OS drag-and-drop and no interpolated pixel path |
 | `evaluate` | `js`, `window?`, `webview?` | JSON `value` | escape hatch; full in-app code execution. Packaged `agent-control` omits it and answers `Unsupported` unless `agent-control-evaluate` is enabled |
 | `list_windows` | _(none)_ | `windows[]` with id, title, size, focused | targeting for `window?` |
 | `press` | `key`, `element?`, `modifiers?` (`alt`/`control`/`meta`/`shift`), `window?`, `webview?` | `ActionReceipt` | untrusted key; omit `element` for focused target |
+| `reject_selection` | `id`, `reason` | empty result | pending picker resolves as `null`; do not open an OS panel |
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
 | `screenshot` | `window?` | PNG image content (`type: "image"`, base64 `data`) | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only; decode `data` to a file (see above) — no path argument |
 | `scroll` | `deltaX`, `deltaY`, `element?`, `window?`, `webview?` | `ActionReceipt` | both deltas required; omit `element` to scroll the document |
@@ -210,7 +212,8 @@ Call shape:
 
 Typed errors (JSON, `isError`): `UnresolvedRef`, `UnknownWindow`,
 `UnknownWebview`, `WaitTimeout`, `EvaluationFailed`, `CommandFailed`,
-`Unsupported`. A child that exists but was not opted in at mount is
+`Unsupported`, `UnknownSelection`, `ExpiredSelection`, `SettledSelection`,
+`MalformedSelection`. A child that exists but was not opted in at mount is
 `Unsupported` naming the opt-in absence — ask the operator to opt that
 label in; do not work around it with `evaluate` against the UI webview or
 OS input. A label that matches no hosted webview is `UnknownWebview`.
@@ -234,7 +237,8 @@ mcp-method: subscriptions/listen
       "resourceSubscriptions": [
         "longhorn://agent-control/console",
         "longhorn://agent-control/error",
-        "longhorn://agent-control/navigation"
+        "longhorn://agent-control/navigation",
+        "longhorn://agent-control/selection"
       ]
     },
     "_meta": {
@@ -259,6 +263,18 @@ handshake, not a page event. Page events arrive later as
 `dropped` > 0 means the bounded ring overflowed — events were lost.
 Closing the listen response cancels that request.
 
+The selection resource body is pending picker requests, not a ring:
+
+```json
+{ "pending": [{ "id": "sel_…", "kind": "open", "directory": true, "multiple": false }] }
+```
+
+Read it when `resources/updated` names `longhorn://agent-control/selection`,
+or any time after join — late subscribers still see outstanding requests.
+Then `answer_selection` with existing paths, or `reject_selection` to
+resolve the app call as `null`. Do not click a native file panel. An
+active server does not capture a human-originated picker.
+
 ## 5. Multi-agent etiquette
 
 Two agents may drive two instances, or interleave on one, without
@@ -271,7 +287,9 @@ instance; do not delete a discovery file whose pid is live.
 
 Do not click native menus or dialogs. Invoke a registered `command`
 instead. If the app has no command for that behavior, tell the
-operator — do not fall back to OS input.
+operator — do not fall back to OS input. Agent-originated file and
+folder pickers are answered with `answer_selection` / `reject_selection`;
+do not operate the OS panel.
 
 Do not assume another-Space window state works (unproved). Capture and
 semantic tools are macOS-only; `Unsupported` elsewhere is the answer,

@@ -15,7 +15,7 @@ Every domain is a subpath. `@inflatable-cookie/longhorn` itself resolves to
 | Subpath | Domain |
 | --- | --- |
 | `/core` | identity, opaque values, transports, diagnostics |
-| `/agent-control` | in-page semantic shim (contract 022 control surface). Synthetic events are untrusted (`isTrusted` stays false); `wait_for` is DOM-relative. |
+| `/agent-control` | in-page semantic shim (contract 022 control surface). Synthetic events are untrusted (`isTrusted` stays false); `wait_for` is DOM-relative. `bindFileSelection` is the plugin-dialog replacement at picker call sites. |
 | `/config` | configuration store, backup, restore, recovery |
 | `/layout` | containers, regions, panels, sizing |
 | `/surfaces`, `/surface-transfer` | optional Surface documents and their transfer |

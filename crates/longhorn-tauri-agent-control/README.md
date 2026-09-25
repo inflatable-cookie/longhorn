@@ -37,16 +37,26 @@ the allowed agency.
 
 Wired tools: the contract 022 surface on macOS (`snapshot`, `click`,
 `type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`, `screenshot`,
-`command`, window ops). Without `agent-control-evaluate`, `evaluate`
-answers typed `Unsupported`. Semantic and input tools take an optional
-`webview` label; omit it for the UI webview. Name child labels at mount
-with `AgentControlConfig::with_semantic_child` — opting in asserts the
-child's content is the app's own to drive. Synthetic input is untrusted
-DOM events: it never moves the OS pointer, never requires focus, and does
-not satisfy `isTrusted` checks. Native hover and OS drag-and-drop are out
-of scope. Untrusted `drag` is ref-to-ref and two-point.
+`command`, window ops, `answer_selection`, `reject_selection`). Without
+`agent-control-evaluate`, `evaluate` answers typed `Unsupported`. Semantic
+and input tools take an optional `webview` label; omit it for the UI
+webview. Name child labels at mount with
+`AgentControlConfig::with_semantic_child` — opting in asserts the child's
+content is the app's own to drive. Synthetic input is untrusted DOM
+events: it never moves the OS pointer, never requires focus, and does not
+satisfy `isTrusted` checks. Native hover and OS drag-and-drop are out of
+scope. Untrusted `drag` is ref-to-ref and two-point.
 `wait_for` is DOM-relative; no time-only or animation-frame wait exists.
 `screenshot` is macOS-only capture through the public `WKWebView` snapshot
 API (Card 231), answering typed `Unsupported` elsewhere. Page events ride
 `subscriptions/listen` as resource updates on
-`longhorn://agent-control/{console,error,navigation}`.
+`longhorn://agent-control/{console,error,navigation,selection}`.
+
+Agent-originated JS `open`/`save` go through the app command
+`longhorn_agent_control_begin_selection` (register it with
+`tauri::generate_handler![longhorn_tauri_agent_control::longhorn_agent_control_begin_selection]`,
+not a bare import). Consumer call sites bind
+`bindFileSelection` from `@inflatable-cookie/longhorn/agent-control` and
+inject the plugin-dialog functions plus `invoke`. Human-originated pickers
+still call the plugin. Composition detail lives in
+[`docs/guides/agent-control-composition.md`](../../docs/guides/agent-control-composition.md).

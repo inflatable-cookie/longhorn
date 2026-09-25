@@ -26,8 +26,9 @@ use axum::{Router, body::Body, http::Request};
 use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
     ActionReceipt, CommandResult, ControlHandler, ElementRef, EvaluateResult, InstanceToken,
-    ListWindowsResult, PageState, ScreenshotResult, SemanticNode, SnapshotResult, ToolError,
-    WaitForResult, carrier::select_instance, control_router, publish_discovery,
+    ListWindowsResult, PageState, ScreenshotResult, SelectionRegistry, SemanticNode,
+    SnapshotResult, ToolError, WaitForResult, carrier::select_instance, control_router,
+    publish_discovery,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -224,7 +225,7 @@ impl CarrierSession {
         let dir = TempDir::new().unwrap();
         let discovery_dir = dir.path().join("agent-control");
         let token = InstanceToken::generate().unwrap();
-        let router = control_router(stub, token.clone());
+        let router = control_router(stub, token.clone(), SelectionRegistry::new("test"));
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -421,7 +422,13 @@ async fn carrier_proxies_tools_with_http_parity() {
         .unwrap()
         .file
         .token;
-    let parity_router = || control_router(StubHandler::seeded_ring(), token.clone());
+    let parity_router = || {
+        control_router(
+            StubHandler::seeded_ring(),
+            token.clone(),
+            SelectionRegistry::new("test"),
+        )
+    };
 
     let listed = session.request(2, "tools/list", json!({})).await;
     let direct_listed = direct(parity_router(), &token, "tools/list", json!({})).await;
@@ -445,6 +452,8 @@ async fn carrier_proxies_tools_with_http_parity() {
         "command",
         "list_windows",
         "resize_window",
+        "answer_selection",
+        "reject_selection",
     ] {
         assert!(names.contains(&expected), "carrier hides {expected}");
     }

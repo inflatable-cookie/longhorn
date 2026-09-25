@@ -243,6 +243,9 @@ struct ProofState {
 fn main() {
     let bridge = Arc::new(ProofCommandBridge::new(proof_registry()));
     let app = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            longhorn_tauri_agent_control::longhorn_agent_control_begin_selection
+        ])
         .setup(move |app| {
             bridge.install_handle(app.handle().clone());
             let agent_control = mount_agent_control(

@@ -21,12 +21,14 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
 /// skill drift check. Add a name here when adding a tool; never retype
 /// the list elsewhere.
 pub const CONTROL_TOOL_NAMES: &[&str] = &[
+    "answer_selection",
     "click",
     "command",
     "drag",
     "evaluate",
     "list_windows",
     "press",
+    "reject_selection",
     "resize_window",
     "screenshot",
     "scroll",
@@ -199,6 +201,66 @@ impl<'de> Deserialize<'de> for WebviewLabel {
 /// Per-webview targeting shared by semantic and input tools: `None`
 /// addresses the window's UI webview.
 pub type WebviewTarget = Option<WebviewLabel>;
+
+/// Opaque pending-selection id assigned when an agent-originated picker
+/// call is published.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SelectionId(String);
+
+impl SelectionId {
+    /// Validates and constructs the id.
+    pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
+        let value = value.into();
+        if value.is_empty() {
+            return Err(OpaqueIdError::Empty);
+        }
+        if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
+            return Err(OpaqueIdError::TooLong {
+                maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
+                actual: value.len(),
+            });
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the serialized id.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for SelectionId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for SelectionId {
+    type Err = OpaqueIdError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value)
+    }
+}
+
+impl Serialize for SelectionId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for SelectionId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
+    }
+}
 
 /// `snapshot` request.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -497,6 +559,36 @@ pub struct ResizeWindowRequest {
     pub size: ClientSize,
 }
 
+/// `answer_selection` request.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AnswerSelectionRequest {
+    /// Pending request to settle.
+    pub id: SelectionId,
+    /// Chosen paths. Cardinality and kind are checked before delivery.
+    pub paths: Vec<String>,
+}
+
+/// `answer_selection` result: the waiter received the paths.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AnswerSelectionResult {}
+
+/// `reject_selection` request.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct RejectSelectionRequest {
+    /// Pending request to decline.
+    pub id: SelectionId,
+    /// Agent-supplied reason; not shown to the JS caller.
+    pub reason: String,
+}
+
+/// `reject_selection` result: the JS call resolves as `null`.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct RejectSelectionResult {}
+
 /// Typed failure for every tool in the surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(
@@ -546,6 +638,26 @@ pub enum ToolError {
         /// What cannot be served, and why.
         message: String,
     },
+    /// No pending selection with this id exists on this instance.
+    UnknownSelection {
+        /// Id that was not found.
+        id: SelectionId,
+    },
+    /// The request expired before this answer.
+    ExpiredSelection {
+        /// Id that had already expired.
+        id: SelectionId,
+    },
+    /// The request was already answered, rejected, cancelled, or shut down.
+    SettledSelection {
+        /// Id that had already settled.
+        id: SelectionId,
+    },
+    /// Paths, cardinality, or kind are incompatible with the pending request.
+    MalformedSelection {
+        /// What was wrong with the answer.
+        message: String,
+    },
 }
 
 impl fmt::Display for ToolError {
@@ -574,6 +686,21 @@ impl fmt::Display for ToolError {
             }
             Self::Unsupported { message } => {
                 write!(formatter, "unsupported: {message}")
+            }
+            Self::UnknownSelection { id } => {
+                write!(
+                    formatter,
+                    "selection {id:?} is not pending on this instance"
+                )
+            }
+            Self::ExpiredSelection { id } => {
+                write!(formatter, "selection {id:?} expired before settlement")
+            }
+            Self::SettledSelection { id } => {
+                write!(formatter, "selection {id:?} has already settled")
+            }
+            Self::MalformedSelection { message } => {
+                write!(formatter, "malformed selection answer: {message}")
             }
         }
     }

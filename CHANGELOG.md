@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **Agent-originated Tauri JS `open`/`save` can be answered over MCP.** A pending-selection registry publishes `longhorn://agent-control/selection`; `answer_selection` / `reject_selection` settle the waiter. Consumers replace plugin-dialog at call sites with `bindFileSelection`. Human pickers keep the plugin even while the control server is running. `save` chooses a target; Longhorn never writes it.
+
 ## [0.2.0] - 2026-09-22
 
 ### Added
