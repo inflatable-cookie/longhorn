@@ -46,7 +46,7 @@
 | [g02.042](042-exclusive-admission-lease.md) | complete — in `0.2.0` | exclusive admission lease held through apply |
 | [g02.043](043-packaged-agent-control-opt-in.md) | complete — in `0.2.0` | packaged agent-control opt-in: `agent-control` feature, `evaluate` split |
 | [g02.044](044-agent-control-stdio-carrier.md) | complete — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
-| [g02.045](045-agent-answerable-file-selection.md) | ready — execution not dispatched | agent-answerable Tauri `open`/folder/`save`; Figmatic live acceptance |
+| [g02.045](045-agent-answerable-file-selection.md) | Longhorn merged — PR #34; Figmatic live acceptance open | agent-answerable Tauri `open`/folder/`save` |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -55,11 +55,11 @@ remain uncommitted.
 
 ### Current Ready Frontier
 
-`g02.045` is the sole ready Longhorn lane. It follows the published
-agent-control opt-in and stdio carrier, which are both complete. The operator
-settled the selection boundary and Figmatic acceptance target on 2026-09-22.
-The [card](045-agent-answerable-file-selection.md) is the dispatch manifest;
-planning readiness does not authorize Queue execution. HTML file input and
+No Longhorn implementation lane is ready. `g02.045` merged through PR #34
+and Queue closeout is complete; its live Figmatic acceptance row remains
+open. The next signal is a Figmatic-owned source-linked adoption and
+fresh-leaf folder-selection proof. A new tag or npm publication is an
+operator-owned release decision after that evidence. HTML file input and
 Rust-side pickers remain separate, uncommitted follow-ups.
 
 ## Release Sequence

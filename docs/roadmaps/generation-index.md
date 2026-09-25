@@ -28,10 +28,10 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**Next Longhorn lane:** [g02.045](g02/045-agent-answerable-file-selection.md)
-agent-answerable Tauri file and folder selection is ready for implementation,
-with Figmatic as the live acceptance target. Contract 022 owns the boundary.
-Execution has not been dispatched; a ready card is not Queue authorization.
+**No ready Longhorn implementation lane.**
+[g02.045](g02/045-agent-answerable-file-selection.md) merged through PR #34;
+Figmatic's live source-linked folder-selection proof remains open. The next
+signal is that consumer evidence, then an operator-owned release decision.
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.
 

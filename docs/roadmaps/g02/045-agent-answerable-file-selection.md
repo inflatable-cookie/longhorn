@@ -2,7 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-22
-State: ready for Longhorn implementation; execution not yet dispatched
+State: Longhorn implementation merged in PR #34; Figmatic live acceptance open
 Governing refs: contract 022 (`Protocol`, `Availability And Security`,
 `Agent-Answerable Selection`), contracts 006 and 010
 Depends on: g02.043 and g02.044 (complete)
@@ -112,8 +112,18 @@ behavior, if a selected save path causes a Longhorn write, if the seam needs
 native OS panel control or a file-byte bridge, or if Figmatic needs a product
 decision about which paths may be accepted. Return the finding to Chatterbox.
 
-## Evidence
+## Evidence and remaining gate
 
-On completion, record the registry/tool/resource fixture results, all feature
-states, human-path parity, and the Figmatic live MCP run. No evidence is yet
-claimed.
+Longhorn implementation merged through [PR #34](https://github.com/inflatable-cookie/longhorn/pull/34)
+at `3b3db6c7` (worker head `fc9ad714`) with independent exact-head review
+`5832387981`. Queue task `716bcb17-a24e-43a0-aeff-f4e140a32a8c` reached
+`done` after hook-owned closeout at `703012ab`. The worker's `effigy qa`
+passed; reviewer reran focused registry/MCP, TypeScript origin/selection,
+and release-absence checks. The [implementation log](../../logs/2026-09/25-agent-answerable-selection-implementation.md)
+records the evidence and limits.
+
+The Figmatic fresh-leaf New or Import project proof has **not** run. This
+card's consumer acceptance row remains open until a Figmatic-owned call-site
+adoption uses a source-linked Longhorn candidate, answers the pending folder
+request over MCP, and records the live result. Queue `done` closes the
+Longhorn PR loop; it does not claim the consumer proof or a release.

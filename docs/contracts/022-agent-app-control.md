@@ -259,9 +259,11 @@ Narrowed, explicitly:
 - Listen delivers page events as `resources/updated` on the three URIs
   above, not as custom MCP notification methods.
 
-The selection amendment is pending g02.045 evidence: typed request lifecycle,
-human/native parity, packaged and dev feature states, and Figmatic's live
-folder-selection flow. The existing proof list above does not claim these yet.
+The g02.045 implementation merged through PR #34. Registry/MCP and TypeScript
+fixtures, human/native routing, and feature-state release-absence checks pass
+([implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)).
+Figmatic's live fresh-leaf folder-selection flow is still unproved. The
+existing proof list above does not claim it.
 
 ## Stop Conditions
 
