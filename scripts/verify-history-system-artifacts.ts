@@ -23,7 +23,7 @@ import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 const POODLE_RELEASE = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.0";
+const LONGHORN_VERSION = "0.2.1";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-system-proof");
 const temporaryRoot = await mkdtemp(
@@ -166,7 +166,7 @@ async function packTypescriptArtifacts(): Promise<{
     );
     const path = join(
       typescriptArtifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.0.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
     );
     await inspectNpmArtifact(name, path);
     paths.set(name, path);
@@ -201,7 +201,7 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
     readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     readonly exports?: Record<string, unknown>;
   };
-  if (manifest.name !== name || manifest.version !== "0.2.0") {
+  if (manifest.name !== name || manifest.version !== "0.2.1") {
     throw new Error(`${name} packed identity mismatch`);
   }
   assertExactSet(
@@ -282,7 +282,7 @@ async function packAndRunRustArtifacts(): Promise<{
     }
     const tarArchive = join(
       rustArtifactRoot,
-      `${name}-0.2.0.private.tar`,
+      `${name}-0.2.1.private.tar`,
     );
     const archive = `${tarArchive}.gz`;
     await run(
@@ -526,16 +526,16 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.0" }
-longhorn-history = { path = "crates/longhorn-history", version = "0.2.0" }
-longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "0.2.0" }
+longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
+longhorn-history = { path = "crates/longhorn-history", version = "0.2.1" }
+longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "0.2.1" }
 ${workspaceDependencies([
   "proptest",
   "serde",

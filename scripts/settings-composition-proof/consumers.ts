@@ -14,7 +14,7 @@ import { fileDependency, run, testCount } from "./shared.ts";
 import { POODLE_RELEASE } from "./artifacts.ts";
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.0";
+const LONGHORN_VERSION = "0.2.1";
 import type {
   PackageManifest,
   ProofContext,

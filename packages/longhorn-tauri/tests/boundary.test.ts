@@ -19,7 +19,7 @@ describe("@inflatable-cookie/longhorn-tauri package boundary", () => {
   test("pins exactly the host runtime and the framework as peers", () => {
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
-      "@inflatable-cookie/longhorn": "0.2.0",
+      "@inflatable-cookie/longhorn": "0.2.1",
       "@tauri-apps/api": "^2.10.1",
     });
   });

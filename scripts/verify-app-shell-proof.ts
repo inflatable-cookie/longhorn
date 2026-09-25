@@ -24,7 +24,7 @@ const proofRoot = join(repoRoot, "examples/app-shell-proof");
 const poodle = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.0";
+const LONGHORN_VERSION = "0.2.1";
 
 const longhornPackages = [
   ["@inflatable-cookie/longhorn", "longhorn"],
@@ -61,7 +61,7 @@ try {
   const artifactIdentities: ArtifactIdentity[] = [];
 
   for (const [name, directory] of longhornPackages) {
-    const filename = `${name.replace("@", "").replace("/", "-")}-0.2.0.tgz`;
+    const filename = `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`;
     const path = join(artifactRoot, filename);
     await run(
       [
