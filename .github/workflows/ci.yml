@@ -73,6 +73,9 @@ jobs:
       - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
         with:
           key: rust-floor
+      - uses: inflatable-cookie/setup-effigy@987fd556617ea2c3e0ab5cef6b47b250817f50c8 # v1
+        with:
+          version: '0.11.0'
       - name: Floor lane
         run: effigy release:floor
 
