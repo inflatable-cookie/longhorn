@@ -48,6 +48,9 @@
 | [g02.044](044-agent-control-stdio-carrier.md) | complete — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
 | [g02.045](045-agent-answerable-file-selection.md) | complete — in `0.2.1` | agent-answerable Tauri `open`/folder/`save` |
 | [g02.046](046-agent-selection-release-candidate.md) | complete — PR #35; `0.2.1` published 2026-09-26 | reviewed release candidate for g02.045 |
+| [g02.047](047-rust-side-agent-selection.md) | ready | Rust-side pickers answerable over MCP via consumer-carried origin |
+| [g02.048](048-agent-file-input.md) | ready — after g02.047 | HTML file input answered with inline bytes |
+| [g02.049](049-release-version-sweep.md) | ready | one-command version bump; `release:gates` aligned |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -56,14 +59,15 @@ remain uncommitted.
 
 ### Current Ready Frontier
 
-No lane is ready. Longhorn `0.2.1` published 2026-09-26: tag `v0.2.1` at
-`2605853b`, the three npm packages at `0.2.1` (`latest`). It carries
-`g02.045` agent-answerable selection; `g02.046` supplied the candidate and
-`effigy sync:prototype-locks`. See the
+Operator-confirmed 2026-09-26: `g02.047` and `g02.049` are ready and run in
+parallel; `g02.048` is ready and dispatches after `g02.047` merges (shared
+agent-control shim, catalogue, and skill paths). Contract 022 carries the
+2026-09-26 amendment for both picker lanes. Soundcheck is their live
+acceptance target, consumer-owned after Longhorn merges on fixtures.
+
+Longhorn `0.2.1` published 2026-09-26 — see the
 [publication log](../../logs/2026-09/26-longhorn-0-2-1-publication.md).
-Figmatic's repoint to exact pins is consumer-owned. HTML file input and
-Rust-side pickers remain separate, uncommitted follow-ups. The next lane needs
-Chatterbox planning with the operator.
+Figmatic's repoint to exact pins is consumer-owned.
 
 ## Release Sequence
 

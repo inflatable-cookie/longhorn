@@ -3,9 +3,11 @@
 Status: active
 Owner: Longhorn maintainers
 Created: 2026-08-19
-Updated: 2026-09-22 — agent-answerable JS file and folder selection is admitted
-for dev and packaged opt-ins, including save targets (operator direction;
-g02.045 executes). Prior: the server becomes a compile-time opt-in a
+Updated: 2026-09-26 — Rust-side pickers join the selection registry through an
+explicit consumer-carried origin (g02.047), and HTML file inputs are answered
+by a separate inline-bytes tool (g02.048); operator direction. Prior:
+agent-answerable JS file and folder selection is admitted for dev and packaged
+opt-ins, including save targets (operator direction; g02.045 executes). Prior: the server becomes a compile-time opt-in a
 consumer may ship in a packaged build (`agent-control`), with `evaluate` split behind
 `agent-control-evaluate`; the dev-only stance is replaced (operator direction
 from the Figmatic lane, 2026-09-22). Prior: child-webview semantic targeting
@@ -137,6 +139,8 @@ agent can use while the app runs unfocused in the background.
   no-command bridge with its own typed commands, and those commands are the
   whole of what the server can invoke.
 - Window operations: list windows, resize, per-window targeting.
+- `set_file_input` (g02.048): supply inline file content to an HTML file
+  input by ref. See Agent-Answerable Selection for the bounds.
 
 ### Agent-Answerable Selection
 
@@ -172,9 +176,24 @@ agent can use while the app runs unfocused in the background.
   behavior. An active server alone must not capture a human picker. A panel
   already open cannot be answered retroactively. Consumers opt in at their
   picker call sites; Longhorn does not patch the plugin globally.
-- HTML `<input type="file">` and Rust-side native picker calls are separate
-  mechanisms outside this selection route. The former needs real `File`
-  objects and a byte bridge; the latter does not cross the JS entry point.
+- Rust-side picker calls (amended 2026-09-26, g02.047) join the same
+  pending-selection registry. The page cannot hand its origin to Rust
+  implicitly, so the consumer carries it: the `longhorn` TypeScript entry
+  point reads the page's current origin, the consumer passes it in its own
+  command arguments, and a Longhorn Rust entry point either begins a pending
+  selection (agent) or tells the caller to use the dialog plugin unchanged
+  (human). The request carries the invoking window and webview. Result
+  shapes, cardinality, expiry, rejection-as-cancel, and the no-native-
+  fallback rule match the JS route. Longhorn never infers origin on the host
+  from recent agent input, and a missing or malformed origin is human.
+- HTML `<input type="file">` (amended 2026-09-26, g02.048) is answered by
+  a separate tool, not the pending-selection seam: the agent names a file
+  input and supplies each file's name, optional media type, and base64
+  content inline. The shim sets the input's `files` and dispatches `input`
+  and `change`. The target must be a file input; `multiple` and the input's
+  `accept` list are checked before delivery; the decoded total is capped at
+  8 MiB per call. Longhorn never reads a filesystem path for this tool — the
+  agent is the byte source — and the bytes reach only the named input.
 
 ### Boundaries
 
@@ -264,8 +283,8 @@ fixtures, human/native routing, and feature-state release-absence checks pass
 ([implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)).
 Figmatic g01.052 proved the fresh-leaf New project flow on its retained branch
 against source-linked Longhorn `db0b6baf`: semantic click, pending directory
-request, MCP answer, and project view unfocused. Publication and Figmatic's
-exact-pin clean-install continuation remain open. The existing proof list
+request, MCP answer, and project view unfocused. Published in `0.2.1`
+(2026-09-26); Figmatic's exact-pin continuation is consumer-owned. The existing proof list
 above predates this amendment; the [implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)
 owns the source-linked evidence.
 

@@ -28,11 +28,11 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**No lane is ready.** Longhorn `0.2.1` published 2026-09-26 — tag `v0.2.1`
-at `2605853b`, the three npm packages at `0.2.1` (`latest`). It carries
-[g02.045](g02/045-agent-answerable-file-selection.md) agent-answerable
-selection; [g02.046](g02/046-agent-selection-release-candidate.md) supplied the
-reviewed candidate. Figmatic's repoint to exact pins is consumer-owned.
+**Ready:** [g02.047](g02/047-rust-side-agent-selection.md) Rust-side agent
+selection and [g02.049](g02/049-release-version-sweep.md) release version
+sweep, in parallel; [g02.048](g02/048-agent-file-input.md) agent file input
+follows g02.047. Longhorn `0.2.1` published 2026-09-26 — tag `v0.2.1` at
+`2605853b`, the three npm packages at `0.2.1` (`latest`).
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.
 
