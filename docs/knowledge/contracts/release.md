@@ -52,8 +52,11 @@ boundary tests read that field. Do not hand-edit version literals in
 declaration order: private-candidate, advisories, rustdoc, prototypes,
 workspace (`effigy qa`), floor (MSRV Clippy and tests), source (git-dependency
 consumer). `effigy release:gates` is the same list minus `workspace`;
-`check:release-gates` fails if the two drift. `effigy test:release-tooling`
-covers the bump and the alignment check.
+`check:release-gates` fails if the two drift. `check:runner-tools` derives
+extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
+`.github/workflows/release.yml` does not install them; a comment is not an
+install. `effigy test:release-tooling` covers the bump, the alignment check,
+and that mapping.
 
 Effigy `release prepare` cannot see the eight workspace-excluded
 `prototypes/*/Cargo.lock` files. `sync:prototype-locks` is the pre-gate
