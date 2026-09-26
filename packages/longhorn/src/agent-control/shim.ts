@@ -82,6 +82,12 @@ export type WaitPredicate =
   | { predicate: "pageUrlContains"; needle: string }
   | { predicate: "pageTitleContains"; needle: string };
 
+export type FileInputFile = {
+  name: string;
+  mediaType?: string;
+  contentBase64: string;
+};
+
 export type AgentControlApi = {
   snapshot: () => ShimResult<{ page: PageState; root: SemanticNode }>;
   click: (element: string) => ShimResult<Record<string, never>>;
@@ -97,6 +103,7 @@ export type AgentControlApi = {
     element?: string | null,
   ) => ShimResult<Record<string, never>>;
   drag: (source: string, target: string) => ShimResult<Record<string, never>>;
+  setFileInput: (element: string, files: FileInputFile[]) => ShimResult<Record<string, never>>;
   waitFor: (predicate: WaitPredicate) => ShimResult<{ holds: boolean }>;
   markAgentOrigin: () => void;
   isAgentOriginated: () => boolean;
@@ -116,6 +123,8 @@ export type ShimWorld = {
   KeyboardEvent: typeof KeyboardEvent;
   Event: typeof Event;
   InputEvent?: typeof InputEvent;
+  File?: typeof File;
+  DataTransfer?: typeof DataTransfer;
   addEventListener: (
     type: string,
     listener: (event: Event) => void,
@@ -128,6 +137,10 @@ type Budget = { nodes: number; truncated: boolean };
 
 function unresolved(element: string): ShimResult<never> {
   return { ok: false, error: { error: "unresolvedRef", element } };
+}
+
+function unsupported(message: string): ShimResult<never> {
+  return { ok: false, error: { error: "unsupported", message } };
 }
 
 function ok(): ActionOk {
@@ -615,6 +628,87 @@ function drag(
   return ok();
 }
 
+function decodeBase64(content: string): Uint8Array<ArrayBuffer> | null {
+  try {
+    const binary = atob(content);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function acceptMatches(fileName: string, mediaType: string, accept: string): boolean {
+  const tokens = accept
+    .split(",")
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+  if (tokens.length === 0) return true;
+  const name = fileName.toLowerCase();
+  const type = mediaType.toLowerCase();
+  return tokens.some((token) => {
+    const needle = token.toLowerCase();
+    if (needle.startsWith(".")) return name.endsWith(needle);
+    if (needle.endsWith("/*")) return type.startsWith(needle.slice(0, -1));
+    return type === needle;
+  });
+}
+
+function setFileInput(
+  world: ShimWorld,
+  element: string,
+  files: FileInputFile[],
+): ShimResult<Record<string, never>> {
+  const node = resolveRef(world.document, element);
+  if (!node) return unresolved(element);
+  const inputType = (prop<string>(node, "type") ?? node.getAttribute("type") ?? "").toLowerCase();
+  if (node.tagName !== "INPUT" || inputType !== "file") {
+    return unsupported("set_file_input requires an input type=file");
+  }
+  if (!Array.isArray(files) || files.length === 0) {
+    return unsupported("set_file_input requires at least one file");
+  }
+  const multiple = prop<boolean>(node, "multiple") === true || node.hasAttribute("multiple");
+  if (files.length > 1 && !multiple) {
+    return unsupported("set_file_input received multiple files for an input without multiple");
+  }
+  const FileCtor = world.File ?? (typeof File === "function" ? File : undefined);
+  const DataTransferCtor =
+    world.DataTransfer ?? (typeof DataTransfer === "function" ? DataTransfer : undefined);
+  if (!FileCtor || !DataTransferCtor) {
+    return unsupported("set_file_input needs File and DataTransfer in the page");
+  }
+  const accept = node.getAttribute("accept") ?? "";
+  const transfer = new DataTransferCtor();
+  for (const file of files) {
+    if (!file.name) return unsupported("set_file_input file name must be non-empty");
+    const bytes = decodeBase64(file.contentBase64);
+    if (!bytes) {
+      return unsupported(`set_file_input file ${JSON.stringify(file.name)} is not valid base64`);
+    }
+    const mediaType = file.mediaType ?? "";
+    if (!acceptMatches(file.name, mediaType, accept)) {
+      return unsupported(`set_file_input file ${JSON.stringify(file.name)} does not match accept`);
+    }
+    transfer.items.add(new FileCtor([bytes], file.name, mediaType ? { type: mediaType } : undefined));
+  }
+  try {
+    (node as HTMLInputElement).files = transfer.files;
+  } catch (error) {
+    return unsupported(
+      `the page refused FileList assignment from a constructed DataTransfer: ${String(error)}`,
+    );
+  }
+  const assigned = prop<ArrayLike<unknown>>(node, "files");
+  if (!assigned || assigned.length !== files.length) {
+    return unsupported("the page refused FileList assignment from a constructed DataTransfer");
+  }
+  node.dispatchEvent(new world.Event("input", { bubbles: true }));
+  node.dispatchEvent(new world.Event("change", { bubbles: true }));
+  return ok();
+}
+
 function waitFor(world: ShimWorld, predicate: WaitPredicate): ShimResult<{ holds: boolean }> {
   switch (predicate.predicate) {
     case "refResolve":
@@ -755,6 +849,10 @@ export function installAgentControlShim(world: ShimWorld): AgentControlApi {
     drag: (source, target) => {
       origin.markAgentOrigin();
       return drag(world, source, target);
+    },
+    setFileInput: (element, files) => {
+      origin.markAgentOrigin();
+      return setFileInput(world, element, files);
     },
     waitFor: (predicate) => waitFor(world, predicate),
     markAgentOrigin: origin.markAgentOrigin,

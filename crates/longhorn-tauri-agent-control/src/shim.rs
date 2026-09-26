@@ -7,7 +7,7 @@
 use std::time::{Duration, Instant};
 
 use longhorn_agent_control::{
-    ActionReceipt, PageState, SemanticNode, ToolError, WaitForResult, WaitPredicate,
+    ActionReceipt, FileInputFile, PageState, SemanticNode, ToolError, WaitForResult, WaitPredicate,
 };
 use serde_json::{Value, json};
 
@@ -73,6 +73,15 @@ pub fn drag_js(source: &str, target: &str) -> String {
         "globalThis.__longhornAgentControl.drag({}, {})",
         Value::String(source.to_owned()),
         Value::String(target.to_owned())
+    ))
+}
+
+pub fn set_file_input_js(element: &str, files: &[FileInputFile]) -> String {
+    let files = serde_json::to_value(files).expect("file input files are JSON");
+    shim_call(&format!(
+        "globalThis.__longhornAgentControl.setFileInput({}, {})",
+        Value::String(element.to_owned()),
+        files
     ))
 }
 
@@ -211,6 +220,7 @@ mod tests {
     fn shim_source_carries_the_live_dom_ref_attr() {
         assert!(SHIM_SOURCE.contains("data-longhorn-agent-ref"));
         assert!(SHIM_SOURCE.contains("__longhornAgentControl"));
+        assert!(SHIM_SOURCE.contains("setFileInput"));
         assert!(!SHIM_SOURCE.contains("setTimeout("));
         assert!(!SHIM_SOURCE.contains("requestAnimationFrame("));
     }

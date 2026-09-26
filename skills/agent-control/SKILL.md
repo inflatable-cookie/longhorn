@@ -128,8 +128,9 @@ means the ref is unknown or stale: take a new `snapshot` and use the new
 ref. Never retry the same ref blindly.
 
 Semantic and input tools (`snapshot`, `click`, `type`, `press`, `scroll`,
-`drag`, `wait_for`, `evaluate`) take an optional `webview` argument: omit
-it to drive the window's UI webview (today's meaning). Pass a child
+`drag`, `set_file_input`, `wait_for`, `evaluate`) take an optional
+`webview` argument: omit it to drive the window's UI webview (today's
+meaning). Pass a child
 webview's label only when the app opted that label in at mount. Snapshot
 results name the child they came from. Refs are scoped to the webview
 that stamped them — a ref from the island never resolves in the UI
@@ -166,8 +167,8 @@ printf '%s' "$DATA" | base64 --decode > out.png
 await Bun.write("out.png", Buffer.from(String(image.data), "base64"));
 ```
 
-After `click`/`type`/`press`/`scroll`/`drag`/`resize_window`, the
-receipt means the event was dispatched, not that the UI changed.
+After `click`/`type`/`press`/`scroll`/`drag`/`set_file_input`/`resize_window`,
+the receipt means the event was dispatched, not that the UI changed.
 Observe with `snapshot` or `wait_for`.
 
 Drive a page in this order: `snapshot` → find a node by `role`/`name` →
@@ -188,6 +189,7 @@ act by `elementRef` → `wait_for` a DOM-relative predicate →
 | `resize_window` | `window`, `width`, `height` | `ActionReceipt` | logical pixels; unknown window → `UnknownWindow` |
 | `screenshot` | `window?` | PNG image content (`type: "image"`, base64 `data`) | whole window incl. child webviews; fresh when occluded/unfocused/minimized; macOS only; decode `data` to a file (see above) — no path argument |
 | `scroll` | `deltaX`, `deltaY`, `element?`, `window?`, `webview?` | `ActionReceipt` | both deltas required; omit `element` to scroll the document |
+| `set_file_input` | `element` (ref), `files` (`[{ name, mediaType?, contentBase64 }]`), `window?`, `webview?` | `ActionReceipt` | HTML `<input type="file">` only; agent supplies bytes inline — no path argument, no filesystem read, no OS panel; `multiple` and `accept` checked before delivery; decoded total ≤ 8 MiB; untrusted `input`/`change` |
 | `snapshot` | `window?`, `webview?` | `window`, `webview?` (child label; omitted for the UI webview), `page` (`url`, `title`), `root` tree of `{elementRef, role, name?, value?, states, children}` | refs live-DOM; omit `window` for frontmost; omit `webview` for the UI webview |
 | `type` | `element` (ref), `text`, `window?`, `webview?` | `ActionReceipt` | untrusted text entry |
 | `wait_for` | `predicate`, `timeoutMs`, `window?`, `webview?` | empty result or `WaitTimeout` | see predicates below |
@@ -315,7 +317,9 @@ instead. If the app has no command for that behavior, tell the
 operator — do not fall back to OS input. Agent-originated file and
 folder pickers — JS `open`/`save` and Rust commands routed through
 `begin_host_selection` — are answered with `answer_selection` /
-`reject_selection`; do not operate the OS panel.
+`reject_selection`; do not operate the OS panel. HTML
+`<input type="file">` is `set_file_input` with inline bytes; do not
+read a filesystem path or open a panel.
 
 Do not assume another-Space window state works (unproved). Capture and
 semantic tools are macOS-only; `Unsupported` elsewhere is the answer,

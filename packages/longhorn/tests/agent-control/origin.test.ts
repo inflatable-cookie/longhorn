@@ -55,6 +55,27 @@ describe("agent-control picker origin", () => {
     expect(api.isAgentOriginated()).toBe(true);
   });
 
+  test("synthetic setFileInput marks agent origin", () => {
+    const window = openPage(
+      `<label for="manifest">Manifest</label><input id="manifest" type="file" />`,
+    );
+    const api = install(window);
+    const snapshot = api.snapshot();
+    expect(snapshot.ok).toBe(true);
+    if (!snapshot.ok) return;
+    const target = findByName(snapshot.root, "Manifest");
+    expect(
+      api.setFileInput(target!.elementRef, [
+        {
+          name: "manifest.json",
+          mediaType: "application/json",
+          contentBase64: Buffer.from("{}", "utf8").toString("base64"),
+        },
+      ]).ok,
+    ).toBe(true);
+    expect(api.isAgentOriginated()).toBe(true);
+  });
+
   test("evaluate-style markAgentOrigin does not require a click", () => {
     const window = openPage(`<p>Idle</p>`);
     const api = install(window);

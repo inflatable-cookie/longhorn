@@ -134,6 +134,13 @@ impl ControlHandler for StubHandler {
         Ok(ActionReceipt {})
     }
 
+    async fn set_file_input(
+        &self,
+        _request: longhorn_agent_control::SetFileInputRequest,
+    ) -> Result<ActionReceipt, ToolError> {
+        Ok(ActionReceipt {})
+    }
+
     async fn evaluate(
         &self,
         request: longhorn_agent_control::EvaluateRequest,

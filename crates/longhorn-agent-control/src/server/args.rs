@@ -13,8 +13,9 @@ use serde::Deserialize;
 
 use crate::{
     AnswerSelectionRequest, ClickRequest, CommandRequest, DragRequest, EvaluateRequest,
-    KeyModifier, PressRequest, RejectSelectionRequest, ResizeWindowRequest, ScreenshotRequest,
-    ScrollRequest, SnapshotRequest, TypeRequest, WaitForRequest, WaitPredicate, WebviewLabel,
+    FileInputFile, KeyModifier, PressRequest, RejectSelectionRequest, ResizeWindowRequest,
+    ScreenshotRequest, ScrollRequest, SetFileInputRequest, SnapshotRequest, TypeRequest,
+    WaitForRequest, WaitPredicate, WebviewLabel,
 };
 
 /// Invalid wire input; surfaced as a JSON-RPC invalid-params error.
@@ -225,6 +226,58 @@ impl DragArgs {
             source: element_ref(&self.source)?,
             target: element_ref(&self.target)?,
         })
+    }
+}
+
+/// One agent-supplied file on the `set_file_input` wire.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FileInputFileArgs {
+    /// File name presented to the page.
+    pub name: String,
+    /// Optional media type presented to the page.
+    #[serde(default)]
+    pub media_type: Option<String>,
+    /// Standard base64 of the file bytes.
+    pub content_base64: String,
+}
+
+/// `set_file_input` arguments. No path field exists; unknown fields,
+/// including `path`, are rejected.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SetFileInputArgs {
+    /// Window id containing the element; omit for the frontmost window.
+    #[serde(default)]
+    pub window: Option<String>,
+    /// Child webview label containing the element; omit for the UI webview.
+    #[serde(default)]
+    pub webview: Option<String>,
+    /// Element ref of an HTML file input from a prior snapshot.
+    pub element: String,
+    /// Files to present. At least one; decoded total no more than 8 MiB.
+    pub files: Vec<FileInputFileArgs>,
+}
+
+impl SetFileInputArgs {
+    /// Validates into the vocabulary request.
+    pub fn into_request(self) -> Result<SetFileInputRequest, ErrorData> {
+        let request = SetFileInputRequest {
+            window: window_target(self.window)?,
+            webview: webview_target(self.webview)?,
+            element: element_ref(&self.element)?,
+            files: self
+                .files
+                .into_iter()
+                .map(|file| FileInputFile {
+                    name: file.name,
+                    media_type: file.media_type,
+                    content_base64: file.content_base64,
+                })
+                .collect(),
+        };
+        request.validate().map_err(invalid_params)?;
+        Ok(request)
     }
 }
 
@@ -473,5 +526,31 @@ mod tests {
             click.into_request().unwrap().webview.unwrap().as_str(),
             "preview"
         );
+    }
+
+    #[test]
+    fn set_file_input_args_validate_and_reject_a_path_field() {
+        let args: SetFileInputArgs = serde_json::from_str(
+            r#"{"element":"e1","files":[{"name":"note.txt","contentBase64":"aGk="}]}"#,
+        )
+        .unwrap();
+        let request = args.into_request().unwrap();
+        assert_eq!(request.element.as_str(), "e1");
+        assert_eq!(request.files[0].name, "note.txt");
+
+        assert!(
+            serde_json::from_str::<SetFileInputArgs>(
+                r#"{"element":"e1","files":[{"name":"note.txt","contentBase64":"aGk="}],"path":"/tmp/x"}"#
+            )
+            .is_err()
+        );
+        let empty: SetFileInputArgs =
+            serde_json::from_str(r#"{"element":"e1","files":[]}"#).unwrap();
+        assert!(empty.into_request().is_err());
+        let bad: SetFileInputArgs = serde_json::from_str(
+            r#"{"element":"e1","files":[{"name":"note.txt","contentBase64":"@@@"}]}"#,
+        )
+        .unwrap();
+        assert!(bad.into_request().is_err());
     }
 }
