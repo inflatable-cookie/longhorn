@@ -17,6 +17,13 @@ Updated: 2026-09-26
      in one sweep (operator ruling 2026-09-26). Poodle refreshes and
      releases first, so the sweep takes the new Poodle pin.
 
+## Next
+
+- **Consumer apps take 0.3.0** — after Longhorn 0.3.0 ships and Underlay's
+  matching dependency refresh lands, schedule upgrades across every
+  consuming app together (Longhorn's desktop apps and Underlay's web apps).
+  0.3.0 is breaking, so each app needs its own move.
+
 ## Not now
 
 - **Bulk fork deletion** (delete-many by predicate) — waits for field
