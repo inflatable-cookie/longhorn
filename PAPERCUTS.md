@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] `release:bump` can under-report or partly apply — 2026-09-26
+- Friction: g02.049 review found `bumpRelease().changed` omits lock rewrites, `bumpPackageManifest` silently skips a manifest whose `"version"` line changes shape, and a failure after the tracked-file writes leaves a partly bumped tree.
+- Impact: a bump can report idempotent while a lock moved, or miss a package after a reformat; recovery is a manual revert.
+- Plausible fix: include lock paths in `changed`; make the manifest bump throw on no match; stage writes and apply after lock sync and API regeneration succeed.
+- Surface: `scripts/release-bump.ts`.
+
 ### [ ] `release status --check-gates` fails a green, already-versioned candidate — 2026-09-26
 - Friction: on the manually prepared `0.2.1` candidate, `effigy release status --check-gates` passed all seven gates, then exited nonzero because `[Unreleased]` is empty and it cannot propose a next version.
 - Impact: a green gate run reads as a failure; the release owner must read the gate lines, not the exit code.

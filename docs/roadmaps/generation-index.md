@@ -28,10 +28,10 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**In delivery:** [g02.048](g02/048-agent-file-input.md) agent file input and
-[g02.049](g02/049-release-version-sweep.md) release version sweep.
+**In delivery:** [g02.048](g02/048-agent-file-input.md) agent file input.
 [g02.047](g02/047-rust-side-agent-selection.md) Rust-side agent selection
-merged (PR #36). Longhorn `0.2.1` published 2026-09-26 — tag `v0.2.1` at
+(PR #36) and [g02.049](g02/049-release-version-sweep.md) release version sweep
+(PR #37) merged. Longhorn `0.2.1` published 2026-09-26 — tag `v0.2.1` at
 `2605853b`, the three npm packages at `0.2.1` (`latest`).
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.

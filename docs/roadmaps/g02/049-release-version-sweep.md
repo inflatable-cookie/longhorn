@@ -2,7 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-26
-State: ready for Queue delivery
+State: complete — PR #37, `1ca32352`
 Governing refs: contract 012, `config/release.toml`, `PAPERCUTS.md` release
 entries, `docs/logs/2026-09/26-longhorn-0-2-1-publication.md`
 Depends on: g02.046 (complete)
@@ -84,3 +84,10 @@ Run the focused script tests, `effigy check:prototypes`, then `effigy qa`.
 
 Stop if the bump cannot keep third-party locks stable, if a fix needs an
 Effigy or workflow edit, or if the gate alignment would drop a declared gate.
+
+## Evidence
+
+Merged through [PR #37](https://github.com/inflatable-cookie/longhorn/pull/37)
+at `1ca32352`; Queue closeout `03b7cadb`. The
+[delivery log](../../logs/2026-09/26-release-version-sweep.md) records the
+scratch bump, review, and limits.
