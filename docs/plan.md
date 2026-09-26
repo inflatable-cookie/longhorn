@@ -4,15 +4,7 @@ Updated: 2026-09-26
 
 ## Now
 
-1. **Consumers adopt 0.2.2** (lane `longhorn-0-2-2-adoption`) —
-   soundcheck-library, Loophole and Soundcheck share one Longhorn crate
-   identity through path dependencies, so they move from `v0.1.0` to
-   `v0.2.2` together, library first. Soundcheck also routes its two
-   Rust-side pickers through the selection registry
-   ([contract 022](knowledge/contracts/022-agent-app-control.md)).
-   Finch, Jetstream and kimi-shell move in the same lane. Bovine Desktop
-   (acowtancy) and Figmatic move through their own planners.
-   Consumer-owned work; Tom approved the writes on 2026-09-26.
+Nothing is ready. Every known consumer app is on `0.2.2`.
 
 ## Next
 
