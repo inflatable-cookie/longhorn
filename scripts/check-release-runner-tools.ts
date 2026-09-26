@@ -7,6 +7,8 @@
 //
 // Tools are derived from gate commands (`cargo deny` → cargo-deny), not a
 // hand-kept required-tool list. A comment or step name is not an install.
+// Only unconditional steps before `effigy release:gates` count: an install
+// after the gates run is invisible to them.
 
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -108,6 +110,13 @@ export type WorkflowInstalls = {
   readonly via: ReadonlyMap<string, string>;
 };
 
+export type WorkflowStep = {
+  readonly job: string;
+  readonly ifCondition: string | null;
+  readonly uses: string | null;
+  readonly run: string | null;
+};
+
 export function tokenize(input: string): string[] {
   const tokens: string[] = [];
   const pattern = /(?:'[^']*'|"[^"]*"|\S+)/g;
@@ -171,18 +180,190 @@ export function parseWorkflowInstalls(yaml: string): WorkflowInstalls {
   const add = (tool: string, source: string) => {
     if (!via.has(tool)) via.set(tool, source);
   };
-  for (const uses of workflowUses(yaml)) {
-    const action = uses.split("@")[0] ?? uses;
-    for (const tool of toolsProvidedByAction(uses)) {
-      add(tool, action);
+  const steps = parseWorkflowSteps(yaml);
+  let foundGates = false;
+  for (const jobSteps of groupStepsByJob(steps)) {
+    let seenGates = false;
+    for (const step of jobSteps) {
+      if (seenGates) continue;
+      const conditional = step.ifCondition !== null;
+      if (!conditional && step.uses) {
+        const action = step.uses.split("@")[0] ?? step.uses;
+        for (const tool of toolsProvidedByAction(step.uses)) {
+          add(tool, action);
+        }
+      }
+      if (!step.run) continue;
+      const joined = step.run.replace(/\\\n/g, " ");
+      for (const raw of joined.split("\n")) {
+        const line = stripYamlComment(raw).trim();
+        if (isReleaseGatesCommand(line)) {
+          seenGates = true;
+          foundGates = true;
+          break;
+        }
+        if (conditional) continue;
+        for (const crate of cargoInstallCrates(line)) {
+          add(crate, `cargo install ${crate}`);
+        }
+      }
     }
   }
-  for (const script of workflowRunScripts(yaml)) {
-    for (const crate of cargoInstallCrates(script)) {
-      add(crate, `cargo install ${crate}`);
-    }
+  if (!foundGates) {
+    throw new Error(`${WORKFLOW} has no step that runs effigy release:gates`);
   }
   return { tools: new Set(via.keys()), via };
+}
+
+export function parseWorkflowSteps(yaml: string): WorkflowStep[] {
+  const lines = yaml.split("\n");
+  const steps: WorkflowStep[] = [];
+  let inJobs = false;
+  let jobsIndent = 0;
+  let job = "";
+  for (let index = 0; index < lines.length; ) {
+    const stripped = stripYamlComment(lines[index]!);
+    const indent = stripped.search(/\S/);
+    const trimmed = stripped.trim();
+    if (indent === -1) {
+      index += 1;
+      continue;
+    }
+    if (trimmed === "jobs:" || trimmed.startsWith("jobs:")) {
+      inJobs = true;
+      jobsIndent = indent;
+      index += 1;
+      continue;
+    }
+    if (inJobs && indent <= jobsIndent) {
+      inJobs = false;
+    }
+    if (inJobs && indent === jobsIndent + 2) {
+      const jobMatch = /^([A-Za-z0-9_-]+):/.exec(trimmed);
+      if (jobMatch?.[1]) job = jobMatch[1];
+    }
+    if (!/^\s+steps:\s*$/.test(stripped)) {
+      index += 1;
+      continue;
+    }
+    const parsed = parseStepList(lines, index + 1, indent, job);
+    steps.push(...parsed.steps);
+    index = parsed.next;
+  }
+  return steps;
+}
+
+function parseStepList(
+  lines: string[],
+  start: number,
+  stepsKeyIndent: number,
+  job: string,
+): { steps: WorkflowStep[]; next: number } {
+  const steps: WorkflowStep[] = [];
+  let index = start;
+  while (index < lines.length) {
+    const stripped = stripYamlComment(lines[index]!);
+    const indent = stripped.search(/\S/);
+    if (indent === -1) {
+      index += 1;
+      continue;
+    }
+    if (indent <= stepsKeyIndent) break;
+    if (!stripped.trimStart().startsWith("- ")) {
+      index += 1;
+      continue;
+    }
+    const itemIndent = indent;
+    const block = [lines[index]!];
+    index += 1;
+    while (index < lines.length) {
+      const next = lines[index]!;
+      const nextStripped = stripYamlComment(next);
+      const nextIndent = nextStripped.search(/\S/);
+      if (nextIndent === -1) {
+        block.push(next);
+        index += 1;
+        continue;
+      }
+      if (nextIndent <= itemIndent) break;
+      block.push(next);
+      index += 1;
+    }
+    steps.push(parseStepBlock(job, block));
+  }
+  return { steps, next: index };
+}
+
+function parseStepBlock(job: string, block: string[]): WorkflowStep {
+  let ifCondition: string | null = null;
+  let uses: string | null = null;
+  let run: string | null = null;
+  for (let index = 0; index < block.length; ) {
+    const stripped = stripYamlComment(block[index]!);
+    const ifMatch = /^\s+-?\s*if:\s*(.*)$/.exec(stripped);
+    if (ifMatch) {
+      const value = ifMatch[1].trim();
+      ifCondition = value.length > 0 ? value : null;
+      index += 1;
+      continue;
+    }
+    const usesMatch = /^\s+-?\s*uses:\s+(\S+)/.exec(stripped);
+    if (usesMatch?.[1]) {
+      uses = usesMatch[1];
+      index += 1;
+      continue;
+    }
+    const runMatch = /^(\s*)(?:-\s+)?run:\s*(.*)$/.exec(stripped);
+    if (!runMatch) {
+      index += 1;
+      continue;
+    }
+    const indent = runMatch[1].length;
+    const rest = runMatch[2].trim();
+    if (/^(?:\||>)[-+]?\s*$/.test(rest)) {
+      index += 1;
+      const body: string[] = [];
+      while (index < block.length) {
+        const next = block[index]!;
+        if (next.trim().length === 0) {
+          body.push("");
+          index += 1;
+          continue;
+        }
+        const nextIndent = next.search(/\S/);
+        if (nextIndent !== -1 && nextIndent <= indent) break;
+        body.push(stripYamlComment(next).trimEnd());
+        index += 1;
+      }
+      run = body.join("\n");
+      continue;
+    }
+    if (rest.length > 0) run = rest;
+    index += 1;
+  }
+  return { job, ifCondition, uses, run };
+}
+
+function groupStepsByJob(steps: readonly WorkflowStep[]): WorkflowStep[][] {
+  const jobs: WorkflowStep[][] = [];
+  let currentJob: string | null = null;
+  let bucket: WorkflowStep[] = [];
+  for (const step of steps) {
+    if (currentJob !== step.job) {
+      if (bucket.length > 0) jobs.push(bucket);
+      currentJob = step.job;
+      bucket = [step];
+      continue;
+    }
+    bucket.push(step);
+  }
+  if (bucket.length > 0) jobs.push(bucket);
+  return jobs;
+}
+
+function isReleaseGatesCommand(line: string): boolean {
+  const argv = leadingCommand(tokenize(line));
+  return argv[0] === "effigy" && argv.includes("release:gates");
 }
 
 export function checkReleaseRunnerTools(repoRoot = defaultRepoRoot): ReleaseRunnerToolsResult {
@@ -215,19 +396,10 @@ export function formatReleaseRunnerToolsFailure(result: ReleaseRunnerToolsResult
   );
   return (
     `Release gates need tools the release runner does not install:\n\n${lines.join("\n")}\n\n` +
-    `${WORKFLOW} must install each named tool. A comment or step name is not\n` +
-    "an install. Installing the tool on the runner only hides the next gap."
+    `${WORKFLOW} must install each named tool in an unconditional step before\n` +
+    "`effigy release:gates`. A comment, a step name, or an install after the\n" +
+    "gates run is not an install."
   );
-}
-
-export function workflowUses(yaml: string): string[] {
-  const uses: string[] = [];
-  for (const raw of yaml.split("\n")) {
-    const line = stripYamlComment(raw);
-    const match = /^\s+-?\s*uses:\s+(\S+)/.exec(line);
-    if (match?.[1]) uses.push(match[1]);
-  }
-  return uses;
 }
 
 export function workflowRunScripts(yaml: string): string[] {

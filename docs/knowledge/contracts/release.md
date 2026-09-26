@@ -54,8 +54,8 @@ workspace (`effigy qa`), floor (MSRV Clippy and tests), source (git-dependency
 consumer). `effigy release:gates` is the same list minus `workspace`;
 `check:release-gates` fails if the two drift. `check:runner-tools` derives
 extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
-`.github/workflows/release.yml` does not install them; a comment is not an
-install. `effigy test:release-tooling` covers the bump, the alignment check,
+`.github/workflows/release.yml` does not install them in an unconditional
+step before `effigy release:gates`; a comment is not an install. `effigy test:release-tooling` covers the bump, the alignment check,
 and that mapping.
 
 Effigy `release prepare` cannot see the eight workspace-excluded

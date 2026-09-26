@@ -23,17 +23,23 @@ floor = "effigy release:floor"
 source = "effigy release:source-consumer"
 `;
 
+const setup = `
+      - uses: dtolnay/rust-toolchain@abc
+      - uses: oven-sh/setup-bun@abc
+      - uses: inflatable-cookie/setup-effigy@abc
+`;
+
 const workflowWithDeny = `
 name: Release
 jobs:
   release:
     steps:
-      - uses: dtolnay/rust-toolchain@abc
-      - uses: oven-sh/setup-bun@abc
-      - uses: inflatable-cookie/setup-effigy@abc
+${setup}
       # The advisories gate runs cargo deny. A comment is not an install.
       - name: Install cargo-deny
         run: cargo install cargo-deny --locked --version 0.19.4
+      - name: Release gates
+        run: effigy release:gates
 `;
 
 const workflowWithoutDeny = `
@@ -41,12 +47,49 @@ name: Release
 jobs:
   release:
     steps:
-      - uses: dtolnay/rust-toolchain@abc
-      - uses: oven-sh/setup-bun@abc
-      - uses: inflatable-cookie/setup-effigy@abc
+${setup}
       # The advisories gate runs cargo deny. A comment is not an install.
       - name: Install cargo-deny
         run: echo "forgot the install"
+      - name: Release gates
+        run: effigy release:gates
+`;
+
+const workflowDenyAfterGates = `
+name: Release
+jobs:
+  release:
+    steps:
+${setup}
+      - name: Release gates
+        run: effigy release:gates
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+`;
+
+const workflowDenyConditional = `
+name: Release
+jobs:
+  release:
+    steps:
+${setup}
+      - name: Install cargo-deny
+        if: \${{ false }}
+        run: cargo install cargo-deny --locked --version 0.19.4
+      - name: Release gates
+        run: effigy release:gates
+`;
+
+const workflowDenySameScriptAfter = `
+name: Release
+jobs:
+  release:
+    steps:
+${setup}
+      - name: Gates then install
+        run: |
+          effigy release:gates
+          cargo install cargo-deny --locked --version 0.19.4
 `;
 
 describe("release-gate runner tools", () => {
@@ -72,8 +115,8 @@ describe("release-gate runner tools", () => {
 
   test("cargo install is taken from run scripts, not comments or step names", () => {
     const scripts = workflowRunScripts(workflowWithDeny);
-    expect(scripts).toEqual(["cargo install cargo-deny --locked --version 0.19.4"]);
-    expect(cargoInstallCrates(scripts[0]!)).toEqual(["cargo-deny"]);
+    expect(scripts).toContain("cargo install cargo-deny --locked --version 0.19.4");
+    expect(cargoInstallCrates("cargo install cargo-deny --locked --version 0.19.4")).toEqual(["cargo-deny"]);
     expect(parseWorkflowInstalls(workflowWithDeny).tools.has("cargo-deny")).toBe(true);
     expect(parseWorkflowInstalls(workflowWithoutDeny).tools.has("cargo-deny")).toBe(false);
     expect(cargoInstallCrates("echo cargo install cargo-deny")).toEqual([]);
@@ -96,6 +139,15 @@ describe("release-gate runner tools", () => {
     expect(
       result.requirements.some((item) => item.tool === "cargo-deny" && item.via === "cargo install cargo-deny"),
     ).toBe(true);
+  });
+
+  test("cargo-deny install after release:gates does not satisfy the advisories gate", async () => {
+    const after = await writeRepo(gates, workflowDenyAfterGates);
+    const result = checkReleaseRunnerTools(after);
+    expect(result.failures.some((item) => item.tool === "cargo-deny")).toBe(true);
+    expect(parseWorkflowInstalls(workflowDenyAfterGates).tools.has("cargo-deny")).toBe(false);
+    expect(parseWorkflowInstalls(workflowDenyConditional).tools.has("cargo-deny")).toBe(false);
+    expect(parseWorkflowInstalls(workflowDenySameScriptAfter).tools.has("cargo-deny")).toBe(false);
   });
 
   test("live catalog matches: cargo-deny is installed, qa passes the check", () => {
