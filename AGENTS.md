@@ -104,8 +104,8 @@ commands from another repository.
 
 Use the narrowest relevant Effigy selector while working, then run
 `effigy qa` before opening a PR. For docs or instruction changes, run
-`effigy qa:docs`, `effigy skill run northstar-lean/retired-concepts` and
-`effigy skill run northstar-lean/cut -- check-links`, and inspect the final
+`effigy qa:docs`, `effigy skill run northstar/retired-concepts` and
+`effigy skill run northstar/cut -- check-links`, and inspect the final
 diff. Never claim a green doctor result is full validation.
 
 Longhorn has no target-local `check:agent-instructions` task. AGENTS review
