@@ -22,9 +22,9 @@ use std::{collections::BTreeSet, sync::Arc};
 use longhorn_agent_control::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, ControlHandler, DragRequest,
     EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest,
-    ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SnapshotRequest,
-    SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult, WebviewLabel,
-    WebviewTarget, WindowInfo, WindowTarget,
+    ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SetFileInputRequest,
+    SnapshotRequest, SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult,
+    WebviewLabel, WebviewTarget, WindowInfo, WindowTarget,
 };
 use longhorn_core::{ClientSize, WindowId};
 use serde_json::Value;
@@ -370,6 +370,20 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
                 &request.window,
                 &request.webview,
                 shim::drag_js(request.source.as_str(), request.target.as_str()),
+            )
+            .await?;
+        shim::decode_action(value)
+    }
+
+    async fn set_file_input(
+        &self,
+        request: SetFileInputRequest,
+    ) -> Result<ActionReceipt, ToolError> {
+        let (_, _, value) = self
+            .eval_js(
+                &request.window,
+                &request.webview,
+                shim::set_file_input_js(request.element.as_str(), &request.files),
             )
             .await?;
         shim::decode_action(value)

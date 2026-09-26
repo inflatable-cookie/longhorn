@@ -4,8 +4,8 @@ Host-agnostic core of the agent app-control surface
 (`docs/contracts/022-agent-app-control.md`):
 
 - tool vocabulary as types — requests, results, and errors for `snapshot`,
-  `click`, `type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`,
-  `screenshot`, `command`, and window operations
+  `click`, `type`, `press`, `scroll`, `drag`, `set_file_input`, `evaluate`,
+  `wait_for`, `screenshot`, `command`, and window operations
 - discovery-file lifecycle at `<state root>/longhorn/agent-control/`
   (path resolution through the contract 004 storage-profile conventions)
 - per-instance bearer token: CSPRNG generation, constant-time verify,
@@ -20,10 +20,12 @@ Host-agnostic core of the agent app-control surface
   `resources/updated`, not custom notifications
 - the native-surface provider seam; no provider ships under contract 022
 
-Synthetic `click`/`type`/`press`/`scroll`/`drag` are untrusted DOM events:
-they never move the OS pointer and never require focus. Native hover, OS
-drag-and-drop, and `isTrusted` checks are out of scope. Semantic and input
-tools take an optional `webview` label (absent = the UI webview).
+Synthetic `click`/`type`/`press`/`scroll`/`drag`/`set_file_input` are
+untrusted DOM events: they never move the OS pointer and never require
+focus. `set_file_input` takes inline file bytes; Longhorn never reads a
+path for it. Native hover, OS drag-and-drop, and `isTrusted` checks are
+out of scope. Semantic and input tools take an optional `webview` label
+(absent = the UI webview).
 `wait_for` admits only DOM-relative predicates. A hosted child that is
 not opted in answers typed `Unsupported`; a label that matches no hosted
 webview answers `UnknownWebview`.

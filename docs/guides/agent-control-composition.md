@@ -136,10 +136,10 @@ counterexample). Default is closed: an unnamed child answers typed
 webview answers `UnknownWebview`.
 
 Agents address an opted-in child with the optional `webview` argument on
-`snapshot`, `click`, `type`, `press`, `scroll`, `drag`, `wait_for`, and
-`evaluate`. Omit it and the call is the UI webview — today's wire,
-unchanged. Refs are scoped to the webview that stamped them; crossing
-them is `UnresolvedRef`, never a wrong-element hit.
+`snapshot`, `click`, `type`, `press`, `scroll`, `drag`, `set_file_input`,
+`wait_for`, and `evaluate`. Omit it and the call is the UI webview —
+today's wire, unchanged. Refs are scoped to the webview that stamped
+them; crossing them is `UnresolvedRef`, never a wrong-element hit.
 
 Untrusted `drag` is ref-to-ref and two-point (source center → target
 center): it dispatches pointer/mouse down-move-up plus the HTML5 DnD
@@ -262,7 +262,8 @@ Agent-originated `open`/`save` (synthetic click/type/press/drag, or
 plugin-dialog unchanged, even while the control server is running. An
 active server is not evidence that a human picker should be captured.
 Do not globally monkey-patch the plugin. `save` selects a target path;
-Longhorn never writes it. HTML file inputs stay outside this seam.
+Longhorn never writes it. HTML file inputs are answered by
+`set_file_input` (inline bytes, no path read), not this seam.
 Rust-side pickers join it when the consumer carries origin — see 3c.
 
 The `agent-control` feature is required for the begin-selection command
@@ -379,6 +380,7 @@ Once mounted, an agent can:
 | --- | --- |
 | `snapshot` | semantic tree with live-DOM refs |
 | `click`, `type`, `press`, `scroll`, `drag` | untrusted in-page DOM events; never moves the OS pointer; never requires focus |
+| `set_file_input` | inline file bytes onto an HTML file input by ref; no path argument, no filesystem read, no OS panel; `multiple`/`accept` checked; decoded total ≤ 8 MiB |
 | `evaluate` | JS in the page; escape hatch; full code execution; omitted without `agent-control-evaluate` (typed `Unsupported`) |
 | `wait_for` | DOM-relative predicates only |
 | `screenshot` | fresh image of the whole window, child webviews composed in; occluded, unfocused, and minimized; macOS only |

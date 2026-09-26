@@ -23,8 +23,8 @@ use rmcp::{
 
 use super::args::{
     AnswerSelectionArgs, ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs,
-    RejectSelectionArgs, ResizeWindowArgs, ScreenshotArgs, ScrollArgs, SnapshotArgs, TypeArgs,
-    WaitForArgs,
+    RejectSelectionArgs, ResizeWindowArgs, ScreenshotArgs, ScrollArgs, SetFileInputArgs,
+    SnapshotArgs, TypeArgs, WaitForArgs,
 };
 use crate::{
     AnswerSelectionResult, ControlHandler, EvaluateRequest, EvaluateResult, RejectSelectionResult,
@@ -134,6 +134,16 @@ where
         Parameters(args): Parameters<DragArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         json_result(self.handler.drag(args.into_request()?).await)
+    }
+
+    #[tool(
+        description = "Supply inline file content to an HTML file input by element ref. The agent is the byte source: there is no path argument and Longhorn never reads the filesystem. Dispatches untrusted input and change events and never opens an OS panel."
+    )]
+    async fn set_file_input(
+        &self,
+        Parameters(args): Parameters<SetFileInputArgs>,
+    ) -> Result<CallToolResult, ErrorData> {
+        json_result(self.handler.set_file_input(args.into_request()?).await)
     }
 
     #[tool(

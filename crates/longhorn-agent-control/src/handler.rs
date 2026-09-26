@@ -11,8 +11,8 @@ use std::future::Future;
 use crate::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, DragRequest, EvaluateRequest,
     EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest, ResizeWindowRequest,
-    ScreenshotRequest, ScreenshotResult, ScrollRequest, SnapshotRequest, SnapshotResult, ToolError,
-    TypeRequest, WaitForRequest, WaitForResult,
+    ScreenshotRequest, ScreenshotResult, ScrollRequest, SetFileInputRequest, SnapshotRequest,
+    SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult,
 };
 
 /// Tool authority the host implements and the MCP server dispatches to.
@@ -57,6 +57,15 @@ pub trait ControlHandler: Send + Sync + 'static {
     fn drag(
         &self,
         request: DragRequest,
+    ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send;
+
+    /// Supply inline file content to an HTML `<input type="file">`.
+    ///
+    /// The agent is the byte source: the request carries name, optional
+    /// media type, and base64 content. There is no path argument.
+    fn set_file_input(
+        &self,
+        request: SetFileInputRequest,
     ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send;
 
     /// Runs JavaScript in the page. Escape hatch, not the primary path.

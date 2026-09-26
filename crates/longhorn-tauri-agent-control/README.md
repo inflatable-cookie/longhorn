@@ -36,9 +36,12 @@ plugin adds no authority of its own. In a packaged build that catalogue is
 the allowed agency.
 
 Wired tools: the contract 022 surface on macOS (`snapshot`, `click`,
-`type`, `press`, `scroll`, `drag`, `evaluate`, `wait_for`, `screenshot`,
-`command`, window ops, `answer_selection`, `reject_selection`). Without
-`agent-control-evaluate`, `evaluate` answers typed `Unsupported`. Semantic
+`type`, `press`, `scroll`, `drag`, `set_file_input`, `evaluate`,
+`wait_for`, `screenshot`, `command`, window ops, `answer_selection`,
+`reject_selection`). Without
+`agent-control-evaluate`, `evaluate` answers typed `Unsupported`.
+`set_file_input` is a packaged `agent-control` tool — it does not need
+`agent-control-evaluate`. Semantic
 and input tools take an optional `webview` label; omit it for the UI
 webview. Name child labels at mount with
 `AgentControlConfig::with_semantic_child` — opting in asserts the child's

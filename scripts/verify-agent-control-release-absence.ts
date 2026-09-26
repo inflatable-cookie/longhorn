@@ -35,7 +35,7 @@ const CORE_MARKERS = [
   "longhorn-agent-control/src",
   "longhorn://agent-control/selection",
 ];
-const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl"];
+const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl", "setFileInput"];
 // Host picker entry lives in the plugin crate. Feature-off must not carry
 // it; feature-on must, or the scan would pass vacuously.
 const HOST_SELECTION_MARKERS = ["begin_host_selection"];

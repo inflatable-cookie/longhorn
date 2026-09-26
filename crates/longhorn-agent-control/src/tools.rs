@@ -32,10 +32,14 @@ pub const CONTROL_TOOL_NAMES: &[&str] = &[
     "resize_window",
     "screenshot",
     "scroll",
+    "set_file_input",
     "snapshot",
     "type",
     "wait_for",
 ];
+
+/// Decoded payload cap for one `set_file_input` call (contract 022).
+pub const MAX_FILE_INPUT_BYTES: usize = 8 * 1024 * 1024;
 
 /// Opaque element reference stamped by the edge that produced a snapshot.
 ///
@@ -393,9 +397,78 @@ pub struct DragRequest {
     pub target: ElementRef,
 }
 
+/// One agent-supplied file for `set_file_input`.
+///
+/// The agent is the byte source. There is no path field; Longhorn never
+/// reads the filesystem for this tool (contract 022).
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct FileInputFile {
+    /// File name presented to the page (`File.name`).
+    pub name: String,
+    /// Optional media type presented to the page (`File.type`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
+    /// Standard base64 of the file bytes.
+    pub content_base64: String,
+}
+
+/// `set_file_input` request: assign constructed `File`s onto an HTML file
+/// input and dispatch `input` and `change`.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SetFileInputRequest {
+    /// Window containing the element; `None` targets the frontmost window.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window: WindowTarget,
+    /// Child webview containing the element; `None` targets the UI webview.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview: WebviewTarget,
+    /// File input to assign.
+    pub element: ElementRef,
+    /// Files to present. At least one; decoded total no more than
+    /// [`MAX_FILE_INPUT_BYTES`].
+    pub files: Vec<FileInputFile>,
+}
+
+impl SetFileInputRequest {
+    /// Checks names, base64, non-empty list, and the decoded 8 MiB cap.
+    ///
+    /// Structural serde still admits an empty list; the MCP edge and host
+    /// call this before dispatch.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.files.is_empty() {
+            return Err("set_file_input requires at least one file".to_owned());
+        }
+        let mut total = 0usize;
+        for file in &self.files {
+            if file.name.is_empty() {
+                return Err("set_file_input file name must be non-empty".to_owned());
+            }
+            let size = decode_file_input_base64(&file.content_base64).ok_or_else(|| {
+                format!("set_file_input file {:?} is not valid base64", file.name)
+            })?;
+            total = total.saturating_add(size);
+            if total > MAX_FILE_INPUT_BYTES {
+                return Err("set_file_input decoded total exceeds 8 MiB".to_owned());
+            }
+        }
+        Ok(())
+    }
+}
+
+fn decode_file_input_base64(content_base64: &str) -> Option<usize> {
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+    STANDARD
+        .decode(content_base64.as_bytes())
+        .ok()
+        .map(|bytes| bytes.len())
+}
+
 /// Receipt for the action family (`click`, `type`, `press`, `scroll`,
-/// `drag`, `resize_window`): the event was dispatched; nothing about its
-/// effect is implied — observe with `snapshot` or `wait_for`.
+/// `drag`, `set_file_input`, `resize_window`): the event was dispatched;
+/// nothing about its effect is implied — observe with `snapshot` or
+/// `wait_for`.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ActionReceipt {}
@@ -838,6 +911,88 @@ mod tests {
             child_json.contains("\"webview\":\"preview\""),
             "{child_json}"
         );
+    }
+
+    fn hi_file() -> FileInputFile {
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
+        FileInputFile {
+            name: "note.txt".to_owned(),
+            media_type: Some("text/plain".to_owned()),
+            content_base64: STANDARD.encode(b"hi"),
+        }
+    }
+
+    #[test]
+    fn set_file_input_has_no_path_and_validates_bounds() {
+        let request = SetFileInputRequest {
+            window: None,
+            webview: None,
+            element: ref_a(),
+            files: vec![hi_file()],
+        };
+        request.validate().unwrap();
+        let json = serde_json::to_string(&request).unwrap();
+        assert!(
+            !json.contains("path"),
+            "set_file_input must not grow a path field: {json}"
+        );
+        assert!(
+            serde_json::from_str::<SetFileInputRequest>(
+                r#"{"element":"e1","files":[{"name":"note.txt","contentBase64":"aGk="}],"path":"/tmp/x"}"#
+            )
+            .is_err()
+        );
+
+        let empty = SetFileInputRequest {
+            files: Vec::new(),
+            ..request.clone()
+        };
+        assert!(empty.validate().unwrap_err().contains("at least one file"));
+
+        let unnamed = SetFileInputRequest {
+            files: vec![FileInputFile {
+                name: String::new(),
+                media_type: None,
+                content_base64: hi_file().content_base64,
+            }],
+            ..request.clone()
+        };
+        assert!(unnamed.validate().unwrap_err().contains("non-empty"));
+
+        let bad_base64 = SetFileInputRequest {
+            files: vec![FileInputFile {
+                name: "note.txt".to_owned(),
+                media_type: None,
+                content_base64: "@@@".to_owned(),
+            }],
+            ..request
+        };
+        assert!(bad_base64.validate().unwrap_err().contains("base64"));
+    }
+
+    #[test]
+    fn set_file_input_decoded_cap_is_eight_mib() {
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
+        let allowed = SetFileInputRequest {
+            window: None,
+            webview: None,
+            element: ref_a(),
+            files: vec![FileInputFile {
+                name: "blob.bin".to_owned(),
+                media_type: None,
+                content_base64: STANDARD.encode(vec![0u8; MAX_FILE_INPUT_BYTES]),
+            }],
+        };
+        allowed.validate().unwrap();
+        let over = SetFileInputRequest {
+            files: vec![FileInputFile {
+                name: "blob.bin".to_owned(),
+                media_type: None,
+                content_base64: STANDARD.encode(vec![0u8; MAX_FILE_INPUT_BYTES + 1]),
+            }],
+            ..allowed
+        };
+        assert!(over.validate().unwrap_err().contains("8 MiB"));
     }
 
     #[test]

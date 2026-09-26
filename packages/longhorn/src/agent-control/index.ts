@@ -10,6 +10,7 @@ export {
   TRUNCATED_ROLE,
   installAgentControlShim,
   type AgentControlApi,
+  type FileInputFile,
   type PageEvent,
   type PageState,
   type SemanticNode,
