@@ -6,6 +6,10 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ## 2026-09
 
+### 2026-09-26
+
+- [Longhorn 0.2.1 Publication](2026-09/26-longhorn-0-2-1-publication.md)
+
 ### 2026-09-25
 
 - [Agent-Answerable Selection Implementation](2026-09/25-agent-answerable-selection-implementation.md)

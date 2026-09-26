@@ -5,6 +5,12 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] `release status --check-gates` fails a green, already-versioned candidate — 2026-09-26
+- Friction: on the manually prepared `0.2.1` candidate, `effigy release status --check-gates` passed all seven gates, then exited nonzero because `[Unreleased]` is empty and it cannot propose a next version.
+- Impact: a green gate run reads as a failure; the release owner must read the gate lines, not the exit code.
+- Plausible fix: report gate results separately from next-version proposal, or accept an already-versioned candidate that matches the manifests.
+- Surface: effigy-release `status --check-gates`; `CHANGELOG.md` `[Unreleased]`; manual candidate route (`g02.046`).
+
 ### [ ] `cargo update` of path crates re-resolves third-party prototype lock entries — 2026-09-25
 - Friction: `cargo update --offline --precise 0.2.1 -p longhorn-*` in `prototypes/gpui-composition` rewrote Longhorn path versions and also moved registry lines (`windows-sys` 0.60.2 → 0.52.0/0.61.2 and several dependents). The 0.2.0 candidate lock diff was version-only.
 - Impact: a naive Cargo refresh cannot be the excluded-lock sync; third-party movement is a g02.046 stop condition.

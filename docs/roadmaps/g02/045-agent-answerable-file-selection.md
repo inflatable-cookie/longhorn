@@ -2,8 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-22
-State: Longhorn implementation and source-linked Figmatic acceptance proved;
-publication pending operator decision
+State: complete — published in `0.2.1` 2026-09-26
 Governing refs: contract 022 (`Protocol`, `Availability And Security`,
 `Agent-Answerable Selection`), contracts 006 and 010
 Depends on: g02.043 and g02.044 (complete)

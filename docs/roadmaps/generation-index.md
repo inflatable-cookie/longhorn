@@ -28,12 +28,11 @@ over licensing as g02.010 (Cards 155-158).
 
 ## Next Task
 
-**[g02.046](g02/046-agent-selection-release-candidate.md) is ready.**
-[g02.045](g02/045-agent-answerable-file-selection.md) merged through PR #34;
-Figmatic g01.052 proved the fresh-leaf New project flow against source-linked
-Longhorn. The operator chose and authorised `0.2.1`. A reviewed candidate must
-sync the eight excluded prototype locks before gated publication can supply
-exact consumer pins.
+**No lane is ready.** Longhorn `0.2.1` published 2026-09-26 — tag `v0.2.1`
+at `2605853b`, the three npm packages at `0.2.1` (`latest`). It carries
+[g02.045](g02/045-agent-answerable-file-selection.md) agent-answerable
+selection; [g02.046](g02/046-agent-selection-release-candidate.md) supplied the
+reviewed candidate. Figmatic's repoint to exact pins is consumer-owned.
 The [g02 runway](g02/README.md#current-ready-frontier) is the single live
 pointer. The release sequence below is history, not the current frontier.
 

@@ -2,7 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-25
-State: ready for Queue delivery
+State: complete — PR #35; published as `0.2.1` 2026-09-26
 Governing refs: contract 012, g02.045, PAPERCUTS.md release-version entries
 Depends on: g02.045 complete; Figmatic g01.052 source-linked acceptance proved
 UI classification: none
