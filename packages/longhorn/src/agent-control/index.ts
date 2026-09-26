@@ -20,8 +20,11 @@ export {
 } from "./shim.ts";
 export {
   BEGIN_SELECTION_COMMAND,
+  SELECTION_ORIGIN_AGENT,
+  SELECTION_ORIGIN_HUMAN,
   SELECTION_RESOURCE_URI,
   bindFileSelection,
+  currentSelectionOrigin,
   type DialogFilter,
   type FileSelectionApi,
   type FileSelectionPorts,
@@ -30,4 +33,5 @@ export {
   type OpenDialogResult,
   type SaveDialogOptions,
   type SaveDialogResult,
+  type SelectionOrigin,
 } from "./selection.ts";

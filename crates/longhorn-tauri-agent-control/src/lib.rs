@@ -41,7 +41,9 @@ pub use commands::*;
 #[cfg(feature = "agent-control")]
 pub use handler::TauriControlHandler;
 #[cfg(feature = "agent-control")]
-pub use longhorn_agent_control::ToolError;
+pub use longhorn_agent_control::{
+    PendingSelection, SelectionFilter, SelectionKind, SelectionRegistry, ToolError,
+};
 #[cfg(feature = "agent-control")]
 pub use mount::{
     AgentControlConfig, AgentControlHandle, AgentControlMountError, AgentControlShutdownError,

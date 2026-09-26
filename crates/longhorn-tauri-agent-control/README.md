@@ -58,5 +58,15 @@ Agent-originated JS `open`/`save` go through the app command
 not a bare import). Consumer call sites bind
 `bindFileSelection` from `@inflatable-cookie/longhorn/agent-control` and
 inject the plugin-dialog functions plus `invoke`. Human-originated pickers
-still call the plugin. Composition detail lives in
+still call the plugin.
+
+A Rust command that opens a native picker (`blocking_save_file` and
+kind) cannot see the page shim. The consumer passes
+`currentSelectionOrigin()` in its own command arguments as
+`origin: Option<SelectionOrigin>`, then `origin.unwrap_or_default()` into
+`begin_host_selection`. A missing invoke key is human; a required
+`SelectionOrigin` argument fails the invoke instead. Agent origin begins a
+pending selection bound to the invoking webview; otherwise the command
+gets `HostSelection::UsePlugin` and calls the dialog plugin unchanged.
+There is no native fallback on the agent path. Composition detail lives in
 [`docs/guides/agent-control-composition.md`](../../docs/guides/agent-control-composition.md).

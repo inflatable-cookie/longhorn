@@ -36,7 +36,10 @@ const CORE_MARKERS = [
   "longhorn://agent-control/selection",
 ];
 const SHIM_MARKERS = ["data-longhorn-agent-ref", "__longhornAgentControl"];
-const MARKERS = [...CORE_MARKERS, ...SHIM_MARKERS];
+// Host picker entry lives in the plugin crate. Feature-off must not carry
+// it; feature-on must, or the scan would pass vacuously.
+const HOST_SELECTION_MARKERS = ["begin_host_selection"];
+const MARKERS = [...CORE_MARKERS, ...SHIM_MARKERS, ...HOST_SELECTION_MARKERS];
 // Present only when `agent-control-evaluate` compiles the JS escape hatch
 // into server instructions (mcp.rs). Doc comments do not reach the rlib.
 const EVALUATE_MARKERS = ["full code execution in the app"];
@@ -211,6 +214,12 @@ async function proveServerPresent(buildResult: BuildResult): Promise<{
   if (missingShim.length > 0) {
     throw new Error(
       `${buildResult.features} plugin artifact is missing shim markers: ${missingShim.join(", ")} — the gated injectable is not in the feature-on build`,
+    );
+  }
+  const missingHost = HOST_SELECTION_MARKERS.filter((marker) => !pluginHits.includes(marker));
+  if (missingHost.length > 0) {
+    throw new Error(
+      `${buildResult.features} plugin artifact is missing host-selection markers: ${missingHost.join(", ")} — the Rust picker entry is not in the feature-on build`,
     );
   }
   const coreHits = await markerHits(buildResult.coreRlib, CORE_MARKERS);

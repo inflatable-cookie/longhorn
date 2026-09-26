@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
+import {
+  currentSelectionOrigin,
+  SELECTION_ORIGIN_AGENT,
+  SELECTION_ORIGIN_HUMAN,
+} from "../../src/agent-control/index.ts";
 import { findByName, install, openPage } from "./support.ts";
 
 function dispatchTrusted(window: ReturnType<typeof openPage>, type: string): void {
@@ -55,5 +60,34 @@ describe("agent-control picker origin", () => {
     const api = install(window);
     api.markAgentOrigin();
     expect(api.isAgentOriginated()).toBe(true);
+  });
+});
+
+describe("currentSelectionOrigin", () => {
+  test("human with no shim", () => {
+    const window = openPage(`<p>Idle</p>`);
+    expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_HUMAN);
+  });
+
+  test("agent after agent input", () => {
+    const window = openPage(`<button>Go</button>`);
+    const api = install(window);
+    const snapshot = api.snapshot();
+    expect(snapshot.ok).toBe(true);
+    if (!snapshot.ok) return;
+    expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
+    expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_AGENT);
+  });
+
+  test("human after a trusted event following agent input", () => {
+    const window = openPage(`<button>Go</button>`);
+    const api = install(window);
+    const snapshot = api.snapshot();
+    expect(snapshot.ok).toBe(true);
+    if (!snapshot.ok) return;
+    expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
+    expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_AGENT);
+    dispatchTrusted(window, "click");
+    expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_HUMAN);
   });
 });

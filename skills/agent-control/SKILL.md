@@ -273,7 +273,32 @@ Read it when `resources/updated` names `longhorn://agent-control/selection`,
 or any time after join — late subscribers still see outstanding requests.
 Then `answer_selection` with existing paths, or `reject_selection` to
 resolve the app call as `null`. Do not click a native file panel. An
-active server does not capture a human-originated picker.
+active server does not capture a human-originated picker. The same
+pending set covers JS `open`/`save` and consumer Rust commands that
+call `begin_host_selection` with a page-carried origin token.
+
+App composition for a Rust `blocking_save_file` site: the page passes
+`currentSelectionOrigin()` into the command; the command matches
+`begin_host_selection` and only opens the dialog plugin on `UsePlugin`.
+
+Before:
+
+```rust
+#[tauri::command]
+fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
+    let Some(path) = app.dialog().file().blocking_save_file() else {
+        return Ok(());
+    };
+    write_backup(&path)
+}
+```
+
+After (page): `invoke("export_backup", { origin: currentSelectionOrigin() })`.
+After (host): take `origin: Option<SelectionOrigin>` and
+`origin.unwrap_or_default()` into `begin_host_selection`. A missing
+invoke key is human. Then `UsePlugin` → `blocking_save_file`,
+`Agent(Ok(path | null))` → use that path, `Agent(Err(_))` → typed
+failure. Longhorn never writes the file. Malformed origin is also human.
 
 ## 5. Multi-agent etiquette
 
@@ -288,8 +313,9 @@ instance; do not delete a discovery file whose pid is live.
 Do not click native menus or dialogs. Invoke a registered `command`
 instead. If the app has no command for that behavior, tell the
 operator — do not fall back to OS input. Agent-originated file and
-folder pickers are answered with `answer_selection` / `reject_selection`;
-do not operate the OS panel.
+folder pickers — JS `open`/`save` and Rust commands routed through
+`begin_host_selection` — are answered with `answer_selection` /
+`reject_selection`; do not operate the OS panel.
 
 Do not assume another-Space window state works (unproved). Capture and
 semantic tools are macOS-only; `Unsupported` elsewhere is the answer,

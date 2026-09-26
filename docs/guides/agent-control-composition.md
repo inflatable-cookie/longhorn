@@ -1,7 +1,7 @@
 # Compose Agent App Control
 
 Status: checked private adoption guidance
-Updated: 2026-09-22
+Updated: 2026-09-26
 Governing contracts: [022](../contracts/022-agent-app-control.md),
 [003](../contracts/003-extraction-and-consumer-migration.md),
 [006](../contracts/006-command-action-and-input.md),
@@ -262,12 +262,92 @@ Agent-originated `open`/`save` (synthetic click/type/press/drag, or
 plugin-dialog unchanged, even while the control server is running. An
 active server is not evidence that a human picker should be captured.
 Do not globally monkey-patch the plugin. `save` selects a target path;
-Longhorn never writes it. HTML file inputs and Rust-side pickers stay
-outside this seam.
+Longhorn never writes it. HTML file inputs stay outside this seam.
+Rust-side pickers join it when the consumer carries origin — see 3c.
 
 The `agent-control` feature is required for the begin-selection command
 and shim origin tracking. A default build has neither; keep calling
 plugin-dialog there.
+
+## 3c. Carry origin into a Rust picker command
+
+JS `open`/`save` can read the page shim at the call site. A Rust command
+that opens a native picker (`blocking_save_file`, `blocking_pick_file`,
+and the rest) cannot. The page passes the origin token in that command's
+arguments; Longhorn never infers origin on the host.
+
+Read the token from the installed shim. No shim is human:
+
+```ts
+import { currentSelectionOrigin } from "@inflatable-cookie/longhorn/agent-control";
+import { invoke } from "@tauri-apps/api/core";
+
+await invoke("export_backup", { origin: currentSelectionOrigin() });
+```
+
+Before, the command owned the dialog plugin call:
+
+```rust,ignore
+#[tauri::command]
+fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
+    let Some(path) = app.dialog().file().blocking_save_file() else {
+        return Ok(());
+    };
+    write_backup(&path)
+}
+```
+
+After, the same command keeps its dialog options and result handling.
+The only addition is the origin token and one match on the host entry.
+Take `origin: Option<SelectionOrigin>` and `unwrap_or_default()`: a
+missing invoke key is human. `#[serde(default)]` on a command parameter
+does not compile. A required `SelectionOrigin` argument rejects the
+invoke (`missing required key origin`) instead of opening the plugin.
+
+```rust,ignore
+#[tauri::command]
+async fn export_backup(
+    app: tauri::AppHandle,
+    webview: tauri::Webview,
+    registry: tauri::State<'_, longhorn_tauri_agent_control::SelectionRegistry>,
+    origin: Option<longhorn_tauri_agent_control::SelectionOrigin>,
+) -> Result<(), String> {
+    let path = match longhorn_tauri_agent_control::begin_host_selection(
+        origin.unwrap_or_default(),
+        &webview,
+        &registry,
+        longhorn_tauri_agent_control::BeginSelectionArgs {
+            kind: longhorn_tauri_agent_control::SelectionKind::Save,
+            directory: false,
+            multiple: false,
+            filters: Vec::new(),
+            title: Some("Export backup".into()),
+            default_path: None,
+        },
+    )
+    .await
+    {
+        longhorn_tauri_agent_control::HostSelection::UsePlugin => {
+            let Some(path) = app.dialog().file().blocking_save_file() else {
+                return Ok(());
+            };
+            path
+        }
+        longhorn_tauri_agent_control::HostSelection::Agent(result) => match result? {
+            serde_json::Value::String(path) => std::path::PathBuf::from(path),
+            serde_json::Value::Null => return Ok(()),
+            other => return Err(format!("unexpected selection {other}")),
+        },
+    };
+    write_backup(&path)
+}
+```
+
+Human, missing, and malformed origin take the `UsePlugin` arm and never
+publish a pending request. Agent origin waits for `answer_selection` /
+`reject_selection` with the same result shape as the JS route: one path
+or `null` for save. There is no native fallback on the agent arm, and
+Longhorn never writes the chosen path.
 
 ## 4. Hook Both `ExitRequested` And `Exit`
 
@@ -303,7 +383,7 @@ Once mounted, an agent can:
 | `wait_for` | DOM-relative predicates only |
 | `screenshot` | fresh image of the whole window, child webviews composed in; occluded, unfocused, and minimized; macOS only |
 | `command` | invoke a registered contract-006 command by id; in a packaged build this catalogue is the allowed agency |
-| `answer_selection`, `reject_selection` | settle an agent-originated JS `open`/`save`; human pickers keep plugin-dialog |
+| `answer_selection`, `reject_selection` | settle an agent-originated JS or Rust picker; human pickers keep the dialog plugin |
 | `list_windows`, `resize_window` | window scope |
 
 Page events ride `subscriptions/listen` as `resources/updated` on
@@ -317,8 +397,9 @@ directory lists every live instance. File name is `<app-id>-<pid>.json`.
 ## What The App Must Not Expect
 
 - Native menus, native dialogs, or OS-level input. Use `command`. File
-  and folder pickers that go through `bindFileSelection` are answered
-  over MCP; do not expect Longhorn to drive an already-open OS panel.
+  and folder pickers that go through `bindFileSelection` or
+  `begin_host_selection` are answered over MCP; do not expect Longhorn to
+  drive an already-open OS panel.
 - Trusted events (`isTrusted`, native hover, OS drag-and-drop). Synthetic
   input is untrusted by contract.
 - Capture, `evaluate`, or the semantic tools on non-macOS hosts. Those
