@@ -4,14 +4,7 @@ Updated: 2026-09-26
 
 ## Now
 
-1. **Harden, then release 0.2.2** (lane `hardening-0-2-2`) — close three
-   gaps found in review before the unreleased agent-control work ships
-   (Q-001). The `set_file_input` 8 MiB cap holds for every caller, not only
-   the MCP edge. The Tauri shim copy cannot drift from its TypeScript source.
-   `effigy release:bump` reports every file it changes and never leaves a
-   partial bump. Then cut `0.2.2` through
-   [release.md](knowledge/contracts/release.md). `main` already carries
-   Rust-side selection and `set_file_input`.
+Nothing is ready. The next item waits on Soundcheck.
 
 ## Next
 
