@@ -81,6 +81,10 @@ include = ["config/release.toml"]
 # requires an active resolution.
 "check:bun-links" = "bun scripts/check-bun-links.ts"
 "check:runner-tools" = "bun scripts/check-runner-tools.ts"
+# The native Tauri injection bundle must remain generated from the TypeScript
+# entrypoint and shim. `--write` refreshes it after source edits.
+"check:agent-control-shim" = "bun scripts/agent-control-shim.ts"
+"generate:agent-control-shim" = "bun scripts/agent-control-shim.ts --write"
 # Contract 022's release-absence claim, both directions: feature-off release
 # artifacts carry no control-surface code and no core-crate graph edge, with
 # the feature-on pass as the scan's own positive control. In `qa`, which the
@@ -190,6 +194,7 @@ qa = [
   { task = "check:consumer-isolation" },
   { task = "check:repo-containment" },
   { task = "check:agent-control-release-absence" },
+  { task = "check:agent-control-shim" },
   { task = "check:agent-tool-dispatch-release-absence" },
   { task = "check:agent-control-skill" },
   { task = "proof:artifacts" },
