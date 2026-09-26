@@ -294,10 +294,11 @@ fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
 ```
 
 After (page): `invoke("export_backup", { origin: currentSelectionOrigin() })`.
-After (host): `begin_host_selection(origin, &webview, &registry, save_args)`
-then `UsePlugin` → `blocking_save_file`, `Agent(Ok(path | null))` → use
-that path, `Agent(Err(_))` → typed failure. Longhorn never writes the
-file. Missing or malformed origin is human.
+After (host): take `origin: Option<SelectionOrigin>` and
+`origin.unwrap_or_default()` into `begin_host_selection`. A missing
+invoke key is human. Then `UsePlugin` → `blocking_save_file`,
+`Agent(Ok(path | null))` → use that path, `Agent(Err(_))` → typed
+failure. Longhorn never writes the file. Malformed origin is also human.
 
 ## 5. Multi-agent etiquette
 

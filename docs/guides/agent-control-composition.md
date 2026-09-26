@@ -298,7 +298,11 @@ fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
 ```
 
 After, the same command keeps its dialog options and result handling.
-The only addition is the origin token and one match on the host entry:
+The only addition is the origin token and one match on the host entry.
+Take `origin: Option<SelectionOrigin>` and `unwrap_or_default()`: a
+missing invoke key is human. `#[serde(default)]` on a command parameter
+does not compile. A required `SelectionOrigin` argument rejects the
+invoke (`missing required key origin`) instead of opening the plugin.
 
 ```rust,ignore
 #[tauri::command]
@@ -306,10 +310,10 @@ async fn export_backup(
     app: tauri::AppHandle,
     webview: tauri::Webview,
     registry: tauri::State<'_, longhorn_tauri_agent_control::SelectionRegistry>,
-    #[serde(default)] origin: longhorn_tauri_agent_control::SelectionOrigin,
+    origin: Option<longhorn_tauri_agent_control::SelectionOrigin>,
 ) -> Result<(), String> {
     let path = match longhorn_tauri_agent_control::begin_host_selection(
-        origin,
+        origin.unwrap_or_default(),
         &webview,
         &registry,
         longhorn_tauri_agent_control::BeginSelectionArgs {

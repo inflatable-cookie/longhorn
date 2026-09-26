@@ -17,7 +17,9 @@ use longhorn_tauri_agent_control::{
     SelectionRegistry, ToolError, begin_host_selection,
 };
 use serde_json::{Value, json};
-use tauri::{Manager, Webview, WebviewWindowBuilder, test::MockRuntime};
+use tauri::{
+    Manager, Runtime, State, Webview, WebviewUrl, WebviewWindowBuilder, test::MockRuntime,
+};
 use tempfile::TempDir;
 
 struct Harness {
@@ -286,4 +288,48 @@ async fn malformed_save_answer_fails_typed_then_settles_once() {
         HostSelection::Agent(Ok(Value::String(path))) => assert_eq!(path, file_target),
         other => panic!("expected answered path, got {other:?}"),
     }
+}
+
+/// Documented consumer command: missing `origin` is human.
+#[tauri::command]
+async fn export_backup<R: Runtime>(
+    webview: Webview<R>,
+    registry: State<'_, SelectionRegistry>,
+    origin: Option<SelectionOrigin>,
+) -> Result<String, String> {
+    match begin_host_selection(origin.unwrap_or_default(), &webview, &registry, save_args()).await {
+        HostSelection::UsePlugin => Ok("use-plugin".to_owned()),
+        HostSelection::Agent(_) => Ok("agent".to_owned()),
+    }
+}
+
+#[tokio::test]
+async fn missing_origin_key_on_a_real_command_is_human() {
+    let registry = SelectionRegistry::new("app:1");
+    let generation = registry.generation();
+    let app = tauri::test::mock_builder()
+        .manage(registry.clone())
+        .invoke_handler(tauri::generate_handler![export_backup])
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let webview = WebviewWindowBuilder::new(&app, "main", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let response = tauri::test::get_ipc_response(
+        &webview,
+        tauri::webview::InvokeRequest {
+            cmd: "export_backup".into(),
+            callback: tauri::ipc::CallbackFn(0),
+            error: tauri::ipc::CallbackFn(1),
+            url: "tauri://localhost".parse().unwrap(),
+            body: tauri::ipc::InvokeBody::Json(json!({})),
+            headers: Default::default(),
+            invoke_key: tauri::test::INVOKE_KEY.into(),
+        },
+    )
+    .unwrap_or_else(|error| panic!("missing origin key must not fail invoke: {error:?}"));
+    let outcome: String = response.deserialize().unwrap();
+    assert_eq!(outcome, "use-plugin");
+    assert!(registry.pending().is_empty());
+    assert_eq!(registry.generation(), generation);
 }
