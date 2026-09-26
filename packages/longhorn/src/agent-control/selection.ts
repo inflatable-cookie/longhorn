@@ -12,6 +12,15 @@ export const BEGIN_SELECTION_COMMAND = "longhorn_agent_control_begin_selection";
 /** Pending-selection MCP resource. */
 export const SELECTION_RESOURCE_URI = "longhorn://agent-control/selection";
 
+/** Wire token for agent origin. Matches the Rust `SELECTION_ORIGIN_AGENT`. */
+export const SELECTION_ORIGIN_AGENT = "agent";
+
+/** Wire token for human origin. Matches the Rust `SELECTION_ORIGIN_HUMAN`. */
+export const SELECTION_ORIGIN_HUMAN = "human";
+
+/** Serializable origin a consumer passes into its own command arguments. */
+export type SelectionOrigin = typeof SELECTION_ORIGIN_AGENT | typeof SELECTION_ORIGIN_HUMAN;
+
 export type DialogFilter = {
   name: string;
   extensions: string[];
@@ -51,6 +60,16 @@ export type FileSelectionApi = {
 
 function isAgentOriginated(world: FileSelectionWorld): boolean {
   return world[SHIM_GLOBAL]?.isAgentOriginated?.() === true;
+}
+
+/**
+ * Page origin as a command-argument token. Reads the installed shim;
+ * with no shim, or when the shim reports human, the token is `"human"`.
+ */
+export function currentSelectionOrigin(world: object = globalThis): SelectionOrigin {
+  return isAgentOriginated(world as FileSelectionWorld)
+    ? SELECTION_ORIGIN_AGENT
+    : SELECTION_ORIGIN_HUMAN;
 }
 
 function beginOptions(
