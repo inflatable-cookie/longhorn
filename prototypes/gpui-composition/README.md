@@ -35,5 +35,6 @@ holds.
 ## Gate
 
 Covered by `effigy check:prototypes`, which runs outside `qa` and inside the
-release gates. See [g02.015](../../docs/roadmaps/g02/015-gpui-composition-and-live-evidence.md)
-for why the cadence is that and not the workspace.
+release gates. `gpui` alone is 757 packages and 3.3 GiB once linked, and the
+failure mode is API drift, so a type check before each tag is enough; see the
+`check:prototypes` comment in `effigy.toml`.

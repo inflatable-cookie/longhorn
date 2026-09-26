@@ -2,7 +2,7 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-15
-Governing contracts: [002-017](../contracts/contract-index.md)
+Governing contracts: [002-017](../knowledge/contracts/contract-index.md)
 
 ## Why This Matters
 
@@ -85,7 +85,7 @@ only protocol version and host-issued session id. They never serialize panels,
 Surfaces, layouts, windows, bindings, or product data. Poodle owns drag
 interaction; Longhorn uses its public extension points.
 
-See [App Shell Composition](../architecture/app-shell-composition.md) and the
+See [App Shell Composition](../knowledge/architecture/app-shell-composition.md) and the
 [greenfield workspace/full-hosting roots](../../examples/greenfield-compositions/README.md).
 
 ## Settings
@@ -100,7 +100,7 @@ not one atomic save unless the consumer supplies a broader transaction.
 Managed values remain non-writable; conflicts refresh authority.
 
 Register shared Storage, Backups, and Restore pages only when their exact
-operations and capabilities exist. See [Settings Composition](../architecture/settings-composition.md).
+operations and capabilities exist. See [Settings Composition](../knowledge/architecture/settings-composition.md).
 
 ## Commands, Keymaps, And Palette
 
@@ -113,7 +113,7 @@ product executor.
 A command id is not a Tauri command or bridge operation name. Shared Tauri
 handlers expose catalogue/keymap reads and mutation, not generic execution.
 Palette visibility is never authorization. See
-[Command System Composition](../architecture/command-system-composition.md).
+[Command System Composition](../knowledge/architecture/command-system-composition.md).
 
 ## Optional Server Topology
 
@@ -131,7 +131,7 @@ Supervision is injected lifecycle only. The app owns process/service choice,
 transport, endpoint discovery, authentication, credentials, pairing,
 installation, updates, and remote ownership. Longhorn currently claims no
 production HTTP, WebSocket, socket, pipe, or remote provisioning layer. See
-[Bridge Topology Composition](../architecture/bridge-topology-composition.md).
+[Bridge Topology Composition](../knowledge/architecture/bridge-topology-composition.md).
 
 ## Linear History
 
@@ -147,7 +147,7 @@ Fork-tree semantics are promoted planning evidence: the `longhorn-history-tree`
 crate exists and is tested, but branch clients, checkpoints, and durable tree
 persistence are held surface — do not select them or imply their
 availability. See the [held-surface register](../reference/held-surface.md)
-and [History Composition](../architecture/history-composition.md).
+and [History Composition](../knowledge/architecture/history-composition.md).
 
 ## Operations And Notifications
 
@@ -160,7 +160,7 @@ is failure-isolated: publication failure cannot change operation truth. Toast
 expiry affects transient presentation only. Semantic action references are
 data and require fresh consumer authorization when invoked.
 
-See [Operation And Notification Composition](../architecture/operation-notification-composition.md).
+See [Operation And Notification Composition](../knowledge/architecture/operation-notification-composition.md).
 
 ## Native Content
 
@@ -176,7 +176,7 @@ The pure coordination code has deterministic 1x/2x semantics; Windows/Linux
 target artifacts remain pending. Outer-window placement stays with windowing.
 No raw native pointer, browser/plugin/GPU payload, or private Poodle DOM crosses
 the shared renderer protocol. See
-[Native-content Island Composition](../architecture/native-content-island-composition.md).
+[Native-content Island Composition](../knowledge/architecture/native-content-island-composition.md).
 
 ## Startup And Teardown
 

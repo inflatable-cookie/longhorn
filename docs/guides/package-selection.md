@@ -2,10 +2,10 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-15
-Governing contracts: [002](../contracts/002-composable-workspace-hosting.md),
-[007](../contracts/007-optional-backend-topology.md),
-[012](../contracts/012-distribution-and-compatibility.md), and
-[013](../contracts/013-svelte-and-poodle-adapter-lifecycle.md)
+Governing contracts: [002](../knowledge/contracts/002-composable-workspace-hosting.md),
+[007](../knowledge/contracts/007-optional-backend-topology.md),
+[012](../knowledge/contracts/012-distribution-and-compatibility.md), and
+[013](../knowledge/contracts/013-svelte-and-poodle-adapter-lifecycle.md)
 
 ## Why This Matters
 
@@ -53,7 +53,7 @@ are the live equivalents of these shapes. Copy package selection from that
 shape's `package.json` and `src-tauri/Cargo.toml`; replace the neutral app
 identity and product policy. `capability.json` is selection evidence, not a
 universal Tauri capability. The
-[Card 125 matrix](../architecture/greenfield-composition-matrix.md) records
+[Card 125 matrix](../knowledge/architecture/greenfield-composition-matrix.md) records
 the shape boundaries and extension points.
 
 The minimal shape selects two Longhorn TypeScript packages — one dependency
@@ -131,13 +131,13 @@ status list and names the trigger for each.
 | --- | --- | --- |
 | bridge supervision and contract machinery | held-for-consumer | a bridge consumer with a real service topology |
 | age encryption (`longhorn-config-age`) | held-for-consumer | a consumer that needs encrypted backups |
-| fork-tree history (`longhorn-history-tree`, `@inflatable-cookie/longhorn/history-tree`) | planning-evidence | the recorded g01.017 adoption decision |
+| fork-tree history (`longhorn-history-tree`, `@inflatable-cookie/longhorn/history-tree`) | planning-evidence | a consumer that needs divergent history |
 
 Application update (`longhorn-update`, `@inflatable-cookie/longhorn/update`)
 and licensing (`longhorn-licence`, `@inflatable-cookie/longhorn/licence`)
-graduated from this register on 2026-08-15 — g02.009 and g02.010 delivered
-their crates, renderer surfaces, Tauri hosts, and packaged proofs — and are
-ordinary selectable systems.
+graduated from this register on 2026-08-15, when their crates, renderer
+surfaces, Tauri hosts and packaged proofs landed, and are ordinary selectable
+systems.
 
 The [generated API surface](../reference/api-surface.md) is authoritative for
 current features and export subpaths.

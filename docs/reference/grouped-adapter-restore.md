@@ -2,7 +2,7 @@
 
 Status: checked private `0.1.0` API
 Updated: 2026-08-03
-Governing contract: [004](../contracts/004-configuration-storage-backup-and-recovery.md)
+Governing contract: [004](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md)
 
 ## Public Entry Points
 

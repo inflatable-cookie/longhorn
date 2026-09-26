@@ -165,4 +165,5 @@ these are claims CI cannot make.
 Two packaged Tauri proofs remain, this one and the windowing proof, and both
 build. Four others were retired on 2026-08-13 — see Card 198. They could not be
 bundled for want of an icon, no documented command built them, and their
-findings were already recorded in `docs/logs/2026-08/`.
+findings were already recorded in the August 2026 delivery logs
+(Git history).

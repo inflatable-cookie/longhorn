@@ -31,4 +31,4 @@ The manifests and capabilities are proof inputs. The verifier rewrites package
 versions to produced archives only inside the temporary roots.
 
 Canonical guidance:
-[`docs/architecture/settings-composition.md`](../../docs/architecture/settings-composition.md).
+[`docs/knowledge/architecture/settings-composition.md`](../../docs/knowledge/architecture/settings-composition.md).

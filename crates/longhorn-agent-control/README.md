@@ -1,7 +1,7 @@
 # longhorn-agent-control
 
 Host-agnostic core of the agent app-control surface
-(`docs/contracts/022-agent-app-control.md`):
+(`docs/knowledge/contracts/022-agent-app-control.md`):
 
 - tool vocabulary as types — requests, results, and errors for `snapshot`,
   `click`, `type`, `press`, `scroll`, `drag`, `set_file_input`, `evaluate`,

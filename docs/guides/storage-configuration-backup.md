@@ -2,8 +2,8 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-03
-Governing contracts: [004](../contracts/004-configuration-storage-backup-and-recovery.md)
-and [005](../contracts/005-settings-and-system-registration.md)
+Governing contracts: [004](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md)
+and [005](../knowledge/contracts/005-settings-and-system-registration.md)
 
 ## Why This Matters
 

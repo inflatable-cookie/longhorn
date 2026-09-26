@@ -25,4 +25,4 @@ Poodle dependencies to the produced tarballs before installation. They are not
 path-based consumer migration manifests.
 
 Canonical composition guidance:
-[`docs/architecture/app-shell-composition.md`](../../docs/architecture/app-shell-composition.md).
+[`docs/knowledge/architecture/app-shell-composition.md`](../../docs/knowledge/architecture/app-shell-composition.md).

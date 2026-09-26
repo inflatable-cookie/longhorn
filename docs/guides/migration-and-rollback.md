@@ -2,9 +2,9 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-02
-Governing contracts: [003](../contracts/003-extraction-and-consumer-migration.md),
-[004](../contracts/004-configuration-storage-backup-and-recovery.md), and
-[012](../contracts/012-distribution-and-compatibility.md)
+Governing contracts: [003](../knowledge/contracts/003-extraction-and-consumer-migration.md),
+[004](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md), and
+[012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
 ## Why This Matters
 
@@ -115,9 +115,9 @@ Failure states stay distinct:
 | Split-shell | minimal config/settings | content, navigation, editorial and Git behavior | a split UI does not justify layout; preserve unrelated authored work |
 | Jetstream | bridge/commands and backing-surface coordination | WGPU, renderer, world, input and execution | coordinate native geometry/lifecycle without absorbing engine authority |
 
-Read the canonical [Nucleus](../architecture/nucleus-migration-map.md),
-[Loophole](../architecture/loophole-migration-map.md), and
-[secondary-consumer](../architecture/secondary-consumer-migration-map.md)
+Read the canonical [Nucleus](../knowledge/architecture/nucleus-migration-map.md),
+[Loophole](../knowledge/architecture/loophole-migration-map.md), and
+[secondary-consumer](../knowledge/architecture/secondary-consumer-migration-map.md)
 maps for exact receipts. Do not copy their product ids or policies into a new
 app.
 

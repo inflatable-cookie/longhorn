@@ -35,53 +35,13 @@ for (const packageName of heldPackages) {
   }
 }
 
-// Freshness: a row that awaits closed work is stale by definition. Resolve
-// the task (g02.NNN) references in each row's Awaits and Trigger columns
-// against the task files' status lines, and the absorbed card (NNN)
-// references against the `Card NNN: <state>` records those files carry since
-// the flattened-task migration removed `batch-cards/`.
-const { readdir } = await import("node:fs/promises");
-
-async function statusIndex(directory: string): Promise<Map<string, string>> {
-  const index = new Map<string, string>();
-  for (const file of await readdir(join(repoRoot, directory))) {
-    if (!file.endsWith(".md")) continue;
-    const content = await readFile(join(repoRoot, directory, file), "utf8");
-    index.set(file, content);
-  }
-  return index;
-}
-
-const milestones = await statusIndex("docs/roadmaps/g02");
-const cards = new Map<string, string>();
-for (const [file, content] of milestones) {
-  for (const match of content.matchAll(/^- Card (\d{3}): (.+)$/gm)) {
-    cards.set(`${match[1]}-absorbed-in-${file}`, `Status: ${match[2]}`);
-  }
-}
-
-function isClosed(reference: string, files: Map<string, string>, prefix: string): boolean {
-  for (const [file, content] of files) {
-    if (!file.startsWith(prefix)) continue;
-    return /^Status: (complete|superseded)/m.test(content);
-  }
-  // A reference that resolves to nothing is a typo or a deleted card, and
-  // answering "not closed" would let it sit in the register forever — the
-  // freshness gate would be reporting on a file it never found.
-  throw new Error(`held surface names ${reference}, which matches no roadmap file`);
-}
-
+// Freshness: a row must name the consumer need or product choice that moves
+// it, never a task or card ID. Task status lives in Queue, not in this
+// repository, so a task reference here could never be checked for closure.
 for (const row of rows) {
   const [surface, , awaits, trigger] = row.slice(1);
-  for (const match of `${awaits} ${trigger}`.matchAll(/g02\.(\d{3})/g)) {
-    if (isClosed(match[0], milestones, `${match[1]}-`)) {
-      throw new Error(`held surface "${surface!.trim()}" awaits ${match[0]}, which is closed`);
-    }
-  }
-  for (const match of `${awaits} ${trigger}`.matchAll(/card (?:\()?(\d{3})/gi)) {
-    if (isClosed(match[1]!, cards, `${match[1]}-`)) {
-      throw new Error(`held surface "${surface!.trim()}" awaits card ${match[1]}, which is closed`);
-    }
+  if (/\bg0\d\.\d{3}\b|\bcard \(?\d{3}/i.test(`${awaits} ${trigger}`)) {
+    throw new Error(`held surface "${surface!.trim()}" names a task or card; name the consumer trigger instead`);
   }
 }
 

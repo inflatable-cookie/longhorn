@@ -2,8 +2,8 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-06
-Governing contracts: [010](../contracts/010-rust-typescript-ipc-and-events.md)
-and [012](../contracts/012-distribution-and-compatibility.md)
+Governing contracts: [010](../knowledge/contracts/010-rust-typescript-ipc-and-events.md)
+and [012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
 ## Why This Matters
 

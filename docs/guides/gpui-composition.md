@@ -2,9 +2,9 @@
 
 Status: checked private adoption guidance
 Updated: 2026-08-10
-Governing contracts: [020](../contracts/020-host-adapter-boundary.md),
-[013](../contracts/013-svelte-and-poodle-adapter-lifecycle.md),
-[012](../contracts/012-distribution-and-compatibility.md)
+Governing contracts: [020](../knowledge/contracts/020-host-adapter-boundary.md),
+[013](../knowledge/contracts/013-svelte-and-poodle-adapter-lifecycle.md),
+[012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
 ## Why This Matters
 
@@ -247,6 +247,6 @@ inside the release gates.
 ## Related
 
 - [Compose Desktop Systems](system-composition.md) — the Tauri path
-- [contract 020](../contracts/020-host-adapter-boundary.md) — the authority for
+- [contract 020](../knowledge/contracts/020-host-adapter-boundary.md) — the authority for
   every claim here, including what remains unproven
 - [glossary](glossary.md)
