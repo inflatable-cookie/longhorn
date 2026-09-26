@@ -15,13 +15,14 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
+import { longhornVersion } from "./longhorn-version.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const POODLE_RELEASE = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
+const LONGHORN_VERSION = longhornVersion();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
   "bdfed54fc5f9c70d82485c5b572e3b2be3663c7bc37c6f565a8d4fc48196557e";
 // Rebaselined 2026-08-10 for Card 160. The fixture gained a `hostDestroy`
@@ -218,7 +219,7 @@ async function packTypescriptArtifacts() {
     );
     const path = join(
       typescriptArtifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`,
     );
     await inspectTypescriptArtifact(name, path);
     paths.set(name, path);
@@ -245,7 +246,7 @@ async function inspectTypescriptArtifact(name: string, path: string) {
     readonly peerDependencies?: Record<string, string>;
     readonly exports?: Record<string, unknown>;
   };
-  if (manifest.name !== name || manifest.version !== "0.2.1") {
+  if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
   // Card 164: both tiers carry no dependencies at all. The framework package
@@ -336,7 +337,7 @@ async function packAndRunRustArtifacts() {
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
       throw new Error(`${name} source inventory is incomplete`);
     }
-    const archive = join(archiveRoot, `${name}-0.2.1.private.tar.gz`);
+    const archive = join(archiveRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
     await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });
@@ -722,18 +723,18 @@ members = ["consumers/common", "consumers/pure", "consumers/nucleus", "consumers
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-native-content = { path = "crates/longhorn-native-content", version = "0.2.1" }
-longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-native-content-child-view", version = "0.2.1" }
-longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "0.2.1" }
-longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-native-content = { path = "crates/longhorn-native-content", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-native-content-child-view", version = "${LONGHORN_VERSION}" }
+longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "${LONGHORN_VERSION}" }
+longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "${LONGHORN_VERSION}" }
 longhorn-native-content-artifact-proof-common = { path = "consumers/common" }
 ${workspaceDependencies([
   "proptest",

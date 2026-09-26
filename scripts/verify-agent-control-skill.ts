@@ -19,6 +19,7 @@ import {
   parseInstallTarget,
   parseVersionStamp,
 } from "./install-agent-control-skill.ts";
+import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const toolsPath = join(repoRoot, "crates", "longhorn-agent-control", "src", "tools.rs");
@@ -64,11 +65,7 @@ export function parseSkillToolTable(skill: string): string[] {
 }
 
 export function parseWorkspaceVersion(cargo: string): string {
-  const match = cargo.match(/\[workspace\.package\][\s\S]*?^version = "([^"]+)"/m);
-  if (!match) {
-    throw new Error("workspace version not found in Cargo.toml");
-  }
-  return match[1];
+  return parseWorkspacePackageVersion(cargo);
 }
 
 function sameSet(left: string[], right: string[]): { missing: string[]; extra: string[] } {

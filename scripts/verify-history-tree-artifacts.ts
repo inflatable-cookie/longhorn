@@ -5,13 +5,14 @@ import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile }
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
+import { longhornVersion } from "./longhorn-version.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const POODLE_RELEASE = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
+const LONGHORN_VERSION = longhornVersion();
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-tree-artifact-proof");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-tree-artifact-proof-"));
@@ -93,7 +94,7 @@ async function packTypescriptArtifacts(): Promise<{ identities: readonly Artifac
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
     await run(["bun", "pm", "pack", "--destination", typescriptArtifactRoot, "--ignore-scripts", "--quiet"], join(repoRoot, "packages", directory));
-    const path = join(typescriptArtifactRoot, `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`);
+    const path = join(typescriptArtifactRoot, `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`);
     await inspectNpmArtifact(name, path);
     paths.set(name, path);
     identities.push({ name, filename: basename(path), sha256: await digest(path) });
@@ -105,7 +106,7 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   const listing = await run(["tar", "-tzf", path], typescriptArtifactRoot);
   if (listing.includes("node_modules/") || listing.includes("/tests/") || listing.includes("workspace:")) throw new Error(`${name} artifact contains workspace material`);
   const manifest = JSON.parse(await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot)) as Json;
-  if (manifest.name !== name || manifest.version !== "0.2.1") throw new Error(`${name} packed identity mismatch`);
+  if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) throw new Error(`${name} packed identity mismatch`);
   assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), name === "@inflatable-cookie/longhorn-history-tree" ? ["@inflatable-cookie/longhorn-core"] : []);
   if (name === "@inflatable-cookie/longhorn-history-tree") {
     assertExactSet("history-tree exports", Object.keys(manifest.exports ?? {}), [".", "./package.json", "./poodle", "./protocol", "./svelte", "./tauri"]);
@@ -128,7 +129,7 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   for (const name of crates) {
     const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory is incomplete`);
-    const tarArchive = join(artifactRoot, `${name}-0.2.1.private.tar`);
+    const tarArchive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     const archive = `${tarArchive}.gz`;
     await run(["tar", "-cf", tarArchive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["gzip", "-n", tarArchive], repoRoot);
@@ -229,7 +230,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
@@ -237,10 +238,10 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
 base64 = "0.22.1"
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-history = { path = "crates/longhorn-history", version = "0.2.1" }
-longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "0.2.1" }
-longhorn-tauri-history-tree = { path = "crates/longhorn-tauri-history-tree", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-history = { path = "crates/longhorn-history", version = "${LONGHORN_VERSION}" }
+longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-history-tree = { path = "crates/longhorn-tauri-history-tree", version = "${LONGHORN_VERSION}" }
 ${workspaceDependencies([
   "proptest",
   "serde",

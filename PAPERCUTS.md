@@ -10,6 +10,7 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Impact: a green gate run reads as a failure; the release owner must read the gate lines, not the exit code.
 - Plausible fix: report gate results separately from next-version proposal, or accept an already-versioned candidate that matches the manifests.
 - Surface: effigy-release `status --check-gates`; `CHANGELOG.md` `[Unreleased]`; manual candidate route (`g02.046`).
+- Upstream: Effigy. Longhorn-owned `release:bump` and the runbook treat the gate lines as the evidence.
 
 ### [ ] `cargo update` of path crates re-resolves third-party prototype lock entries — 2026-09-25
 - Friction: `cargo update --offline --precise 0.2.1 -p longhorn-*` in `prototypes/gpui-composition` rewrote Longhorn path versions and also moved registry lines (`windows-sys` 0.60.2 → 0.52.0/0.61.2 and several dependents). The 0.2.0 candidate lock diff was version-only.
@@ -17,29 +18,30 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 - Plausible fix: keep the surgical path-version rewrite in `sync:prototype-locks`, or teach cargo a no-re-resolve mode for path version bumps.
 - Surface: `scripts/sync-prototype-locks.ts`; `prototypes/*/Cargo.lock`; `cargo update`.
 
-### [ ] `effigy release:gates` runs three of the seven declared gates — 2026-09-22
+### [x] `effigy release:gates` runs three of the seven declared gates — 2026-09-22
 - Friction: `effigy.toml` defines `release:gates` as `[release:floor, release:source-consumer, check:prototypes]`, while `config/release.toml`'s `[release.gates]` declares seven (private-candidate, advisories, rustdoc, prototypes, workspace, floor, source). Running `effigy release:gates` therefore skips `workspace = effigy qa`, `private-candidate`, `advisories`, and `rustdoc` — the same-named selector is not the declared gate set.
 - Impact: a local pre-release run reports green while the runner's `effigy qa` fails. That is how the 0.2.0 `check:api-reference` drift was first seen, on CI.
-- Plausible fix: make `release:gates` resolve the declared table (or rename the subset), and note in the runbook that `effigy release status --check-gates` is the full set.
-- Surface: `effigy.toml` `release:gates`; `config/release.toml` `[release.gates]`.
+- Fix (2026-09-26): `release:gates` is `[release.gates]` minus `workspace`, in declaration order. `check:release-gates` fails on drift. The runner still runs `effigy qa` separately.
+- Surface: `effigy.toml` `release:gates`; `config/release.toml` `[release.gates]`; `scripts/check-release-gates-alignment.ts`.
 
-### [ ] The release version is hardcoded across the artifact proofs — 2026-09-22
+### [x] The release version is hardcoded across the artifact proofs — 2026-09-22
 - Friction: the 0.2.0 bump required editing thirteen artifact-proof scripts (`LONGHORN_VERSION = "0.1.0"`, tarball names, generated Cargo manifests), two package manifests' peer on `@inflatable-cookie/longhorn`, two boundary tests, and regenerating the API reference twice (the peer change moves it again).
 - Impact: a version-bumping release is a wide mechanical sweep, and a missed occurrence only surfaces as a proof failure.
-- Plausible fix: derive the release version from one source (the root manifest or `packages/longhorn/package.json`) in the proofs, and assert it at those sites.
-- Surface: `scripts/*artifact*`, `scripts/verify-*-artifacts.ts`, `packages/*/package.json`, `packages/*/tests/boundary.test.ts`, `docs/reference/api-surface.md`.
+- Fix (2026-09-26): proofs and boundary tests read `workspace.package.version` from `scripts/longhorn-version.ts`. `effigy release:bump` is the remaining coordinated write.
+- Surface: `scripts/longhorn-version.ts`; `scripts/release-bump.ts`; `scripts/*artifact*`; `packages/*/tests/boundary.test.ts`.
 
-### [ ] Release version bump leaves the agent-control skill stamp stale — 2026-09-22
+### [x] Release version bump leaves the agent-control skill stamp stale — 2026-09-22
 - Friction: `skills/agent-control/SKILL.md` carries `longhorn_version: "0.1.0"`, and `check:agent-control-skill` requires it to match the workspace version. A `0.2.0` bump fails that check ("skill longhorn_version 0.1.0 does not match workspace 0.2.0") until the stamp is updated by hand; the release tool does not know about it.
 - Impact: another manual release-bump follow-up outside `effigy release prepare`.
-- Plausible fix: teach the release sync about the skill stamp, or derive the stamp from the workspace version at check time instead of storing it.
-- Surface: `skills/agent-control/SKILL.md`; `scripts/verify-agent-control-skill.ts`; release tooling.
+- Fix (2026-09-26): `effigy release:bump` rewrites the skill stamp with the workspace version.
+- Surface: `skills/agent-control/SKILL.md`; `scripts/release-bump.ts`; `scripts/verify-agent-control-skill.ts`.
 
 ### [ ] Release version bump stales the workspace-excluded prototype locks — 2026-09-22
 - Friction: `effigy release prepare --version 0.2.0` bumps `workspace.package.version` and syncs the root `Cargo.lock`, but the eight `prototypes/*/Cargo.lock` files pin the `longhorn-*` crates at the old version. The `prototypes` gate then fails (`cargo check --locked` refuses a stale lock), and `[release] sync-files` supports only `Cargo.lock` and `package.json` (effigy-release `resolve_sync_files`), so the tool cannot fix it. Pre-bumping by hand also blocks the tool (`--version ... must be greater than current version`).
 - Impact: a version-bumping release cannot use `effigy release prepare`; the 49 internal pins, the root lock, the eight prototype locks, and the changelog promotion had to be done by hand with the gates run manually.
-- Plausible fix: teach release sync about workspace-excluded lockfiles, add a repo-owned pre-gate step that refreshes them, or make the prototype manifests version-agnostic. g02.046 added `effigy sync:prototype-locks` as that pre-gate step; `release prepare` still cannot see the excluded locks.
-- Surface: `config/release.toml` (`sync-files`); `prototypes/*/Cargo.lock`; `scripts/sync-prototype-locks.ts`; effigy-release `resolve_sync_files`; `Cargo.toml` internal version pins.
+- Plausible fix: teach release sync about workspace-excluded lockfiles, add a repo-owned pre-gate step that refreshes them, or make the prototype manifests version-agnostic. g02.046 added `effigy sync:prototype-locks` as that pre-gate step; g02.049's `release:bump` runs it. `release prepare` still cannot see the excluded locks.
+- Surface: `config/release.toml` (`sync-files`); `prototypes/*/Cargo.lock`; `scripts/sync-prototype-locks.ts`; `scripts/release-bump.ts`; effigy-release `resolve_sync_files`; `Cargo.toml` internal version pins.
+- Upstream: Effigy. No pre-gate hook for workspace-excluded locks.
 
 ### [ ] Editing a dispatched task file breaks hook-owned closeout — 2026-09-22
 - Friction: `g02.044`'s task file was updated three times on `main` (measured route evidence, scope corrections) after its handoff was committed. The `task.closeout` hook refused with "task path ... changed outside its generated lifecycle block since its pinned planning blob", then — once reverted — with "Integration HEAD moved from the event base". Recovery needed the task file reverted to the pinned blob **and** an explicit operator `retry_hook`: the automatic closeout-base renewal is capped at three attempts and cannot renew a stale-base occurrence.

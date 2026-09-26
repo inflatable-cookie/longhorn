@@ -28,6 +28,16 @@ function manifest(root: string): Manifest {
 const rootManifest = manifest(repositoryRoot);
 const packageManifest = manifest(packageRoot);
 
+function workspaceVersion(): string {
+  // Read Cargo.toml here. `scripts/longhorn-version.ts` is the shared
+  // reader, but this suite runs under happy-dom, which shadows `URL` and
+  // cannot evaluate that module.
+  const cargo = readFileSync(resolve(repositoryRoot, "Cargo.toml"), "utf8");
+  const match = /\[workspace\.package\][^[]*?^version = "([^"]+)"/m.exec(cargo);
+  if (!match?.[1]) throw new Error("workspace.package.version not found in Cargo.toml");
+  return match[1];
+}
+
 async function sourceFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir);
   const nested = await Promise.all(
@@ -47,7 +57,7 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
     );
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
-      "@inflatable-cookie/longhorn": "0.2.1",
+      "@inflatable-cookie/longhorn": workspaceVersion(),
       "@inflatable-cookie/poodle-core": "0.4.2",
       "@inflatable-cookie/poodle-svelte": "0.4.2",
       svelte: ">=5.38.6 <=5.56.8",

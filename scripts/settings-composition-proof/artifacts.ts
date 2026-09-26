@@ -6,6 +6,8 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
 import { digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
+import { longhornVersion } from "../longhorn-version.ts";
+const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
 // no pack to digest. poodleRelease() checks each published package's sha512
@@ -50,7 +52,7 @@ export async function packTypescriptArtifacts(
     );
     const path = join(
       artifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`,
     );
     paths.set(name, path);
     identities.push(await inspectNpmArtifact(name, path, repoRoot));
@@ -71,7 +73,7 @@ export async function packAndCheckRustArtifacts(
     await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     const archive = join(
       artifactRoot,
-      `${name}-0.2.1.private.tar.gz`,
+      `${name}-${LONGHORN_VERSION}.private.tar.gz`,
     );
     await run(
       [
@@ -206,19 +208,19 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-config = { path = "crates/longhorn-config", version = "0.2.1" }
-longhorn-settings = { path = "crates/longhorn-settings", version = "0.2.1" }
-longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.2.1" }
-longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "0.2.1" }
-longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-config = { path = "crates/longhorn-config", version = "${LONGHORN_VERSION}" }
+longhorn-settings = { path = "crates/longhorn-settings", version = "${LONGHORN_VERSION}" }
+longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-config = { path = "crates/longhorn-tauri-config", version = "${LONGHORN_VERSION}" }
 ${workspaceDependencies([
   "cap-std",
   "fs4",
