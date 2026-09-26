@@ -130,6 +130,12 @@ jobs:
       - name: Install the Metal toolchain
         run: xcodebuild -downloadComponent MetalToolchain
 
+      # The `advisories` release gate runs `cargo deny`, which the runner does
+      # not ship. Built from source at the version local release prep uses, so
+      # the publish-rights job gains no third-party action. Bump both together.
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+
       - name: Release gates
         run: effigy release:gates
 
