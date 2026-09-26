@@ -43,8 +43,11 @@ install fixtures). `agent-control:install-skill` copies
 `skills/agent-control/` into a consumer repo
 (`effigy agent-control:install-skill -- <git-repo>` or
 `effigy agent-control:install-skill -- --repo <git-repo>`); the bun script
-remains the implementation. `bootstrap:deps` runs the locked Bun install fresh
-worktrees need before TypeScript checks; `check:bun-deps` guards
+remains the implementation. `check:agent-control-shim` builds the webview IIFE
+from the TypeScript injection entry and checks the committed Tauri asset byte
+for byte; `generate:agent-control-shim` writes that bundle after source edits.
+`bootstrap:deps` runs the locked Bun install fresh worktrees need before
+TypeScript checks; `check:bun-deps` guards
 `check:ts`/`check:svelte` when run alone. `consumer-absence.ts`,
 `poodle-release.ts`, and `longhorn-version.ts` are shared modules, not
 entry points. `release:bump` and `check:release-gates` are the
@@ -144,4 +147,3 @@ technical reason.
 
 The release procedure is owned by
 [`docs/knowledge/contracts/release.md`](../docs/knowledge/contracts/release.md).
-
