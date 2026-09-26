@@ -1,7 +1,7 @@
 # longhorn-tauri-agent-control
 
 Tauri host wiring for the Longhorn agent app-control surface
-([contract 022](../../docs/contracts/022-agent-app-control.md)). Mounts the
+([contract 022](../../docs/knowledge/contracts/022-agent-app-control.md)). Mounts the
 host-agnostic `longhorn-agent-control` MCP server inside a running Tauri
 application and implements its `ControlHandler` against the app's windows.
 

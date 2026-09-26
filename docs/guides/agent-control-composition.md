@@ -2,10 +2,10 @@
 
 Status: checked private adoption guidance
 Updated: 2026-09-26
-Governing contracts: [022](../contracts/022-agent-app-control.md),
-[003](../contracts/003-extraction-and-consumer-migration.md),
-[006](../contracts/006-command-action-and-input.md),
-[012](../contracts/012-distribution-and-compatibility.md)
+Governing contracts: [022](../knowledge/contracts/022-agent-app-control.md),
+[003](../knowledge/contracts/003-extraction-and-consumer-migration.md),
+[006](../knowledge/contracts/006-command-action-and-input.md),
+[012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
 ## Why This Matters
 

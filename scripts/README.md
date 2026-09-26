@@ -142,46 +142,6 @@ technical reason.
 
 ## Release
 
-The coordinated Longhorn version lives in `Cargo.toml`
-`workspace.package.version`. Proofs and boundary tests read that field.
-Do not hand-edit version literals in `scripts/` or the adapter peers.
+The release procedure is owned by
+[`docs/knowledge/contracts/release.md`](../docs/knowledge/contracts/release.md).
 
-```sh
-effigy release:bump -- 0.2.2
-```
-
-That command updates the workspace version and internal pins, the three npm
-versions and adapter peers, the agent-control skill stamp, promotes
-`[Unreleased]` to a dated heading, runs `sync:prototype-locks`, and
-regenerates the API reference. It is idempotent at the same version and
-refuses a non-increasing version. A lock line other than a Longhorn
-path-package version is a stop. Do not commit a scratch bump used only as
-evidence; land the bump as its own reviewable PR.
-
-Then:
-
-1. Open the version-bump PR and wait for exact-commit CI.
-2. `effigy ci:rehearse` on that commit.
-3. `effigy release status --check-gates` — read the gate lines. A nonzero
-   exit on an empty `[Unreleased]` is a known Effigy gap; the gate results
-   are the evidence.
-4. Dry run through `release.yml`.
-5. Tag and publish through the release workflow. Do not tag from the bump
-   command.
-
-`effigy release:gates` is `[release.gates]` minus `workspace`, in
-declaration order: private-candidate, advisories, rustdoc, prototypes,
-floor, source. The runner already ran `effigy qa`. `check:release-gates`
-fails if the two lists drift. `effigy test:release-tooling` covers the
-bump and the alignment check.
-
-Effigy `release prepare` still cannot see the eight
-`prototypes/*/Cargo.lock` files. `release:bump` runs
-`effigy sync:prototype-locks` as the pre-gate rewrite: Longhorn
-path-package versions only, then `cargo metadata --locked --offline`.
-`cargo update` is not used. Do not fold that rewrite into
-`[release.gates]` or weaken `check:prototypes --locked`.
-
-When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the
-same change before commit. The floor gate is what unlocks MSRV-gated
-Clippy lints; do not leave that debt for release prep.

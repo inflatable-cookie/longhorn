@@ -4,7 +4,8 @@
 
 The packaged application that produced this evidence is gone. It could not be
 built (no icon, and no documented command built it), nothing invoked it, and
-its findings were already recorded in `docs/logs/2026-08/`.
+its findings were already recorded in the August 2026 delivery logs
+(Git history).
 
 What stays is `evidence/`, and it is **not** inert:
 `scripts/verify-native-content-artifacts.ts` reads `inventory.json` and the

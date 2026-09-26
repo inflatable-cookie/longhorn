@@ -35,7 +35,7 @@ Set `KEEP_GREENFIELD_COMPOSITION_PROOF=1` to retain the disposable artifact
 workspace after a failed or exploratory run. No package is published.
 
 The exact package graphs, extension points, and storage/startup boundaries are
-recorded in `docs/architecture/greenfield-composition-matrix.md`.
+recorded in `docs/knowledge/architecture/greenfield-composition-matrix.md`.
 
 Adoption starts at the checked
 [package-selection guide](../../docs/guides/package-selection.md). Storage

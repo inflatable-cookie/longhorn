@@ -1,0 +1,13 @@
+# Concepts that no longer exist. The retired-concepts check fails on any listed
+# term, path or config key found outside `allow`. Run it with
+# `effigy skill run northstar-lean/retired-concepts`.
+
+[[retired]]
+id = "northstar-process-records"
+retired = "2026-09-26"
+replacement = "Knowledge in docs/knowledge/, intent in docs/plan.md; tasks, briefs, status and outcomes live in Queue."
+owner = "docs/knowledge/README.md"
+terms = ["roadmap card", "generation index", "lifecycle record", "northstar:lifecycle", "chatterbox handoff", "next-task pointer", "roadmap front door"]
+paths = [".northstar/lifecycle/", "docs/roadmaps/", "docs/handoffs/", "docs/logs/", "docs/research/", "docs/specs/", "docs/vision/", "docs/policy/"]
+config_keys = ["northstar/queue:hook", "paseo.queue.control.v4", "qa:northstar:roadmap-suite", "qa:northstar:spine", "docs_policy.indexes.vision"]
+allow = ["CHANGELOG.md", "docs/knowledge/retired.toml"]

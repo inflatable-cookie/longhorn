@@ -12,8 +12,8 @@ it out of this register.
 Statuses:
 
 - `held-for-consumer` — built against the contract, awaiting a named
-  consumer or card to implement against.
-- `planning-evidence` — proved, but no consumer or card is named yet.
+  consumer to implement against.
+- `planning-evidence` — proved, but no consumer is named yet.
 
 Rules enforced by `scripts/verify-held-surface.ts`:
 
@@ -21,7 +21,9 @@ Rules enforced by `scripts/verify-held-surface.ts`:
    [generated API surface](api-surface.md).
 2. Held entries are never presented as selectable in the
    [adoption guides](../guides/README.md); the guides link here instead.
-3. Moving a surface to selectable is a doc + gate change in one batch.
+3. Awaits and Trigger name a consumer need or product choice, never a task
+   or card ID.
+4. Moving a surface to selectable is a doc + gate change in one batch.
 
 ## Register
 
@@ -29,15 +31,13 @@ Rules enforced by `scripts/verify-held-surface.ts`:
 | --- | --- | --- | --- |
 | age encryption (`longhorn-config-age`, no `bindings` feature) | held-for-consumer | a consumer that needs encrypted backups | contract 004 already documents optional age v1; integration seam = `ConfigStore` capture/restore hooks plus archive inspection. Until then, composition is the documented two-call flow: encrypt via config-age, decrypt and inspect via config-age, then hand plaintext to `longhorn-config`. |
 | bridge contract machinery (`longhorn-bridge`: lifecycle machine, replay ledger, ordering, supervision, jobs) | held-for-consumer | a bridge consumer with a real service topology | the optional-server shape needs supervision or ordered delivery. Until then the surface is exercised by the crate's own contract tests; supervision is a stub on both sides of the renderer boundary. |
-| fork-tree optional surface (`longhorn-history-tree` branch clients, checkpoints, dense persistence; `@inflatable-cookie/longhorn/history-tree` fork projections) | planning-evidence | the recorded g01.017 adoption decision | the history runway promotes the tree when a consumer needs divergent history. The linear slice is the shipped surface; the tree crate is selectable only as evidence. |
+| fork-tree optional surface (`longhorn-history-tree` branch clients, checkpoints, dense persistence; `@inflatable-cookie/longhorn/history-tree` fork projections) | planning-evidence | a consumer that needs divergent history | promote the tree when that consumer is named. The linear slice is the shipped surface; the tree crate is selectable only as evidence. |
 | layout bounded replay (`BoundedLayoutReplayStore`, `apply_with_replay`) | planning-evidence | a host that needs replay at the mutation boundary | tested since the layout-suite port (2026-08-15); no production caller exists. Contract 002's absorbed layout section carries the mechanism. |
 | `MilestoneRetention` (backup retention age buckets) | planning-evidence | a retention product choice | contract 004 documents count/age tiers; milestone buckets are uncontracted. Contract or retire with the retention consumer. |
 
-Application update and licensing graduated from this register on 2026-08-15:
-g02.009 and g02.010 delivered their crates, renderer surfaces, Tauri hosts,
-and packaged proofs, so both are ordinary selectable systems. This file's
-verifier fails any row whose named trigger closes — the update and licensing
-rows were caught exactly that way.
+Application update and licensing graduated from this register on 2026-08-15,
+when their crates, renderer surfaces, Tauri hosts and packaged proofs landed.
+Both are ordinary selectable systems.
 
 ## Assessed And Retained
 
@@ -49,5 +49,5 @@ internal and zero external callers — they are fully dead public API, not
 ConfigStore-internal helpers. Narrowing them to `pub(crate)` surfaces
 dead-code lints, and deleting them would remove documented migration
 behavior. They remain public, unused, and harmless.
-Decision deferred: contract them with a real caller, or delete when the
-retention/transition runway next touches them.
+Decision deferred: contract them with a real caller, or delete when retention or
+storage-transition work next touches them.
