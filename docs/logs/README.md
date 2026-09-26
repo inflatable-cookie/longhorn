@@ -8,6 +8,7 @@ start with the [adoption guides](../guides/README.md) instead.
 
 ### 2026-09-26
 
+- [Agent File Input](2026-09/26-agent-file-input.md)
 - [Release Version Sweep](2026-09/26-release-version-sweep.md)
 - [Rust-side Agent Selection](2026-09/26-rust-side-agent-selection.md)
 - [Longhorn 0.2.1 Publication](2026-09/26-longhorn-0-2-1-publication.md)

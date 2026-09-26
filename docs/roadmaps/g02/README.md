@@ -49,7 +49,7 @@
 | [g02.045](045-agent-answerable-file-selection.md) | complete — in `0.2.1` | agent-answerable Tauri `open`/folder/`save` |
 | [g02.046](046-agent-selection-release-candidate.md) | complete — PR #35; `0.2.1` published 2026-09-26 | reviewed release candidate for g02.045 |
 | [g02.047](047-rust-side-agent-selection.md) | complete — PR #36; Soundcheck adoption pending | Rust-side pickers answerable over MCP via consumer-carried origin |
-| [g02.048](048-agent-file-input.md) | in Queue delivery | HTML file input answered with inline bytes |
+| [g02.048](048-agent-file-input.md) | complete — PR #38; Soundcheck adoption pending | HTML file input answered with inline bytes |
 | [g02.049](049-release-version-sweep.md) | complete — PR #37 | one-command version bump; `release:gates` aligned |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
@@ -59,14 +59,11 @@ remain uncommitted.
 
 ### Current Ready Frontier
 
-Operator-confirmed 2026-09-26. `g02.047` (PR #36) and `g02.049` (PR #37)
-merged. `g02.048` is in Queue delivery. Contract 022 carries the
-2026-09-26 amendment for both picker lanes. Soundcheck is their live
-acceptance target, consumer-owned after Longhorn merges on fixtures.
-
-Longhorn `0.2.1` published 2026-09-26 — see the
-[publication log](../../logs/2026-09/26-longhorn-0-2-1-publication.md).
-Figmatic's repoint to exact pins is consumer-owned.
+No lane is ready. The 2026-09-26 lanes merged: `g02.047` Rust-side agent
+selection (PR #36), `g02.048` agent file input (PR #38), and `g02.049` release
+version sweep (PR #37). The picker work is unreleased; the next version bump
+uses `effigy release:bump`. Soundcheck adoption of both picker routes is
+consumer-owned. Figmatic's repoint to `0.2.1` is consumer-owned.
 
 ## Release Sequence
 

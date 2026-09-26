@@ -5,6 +5,18 @@ they hit a solvable hurdle; they do not stop the current task to fix one.
 
 ## Open
 
+### [ ] `set_file_input` size cap is checked only at the MCP edge — 2026-09-26
+- Friction: g02.048 review found `SetFileInputRequest::validate` (8 MiB cap) runs in `SetFileInputArgs::into_request`, not in `TauriControlHandler::set_file_input`; its doc comment claims both. The shim re-checks names, base64, and empty lists, but not size.
+- Impact: none over MCP or the stdio carrier; a direct in-process `ControlHandler` caller skips the cap.
+- Plausible fix: call `request.validate()` in the Tauri handler, or correct the doc comment.
+- Surface: `crates/longhorn-agent-control/src/tools.rs`; `crates/longhorn-tauri-agent-control/src/handler.rs`.
+
+### [ ] The Tauri shim copy has no drift check — 2026-09-26
+- Friction: `crates/longhorn-tauri-agent-control/src/agent_control_shim.js` is a hand-synced copy of `packages/longhorn/src/agent-control/shim.ts`. g02.048's reviewer compared the new functions by hand.
+- Impact: a TS shim fix can pass `bun test` and never reach the webview.
+- Plausible fix: generate the JS from the TS source, or add a `qa` check that fails on divergence.
+- Surface: both shim files; `effigy.toml` `qa`.
+
 ### [ ] `release:bump` can under-report or partly apply — 2026-09-26
 - Friction: g02.049 review found `bumpRelease().changed` omits lock rewrites, `bumpPackageManifest` silently skips a manifest whose `"version"` line changes shape, and a failure after the tracked-file writes leaves a partly bumped tree.
 - Impact: a bump can report idempotent while a lock moved, or miss a package after a reformat; recovery is a manual revert.

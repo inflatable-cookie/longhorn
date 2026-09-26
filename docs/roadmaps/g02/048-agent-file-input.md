@@ -2,7 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-26
-State: ready for Queue delivery — dispatch after g02.047 merges
+State: complete — PR #38, `a25b3fe6`; Soundcheck adoption pending (consumer-owned)
 Governing refs: contract 022 (`Tool Surface`, `Agent-Answerable Selection`,
 amended 2026-09-26)
 Depends on: g02.047 (shared shim, tool catalogue, and skill paths)
@@ -80,3 +80,10 @@ Stop if WKWebView refuses `files` assignment from a constructed
 `DataTransfer`, if `change` handlers cannot read the content, or if the route
 would need filesystem access. Return the finding with the evidence to
 Chatterbox.
+
+## Evidence
+
+Merged through [PR #38](https://github.com/inflatable-cookie/longhorn/pull/38)
+at `a25b3fe6`; Queue closeout `d2e481f9`. The
+[delivery log](../../logs/2026-09/26-agent-file-input.md) records the WKWebView
+probe, fixtures, review, and limits.

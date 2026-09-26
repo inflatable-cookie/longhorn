@@ -284,7 +284,11 @@ fixtures, human/native routing, and feature-state release-absence checks pass
 Figmatic g01.052 proved the fresh-leaf New project flow on its retained branch
 against source-linked Longhorn `db0b6baf`: semantic click, pending directory
 request, MCP answer, and project view unfocused. Published in `0.2.1`
-(2026-09-26); Figmatic's exact-pin continuation is consumer-owned. The existing proof list
+(2026-09-26); Figmatic's exact-pin continuation is consumer-owned.
+The 2026-09-26 amendment is implemented, unreleased: g02.047 Rust-side
+selection ([log](../logs/2026-09/26-rust-side-agent-selection.md)) and g02.048
+`set_file_input` ([log](../logs/2026-09/26-agent-file-input.md)). Soundcheck's
+live proof of both is consumer-owned and pending. The existing proof list
 above predates this amendment; the [implementation log](../logs/2026-09/25-agent-answerable-selection-implementation.md)
 owns the source-linked evidence.
 
