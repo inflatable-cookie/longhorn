@@ -13,6 +13,9 @@ Updated: 2026-09-26
      (no known consumer still uses it);
    - a local guard: `qa` fails when a release gate needs a tool `release.yml`
      does not install.
+   - a full refresh of every dependency to its newest compatible release,
+     in one sweep (operator ruling 2026-09-26). Poodle refreshes and
+     releases first, so the sweep takes the new Poodle pin.
 
 ## Not now
 
