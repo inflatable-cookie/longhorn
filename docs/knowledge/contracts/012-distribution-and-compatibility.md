@@ -21,11 +21,21 @@ policy remain consumer-owned.
 - TypeScript packages target Svelte 5 and Tauri 2 where those peers apply.
 - Svelte, Poodle, and Tauri are peer dependencies of adapters, never hidden
   duplicate runtimes.
-- The initial Svelte compatibility floor is `5.38.6`; a package must prove its
-  declared upper bound instead of inheriting the newest donor version.
+- Svelte peer range: `>=5.56.8 <6` from the release after `0.2.2`, matching
+  Poodle's own Svelte peer (operator ruling 2026-09-26). Longhorn moves its
+  range to meet Poodle, not the reverse: prefer newer releases and never ask
+  Poodle to lower its floor. `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`,
+  which meets Poodle only at `5.56.8`.
 - Poodle adapter work pins one exact published Poodle version. The preview era
   -- one exact source commit plus a packable artifact, claiming no range --
   ended when Poodle released publicly; see the checkpoint below.
+- Internal npm dependencies and adapter peers pin the exact Longhorn version,
+  never `workspace:*`: consumer `file:` installs resolve these packages
+  outside the workspace, where `workspace:*` cannot resolve (decided
+  2026-08-03). `effigy release:bump` moves them.
+- Generated Tauri `gen/schemas` stay committed (decided 2026-08-14): the
+  example capability files reference `../gen/schemas/desktop-schema.json`
+  through `$schema`.
 - Package names are fixed once published. The `@inflatable-cookie` scope was
   claimed on 2026-08-09, and the three TypeScript packages publish from
   `0.1.0` (g02.014); consumers migrate to the published versions at their next

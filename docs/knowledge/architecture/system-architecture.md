@@ -295,7 +295,7 @@ pruning, opaque checkpoints, independent migration, and credible document and
 Loophole-shaped costs. Card 069 promotes those semantics. Card 070 implements
 the production tree identity, topology, branch refs, and divergent-record
 foundation. Card 071 adds bounded mixed LCA navigation through one atomic
-consumer transaction, current/named/pinned protection, deterministic leaf
+consumer transaction, current/pinned protection, deterministic leaf
 pruning, and opaque checkpoint replay accounting. Card 072 adds a strict
 dense graph envelope, independent structural and payload migration, explicit
 byte bounds, and complete pre-admission validation.

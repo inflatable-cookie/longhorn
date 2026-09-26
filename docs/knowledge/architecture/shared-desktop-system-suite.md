@@ -71,7 +71,7 @@ proved that contract.
 - Card 069 promotes those semantics. Card 070 implements the optional
   production Rust graph foundation without publishing the prototype or making
   a compatibility claim.
-- Card 071 implements bounded atomic LCA navigation, current/named/pinned
+- Card 071 implements bounded atomic LCA navigation, current/pinned
   protection, deterministic leaf pruning, and opaque checkpoint replay cost.
 - Card 072 implements the strict dense graph envelope, independent exact-step
   structural/payload migration, and complete validation before load returns.

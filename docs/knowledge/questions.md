@@ -21,3 +21,25 @@ reads for file inputs.
 Status: answered 2026-09-22
 Answer: No. [contract 023](contracts/023-production-contextual-agent-tool-boundary.md)
 withdrawal; the contract 022 opt-in server is the production MCP.
+
+## Q-004 — Should the Svelte tier import or generate Poodle spec shapes?
+
+Status: open
+Context: the Svelte tier re-declares Poodle's `StatusTone` and `ProgressSpec`
+as `OperationStatusTone` and `OperationProgressView`, so a new Poodle member
+does not reach the Svelte projector. The 2026-08-09 recommendation was to
+import from `@inflatable-cookie/poodle-svelte` where the type is exported,
+and generate from `poodle-specs` where it is not. Poodle-side work; it blocks
+nothing. Owner file:
+[cross-backend projection](architecture/cross-backend-projection.md).
+
+## Q-005 — Should the fork tree leave the held-surface register?
+
+Status: open
+Context: the [held-surface register](../reference/held-surface.md) lists
+`longhorn-history-tree` and `@inflatable-cookie/longhorn/history-tree` as
+planning evidence awaiting "a consumer that needs divergent history". Loophole
+already uses the tree in production (`apps/desktop/src-tauri/src/history_host.rs`).
+Graduating it makes it selectable in the adoption guides and changes
+`scripts/verify-held-surface.ts`, so it needs an operator call.
+
