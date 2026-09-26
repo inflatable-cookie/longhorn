@@ -11,3 +11,12 @@ terms = ["roadmap card", "generation index", "lifecycle record", "northstar:life
 paths = [".northstar/lifecycle/", "docs/roadmaps/", "docs/handoffs/", "docs/logs/", "docs/research/", "docs/specs/", "docs/vision/", "docs/policy/"]
 config_keys = ["northstar/queue:hook", "paseo.queue.control.v4", "qa:northstar:roadmap-suite", "qa:northstar:spine", "docs_policy.indexes.vision"]
 allow = ["CHANGELOG.md", "docs/knowledge/retired.toml"]
+
+[[retired]]
+id = "papercuts-file"
+retired = "2026-09-26"
+replacement = "Papercuts live in Queue: file with papercut.add; the planner promotes or closes them."
+owner = "AGENTS.md"
+terms = ["append to PAPERCUTS.md", "see PAPERCUTS.md"]
+paths = ["PAPERCUTS.md", "*/PAPERCUTS.md"]
+allow = ["CHANGELOG.md", "docs/knowledge/retired.toml"]

@@ -318,7 +318,7 @@ async function verifyReceipt(report: {
 // mean Longhorn's own suite fails whenever anyone has uncommitted work — in
 // Longhorn during ordinary development, or worse, in Poodle, which would make
 // this repository's gate depend on a sibling repository's working tree.
-// PAPERCUTS already records that coupling for Card 149's receipt.
+// The same coupling was recorded against Card 149's receipt.
 //
 // The composition claims are computed from whatever source is present, so they
 // remain true either way. The report says whether the sources it built from
