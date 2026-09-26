@@ -434,8 +434,8 @@ pub struct SetFileInputRequest {
 impl SetFileInputRequest {
     /// Checks names, base64, non-empty list, and the decoded 8 MiB cap.
     ///
-    /// Structural serde still admits an empty list; the MCP edge and host
-    /// call this before dispatch.
+    /// Structural serde still admits an empty list. The MCP argument parser
+    /// and every host `ControlHandler` call this before dispatch.
     pub fn validate(&self) -> Result<(), String> {
         if self.files.is_empty() {
             return Err("set_file_input requires at least one file".to_owned());

@@ -379,6 +379,9 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         &self,
         request: SetFileInputRequest,
     ) -> Result<ActionReceipt, ToolError> {
+        request
+            .validate()
+            .map_err(|message| ToolError::Unsupported { message })?;
         let (_, _, value) = self
             .eval_js(
                 &request.window,
@@ -465,5 +468,108 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
                 message: format!("window {:?} resize failed: {error}", request.window),
             })?;
         Ok(ActionReceipt {})
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bridge::NoCommandBridge;
+    use longhorn_agent_control::{ElementRef, FileInputFile, MAX_FILE_INPUT_BYTES};
+    use tauri::WebviewWindowBuilder;
+
+    fn zeros_base64(len: usize) -> String {
+        let full_groups = len / 3;
+        let rem = len % 3;
+        let mut encoded = "AAAA".repeat(full_groups);
+        match rem {
+            1 => encoded.push_str("AA=="),
+            2 => encoded.push_str("AAA="),
+            _ => {}
+        }
+        encoded
+    }
+
+    fn file_request(files: Vec<FileInputFile>) -> SetFileInputRequest {
+        SetFileInputRequest {
+            window: None,
+            webview: None,
+            element: ElementRef::new("e1").unwrap(),
+            files,
+        }
+    }
+
+    fn handler(
+        app: &tauri::App<tauri::test::MockRuntime>,
+    ) -> TauriControlHandler<tauri::test::MockRuntime> {
+        TauriControlHandler::new(
+            app.handle().clone(),
+            Arc::new(NoCommandBridge),
+            BTreeSet::new(),
+        )
+    }
+
+    #[tokio::test]
+    async fn set_file_input_refuses_over_cap_before_webview() {
+        let app = tauri::test::mock_app();
+        WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+            .build()
+            .unwrap();
+        let error = handler(&app)
+            .set_file_input(file_request(vec![FileInputFile {
+                name: "blob.bin".to_owned(),
+                media_type: None,
+                content_base64: zeros_base64(MAX_FILE_INPUT_BYTES + 1),
+            }]))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            error,
+            ToolError::Unsupported {
+                message: "set_file_input decoded total exceeds 8 MiB".to_owned(),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn set_file_input_refuses_invalid_payloads_before_webview() {
+        let app = tauri::test::mock_app();
+        WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+            .build()
+            .unwrap();
+        let cases = [
+            (Vec::new(), "at least one file"),
+            (
+                vec![FileInputFile {
+                    name: String::new(),
+                    media_type: None,
+                    content_base64: zeros_base64(3),
+                }],
+                "non-empty",
+            ),
+            (
+                vec![FileInputFile {
+                    name: "note.txt".to_owned(),
+                    media_type: None,
+                    content_base64: "@@@".to_owned(),
+                }],
+                "base64",
+            ),
+        ];
+        for (files, needle) in cases {
+            let error = handler(&app)
+                .set_file_input(file_request(files))
+                .await
+                .unwrap_err();
+            match error {
+                ToolError::Unsupported { message } => {
+                    assert!(
+                        message.contains(needle),
+                        "expected {needle:?} in {message:?}"
+                    );
+                }
+                other => panic!("expected Unsupported, got {other:?}"),
+            }
+        }
     }
 }

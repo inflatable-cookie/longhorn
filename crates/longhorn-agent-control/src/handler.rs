@@ -62,7 +62,8 @@ pub trait ControlHandler: Send + Sync + 'static {
     /// Supply inline file content to an HTML `<input type="file">`.
     ///
     /// The agent is the byte source: the request carries name, optional
-    /// media type, and base64 content. There is no path argument.
+    /// media type, and base64 content. There is no path argument. Hosts
+    /// call [`SetFileInputRequest::validate`] before any page effect.
     fn set_file_input(
         &self,
         request: SetFileInputRequest,
