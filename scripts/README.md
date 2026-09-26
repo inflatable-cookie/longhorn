@@ -118,7 +118,7 @@ defects from local `qa` during the first release runs:
 
 1. `check:repo-containment` + `check:consumer-isolation` — no sibling path
 2. `check:bun-links` — no active bun global link; registered ones are reported
-3. `check:runner-tools` — scripts must not invoke `rg`; a `release:gates` cargo plugin must be installed in `release.yml` before `effigy release:gates`
+3. `check:runner-tools` — scripts must not invoke `rg`; a `release:gates` cargo plugin must be installed in the same `release.yml` job, before `effigy release:gates`
 4. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
 5. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
    and a cold cache

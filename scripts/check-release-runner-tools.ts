@@ -7,8 +7,9 @@
 //
 // Tools are derived from gate commands (`cargo deny` → cargo-deny), not a
 // hand-kept required-tool list. A comment or step name is not an install.
-// Only unconditional steps before `effigy release:gates` count: an install
-// after the gates run is invisible to them.
+// Only unconditional steps in the same GitHub job, before
+// `effigy release:gates`, count. Each job has its own runner, so an install
+// in another job, after the gates run, or behind `if:`, is invisible to them.
 
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -176,14 +177,14 @@ export function toolsNeededByCommand(command: string): ToolNeed[] {
 }
 
 export function parseWorkflowInstalls(yaml: string): WorkflowInstalls {
-  const via = new Map<string, string>();
-  const add = (tool: string, source: string) => {
-    if (!via.has(tool)) via.set(tool, source);
-  };
-  const steps = parseWorkflowSteps(yaml);
-  let foundGates = false;
-  for (const jobSteps of groupStepsByJob(steps)) {
+  const perGatesJob: Array<Map<string, string>> = [];
+  for (const jobSteps of groupStepsByJob(parseWorkflowSteps(yaml))) {
+    const jobVia = new Map<string, string>();
+    const add = (tool: string, source: string) => {
+      if (!jobVia.has(tool)) jobVia.set(tool, source);
+    };
     let seenGates = false;
+    let jobHasGates = false;
     for (const step of jobSteps) {
       if (seenGates) continue;
       const conditional = step.ifCondition !== null;
@@ -199,7 +200,7 @@ export function parseWorkflowInstalls(yaml: string): WorkflowInstalls {
         const line = stripYamlComment(raw).trim();
         if (isReleaseGatesCommand(line)) {
           seenGates = true;
-          foundGates = true;
+          jobHasGates = true;
           break;
         }
         if (conditional) continue;
@@ -208,9 +209,14 @@ export function parseWorkflowInstalls(yaml: string): WorkflowInstalls {
         }
       }
     }
+    if (jobHasGates) perGatesJob.push(jobVia);
   }
-  if (!foundGates) {
+  if (perGatesJob.length === 0) {
     throw new Error(`${WORKFLOW} has no step that runs effigy release:gates`);
+  }
+  const via = new Map<string, string>();
+  for (const [tool, source] of perGatesJob[0]!) {
+    if (perGatesJob.every((job) => job.has(tool))) via.set(tool, source);
   }
   return { tools: new Set(via.keys()), via };
 }
@@ -396,9 +402,9 @@ export function formatReleaseRunnerToolsFailure(result: ReleaseRunnerToolsResult
   );
   return (
     `Release gates need tools the release runner does not install:\n\n${lines.join("\n")}\n\n` +
-    `${WORKFLOW} must install each named tool in an unconditional step before\n` +
-    "`effigy release:gates`. A comment, a step name, or an install after the\n" +
-    "gates run is not an install."
+    `${WORKFLOW} must install each named tool in an unconditional step of the\n` +
+    "same job, before `effigy release:gates`. A comment, a step name, another\n" +
+    "job, or an install after the gates run is not an install."
   );
 }
 

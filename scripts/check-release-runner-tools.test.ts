@@ -92,6 +92,21 @@ ${setup}
           cargo install cargo-deny --locked --version 0.19.4
 `;
 
+const workflowDenyOtherJob = `
+name: Release
+jobs:
+  install:
+    steps:
+${setup}
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked --version 0.19.4
+  release:
+    steps:
+${setup}
+      - name: Release gates
+        run: effigy release:gates
+`;
+
 describe("release-gate runner tools", () => {
   test("cargo deny needs cargo-deny; stock cargo subcommands do not", () => {
     expect(toolsNeededByCommand("cargo deny check advisories").map((item) => item.tool)).toEqual([
@@ -148,6 +163,16 @@ describe("release-gate runner tools", () => {
     expect(parseWorkflowInstalls(workflowDenyAfterGates).tools.has("cargo-deny")).toBe(false);
     expect(parseWorkflowInstalls(workflowDenyConditional).tools.has("cargo-deny")).toBe(false);
     expect(parseWorkflowInstalls(workflowDenySameScriptAfter).tools.has("cargo-deny")).toBe(false);
+  });
+
+  test("cargo-deny install in another job does not satisfy the advisories gate", async () => {
+    const other = await writeRepo(gates, workflowDenyOtherJob);
+    const result = checkReleaseRunnerTools(other);
+    const denied = result.failures.filter((item) => item.tool === "cargo-deny");
+    expect(denied.length).toBe(1);
+    expect(denied[0]?.gate).toBe("advisories");
+    expect(parseWorkflowInstalls(workflowDenyOtherJob).tools.has("cargo-deny")).toBe(false);
+    expect(formatReleaseRunnerToolsFailure(result)).toContain("cargo-deny");
   });
 
   test("live catalog matches: cargo-deny is installed, qa passes the check", () => {
