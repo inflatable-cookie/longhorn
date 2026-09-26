@@ -93,9 +93,12 @@ commands from another repository.
   `cargo check --workspace` before committing.
 - During a redaction sweep, treat `scripts/` as executable code. A placeholder
   that reads well in prose can be a runtime failure.
-- When a small, solvable execution hurdle appears, append a terse friction,
-  impact, plausible fix, and affected surface to `PAPERCUTS.md` before
-  continuing. Do not stop or fix it unless the current scope includes the fix.
+- When a small, solvable execution hurdle appears, file it in Queue as a
+  papercut and carry on: from `~/Dev/projects/paseo-northstar-queue`, run
+  `node bin/queue-cli.mjs papercut.add payload.json` with
+  `repository: {origin: "inflatable-cookie/longhorn", path}`, `title`,
+  `happened`, `impact`, and optional `area` and `fix`. Do not stop or fix it
+  unless the current scope includes the fix.
 
 ## Validate
 

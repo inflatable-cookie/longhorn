@@ -2,11 +2,12 @@
 // Coordinated Longhorn version bump. One command updates the workspace
 // version, internal pins, npm versions and adapter peers, the agent-control
 // skill stamp, the changelog heading, excluded prototype locks, and the
-// generated API reference. It refuses a non-increasing version, is
-// idempotent at the same version, and fails if a lock line other than a
-// Longhorn path-package version moved.
+// generated API reference. It reports every file it changed, including lock
+// rewrites. It refuses a non-increasing version, is idempotent at the same
+// version, and fails if a lock line other than a Longhorn path-package
+// version moved. A failure after any write restores the files it touched.
 
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { compareSemver, parseSemver, parseWorkspacePackageVersion } from "./longhorn-version.ts";
@@ -55,7 +56,11 @@ export function replaceLonghornPathPins(manifest: string, version: string): stri
 }
 
 export function bumpPackageManifest(text: string, version: string): string {
-  const next = text.replace(/^  "version": "[^"]+",/m, `  "version": "${version}",`);
+  const versionLine = /^  "version": "[^"]+",/m;
+  if (!versionLine.test(text)) {
+    throw new Error('package.json version line must be of the form `  "version": "...",`');
+  }
+  const next = text.replace(versionLine, `  "version": "${version}",`);
   return next.replace(
     new RegExp(`("${LONGHORN_PEER.replace("/", "\\/")}": ")[^"]+(")`, "g"),
     `$1${version}$2`,
@@ -102,6 +107,41 @@ async function writeIfChanged(path: string, next: string): Promise<boolean> {
   return true;
 }
 
+type SnapshottedFile = {
+  relative: string;
+  path: string;
+  content: string | null;
+};
+
+async function lockRelatives(repoRoot: string): Promise<string[]> {
+  const prototypeLocks: string[] = [];
+  const entries = await readdir(join(repoRoot, "prototypes"), { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    if (entry.isDirectory()) prototypeLocks.push(`prototypes/${entry.name}/Cargo.lock`);
+  }
+  prototypeLocks.sort();
+  return ["Cargo.lock", ...prototypeLocks];
+}
+
+async function snapshotFiles(repoRoot: string, relatives: string[]): Promise<SnapshottedFile[]> {
+  const unique = [...new Set(relatives)];
+  return Promise.all(unique.map(async (relative) => {
+    const path = join(repoRoot, relative);
+    const content = await readFile(path, "utf8").catch(() => null);
+    return { relative, path, content };
+  }));
+}
+
+async function restoreFiles(snapshots: SnapshottedFile[]): Promise<void> {
+  for (const file of snapshots) {
+    if (file.content === null) {
+      await unlink(file.path).catch(() => undefined);
+    } else {
+      await writeFile(file.path, file.content);
+    }
+  }
+}
+
 export async function bumpRelease(options: ReleaseBumpOptions): Promise<ReleaseBumpResult> {
   parseSemver(options.version);
   const repoRoot = options.repoRoot ?? defaultRepoRoot;
@@ -113,52 +153,79 @@ export async function bumpRelease(options: ReleaseBumpOptions): Promise<ReleaseB
     throw new Error(`refusing non-increasing version ${version} (current ${previousVersion})`);
   }
 
-  const changed: string[] = [];
-  const cargo = replaceLonghornPathPins(
-    replaceWorkspacePackageVersion(await readFile(cargoPath, "utf8"), version),
-    version,
+  const planned = new Map<string, string>();
+  planned.set(
+    "Cargo.toml",
+    replaceLonghornPathPins(
+      replaceWorkspacePackageVersion(await readFile(cargoPath, "utf8"), version),
+      version,
+    ),
   );
-  if (await writeIfChanged(cargoPath, cargo)) changed.push("Cargo.toml");
 
   const packageDirs = (await readdir(join(repoRoot, "packages"), { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
   for (const directory of packageDirs) {
-    const path = join(repoRoot, "packages", directory, "package.json");
-    const text = await readFile(path, "utf8").catch(() => null);
+    const relative = `packages/${directory}/package.json`;
+    const text = await readFile(join(repoRoot, relative), "utf8").catch(() => null);
     if (text === null) continue;
-    if (await writeIfChanged(path, bumpPackageManifest(text, version))) {
-      changed.push(`packages/${directory}/package.json`);
+    try {
+      planned.set(relative, bumpPackageManifest(text, version));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`${relative}: ${message}`);
     }
   }
 
-  const skillPath = join(repoRoot, "skills/agent-control/SKILL.md");
-  if (await writeIfChanged(skillPath, bumpSkillStamp(await readFile(skillPath, "utf8"), version))) {
-    changed.push("skills/agent-control/SKILL.md");
+  planned.set(
+    "skills/agent-control/SKILL.md",
+    bumpSkillStamp(await readFile(join(repoRoot, "skills/agent-control/SKILL.md"), "utf8"), version),
+  );
+  planned.set(
+    "CHANGELOG.md",
+    promoteChangelog(await readFile(join(repoRoot, "CHANGELOG.md"), "utf8"), version, date),
+  );
+
+  const snapshots = await snapshotFiles(repoRoot, [
+    ...planned.keys(),
+    ...(await lockRelatives(repoRoot)),
+    "docs/reference/api-surface.md",
+  ]);
+
+  try {
+    for (const [relative, next] of planned) {
+      await writeIfChanged(join(repoRoot, relative), next);
+    }
+
+    const syncLocks = options.syncLocks ?? ((root: string) => syncPrototypeLocks(root));
+    await syncLocks(repoRoot);
+
+    const regenerate = options.regenerateApiReference ?? defaultRegenerateApiReference;
+    await regenerate(repoRoot);
+
+    const changed: string[] = [];
+    for (const file of snapshots) {
+      const next = await readFile(file.path, "utf8").catch(() => null);
+      if (next !== file.content) changed.push(file.relative);
+    }
+
+    return {
+      previousVersion,
+      version,
+      changed,
+      idempotent: compareSemver(version, previousVersion) === 0 && changed.length === 0,
+    };
+  } catch (error) {
+    try {
+      await restoreFiles(snapshots);
+    } catch (restoreError) {
+      const first = error instanceof Error ? error.message : String(error);
+      const second = restoreError instanceof Error ? restoreError.message : String(restoreError);
+      throw new Error(`release bump failed (${first}); restore failed (${second})`);
+    }
+    throw error;
   }
-
-  const changelogPath = join(repoRoot, "CHANGELOG.md");
-  if (await writeIfChanged(changelogPath, promoteChangelog(await readFile(changelogPath, "utf8"), version, date))) {
-    changed.push("CHANGELOG.md");
-  }
-
-  const syncLocks = options.syncLocks ?? ((root: string) => syncPrototypeLocks(root));
-  await syncLocks(repoRoot);
-
-  const regenerate = options.regenerateApiReference ?? defaultRegenerateApiReference;
-  const apiPath = join(repoRoot, "docs/reference/api-surface.md");
-  const beforeApi = await readFile(apiPath, "utf8").catch(() => "");
-  await regenerate(repoRoot);
-  const afterApi = await readFile(apiPath, "utf8").catch(() => "");
-  if (beforeApi !== afterApi) changed.push("docs/reference/api-surface.md");
-
-  return {
-    previousVersion,
-    version,
-    changed,
-    idempotent: compareSemver(version, previousVersion) === 0 && changed.length === 0,
-  };
 }
 
 if (import.meta.main) {

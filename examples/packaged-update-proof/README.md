@@ -56,5 +56,5 @@ relaunch belongs to the host. See contract 018.
 ## Not in `effigy qa`
 
 It needs a packaged application, which the gate does not build. Same class as
-`prototypes/gpui-windowing` — see the open papercut about heavyweight
-out-of-gate evidence.
+`prototypes/gpui-windowing` — heavyweight evidence that stays out
+of the gate.
