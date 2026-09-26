@@ -9,7 +9,7 @@ crate.
 
 The authority also plans bounded mixed undo/redo routes through lowest common
 ancestors, commits them only through one consumer atomic transaction, protects
-current/named/pinned lineages during deterministic leaf pruning, and accounts
+current/pinned lineages during deterministic leaf pruning, and accounts
 for replay after bounded opaque consumer checkpoints.
 
 Graph persistence uses a strict `longhorn.history-tree` envelope, deterministic

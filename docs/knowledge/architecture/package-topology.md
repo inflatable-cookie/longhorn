@@ -208,7 +208,7 @@ autosave, replay, and project versions remain consumer authority.
 `longhorn-history-tree` is a separate downward-only package. Cards 070-072 own
 bounded branch identity and metadata, immutable single-parent nodes, canonical
 child indexes, checked complete-state admission, divergent record, atomic LCA
-navigation, current/named/pinned lineage protection, deterministic leaf
+navigation, current/pinned lineage protection, deterministic leaf
 pruning, opaque checkpoint replay accounting, and a deterministic dense graph
 envelope with independent structural/payload migration. The persistence API is
 bytes-only and owns no storage or durability. Renderer clients and release

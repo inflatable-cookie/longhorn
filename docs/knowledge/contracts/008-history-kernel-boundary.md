@@ -169,7 +169,14 @@ Linear history supports finite:
 - navigation batch size
 
 Limit changes return exact pruning receipts. The current applied state remains
-valid when old entries prune; the new baseline position is explicit. Integer
+valid when old entries prune; the new baseline position is explicit.
+
+The position below the oldest entry is either the origin (nothing pruned) or a
+retained baseline (entries pruned), and each domain states which. A
+`CheckoutRoot` target returns to the origin; a pruned history never claims an
+origin it no longer holds. The origin row's label is a presentation prop the
+host supplies to Poodle; Longhorn carries no string for it (decided
+2026-08-12). Drawing the row is Poodle and consumer work. Integer
 overflow and impossible limits fail closed.
 
 ## Projections
@@ -254,7 +261,7 @@ Card 068 proves and Card 069 accepts:
 - deterministic preferred redo child
 - checkout through lowest common ancestor
 - atomic navigation failure invariance
-- named and pinned retention
+- pinned retention
 - bounded entry-count and encoded-weight pruning
 - opaque checkpoints and replay-cost accounting
 - structural and payload migration
@@ -263,6 +270,13 @@ Card 068 proves and Card 069 accepts:
 First-class branch references are structural authority. Derived root-to-leaf
 paths are optional read models: they have no stable identity and cannot own
 names, pinning, selection, or retention policy.
+
+Retention policy stays with the host. Longhorn ships fork deletion, `prune_to`
+and the budget numbers (`retained_entry_count`, `retained_encoded_weight` on
+the fork summary). Pruning on record, on a timer, or on an explicit operator
+action is a per-app choice: the host calls the one command, and opting out is
+not calling it. Longhorn has no clock and does not prune on record (operator
+rulings, 2026-08-12).
 
 A production tree layer must preserve these rules:
 
@@ -275,9 +289,16 @@ A production tree layer must preserve these rules:
   or navigation
 - checkout plans inverse steps to the lowest common ancestor, then forward
   steps to the target, through one atomic consumer transaction
-- current, named, and pinned lineage is protected from pruning
-- count and exact encoded-weight pruning terminates or returns an impossible
-  protected-budget result without mutation
+- current and pinned lineage is protected from pruning; a name alone does
+  not protect a branch, because consumers such as Loophole name every fork
+  at divergence
+- the protected set falls outside the budget: count and exact encoded-weight
+  budgets measure only the unprotected share, so pruning always terminates
+  and a fully protected graph is never "over budget"
+- deleting a fork is explicit and irreversible: it removes the subtree, the
+  branches whose heads are inside it and the checkpoints inside it, reports
+  all three, and moves the revision. It is not itself undoable and leaves no
+  tombstone. Deleting the line the operator is on or inside is rejected
 - checkpoints contain bounded opaque consumer references, not snapshot data
 - structural and payload versions migrate independently and reject future or
   corrupt input visibly

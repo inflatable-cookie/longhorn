@@ -8,6 +8,7 @@ Every topic has exactly one owning file. Link to it; don't restate it.
 | System shape | [architecture/system-architecture.md](architecture/system-architecture.md) |
 | Architecture by system, migration maps, inventory | [architecture/](architecture/README.md) |
 | Candidate suite and maturity | [architecture/shared-desktop-system-suite.md](architecture/shared-desktop-system-suite.md) |
+| Two hosts and Svelte/GPUI parity | [architecture/cross-backend-projection.md](architecture/cross-backend-projection.md) |
 | Ownership across repositories | [architecture/repo-authority-map.md](architecture/repo-authority-map.md) |
 | Durable rules and interfaces | [contracts/contract-index.md](contracts/contract-index.md) |
 | Working rules | [contracts/001-working-rules.md](contracts/001-working-rules.md) |

@@ -13,6 +13,7 @@
 - [Loophole Migration Map](loophole-migration-map.md)
 - [Secondary-consumer Migration Map](secondary-consumer-migration-map.md)
 - [Greenfield Composition Matrix](greenfield-composition-matrix.md)
+- [Cross-backend Projection](cross-backend-projection.md) — two hosts, one reading of each fact
 - [Poodle Overlay Geometry Boundary](poodle-overlay-geometry-boundary.md)
 - [Package Topology](package-topology.md)
 - [System Inventory](system-inventory.md)
