@@ -1,6 +1,6 @@
 {
   "name": "@inflatable-cookie/longhorn-poodle-svelte",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -151,7 +151,7 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@inflatable-cookie/longhorn": "0.2.1",
+    "@inflatable-cookie/longhorn": "0.2.2",
     "@inflatable-cookie/poodle-core": "0.4.2",
     "@inflatable-cookie/poodle-svelte": "0.4.2",
     "svelte": ">=5.38.6 <=5.56.8"

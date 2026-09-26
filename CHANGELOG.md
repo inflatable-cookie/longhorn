@@ -6,6 +6,18 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-26
+
+### Added
+- **Rust-side picker calls join the pending-selection registry.** The consumer carries the page origin into its own command; `begin_host_selection` begins a pending selection for an agent or tells the caller to use the dialog plugin for a human. A missing or malformed origin is human. Result shapes, cardinality, expiry, rejection-as-cancel, and the no-native-fallback rule match the JS route. Contract 022 amended 2026-09-26.
+- **Agents can fill an HTML file input with inline bytes.** `set_file_input` names the input and supplies each file's name, optional media type, and base64 content. No path argument, no filesystem read, no OS panel. `multiple` and `accept` are checked before delivery; the decoded total is capped at 8 MiB. Packaged `agent-control` answers it without `agent-control-evaluate`. Contract 022 amended 2026-09-26.
+- **One-command version bump.** `effigy release:bump -- <semver>` updates the workspace version and internal pins, the three npm versions and adapter peers, the skill stamp, prototype locks, and the API reference, and promotes `[Unreleased]`. Proofs and boundary tests read `workspace.package.version`.
+
+### Fixed
+- **The `set_file_input` 8 MiB cap holds for every caller.** Direct `ControlHandler` callers get the same size and payload refusals as the MCP edge, before any webview work.
+- **The Tauri agent-control shim cannot drift from its TypeScript source.** `check:agent-control-shim` rebuilds the webview IIFE and checks the committed asset byte for byte.
+- **`effigy release:bump` reports every file it changes and never leaves a partial bump.** `changed` includes lock rewrites. A package.json version line that is not the expected shape is a stop. Planned writes snapshot first; a later lock-sync or API-regen failure restores the tracked files.
+
 ## [0.2.1] - 2026-09-25
 
 ### Added
