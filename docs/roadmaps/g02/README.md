@@ -48,9 +48,9 @@
 | [g02.044](044-agent-control-stdio-carrier.md) | complete — in `0.2.0` | stdio carrier fronting the single contract 022 instance |
 | [g02.045](045-agent-answerable-file-selection.md) | complete — in `0.2.1` | agent-answerable Tauri `open`/folder/`save` |
 | [g02.046](046-agent-selection-release-candidate.md) | complete — PR #35; `0.2.1` published 2026-09-26 | reviewed release candidate for g02.045 |
-| [g02.047](047-rust-side-agent-selection.md) | ready | Rust-side pickers answerable over MCP via consumer-carried origin |
-| [g02.048](048-agent-file-input.md) | ready — after g02.047 | HTML file input answered with inline bytes |
-| [g02.049](049-release-version-sweep.md) | ready | one-command version bump; `release:gates` aligned |
+| [g02.047](047-rust-side-agent-selection.md) | complete — PR #36; Soundcheck adoption pending | Rust-side pickers answerable over MCP via consumer-carried origin |
+| [g02.048](048-agent-file-input.md) | in Queue delivery | HTML file input answered with inline bytes |
+| [g02.049](049-release-version-sweep.md) | in Queue review — PR #37 | one-command version bump; `release:gates` aligned |
 
 The runway is open-ended: g02 continues past remediation into whatever shared
 gap consumer adoption characterizes next. Deferred candidates in the
@@ -59,9 +59,8 @@ remain uncommitted.
 
 ### Current Ready Frontier
 
-Operator-confirmed 2026-09-26: `g02.047` and `g02.049` are ready and run in
-parallel; `g02.048` is ready and dispatches after `g02.047` merges (shared
-agent-control shim, catalogue, and skill paths). Contract 022 carries the
+Operator-confirmed 2026-09-26. `g02.047` merged (PR #36). `g02.048` is in
+Queue delivery and `g02.049` is in review (PR #37). Contract 022 carries the
 2026-09-26 amendment for both picker lanes. Soundcheck is their live
 acceptance target, consumer-owned after Longhorn merges on fixtures.
 

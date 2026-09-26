@@ -2,7 +2,7 @@
 
 Owner: Tom
 Created: 2026-09-26
-State: ready for Queue delivery
+State: complete — PR #36, `44b7e3d9`; Soundcheck adoption pending (consumer-owned)
 Governing refs: contract 022 (`Agent-Answerable Selection`, amended
 2026-09-26), contracts 006 and 010
 Depends on: g02.045 (complete, in `0.2.1`)
@@ -99,3 +99,10 @@ Stop if the route can capture a human picker, if a selected save path causes
 a Longhorn write, if the consumer would need to change its dialog options or
 result handling beyond passing origin, or if the feature boundary cannot
 exclude the new symbols. Return the finding to Chatterbox.
+
+## Evidence
+
+Merged through [PR #36](https://github.com/inflatable-cookie/longhorn/pull/36)
+at `44b7e3d9`; Queue closeout `b43c8a9e`. The
+[delivery log](../../logs/2026-09/26-rust-side-agent-selection.md) records the
+fixtures, review, and limits.
