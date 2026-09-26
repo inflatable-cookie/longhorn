@@ -13,6 +13,8 @@ Depends on: `../architecture/system-architecture.md`
   execution.
 - A brief defines outcome, governing refs, constraints, acceptance and stop
   conditions.
+- Small recurring friction is filed in Queue as a papercut with
+  `papercut.add` (payload in `AGENTS.md`), never in a repository file.
 
 ## Intent
 

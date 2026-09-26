@@ -31,8 +31,8 @@ no npm, crates.io, or hosted download.
 
 Known limitation: a fresh clone of this repo cannot currently install its
 root TypeScript dependencies, because the root `package.json` pins Poodle to
-machine-local build artifacts. The fix is scheduled for a Poodle release
-(reference `PAPERCUTS.md`); until then the candidate artifacts are produced
+machine-local build artifacts. The fix is scheduled for a Poodle release;
+until then the candidate artifacts are produced
 from the frozen commits listed below, not from a fresh clone.
 
 ## Current State Note

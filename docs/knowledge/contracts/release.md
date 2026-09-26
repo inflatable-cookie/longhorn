@@ -30,8 +30,8 @@ boundary tests read that field. Do not hand-edit version literals in
 4. **Rehearse.** `effigy ci:rehearse` on that commit. It checks the
    clean-runner properties that local `qa` can miss.
 5. **Gates.** `effigy release status --check-gates` and read the gate lines.
-   A nonzero exit on an empty `[Unreleased]` is a known Effigy gap
-   (`PAPERCUTS.md`); the gate results are the evidence.
+   A nonzero exit on an empty `[Unreleased]` is a known Effigy gap (a Queue
+   papercut); the gate results are the evidence.
 6. **Dry run.** `gh workflow run release.yml --ref main -f dry-run=true`.
    It runs full QA, the release gates and pack-and-verify.
 7. **Tag and publish.** Dispatch the workflow against the tag, not `main`:
