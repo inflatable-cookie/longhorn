@@ -4,22 +4,20 @@ Updated: 2026-09-26
 
 ## Now
 
-1. **Choose what follows 0.2.1** — Q-001 in
-   [questions](knowledge/questions.md) is open with the operator.
-   Recommended: a small hardening lane, then `0.2.2` with
-   `effigy release:bump`. The lane covers three `PAPERCUTS.md` entries: a
-   drift check between the two agent-control shim copies
-   (`crates/longhorn-tauri-agent-control/src/agent_control_shim.js` and
-   `packages/longhorn/src/agent-control/shim.ts`), the `set_file_input` size
-   cap enforced in the Tauri handler, and `release:bump` reporting fixes.
-   `main` already carries unreleased Rust-side selection and
-   `set_file_input`.
+1. **Harden, then release 0.2.2** (lane `hardening-0-2-2`) — close three
+   gaps found in review before the unreleased agent-control work ships
+   (Q-001). The `set_file_input` 8 MiB cap holds for every caller, not only
+   the MCP edge. The Tauri shim copy cannot drift from its TypeScript source.
+   `effigy release:bump` reports every file it changes and never leaves a
+   partial bump. Then cut `0.2.2` through
+   [release.md](knowledge/contracts/release.md). `main` already carries
+   Rust-side selection and `set_file_input`.
 
 ## Next
 
 - **Soundcheck adopts both picker routes** (Rust-side selection and
-  `set_file_input`) — consumer-owned; Soundcheck writes need the operator's
-  go-ahead.
+  `set_file_input`) — waits for Soundcheck to finish its Northstar cutover.
+  Consumer-owned; Soundcheck writes need the operator's go-ahead.
 - **Sweep removed records for rulings** — the 2026-09-26 cut removed the g02
   task files, delivery logs, handoffs and research memos. Rulings that live
   only there should be promoted into their owning knowledge file. Read them

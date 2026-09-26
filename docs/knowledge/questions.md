@@ -5,11 +5,9 @@ briefs. An answered question keeps only its pointer to where the answer lives.
 
 ## Q-001 — What follows the 0.2.1 release?
 
-Status: open
-Options: a hardening lane (shim drift check, `set_file_input` cap in the Tauri
-handler, `release:bump` reporting fixes, all in `PAPERCUTS.md`) then `0.2.2`;
-cut `0.2.2` now; or a Soundcheck adoption lane (consumer writes need the
-operator's go-ahead). See [plan](../plan.md).
+Status: answered 2026-09-26
+Answer: a hardening lane, then `0.2.2`. Soundcheck adoption waits until
+Soundcheck finishes its own Northstar cutover. See [plan](../plan.md).
 
 ## Q-002 — How are Rust-side pickers and HTML file inputs admitted to agent control?
 
