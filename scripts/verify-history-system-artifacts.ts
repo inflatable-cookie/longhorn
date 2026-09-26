@@ -17,13 +17,14 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
+import { longhornVersion } from "./longhorn-version.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
 const POODLE_RELEASE = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
+const LONGHORN_VERSION = longhornVersion();
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-system-proof");
 const temporaryRoot = await mkdtemp(
@@ -166,7 +167,7 @@ async function packTypescriptArtifacts(): Promise<{
     );
     const path = join(
       typescriptArtifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`,
     );
     await inspectNpmArtifact(name, path);
     paths.set(name, path);
@@ -201,7 +202,7 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
     readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     readonly exports?: Record<string, unknown>;
   };
-  if (manifest.name !== name || manifest.version !== "0.2.1") {
+  if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
   assertExactSet(
@@ -282,7 +283,7 @@ async function packAndRunRustArtifacts(): Promise<{
     }
     const tarArchive = join(
       rustArtifactRoot,
-      `${name}-0.2.1.private.tar`,
+      `${name}-${LONGHORN_VERSION}.private.tar`,
     );
     const archive = `${tarArchive}.gz`;
     await run(
@@ -526,16 +527,16 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-history = { path = "crates/longhorn-history", version = "0.2.1" }
-longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-history = { path = "crates/longhorn-history", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "${LONGHORN_VERSION}" }
 ${workspaceDependencies([
   "proptest",
   "serde",

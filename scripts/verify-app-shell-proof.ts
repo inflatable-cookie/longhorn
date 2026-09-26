@@ -15,6 +15,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { longhornVersion } from "./longhorn-version.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/app-shell-proof");
@@ -24,7 +25,7 @@ const proofRoot = join(repoRoot, "examples/app-shell-proof");
 const poodle = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
+const LONGHORN_VERSION = longhornVersion();
 
 const longhornPackages = [
   ["@inflatable-cookie/longhorn", "longhorn"],
@@ -61,7 +62,7 @@ try {
   const artifactIdentities: ArtifactIdentity[] = [];
 
   for (const [name, directory] of longhornPackages) {
-    const filename = `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`;
+    const filename = `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`;
     const path = join(artifactRoot, filename);
     await run(
       [

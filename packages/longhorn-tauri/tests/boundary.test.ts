@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+import { longhornVersion } from "../../../scripts/longhorn-version.ts";
+
 const packageRoot = new URL("../", import.meta.url);
 const metadata = JSON.parse(
   readFileSync(new URL("package.json", packageRoot), "utf8"),
@@ -19,7 +21,7 @@ describe("@inflatable-cookie/longhorn-tauri package boundary", () => {
   test("pins exactly the host runtime and the framework as peers", () => {
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
-      "@inflatable-cookie/longhorn": "0.2.1",
+      "@inflatable-cookie/longhorn": longhornVersion(),
       "@tauri-apps/api": "^2.10.1",
     });
   });

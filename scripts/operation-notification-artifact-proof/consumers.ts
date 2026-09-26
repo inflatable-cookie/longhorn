@@ -11,9 +11,6 @@ import {
 } from "node:fs/promises";
 
 import { POODLE_RELEASE } from "./artifacts.ts";
-// Longhorn's own coordinated version. Poodle carries its own, released
-// separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
 import {
   assertExactSet,
   equalJson,
@@ -22,7 +19,12 @@ import {
   run,
   testCount,
 } from "./shared.ts";
+import { longhornVersion } from "../longhorn-version.ts";
 import type { PackageManifest, ProofContext, Shape } from "./types.ts";
+
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = longhornVersion();
 
 const shapes: readonly Shape[] = [
   "minimal-operation",

@@ -55,6 +55,10 @@ exclude = ["history/**"]
 # Pre-gate only: refresh excluded prototype locks (and the root lock) after a
 # Longhorn version bump. Does not replace or weaken check:prototypes --locked.
 "sync:prototype-locks" = "bun scripts/sync-prototype-locks.ts"
+# Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
+"release:bump" = { rhai = "scripts/release-bump.rhai" }
+"check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
+"test:release-tooling" = "bun test scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -125,10 +129,15 @@ exclude = ["history/**"]
 # --- Release ------------------------------------------------------------
 "release:floor" = "bash scripts/check-release-floor.sh"
 "release:source-consumer" = "bash scripts/verify-source-consumer.sh"
+# `[release.gates]` minus `workspace`, declaration order. `check:release-gates`
+# fails if this list drifts. The runner still runs `effigy qa` separately.
 "release:gates" = [
+  "bun scripts/verify-private-candidate-docs-card127.ts",
+  "cargo deny check advisories",
+  { task = "docs:rust" },
+  { task = "check:prototypes" },
   { task = "release:floor" },
   { task = "release:source-consumer" },
-  { task = "check:prototypes" },
 ]
 
 # --- Documentation ------------------------------------------------------
@@ -169,11 +178,13 @@ exclude = ["history/**"]
 health = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
+  { task = "check:release-gates" },
   { task = "check:agent-control-skill" },
 ]
 qa = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
+  { task = "check:release-gates" },
   { task = "bootstrap:deps" },
   { task = "lint:rust" },
   { task = "lint:rust:features" },
@@ -183,6 +194,7 @@ qa = [
   { task = "check:packages" },
   { task = "test:ts" },
   { task = "test:vitest" },
+  { task = "test:release-tooling" },
   { task = "check:bindings" },
   { task = "check:api-reference" },
   { task = "check:tauri-seam-strings" },

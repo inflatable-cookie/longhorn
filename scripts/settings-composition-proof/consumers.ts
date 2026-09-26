@@ -12,14 +12,16 @@ import {
 
 import { fileDependency, run, testCount } from "./shared.ts";
 import { POODLE_RELEASE } from "./artifacts.ts";
-// Longhorn's own coordinated version. Poodle carries its own, released
-// separately, so the two cannot be one literal any more.
-const LONGHORN_VERSION = "0.2.1";
+import { longhornVersion } from "../longhorn-version.ts";
 import type {
   PackageManifest,
   ProofContext,
   ShapePolicy,
 } from "./types.ts";
+
+// Longhorn's own coordinated version. Poodle carries its own, released
+// separately, so the two cannot be one literal any more.
+const LONGHORN_VERSION = longhornVersion();
 
 const shapes: Record<string, ShapePolicy> = {
   "split-shell": {

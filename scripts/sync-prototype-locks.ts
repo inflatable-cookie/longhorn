@@ -7,76 +7,38 @@
 // path-package version fields to match `workspace.package.version`, then
 // proves each lock with `cargo metadata --locked --offline`. It is a pre-gate
 // maintenance step: it does not weaken `--locked` and does not belong in
-// `[release.gates]`.
+// `[release.gates]`. `effigy release:bump` runs it.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 
-const repoRoot = resolve(import.meta.dir, "..");
-const workspaceVersion = workspacePackageVersion(
-  await readFile(join(repoRoot, "Cargo.toml"), "utf8"),
-);
+import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 
-const prototypeDirs = (await readdir(join(repoRoot, "prototypes"), { withFileTypes: true }))
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => join(repoRoot, "prototypes", entry.name))
-  .sort();
-if (prototypeDirs.length === 0) throw new Error("no prototypes/* directories");
-
-const lockTargets = [
-  { dir: repoRoot, lock: join(repoRoot, "Cargo.lock") },
-  ...prototypeDirs.map((dir) => ({ dir, lock: join(dir, "Cargo.lock") })),
-];
-
-const results = [];
-for (const target of lockTargets) {
-  const original = await readFile(target.lock, "utf8");
-  const before = parseLock(original);
-  const stale = staleLonghornPackages(before.packages, workspaceVersion);
-  const nextText = stale.length === 0 ? original : rewriteLonghornPathVersions(original, workspaceVersion);
-  if (nextText !== original) await writeFile(target.lock, nextText);
-  const after = parseLock(await readFile(target.lock, "utf8"));
-  const assessment = assessLock(before, after, workspaceVersion);
-  if (assessment.thirdPartyMoved.length > 0 || assessment.unexpected.length > 0) {
-    throw new Error(
-      `${relative(repoRoot, target.lock)} moved more than Longhorn path versions:\n` +
-        assessment.thirdPartyMoved.concat(assessment.unexpected).map((line) => `  ${line}`).join("\n"),
-    );
-  }
-  await cargoMetadataLocked(target.dir);
-  results.push({
-    lock: relative(repoRoot, target.lock),
-    stale: stale.map((pkg) => pkg.name),
-    bumped: assessment.bumped,
-  });
-}
-
-console.log(JSON.stringify({
-  schema: "longhorn.prototype-lock-sync.v1",
-  outcome: "pass",
-  workspaceVersion,
-  locks: results,
-}, null, 2));
-
-function workspacePackageVersion(manifest: string): string {
-  const match = /\[workspace\.package\][^[]*?^version = "([^"]+)"/m.exec(manifest);
-  if (!match?.[1]) throw new Error("workspace.package.version not found in Cargo.toml");
-  return match[1];
-}
-
-type LockPackage = {
+export type LockPackage = {
   name: string;
   version: string;
   source: string | undefined;
   body: string;
 };
 
-type ParsedLock = {
+export type ParsedLock = {
   header: string;
   packages: LockPackage[];
 };
 
-function parseLock(text: string): ParsedLock {
+export type LockAssessment = {
+  bumped: string[];
+  thirdPartyMoved: string[];
+  unexpected: string[];
+};
+
+export type LockSyncResult = {
+  lock: string;
+  stale: string[];
+  bumped: string[];
+};
+
+export function parseLock(text: string): ParsedLock {
   const split = text.split(/^\[\[package\]\]\n/m);
   const header = split[0] ?? "";
   const packages = split.slice(1).map((body) => {
@@ -89,15 +51,15 @@ function parseLock(text: string): ParsedLock {
   return { header, packages };
 }
 
-function isLonghornPathPackage(pkg: LockPackage): boolean {
+export function isLonghornPathPackage(pkg: LockPackage): boolean {
   return pkg.name.startsWith("longhorn-") && pkg.source === undefined && pkg.version !== "0.0.0";
 }
 
-function staleLonghornPackages(packages: LockPackage[], version: string): LockPackage[] {
+export function staleLonghornPackages(packages: LockPackage[], version: string): LockPackage[] {
   return packages.filter((pkg) => isLonghornPathPackage(pkg) && pkg.version !== version);
 }
 
-function rewriteLonghornPathVersions(text: string, version: string): string {
+export function rewriteLonghornPathVersions(text: string, version: string): string {
   const split = text.split(/^\[\[package\]\]\n/m);
   const header = split[0] ?? "";
   const packages = split.slice(1).map((body) => {
@@ -117,11 +79,11 @@ function packageKey(pkg: LockPackage): string {
   return pkg.source === undefined ? `path:${pkg.name}` : `reg:${pkg.name}@${pkg.version}\0${pkg.source}`;
 }
 
-function assessLock(
+export function assessLock(
   before: ParsedLock,
   after: ParsedLock,
   version: string,
-): { bumped: string[]; thirdPartyMoved: string[]; unexpected: string[] } {
+): LockAssessment {
   const unexpected: string[] = [];
   const thirdPartyMoved: string[] = [];
   const bumped: string[] = [];
@@ -168,7 +130,7 @@ function assessLock(
   return { bumped, thirdPartyMoved, unexpected };
 }
 
-async function cargoMetadataLocked(cwd: string): Promise<void> {
+export async function cargoMetadataLocked(cwd: string, repoRoot: string): Promise<void> {
   const command = ["cargo", "metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"];
   const process = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
@@ -179,4 +141,61 @@ async function cargoMetadataLocked(cwd: string): Promise<void> {
   if (exitCode !== 0) {
     throw new Error(`${command.join(" ")} failed in ${relative(repoRoot, cwd)}\n${stdout}\n${stderr}`);
   }
+}
+
+export async function syncPrototypeLocks(
+  repoRoot: string,
+  options: { verifyMetadata?: boolean } = {},
+): Promise<{ workspaceVersion: string; locks: LockSyncResult[] }> {
+  const verifyMetadata = options.verifyMetadata ?? true;
+  const workspaceVersion = parseWorkspacePackageVersion(
+    await readFile(join(repoRoot, "Cargo.toml"), "utf8"),
+  );
+
+  const prototypeDirs = (await readdir(join(repoRoot, "prototypes"), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(repoRoot, "prototypes", entry.name))
+    .sort();
+  if (prototypeDirs.length === 0) throw new Error("no prototypes/* directories");
+
+  const lockTargets = [
+    { dir: repoRoot, lock: join(repoRoot, "Cargo.lock") },
+    ...prototypeDirs.map((dir) => ({ dir, lock: join(dir, "Cargo.lock") })),
+  ];
+
+  const results: LockSyncResult[] = [];
+  for (const target of lockTargets) {
+    const original = await readFile(target.lock, "utf8");
+    const before = parseLock(original);
+    const stale = staleLonghornPackages(before.packages, workspaceVersion);
+    const nextText = stale.length === 0 ? original : rewriteLonghornPathVersions(original, workspaceVersion);
+    if (nextText !== original) await writeFile(target.lock, nextText);
+    const after = parseLock(await readFile(target.lock, "utf8"));
+    const assessment = assessLock(before, after, workspaceVersion);
+    if (assessment.thirdPartyMoved.length > 0 || assessment.unexpected.length > 0) {
+      throw new Error(
+        `${relative(repoRoot, target.lock)} moved more than Longhorn path versions:\n` +
+          assessment.thirdPartyMoved.concat(assessment.unexpected).map((line) => `  ${line}`).join("\n"),
+      );
+    }
+    if (verifyMetadata) await cargoMetadataLocked(target.dir, repoRoot);
+    results.push({
+      lock: relative(repoRoot, target.lock),
+      stale: stale.map((pkg) => pkg.name),
+      bumped: assessment.bumped,
+    });
+  }
+
+  return { workspaceVersion, locks: results };
+}
+
+if (import.meta.main) {
+  const repoRoot = resolve(import.meta.dir, "..");
+  const result = await syncPrototypeLocks(repoRoot);
+  console.log(JSON.stringify({
+    schema: "longhorn.prototype-lock-sync.v1",
+    outcome: "pass",
+    workspaceVersion: result.workspaceVersion,
+    locks: result.locks,
+  }, null, 2));
 }

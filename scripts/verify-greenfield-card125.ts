@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
+import { longhornVersion } from "./longhorn-version.ts";
 
 type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
 type ShapePolicy = {
@@ -42,7 +43,7 @@ const poodlePackages = [
 // Published Poodle only. Sibling packing was the unpublished-preview path;
 // g16.109 pins exact public 0.3.0, so greenfield installs the registry
 // packages the lock already records.
-const LONGHORN_VERSION = "0.2.1";
+const LONGHORN_VERSION = longhornVersion();
 const publishedPoodle = poodleRelease();
 const POODLE_VERSION = publishedPoodle.version;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
@@ -481,7 +482,7 @@ async function verifyRustArtifacts() {
   for (const name of allRustCrates) {
     const inventory = await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory incomplete`);
-    const archive = join(rustArtifactRoot, `${name}-0.2.1.private.tar`);
+    const archive = join(rustArtifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     await run(["tar", "-cf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xf", archive, "-C", workspace], repoRoot);
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });

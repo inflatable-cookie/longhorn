@@ -6,6 +6,8 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
 import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
 import type { ArtifactIdentity, Shape } from "./types.ts";
+import { longhornVersion } from "../longhorn-version.ts";
+const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -27,7 +29,7 @@ export async function packTypescriptArtifacts(repoRoot: string, artifactRoot: st
   const identities: ArtifactIdentity[] = [];
   for (const [name, directory] of typescriptPackages) {
     await run(["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"], join(repoRoot, "packages", directory));
-    const path = join(artifactRoot, `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`);
+    const path = join(artifactRoot, `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`);
     await inspectTypescriptArtifact(name, path, artifactRoot);
     paths.set(name, path);
     identities.push({ name, filename: basename(path), sha256: await digest(path) });
@@ -42,7 +44,7 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
     name: string; version: string; dependencies?: Record<string, string>; exports?: Record<string, unknown>;
     peerDependenciesMeta?: Record<string, { optional?: boolean }>;
   };
-  if (manifest.name !== name || manifest.version !== "0.2.1") throw new Error(`${name} packed identity mismatch`);
+  if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) throw new Error(`${name} packed identity mismatch`);
   const dependencies: Record<string, readonly string[]> = {
     "@inflatable-cookie/longhorn": [],
     "@inflatable-cookie/longhorn-poodle-svelte": [],
@@ -68,7 +70,7 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   for (const name of rustCrates) {
     const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} source inventory is incomplete`);
-    const archive = join(artifactRoot, `${name}-0.2.1.private.tar.gz`);
+    const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
     await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });
@@ -116,19 +118,19 @@ members = ["consumers/minimal-operation", "consumers/soundcheck", "consumers/loo
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.1" }
-longhorn-operation = { path = "crates/longhorn-operation", version = "0.2.1" }
-longhorn-notifications = { path = "crates/longhorn-notifications", version = "0.2.1" }
-longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation", version = "0.2.1" }
-longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-bridge = { path = "crates/longhorn-bridge", version = "${LONGHORN_VERSION}" }
+longhorn-operation = { path = "crates/longhorn-operation", version = "${LONGHORN_VERSION}" }
+longhorn-notifications = { path = "crates/longhorn-notifications", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-operation = { path = "crates/longhorn-tauri-operation", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-notifications = { path = "crates/longhorn-tauri-notifications", version = "${LONGHORN_VERSION}" }
 ${workspaceDependencies([
   "proptest",
   "serde",

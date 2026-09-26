@@ -45,8 +45,10 @@ install fixtures). `agent-control:install-skill` copies
 `effigy agent-control:install-skill -- --repo <git-repo>`); the bun script
 remains the implementation. `bootstrap:deps` runs the locked Bun install fresh
 worktrees need before TypeScript checks; `check:bun-deps` guards
-`check:ts`/`check:svelte` when run alone. `consumer-absence.ts` and
-`poodle-release.ts` are shared modules, not entry points.
+`check:ts`/`check:svelte` when run alone. `consumer-absence.ts`,
+`poodle-release.ts`, and `longhorn-version.ts` are shared modules, not
+entry points. `release:bump` and `check:release-gates` are the
+release-tooling selectors; see Release below.
 
 `check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
 release/default contract-022 absence proof, and the generated API check.
@@ -138,35 +140,48 @@ Prefer Effigy for generic operations. If Longhorn needs repo-owned automation,
 use TypeScript with Bun. Bash is thin glue only; Python needs a concrete
 technical reason.
 
-## Prototype lock sync
+## Release
 
-Effigy `release prepare` syncs the root `Cargo.lock` only. The eight
-`prototypes/*/Cargo.lock` files are separate workspaces, so a Longhorn version
-bump leaves them stale and `check:prototypes --locked` fails.
-
-After bumping `workspace.package.version` and the internal Longhorn pins:
+The coordinated Longhorn version lives in `Cargo.toml`
+`workspace.package.version`. Proofs and boundary tests read that field.
+Do not hand-edit version literals in `scripts/` or the adapter peers.
 
 ```sh
-effigy sync:prototype-locks
+effigy release:bump -- 0.2.2
 ```
 
-The selector rewrites only Longhorn path-package versions in the root lock
-and each excluded prototype lock, then proves each lock with
-`cargo metadata --locked --offline`. `cargo update` is not used: it
-re-resolves third-party crates. The selector is a pre-gate maintenance step;
-it does not change `check:prototypes` or `[release.gates]`.
+That command updates the workspace version and internal pins, the three npm
+versions and adapter peers, the agent-control skill stamp, promotes
+`[Unreleased]` to a dated heading, runs `sync:prototype-locks`, and
+regenerates the API reference. It is idempotent at the same version and
+refuses a non-increasing version. A lock line other than a Longhorn
+path-package version is a stop. Do not commit a scratch bump used only as
+evidence; land the bump as its own reviewable PR.
 
-## Release gates
+Then:
 
-- `check-release-floor.sh` — enforces the declared MSRV
-  (`release-baselines/rust-toolchains.env`) with Clippy and the full test
-  suite at the floor toolchain, not a bare `cargo check`.
-- `verify-source-consumer.sh` — builds a throwaway consumer against the
-  release commit and asserts every probed longhorn crate resolves from a
-  git source, proving the commit is consumable as a tagged dependency.
+1. Open the version-bump PR and wait for exact-commit CI.
+2. `effigy ci:rehearse` on that commit.
+3. `effigy release status --check-gates` — read the gate lines. A nonzero
+   exit on an empty `[Unreleased]` is a known Effigy gap; the gate results
+   are the evidence.
+4. Dry run through `release.yml`.
+5. Tag and publish through the release workflow. Do not tag from the bump
+   command.
 
-Run both with `effigy release:gates`.
+`effigy release:gates` is `[release.gates]` minus `workspace`, in
+declaration order: private-candidate, advisories, rustdoc, prototypes,
+floor, source. The runner already ran `effigy qa`. `check:release-gates`
+fails if the two lists drift. `effigy test:release-tooling` covers the
+bump and the alignment check.
 
-When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the same
-change before commit. The floor gate is what unlocks MSRV-gated Clippy lints;
-do not leave that debt for release prep.
+Effigy `release prepare` still cannot see the eight
+`prototypes/*/Cargo.lock` files. `release:bump` runs
+`effigy sync:prototype-locks` as the pre-gate rewrite: Longhorn
+path-package versions only, then `cargo metadata --locked --offline`.
+`cargo update` is not used. Do not fold that rewrite into
+`[release.gates]` or weaken `check:prototypes --locked`.
+
+When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the
+same change before commit. The floor gate is what unlocks MSRV-gated
+Clippy lints; do not leave that debt for release prep.

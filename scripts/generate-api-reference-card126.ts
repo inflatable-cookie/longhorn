@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
+import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
+
 type CargoMetadata = {
   packages: Array<{
     name: string;
@@ -33,9 +35,7 @@ const write = process.argv.includes("--write");
 // The version is read from the workspace, not written here — a bump must not
 // fail this gate as "identity drift".
 const workspaceManifest = await readFile(join(repoRoot, "Cargo.toml"), "utf8");
-const workspaceVersion = /\[workspace\.package\][^[]*?^version = "([^"]+)"/m
-  .exec(workspaceManifest)?.[1];
-if (!workspaceVersion) throw new Error("workspace package version not found in Cargo.toml");
+const workspaceVersion = parseWorkspacePackageVersion(workspaceManifest);
 
 const content = await renderReference();
 if (write) {

@@ -17,6 +17,8 @@ import {
   run,
 } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
+import { longhornVersion } from "../longhorn-version.ts";
+const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
 // no pack to digest. poodleRelease() checks each published package's sha512
@@ -70,7 +72,7 @@ export async function packTypescriptArtifacts(
     );
     const path = join(
       artifactRoot,
-      `${name.replace("@", "").replace("/", "-")}-0.2.1.tgz`,
+      `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`,
     );
     await inspectNpmArtifact(name, path, artifactRoot);
     paths.set(name, path);
@@ -106,7 +108,7 @@ async function inspectNpmArtifact(
     readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
     readonly exports?: Record<string, unknown>;
   };
-  if (manifest.name !== name || manifest.version !== "0.2.1") {
+  if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
   // Card 164: the framework tier is one package with no dependencies and no
@@ -188,7 +190,7 @@ export async function packAndCheckRustArtifacts(
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
       throw new Error(`${name} package inventory is incomplete`);
     }
-    const archive = join(artifactRoot, `${name}-0.2.1.private.tar.gz`);
+    const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
     await run(
       ["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`],
       repoRoot,
@@ -359,20 +361,20 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "${LONGHORN_VERSION}"
 edition = "2024"
 rust-version = "${MSRV}"
 license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
-longhorn-config = { path = "crates/longhorn-config", version = "0.2.1" }
-longhorn-settings = { path = "crates/longhorn-settings", version = "0.2.1" }
-longhorn-command = { path = "crates/longhorn-command", version = "0.2.1" }
-longhorn-command-config = { path = "crates/longhorn-command-config", version = "0.2.1" }
-longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "0.2.1" }
-longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "0.2.1" }
+longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
+longhorn-config = { path = "crates/longhorn-config", version = "${LONGHORN_VERSION}" }
+longhorn-settings = { path = "crates/longhorn-settings", version = "${LONGHORN_VERSION}" }
+longhorn-command = { path = "crates/longhorn-command", version = "${LONGHORN_VERSION}" }
+longhorn-command-config = { path = "crates/longhorn-command-config", version = "${LONGHORN_VERSION}" }
+longhorn-command-settings = { path = "crates/longhorn-command-settings", version = "${LONGHORN_VERSION}" }
+longhorn-tauri-command = { path = "crates/longhorn-tauri-command", version = "${LONGHORN_VERSION}" }
 ${workspaceDependencies([
   "cap-std",
   "fs4",
