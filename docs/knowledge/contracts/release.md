@@ -20,9 +20,11 @@ boundary tests read that field. Do not hand-edit version literals in
    and internal pins, the three npm versions and adapter peers, the
    agent-control skill stamp, promotes `[Unreleased]` in `CHANGELOG.md` to a
    dated heading, runs `sync:prototype-locks`, and regenerates the API
-   reference. It is idempotent at the same version and refuses a
-   non-increasing one. A lock change other than a Longhorn path-package
-   version is a stop. It never tags.
+   reference. It reports every file it changed, including lock rewrites. It
+   is idempotent at the same version and refuses a non-increasing one. A
+   package manifest whose `"version"` line is not the expected shape is a
+   stop. A lock change other than a Longhorn path-package version is a stop.
+   A failure partway through leaves the tracked tree unchanged. It never tags.
 2. **Land the bump** as its own reviewable PR. Do not commit a scratch bump
    used only as evidence.
 3. **CI on the exact commit.** CI is manual dispatch:
