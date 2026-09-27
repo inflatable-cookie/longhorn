@@ -39,6 +39,14 @@ policy remain consumer-owned.
   never `workspace:*`: consumer `file:` installs resolve these packages
   outside the workspace, where `workspace:*` cannot resolve (decided
   2026-08-03). `effigy release:bump` moves them.
+- Third-party Rust dependencies use ranges, not `=` pins, from `0.3.0`
+  (operator ruling 2026-09-27). Consumers take Longhorn crates by git tag,
+  so an exact pin fixes every consumer's version; `rusqlite` links SQLite,
+  which one application graph can hold only once. Longhorn's own
+  `Cargo.lock` is the tested set, and every dependency refresh reruns the
+  byte-stable backup, snapshot and archive suites. The exception is `ts-rs`,
+  which stays exact: it reaches consumers only through the opt-in `bindings`
+  feature, and its output shape is part of the checked binding contract.
 - Generated Tauri `gen/schemas` stay committed (decided 2026-08-14): the
   example capability files reference `../gen/schemas/desktop-schema.json`
   through `$schema`.
