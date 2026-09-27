@@ -26,8 +26,7 @@ architecture and contracts behind them.
 3. [Glossary](docs/guides/glossary.md) — the terms used everywhere else
 4. [Generated API surface](docs/reference/api-surface.md) — exact package names
 5. [Current state](docs/README.md)
-6. [Plan](docs/plan.md)
-7. [Agent rules](AGENTS.md)
+6. [Agent rules](AGENTS.md)
 
 ## Effigy
 

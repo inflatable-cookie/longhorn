@@ -7,7 +7,7 @@ briefs. An answered question keeps only its pointer to where the answer lives.
 
 Status: answered 2026-09-26
 Answer: a hardening lane, then `0.2.2`. Soundcheck adoption waits until
-Soundcheck finishes its own Northstar cutover. See [plan](../plan.md).
+Soundcheck finishes its own Northstar cutover. See lane:release-0-3-0.
 
 ## Q-002 — How are Rust-side pickers and HTML file inputs admitted to agent control?
 

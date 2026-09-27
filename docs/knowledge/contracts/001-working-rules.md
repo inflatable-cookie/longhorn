@@ -7,8 +7,8 @@ Depends on: `../architecture/system-architecture.md`
 
 ## Delivery Grammar
 
-- Knowledge in `docs/knowledge/` leads; intent lives in `docs/plan.md`; tasks,
-  briefs, status and outcomes live in Queue.
+- Knowledge in `docs/knowledge/` leads. The plan (lanes, lane documents and
+  their order), leads, brief drafts, tasks, status and outcomes live in Queue.
 - Promote durable shape and rules into architecture and contracts before
   execution.
 - A brief defines outcome, governing refs, constraints, acceptance and stop
@@ -46,8 +46,8 @@ Depends on: `../architecture/system-architecture.md`
 
 ## Autonomy
 
-- Bare `continue` is standing operator authority to begin the next item in
-  `docs/plan.md` "Now".
+- Bare `continue` is standing operator authority to begin the next `now`
+  lane in Longhorn's Queue plan.
 - A planned task may move into execution when its governing refs, scope,
   evidence, and stop conditions are complete; it need not pause for repeated
   authorization.

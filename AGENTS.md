@@ -17,12 +17,12 @@ this file; keep that bridge as `@AGENTS.md`.
 - How to release: `docs/knowledge/contracts/release.md`
 - Retired concepts, which must not come back: `docs/knowledge/retired.toml`
 - Open questions: `docs/knowledge/questions.md`
-- What's next: `docs/plan.md`
-- Unresolved leads: `docs/triage/`
 - Consumer guides and API reference (product docs): `docs/guides/`,
   `docs/reference/`
 
-Tasks, briefs and status live in Queue, never in this repository.
+The plan (lanes, their documents and their order), leads, papercuts, brief
+drafts, tasks and status live in Queue, never in this repository. Read what's
+next with `plan.get` (see the `northstar` skill).
 
 ## Commands
 
@@ -72,8 +72,8 @@ commands from another repository.
   choice, or changed package boundary prevents safe progress.
 - Normal tasks use the current checkout. Do not start a worker loop or create
   another worktree unless Queue or the operator gives you one.
-- Bare `continue` authorizes the next item in `docs/plan.md` "Now". Do not
-  invent work when nothing there is ready.
+- Bare `continue` authorizes the next `now` lane in Longhorn's Queue plan.
+  Do not invent work when nothing there is ready.
 - When a change alters what is true, update the owning knowledge file in the
   same PR. An operator ruling given in conversation goes into its owning file
   before the thread ends.

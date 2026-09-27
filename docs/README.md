@@ -29,4 +29,4 @@ For consumers:
 
 ## What's next
 
-See [plan.md](plan.md). Unresolved leads live in [triage/](triage/README.md).
+The project's plan is in Queue: its lanes, their documents and their order.

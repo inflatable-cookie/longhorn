@@ -140,10 +140,10 @@ include = ["config/release.toml"]
 
 # --- Documentation ------------------------------------------------------
 "qa:docs:catalog-links" = "effigy docs check links"
-"qa:docs:links" = "effigy docs check links README.md AGENTS.md docs/README.md docs/plan.md docs/knowledge/README.md docs/knowledge/architecture/README.md docs/knowledge/contracts/README.md docs/guides/README.md docs/guides/getting-started.md docs/reference/README.md"
+"qa:docs:links" = "effigy docs check links README.md AGENTS.md docs/README.md docs/knowledge/README.md docs/knowledge/architecture/README.md docs/knowledge/contracts/README.md docs/guides/README.md docs/guides/getting-started.md docs/reference/README.md"
 "qa:docs:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
 # Backticked paths in the orientation files and every knowledge file must exist.
-"qa:docs:paths" = "sh -c 'exec effigy docs check paths README.md AGENTS.md scripts/README.md docs/README.md docs/plan.md docs/knowledge/*.md docs/knowledge/architecture/*.md docs/knowledge/contracts/*.md'"
+"qa:docs:paths" = "sh -c 'exec effigy docs check paths README.md AGENTS.md scripts/README.md docs/README.md docs/knowledge/*.md docs/knowledge/architecture/*.md docs/knowledge/contracts/*.md'"
 "qa:docs" = [
   { task = "qa:docs:links" },
   { task = "qa:docs:agent-defaults" },
