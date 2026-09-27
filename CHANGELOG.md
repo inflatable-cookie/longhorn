@@ -9,6 +9,9 @@ crates by git tag and the packages by version.
 ### Changed
 - **`longhorn-poodle-svelte`'s Svelte peer is `>=5.56.8 <6`.** The adapter matches Poodle's own Svelte peer, so consumers can take newer Svelte 5 releases with both packages. This drops Svelte below `5.56.8`; `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`. `proof:pack-typecheck` typechecks the packed adapter at both `5.56.8` and the newest release the range admits. Contract 012 amended 2026-09-26.
 
+### Removed
+- **Breaking: `longhorn-tauri-agent-control` has no `dev` feature.** The 0.2.0 migration forward is gone. Name `agent-control-evaluate` for what `dev` enabled, or `agent-control` for the surface without `evaluate`. A packaged `agent-control` build is unchanged.
+
 ## [0.2.2] - 2026-09-26
 
 ### Added
