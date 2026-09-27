@@ -1,7 +1,7 @@
 # Compatibility And Upgrades
 
 Status: checked private adoption guidance
-Updated: 2026-08-06
+Updated: 2026-09-26
 Governing contracts: [010](../knowledge/contracts/010-rust-typescript-ipc-and-events.md)
 and [012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
@@ -39,23 +39,25 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | Poodle | exact five-package private artifact receipt; no general registry range claim |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 
-`@inflatable-cookie/longhorn-poodle-svelte` currently declares `>=5.38.6 <=5.56.8`. Other optional
-Svelte adapters commonly declare `>=5.38.6 <6`; consult the
+`@inflatable-cookie/longhorn-poodle-svelte` takes `svelte >=5.56.8 <6` in the
+release after `0.2.2`, matching Poodle's own Svelte peer. `0.2.2` and earlier
+declare `>=5.38.6 <=5.56.8`, which meets Poodle only at `5.56.8`; the new
+range drops Svelte below `5.56.8`. Consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
-range. The greenfield matrix and Poodle 0.3.0 proofs resolve one runtime at
-5.56.8.
+range. The isolated artifact proofs resolve one runtime at `5.56.8`, and the
+packed adapter is typechecked at both the newest release the range admits and
+at `5.56.8`.
 
-Concretely, the generated surface says two different things about Svelte:
+Concretely, the generated surface declares one range for the one Svelte
+adapter:
 
 ```json
-{ "peerDependencies": { "svelte": ">=5.38.6 <6" } }        // most adapters
-{ "peerDependencies": { "svelte": ">=5.38.6 <=5.56.8" } }  // @inflatable-cookie/longhorn-poodle-svelte
+{ "peerDependencies": { "svelte": ">=5.56.8 <6" } }  // @inflatable-cookie/longhorn-poodle-svelte
 ```
 
-The first is an optional peer on most adapters — an app that does not use
-Svelte simply omits it. The second is a required peer with an upper bound
-proved by the isolated installs. Copying one range onto the other is exactly
-the kind of inference this guide warns against.
+The peer is required, not optional. An application that does not use Svelte
+omits the adapter rather than its peer; an application that mounts it supplies
+one Svelte runtime inside the declared range.
 
 The current coordinated receipt is the Card 127
 [private `0.1.0` candidate](../reference/private-0-1-candidate.md). It binds

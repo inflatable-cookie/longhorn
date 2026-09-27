@@ -265,7 +265,7 @@
         "svelte": {
           "source": "packages/longhorn-poodle-svelte/package.json",
           "status": "supported",
-          "version": ">=5.38.6 <=5.56.8"
+          "version": ">=5.56.8 <6"
         },
         "sveltekit": {
           "source": null,

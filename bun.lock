@@ -20,16 +20,16 @@
     },
     "packages/longhorn": {
       "name": "@inflatable-cookie/longhorn",
-      "version": "0.1.0",
+      "version": "0.2.2",
     },
     "packages/longhorn-poodle-svelte": {
       "name": "@inflatable-cookie/longhorn-poodle-svelte",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "peerDependencies": {
-        "@inflatable-cookie/longhorn": "0.1.0",
+        "@inflatable-cookie/longhorn": "0.2.2",
         "@inflatable-cookie/poodle-core": "0.4.2",
         "@inflatable-cookie/poodle-svelte": "0.4.2",
-        "svelte": ">=5.38.6 <=5.56.8",
+        "svelte": ">=5.56.8 <6",
       },
       "optionalPeers": [
         "@inflatable-cookie/poodle-core",
@@ -38,7 +38,7 @@
     },
     "packages/longhorn-tauri": {
       "name": "@inflatable-cookie/longhorn-tauri",
-      "version": "0.1.0",
+      "version": "0.2.2",
       "peerDependencies": {
         "@inflatable-cookie/longhorn": "0.1.0",
         "@tauri-apps/api": "^2.10.1",

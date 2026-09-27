@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Changed
+- **`longhorn-poodle-svelte`'s Svelte peer is `>=5.56.8 <6`.** The adapter matches Poodle's own Svelte peer, so consumers can take newer Svelte 5 releases with both packages. This drops Svelte below `5.56.8`; `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`. `proof:pack-typecheck` typechecks the packed adapter at both `5.56.8` and the newest release the range admits. Contract 012 amended 2026-09-26.
+
 ## [0.2.2] - 2026-09-26
 
 ### Added

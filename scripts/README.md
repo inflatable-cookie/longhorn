@@ -32,7 +32,7 @@ worth wiring, and if it is not wired it should be deleted.
 | `verify-greenfield-card125.ts` | the greenfield compositions carry no donor vocabulary |
 | `verify-guides-card126.ts` | the guides match the generated API surface |
 | `verify-documented-commands.ts` | every command the examples' READMEs name exists |
-| `verify-pack-typecheck.ts` | the packed adapter typechecks against a bare stage whose only Poodle source is the registry |
+| `verify-pack-typecheck.ts` | the packed adapter typechecks against a bare stage whose only Poodle source is the registry, at both the newest and the lowest Svelte release its peer range admits |
 
 The rest are wired individually: `check:api-reference` runs
 `generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
@@ -132,8 +132,9 @@ Not a substitute for dispatching `release.yml`. Run it before a release when
   artifact workspace.
 - `KEEP_GREENFIELD_COMPOSITION_PROOF=1` does the same for the greenfield
   composition proof.
-- `KEEP_PACK_TYPECHECK=1` retains the pack-typecheck stage (the packed
-  tarballs, the registry install, and the unpacked adapter tree).
+- `KEEP_PACK_TYPECHECK=1` retains the pack-typecheck stages (one per
+  Svelte release in its matrix: the packed tarballs, the registry install,
+  and the unpacked adapter tree).
 
 None attempts registry publication.
 
