@@ -41,7 +41,7 @@
       "version": "0.2.2",
       "peerDependencies": {
         "@inflatable-cookie/longhorn": "0.2.2",
-        "@tauri-apps/api": "^2.11.1",
+        "@tauri-apps/api": "^2.10.1",
       },
     },
   },
