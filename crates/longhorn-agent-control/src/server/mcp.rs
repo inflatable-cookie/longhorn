@@ -14,7 +14,7 @@ use rmcp::{
     model::{
         CallToolResult, ContentBlock, Implementation, ListResourcesResult,
         ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities,
-        ServerInfo, SubscriptionFilter,
+        ServerConfig, SubscriptionFilter,
     },
     serde::Serialize,
     service::SubscriptionContext,
@@ -319,8 +319,8 @@ impl<H> ServerHandler for AgentControlMcp<H>
 where
     H: ControlHandler,
 {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()

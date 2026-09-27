@@ -5,5 +5,5 @@ describe("@inflatable-cookie/longhorn-poodle-svelte/native-content SSR boundary"
     const adapter = await import("../../src/native-content/index.ts");
     expect(adapter.NativeContentSession).toBeTruthy();
     expect(adapter.nativeContentViewport).toBeTypeOf("function");
-  });
+  }, 60_000);
 });

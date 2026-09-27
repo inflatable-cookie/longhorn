@@ -2,30 +2,16 @@
 #
 # Advisories are gated in the release flow (`advisories` gate in
 # effigy.toml's [release.gates]). Vulnerability-class advisories stay denied.
-# The allow list below is the complete known set as of 2026-08-14 — every
-# entry is `unmaintained`-class, transitive through Tauri 2's GTK3/webkit
-# stack, and unactionable until Tauri moves off them. Each is revisited at a
-# Tauri upgrade or a dependency sweep (g02.027).
+# The 0.3.0 dependency sweep (2026-09-27) removed the 13 stale allowances:
+# the gtk3-rs `unmaintained` advisories were withdrawn upstream on
+# 2026-08-14, and the `unic-*` ones no longer match anything the refreshed
+# graph resolves. proc-macro-error (unmaintained) is the one remaining
+# transitive allowance, still reached through Tauri 2's build chain.
 
 [advisories]
 ignore = [
   # proc-macro-error (unmaintained) — via Tauri build chain.
   "RUSTSEC-2024-0370",
-  # GTK3 bindings (unmaintained) — via wry 0.55.1, Tauri's Linux webview.
-  "RUSTSEC-2024-0411", # gdkwayland-sys
-  "RUSTSEC-2024-0412", # gdkx11-sys
-  "RUSTSEC-2024-0413", # gio-sys / gdk-pixbuf family
-  "RUSTSEC-2024-0415", # gtk-sys family
-  "RUSTSEC-2024-0416", # gtk-rs core family
-  "RUSTSEC-2024-0418", # gtk3 family
-  "RUSTSEC-2024-0419", # gtk3-macros family
-  "RUSTSEC-2024-0420", # gtk-sys
-  # unic-* (unmaintained) — via urlpattern, transitive through Tauri.
-  "RUSTSEC-2025-0075",
-  "RUSTSEC-2025-0080",
-  "RUSTSEC-2025-0081",
-  "RUSTSEC-2025-0098",
-  "RUSTSEC-2025-0100",
 ]
 
 [bans]

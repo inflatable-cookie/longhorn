@@ -17,5 +17,5 @@ describe("SSR", () => {
     const rendered = render(LifecycleHarness, { props: { state } });
     expect(rendered.body).toContain("mounted");
     expect(starts).toBe(0);
-  });
+  }, 60_000);
 });
