@@ -38,7 +38,12 @@ policy remain consumer-owned.
 - Internal npm dependencies and adapter peers pin the exact Longhorn version,
   never `workspace:*`: consumer `file:` installs resolve these packages
   outside the workspace, where `workspace:*` cannot resolve (decided
-  2026-08-03). `effigy release:bump` moves them.
+  2026-08-03). `effigy release:bump` moves them. The adapters' peer on `@inflatable-cookie/longhorn`
+  stays exact, not a range (operator reconfirmed 2026-09-27). The three
+  packages release together and are tested as one set, so a range would add
+  an untested core/adapter pairing and save no release. Revisit only if the
+  core and adapters get separate release cadences, together with a check of
+  older adapters against the newer core.
 - Third-party Rust dependencies use ranges, not `=` pins, from `0.3.0`
   (operator ruling 2026-09-27). Consumers take Longhorn crates by git tag,
   so an exact pin fixes every consumer's version; `rusqlite` links SQLite,
