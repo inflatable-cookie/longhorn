@@ -1,14 +1,21 @@
-// Fails when scripts invoke tools a clean GitHub runner does not have.
+// Fails when scripts invoke tools a clean GitHub runner does not have, and
+// when a release gate needs a tool `release.yml` does not install.
 //
 // Release run 6 died on missing `rg` twice: once in the greenfield proof, once
 // in check-release-floor.sh, where `set -o pipefail` made the absence look
 // like a missing MSRV toolchain. Local machines usually have ripgrep, so qa
-// never saw it.
+// never saw it. 0.2.2 dry run 36254788295 died the same way on `cargo deny`.
 //
-// Comments may mention rg. Command invocations may not.
+// Comments may mention rg. Command invocations may not. A workflow comment
+// naming cargo-deny is not an install.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+
+import {
+  checkReleaseRunnerTools,
+  formatReleaseRunnerToolsFailure,
+} from "./check-release-runner-tools.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const SKIPPED = new Set([
@@ -39,15 +46,22 @@ for (const root of ROOTS) {
 // The task surface itself: task commands invoke tools too.
 inspect("effigy.toml", await readFile(join(repoRoot, "effigy.toml"), "utf8"));
 
-if (findings.length > 0) {
-  const lines = findings.map(
-    ({ file, line, tool, text }) => `  ${file}:${line} invokes '${tool}' — ${text}`,
-  );
-  console.error(
-    `Scripts must not invoke tools a clean runner lacks.\n\n${lines.join("\n")}\n\n` +
-      "Use grep, or scan in-process. Installing the tool in the workflow fixes\n" +
-      "one run and leaves the next absent tool invisible locally.",
-  );
+const release = checkReleaseRunnerTools(repoRoot);
+
+if (findings.length > 0 || release.failures.length > 0) {
+  if (findings.length > 0) {
+    const lines = findings.map(
+      ({ file, line, tool, text }) => `  ${file}:${line} invokes '${tool}' — ${text}`,
+    );
+    console.error(
+      `Scripts must not invoke tools a clean runner lacks.\n\n${lines.join("\n")}\n\n` +
+        "Use grep, or scan in-process. Installing the tool in the workflow fixes\n" +
+        "one run and leaves the next absent tool invisible locally.",
+    );
+  }
+  if (release.failures.length > 0) {
+    console.error(formatReleaseRunnerToolsFailure(release));
+  }
   process.exit(1);
 }
 
@@ -57,6 +71,11 @@ console.log(
       schema: "longhorn.runner-tools.v1",
       outcome: "pass",
       forbidden: FORBIDDEN.map((item) => item.tool),
+      releaseGateTools: release.requirements.map((item) => ({
+        gate: item.gate,
+        tool: item.tool,
+        via: item.via,
+      })),
     },
     null,
     2,
