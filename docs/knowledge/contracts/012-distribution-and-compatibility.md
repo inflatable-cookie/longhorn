@@ -136,21 +136,24 @@ A release candidate requires:
 
 ## Current Poodle Checkpoint
 
-**Public registry, exact 0.4.2, adopted 2026-09-14 by g02.039.** There is no
-packed preview artifact any more. Longhorn resolves Poodle the way any
-consumer does.
+**Public registry, exact 0.4.4, moved 2026-09-27 by the 0.3.0 dependency
+sweep (task 024).** There is no packed preview artifact any more. Longhorn
+resolves Poodle the way any consumer does.
 
-- npm: `@inflatable-cookie/poodle-core@0.4.2` and
-  `@inflatable-cookie/poodle-svelte@0.4.2`, both `latest` on the public
+- npm: `@inflatable-cookie/poodle-core@0.4.4` and
+  `@inflatable-cookie/poodle-svelte@0.4.4`, both `latest` on the public
   registry. Exact, not a range: the adapter's peer is exact, and a range on
   either side would let the two skew.
-- Rust: git tag `v0.4.2` at `d2438aef7d34df31b958d172c9c162e83063d83c`. One
+- Rust: git tag `v0.4.4` at `1c1f00764b7733d44008a7bdde9f34f695162731`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
   two sources for one crate are two incompatible types.
 - `gpui` resolves from crates.io at `0.2.2` on both sides of the graph, the
   consumer's direct dependency and Poodle's transitive one. Poodle 0.2.1
   exposed a fork identity here and is not adoptable; 0.2.0 and 0.2.1 are
   both skipped.
+- 0.4.4 adds a Text/Code `wrap` option and IconButton `data-*` forwarding;
+  its peers are unchanged (`svelte >=5.56.8 <6`, `marked ^18.0.9`).
+  `0.4.3` was never published.
 - React remains source-only and has no npm package.
 
 `poodle-core` carries the former `poodle-headless`, `poodle-styles`,
