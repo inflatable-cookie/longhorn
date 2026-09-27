@@ -26,9 +26,15 @@ policy remain consumer-owned.
   range to meet Poodle, not the reverse: prefer newer releases and never ask
   Poodle to lower its floor. `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`,
   which meets Poodle only at `5.56.8`.
-- Poodle adapter work pins one exact published Poodle version. The preview era
-  -- one exact source commit plus a packable artifact, claiming no range --
-  ended when Poodle released publicly; see the checkpoint below.
+- From `0.3.0`, `longhorn-poodle-svelte` declares Poodle (`poodle-core`,
+  `poodle-svelte`) as optional peers with a range within one Poodle minor
+  line, starting `>=0.4.4 <0.5` (operator ruling 2026-09-27). Below 1.0 a
+  Poodle minor is the breaking step, so a Poodle patch never forces a
+  Longhorn release and consumers keep one Poodle copy. Longhorn's own dev
+  and proof installs pin one exact Poodle release, and the proofs cover the
+  range ends. `0.2.2` and earlier peer on one exact Poodle version. The
+  preview era -- one exact source commit plus a packable artifact, claiming
+  no range -- ended when Poodle released publicly; see the checkpoint below.
 - Internal npm dependencies and adapter peers pin the exact Longhorn version,
   never `workspace:*`: consumer `file:` installs resolve these packages
   outside the workspace, where `workspace:*` cannot resolve (decided
