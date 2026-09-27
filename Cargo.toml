@@ -71,11 +71,11 @@ license = "MIT"
 repository = "https://github.com/inflatable-cookie/longhorn"
 
 [workspace.dependencies]
-# Exact pin: this is the version whose encrypted-backup output the
-# capture/restore/key-rotation conformance suites are frozen against; the
-# wire format must stay byte-stable across app versions, so a move needs
-# those suites rerun, not a caret. 0.12.1 is also the newest age published.
-age = { version = "=0.12.1", default-features = false }
+# Caret range: Longhorn's Cargo.lock is the tested set. Encrypted-backup
+# output from this line is what the capture/restore/key-rotation suites
+# freeze against; every dependency refresh reruns those suites. Consumers
+# taking Longhorn by git tag can resolve a compatible age 0.12.x.
+age = { version = "0.12.1", default-features = false }
 axum = "0.8.4"
 base64 = "0.23.1"
 # The Card 231 capture bridge's objc2 line (longhorn-tauri-agent-control,
@@ -154,13 +154,15 @@ reqwest = { version = "0.13.2", default-features = false }
 # false` mints no session ids, and 2026-07-28 is supported but not the
 # negotiated default (see the Card 229 closeout).
 rmcp = { version = "3.1.3", features = ["transport-streamable-http-server"] }
-# Exact pin: g02.007 moved rusqlite here under frozen evidence -- the
-# native-snapshot, grouped-restore, WAL, and storage-transition suites --
-# and `bundled` means a version move swaps the embedded SQLite engine,
-# so the pin forces that decision instead of a silent `cargo update`.
+# Caret range: g02.007 moved rusqlite here under frozen evidence -- the
+# native-snapshot, grouped-restore, WAL, and storage-transition suites.
+# `bundled` means a version move swaps the embedded SQLite engine.
+# Longhorn's Cargo.lock is the tested set; every dependency refresh
+# reruns those suites. Consumers taking Longhorn by git tag can resolve
+# a compatible rusqlite 0.40.x, including the SQLite their graph needs.
 # The 0.3.0 dependency sweep took 0.40.2 through those suites green
 # (2026-09-27).
-rusqlite = { version = "=0.40.2", features = ["backup", "bundled"] }
+rusqlite = { version = "0.40.2", features = ["backup", "bundled"] }
 # Pinned to rmcp 3.1.3's own schemars line: the derive must macro-match the
 # version rmcp's tool macros generate code against.
 schemars = "1.0"
@@ -186,11 +188,12 @@ tauri-build = { version = "2.6.3", default-features = false, features = ["config
 # argument -- see `generation::config`. A version move is a generator-hardening
 # task with a full regen and fixture diff, never a silent `cargo update`.
 ts-rs = { version = "=12.0.1", default-features = false, features = ["no-serde-warnings", "serde-compat"] }
-# Exact pin: g02.007 moved zip here under frozen archive evidence -- the
+# Caret range: g02.007 moved zip here under frozen archive evidence -- the
 # publication, determinism, retention, and restore suites. Backup archives
-# are compared byte-for-byte, so a version move needs those suites rerun;
-# 8.6.0 is the newest zip published.
-zip = { version = "=8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# are compared byte-for-byte. Longhorn's Cargo.lock is the tested set;
+# every dependency refresh reruns those suites. Consumers taking Longhorn
+# by git tag can resolve a compatible zip 8.x.
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"
