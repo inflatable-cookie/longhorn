@@ -81,10 +81,12 @@ an injected reporter.
 - Svelte, Poodle, and Tauri compatibility ranges are declared peers.
 - The Poodle adapter proof pins one exact published Poodle version. The
   preview-artifact era ended when Poodle released publicly.
-- The current pin is exact `@inflatable-cookie/poodle-svelte@0.4.4` from the
-  public registry, declared as the adapter's optional peer, with Rust tag
-  `v0.4.4` at `1c1f00764b7733d44008a7bdde9f34f695162731`. Contract 012 carries
-  the full checkpoint.
+- The dev and proof installs pin exact
+  `@inflatable-cookie/poodle-svelte@0.4.4` from the public registry; the
+  adapter's published peer is the optional range `>=0.4.4 <0.5` (ruling
+  2026-09-27), with Rust tag `v0.4.4` at
+  `1c1f00764b7733d44008a7bdde9f34f695162731`. Contract 012 carries the full
+  checkpoint.
 - Superseded: Card 038 artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`, the
   packable preview this replaced. Kept as record, not as a live pin.

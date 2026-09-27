@@ -18,7 +18,8 @@ know the pattern every larger composition builds on.
 > `@inflatable-cookie/longhorn`,
 > `@inflatable-cookie/longhorn-poodle-svelte`, and
 > `@inflatable-cookie/longhorn-tauri` — and Poodle resolves from npm at
-> `0.4.4`, the version Longhorn pins. This guide still walks the `file:`
+> `0.4.4`, the release Longhorn pins for its own dev and proof installs.
+> This guide still walks the `file:`
 > sibling path because that is what the proofs use; installing by version is
 > the shorter route. The
 > [private 0.1 candidate](../reference/private-0-1-candidate.md) receipt is
@@ -119,8 +120,8 @@ One dependency on `@inflatable-cookie/longhorn` covers every selected system
 packages. Add `@inflatable-cookie/longhorn-poodle-svelte` by the same `file:`
 discipline when the shape selects Svelte/Poodle bindings. The Poodle packages
 (`@inflatable-cookie/poodle-svelte`, `@inflatable-cookie/poodle-core`) are
-published at `0.4.4`, the version Longhorn peers on; install them by version,
-or pin them from a Poodle checkout the same way. Adjust relative paths to your
+published from `0.4.4`, and the adapter takes any `0.4.x` from there; install
+them by version, or pin them from a Poodle checkout the same way. Adjust relative paths to your
 layout; commit the lockfile.
 
 The `overrides` block is required, not optional. `longhorn-poodle-svelte` and

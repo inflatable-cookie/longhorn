@@ -28,6 +28,13 @@
 // Poodle. Both resolved versions are reported in the envelope, so the claim
 // names the releases it was proved on instead of leaving them implied.
 //
+// From the 0.3.0 Poodle peer range (contract 012, ruling 2026-09-27) the same
+// shape covers Poodle: each stage runs both peers at the same end of their
+// declared ranges, newest-admitted (both ranges installed verbatim) and floor
+// (both pinned to their floors). Until Poodle publishes past `0.4.4` the two
+// stages resolve the same release; the matrix exists so the floor can never
+// be quietly dropped once a newer 0.4.x appears.
+//
 // Temporary by design: stages live under `mkdtemp` and are deleted. Keep one
 // for inspection with KEEP_PACK_TYPECHECK=1.
 
@@ -78,28 +85,69 @@ const declaredSvelteRange = adapterManifest.peerDependencies.svelte;
 if (!declaredSvelteRange) {
   throw new Error(`${ADAPTER} declares no svelte peer; this proof has nothing to typecheck against`);
 }
-const { floor, ceilingMajor } = svelteRangeShape(declaredSvelteRange);
+const { floor: svelteFloor, ceiling: svelteCeiling } = rangeShape(
+  declaredSvelteRange,
+  "svelte",
+);
 
-/** The two Svelte releases this proof typechecks against. The range entry is
- * installed verbatim, so npm picks the newest release the declaration admits;
- * the floor entry demotes that to an exact pin, because a bundle of stages
- * that all resolve upward never runs the lower bound a consumer may be on. */
-const svelteMatrix = [
-  { label: "newest-admitted", spec: declaredSvelteRange },
-  { label: "floor", spec: floor },
+// The Poodle peers must be one identical range: a consumer resolving them from
+// one declaration must never get two different Poodle lines from the same
+// adapter. The workspace dev pins must sit exactly at that range's floor --
+// contract 012 keeps Longhorn's own installs on one exact Poodle release while
+// the published declaration admits the range.
+const declaredPoodleRange = adapterManifest.peerDependencies[CORE];
+if (!declaredPoodleRange) {
+  throw new Error(`${ADAPTER} declares no ${CORE} peer; this proof has nothing to typecheck against`);
+}
+if (adapterManifest.peerDependencies[SVELTE] !== declaredPoodleRange) {
+  throw new Error(
+    `${ADAPTER} declares different Poodle peers: ${CORE} ${declaredPoodleRange}, ` +
+      `${SVELTE} ${adapterManifest.peerDependencies[SVELTE]}`,
+  );
+}
+const { floor: poodleFloor, ceiling: poodleCeiling } = rangeShape(
+  declaredPoodleRange,
+  "Poodle",
+);
+for (const name of [CORE, SVELTE]) {
+  const pin = rootPins.get(name);
+  if (pin !== poodleFloor) {
+    throw new Error(
+      `the root manifest pins ${name} at ${pin ?? "nothing"}, not exactly the ` +
+        `peer floor ${poodleFloor}; Longhorn's dev install stays on one exact Poodle release`,
+    );
+  }
+}
+
+/** The two ends this proof typechecks. The range entry is installed verbatim,
+ * so npm picks the newest release each declaration admits; the floor entry
+ * demotes both peers to exact pins, because a bundle of stages that all
+ * resolve upward never runs the lower bound a consumer may be on. */
+const stages = [
+  {
+    label: "newest-admitted",
+    svelteSpec: declaredSvelteRange,
+    poodleSpec: declaredPoodleRange,
+  },
+  {
+    label: "floor",
+    svelteSpec: svelteFloor,
+    poodleSpec: poodleFloor,
+  },
 ] as const;
 
 const typechecked: {
   label: string;
-  spec: string;
-  resolved: string;
+  svelte: { spec: string; resolved: string };
+  poodle: { spec: string; resolved: string };
 }[] = [];
 
-for (const { label, spec } of svelteMatrix) {
+for (const stage of stages) {
+  const resolved = await typecheckStage(stage);
   typechecked.push({
-    label,
-    spec,
-    resolved: await typecheckStage(spec),
+    label: stage.label,
+    svelte: { spec: stage.svelteSpec, resolved: resolved.svelte },
+    poodle: { spec: stage.poodleSpec, resolved: resolved.poodle },
   });
 }
 
@@ -108,9 +156,10 @@ console.log(
     {
       schema: "longhorn.pack-typecheck.v1",
       outcome: "pass",
-      poodleVersion: poodleRelease().version,
+      poodleRange: declaredPoodleRange,
+      poodleDevPin: poodleRelease().version,
       svelteRange: declaredSvelteRange,
-      typecheckedSvelte: typechecked,
+      typechecked,
       packed: [LONGHORN, ADAPTER],
       poodleIntegrityVerified: poodleRelease().packages.map((pkg) => pkg.name),
       typecheckers: ["tsc", "svelte-check"],
@@ -122,18 +171,30 @@ console.log(
 
 /**
  * Pack both Longhorn packages, install them with registry Poodle into a bare
- * stage, and typecheck the whole adapter surface. Returns the Svelte version
- * the stage actually resolved, which must be one the declared range admits.
+ * stage, and typecheck the whole adapter surface. Returns the Svelte and
+ * Poodle versions the stage actually resolved; both must sit inside the
+ * declared ranges.
  */
-async function typecheckStage(svelteSpec: string): Promise<string> {
+async function typecheckStage(pass: {
+  readonly label: string;
+  readonly svelteSpec: string;
+  readonly poodleSpec: string;
+}): Promise<{ svelte: string; poodle: string }> {
+  const { svelteSpec, poodleSpec, label } = pass;
   const stage = await mkdtemp(join(tmpdir(), "longhorn-pack-typecheck-"));
   /** Tarballs in the stage and each packed package's manifest version, filled
    * after packing. Function-local so one pass cannot see the other's stage. */
   const packs = new Set<string>();
   const versions = new Map<string, string>();
+  const floorPoodlePass = poodleSpec === poodleFloor;
 
   try {
     const release = poodleRelease();
+    if (floorPoodlePass && release.version !== poodleFloor) {
+      throw new Error(
+        `the repository pins Poodle ${release.version} but the peer floor is ${poodleFloor}`,
+      );
+    }
 
     // Pack the release's own tarballs into the stage: it installs the published
     // artifact, not the working tree.
@@ -160,9 +221,9 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
       throw new Error(`expected exactly two packed tarballs in ${stage}, got ${[...packs].join(", ")}`);
     }
 
-    // Install the peer ranges exactly as the published manifest declares them.
-    // npm is the only source of the Poodle entries here, which is the claim.
-    // Svelte is the one declaration the caller overrides, to run the matrix.
+    // Install the peer declarations exactly as this pass runs them: npm is
+    // the only source of the Poodle and Svelte entries here, which is the
+    // claim. The caller picks the end of each range the pass covers.
     const manifest = {
       name: "longhorn-pack-typecheck-proof",
       private: true,
@@ -170,8 +231,8 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
       dependencies: {
         [LONGHORN]: `file:./${packPath(stage, LONGHORN, packs, versions)}`,
         [ADAPTER]: `file:./${packPath(stage, ADAPTER, packs, versions)}`,
-        [CORE]: adapterManifest.peerDependencies[CORE]!,
-        [SVELTE]: adapterManifest.peerDependencies[SVELTE]!,
+        [CORE]: poodleSpec,
+        [SVELTE]: poodleSpec,
         svelte: svelteSpec,
       },
       devDependencies: {
@@ -213,18 +274,24 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
       }
     }
 
-    // What npm served must be the pinned release, resolved inside the stage --
-    // not a sibling checkout reached through a link -- with the same integrity
-    // bytes the root lockfile records for it.
+    // What npm served must sit inside the stage -- not a sibling checkout
+    // reached through a link -- and satisfy the declared Poodle range. The
+    // floor pass can say more: the installed bytes must equal the root
+    // lockfile's recorded integrity for the pinned release, so the typecheck
+    // runs against the same bytes every other proof verifies. The newest pass
+    // has no root reference by definition; there the staged lockfile must at
+    // least record the version actually installed.
+    const resolvedPoodle = new Map<string, string>();
     for (const pkg of release.packages) {
       const installed = join(stage, "node_modules", ...pkg.name.split("/"));
-      const manifestInstalled = JSON.parse(
+      const installedVersion = (JSON.parse(
         await readFile(join(installed, "package.json"), "utf8"),
-      ) as { version: string };
-      if (manifestInstalled.version !== release.version) {
+      ) as { version: string }).version;
+      resolvedPoodle.set(pkg.name, installedVersion);
+      if (!admitsRange(installedVersion, poodleFloor, poodleCeiling)) {
         throw new Error(
-          `${pkg.name} resolved at ${manifestInstalled.version}, ` +
-            `not the pinned ${release.version}; the peer range and the repository pin have drifted`,
+          `${pkg.name} resolved at ${installedVersion}, outside the declared ` +
+            `range ${declaredPoodleRange}`,
         );
       }
       const target = await realpath(installed);
@@ -236,13 +303,36 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
             "The typecheck must run against a registry install, not a machine-local source.",
         );
       }
-      const locked = await lockIntegrity(join(stage, "bun.lock"), pkg.name);
-      if (locked !== pkg.integrity) {
+      const locked = await stagedLockEntry(join(stage, "bun.lock"), pkg.name);
+      if (floorPoodlePass) {
+        if (installedVersion !== release.version) {
+          throw new Error(
+            `${pkg.name} resolved at ${installedVersion}, ` +
+              `not the pinned ${release.version}; the peer floor and the repository pin have drifted`,
+          );
+        }
+        if (locked.integrity !== pkg.integrity) {
+          throw new Error(
+            `registry install of ${pkg.name} carries ${locked.integrity}, ` +
+              `the pinned release records ${pkg.integrity}`,
+          );
+        }
+      } else if (locked.version !== installedVersion) {
         throw new Error(
-          `registry install of ${pkg.name} carries ${locked}, ` +
-            `the pinned release records ${pkg.integrity}`,
+          `the staged lockfile records ${pkg.name}@${locked.version} but ` +
+            `${installedVersion} is installed`,
         );
       }
+    }
+    // One Poodle version across the closure: the published packages move in
+    // lockstep, and a stage that somehow resolved a skew would typecheck a
+    // consumer state no release ships.
+    const poodleVersions = [...new Set(resolvedPoodle.values())];
+    if (poodleVersions.length !== 1) {
+      throw new Error(
+        `Poodle packages are not in lockstep in the stage: ` +
+          `${[...resolvedPoodle].map(([name, version]) => `${name}@${version}`).join(", ")}`,
+      );
     }
 
     // The Svelte runtime the stage resolved is the release this pass actually
@@ -253,15 +343,20 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
     const resolvedSvelte = JSON.parse(
       await readFile(join(stage, "node_modules", "svelte", "package.json"), "utf8"),
     ).version as string;
-    if (!admitsSvelte(resolvedSvelte, floor, ceilingMajor)) {
+    if (!admitsRange(resolvedSvelte, svelteFloor, svelteCeiling)) {
       throw new Error(
         `stage resolved svelte ${resolvedSvelte}, which the declared range ` +
           `${declaredSvelteRange} does not admit`,
       );
     }
-    if (svelteSpec === floor && resolvedSvelte !== floor) {
+    if (svelteSpec === svelteFloor && resolvedSvelte !== svelteFloor) {
       throw new Error(
-        `the floor pass asked for exactly ${floor} but resolved ${resolvedSvelte}`,
+        `the floor pass asked for exactly ${svelteFloor} but resolved ${resolvedSvelte}`,
+      );
+    }
+    if (floorPoodlePass && resolvedPoodle.get(CORE) !== poodleFloor) {
+      throw new Error(
+        `the floor pass asked for exactly ${poodleFloor} but resolved ${resolvedPoodle.get(CORE)}`,
       );
     }
 
@@ -330,10 +425,12 @@ async function typecheckStage(svelteSpec: string): Promise<string> {
     typecheck(stage, ["bun", "x", "tsc", "-p", "tsconfig.json"]);
     typecheck(stage, ["bun", "x", "svelte-check", "--tsconfig", "tsconfig.json"]);
 
-    return resolvedSvelte;
+    return { svelte: resolvedSvelte, poodle: poodleVersions[0]! };
   } finally {
     if (process.env.KEEP_PACK_TYPECHECK === "1") {
-      console.error(`retained pack-typecheck stage (${svelteSpec}): ${stage}`);
+      console.error(
+        `retained pack-typecheck stage (${label}: svelte ${svelteSpec}, poodle ${poodleSpec}): ${stage}`,
+      );
     } else {
       await rm(stage, { recursive: true, force: true });
     }
@@ -391,10 +488,14 @@ function rootTool(name: string): string {
   return pin;
 }
 
-/** bun.lock is JSONC; the registry entry shape is the same one
+/** The registry entry the staged lockfile records for one package: its
+ * version and integrity. bun.lock is JSONC; the entry shape is the same one
  * poodle-release.ts matches. Kept local because the root there is fixed and
  * here it is the staged lockfile. */
-async function lockIntegrity(lockPath: string, name: string): Promise<string> {
+async function stagedLockEntry(
+  lockPath: string,
+  name: string,
+): Promise<{ version: string; integrity: string }> {
   const lock = await readFile(lockPath, "utf8");
   const escaped = name.replace(/[/@-]/g, (character) => `\\${character}`);
   const entry = new RegExp(
@@ -403,37 +504,43 @@ async function lockIntegrity(lockPath: string, name: string): Promise<string> {
   if (!entry) {
     throw new Error(`staged bun.lock records no registry entry for ${name}`);
   }
-  return entry[2]!;
+  return { version: entry[1]!, integrity: entry[2]! };
 }
 
 /**
- * The declared `svelte` peer range, narrowed to the one shape this repository
- * writes: `>=<x.y.z> <<N>`. A different shape is a stop rather than a silent
- * skip: the matrix below is derived from the floor and the ceiling, and a range
- * this parser only half understands would prove the wrong releases.
+ * A declared peer range, narrowed to the shapes this repository writes:
+ * `>=<x.y.z> <<N>` (the Svelte peer's major ceiling) and `>=<x.y.z> <<x.y.z>`
+ * (the Poodle peer's version ceiling, one minor line below 1.0). A different
+ * shape is a stop rather than a silent skip: the matrix below is derived from
+ * the floor and the ceiling, and a range this parser only half understands
+ * would prove the wrong releases.
  */
-function svelteRangeShape(range: string): { floor: string; ceilingMajor: number } {
-  const match = /^>=(\d+\.\d+\.\d+) <(\d+)$/.exec(range);
+function rangeShape(range: string, peer: string): { floor: string; ceiling: string } {
+  const match = /^>=(\d+\.\d+\.\d+) <(\d+(?:\.\d+){0,2})$/.exec(range);
   if (!match) {
     throw new Error(
-      `svelte peer range ${range} is not the \`>=x.y.z <N\` shape this proof ` +
-        "can derive its matrix from",
+      `${peer} peer range ${range} is not the \`>=x.y.z <N\` or \`>=x.y.z <x.y.z\` shape ` +
+        "this proof can derive its matrix from",
     );
   }
-  return { floor: match[1]!, ceilingMajor: Number(match[2]!) };
+  const [, floor, ceiling] = match;
+  return { floor: floor!, ceiling: ceiling!.includes(".") ? ceiling! : `${ceiling}.0.0` };
 }
 
-/** Membership in `>=floor <ceilingMajor`, for release versions only. A
- * prerelease is not admitted: the range carries no prerelease tag, and npm
- * does not offer one for it either. */
-function admitsSvelte(version: string, floor: string, ceilingMajor: number): boolean {
+/** Membership in `>=floor <ceiling`, for release versions only. A prerelease
+ * is not admitted: the range carries no prerelease tag, and npm does not
+ * offer one for it either. */
+function admitsRange(version: string, floor: string, ceiling: string): boolean {
   if (version.includes("-")) return false;
   const parsed = version.split(".").map(Number);
-  const low = floor.split(".").map(Number);
   if (parsed.length !== 3 || parsed.some(Number.isNaN)) return false;
-  if (parsed[0]! >= ceilingMajor) return false;
+  return !tupleLess(parsed, floor.split(".").map(Number))
+    && tupleLess(parsed, ceiling.split(".").map(Number));
+}
+
+function tupleLess(a: readonly number[], b: readonly number[]): boolean {
   for (let index = 0; index < 3; index += 1) {
-    if (parsed[index]! !== low[index]!) return parsed[index]! > low[index]!;
+    if (a[index] !== b[index]) return a[index]! < b[index]!;
   }
-  return true;
+  return false;
 }
