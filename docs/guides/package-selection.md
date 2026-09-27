@@ -81,8 +81,9 @@ required: `longhorn-tauri` peer-depends on `@inflatable-cookie/longhorn` at
 exact `0.1.0`, and without the override bun reaches the registry for it and
 404s. Shapes that select Svelte/Poodle bindings add
 `@inflatable-cookie/longhorn-poodle-svelte` by the same `file:` discipline;
-the Poodle packages it peers on are published at `0.4.4` and install by
-version, and Longhorn `0.1.0` is published too. The full recipe,
+the Poodle packages it peers on are published, and the adapter takes any
+`0.4.x` from `0.4.4`; install by version, and Longhorn `0.1.0` is published
+too. The full recipe,
 including the development-link alternative, is in
 [Getting Started](getting-started.md).
 

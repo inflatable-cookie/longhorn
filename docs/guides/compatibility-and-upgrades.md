@@ -36,28 +36,38 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | TypeScript/Svelte | Svelte 5; exact peer ranges are package-specific in the generated API surface |
 | Tauri renderer API | `@inflatable-cookie/longhorn-tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
 | Tauri Rust | private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.95 |
-| Poodle | exact five-package private artifact receipt; no general registry range claim |
+| Poodle | registry installs pin `0.4.4` for the dev and proof installs; `longhorn-poodle-svelte` peers `>=0.4.4 <0.5` (optional) |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 
 `@inflatable-cookie/longhorn-poodle-svelte` takes `svelte >=5.56.8 <6` in the
 release after `0.2.2`, matching Poodle's own Svelte peer. `0.2.2` and earlier
 declare `>=5.38.6 <=5.56.8`, which meets Poodle only at `5.56.8`; the new
-range drops Svelte below `5.56.8`. Consult the
+range drops Svelte below `5.56.8`. From `0.3.0` the adapter also peers on
+Poodle itself — `poodle-core` and `poodle-svelte`, optional, `>=0.4.4 <0.5`
+— so a consumer on any Poodle `0.4.x` from `0.4.4` keeps one Poodle copy, and
+a Poodle patch does not force a Longhorn release. Consult the
 [generated API surface](../reference/api-surface.md), not a global inferred
 range. The isolated artifact proofs resolve one runtime at `5.56.8`, and the
-packed adapter is typechecked at both the newest release the range admits and
-at `5.56.8`.
+packed adapter is typechecked at both the newest and the lowest release each
+peer range admits.
 
-Concretely, the generated surface declares one range for the one Svelte
-adapter:
+Concretely, the generated surface declares these framework peers for the one
+Svelte adapter:
 
 ```json
-{ "peerDependencies": { "svelte": ">=5.56.8 <6" } }  // @inflatable-cookie/longhorn-poodle-svelte
+{
+  "peerDependencies": {
+    "@inflatable-cookie/poodle-core": ">=0.4.4 <0.5",
+    "@inflatable-cookie/poodle-svelte": ">=0.4.4 <0.5",
+    "svelte": ">=5.56.8 <6"
+  }
+}  // @inflatable-cookie/longhorn-poodle-svelte
 ```
 
-The peer is required, not optional. An application that does not use Svelte
-omits the adapter rather than its peer; an application that mounts it supplies
-one Svelte runtime inside the declared range.
+The Svelte peer is required, not optional. An application that does not use
+Svelte omits the adapter rather than its peer; an application that mounts it
+supplies one Svelte runtime inside the declared range. The Poodle peers stay
+optional: an application that selects no Poodle shell resolves none of them.
 
 The current coordinated receipt is the Card 127
 [private `0.1.0` candidate](../reference/private-0-1-candidate.md). It binds

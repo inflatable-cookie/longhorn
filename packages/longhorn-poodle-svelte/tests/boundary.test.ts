@@ -51,15 +51,15 @@ async function sourceFiles(dir: string): Promise<string[]> {
 }
 
 describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
-  it("pins exact public peers and keeps Poodle optional", async () => {
+  it("peers on the published ranges and keeps Poodle optional", async () => {
     const metadata = JSON.parse(
       await readFile(resolve(packageRoot, "package.json"), "utf8"),
     );
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
       "@inflatable-cookie/longhorn": workspaceVersion(),
-      "@inflatable-cookie/poodle-core": "0.4.4",
-      "@inflatable-cookie/poodle-svelte": "0.4.4",
+      "@inflatable-cookie/poodle-core": ">=0.4.4 <0.5",
+      "@inflatable-cookie/poodle-svelte": ">=0.4.4 <0.5",
       svelte: ">=5.56.8 <6",
     });
     expect(metadata.peerDependenciesMeta).toEqual({
@@ -164,5 +164,21 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
         `${POODLE} ${kind} is a path reference: ${spec}`,
       ).toBe(false);
     }
+  });
+
+  // Contract 012, ruling 2026-09-27: the adapter peers on a Poodle range, but
+  // Longhorn's own dev install stays pinned to one exact release -- the range
+  // floor. A root pin that drifts off the floor would test a release the
+  // published declaration does not require and quietly retire the floor end
+  // of the proof matrix.
+  it("pins the workspace dev install to the Poodle peer floor", () => {
+    const floor = /^>=(\d+\.\d+\.\d+) </.exec(
+      packageManifest.peerDependencies?.[POODLE] as string,
+    )?.[1];
+    expect(floor, "Poodle peer is not the `>=x.y.z <N` shape").toBeDefined();
+    const pin =
+      (rootManifest.dependencies?.[POODLE] ??
+        rootManifest.devDependencies?.[POODLE]) as string | undefined;
+    expect(pin).toBe(floor);
   });
 });

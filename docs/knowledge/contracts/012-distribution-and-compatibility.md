@@ -156,8 +156,9 @@ resolves Poodle the way any consumer does.
 
 - npm: `@inflatable-cookie/poodle-core@0.4.4` and
   `@inflatable-cookie/poodle-svelte@0.4.4`, both `latest` on the public
-  registry. Exact, not a range: the adapter's peer is exact, and a range on
-  either side would let the two skew.
+  registry. Exact, not a range: Longhorn's dev and proof installs pin one
+  release, while the adapter's published peers take the `>=0.4.4 <0.5` range
+  (ruling 2026-09-27, Workspace And Versions above).
 - Rust: git tag `v0.4.4` at `1c1f00764b7733d44008a7bdde9f34f695162731`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
   two sources for one crate are two incompatible types.
