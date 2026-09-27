@@ -6,12 +6,17 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
+### Breaking
+- **`longhorn-poodle-svelte`'s Svelte peer is `>=5.56.8 <6`.** The adapter matches Poodle's own Svelte peer, so consumers can take newer Svelte 5 releases with both packages. This drops Svelte below `5.56.8`; `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`. `proof:pack-typecheck` typechecks the packed adapter at both `5.56.8` and the newest release the range admits. Contract 012 amended 2026-09-26.
+- **`longhorn-tauri-agent-control` has no `dev` feature.** The 0.2.0 migration forward is gone. Name `agent-control-evaluate` for what `dev` enabled, or `agent-control` for the surface without `evaluate`. A packaged `agent-control` build is unchanged.
+
 ### Changed
 - **Every dependency is on its newest compatible release ahead of 0.3.0.** One sweep moved the Rust workspace lock, the eight prototype locks, and the npm lock: Tauri 2.12, wry 0.57, rmcp 3.4 (which renames `ServerInfo` to `ServerConfig` in the agent-control MCP layer), and the rest of their graphs. The exact `rusqlite` pin moves to `0.40.2` with the storage conformance suites green, and the exact Poodle pin moves to `0.4.4` — the npm peers of `longhorn-poodle-svelte` and the Rust git tag together. Poodle's peers are unchanged.
-- **`longhorn-poodle-svelte`'s Svelte peer is `>=5.56.8 <6`.** The adapter matches Poodle's own Svelte peer, so consumers can take newer Svelte 5 releases with both packages. This drops Svelte below `5.56.8`; `0.2.2` and earlier declare `>=5.38.6 <=5.56.8`. `proof:pack-typecheck` typechecks the packed adapter at both `5.56.8` and the newest release the range admits. Contract 012 amended 2026-09-26.
 
-### Removed
-- **Breaking: `longhorn-tauri-agent-control` has no `dev` feature.** The 0.2.0 migration forward is gone. Name `agent-control-evaluate` for what `dev` enabled, or `agent-control` for the surface without `evaluate`. A packaged `agent-control` build is unchanged.
+### Fixed
+- **`qa` fails when a release gate needs a tool `release.yml` does not install.** `check:runner-tools` derives the cargo plugins `[release.gates]` requires and walks the release job's steps: each must be installed unconditionally, in the same job, before `effigy release:gates`. An install in a sibling job or after the gates does not count, and a workflow comment naming the tool is not an install. 0.2.2's dry run died on a missing `cargo deny`.
 
 ## [0.2.2] - 2026-09-26
 
