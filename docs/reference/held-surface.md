@@ -1,7 +1,7 @@
 # Held Surface
 
 Status: checked
-Updated: 2026-08-08
+Updated: 2026-09-28
 
 Some Longhorn surface is built, tested, and contract-documented but not yet
 ready for consumer implementation. This register is the single source of
@@ -31,13 +31,17 @@ Rules enforced by `scripts/verify-held-surface.ts`:
 | --- | --- | --- | --- |
 | age encryption (`longhorn-config-age`, no `bindings` feature) | held-for-consumer | a consumer that needs encrypted backups | contract 004 already documents optional age v1; integration seam = `ConfigStore` capture/restore hooks plus archive inspection. Until then, composition is the documented two-call flow: encrypt via config-age, decrypt and inspect via config-age, then hand plaintext to `longhorn-config`. |
 | bridge contract machinery (`longhorn-bridge`: lifecycle machine, replay ledger, ordering, supervision, jobs) | held-for-consumer | a bridge consumer with a real service topology | the optional-server shape needs supervision or ordered delivery. Until then the surface is exercised by the crate's own contract tests; supervision is a stub on both sides of the renderer boundary. |
-| fork-tree optional surface (`longhorn-history-tree` branch clients, checkpoints, dense persistence; `@inflatable-cookie/longhorn/history-tree` fork projections) | planning-evidence | a consumer that needs divergent history | promote the tree when that consumer is named. The linear slice is the shipped surface; the tree crate is selectable only as evidence. |
 | layout bounded replay (`BoundedLayoutReplayStore`, `apply_with_replay`) | planning-evidence | a host that needs replay at the mutation boundary | tested since the layout-suite port (2026-08-15); no production caller exists. Contract 002's absorbed layout section carries the mechanism. |
 | `MilestoneRetention` (backup retention age buckets) | planning-evidence | a retention product choice | contract 004 documents count/age tiers; milestone buckets are uncontracted. Contract or retire with the retention consumer. |
 
 Application update and licensing graduated from this register on 2026-08-15,
 when their crates, renderer surfaces, Tauri hosts and packaged proofs landed.
 Both are ordinary selectable systems.
+
+The fork tree (`longhorn-history-tree`, `longhorn-tauri-history-tree`, and
+`@inflatable-cookie/longhorn/history-tree`) graduated on 2026-09-28. It is an
+ordinary selectable optional system on linear history; see
+[contract 008](../knowledge/contracts/008-history-kernel-boundary.md).
 
 ## Assessed And Retained
 

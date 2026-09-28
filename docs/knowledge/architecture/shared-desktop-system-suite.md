@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-09-26
+Updated: 2026-09-28
 Evidence: translation memos 001, 002, 015, 016 and 017 (Git history)
 
 ## Purpose
@@ -30,7 +30,7 @@ shape and admission questions.
 | commands/actions | sealed registry, bounded arguments, fresh admission, injected execution | compiled boundary | Loophole, Jetstream |
 | input/keymaps | physical keyboard, contexts, conflicts, durable sparse overrides | compiled boundary | Loophole, Jetstream |
 | command palette | Poodle-backed projection of command registry | compiled boundary | Loophole, Jetstream |
-| history | typed linear kernel plus later optional fork-tree layer | promoted fork semantics; tree implementation planned | Loophole plus non-editor fixture |
+| history | typed linear kernel plus optional fork-tree layer | linear default; tree selectable as opt-in | Loophole plus non-editor fixture |
 | async operations | finite lifecycle authority, progress, cancellation receipts, retention | lifecycle foundation implemented | Soundcheck scan, Loophole render queue |
 | notifications | independent retained ledger plus transient projection | compiled boundary | Loophole domain records; Soundcheck outcome need |
 | native content islands | pure coordination plus separate host mechanisms | promoted split graph; production runway compiled | Nucleus, Soundcheck, Jetstream |

@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-03
+Updated: 2026-09-28
 Evidence: `015-history-kernel-and-fork-boundary.md` (Git history)
 
 ## Boundary
@@ -11,11 +11,12 @@ Longhorn may provide an optional generic history kernel. It owns structural
 history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
-The first compatibility-proved mode is linear. Cards 070-073 implement the
-optional production tree through strict persistence, bounded pure projections,
+The first compatibility-proved mode is linear. The optional production tree
+is a selectable system on that linear default; branch mode is opt-in. Cards
+070-073 implement it through strict persistence, bounded pure projections,
 an exact metadata protocol, a caller-aware Tauri host, checked clients,
 per-instance Svelte state, and public-Poodle composition. Card 074 proves the
-private artifacts without authorizing publication or consumer adoption.
+produced artifacts.
 
 ## Package Shape
 

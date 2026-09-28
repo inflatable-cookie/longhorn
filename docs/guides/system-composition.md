@@ -1,7 +1,7 @@
 # Compose Desktop Systems
 
 Status: checked private adoption guidance
-Updated: 2026-08-15
+Updated: 2026-09-28
 Governing contracts: [002-017](../knowledge/contracts/contract-index.md)
 
 ## Why This Matters
@@ -143,11 +143,10 @@ Longhorn persists the bounded linear structure. The app persists payload
 codec, canonical product snapshot, journal, fsync/autosave policy, recovery,
 and project versions. Renderer metadata never contains product payload.
 
-Fork-tree semantics are promoted planning evidence: the `longhorn-history-tree`
-crate exists and is tested, but branch clients, checkpoints, and durable tree
-persistence are held surface — do not select them or imply their
-availability. See the [held-surface register](../reference/held-surface.md)
-and [History Composition](../knowledge/architecture/history-composition.md).
+Fork-tree history is an optional system on linear history. Linear history
+stays the default; branch mode is an opt-in. See
+[contract 008](../knowledge/contracts/008-history-kernel-boundary.md) and
+[History Composition](../knowledge/architecture/history-composition.md).
 
 ## Operations And Notifications
 
