@@ -14,6 +14,30 @@ boundary tests read that field. Do not hand-edit version literals in
 `scripts/` or the adapter peers. `config/release.toml` is the only
 `[release]` and `[release.gates]` definition; `effigy.toml` includes it.
 
+## Toolchain pin
+
+The stable toolchain Longhorn builds, tests and releases with is pinned once,
+in `rust-toolchain.toml` at the repository root. rustup reads it locally, and
+`ci.yml` and `release.yml` parse the channel through
+`scripts/rust-toolchain-channel.sh` and install exactly that version. Floating
+`stable` is banned from workflows: Rust 1.98 added
+`clippy::chunks_exact_to_as_chunks`, green on 1.97.1 locally and red on the
+runner, and stopped a dry run before publish.
+
+The MSRV floor is separate. `release-baselines/rust-toolchains.env` holds
+`LONGHORN_GENERAL_MSRV`, which the floor gate exercises through `rustup run`.
+Never put the stable channel in that file, and never put the floor in
+`rust-toolchain.toml`.
+
+To bump the pinned toolchain:
+
+1. Set `channel` in `rust-toolchain.toml` to the new stable version.
+2. Install it, then run `effigy qa` and `effigy release:floor`. Fix any new
+   lint in the same PR: a new Clippy lint on pre-existing code is the expected
+   cost of a bump.
+3. Dispatch `ci.yml` and confirm the run logs `rustc --version` at the new
+   channel.
+
 ## Steps
 
 1. **Bump.** `effigy release:bump -- <version>` updates the workspace version
@@ -66,7 +90,9 @@ rewrite: Longhorn path-package versions only, then
 weaken `check:prototypes --locked`.
 
 When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the same
-change. The floor unlocks MSRV-gated Clippy lints.
+change. The floor unlocks MSRV-gated Clippy lints. The pinned stable channel in
+`rust-toolchain.toml` is a separate declaration with its own bump procedure
+("Toolchain pin" above).
 
 ## Publishing credentials
 

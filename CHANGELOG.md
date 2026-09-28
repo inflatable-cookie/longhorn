@@ -6,6 +6,13 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Changed
+- **The stable Rust toolchain is pinned to 1.97.1.** `rust-toolchain.toml` is
+the one declaration; `ci.yml` and `release.yml` install exactly that channel
+instead of floating `stable`. Rust 1.98 added a Clippy lint that was green on
+1.97.1 locally and red on the runner, and stopped a dry run before publish. The
+MSRV floor (`LONGHORN_GENERAL_MSRV`) is unchanged.
+
 ## [0.3.0] - 2026-09-27
 
 ### Breaking

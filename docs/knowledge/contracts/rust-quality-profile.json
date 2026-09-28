@@ -99,7 +99,9 @@
       "prototypes/native-content/Cargo.toml"
     ],
     "source": "repository_policy",
-    "toolchain_policy_paths": [],
+    "toolchain_policy_paths": [
+      "rust-toolchain.toml"
+    ],
     "when_unresolved": "stop"
   },
   "profile": "strict",
