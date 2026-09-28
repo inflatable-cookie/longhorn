@@ -1,3 +1,4 @@
+import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { createHash, randomUUID } from "node:crypto";
@@ -184,7 +185,7 @@ async function verifyTypescriptConsumer(shape: Shape, artifacts: ReadonlyMap<str
   // the registry exactly as a real consumer resolves it.
   manifest.overrides = Object.fromEntries([...artifacts].map(([name, path]) => [name, fileDependency(path)]));
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-  await run(["bun", "install", "--ignore-scripts"], stage);
+  await installProofStage(stage);
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   const trace = parseTrace(await run(["bun", `consumers/${shape}/proof.ts`], stage));
   if (!equalJson(trace.publicTrace, nativeTrace.publicTrace)) throw new Error(`${shape} native and renderer traces diverged`);

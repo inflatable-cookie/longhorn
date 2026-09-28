@@ -1,3 +1,4 @@
+import { installProofStage } from "../proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "../consumer-absence.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
@@ -97,7 +98,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
 
-  await run(["bun", "install", "--ignore-scripts"], stage);
+  await installProofStage(stage);
   await run(
     ["bun", "x", "tsc", "-p", "consumer-tsconfig.json"],
     stage,

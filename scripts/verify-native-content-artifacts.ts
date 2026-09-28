@@ -1,3 +1,4 @@
+import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { createHash, randomUUID } from "node:crypto";
@@ -463,7 +464,7 @@ async function verifyConsumer(
   );
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-  await run(["bun", "install", "--ignore-scripts"], stage);
+  await installProofStage(stage);
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   const usesSvelte = shape !== "soundcheck";
   if (usesSvelte) {

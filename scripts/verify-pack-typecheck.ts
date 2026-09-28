@@ -1,3 +1,4 @@
+import { installProofStage } from "./proof-install.ts";
 // Pack-level typecheck of `longhorn-poodle-svelte` against registry Poodle.
 //
 // The workspace `check:svelte` typechecks the adapter against the tree's own
@@ -249,7 +250,7 @@ async function typecheckStage(pass: {
       },
     };
     await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    run(["bun", "install", "--ignore-scripts"], stage);
+    await installProofStage(stage, label === "newest-admitted" ? [CORE, SVELTE, "svelte"] : []);
 
     // The installed Longhorn packages must be the packed ones, inside the stage.
     // Without this, an ambiguous tarball pin could silently install something

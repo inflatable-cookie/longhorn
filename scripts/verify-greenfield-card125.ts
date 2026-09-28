@@ -1,3 +1,4 @@
+import { installProofStage } from "./proof-install.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   cp,
@@ -413,7 +414,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     manifest.dependencies = rewriteArtifactDependencies(manifest.dependencies, artifacts);
     manifest.overrides = Object.fromEntries([...artifacts].map(([name, path]) => [name, fileDependency(path)]));
     await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    await run([...bunCommand, "install", "--ignore-scripts"], stage);
+    await installProofStage(stage);
     await run([...bunCommand, "x", "svelte-check", "--tsconfig", `${shape}/tsconfig.json`], stage);
     await run([...bunCommand, "x", "vite", "build", shape, "--config", `${shape}/vite.config.ts`], stage);
     const tests = await run([...bunCommand, "x", "vitest", "run", "--config", `${shape}/vitest.config.ts`], stage);
