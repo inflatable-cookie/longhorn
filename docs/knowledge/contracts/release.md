@@ -56,8 +56,11 @@ consumer). `effigy release:gates` is the same list minus `workspace`;
 extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
 `.github/workflows/release.yml` does not install them in an unconditional
 step of the same job, before `effigy release:gates`; a comment is not an
-install. `effigy test:release-tooling` covers the bump, the alignment check,
-and that mapping.
+install. The `private-candidate` gate reads version, Rust crate count, and
+consumer-graph count from the frozen receipt; CHANGELOG and the
+compatibility guide must still carry those facts, not a fixed phrase.
+`effigy test:release-tooling` covers the bump, the alignment check, that
+mapping, and this fact check.
 
 Effigy `release prepare` cannot see the eight workspace-excluded
 `prototypes/*/Cargo.lock` files. `sync:prototype-locks` is the pre-gate

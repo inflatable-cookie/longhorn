@@ -38,8 +38,8 @@ initial-tag-current-version = true
 #
 # Listed cheapest-first. Effigy PR 48 runs `[release.gates]` in declaration
 # order, so the 38ms candidate check precedes the 145s MSRV floor. Do not
-# rename gates to force order — `verify-private-candidate-docs-card127.ts`
-# asserts two of these lines verbatim.
+# rename gates to force order — the candidate proof reads `private-candidate`
+# and `workspace` from this table.
 [release.gates]
 # Docs-level candidate assertion. 38ms.
 private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
@@ -57,7 +57,7 @@ prototypes = "effigy check:prototypes"
 #
 # Left unwrapped on purpose. The removed duplicates carried `nice -n 5`, and
 # wrapping this gate to keep that would break the card-127 candidate proof,
-# which asserts this line verbatim. The heaviest lane, `release:floor`, nices
+# which requires workspace = "effigy qa". The heaviest lane, `release:floor`, nices
 # itself; qa runs at normal priority the same way an agent runs it.
 workspace = "effigy qa"
 # Enforces the declared MSRV with real Clippy and tests at the floor
