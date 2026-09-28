@@ -2,7 +2,7 @@
 
 Status: frozen baseline; storage cutover complete; window cutover ready
 Owner: Tom
-Updated: 2026-08-01
+Updated: 2026-09-28
 Governing refs: contracts 002-014; the `g01` roll-up in Git history
 
 ## Baseline
@@ -298,9 +298,10 @@ paged metadata through the checked Tauri host. The old eight-entry
 `PulseSessionSnapshot` remains only as a compatibility projection and
 external-mutation invalidation signal; it is not an active history authority.
 
-Branch mode stays disabled. g01.017 implementation and a later product
-decision are both required before fork-tree adoption. Project versions remain
-separate from undo branches.
+The fork tree is a selectable optional layer; linear history stays the
+default and branch mode is opt-in. See
+[contract 008](../contracts/008-history-kernel-boundary.md). Project versions
+remain separate from undo branches.
 
 ## Cutover Order And Rollback
 

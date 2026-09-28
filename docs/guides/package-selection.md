@@ -1,9 +1,10 @@
 # Choose Packages
 
 Status: checked private adoption guidance
-Updated: 2026-08-15
+Updated: 2026-09-28
 Governing contracts: [002](../knowledge/contracts/002-composable-workspace-hosting.md),
 [007](../knowledge/contracts/007-optional-backend-topology.md),
+[008](../knowledge/contracts/008-history-kernel-boundary.md),
 [012](../knowledge/contracts/012-distribution-and-compatibility.md), and
 [013](../knowledge/contracts/013-svelte-and-poodle-adapter-lifecycle.md)
 
@@ -116,6 +117,7 @@ artifacts described in the [distribution reference](../reference/private-0-1-can
 | whole-Surface transfer | Surface plus `longhorn-surface-transfer` | `surface-transfer` host feature and renderer subpath |
 | commands and keymaps | `longhorn-command`, `@inflatable-cookie/longhorn/commands` | config, settings, Tauri, `/svelte`, `/poodle` |
 | linear history | `longhorn-history`, `@inflatable-cookie/longhorn/history` | Tauri metadata, `/svelte`, `/poodle`; product journal stays local |
+| fork-tree history | `longhorn-history-tree`, `@inflatable-cookie/longhorn/history-tree` | `longhorn-tauri-history-tree`, `/svelte`; linear history stays default; branch mode is opt-in. See [contract 008](../knowledge/contracts/008-history-kernel-boundary.md) |
 | optional service bridge | `longhorn-bridge`, `@inflatable-cookie/longhorn/bridge` | Tauri, events, or stream subpaths |
 | finite operations | `longhorn-operation`, `@inflatable-cookie/longhorn/operation` | Tauri, bridge, Svelte, or Poodle edges |
 | retained notifications | `longhorn-notifications`, `@inflatable-cookie/longhorn/notifications` | Tauri, Svelte, Poodle, or operation observation |
@@ -124,7 +126,8 @@ artifacts described in the [distribution reference](../reference/private-0-1-can
 ## Held Surface (built, not selectable)
 
 These systems are implemented and tested but not ready for consumer
-implementation. Do not select them; the
+implementation. Statuses are `held-for-consumer` and `planning-evidence`. Do
+not select them; the
 [held-surface register](../reference/held-surface.md) is the authoritative
 status list and names the trigger for each.
 
@@ -132,13 +135,17 @@ status list and names the trigger for each.
 | --- | --- | --- |
 | bridge supervision and contract machinery | held-for-consumer | a bridge consumer with a real service topology |
 | age encryption (`longhorn-config-age`) | held-for-consumer | a consumer that needs encrypted backups |
-| fork-tree history (`longhorn-history-tree`, `@inflatable-cookie/longhorn/history-tree`) | planning-evidence | a consumer that needs divergent history |
 
 Application update (`longhorn-update`, `@inflatable-cookie/longhorn/update`)
 and licensing (`longhorn-licence`, `@inflatable-cookie/longhorn/licence`)
 graduated from this register on 2026-08-15, when their crates, renderer
 surfaces, Tauri hosts and packaged proofs landed, and are ordinary selectable
 systems.
+
+The fork tree (`longhorn-history-tree`, `longhorn-tauri-history-tree`,
+`@inflatable-cookie/longhorn/history-tree`) graduated on 2026-09-28. It is an
+ordinary selectable optional system; linear history stays the default. See
+[contract 008](../knowledge/contracts/008-history-kernel-boundary.md).
 
 The [generated API surface](../reference/api-surface.md) is authoritative for
 current features and export subpaths.

@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-09-26
+Updated: 2026-09-28
 
 ## Positioning
 
@@ -39,7 +39,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [005 Settings And System Registration](005-settings-and-system-registration.md) | registry, apply units, policy, activation, and shell composition | active compiled boundary |
 | [006 Command, Action, And Input](006-command-action-and-input.md) | sealed registry, fresh admission, keyboard, durable keymaps, projections | active compiled boundary |
 | [007 Optional Backend Topology](007-optional-backend-topology.md) | local/remote adapters, lifecycle, retry, and domain authority | active compiled boundary |
-| [008 History Kernel Boundary](008-history-kernel-boundary.md) | typed linear history, atomic navigation, persistence seams, and private fork gate | active compiled boundary |
+| [008 History Kernel Boundary](008-history-kernel-boundary.md) | typed linear history, atomic navigation, persistence seams, and optional fork tree | active compiled boundary |
 | [009 Display Identity, Coordinates, And Window Planning](009-display-identity-coordinates-and-window-planning.md) | display correlation, typed geometry, pure window plans | active first pass |
 | [010 Rust, TypeScript, IPC, And Events](010-rust-typescript-ipc-and-events.md) | type authority, handler/client seam, correlation, revisions, lifecycle | active compiled boundary |
 | [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only sessions, leased targets, authoritative move | active compiled boundary |

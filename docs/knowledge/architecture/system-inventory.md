@@ -2,7 +2,7 @@
 
 Status: complete inventory; g01 complete
 Owner: Tom
-Updated: 2026-08-03
+Updated: 2026-09-28
 Architecture: `system-architecture.md`
 
 ## Coverage Summary
@@ -166,7 +166,7 @@ fresh action admission. `g01.012` is complete.
 | Command/keymap/palette | Rust + config + TS/Svelte/Poodle packages | sealed catalogue, fresh admission, keyboard resolution, durable overrides, shared projections | Loophole full system; Jetstream basic shortcuts | Cards 056-061 and g01.010 complete; rich/minimal artifact proof passes |
 | Optional backend topology | Rust traits + adapters | authority, capability, readiness, transport | Nucleus and Loophole process seams | five host forms, separate authority, explicit replay, checked direct/loopback/Tauri sessions, bounded lifecycle, stream/job semantics, and injected supervision implemented |
 | History kernel | optional Rust + TS/Svelte/Poodle packages | typed linear state, atomic navigation, persistence and transition seams | Loophole Pulse plus non-editor fixture | public linear slice complete through Card 067 artifact proof |
-| Forkable history tree | optional Rust, Tauri, TS/Svelte/Poodle packages | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints, dense persistence, bounded clients | isolated document and Loophole-shaped artifact consumers | g01.017 complete; adoption remains a separate explicit consumer lane |
+| Forkable history tree | optional Rust, Tauri, TS/Svelte/Poodle packages | immutable nodes, stable branch refs, atomic LCA checkout, protected pruning, opaque checkpoints, dense persistence, bounded clients | isolated document and Loophole-shaped artifact consumers; Loophole production host | selectable optional system on linear history; [contract 008](../contracts/008-history-kernel-boundary.md) |
 | Async operation authority | optional Rust + TS/Svelte/Poodle packages | finite lifecycle, progress, cancellation receipts, retention, teardown | Soundcheck scan; Loophole render queue | authority, transports, isolated Svelte sessions, and public-Poodle projection complete through Card 078 |
 | Notification ledger | optional Rust + TS/Svelte/Poodle packages | retained records, seen/dismiss state, semantic actions, transient projections | Loophole domain records; Soundcheck outcome need | authority, generated clients, Tauri host, isolated sessions, public retained/toast projections, and fresh action admission complete through Card 080 |
 | Production contextual agent-tool dispatch | opt-in Rust library | normalized registration/binding validation, exactly-once callback/result recording, terminal cancellation, redacted evidence | generic fixtures plus external provider-free Swallowtail composition | g02.036 L1 implemented; Desktop adoption, providers, dependency adoption, and release held |

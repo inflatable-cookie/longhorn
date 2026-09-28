@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-08-03
+Updated: 2026-09-28
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -211,8 +211,9 @@ child indexes, checked complete-state admission, divergent record, atomic LCA
 navigation, current/pinned lineage protection, deterministic leaf
 pruning, opaque checkpoint replay accounting, and a deterministic dense graph
 envelope with independent structural/payload migration. The persistence API is
-bytes-only and owns no storage or durability. Renderer clients and release
-compatibility are not yet implemented.
+bytes-only and owns no storage or durability. Renderer clients, the Tauri
+host, and produced-artifact proof exist; see
+[History Composition](history-composition.md).
 
 Four produced-artifact greenfield roots prove direct package selection for
 minimal config/settings, a Surface-free workspace, full hosting with linear
@@ -309,14 +310,16 @@ Soundcheck and Jetstream retain their sequential and consumer-authority gates. S
 ## Optional History-tree Layer
 
 Card 069 promotes a downward-only tree layer. `longhorn-history-tree`,
-`longhorn-tauri-history-tree`, and `@inflatable-cookie/longhorn/history-tree` are now implemented
-private-workspace packages. Card 074 proves their produced private artifacts;
-none is published or implicitly enabled in a consumer.
+`longhorn-tauri-history-tree`, and `@inflatable-cookie/longhorn/history-tree`
+are selectable optional packages. Linear history stays the default; branch
+mode is opt-in. See
+[contract 008](../contracts/008-history-kernel-boundary.md). Card 074 proves
+produced artifacts. The tree is not implicitly enabled.
 
-The Rust tree crate will depend on `longhorn-core` and `longhorn-history` for
+The Rust tree crate depends on `longhorn-core` and `longhorn-history` for
 identity, typed payload policy, navigation steps, and rollback evidence. The
-linear crate will not depend on it. Optional TypeScript, Tauri, Svelte, and
-Poodle edges will expose metadata and bounded alternate projections only.
+linear crate does not depend on it. Optional TypeScript, Tauri, Svelte, and
+Poodle edges expose metadata and bounded alternate projections only.
 Product payloads, model apply, snapshot content, checkpoint content, storage,
 and recovery remain consumer authority.
 
@@ -403,8 +406,8 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
   compose at adapter edges.
 - Operation cancellation receipts never claim terminal stop. Notification
   publication never changes an operation outcome.
-- Forkable history remains a non-publishable prototype until contract 008's
-  promotion gate passes.
+- Fork-tree packages never enter foundation or linear-history dependency
+  graphs.
 - Service supervision and production network transports are optional adapter
   edges. Removing them leaves direct and Tauri-local compositions intact.
 - The settings root imports no Surface, command, history, backend,

@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-08-03
+Updated: 2026-09-28
 Contracts: `../contracts/003-error-concurrency-and-recovery.md`,
 `../contracts/008-history-state-and-versioning.md`,
 `../contracts/010-rust-typescript-ipc-and-events.md`,
@@ -201,7 +201,7 @@ partially committed new runtime back in place.
 | retained | typed product mutations, inverse/coalesce policy, 750 ms grouping capability, 100-entry default, undo/redo/checkout, product snapshot, journal suffix, recovery, cross-session undo, product labels |
 | improved | plan/apply/commit admission, verified failure invariance, exact rollback-failure evidence, strict envelopes, authoritative future pages, listener-first refresh, per-instance teardown |
 | rejected | renderer-owned redo, move-before-apply, silent empty fallback, generic payload transport, Tauri capability as product authority, durable-event claim |
-| deferred | donor tree adoption, project versions, collaboration, registry publication |
+| deferred | project versions, collaboration, registry publication |
 
 Card 068 proves fork topology privately. Card 069 promotes its semantics while
 retaining the prototype as research. Card 070 implements the optional pure
@@ -236,11 +236,12 @@ shape, payload weight, envelope bounds, and returned record counts are gates.
 The Loophole-shaped dense envelope remains 5.50 times smaller than the
 prototype baseline. No eager derived-path collection is produced.
 
-Artifact proof is not adoption. A consumer must open a separate lane that
-freezes its payload, persistence, checkpoint, recovery, authorization, and
-rollback policy. Loophole stays linear until such a lane explicitly admits
-branch mode. Nucleus and simpler apps may continue to use no history or only
-linear history.
+The tree is a selectable optional layer on linear history; see
+[contract 008](../contracts/008-history-kernel-boundary.md). Linear history
+stays the default. Branch mode is opt-in. A consumer still owns payload,
+persistence, checkpoint, recovery, authorization, and rollback policy.
+Nucleus and simpler apps may continue to use no history or only linear
+history.
 
 ## Proof
 

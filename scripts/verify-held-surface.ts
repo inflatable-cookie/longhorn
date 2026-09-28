@@ -22,9 +22,8 @@ for (const row of rows) {
 const heldCrates = [
   "longhorn-config-age",
   "longhorn-bridge",
-  "longhorn-history-tree",
 ];
-const heldPackages = ["@inflatable-cookie/longhorn/history-tree"];
+const heldPackages: string[] = [];
 
 for (const crate of heldCrates) {
   if (!api.includes(`\`${crate}\``)) throw new Error(`held crate missing from api-surface: ${crate}`);
