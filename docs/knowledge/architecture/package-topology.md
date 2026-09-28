@@ -406,8 +406,8 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
   compose at adapter edges.
 - Operation cancellation receipts never claim terminal stop. Notification
   publication never changes an operation outcome.
-- Forkable history remains a non-publishable prototype until contract 008's
-  promotion gate passes.
+- Fork-tree packages never enter foundation or linear-history dependency
+  graphs.
 - Service supervision and production network transports are optional adapter
   edges. Removing them leaves direct and Tauri-local compositions intact.
 - The settings root imports no Surface, command, history, backend,
