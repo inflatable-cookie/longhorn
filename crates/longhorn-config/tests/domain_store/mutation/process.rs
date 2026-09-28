@@ -18,7 +18,10 @@ use crate::common::{Fixture, config_domain, document};
 const HELPER_MODE: &str = "LONGHORN_CONFIG_HELPER_MODE";
 const HELPER_ROOT: &str = "LONGHORN_CONFIG_HELPER_ROOT";
 const HELPER_MARKER: &str = "LONGHORN_CONFIG_HELPER_MARKER";
-const HELPER_DELAY_MS: &str = "LONGHORN_CONFIG_HELPER_DELAY_MS";
+const HELPER_ATTEMPT_MARKER: &str = "LONGHORN_CONFIG_HELPER_ATTEMPT_MARKER";
+const HELPER_RELEASE: &str = "LONGHORN_CONFIG_HELPER_RELEASE";
+const HELPER_START_TIMEOUT: Duration = Duration::from_secs(60);
+const HELPER_RELEASE_TIMEOUT: Duration = Duration::from_secs(120);
 
 fn options(timeout: Duration) -> MutationOptions {
     MutationOptions::new(timeout, DurabilityRequirement::Atomic)
@@ -70,10 +73,11 @@ fn coordination_helper_process() {
     let mut store = ConfigStore::new(roots, coordination);
     store.register(&domain).unwrap();
     let marker = env::var_os(HELPER_MARKER).map(PathBuf::from);
-    let delay = env::var(HELPER_DELAY_MS)
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(0);
+    let attempt_marker = env::var_os(HELPER_ATTEMPT_MARKER).map(PathBuf::from);
+    let release = env::var_os(HELPER_RELEASE).map(PathBuf::from);
+    if let Some(attempt_marker) = &attempt_marker {
+        fs::write(attempt_marker, b"starting").unwrap();
+    }
 
     store
         .mutate(&domain, options(Duration::from_secs(10)), |value| {
@@ -82,8 +86,8 @@ fn coordination_helper_process() {
             }
             if mode == "hold" {
                 thread::sleep(Duration::from_secs(30));
-            } else if delay > 0 {
-                thread::sleep(Duration::from_millis(delay));
+            } else if let Some(release) = &release {
+                wait_for_release(release);
             }
             value.name.push('x');
             Ok(())
@@ -104,7 +108,7 @@ fn helper_process_timeout_crash_release_and_persistent_lock_file() {
         ),
     );
     let marker = fixture.temp.path().join("holder-ready");
-    let mut child = spawn_helper(fixture.temp.path(), "hold", Some(&marker), 0);
+    let mut child = spawn_helper(fixture.temp.path(), "hold", Some(&marker), None, None);
     wait_for_marker(&mut child, &marker);
 
     let mut store = fixture.store();
@@ -142,9 +146,26 @@ fn two_helper_processes_serialize_patch_updates() {
         ),
     );
     let marker = fixture.temp.path().join("first-ready");
-    let mut first = spawn_helper(fixture.temp.path(), "append", Some(&marker), 150);
+    let release = fixture.temp.path().join("first-release");
+    let release_on_drop = ReleaseOnDrop(release.clone());
+    let mut first = spawn_helper(
+        fixture.temp.path(),
+        "append",
+        Some(&marker),
+        None,
+        Some(&release),
+    );
     wait_for_marker(&mut first, &marker);
-    let mut second = spawn_helper(fixture.temp.path(), "append", None, 0);
+    let second_starting = fixture.temp.path().join("second-starting");
+    let mut second = spawn_helper(
+        fixture.temp.path(),
+        "append",
+        None,
+        Some(&second_starting),
+        None,
+    );
+    wait_for_marker(&mut second, &second_starting);
+    drop(release_on_drop);
 
     assert!(first.wait().unwrap().success());
     assert!(second.wait().unwrap().success());
@@ -181,7 +202,7 @@ fn debounced_flush_reconciles_with_an_intervening_process_mutation() {
         DebouncedMutation::new(&store, &domain, EnabledStrategy, FixedClock, policy).unwrap();
     lane.stage(false).unwrap();
 
-    let mut helper = spawn_helper(fixture.temp.path(), "append", None, 0);
+    let mut helper = spawn_helper(fixture.temp.path(), "append", None, None, None);
     assert!(helper.wait().unwrap().success());
     lane.flush_forced();
 
@@ -215,7 +236,13 @@ fn authorities(root: &Path) -> (StorageRoots, CoordinationAuthority) {
     (roots, coordination)
 }
 
-fn spawn_helper(root: &Path, mode: &str, marker: Option<&Path>, delay_ms: u64) -> Child {
+fn spawn_helper(
+    root: &Path,
+    mode: &str,
+    marker: Option<&Path>,
+    attempt_marker: Option<&Path>,
+    release: Option<&Path>,
+) -> Child {
     let mut command = Command::new(env::current_exe().unwrap());
     command
         .arg("--exact")
@@ -223,17 +250,38 @@ fn spawn_helper(root: &Path, mode: &str, marker: Option<&Path>, delay_ms: u64) -
         .arg("--nocapture")
         .env(HELPER_MODE, mode)
         .env(HELPER_ROOT, root)
-        .env(HELPER_DELAY_MS, delay_ms.to_string())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     if let Some(marker) = marker {
         command.env(HELPER_MARKER, marker);
     }
+    if let Some(marker) = attempt_marker {
+        command.env(HELPER_ATTEMPT_MARKER, marker);
+    }
+    if let Some(release) = release {
+        command.env(HELPER_RELEASE, release);
+    }
     command.spawn().unwrap()
 }
 
+struct ReleaseOnDrop(PathBuf);
+
+impl Drop for ReleaseOnDrop {
+    fn drop(&mut self) {
+        let _ = fs::write(&self.0, b"release");
+    }
+}
+
+fn wait_for_release(release: &Path) {
+    let deadline = Instant::now() + HELPER_RELEASE_TIMEOUT;
+    while !release.exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(release.exists(), "parent did not release helper process");
+}
+
 fn wait_for_marker(child: &mut Child, marker: &Path) {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + HELPER_START_TIMEOUT;
     while Instant::now() < deadline {
         if marker.exists() {
             return;
@@ -244,5 +292,6 @@ fn wait_for_marker(child: &mut Child, marker: &Path) {
         thread::sleep(Duration::from_millis(10));
     }
     let _ = child.kill();
+    let _ = child.wait();
     panic!("helper did not acquire lock");
 }

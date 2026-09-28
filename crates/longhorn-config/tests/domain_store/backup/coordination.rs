@@ -22,6 +22,9 @@ use super::capture;
 const HELPER_MODE: &str = "LONGHORN_BACKUP_HELPER_MODE";
 const HELPER_ROOT: &str = "LONGHORN_BACKUP_HELPER_ROOT";
 const HELPER_MARKER: &str = "LONGHORN_BACKUP_HELPER_MARKER";
+const HELPER_RELEASE: &str = "LONGHORN_BACKUP_HELPER_RELEASE";
+const HELPER_START_TIMEOUT: Duration = Duration::from_secs(60);
+const HELPER_RELEASE_TIMEOUT: Duration = Duration::from_secs(120);
 
 struct EnabledStrategy;
 
@@ -126,13 +129,15 @@ fn capture_releases_the_guard_before_return() {
 struct SlowDomain {
     inner: PreferencesDomain,
     marker: Option<PathBuf>,
+    release: Option<PathBuf>,
 }
 
 impl SlowDomain {
-    fn new(marker: Option<PathBuf>) -> Self {
+    fn new(marker: Option<PathBuf>, release: Option<PathBuf>) -> Self {
         Self {
             inner: config_domain(),
             marker,
+            release,
         }
     }
 }
@@ -167,7 +172,7 @@ impl ConfigDomain for SlowDomain {
     ) -> Result<(), DomainIssue> {
         if let Some(marker) = &self.marker {
             fs::write(marker, b"capture-locked").unwrap();
-            thread::sleep(Duration::from_millis(250));
+            wait_for_release(self.release.as_deref().unwrap());
         }
         self.inner.validate_raw(schema_version, value)
     }
@@ -189,8 +194,9 @@ fn capture_helper_process() {
     assert_eq!(mode, "capture");
     let root = PathBuf::from(env::var_os(HELPER_ROOT).unwrap());
     let marker = PathBuf::from(env::var_os(HELPER_MARKER).unwrap());
+    let release = PathBuf::from(env::var_os(HELPER_RELEASE).unwrap());
     let (roots, coordination) = authorities(&root);
-    let domain = SlowDomain::new(Some(marker));
+    let domain = SlowDomain::new(Some(marker), Some(release));
     let mut store = ConfigStore::new(roots, coordination);
     store.register(&domain).unwrap();
     let mut catalog = BackupCatalog::new();
@@ -211,21 +217,23 @@ fn helper_process_mutation_waits_for_the_capture_cut() {
         ),
     );
     let marker = fixture.temp.path().join("capture-locked");
-    let mut child = spawn_capture_helper(fixture.temp.path(), &marker);
+    let release = fixture.temp.path().join("capture-release");
+    let release_on_drop = ReleaseOnDrop(release.clone());
+    let mut child = spawn_capture_helper(fixture.temp.path(), &marker, &release);
     wait_for_marker(&mut child, &marker);
 
     let mut store = fixture.store();
     store.register(&domain).unwrap();
-    let error = store
-        .mutate(
-            &domain,
-            MutationOptions::new(Duration::from_millis(40), DurabilityRequirement::Atomic),
-            |value| {
-                value.name = "interleaved".into();
-                Ok(())
-            },
-        )
-        .unwrap_err();
+    let result = store.mutate(
+        &domain,
+        MutationOptions::new(Duration::from_millis(40), DurabilityRequirement::Atomic),
+        |value| {
+            value.name = "interleaved".into();
+            Ok(())
+        },
+    );
+    drop(release_on_drop);
+    let error = result.unwrap_err();
     let longhorn_config::MutationError::Coordination(failure) = error else {
         panic!("expected coordination timeout");
     };
@@ -265,7 +273,7 @@ fn authorities(root: &Path) -> (StorageRoots, CoordinationAuthority) {
     (roots, CoordinationAuthority::new(data).unwrap())
 }
 
-fn spawn_capture_helper(root: &Path, marker: &Path) -> Child {
+fn spawn_capture_helper(root: &Path, marker: &Path, release: &Path) -> Child {
     Command::new(env::current_exe().unwrap())
         .arg("--exact")
         .arg("backup::coordination::capture_helper_process")
@@ -273,6 +281,7 @@ fn spawn_capture_helper(root: &Path, marker: &Path) -> Child {
         .env(HELPER_MODE, "capture")
         .env(HELPER_ROOT, root)
         .env(HELPER_MARKER, marker)
+        .env(HELPER_RELEASE, release)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -280,7 +289,7 @@ fn spawn_capture_helper(root: &Path, marker: &Path) -> Child {
 }
 
 fn wait_for_marker(child: &mut Child, marker: &Path) {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + HELPER_START_TIMEOUT;
     while Instant::now() < deadline {
         if marker.exists() {
             return;
@@ -291,5 +300,22 @@ fn wait_for_marker(child: &mut Child, marker: &Path) {
         thread::sleep(Duration::from_millis(10));
     }
     let _ = child.kill();
+    let _ = child.wait();
     panic!("capture helper did not acquire lock");
+}
+
+struct ReleaseOnDrop(PathBuf);
+
+impl Drop for ReleaseOnDrop {
+    fn drop(&mut self) {
+        let _ = fs::write(&self.0, b"release");
+    }
+}
+
+fn wait_for_release(release: &Path) {
+    let deadline = Instant::now() + HELPER_RELEASE_TIMEOUT;
+    while !release.exists() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(release.exists(), "parent did not release capture helper");
 }
