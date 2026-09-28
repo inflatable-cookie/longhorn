@@ -50,7 +50,10 @@ for byte; `generate:agent-control-shim` writes that bundle after source edits.
 TypeScript checks; `check:bun-deps` guards
 `check:ts`/`check:svelte` when run alone. `consumer-absence.ts`,
 `poodle-release.ts`, and `longhorn-version.ts` are shared modules, not
-entry points. `release:bump` and `check:release-gates` are the
+entry points. `rust-toolchain-channel.sh` is invoked by `ci.yml` and
+`release.yml`, not by a selector: it prints the pinned stable channel from
+`rust-toolchain.toml` so both workflows install the declared version instead
+of floating `stable`. `release:bump` and `check:release-gates` are the
 release-tooling selectors; see Release below.
 
 `check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
