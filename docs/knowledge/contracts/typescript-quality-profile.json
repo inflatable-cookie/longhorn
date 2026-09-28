@@ -90,6 +90,7 @@
           "scripts/operation-notification-artifact-proof/types.ts",
           "scripts/poodle-release.ts",
           "scripts/private-candidate-card127/support.ts",
+          "scripts/proof-install.ts",
           "scripts/settings-composition-proof/artifacts.ts",
           "scripts/settings-composition-proof/consumers.ts",
           "scripts/settings-composition-proof/shared.ts",

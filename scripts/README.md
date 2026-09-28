@@ -17,6 +17,12 @@ worth wiring, and if it is not wired it should be deleted.
 
 `proof:artifacts`, a member of `qa`, runs fourteen of them in order:
 
+Artifact consumer stages install packed Longhorn tarballs with a private Bun
+cache. Exact consumer pins stay exact; other third-party versions use the root
+`bun.lock`. A staged version newer than the root lock fails the proof. The
+newest-admitted pass of `verify-pack-typecheck.ts` deliberately resolves the
+declared Svelte and Poodle peer ranges and reports the installed versions.
+
 | script | proves |
 | --- | --- |
 | `verify-app-shell-proof.ts` | the composed shell mounts against both host adapters |
@@ -49,7 +55,8 @@ for byte; `generate:agent-control-shim` writes that bundle after source edits.
 `bootstrap:deps` runs the locked Bun install fresh worktrees need before
 TypeScript checks; `check:bun-deps` guards
 `check:ts`/`check:svelte` when run alone. `consumer-absence.ts`,
-`poodle-release.ts`, and `longhorn-version.ts` are shared modules, not
+`poodle-release.ts`, `proof-install.ts`, and `longhorn-version.ts` are shared
+modules, not
 entry points. `release:bump` and `check:release-gates` are the
 release-tooling selectors; see Release below.
 

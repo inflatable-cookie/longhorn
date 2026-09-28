@@ -113,6 +113,11 @@ policy remain consumer-owned.
 - Every source-linked graph also passes an isolated install from produced
   artifacts. Source aliases, private DOM selectors, and unpacked sibling
   workspaces are not artifact-install or compatibility evidence.
+- Isolated proof installs use a cache per stage. Exact consumer pins remain
+  exact; other third-party resolutions use the root Bun lock. A staged lock
+  with a third-party version newer than the root lock fails the proof. The
+  pack typecheck's newest-admitted peer pass deliberately resolves Svelte and
+  Poodle ranges; it reports the versions it tested.
 - Registry names, normalized Cargo packages, versions, and public compatibility
   ranges remain a later release-lane decision.
 - Consumer lockfiles pin exact resolved versions.

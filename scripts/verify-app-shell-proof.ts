@@ -1,3 +1,4 @@
+import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { testCount } from "./test-count.ts";
@@ -106,7 +107,7 @@ try {
       `${JSON.stringify(manifest, null, 2)}\n`,
     );
 
-    await run(["bun", "install", "--ignore-scripts"], stage);
+    await installProofStage(stage);
     await run(
       ["bun", "x", "svelte-check", "--tsconfig", "./tsconfig.json"],
       stage,

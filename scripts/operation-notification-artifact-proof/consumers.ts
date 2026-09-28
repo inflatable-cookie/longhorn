@@ -1,3 +1,4 @@
+import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import {
@@ -121,7 +122,7 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
   );
   await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-  await run(["bun", "install", "--ignore-scripts"], stage);
+  await installProofStage(stage);
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   let mountedTests = 0;
   if (shape === "loophole") {

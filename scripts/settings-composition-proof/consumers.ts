@@ -1,3 +1,4 @@
+import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import {
@@ -162,7 +163,7 @@ async function verifyConsumer(
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
 
-  await run(["bun", "install", "--ignore-scripts"], stage);
+  await installProofStage(stage);
   await run(["bun", "x", "svelte-check", "--tsconfig", "./tsconfig.json"], stage);
   const testOutput = await run(
     ["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"],
