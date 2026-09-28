@@ -45,8 +45,8 @@ miss and is a full rehearsal.
 
 Prefer `effigy <task>` for supported work. Do not mirror Effigy tasks into
 package scripts. A missing target-local maintenance task is a routing gap;
-use the installed Northstar consumer-safe route rather than substituting
-commands from another repository.
+use the installed `northstar` skill's tasks (`effigy skill run northstar/<task>`)
+rather than substituting commands from another repository.
 
 ## Product rules
 
@@ -108,15 +108,8 @@ Use the narrowest relevant Effigy selector while working, then run
 `effigy skill run northstar/cut -- check-links`, and inspect the final
 diff. Never claim a green doctor result is full validation.
 
-Longhorn has no target-local `check:agent-instructions` task. AGENTS review
-uses the installed Northstar consumer-safe audit:
-
-```sh
-effigy --repo <installed-northstar> northstar/check:agent-instructions <this-repo>
-```
-
-`qa:docs:agent-defaults` stays a separate check; it forbids a current-directory
-repo override on the instruction surface.
+`qa:docs:agent-defaults` forbids a current-directory repo override on the
+instruction surface.
 
 ## Style
 
@@ -129,7 +122,14 @@ clear about outcome, current state, failed validation, and next move.
 Scope: Rust source, Cargo manifests, build files, tests, and directly related
 documentation under this directory.
 
-Use Northstar's strict everyday-authoring route for ordinary Rust work. Resolve
+Use Northstar's strict everyday-authoring route for ordinary Rust work, run
+from this checkout:
+
+```sh
+effigy skill run northstar/language:route -- --consumer <this-checkout> --language rust --workflow everyday_authoring
+```
+
+Resolve
 the repository-owned profile and deviations under `docs/knowledge/contracts/`;
 never assume a universal MSRV. Re-enter at task start and coherent batch
 closeout. Preserve unrelated work. A quality audit, no-slop pass, or
@@ -143,8 +143,9 @@ requests a TypeScript or Svelte quality audit, no-slop pass, whole-codebase
 review, or audit-and-fix action. Ordinary TypeScript/Svelte coding does not
 activate it.
 
-For explicit audit intent, load the main Northstar router and select
-`TypeScript/Svelte explicit audit-and-repair`. Resolve package ownership and
+For explicit audit intent, follow the `northstar` skill's installed-package
+route (`effigy skill run northstar/language:route` with `--language` for
+TypeScript/Svelte and the audit workflow it lists). Resolve package ownership and
 strict profile state before assessment. Record findings before mutation, keep
 repairs inside recorder-authorized files, preserve pre-existing dirty work, and
 use repository-owned compiler, framework, lint, and test evidence without
