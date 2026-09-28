@@ -35,11 +35,9 @@ nothing. Owner file:
 
 ## Q-005 — Should the fork tree leave the held-surface register?
 
-Status: open
-Context: the [held-surface register](../reference/held-surface.md) lists
-`longhorn-history-tree` and `@inflatable-cookie/longhorn/history-tree` as
-planning evidence awaiting "a consumer that needs divergent history". Loophole
-already uses the tree in production (`apps/desktop/src-tauri/src/history_host.rs`).
-Graduating it makes it selectable in the adoption guides and changes
-`scripts/verify-held-surface.ts`, so it needs an operator call.
-
+Status: answered 2026-09-28
+Answer: yes. The fork tree (`longhorn-history-tree`, its Tauri host, and
+`@inflatable-cookie/longhorn/history-tree`) is a selectable optional system
+on top of linear history, governed by
+[contract 008](contracts/008-history-kernel-boundary.md). Loophole already
+uses it in production.
