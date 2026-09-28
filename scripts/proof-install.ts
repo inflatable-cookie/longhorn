@@ -78,9 +78,13 @@ export async function installProofStage(
   ) as Lock;
   for (const [name, versions] of registryVersions(staged)) {
     if (excluded.has(name)) continue;
+    const rootVersions = lockedVersions.get(name);
+    if (!rootVersions) {
+      throw new Error(`${stage} resolved ${name} absent from the root lock`);
+    }
     for (const version of versions) {
       if (
-        ![...(lockedVersions.get(name) ?? [])].some((rootVersion) =>
+        ![...rootVersions].some((rootVersion) =>
           Bun.semver.satisfies(version, `<=${rootVersion}`),
         )
       ) {

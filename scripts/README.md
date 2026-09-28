@@ -22,6 +22,8 @@ cache. Exact consumer pins stay exact; other third-party versions use the root
 `bun.lock`. A staged version newer than the root lock fails the proof. The
 newest-admitted pass of `verify-pack-typecheck.ts` deliberately resolves the
 declared Svelte and Poodle peer ranges and reports the installed versions.
+The root `@testing-library/jest-dom` dev pin locks matcher dependencies used
+by the greenfield examples.
 
 | script | proves |
 | --- | --- |
