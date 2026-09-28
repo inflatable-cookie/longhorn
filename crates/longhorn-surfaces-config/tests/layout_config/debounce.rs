@@ -24,6 +24,7 @@ use crate::support::{
 const HELPER_MODE: &str = "LONGHORN_LAYOUT_CONFIG_HELPER_MODE";
 const HELPER_ROOT: &str = "LONGHORN_LAYOUT_CONFIG_HELPER_ROOT";
 const HELPER_MARKER: &str = "LONGHORN_LAYOUT_CONFIG_HELPER_MARKER";
+const HELPER_START_TIMEOUT: Duration = Duration::from_secs(60);
 
 fn policy(maximum: usize, timeout: Duration) -> DebouncePolicy {
     DebouncePolicy::new(Duration::from_millis(200), maximum, options(timeout)).unwrap()
@@ -306,7 +307,7 @@ fn spawn_helper(root: &std::path::Path, marker: &std::path::Path) -> Child {
 }
 
 fn wait_for_marker(child: &mut Child, marker: &std::path::Path) {
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + HELPER_START_TIMEOUT;
     while Instant::now() < deadline {
         if marker.exists() {
             return;
@@ -317,5 +318,6 @@ fn wait_for_marker(child: &mut Child, marker: &std::path::Path) {
         thread::sleep(Duration::from_millis(10));
     }
     let _ = child.kill();
+    let _ = child.wait();
     panic!("coordination helper did not acquire the lock");
 }
