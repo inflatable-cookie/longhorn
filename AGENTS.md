@@ -95,18 +95,30 @@ rather than substituting commands from another repository.
   that reads well in prose can be a runtime failure.
 - When a small, solvable execution hurdle appears, file it in Queue as a
   papercut and carry on: from `~/Dev/projects/paseo-northstar-queue`, run
-  `node bin/queue-cli.mjs papercut.add payload.json` with
+  `node bin/queue-cli.mjs papercut.add -` with the JSON payload on stdin:
   `repository: {origin: "inflatable-cookie/longhorn", path}`, `title`,
   `happened`, `impact`, and optional `area` and `fix`. Do not stop or fix it
   unless the current scope includes the fix.
 
 ## Validate
 
-Use the narrowest relevant Effigy selector while working, then run
-`effigy qa` before opening a PR. For docs or instruction changes, run
-`effigy qa:docs`, `effigy skill run northstar/retired-concepts` and
-`effigy skill run northstar/cut -- check-links`, and inspect the final
-diff. Never claim a green doctor result is full validation.
+Targeted checks per task, full QA at milestones (Tom, 2026-09-30).
+
+- **A task** runs, once, the Effigy selectors for what it changed: the tests
+  for the code it touched (for example `effigy test:rust`, `effigy test:ts`,
+  `effigy test:vitest`, or the proof selector it changed), a compile of what
+  it touched (`effigy check:ts`, `effigy lint:rust`), and `effigy qa:docs` for
+  docs. Then it opens the PR. No full `effigy qa`, no repeat passes.
+- **Docs or instruction changes** also run
+  `effigy skill run northstar/retired-concepts` and
+  `effigy skill run northstar/cut -- check-links`, and inspect the final diff.
+- **Full `effigy qa`** runs on `main` at release points
+  (`docs/knowledge/contracts/release.md`) and after a major chunk of work, run
+  by the planner.
+- Use Effigy selectors, not raw `cargo`, `bun` or `vitest`: Effigy admits heavy
+  runs host-wide. Never kill by pattern (`pkill -f`, `killall`); stop only
+  processes you started.
+- Never claim a green doctor result is full validation.
 
 `qa:docs:agent-defaults` forbids a current-directory repo override on the
 instruction surface.

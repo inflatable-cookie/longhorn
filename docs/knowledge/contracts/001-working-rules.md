@@ -68,4 +68,6 @@ when it failed or changes confidence.
 
 ## Validation
 
-- `effigy qa`
+- Per task: the targeted Effigy selectors for what changed, once. Full
+  `effigy qa` on `main` at release points and after a major chunk of work, run
+  by the planner (Tom, 2026-09-30). The detail lives in `AGENTS.md`, "Validate".
