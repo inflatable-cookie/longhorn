@@ -45,7 +45,7 @@ include = ["config/release.toml"]
 # once linked. Deliberately absent from `qa`; wired into the release gates
 # instead, because "the host seam still matches its SDK" is a claim that must
 # hold before a tag rather than before every commit.
-"check:prototypes" = "sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"
+# `check:prototypes`: heavy task table below ([tasks."check:prototypes"]).
 # Pre-gate only: refresh excluded prototype locks (and the root lock) after a
 # Longhorn version bump. Does not replace or weaken check:prototypes --locked.
 "sync:prototype-locks" = "bun scripts/sync-prototype-locks.ts"
@@ -117,15 +117,15 @@ include = ["config/release.toml"]
 # `pack-typecheck` is the Card 218 remainder: the packed adapter typechecked
 # against a bare stage whose only Poodle source is the registry, proving the
 # published peer range resolves from npm.
-"proof:artifacts" = "sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands pack-typecheck; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"
+# `proof:artifacts`: heavy task table below ([tasks."proof:artifacts"]).
 "proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
 
 # Pre-release rehearsal of the five machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
-"ci:rehearse" = "bash scripts/ci-rehearse.sh"
+# `ci:rehearse`: heavy task table below ([tasks."ci:rehearse"]).
 
 # --- Release ------------------------------------------------------------
-"release:floor" = "bash scripts/check-release-floor.sh"
+# `release:floor`: heavy task table below ([tasks."release:floor"]).
 "release:source-consumer" = "bash scripts/verify-source-consumer.sh"
 # `[release.gates]` minus `workspace`, declaration order. `check:release-gates`
 # fails if this list drifts. The runner still runs `effigy qa` separately.
@@ -205,6 +205,30 @@ qa = [
 # Doctor's built-in scans previously ran on stock defaults that were never
 # calibrated to this repo. Each setting below is the triaged posture, with
 # the reason written down here instead of absorbed as red.
+
+# --- Host admission -----------------------------------------------------
+# Standalone heavy selectors take a host-wide Effigy admission lease, so
+# parallel worktrees queue instead of saturating the machine (Effigy guide
+# 080, contract 049). `qa` is heavy by default; tasks nested inside it share
+# its lease. Everyday per-task selectors (`test:rust`, `lint:rust`, ...) stay
+# unmarked: an unconfigured heavy task reserves the whole host budget, and
+# workers run those as targeted checks.
+
+[tasks."proof:artifacts"]
+admission = "heavy"
+run = ["sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands pack-typecheck; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"]
+
+[tasks."check:prototypes"]
+admission = "heavy"
+run = ["sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"]
+
+[tasks."ci:rehearse"]
+admission = "heavy"
+run = ["bash scripts/ci-rehearse.sh"]
+
+[tasks."release:floor"]
+admission = "heavy"
+run = ["bash scripts/check-release-floor.sh"]
 
 [scan.god_files]
 # Contract suites, proof scripts, and prototype adapters accumulate
