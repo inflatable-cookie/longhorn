@@ -244,15 +244,23 @@ sources. Companions: `test:ts`, `check:svelte`. Admission: unmarked.
 `cargo run -q -p longhorn-bindings -- <domain> check`, looping fifteen
 domains: `bridge commands config history history-tree layout licence
 native-content notifications operation settings surfaces surface-transfer
-transfer update`. Owns `crates/longhorn-bindings/**` (generator), the type
-definitions of the domain crates, the per-domain golden fixtures
+transfer update`. Owns `crates/longhorn-bindings/**` (generator),
+`crates/longhorn-core/**` (the shared declarations and constants every domain
+renderer reads — `crates/longhorn-bindings/Cargo.toml` enables core's
+`bindings` feature, and `store_compatibility.rs` exports `CompatibilityStore`
+under `#[cfg_attr(feature = "bindings", ts(export))]`), the type definitions
+of the domain crates, the per-domain golden fixtures
 `fixtures/<domain>/protocol-v1.json`, the layout conformance outputs
 `fixtures/layout/{surface-bound,window-bound}-conformance-v1.json`, and the
 generated TS under `packages/longhorn/src/<domain>/generated/**`. Domain→crate: `layout` reads
 `longhorn-surfaces` (Card 179 folded layout in); `commands` also reads
-`longhorn-command-config`; the rest map one-to-one. Propagation: a Rust type
-change in a domain crate moves generated TS and conformance fixtures, and the
-TypeScript that imports them. Companions: `generate:bindings` when it drifts,
+`longhorn-command-config`; every domain also reads `longhorn-core`
+(`HistoryId`/`HistoryRevision`/`MAX_OPAQUE_ID_BYTES` in `history.rs`,
+`WindowId`/`SurfaceId` in `surfaces.rs`, and core ids elsewhere); the rest map
+one-to-one. Propagation: a `longhorn-core` declaration, constant or `#[ts]`
+annotation change moves generated TS in the affected domains exactly as a
+domain-crate change does, so a core-only edit selects `check:bindings` plus
+`check:ts` and the `test:ts`/`test:vitest` imports. Companions: `generate:bindings` when it drifts,
 `check:ts` to compile the regenerated output, `test:ts`/`test:vitest` where a
 Bun or Svelte test imports the same fixture, and the artifact proofs that
 rerun per-domain binding checks. Admission: unmarked (compiles
@@ -313,13 +321,16 @@ it tests escape, not existence -- a named path inside the tree need not exist.
 **`check:agent-control-release-absence`** — role: compile + byte scan (proof).
 Runs `scripts/verify-agent-control-release-absence.ts`. Builds
 `longhorn-tauri-agent-control` in three feature states (`off`,
-`agent-control`, `agent-control,evaluate`) into isolated target dirs and scans
-rlibs for core-crate and shim markers, with a positive control. Owns
-`crates/longhorn-tauri-agent-control/**`,
-`crates/longhorn-agent-control/src/lib.rs`, the shim bundle source
-`packages/longhorn/src/agent-control/{inject,shim}.ts` (markers), `Cargo.toml`
-/ `Cargo.lock`. Companions: `check:agent-control-shim`. Admission: unmarked
-but builds; in `qa`. Limits: macOS/Tauri build; heavy in practice.
+`agent-control`, `agent-control,agent-control-evaluate`) into isolated target
+dirs and scans rlibs for core-crate and shim markers, with a positive control.
+Owns `crates/longhorn-tauri-agent-control/**` (source and manifest),
+`crates/longhorn-agent-control/**` (source and manifest — the evaluate marker
+and `#[cfg(feature = "agent-control-evaluate")]` helper are in
+`src/server/mcp.rs`; `src/lib.rs` is not the whole input), the shim bundle
+source `packages/longhorn/src/agent-control/{inject,shim}.ts` (markers),
+`Cargo.toml` / `Cargo.lock`. Companions: `check:agent-control-shim`.
+Admission: unmarked but builds; in `qa`. Limits: macOS/Tauri build; heavy in
+practice.
 
 **`check:agent-control-shim`** — role: generated-artifact drift. Bundles the
 injection entry `packages/longhorn/src/agent-control/inject.ts` with
@@ -471,7 +482,7 @@ workspace, minutes each):
 | `verify-history-system-artifacts.ts` | core, history, tauri-history | `history` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-system-proof/**`; `consumer-absence.ts`, `test-count.ts` | yes |
 | `verify-history-tree-artifacts.ts` | core, history, history-tree, tauri-history-tree | `history-tree` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-tree-artifact-proof/**` | yes |
 | `verify-operation-notification-artifacts.ts` | core, bridge, operation, notifications, tauri-operation, tauri-notifications | `operation`, `notifications` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/operation-notification-proof/**`; `scripts/operation-notification-artifact-proof/**` | yes |
-| `verify-native-content-artifacts.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; `fixtures/native-content/protocol-v1.json`; `packages/longhorn/src/native-content/generated/protocol.ts` | yes |
+| `verify-native-content-artifacts.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; `prototypes/{native-content-child-webview,native-content-isolated-window,native-content-backing-surface}/Cargo.toml` (the disposition check reads `publish = false` in all four manifests); `fixtures/native-content/protocol-v1.json`; `packages/longhorn/src/native-content/generated/protocol.ts` | yes |
 | `verify-greenfield-card125.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes |
 | `verify-pack-typecheck.ts` | none | — | longhorn, longhorn-poodle-svelte | root `package.json` dev pins; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no |
 
@@ -688,9 +699,10 @@ declare it broad and let the planner judge, never treat it as no checks.
 | # | Change | Expected selectors | Reason |
 | --- | --- | --- | --- |
 | 1 | `docs/guides/getting-started.md` prose edit | `qa:docs`, `proof:artifacts` (member `scripts/verify-guides-card126.ts`) | catalogue/link checks plus the guide-content member; there is no standalone guides selector |
-| 2 | leaf Rust crate: `crates/longhorn-credential-keyring/src/**` | `fmt:rust`, `lint:rust`, `lint:rust:features`, `test:rust`, `check:consumer-isolation`, `check:repo-containment` | no per-crate selector; no in-tree dependents and no proof stages it, but the lane is workspace-wide. A crate a proof stages (for example `longhorn-history`) also selects `proof:artifacts` |
+| 2 | leaf Rust crate: `crates/longhorn-credential-keyring/src/**` | `fmt:rust`, `lint:rust`, `lint:rust:features`, `test:rust`, `check:consumer-isolation`, `check:repo-containment` | no per-crate selector and no proof stages it, but the lane is workspace-wide; `examples/update-licence-proof/rust/harness` depends on it, and the lane covers that dependent. A crate a proof stages (for example `longhorn-history`) also selects `proof:artifacts` |
 | 3 | shared Rust type: `crates/longhorn-history/src/**` | Rust lane + `check:bindings` + `check:ts` + `test:ts` + `test:vitest` + `proof:artifacts` + `check:prototypes` | history is a bindings domain; `longhorn-history` feeds `longhorn-bindings`, `history-tree`, `tauri-history`, `prototypes/history-tree` |
-| 3b | transitive-only prototype input: `crates/longhorn-display/src/**` or `crates/longhorn-url/src/**` or `crates/longhorn-surfaces-config/src/**` | Rust lane + `check:prototypes` (release gate) | reached by the prototypes only through `longhorn-windowing`/`longhorn-gpui-windowing` (display), `longhorn-licence`/`longhorn-update` (url) and `longhorn-transfer` (surfaces-config); no prototype manifest names them directly, so a direct-edge-only inventory would miss them |
+| 3b | transitive prototype input: `crates/longhorn-display/src/**` or `crates/longhorn-surfaces-config/src/**` | Rust lane + `check:prototypes` (release gate) + `proof:artifacts` | reached by the prototypes only through `longhorn-windowing`/`longhorn-gpui-windowing` (display) and `longhorn-transfer` (surfaces-config); the greenfield member stages both |
+| 3c | transitive prototype-only input: `crates/longhorn-url/src/**` | Rust lane + `check:prototypes` (release gate) | reached only through `longhorn-licence`/`longhorn-update`; no artifact member stages `longhorn-url` |
 | 4 | leaf TS package: `packages/longhorn-tauri/src/transport/**` | `check:ts`, `test:ts`, `check:packages`, `check:tauri-seam-strings`, `host-protocol`, `proof:artifacts` | no package dependents, but five proof members pack `longhorn-tauri`; typecheck + its tests + seam/protocol scans + the packed-artifact aggregate |
 | 5 | proof generator/fixture: `scripts/verify-history-tree-artifacts.ts`, `scripts/workspace-dependencies.ts`, `fixtures/native-content/protocol-v1.json`, or `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts`, `check:consumer-isolation`, `check:repo-containment`, plus `test:ts`/`test:vitest` if a Bun test reads the fixture, plus `check:bindings` when it is also a golden `fixtures/<domain>/protocol-v1.json` | implementation modules and consumed fixtures are proof inputs; the greenfield receipt is read and checked by default |
 | 5b | binding conformance fixture: `fixtures/layout/surface-bound-conformance-v1.json` or `fixtures/layout/window-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `check:consumer-isolation`, `check:repo-containment` | generated conformance outputs, byte-checked by the layout domain and imported by the Bun and Svelte layout suites; no `proof:artifacts` member reads them |
@@ -752,6 +764,27 @@ proofs. Missing any of those is a silent break.
   reader names, is unresolved -- it is not routed to `proof:artifacts` by its
   filename or its location.
 
+## Known gaps and limits
+
+Items the source could not settle, carried for Effigy's selection-contract
+phase rather than guessed:
+
+- `longhorn-core` is declared as a whole-crate generator input. The complete
+  set of core declarations each domain renderer emits is not enumerated; only
+  `store_compatibility.rs`'s `ts(export)` attribute and the cross-domain
+  ids/constants named in the entry are established from source.
+- The agent-control absence proof is declared as a crate-wide source input for
+  `crates/longhorn-agent-control/**`. The exact feature-gated files and the
+  full rlib marker set beyond `src/server/mcp.rs` and the script's own marker
+  list are not enumerated.
+- Dynamic proof outcomes, exact per-selector costs, and the registry, advisory
+  database and bun-link machine state are not measured here; cost notes come
+  from comments already kept next to those tasks.
+- Effigy's `graph affected` output cannot establish coverage for generated,
+  ignored or lock inputs (see Coverage gaps).
+- Any `fixtures/**` file or `scripts/verify-*.ts` with no reader named in this
+  map stays unresolved; the map does not invent one.
+
 ## Evidence and limits
 
 Read to build this map: `effigy.toml`, `config/release.toml`,
@@ -774,4 +807,4 @@ Longhorn already keeps next to those tasks. Proof members are scripts inside
 the `proof:artifacts` aggregate, not selectors; only `proof:pack-typecheck`
 and `proof:agent-tool-dispatch-source-consumer` dispatch on their own.
 Independent review should check each entry against the manifest or script it
-names and walk the nine synthetic change sets on paper.
+names and walk the ten synthetic change sets on paper.
