@@ -42,6 +42,10 @@ by the greenfield examples.
 | `verify-documented-commands.ts` | every command the examples' READMEs name exists |
 | `verify-pack-typecheck.ts` | the packed adapter typechecks against a bare stage whose only Poodle source is the registry, at both the newest and the lowest release each framework peer range admits (Svelte and Poodle) |
 
+`proof:guides-card126` runs `verify-guides-card126.ts` on its own and remains
+one of the fourteen `proof:artifacts` members. The maintained
+`longhorn-getting-started-docs` group pairs it with the guide link checks.
+
 The rest are wired individually: `check:api-reference` runs
 `generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
@@ -66,6 +70,11 @@ release-tooling selectors; see Release below.
 
 `check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
 release/default contract-022 absence proof, and the generated API check.
+The bounded `agent-tool-dispatch` group selects this aggregate. Package-scoped
+TypeScript groups use `check:ts:<package>` and `test:ts:<package>` selectors;
+`scripts/test-packages.sh` keeps its aggregate behavior with no argument and
+accepts one package directory for its Bun-native package suites. The Svelte
+package selector uses its existing Vitest config.
 `check:bun-links` (wired into `ci:rehearse`) reports the machine's bun
 global-link state and fails when a dependency resolves through a link that
 leaves the repository.

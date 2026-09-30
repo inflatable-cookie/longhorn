@@ -10,9 +10,8 @@ include = ["config/release.toml"]
 [tasks]
 "bootstrap:deps" = "bun install --frozen-lockfile"
 
-# One task per job, not one per package. Per-package variants were hundreds of
-# lines of duplication that nothing ever invoked individually; loops and test
-# runners cover the same ground.
+# Aggregates stay one task per job. Keep package-level variants only where
+# bounded QA groups need a maintained scope; do not mirror every package.
 
 # --- Rust ---------------------------------------------------------------
 # `cargo fmt --all` is not workspace-scoped the way `--workspace` is: it walks
@@ -60,12 +59,31 @@ include = ["config/release.toml"]
   { task = "check:bun-deps" },
   "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'",
 ]
+# Package selectors are the bounded building blocks. Keep check:ts as the
+# workspace aggregate used by qa.
+"check:ts:longhorn" = [
+  { task = "check:bun-deps" },
+  "bun x tsc -p packages/longhorn/tsconfig.json",
+]
+"check:ts:longhorn-tauri" = [
+  { task = "check:bun-deps" },
+  "bun x tsc -p packages/longhorn-tauri/tsconfig.json",
+]
+"check:ts:longhorn-poodle-svelte" = [
+  { task = "check:bun-deps" },
+  "bun x tsc -p packages/longhorn-poodle-svelte/tsconfig.json",
+]
 "check:svelte" = [
   { task = "check:bun-deps" },
   "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json",
 ]
 "check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
 "test:ts" = "bash scripts/test-packages.sh"
+# Narrow package tests reuse the existing Bun and Vitest runners. The
+# longhorn-poodle-svelte package is Vitest-owned; the other two use Bun test.
+"test:ts:longhorn" = "bash scripts/test-packages.sh longhorn"
+"test:ts:longhorn-tauri" = "bash scripts/test-packages.sh longhorn-tauri"
+"test:ts:longhorn-poodle-svelte" = "bun x vitest run --config packages/longhorn-poodle-svelte/vitest.config.ts"
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
 
 # --- Generated protocol bindings ----------------------------------------
@@ -119,6 +137,7 @@ include = ["config/release.toml"]
 # published peer range resolves from npm.
 # `proof:artifacts`: heavy task table below ([tasks."proof:artifacts"]).
 "proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
+"proof:guides-card126" = "bun scripts/verify-guides-card126.ts"
 
 # Pre-release rehearsal of the five machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
@@ -264,6 +283,492 @@ exclude = [
 warning = ["TODO", "REVIEW", "NOTE", "placeholder"]
 high = ["FIXME", "HACK", "@deprecated", "workaround"]
 critical = ["BUG", "remove before release"]
+
+# --- Bounded QA groups -------------------------------------------------
+# These are deliberate worker checks, not replacements for qa or release
+# gates. Unknown inputs remain needs_planner; scope never filters members.
+
+[qa.groups.longhorn-docs]
+lifecycle = "maintained"
+purpose = "Check links, index paths, and agent defaults for general Longhorn documentation"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Does not run held-surface or host-protocol checks",
+  "Does not prove semantic correctness or complete documentation coverage",
+]
+members = [
+  {
+    id = "links",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:links",
+    args = [],
+    targets = [
+      "path:README.md",
+      "path:AGENTS.md",
+      "path:docs/README.md",
+      "path:docs/knowledge/README.md",
+      "path:docs/knowledge/architecture/README.md",
+      "path:docs/knowledge/contracts/README.md",
+      "path:docs/guides/README.md",
+      "path:docs/guides/getting-started.md",
+      "path:docs/reference/README.md",
+    ],
+    covers = [
+      "path:README.md",
+      "path:AGENTS.md",
+      "path:docs/README.md",
+      "path:docs/knowledge/README.md",
+      "path:docs/knowledge/architecture/README.md",
+      "path:docs/knowledge/contracts/README.md",
+      "path:docs/guides/README.md",
+      "path:docs/guides/getting-started.md",
+      "path:docs/reference/README.md",
+    ],
+    limits = ["Checks links only in its explicit file list"],
+  },
+  {
+    id = "agent-defaults",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:agent-defaults",
+    args = [],
+    targets = ["path:AGENTS.md", "path:README.md", "path:docs/README.md"],
+    covers = ["path:AGENTS.md", "path:README.md", "path:docs/README.md"],
+    limits = ["Checks only the forbidden --repo . spelling in three orientation files"],
+  },
+  {
+    id = "paths",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:paths",
+    args = [],
+    targets = [
+      "path:README.md",
+      "path:AGENTS.md",
+      "path:scripts/README.md",
+      "path:docs/README.md",
+      "path:docs/knowledge/*.md",
+      "path:docs/knowledge/architecture/*.md",
+      "path:docs/knowledge/contracts/*.md",
+    ],
+    covers = [
+      "path:README.md",
+      "path:AGENTS.md",
+      "path:scripts/README.md",
+      "path:docs/README.md",
+      "path:docs/knowledge/*.md",
+      "path:docs/knowledge/architecture/*.md",
+      "path:docs/knowledge/contracts/*.md",
+    ],
+    limits = ["Validates required paths in the declared index and knowledge set"],
+  },
+  {
+    id = "catalog-links",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:catalog-links",
+    args = [],
+    targets = ["path:README.md", "path:docs/**/*.md"],
+    covers = ["path:README.md", "path:docs/**/*.md"],
+    limits = ["Checks links only; does not run held-surface or host-protocol proofs"],
+  },
+]
+
+[qa.groups.longhorn-getting-started-docs]
+lifecycle = "maintained"
+purpose = "Check guide links and the guide corpus and API inventory used by the getting-started flow"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "The guide proof reads its fixed guide corpus and workspace package inventory",
+  "Does not run the other artifact proofs",
+]
+members = [
+  {
+    id = "links",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:links",
+    args = [],
+    targets = [
+      "path:README.md",
+      "path:AGENTS.md",
+      "path:docs/README.md",
+      "path:docs/knowledge/README.md",
+      "path:docs/knowledge/architecture/README.md",
+      "path:docs/knowledge/contracts/README.md",
+      "path:docs/guides/README.md",
+      "path:docs/guides/getting-started.md",
+      "path:docs/reference/README.md",
+    ],
+    covers = ["path:docs/guides/getting-started.md"],
+    limits = ["Checks links only in its explicit file list"],
+  },
+  {
+    id = "catalog-links",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:catalog-links",
+    args = [],
+    targets = ["path:README.md", "path:docs/**/*.md"],
+    covers = ["path:docs/guides/*.md", "path:docs/reference/*.md", "path:docs/README.md", "path:README.md"],
+    limits = ["Checks links only"],
+  },
+  {
+    id = "guide-proof",
+    kind = "proof",
+    surface = "published",
+    task = "proof:guides-card126",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "path:docs/guides/*.md",
+      "path:docs/reference/README.md",
+      "path:docs/reference/api-surface.md",
+      "path:docs/README.md",
+      "path:README.md",
+      "path:examples/greenfield-compositions/README.md",
+    ],
+    limits = ["Checks the fixed guide corpus, local links, snippets, generated API inventory, and package counts"],
+  },
+]
+
+[qa.groups.agent-tool-dispatch]
+lifecycle = "maintained"
+purpose = "Check the agent-tool-dispatch crate and its declared package obligations"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "dispatch-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:agent-tool-dispatch",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-agent-tool-dispatch", "path:crates/longhorn-agent-tool-dispatch/**", "path:crates/longhorn-agent-control/src/lib.rs"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.longhorn-ts]
+lifecycle = "maintained"
+purpose = "Typecheck and test Longhorn TypeScript and its workspace package consumers"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Does not run package assembly or artifact proofs",
+  "The downstream package checks are selected because they consume Longhorn workspace source",
+]
+members = [
+  {
+    id = "longhorn-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts:longhorn",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn", "path:packages/longhorn/**"],
+    covers = ["bun-package:@inflatable-cookie/longhorn", "path:packages/longhorn/**"],
+    limits = ["Typechecks the Longhorn package only"],
+  },
+  {
+    id = "longhorn-test",
+    kind = "test",
+    surface = "published",
+    task = "test:ts:longhorn",
+    args = [],
+    targets = [
+      "bun-package:@inflatable-cookie/longhorn",
+      "path:packages/longhorn/**",
+      "path:fixtures/bridge/protocol-v1.json",
+      "path:fixtures/commands/protocol-v1.json",
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/licence/protocol-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/notifications/protocol-v1.json",
+      "path:fixtures/operation/protocol-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+      "path:fixtures/update/protocol-v1.json",
+    ],
+    covers = [
+      "bun-package:@inflatable-cookie/longhorn",
+      "path:packages/longhorn/**",
+      "path:fixtures/bridge/protocol-v1.json",
+      "path:fixtures/commands/protocol-v1.json",
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/licence/protocol-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/notifications/protocol-v1.json",
+      "path:fixtures/operation/protocol-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+      "path:fixtures/update/protocol-v1.json",
+    ],
+    limits = ["Runs the Longhorn Bun-native tests only"],
+  },
+  {
+    id = "tauri-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts:longhorn-tauri",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**", "path:packages/longhorn/**"],
+    covers = [],
+    limits = ["Typechecks the Tauri consumer and its Longhorn workspace dependency"],
+  },
+  {
+    id = "tauri-test",
+    kind = "test",
+    surface = "published",
+    task = "test:ts:longhorn-tauri",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**", "path:packages/longhorn/**"],
+    covers = [],
+    limits = ["Runs the Tauri Bun-native tests only"],
+  },
+  {
+    id = "poodle-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts:longhorn-poodle-svelte",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**", "path:packages/longhorn/**"],
+    covers = [],
+    limits = ["Typechecks TypeScript files; Svelte checking is a separate member"],
+  },
+  {
+    id = "poodle-svelte-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:svelte",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**", "path:packages/longhorn/**"],
+    covers = [],
+    limits = ["Checks the Poodle Svelte adapter and its Longhorn workspace dependency"],
+  },
+  {
+    id = "poodle-test",
+    kind = "test",
+    surface = "published",
+    task = "test:ts:longhorn-poodle-svelte",
+    args = [],
+    targets = [
+      "bun-package:@inflatable-cookie/longhorn-poodle-svelte",
+      "path:packages/longhorn-poodle-svelte/**",
+      "path:packages/longhorn/**",
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/parity/projection-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+    ],
+    covers = [
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/parity/projection-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+    ],
+    limits = ["Runs the Poodle Svelte Vitest suite only"],
+  },
+]
+
+[qa.groups.longhorn-tauri-ts]
+lifecycle = "maintained"
+purpose = "Typecheck and test the longhorn-tauri TypeScript package"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = ["Does not run package assembly or artifact proofs"]
+members = [
+  {
+    id = "tauri-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts:longhorn-tauri",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**", "path:packages/longhorn/**"],
+    covers = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**"],
+    limits = ["Typechecks the Tauri package and its Longhorn workspace dependency"],
+  },
+  {
+    id = "tauri-test",
+    kind = "test",
+    surface = "published",
+    task = "test:ts:longhorn-tauri",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**", "path:packages/longhorn/**"],
+    covers = ["bun-package:@inflatable-cookie/longhorn-tauri", "path:packages/longhorn-tauri/**"],
+    limits = ["Runs the Tauri Bun-native tests and their Longhorn workspace dependency"],
+  },
+]
+
+[qa.groups.longhorn-poodle-svelte-ts]
+lifecycle = "maintained"
+purpose = "Typecheck and test the Poodle Svelte TypeScript adapter"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = ["Does not run package assembly or artifact proofs"]
+members = [
+  {
+    id = "poodle-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts:longhorn-poodle-svelte",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**", "path:packages/longhorn/**"],
+    covers = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**"],
+    limits = ["Typechecks TypeScript files only"],
+  },
+  {
+    id = "svelte-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:svelte",
+    args = [],
+    targets = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**", "path:packages/longhorn/**"],
+    covers = ["bun-package:@inflatable-cookie/longhorn-poodle-svelte", "path:packages/longhorn-poodle-svelte/**"],
+    limits = ["Checks the Poodle Svelte adapter and its Longhorn workspace dependency"],
+  },
+  {
+    id = "poodle-test",
+    kind = "test",
+    surface = "published",
+    task = "test:ts:longhorn-poodle-svelte",
+    args = [],
+    targets = [
+      "bun-package:@inflatable-cookie/longhorn-poodle-svelte",
+      "path:packages/longhorn-poodle-svelte/**",
+      "path:packages/longhorn/**",
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/parity/projection-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+    ],
+    covers = [
+      "bun-package:@inflatable-cookie/longhorn-poodle-svelte",
+      "path:packages/longhorn-poodle-svelte/**",
+      "path:fixtures/config/protocol-v1.json",
+      "path:fixtures/history/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:fixtures/native-content/protocol-v1.json",
+      "path:fixtures/parity/projection-v1.json",
+      "path:fixtures/settings/protocol-v1.json",
+      "path:fixtures/surface-transfer/protocol-v1.json",
+      "path:fixtures/surfaces/protocol-v1.json",
+      "path:fixtures/transfer/protocol-v1.json",
+    ],
+    limits = ["Runs the Poodle Svelte Vitest suite only"],
+  },
+]
+
+[qa.groups.longhorn-bindings]
+lifecycle = "maintained"
+purpose = "Check generated protocol bindings against Longhorn declarations and fixtures"
+scope_policy = "required"
+coverage_gaps = [
+  { input = "input:bindings-generator-transitive-compile-dependencies", reason = "The generator's full transitive compile dependency closure is not mapped" },
+]
+proof_limits = [
+  "Runs all fifteen registered binding domains",
+  "Does not diff committed ts-rs binding files under crates/*/bindings/**",
+]
+members = [
+  {
+    id = "bindings-drift",
+    kind = "proof",
+    surface = "published",
+    task = "check:bindings",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "path:crates/longhorn-bindings/**",
+      "path:crates/longhorn-core/**",
+      "path:crates/longhorn-bridge/**",
+      "path:crates/longhorn-command/**",
+      "path:crates/longhorn-command-config/**",
+      "path:crates/longhorn-config/**",
+      "path:crates/longhorn-history/**",
+      "path:crates/longhorn-history-tree/**",
+      "path:crates/longhorn-licence/**",
+      "path:crates/longhorn-native-content/**",
+      "path:crates/longhorn-notifications/**",
+      "path:crates/longhorn-operation/**",
+      "path:crates/longhorn-settings/**",
+      "path:crates/longhorn-surface-transfer/**",
+      "path:crates/longhorn-surfaces/**",
+      "path:crates/longhorn-transfer/**",
+      "path:crates/longhorn-update/**",
+      "path:fixtures/*/protocol-v1.json",
+      "path:fixtures/layout/*-conformance-v1.json",
+      "path:packages/longhorn/src/**/generated/**",
+    ],
+    limits = ["Checks all registered domains and outputs; a new domain still needs to be added to the selector loop"],
+  },
+]
+
+[qa.groups.agent-control-absence]
+lifecycle = "maintained"
+purpose = "Check the agent-control release absence proof and generated Tauri shim"
+scope_policy = "required"
+coverage_gaps = [
+  { input = "input:agent-control-marker-source-coverage", reason = "The release-absence compile inputs and marker-source inputs have not been independently mapped" },
+]
+proof_limits = [
+  "The absence proof covers its declared feature/build and marker checks only",
+  "Does not prove other release gates",
+]
+members = [
+  {
+    id = "release-absence",
+    kind = "proof",
+    surface = "published",
+    task = "check:agent-control-release-absence",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-core", "cargo-package:longhorn-config", "cargo-package:longhorn-tauri-config", "cargo-package:longhorn-agent-control", "cargo-package:longhorn-tauri-agent-control"],
+    limits = ["Marker-source scope remains unresolved"],
+  },
+  {
+    id = "shim-drift",
+    kind = "proof",
+    surface = "published",
+    task = "check:agent-control-shim",
+    args = [],
+    targets = ["path:packages/longhorn/src/agent-control/inject.ts", "path:packages/longhorn/src/agent-control/shim.ts", "path:crates/longhorn-tauri-agent-control/src/agent_control_shim.js"],
+    covers = ["path:packages/longhorn/src/agent-control/inject.ts", "path:packages/longhorn/src/agent-control/shim.ts", "path:crates/longhorn-tauri-agent-control/src/agent_control_shim.js"],
+    limits = ["Builds and compares the committed shim only"],
+  },
+]
 
 # Release gates live in `config/release.toml`, next to the rest of `[release]`.
 # Declaring a second `[release.gates]` here merges rather than conflicts, which
