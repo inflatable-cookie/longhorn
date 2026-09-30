@@ -807,6 +807,19 @@ phase rather than guessed:
   ignored or lock inputs (see Coverage gaps).
 - Any `fixtures/**` file or `scripts/verify-*.ts` with no reader named in this
   map stays unresolved; the map does not invent one.
+- `check:bindings` and every proof that invokes the bindings generator: the
+  generator's transitive compile dependencies are not enumerated. That
+  includes crates the artifact proofs compile but don't stage, such as
+  `longhorn-url` and the `longhorn-surfaces-config` examples. A change to any
+  crate the generator compiles is unresolved for narrowing, so select
+  `check:bindings` and the invoking proofs conservatively (review round 6,
+  PR #61).
+- `check:agent-control-release-absence`: its local Rust dependency closure
+  (`longhorn-core`, `longhorn-config`, `longhorn-tauri-config`) and its
+  committed JS build input, the Tauri shim asset, are compile inputs. They
+  are distinct from the marker sources the byte scan looks for. A change to
+  any of them selects the gate; the split between compile and marker inputs
+  is left for the selection contract (review round 6, PR #61).
 
 ## Evidence and limits
 
