@@ -115,6 +115,15 @@ Targeted checks per task, full QA at milestones (Tom, 2026-09-30).
   `effigy test:vitest`, or the proof selector it changed), a compile of what
   it touched (`effigy check:ts`, `effigy lint:rust`), and `effigy qa:docs` for
   docs. Then it opens the PR. No full `effigy qa`, no repeat passes.
+- **Prefer a bounded QA group** when one covers the change:
+  `effigy --json tasks qa-groups list`, then
+  `effigy --json tasks qa-group run <group> --scope <token>... --plan`, then
+  the same without `--plan`. Name every input you touched as a `--scope`
+  token (`path:`, `cargo-package:`, `bun-package:`, `input:`). A group runs
+  all its members. `needs_planner` means stop and report to the planner; it
+  never means run the full board. Groups and their limits:
+  `docs/knowledge/validation-input-map.md`. Use the global `--json` prefix;
+  the trailing form prints a banner first.
 - **Docs or instruction changes** also run
   `effigy skill run northstar/retired-concepts` and
   `effigy skill run northstar/cut -- check-links`, and inspect the final diff.
