@@ -90,25 +90,32 @@ in each `prototypes/*/` workspace. Owns `prototypes/*/**` (each has its own
 `Cargo.lock`) and every workspace crate a prototype path-depends on, directly
 or through a local prototype crate. The edges:
 
-- `prototypes/agent-control/` — none.
-- `prototypes/gpui-composition/` — core, notifications, poodle,
-  gpui-windowing, transfer, config, windowing, windowing-config, and through
-  the local `longhorn-gpui-windowing-prototype`: licence, operation, update.
-- `prototypes/gpui-windowing/` — core, licence, notifications, operation,
-  poodle, update, gpui-windowing, windowing.
+- `prototypes/agent-control/` — none (it depends on no workspace crate).
+- `prototypes/gpui-composition/` — full closure through the local
+  `longhorn-gpui-windowing-prototype`: core, config, display, gpui-windowing,
+  licence, notifications, operation, poodle, settings, surfaces,
+  surfaces-config, transfer, update, url, windowing, windowing-config.
+- `prototypes/gpui-windowing/` — the same closure: core, config, display,
+  gpui-windowing, licence, notifications, operation, poodle, settings,
+  surfaces, surfaces-config, transfer, update, url, windowing,
+  windowing-config.
 - `prototypes/history-tree/` — core, history.
 - `prototypes/native-content/` — core.
-- `prototypes/native-content-backing-surface/` — core (through the local
-  prototype).
+- `prototypes/native-content-backing-surface/` — core.
 - `prototypes/native-content-child-webview/` — core.
-- `prototypes/native-content-isolated-window/` — core, windowing.
+- `prototypes/native-content-isolated-window/` — core, display, windowing
+  (display arrives through windowing).
 
-Union: `longhorn-{core,config,gpui-windowing,history,licence,notifications,operation,poodle,transfer,update,windowing,windowing-config}`.
-The workspace `longhorn-native-content*` crates are not prototype
-dependencies; the native-content prototypes use the prototype-local
+Union: `longhorn-{config,core,display,gpui-windowing,history,licence,notifications,operation,poodle,settings,surfaces,surfaces-config,transfer,update,url,windowing,windowing-config}`.
+Transitive edges that are easy to miss: gpui-windowing and windowing pull
+`longhorn-display`; poodle pulls `longhorn-settings`; transfer pulls
+`longhorn-surfaces` and `longhorn-surfaces-config`; licence and update pull
+`longhorn-url`. The workspace `longhorn-native-content*` crates are not
+prototype dependencies; the native-content prototypes use the prototype-local
 `longhorn-native-content-prototype` and `longhorn-core` only. Propagation: a
 change to any crate in that union selects this release-only aggregate even
 when no prototype file moves.
+
 Companions: `sync:prototype-locks` after a version bump. Admission: `heavy`.
 Release gate (`prototypes`); deliberately absent from `qa`. Limits: `check`,
 not `build` -- proves the seam typechecks, not that it links.
@@ -273,9 +280,10 @@ Admission: unmarked. In `qa`. Limits: needs `cargo metadata`.
 **`generate:api-reference`** — role: generator (`--write`).
 
 **`check:tauri-seam-strings`** — role: proof (cross-language string parity).
-`bun scripts/verify-tauri-seam-strings.ts`. Owns
+Runs `scripts/verify-tauri-seam-strings.ts`. Owns
 `crates/longhorn-tauri-*/src/**/*.rs` (`#[tauri::command]` names, `longhorn://`
-events) and `packages/longhorn-tauri/src/**`. Companions: `host-protocol`.
+events) and `packages/longhorn-tauri/src/**` — `src` only, unlike the
+recursive `host-protocol` scan. Companions: `host-protocol`.
 Admission: unmarked. In `qa`. Limits: only the `longhorn-tauri` port files;
 allow-lists named crates/ports by hand.
 
@@ -393,11 +401,21 @@ Owns `docs/reference/held-surface.md`,
 Companions: `check:api-reference`. Limits: parses a fixed register table.
 
 **`host-protocol`** — role: cross-language proof. Runs
-`scripts/verify-host-protocol.ts`. Reads
-`crates/longhorn-tauri-*/src/**/*.rs`, the `examples/permissions` and
-`examples/capabilities` JSON under those crates, and `packages/*/src/**/*.ts`;
-asserts every invoke/event name has a counterpart or a documented seam.
-Companions: `check:tauri-seam-strings`. Limits: string inventory, not types.
+`scripts/verify-host-protocol.ts`. Owns a recursive scan, not just `src`:
+`crates/longhorn-tauri-*/**/*.rs` (the crate list comes from
+`readdirSync(crates)` filtered to that prefix), `packages/*/**/*.ts` (the
+whole package tree minus `node_modules`; the package list comes from
+`readdirSync(packages)`), and the capability/permission examples under
+`crates/longhorn-tauri-*/examples/{permissions,capabilities}/**` — permission
+files are TOML with an `identifier =` field, capability files are JSON with a
+`"permissions"` array. It asserts every invoke/event name has a counterpart
+or a documented seam, every capability permission is declared, and every
+allowed command exists. Propagation: a quoted `longhorn_*` command or
+`longhorn://` event anywhere in a tauri crate or package, including tests and
+examples, can fail this scan; a new `longhorn-tauri-*` crate or package
+directory enters it automatically. Companions: `check:tauri-seam-strings`.
+Admission: unmarked. Member of `qa:docs`. Limits: string inventory, not
+types.
 
 ### Artifact proofs
 
@@ -655,7 +673,7 @@ select nothing until wired. Ignored paths (`target/`, `node_modules/`,
 | `package.json` (root) | `bootstrap:deps`, `check:ts`, `check:svelte`, `proof:artifacts` | dev pins and peer ranges |
 | `effigy.toml` (tasks, includes) | conservative: full board + `check:release-gates` + `check:runner-tools` + `test:release-tooling` + `proof:artifacts` | changing tasks changes selection itself; no selector validates selection |
 | `config/release.toml` | `check:release-gates`, `test:release-tooling`, private-candidate proof, `check:runner-tools` | release-gate alignment and runner-tool mapping |
-| `rust-toolchain.toml` | conservative: `lint:rust`, `lint:rust:features`, `test:rust`, `check:prototypes` | no selector reads the pinned stable channel; workflows parse it |
+| `rust-toolchain.toml` | conservative: `fmt:rust` (rustfmt component), `lint:rust`, `lint:rust:features`, `test:rust`, `docs:rust` (release), `check:bindings`, `check:api-reference`, `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence`, `proof:artifacts` (members invoking unqualified `cargo`), `check:prototypes` (release), `release:source-consumer` (release), `ci:rehearse` (release) | rustup resolves the pinned channel and components for every unqualified `cargo`/`rustfmt` invocation, so a channel or component change can break any of these. Unlike the MSRV file, no gate asserts the channel itself. `release:floor` uses `rustup run <msrv>`, not this channel. Narrower selection is unresolved |
 | `release-baselines/rust-toolchains.env` | `release:floor`, `proof:artifacts` | MSRV gates and `msrv.ts` manifest generation |
 | `.github/workflows/**` | `check:runner-tools`, `ci:rehearse` | install-step mapping and clean-runner rehearsal |
 | generated `.ts` under `packages/*/src/**/generated/**` | `check:bindings`, `check:ts` | drift vs compile |
@@ -672,6 +690,7 @@ declare it broad and let the planner judge, never treat it as no checks.
 | 1 | `docs/guides/getting-started.md` prose edit | `qa:docs`, `proof:artifacts` (member `scripts/verify-guides-card126.ts`) | catalogue/link checks plus the guide-content member; there is no standalone guides selector |
 | 2 | leaf Rust crate: `crates/longhorn-credential-keyring/src/**` | `fmt:rust`, `lint:rust`, `lint:rust:features`, `test:rust`, `check:consumer-isolation`, `check:repo-containment` | no per-crate selector; no in-tree dependents and no proof stages it, but the lane is workspace-wide. A crate a proof stages (for example `longhorn-history`) also selects `proof:artifacts` |
 | 3 | shared Rust type: `crates/longhorn-history/src/**` | Rust lane + `check:bindings` + `check:ts` + `test:ts` + `test:vitest` + `proof:artifacts` + `check:prototypes` | history is a bindings domain; `longhorn-history` feeds `longhorn-bindings`, `history-tree`, `tauri-history`, `prototypes/history-tree` |
+| 3b | transitive-only prototype input: `crates/longhorn-display/src/**` or `crates/longhorn-url/src/**` or `crates/longhorn-surfaces-config/src/**` | Rust lane + `check:prototypes` (release gate) | reached by the prototypes only through `longhorn-windowing`/`longhorn-gpui-windowing` (display), `longhorn-licence`/`longhorn-update` (url) and `longhorn-transfer` (surfaces-config); no prototype manifest names them directly, so a direct-edge-only inventory would miss them |
 | 4 | leaf TS package: `packages/longhorn-tauri/src/transport/**` | `check:ts`, `test:ts`, `check:packages`, `check:tauri-seam-strings`, `host-protocol`, `proof:artifacts` | no package dependents, but five proof members pack `longhorn-tauri`; typecheck + its tests + seam/protocol scans + the packed-artifact aggregate |
 | 5 | proof generator/fixture: `scripts/verify-history-tree-artifacts.ts`, `scripts/workspace-dependencies.ts`, `fixtures/native-content/protocol-v1.json`, or `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts`, `check:consumer-isolation`, `check:repo-containment`, plus `test:ts`/`test:vitest` if a Bun test reads the fixture, plus `check:bindings` when it is also a golden `fixtures/<domain>/protocol-v1.json` | implementation modules and consumed fixtures are proof inputs; the greenfield receipt is read and checked by default |
 | 5b | binding conformance fixture: `fixtures/layout/surface-bound-conformance-v1.json` or `fixtures/layout/window-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `check:consumer-isolation`, `check:repo-containment` | generated conformance outputs, byte-checked by the layout domain and imported by the Bun and Svelte layout suites; no `proof:artifacts` member reads them |
@@ -717,9 +736,10 @@ proofs. Missing any of those is a silent break.
   workspace member, package entry, packed crate) has no selector that reports
   the removal until `check:bindings`, `check:ts`, `check:packages` or the Rust
   lane fails on metadata. Cases no selector names are unresolved.
-- No selector validates `rust-toolchain.toml`, `effigy.toml` task
-  definitions, or `.github/workflows/**` beyond `check:runner-tools`; those
-  stay conservative.
+- No gate asserts the `rust-toolchain.toml` channel or component set itself;
+  its consumers are declared in the opaque-input table. `effigy.toml` task
+  definitions and `.github/workflows/**` stay conservative beyond
+  `check:runner-tools`.
 - `proof:artifacts` is one heavy step. There is no per-member admission, so a
   one-fixture change cannot select a single member through admission today;
   only `proof:pack-typecheck` has a narrower selector.
@@ -754,4 +774,4 @@ Longhorn already keeps next to those tasks. Proof members are scripts inside
 the `proof:artifacts` aggregate, not selectors; only `proof:pack-typecheck`
 and `proof:agent-tool-dispatch-source-consumer` dispatch on their own.
 Independent review should check each entry against the manifest or script it
-names and walk the eight synthetic change sets on paper.
+names and walk the nine synthetic change sets on paper.
