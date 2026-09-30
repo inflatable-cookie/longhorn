@@ -248,19 +248,27 @@ transfer update`. Owns `crates/longhorn-bindings/**` (generator),
 `crates/longhorn-core/**` (the shared declarations and constants every domain
 renderer reads — `crates/longhorn-bindings/Cargo.toml` enables core's
 `bindings` feature, and `store_compatibility.rs` exports `CompatibilityStore`
-under `#[cfg_attr(feature = "bindings", ts(export))]`), the type definitions
-of the domain crates, the per-domain golden fixtures
+under `#[cfg_attr(feature = "bindings", ts(export))]`), the full source of
+the fifteen domain crates, not only their type definitions — the generator
+executes domain behaviour too: `crates/longhorn-bindings/src/licence.rs` calls
+`longhorn_licence::key_conformance_cases()`
+(`crates/longhorn-licence/src/key.rs`), which drives `LicenceKey::parse` and
+emits `packages/longhorn/src/licence/generated/key-conformance.json`, so a
+parser or conformance-case change moves generated output with no public type
+change — the per-domain golden fixtures
 `fixtures/<domain>/protocol-v1.json`, the layout conformance outputs
 `fixtures/layout/{surface-bound,window-bound}-conformance-v1.json`, and the
-generated TS under `packages/longhorn/src/<domain>/generated/**`. Domain→crate: `layout` reads
+generated output under `packages/longhorn/src/<domain>/generated/**` (TS plus
+`key-conformance.json`). Domain→crate: `layout` reads
 `longhorn-surfaces` (Card 179 folded layout in); `commands` also reads
 `longhorn-command-config`; every domain also reads `longhorn-core`
 (`HistoryId`/`HistoryRevision`/`MAX_OPAQUE_ID_BYTES` in `history.rs`,
 `WindowId`/`SurfaceId` in `surfaces.rs`, and core ids elsewhere); the rest map
 one-to-one. Propagation: a `longhorn-core` declaration, constant or `#[ts]`
-annotation change moves generated TS in the affected domains exactly as a
+annotation change moves generated output in the affected domains exactly as a
 domain-crate change does, so a core-only edit selects `check:bindings` plus
-`check:ts` and the `test:ts`/`test:vitest` imports. Companions: `generate:bindings` when it drifts,
+`check:ts` and the `test:ts`/`test:vitest` imports; a behavioural licence
+change does the same through the generated JSON. Companions: `generate:bindings` when it drifts,
 `check:ts` to compile the regenerated output, `test:ts`/`test:vitest` where a
 Bun or Svelte test imports the same fixture, and the artifact proofs that
 rerun per-domain binding checks. Admission: unmarked (compiles
@@ -638,11 +646,18 @@ and `prototypes/` is also scanned by `check:consumer-isolation` and
 
 ### Added, deleted, renamed files
 
-- New crate: add to the root workspace `members`; selects the full Rust lane
-  and `fmt:rust` (member list), plus `check:repo-containment` (root manifest).
-- New package: `check:ts`, `check:packages`, `test:ts`/`test:vitest`,
-  `check:consumer-isolation`, `check:repo-containment`,
-  `proof:pack-typecheck` only if it is a pack target.
+- New crate: the new directory is already read before registration by
+  `check:consumer-isolation` and `check:repo-containment` (recursive scans),
+  `check:api-reference` (counts every `crates/*` directory against `cargo
+  metadata` and fails on a mismatch) and `proof:artifacts` (the guides member
+  compares the same inventory); registering it in the root workspace `members`
+  adds the full Rust lane and `fmt:rust` (member list). Compile ownership is
+  unresolved until registration.
+- New package: directory discovery is by `packages/*`, so the recursive scans
+  and inventory checks read it before registration; registration (the root
+  `workspaces` glob already covers `packages/*`) adds `check:ts`,
+  `check:packages`, `test:ts`/`test:vitest`, and `proof:pack-typecheck` when
+  it is a pack target.
 - New `longhorn-bindings` domain: `check:bindings` will not see it until the
   task loop in `effigy.toml` names it -- a real coverage gap.
 - New `longhorn-tauri-*` crate: `check:tauri-seam-strings` and `host-protocol`
@@ -670,22 +685,28 @@ Every gate reads the working tree, not the Git index: `--locked` compares
 manifests to `Cargo.lock`/`bun.lock`, and the scan selectors walk the files.
 Staged vs unstaged does not change the answer. Untracked files under a scanned
 tree are seen (the scan selectors walk directories; the graph's
-`git status --porcelain` reports `??`). Untracked files that no manifest or
-glob reaches -- an unregistered crate, a new package not in `workspaces` --
-select nothing until wired. Ignored paths (`target/`, `node_modules/`,
-`.effigy/`, `.svelte-kit/`) are never selection inputs.
+`git status --porcelain` reports `??`). An unregistered crate or package is
+still read by the recursive scanners and inventory checks:
+`check:consumer-isolation` and `check:repo-containment` walk the new
+directory, `check:api-reference` counts `crates/*` directories against `cargo
+metadata` and fails on a mismatch, package manifests are discovered by a
+`packages/*` directory glob, and `proof:artifacts` (the guides member)
+compares the same inventories. Compile ownership stays unresolved until the
+crate or package is registered; do not treat the directory as "no checks".
+Ignored paths (`target/`, `node_modules/`, `.effigy/`, `.svelte-kit/`) are
+never selection inputs.
 
 ## Opaque and global inputs
 
 | Input | Safe selection | Why |
 | --- | --- | --- |
-| `Cargo.lock` | conservative: full Rust lane + `check:bindings` + `check:agent-control-release-absence` + `check:agent-tool-dispatch-release-absence` + `proof:artifacts` + `check:prototypes` + `release:floor` | no selector proves the lock alone; every `--locked` gate depends on it, `check:bindings` compiles the generator against it, the absence proofs build against it, and five proof members copy it into disposable workspaces. Narrower selection is unresolved |
+| `Cargo.lock` | conservative: full Rust lane + `check:bindings` + `check:api-reference` + `check:agent-control-release-absence` + `check:agent-tool-dispatch-release-absence` + `proof:artifacts` + `check:prototypes` + `release:floor`, plus the release-only `docs:rust` and `advisories` gates | no selector proves the lock alone; every `--locked` reader depends on it -- the Rust lane, `check:bindings` (generator compile), `check:api-reference` (`cargo metadata --locked`), `docs:rust` (`cargo doc --locked`, release-only), `advisories` (`cargo deny` reads the resolved graph, release-only), the absence proofs, and five proof members that copy it into disposable workspaces. Narrower selection is unresolved |
 | `bun.lock` | conservative: `bootstrap:deps`, full TypeScript lane, `proof:artifacts` | proofs install from the lock; `scripts/verify-poodle-preview.ts` and `proof:pack-typecheck` verify Poodle sha512/peer range against it |
 | `package.json` (root) | `bootstrap:deps`, `check:ts`, `check:svelte`, `proof:artifacts` | dev pins and peer ranges |
 | `effigy.toml` (tasks, includes) | conservative: full board + `check:release-gates` + `check:runner-tools` + `test:release-tooling` + `proof:artifacts` | changing tasks changes selection itself; no selector validates selection |
 | `config/release.toml` | `check:release-gates`, `test:release-tooling`, private-candidate proof, `check:runner-tools` | release-gate alignment and runner-tool mapping |
 | `rust-toolchain.toml` | conservative: `fmt:rust` (rustfmt component), `lint:rust`, `lint:rust:features`, `test:rust`, `docs:rust` (release), `check:bindings`, `check:api-reference`, `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence`, `proof:artifacts` (members invoking unqualified `cargo`), `check:prototypes` (release), `release:source-consumer` (release), `ci:rehearse` (release) | rustup resolves the pinned channel and components for every unqualified `cargo`/`rustfmt` invocation, so a channel or component change can break any of these. Unlike the MSRV file, no gate asserts the channel itself. `release:floor` uses `rustup run <msrv>`, not this channel. Narrower selection is unresolved |
-| `release-baselines/rust-toolchains.env` | `release:floor`, `proof:artifacts` | MSRV gates and `msrv.ts` manifest generation |
+| `release-baselines/rust-toolchains.env` | `release:floor`, `proof:artifacts`, `release:source-consumer` | MSRV gates, `msrv.ts` manifest generation, and the source-consumer `rust-version` (`scripts/verify-source-consumer.sh` sources the file) |
 | `.github/workflows/**` | `check:runner-tools`, `ci:rehearse` | install-step mapping and clean-runner rehearsal |
 | generated `.ts` under `packages/*/src/**/generated/**` | `check:bindings`, `check:ts` | drift vs compile |
 | `crates/*/bindings/**` | unresolved | ts-rs `#[ts(export)]` per-type output; no selector reads or diffs it (see Coverage gaps) |
@@ -703,6 +724,7 @@ declare it broad and let the planner judge, never treat it as no checks.
 | 3 | shared Rust type: `crates/longhorn-history/src/**` | Rust lane + `check:bindings` + `check:ts` + `test:ts` + `test:vitest` + `proof:artifacts` + `check:prototypes` | history is a bindings domain; `longhorn-history` feeds `longhorn-bindings`, `history-tree`, `tauri-history`, `prototypes/history-tree` |
 | 3b | transitive prototype input: `crates/longhorn-display/src/**` or `crates/longhorn-surfaces-config/src/**` | Rust lane + `check:prototypes` (release gate) + `proof:artifacts` | reached by the prototypes only through `longhorn-windowing`/`longhorn-gpui-windowing` (display) and `longhorn-transfer` (surfaces-config); the greenfield member stages both |
 | 3c | transitive prototype-only input: `crates/longhorn-url/src/**` | Rust lane + `check:prototypes` (release gate) | reached only through `longhorn-licence`/`longhorn-update`; no artifact member stages `longhorn-url` |
+| 3d | behavioural generator input: `crates/longhorn-licence/src/key.rs` parser or `key_conformance_cases()` change | Rust lane + `check:bindings` + `test:ts` | the generator emits `packages/longhorn/src/licence/generated/key-conformance.json` from `key_conformance_cases()`, and `packages/longhorn/tests/licence/key.test.ts` reads that JSON through `packages/longhorn/src/licence/key.ts`; no public type moves, so a type-only rule would miss the committed-bytes drift |
 | 4 | leaf TS package: `packages/longhorn-tauri/src/transport/**` | `check:ts`, `test:ts`, `check:packages`, `check:tauri-seam-strings`, `host-protocol`, `proof:artifacts` | no package dependents, but five proof members pack `longhorn-tauri`; typecheck + its tests + seam/protocol scans + the packed-artifact aggregate |
 | 5 | proof generator/fixture: `scripts/verify-history-tree-artifacts.ts`, `scripts/workspace-dependencies.ts`, `fixtures/native-content/protocol-v1.json`, or `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts`, `check:consumer-isolation`, `check:repo-containment`, plus `test:ts`/`test:vitest` if a Bun test reads the fixture, plus `check:bindings` when it is also a golden `fixtures/<domain>/protocol-v1.json` | implementation modules and consumed fixtures are proof inputs; the greenfield receipt is read and checked by default |
 | 5b | binding conformance fixture: `fixtures/layout/surface-bound-conformance-v1.json` or `fixtures/layout/window-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `check:consumer-isolation`, `check:repo-containment` | generated conformance outputs, byte-checked by the layout domain and imported by the Bun and Svelte layout suites; no `proof:artifacts` member reads them |
@@ -769,10 +791,11 @@ proofs. Missing any of those is a silent break.
 Items the source could not settle, carried for Effigy's selection-contract
 phase rather than guessed:
 
-- `longhorn-core` is declared as a whole-crate generator input. The complete
-  set of core declarations each domain renderer emits is not enumerated; only
-  `store_compatibility.rs`'s `ts(export)` attribute and the cross-domain
-  ids/constants named in the entry are established from source.
+- `longhorn-core` is declared as a whole-crate generator input, and the
+  fifteen domain crates as whole-crate inputs. The complete per-domain
+  behavioural call set is not enumerated; only `store_compatibility.rs`'s
+  `ts(export)` attribute, the cross-domain ids/constants, and
+  `longhorn_licence::key_conformance_cases()` are established from source.
 - The agent-control absence proof is declared as a crate-wide source input for
   `crates/longhorn-agent-control/**`. The exact feature-gated files and the
   full rlib marker set beyond `src/server/mcp.rs` and the script's own marker
@@ -807,4 +830,4 @@ Longhorn already keeps next to those tasks. Proof members are scripts inside
 the `proof:artifacts` aggregate, not selectors; only `proof:pack-typecheck`
 and `proof:agent-tool-dispatch-source-consumer` dispatch on their own.
 Independent review should check each entry against the manifest or script it
-names and walk the ten synthetic change sets on paper.
+names and walk the eleven synthetic change sets on paper.
