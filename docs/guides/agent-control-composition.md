@@ -372,6 +372,35 @@ app.run(|app, event| {
 });
 ```
 
+## 5. Front It Over Stdio For An Embedded Agent
+
+A harness that can't take a streamable-HTTP MCP entry, such as an agent SDK
+that puts its MCP config on a child process's command line, uses the
+Longhorn-owned stdio carrier `longhorn-agent-control-client`. It fronts the
+running app's `/mcp` endpoint with the same catalogue, policy and dispatch.
+[Contract 022](../knowledge/contracts/022-agent-app-control.md) owns its
+rules.
+
+- **Build it from the release tag** into a repository-local root, not a
+  host-wide install, and ship it with the app if the agent runs on users'
+  machines:
+  `cargo install --locked --git ssh://git@github.com/inflatable-cookie/longhorn.git --tag v0.3.0 --features client --root <repo>/target/tools longhorn-agent-control`.
+- **The bearer never travels on argv or in the environment.** The carrier
+  reads it from the running app's discovery file (mode 0600, in a 0700
+  directory). Its argv carries only selectors.
+- **Target the instance that spawned the session:** pass that instance's
+  discovery directory with `--discovery-dir`. `--app-id` alone refuses to
+  start (exit 2, `AmbiguousInstances`) when two instances share an app id,
+  for example a dev build beside the packaged app. It never picks one at
+  random. If the directory is missing, refuse; don't fall back to app-id
+  selection.
+- **Give it a home directory:** without `--discovery-dir` or `--state-root`,
+  it finds discovery from `HOME` (plus the XDG variables on Linux, or
+  `LOCALAPPDATA`/`APPDATA`/`TEMP` on Windows).
+- **Close it by closing stdin** after the last response. It exits 0, and any
+  exchange still in flight aborts. The server is stateless. Exit 2 is a
+  startup failure, with the reason on stderr.
+
 ## What The App Gets
 
 Once mounted, an agent can:
