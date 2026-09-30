@@ -108,7 +108,7 @@ include = ["config/release.toml"]
 # the feature-on pass as the scan's own positive control. In `qa`, which the
 # release `workspace` gate runs — no separate release.gates line, per the
 # single-table rule in config/release.toml.
-"check:agent-control-release-absence" = "bun scripts/verify-agent-control-release-absence.ts"
+# `check:agent-control-release-absence`: heavy task table below.
 "check:agent-tool-dispatch-release-absence" = "bun scripts/verify-agent-tool-dispatch-release-absence.ts"
 "check:agent-tool-dispatch" = [
   { task = "lint:agent-tool-dispatch" },
@@ -244,6 +244,12 @@ run = ["sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-target
 [tasks."ci:rehearse"]
 admission = "heavy"
 run = ["bash scripts/ci-rehearse.sh"]
+
+[tasks."check:agent-control-release-absence"]
+# A release-profile build of the agent-control crates (about 260 s). Heavy so
+# a standalone or group run queues host-wide; inside `qa` it shares qa's lease.
+admission = "heavy"
+run = ["bun scripts/verify-agent-control-release-absence.ts"]
 
 [tasks."release:floor"]
 admission = "heavy"
@@ -743,6 +749,8 @@ scope_policy = "required"
 coverage_gaps = [
   { input = "input:agent-control-marker-source-coverage", reason = "The release-absence compile inputs and marker-source inputs have not been independently mapped" },
 ]
+expected_wall_ms = 300000
+expectation_basis = "One run on 2026-09-30 (PR #63): 262.9 s, dominated by the release-absence build; cold-compile cost is unknown"
 proof_limits = [
   "The absence proof covers its declared feature/build and marker checks only",
   "Does not prove other release gates",
