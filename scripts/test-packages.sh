@@ -11,6 +11,16 @@ set -euo pipefail
 
 cd "$(cd "$(dirname "$0")/.." && pwd)"
 
+requested_package="${1:-}"
+if [[ $# -gt 1 ]]; then
+  echo 'usage: scripts/test-packages.sh [package-directory]' >&2
+  exit 2
+fi
+if [[ -n "$requested_package" && ! -d "packages/$requested_package/tests" ]]; then
+  echo "no Bun-native package tests for $requested_package" >&2
+  exit 2
+fi
+
 vitest_owned_tests_dir() {
   local config="packages/$1/vitest.config.ts"
   [[ -f "$config" ]] && grep -q "packages/$1/tests" "$config"
@@ -19,6 +29,7 @@ vitest_owned_tests_dir() {
 files=()
 for dir in packages/*/tests; do
   package=$(basename "$(dirname "$dir")")
+  [[ -n "$requested_package" && "$package" != "$requested_package" ]] && continue
   vitest_owned_tests_dir "$package" && continue
   while IFS= read -r file; do
     files+=("$file")

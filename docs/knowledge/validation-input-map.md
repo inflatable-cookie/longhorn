@@ -34,6 +34,33 @@ work (`rustdoc`, `prototypes`, `floor`, `source`, private-candidate,
 advisories). `check:release-gates` fails if `effigy release:gates` drifts from
 that list.
 
+## Bounded QA groups
+
+Maintained groups live in `[qa.groups]` in `effigy.toml`. Their contract is
+[Effigy 051](https://github.com/inflatable-cookie/effigy/blob/7b11c039d75519fffb1a770eaa61ca62097665e5/docs/knowledge/contracts/051-bounded-qa-groups-contract.md)
+and the worker workflow is [Effigy guide
+081](https://github.com/inflatable-cookie/effigy/blob/7b11c039d75519fffb1a770eaa61ca62097665e5/docs/guides/081-bounded-qa-groups-workflow.md).
+They compose existing selectors; they do not infer scope or filter members.
+An unmapped input and every declared coverage gap return `needs_planner`
+before execution. The existing `qa`, `qa:docs`, `proof:artifacts`, CI and
+release gates keep their current members and meaning.
+
+| Group | Declared work | Boundary |
+| --- | --- | --- |
+| `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |
+| `longhorn-getting-started-docs` | The two docs link selectors plus `proof:guides-card126` | The fixed guide corpus, its links and generated API inventory; other artifact proofs remain out. |
+| `agent-tool-dispatch` | `check:agent-tool-dispatch` | Package obligations plus its workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
+| `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
+| `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
+| `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
+| `longhorn-bindings` | `check:bindings` | All fifteen registered domains; `input:bindings-generator-transitive-compile-dependencies` is a known gap. |
+| `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; `input:agent-control-marker-source-coverage` is a known gap. |
+
+The groups leave expected runtime unknown until the owner establishes a useful
+host/toolchain basis. Run records separate admission wait from execution
+duration. An accepted plan resolves every declared member regardless of
+which covered scope token was supplied.
+
 ## Selector detail
 
 Field meaning: **role** (test / compile / format / proof / scan / docs);
@@ -211,7 +238,10 @@ tsconfig includes them, `packages/*/tsconfig.json`, generated bindings under
 resolve `@inflatable-cookie/longhorn` to workspace source, so a change in
 `packages/longhorn/src` can fail them. Companions: `check:svelte`,
 `test:ts`, `test:vitest`. Admission: unmarked (tens of seconds). In `qa`.
-Limits: one loop over all packages; no per-package selector exists.
+The aggregate remains unchanged. `check:ts:longhorn`,
+`check:ts:longhorn-tauri`, and `check:ts:longhorn-poodle-svelte` run the same
+check for one package after `check:bun-deps`; they are the package-check
+members used by the bounded groups.
 
 **`check:svelte`** — role: typecheck/lint. `bun x svelte-check` against
 `packages/longhorn-poodle-svelte/tsconfig.json`. Owns
@@ -230,7 +260,11 @@ dry-run only; proves the tarball assembles, not that it installs.
 `packages/longhorn/tests/**` and `packages/longhorn-tauri/tests/**`. Owns
 those tests and the sources/fixtures they import. Propagation: tests import
 workspace package sources. Companions: `test:vitest`, `check:ts`. Admission:
-unmarked. Limits: excludes vitest-owned dirs by design.
+unmarked. Limits: excludes vitest-owned dirs by design. With no argument, the
+aggregate still runs both Bun-native suites. `test:ts:longhorn` and
+`test:ts:longhorn-tauri` pass one package directory to the existing script;
+`test:ts:longhorn-poodle-svelte` selects its existing Vitest config. These
+package selectors are bounded group building blocks.
 
 **`test:vitest`** — role: test. `bun x vitest run` for each
 `packages/*/vitest.config.ts` (currently only
@@ -279,6 +313,11 @@ uncovered. The committed per-type files under `crates/*/bindings/**` (ts-rs
 see Coverage gaps. The two `surface-bound-registered-authority-v1.json` files
 are `#[cfg(test)]` generator inputs, so `test:rust` reads them, not this
 gate.
+
+The `longhorn-bindings` group runs this selector. Its known
+`input:bindings-generator-transitive-compile-dependencies` gap returns
+`needs_planner` until the generator's full compile dependency closure is
+mapped.
 
 **`generate:bindings`** — role: generator. Same domains, `write` mode. Not a
 gate; the writer behind `check:bindings`.
@@ -340,6 +379,11 @@ source `packages/longhorn/src/agent-control/{inject,shim}.ts` (markers),
 Admission: unmarked but builds; in `qa`. Limits: macOS/Tauri build; heavy in
 practice.
 
+The `agent-control-absence` group runs this proof with
+`check:agent-control-shim`. Its declared
+`input:agent-control-marker-source-coverage` gap returns `needs_planner`
+until the compile and marker-source sets are independently mapped.
+
 **`check:agent-control-shim`** — role: generated-artifact drift. Bundles the
 injection entry `packages/longhorn/src/agent-control/inject.ts` with
 `Bun.build` as an IIFE and diffs the committed
@@ -398,6 +442,10 @@ not a standing gate.
 ### Documentation
 
 **`qa:docs`** — role: docs aggregate. Members below.
+The `longhorn-docs` group contains exactly `qa:docs:links`,
+`qa:docs:agent-defaults`, `qa:docs:paths`, and `qa:docs:catalog-links`.
+It does not include `held-surface` or `host-protocol`; the `qa:docs`
+aggregate still runs all six members.
 
 **`qa:docs:links`** — role: docs. Link check on `README.md`, `AGENTS.md`,
 `docs/README.md`, the knowledge indexes, `docs/guides/README.md`,
@@ -413,6 +461,11 @@ architecture and contract file to exist.
 **`qa:docs:catalog-links`** — role: docs. `effigy docs check links` over
 `README.md` and all Markdown under `docs/`. This is the check that resolves
 links in a new knowledge file.
+
+`proof:guides-card126` runs `scripts/verify-guides-card126.ts` as a standalone
+selector and remains one of the fourteen `proof:artifacts` members. The
+`longhorn-getting-started-docs` group combines it with the two relevant link
+selectors; it does not replace the artifact aggregate.
 
 **`held-surface`** — role: docs proof. Runs `scripts/verify-held-surface.ts`.
 Owns `docs/reference/held-surface.md`,
@@ -439,10 +492,11 @@ types.
 ### Artifact proofs
 
 `proof:artifacts` is `admission = "heavy"`, in `qa`, and runs fourteen
-scripts in order. Only `proof:pack-typecheck` and
-`proof:agent-tool-dispatch-source-consumer` are standalone proof selectors;
-every other `verify-*.ts` name below is a script member of `proof:artifacts`,
-not a dispatchable selector. Members differ in what they do: four are
+scripts in order. `proof:pack-typecheck`,
+`proof:agent-tool-dispatch-source-consumer`, and `proof:guides-card126` are
+standalone proof selectors; the guides selector also reuses one aggregate
+member. Other `verify-*.ts` names below are script members of
+`proof:artifacts`, not dispatchable selectors. Members differ in what they do: four are
 source-level checks that stage nothing, the rest pack TypeScript and/or build
 an isolated Rust workspace.
 
@@ -533,17 +587,20 @@ alone is not an admissible Effigy selector.
 
 ### TypeScript package dependents
 
-`check:ts` loops all packages, so any package change selects all three
-typechecks. The adapter depends on `packages/longhorn`; `longhorn-tauri` does
-too. `check:svelte` applies only to a change that reaches
+`check:ts` still loops all packages for the workspace aggregate. Package
+selectors typecheck one package; `test:ts:<package>` runs its matching Bun or
+Vitest tests. The `longhorn-ts` group also checks and tests both consumers
+because the adapter and `longhorn-tauri` resolve `packages/longhorn` to
+workspace source. `longhorn-tauri-ts` and `longhorn-poodle-svelte-ts` cover
+their own packages. `check:svelte` applies only to a change that reaches
 `packages/longhorn-poodle-svelte` source or its imports. Tests split:
 `packages/longhorn` and `packages/longhorn-tauri` tests are `test:ts`;
 `packages/longhorn-poodle-svelte` tests are `test:vitest`. `check:packages`
 applies to any package manifest or source change. A package a proof member
 packs also selects `proof:artifacts`: `longhorn` and `longhorn-poodle-svelte`
 by most members, `longhorn-tauri` by bridge-topology-artifacts,
-operation-notification, history-system, history-tree and greenfield. No
-per-package selector exists.
+operation-notification, history-system, history-tree and greenfield. The
+package groups do not cover package assembly or artifact proofs.
 
 ### Rust types crossing into TypeScript
 
@@ -565,13 +622,18 @@ does not prove the TypeScript compiles, so `check:ts` is always a companion.
 Select by which documentation surface changed:
 
 - Any Markdown under `docs/` or `README.md`/`AGENTS.md`:
-  `qa:docs` (`links`, `catalog-links`, `paths`).
+  `longhorn-docs` for the four bounded link, index-path, and agent-default
+  checks. `qa:docs` remains the six-member docs aggregate when
+  `held-surface` and `host-protocol` obligations apply or its owning validator
+  is required.
 - `docs/reference/{held-surface,api-surface}.md` or `docs/guides/package-selection.md`:
   add `held-surface`; add `proof:artifacts` when `api-surface.md` moved (its
   `scripts/verify-guides-card126.ts` member reads it).
 - Any `docs/guides/*.md`, `docs/reference/README.md`, `docs/README.md`,
   `README.md`, or `examples/greenfield-compositions/README.md`: add
-  `proof:artifacts` (member `scripts/verify-guides-card126.ts`).
+  `proof:artifacts` (member `scripts/verify-guides-card126.ts`). For
+  `docs/guides/getting-started.md`, `longhorn-getting-started-docs` runs that
+  standalone proof with the two link checks.
 - `examples/**/*.md`: add `proof:artifacts` (member
   `scripts/verify-documented-commands.ts`).
 - Knowledge files: `qa:docs:paths` covers the index/contract set only.
@@ -589,6 +651,7 @@ implementation as an owned input of its selector.
 | Verifier implementation | Owning selector |
 | --- | --- |
 | `scripts/verify-app-shell-proof.ts`, `verify-bridge-topology-conformance.ts`, `verify-bridge-topology-artifacts.ts`, `verify-settings-composition-proof.ts`, `verify-command-system-artifacts.ts`, `verify-history-system-artifacts.ts`, `verify-history-tree-artifacts.ts`, `verify-operation-notification-artifacts.ts`, `verify-native-content-artifacts.ts`, `verify-poodle-preview.ts`, `verify-greenfield-card125.ts`, `verify-guides-card126.ts`, `verify-documented-commands.ts` | `proof:artifacts` |
+| `scripts/verify-guides-card126.ts` | `proof:guides-card126` (also a `proof:artifacts` member) |
 | `scripts/verify-pack-typecheck.ts` | `proof:pack-typecheck` (also a `proof:artifacts` member) |
 | `scripts/bridge-topology-artifact-proof/**`, `scripts/command-system-artifact-proof/**`, `scripts/operation-notification-artifact-proof/**`, `scripts/settings-composition-proof/**` | helper closures of their `proof:artifacts` members |
 | `scripts/{proof-install,poodle-release,longhorn-version,msrv,workspace-dependencies,consumer-absence,test-count}.ts` | shared `proof:artifacts` helpers |
@@ -744,7 +807,9 @@ proofs. Missing any of those is a silent break.
   a shared crate select the same three-lane board. Missing evidence: an
   Effigy cargo package filter expressed as a selector, or per-crate
   `test:rust`/`lint:rust` tasks.
-- No per-package TypeScript selector. `check:ts` loops all packages.
+- Package TypeScript selectors typecheck one package and select its Bun or
+  Vitest tests. `check:ts`, `test:ts`, and `test:vitest` remain aggregate
+  selectors; consumer propagation from `longhorn` is declared by `longhorn-ts`.
 - `check:bindings`'s domain list is hardcoded in `effigy.toml`. A new
   generator domain is uncovered until the loop is edited. No selector detects
   that.
@@ -776,7 +841,7 @@ proofs. Missing any of those is a silent break.
   `check:runner-tools`.
 - `proof:artifacts` is one heavy step. There is no per-member admission, so a
   one-fixture change cannot select a single member through admission today;
-  only `proof:pack-typecheck` has a narrower selector.
+  `proof:pack-typecheck` and `proof:guides-card126` have standalone selectors.
 - Prototype locks (`prototypes/*/Cargo.lock`) and the root lock are separate;
   `sync:prototype-locks` is the only writer and is not a gate.
 - Untracked files outside a manifest/glob reach select nothing. That is
@@ -818,8 +883,9 @@ phase rather than guessed:
   (`longhorn-core`, `longhorn-config`, `longhorn-tauri-config`) and its
   committed JS build input, the Tauri shim asset, are compile inputs. They
   are distinct from the marker sources the byte scan looks for. A change to
-  any of them selects the gate; the split between compile and marker inputs
-  is left for the selection contract (review round 6, PR #61).
+  any of them selects the gate; exact marker-source coverage remains
+  unresolved and is declared as a `longhorn/agent-control-absence` group gap
+  (review round 6, PR #61).
 
 ## Evidence and limits
 
@@ -834,13 +900,15 @@ workspace-dependencies,consumer-absence,test-count}.ts` helpers,
 `scripts/agent-control-shim.ts`, each `packages/*/package.json` and
 `tsconfig.json`/`vitest.config.ts`, the root `Cargo.toml`, `deny.toml`,
 `.github/workflows/{ci,release}.yml`,
-`docs/knowledge/contracts/release.md`, and Effigy guides 076 (code graph and
-agent workflows) and 080 (host-wide validation admission).
+`docs/knowledge/contracts/release.md`, Effigy guides 076 (code graph and
+agent workflows), 080 (host-wide validation admission), and 081 (bounded QA
+groups), plus Effigy contract 051.
 
 This map records what the commands read and what they do not. It was not built
-by running the board or measuring timings; cost figures come from the comments
-Longhorn already keeps next to those tasks. Proof members are scripts inside
-the `proof:artifacts` aggregate, not selectors; only `proof:pack-typecheck`
-and `proof:agent-tool-dispatch-source-consumer` dispatch on their own.
+by running the full board or measuring stable timings; cost figures come from
+the comments Longhorn already keeps next to those tasks. Proof members are
+scripts inside the `proof:artifacts` aggregate; only `proof:pack-typecheck`,
+`proof:agent-tool-dispatch-source-consumer`, and `proof:guides-card126`
+dispatch on their own.
 Independent review should check each entry against the manifest or script it
 names and walk the eleven synthetic change sets on paper.
