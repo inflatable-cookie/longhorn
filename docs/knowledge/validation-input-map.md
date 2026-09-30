@@ -53,8 +53,8 @@ release gates keep their current members and meaning.
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
-| `longhorn-bindings` | `check:bindings` | All fifteen registered domains; `input:bindings-generator-transitive-compile-dependencies` is a known gap. |
-| `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; `input:agent-control-marker-source-coverage` is a known gap. |
+| `longhorn-bindings` | `check:bindings` | All fifteen registered domains; the generator's compile-closure crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:bindings-generator-transitive-compile-dependencies` token. |
+| `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; the five release-absence compile crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:agent-control-marker-source-coverage` token. |
 
 The groups leave expected runtime unknown until the owner establishes a useful
 host/toolchain basis. Run records separate admission wait from execution
@@ -314,10 +314,12 @@ see Coverage gaps. The two `surface-bound-registered-authority-v1.json` files
 are `#[cfg(test)]` generator inputs, so `test:rust` reads them, not this
 gate.
 
-The `longhorn-bindings` group runs this selector. Its known
-`input:bindings-generator-transitive-compile-dependencies` gap returns
-`needs_planner` until the generator's full compile dependency closure is
-mapped.
+The `longhorn-bindings` group runs this selector. Its gaps fire on ordinary
+tokens: every crate in the generator's compile closure (derived from `cargo
+metadata`; includes `longhorn-url` and `longhorn-surfaces-config`) is declared
+as both a `cargo-package:` and a `path:crates/<crate>/**` gap, so a scope token
+for any of them returns `needs_planner`, as does the opaque
+`input:bindings-generator-transitive-compile-dependencies` token.
 
 **`generate:bindings`** — role: generator. Same domains, `write` mode. Not a
 gate; the writer behind `check:bindings`.
@@ -380,9 +382,13 @@ Admission: unmarked but builds; in `qa`. Limits: macOS/Tauri build; heavy in
 practice.
 
 The `agent-control-absence` group runs this proof with
-`check:agent-control-shim`. Its declared
-`input:agent-control-marker-source-coverage` gap returns `needs_planner`
-until the compile and marker-source sets are independently mapped.
+`check:agent-control-shim`. Its gaps fire on ordinary tokens: the five
+release-absence compile crates (`longhorn-agent-control`,
+`longhorn-tauri-agent-control`, `longhorn-core`, `longhorn-config`,
+`longhorn-tauri-config`) are declared as both `cargo-package:` and
+`path:crates/<crate>/**` gaps, so a scope token for any of them returns
+`needs_planner`, as does the opaque
+`input:agent-control-marker-source-coverage` token.
 
 **`check:agent-control-shim`** — role: generated-artifact drift. Bundles the
 injection entry `packages/longhorn/src/agent-control/inject.ts` with
@@ -873,19 +879,25 @@ phase rather than guessed:
 - Any `fixtures/**` file or `scripts/verify-*.ts` with no reader named in this
   map stays unresolved; the map does not invent one.
 - `check:bindings` and every proof that invokes the bindings generator: the
-  generator's transitive compile dependencies are not enumerated. That
+  generator's transitive compile dependencies are not enumerated here. That
   includes crates the artifact proofs compile but don't stage, such as
   `longhorn-url` and the `longhorn-surfaces-config` examples. A change to any
   crate the generator compiles is unresolved for narrowing, so select
   `check:bindings` and the invoking proofs conservatively (review round 6,
-  PR #61).
+  PR #61). The `longhorn-bindings` group declares the closure as per-crate
+  `cargo-package:` and `path:` gap entries, so ordinary tokens for those
+  crates plan `needs_planner`; what the generator reads per crate stays
+  unmapped.
 - `check:agent-control-release-absence`: its local Rust dependency closure
   (`longhorn-core`, `longhorn-config`, `longhorn-tauri-config`) and its
   committed JS build input, the Tauri shim asset, are compile inputs. They
   are distinct from the marker sources the byte scan looks for. A change to
   any of them selects the gate; exact marker-source coverage remains
-  unresolved and is declared as a `longhorn/agent-control-absence` group gap
-  (review round 6, PR #61).
+  unresolved. The `longhorn/agent-control-absence` group declares the five
+  compile crates (`longhorn-agent-control` and `longhorn-tauri-agent-control`
+  included) as `cargo-package:` and `path:` gap entries plus the opaque
+  `input:agent-control-marker-source-coverage` token, so ordinary tokens for
+  them plan `needs_planner` (review round 6, PR #61).
 
 ## Evidence and limits
 
