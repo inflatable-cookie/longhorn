@@ -87,12 +87,31 @@ release-only; slowest of the cheap gates.
 
 **`check:prototypes`** — role: compile. `cargo check --all-targets --locked`
 in each `prototypes/*/` workspace. Owns `prototypes/*/**` (each has its own
-`Cargo.lock`), plus whichever workspace crates a prototype path-depends on
-(`longhorn-core`, `longhorn-update`, and the `longhorn-native-content*` set).
-Propagation: a workspace crate API change can break a prototype. Companions:
-`sync:prototype-locks` after a version bump. Admission: `heavy`. Release gate
-(`prototypes`); deliberately absent from `qa`. Limits: `check`, not `build` --
-proves the seam typechecks, not that it links.
+`Cargo.lock`) and every workspace crate a prototype path-depends on, directly
+or through a local prototype crate. The edges:
+
+- `prototypes/agent-control/` — none.
+- `prototypes/gpui-composition/` — core, notifications, poodle,
+  gpui-windowing, transfer, config, windowing, windowing-config, and through
+  the local `longhorn-gpui-windowing-prototype`: licence, operation, update.
+- `prototypes/gpui-windowing/` — core, licence, notifications, operation,
+  poodle, update, gpui-windowing, windowing.
+- `prototypes/history-tree/` — core, history.
+- `prototypes/native-content/` — core.
+- `prototypes/native-content-backing-surface/` — core (through the local
+  prototype).
+- `prototypes/native-content-child-webview/` — core.
+- `prototypes/native-content-isolated-window/` — core, windowing.
+
+Union: `longhorn-{core,config,gpui-windowing,history,licence,notifications,operation,poodle,transfer,update,windowing,windowing-config}`.
+The workspace `longhorn-native-content*` crates are not prototype
+dependencies; the native-content prototypes use the prototype-local
+`longhorn-native-content-prototype` and `longhorn-core` only. Propagation: a
+change to any crate in that union selects this release-only aggregate even
+when no prototype file moves.
+Companions: `sync:prototype-locks` after a version bump. Admission: `heavy`.
+Release gate (`prototypes`); deliberately absent from `qa`. Limits: `check`,
+not `build` -- proves the seam typechecks, not that it links.
 
 **`release:floor`** — role: compile/lint/test at the MSRV. Runs
 `scripts/check-release-floor.sh`, which reads
@@ -220,21 +239,23 @@ domains: `bridge commands config history history-tree layout licence
 native-content notifications operation settings surfaces surface-transfer
 transfer update`. Owns `crates/longhorn-bindings/**` (generator), the type
 definitions of the domain crates, the per-domain golden fixtures
-`fixtures/<domain>/protocol-v1.json` (plus
-`fixtures/surfaces/surface-bound-registered-authority-v1.json` and
-`fixtures/layout/surface-bound-registered-authority-v1.json`), and the
+`fixtures/<domain>/protocol-v1.json`, the layout conformance outputs
+`fixtures/layout/{surface-bound,window-bound}-conformance-v1.json`, and the
 generated TS under `packages/longhorn/src/<domain>/generated/**`. Domain→crate: `layout` reads
 `longhorn-surfaces` (Card 179 folded layout in); `commands` also reads
 `longhorn-command-config`; the rest map one-to-one. Propagation: a Rust type
 change in a domain crate moves generated TS and conformance fixtures, and the
 TypeScript that imports them. Companions: `generate:bindings` when it drifts,
-`check:ts` to compile the regenerated output, the artifact proofs that rerun
-per-domain binding checks. Admission: unmarked (compiles `longhorn-bindings`).
-In `qa`. Limits: the domain list is hardcoded in the task, so a new
-`longhorn-bindings` domain not added to the loop is silently uncovered. The
-committed per-type files under `crates/*/bindings/**` (ts-rs `#[ts(export)]`
-output) are not read or diffed by this selector or any other; see Coverage
-gaps.
+`check:ts` to compile the regenerated output, `test:ts`/`test:vitest` where a
+Bun or Svelte test imports the same fixture, and the artifact proofs that
+rerun per-domain binding checks. Admission: unmarked (compiles
+`longhorn-bindings`). In `qa`. Limits: the domain list is hardcoded in the
+task, so a new `longhorn-bindings` domain not added to the loop is silently
+uncovered. The committed per-type files under `crates/*/bindings/**` (ts-rs
+`#[ts(export)]` output) are not read or diffed by this selector or any other;
+see Coverage gaps. The two `surface-bound-registered-authority-v1.json` files
+are `#[cfg(test)]` generator inputs, so `test:rust` reads them, not this
+gate.
 
 **`generate:bindings`** — role: generator. Same domains, `write` mode. Not a
 gate; the writer behind `check:bindings`.
@@ -267,20 +288,23 @@ runner tools (`rg`, `ripgrep`), and checks `.github/workflows/release.yml`
 installs every tool a release gate needs. Companions:
 `test:release-tooling`. Admission: unmarked (seconds). In `health` and `qa`.
 
-**`check:consumer-isolation`** — role: scan (containment). Owns `crates/**`,
+**`check:consumer-isolation`** — role: scan (containment). Runs
+`scripts/verify-consumer-isolation.ts`. Owns `crates/**`,
 `packages/**`, `scripts/**`, `examples/**`, `prototypes/**`, `fixtures/**`
 (`.ts .tsx .svelte .rs .json .toml .sh`). Fails a `*_REPO` override, an
 absolute path into another checkout, or `resolve(repoRoot, "../name")`.
 Companions: `check:repo-containment`. Admission: unmarked. In `qa`.
 
-**`check:repo-containment`** — role: scan (containment). Same scanned dirs
+**`check:repo-containment`** — role: scan (containment). Runs
+`scripts/verify-repo-containment.ts`. Same scanned dirs
 plus root `Cargo.toml` and `package.json`. Fails Cargo `path`, package
 `file:`/`link:`, and `join(repoRoot, "../…")` that leave the tree.
 Companions: `check:consumer-isolation`. Admission: unmarked. In `qa`. Limits:
 it tests escape, not existence -- a named path inside the tree need not exist.
 
 **`check:agent-control-release-absence`** — role: compile + byte scan (proof).
-Builds `longhorn-tauri-agent-control` in three feature states (`off`,
+Runs `scripts/verify-agent-control-release-absence.ts`. Builds
+`longhorn-tauri-agent-control` in three feature states (`off`,
 `agent-control`, `agent-control,evaluate`) into isolated target dirs and scans
 rlibs for core-crate and shim markers, with a positive control. Owns
 `crates/longhorn-tauri-agent-control/**`,
@@ -305,7 +329,8 @@ an ordinary TS rule; it must be declared as a shim-closure input.
 **`generate:agent-control-shim`** — role: generator (`--write`).
 
 **`check:agent-tool-dispatch-release-absence`** — role: proof (graph + byte
-scan). Reads `cargo tree -p longhorn-agent-tool-dispatch` and builds its rlib
+scan). Runs `scripts/verify-agent-tool-dispatch-release-absence.ts`. Reads
+`cargo tree -p longhorn-agent-tool-dispatch` and builds its rlib
 with `--no-default-features`, asserting contract 022 symbols are absent, with
 `crates/longhorn-agent-control/src/lib.rs` as positive control. Owns
 `crates/longhorn-agent-tool-dispatch/**`, the control file, `Cargo.lock`.
@@ -317,7 +342,8 @@ Companions: `check:agent-tool-dispatch`. Admission: unmarked but builds; in
 `docs:agent-tool-dispatch`, `check:agent-tool-dispatch-release-absence`,
 `check:api-reference`.
 
-**`check:agent-control-skill`** — role: drift lock + fixtures. Owns
+**`check:agent-control-skill`** — role: drift lock + fixtures. Runs
+`scripts/verify-agent-control-skill.ts`. Owns
 `crates/longhorn-agent-control/src/tools.rs` (`CONTROL_TOOL_NAMES`),
 `Cargo.toml` (workspace version), `skills/agent-control/SKILL.md`,
 `skills/agent-control/scripts/find-instance.ts`,
@@ -361,11 +387,13 @@ architecture and contract file to exist.
 `README.md` and all Markdown under `docs/`. This is the check that resolves
 links in a new knowledge file.
 
-**`held-surface`** — role: docs proof. Owns `docs/reference/held-surface.md`,
+**`held-surface`** — role: docs proof. Runs `scripts/verify-held-surface.ts`.
+Owns `docs/reference/held-surface.md`,
 `docs/reference/api-surface.md`, `docs/guides/package-selection.md`.
 Companions: `check:api-reference`. Limits: parses a fixed register table.
 
-**`host-protocol`** — role: cross-language proof. Reads
+**`host-protocol`** — role: cross-language proof. Runs
+`scripts/verify-host-protocol.ts`. Reads
 `crates/longhorn-tauri-*/src/**/*.rs`, the `examples/permissions` and
 `examples/capabilities` JSON under those crates, and `packages/*/src/**/*.ts`;
 asserts every invoke/event name has a counterpart or a documented seam.
@@ -513,25 +541,71 @@ Select by which documentation surface changed:
 
 No Rust or TypeScript suite is required for a docs-only change.
 
-### Proof generators, fixtures and examples
+### Verifiers, proofs, fixtures and examples
 
-`scripts/verify-*.ts`, `scripts/*-proof/**`, `scripts/*-artifact-proof/**`,
-`examples/**` select `proof:artifacts` (heavy), plus `check:consumer-isolation`
-and `check:repo-containment`, which scan those trees.
-`examples/*/src-tauri/**` and `examples/*/rust/**` are also workspace members,
-so they select the Rust lane. `scripts/workspace-dependencies.ts` and
-`scripts/msrv.ts` are shared proof inputs, not fixtures.
+`scripts/verify-*.ts` and `scripts/verify-source-consumer.sh` are not one
+class. `proof:artifacts` owns only its fourteen members plus their helper
+closures; other verifier implementations belong to the selector that runs
+them. Route by selector, not by filename prefix, and treat each verifier
+implementation as an owned input of its selector.
 
-Fixtures do not have one owner. Route by group:
+| Verifier implementation | Owning selector |
+| --- | --- |
+| `scripts/verify-app-shell-proof.ts`, `verify-bridge-topology-conformance.ts`, `verify-bridge-topology-artifacts.ts`, `verify-settings-composition-proof.ts`, `verify-command-system-artifacts.ts`, `verify-history-system-artifacts.ts`, `verify-history-tree-artifacts.ts`, `verify-operation-notification-artifacts.ts`, `verify-native-content-artifacts.ts`, `verify-poodle-preview.ts`, `verify-greenfield-card125.ts`, `verify-guides-card126.ts`, `verify-documented-commands.ts` | `proof:artifacts` |
+| `scripts/verify-pack-typecheck.ts` | `proof:pack-typecheck` (also a `proof:artifacts` member) |
+| `scripts/bridge-topology-artifact-proof/**`, `scripts/command-system-artifact-proof/**`, `scripts/operation-notification-artifact-proof/**`, `scripts/settings-composition-proof/**` | helper closures of their `proof:artifacts` members |
+| `scripts/{proof-install,poodle-release,longhorn-version,msrv,workspace-dependencies,consumer-absence,test-count}.ts` | shared `proof:artifacts` helpers |
+| `scripts/verify-held-surface.ts` | `held-surface` |
+| `scripts/verify-host-protocol.ts` | `host-protocol` |
+| `scripts/verify-tauri-seam-strings.ts` | `check:tauri-seam-strings` |
+| `scripts/verify-consumer-isolation.ts` | `check:consumer-isolation` |
+| `scripts/verify-repo-containment.ts` | `check:repo-containment` |
+| `scripts/verify-agent-control-release-absence.ts` | `check:agent-control-release-absence` |
+| `scripts/verify-agent-tool-dispatch-release-absence.ts` | `check:agent-tool-dispatch-release-absence` |
+| `scripts/verify-agent-tool-dispatch-source-consumer.ts` | `proof:agent-tool-dispatch-source-consumer` |
+| `scripts/verify-agent-control-skill.ts` | `check:agent-control-skill` |
+| `scripts/verify-source-consumer.sh` | `release:source-consumer` |
+| `scripts/verify-private-candidate-docs-card127.ts` | `release:gates` (private-candidate) |
+| `scripts/verify-private-candidate-docs-card127.test.ts` | `test:release-tooling` |
+| any other `scripts/verify-*.ts` | unresolved until its owning selector is established |
 
-| Fixture group | Selects | Why |
-| --- | --- | --- |
-| `fixtures/<domain>/protocol-v1.json`, plus the `surface-bound-registered-authority-v1.json` files under `fixtures/surfaces` and `fixtures/layout` | `check:bindings`, and also `proof:artifacts` where a proof member reads the same file: `fixtures/config` and `fixtures/settings` by the settings member, `fixtures/native-content` by the native-content member | golden generator output **and** a proof input |
-| `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts` | the greenfield member reads and checks it by default |
-| `fixtures/release/card127/**` | `release:gates` (private-candidate) | the candidate fact-check reads it; `proof:artifacts` does not run that check |
-| `fixtures/agent-tool-dispatch-provider-free/**` | `proof:agent-tool-dispatch-source-consumer` | disposable source-consumer fixture |
-| `fixtures/parity/projection-v1.json` | `test:rust`, `test:vitest` | read by `crates/longhorn-poodle/tests/parity.rs` and `packages/longhorn-poodle-svelte/tests/parity/projection.test.ts` |
-| any other `fixtures/**` | `proof:artifacts` + containment scans | generic proof fixture, unless a row above names it |
+`examples/**` is not one rule either: `examples/*/src-tauri/**` and
+`examples/*/rust/**` are root workspace members, so they select the Rust lane;
+an example root a proof member stages (see the staging table) selects
+`proof:artifacts`; the containment scans walk the whole tree.
+
+Fixtures do not have one owner. Route by reader:
+
+| Fixture | Readers |
+| --- | --- |
+| `fixtures/bridge/protocol-v1.json` | `check:bindings`, `test:ts` |
+| `fixtures/commands/protocol-v1.json` | `check:bindings`, `test:ts`, `test:rust` |
+| `fixtures/config/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `test:rust`, `proof:artifacts` (settings member) |
+| `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts` (greenfield member) |
+| `fixtures/history-tree/protocol-v1.json` | `check:bindings` |
+| `fixtures/history/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `test:rust` |
+| `fixtures/layout/protocol-v1.json` | `check:bindings`, `test:ts` |
+| `fixtures/layout/surface-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
+| `fixtures/layout/window-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
+| `fixtures/layout/surface-bound-registered-authority-v1.json` | `test:rust` (longhorn-bindings unit test) |
+| `fixtures/licence/protocol-v1.json` | `check:bindings`, `test:ts` |
+| `fixtures/native-content/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `proof:artifacts` (native-content member) |
+| `fixtures/notifications/protocol-v1.json` | `check:bindings`, `test:ts` |
+| `fixtures/operation/protocol-v1.json` | `check:bindings`, `test:ts`, `test:rust` |
+| `fixtures/parity/projection-v1.json` | `test:rust`, `test:vitest` |
+| `fixtures/release/card127/private-0-1-candidate-v1.json` | `release:gates` (private-candidate) |
+| `fixtures/settings/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `test:rust`, `proof:artifacts` (settings member) |
+| `fixtures/surface-transfer/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
+| `fixtures/surfaces/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
+| `fixtures/surfaces/surface-bound-registered-authority-v1.json` | `test:rust` (longhorn-bindings unit test) |
+| `fixtures/transfer/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
+| `fixtures/update/protocol-v1.json` | `check:bindings`, `test:ts` |
+| `fixtures/agent-tool-dispatch-provider-free/main.rs` | `proof:agent-tool-dispatch-source-consumer` |
+| any other `fixtures/**` file | unresolved unless a selector entry or a row above names a reader |
+
+Every file under `fixtures/`, `scripts/`, `examples/`, `crates/`, `packages/`
+and `prototypes/` is also scanned by `check:consumer-isolation` and
+`check:repo-containment`, which select whole trees rather than files.
 
 ### Added, deleted, renamed files
 
@@ -600,6 +674,7 @@ declare it broad and let the planner judge, never treat it as no checks.
 | 3 | shared Rust type: `crates/longhorn-history/src/**` | Rust lane + `check:bindings` + `check:ts` + `test:ts` + `test:vitest` + `proof:artifacts` + `check:prototypes` | history is a bindings domain; `longhorn-history` feeds `longhorn-bindings`, `history-tree`, `tauri-history`, `prototypes/history-tree` |
 | 4 | leaf TS package: `packages/longhorn-tauri/src/transport/**` | `check:ts`, `test:ts`, `check:packages`, `check:tauri-seam-strings`, `host-protocol`, `proof:artifacts` | no package dependents, but five proof members pack `longhorn-tauri`; typecheck + its tests + seam/protocol scans + the packed-artifact aggregate |
 | 5 | proof generator/fixture: `scripts/verify-history-tree-artifacts.ts`, `scripts/workspace-dependencies.ts`, `fixtures/native-content/protocol-v1.json`, or `fixtures/greenfield/card125/composition-matrix-v1.json` | `proof:artifacts`, `check:consumer-isolation`, `check:repo-containment`, plus `test:ts`/`test:vitest` if a Bun test reads the fixture, plus `check:bindings` when it is also a golden `fixtures/<domain>/protocol-v1.json` | implementation modules and consumed fixtures are proof inputs; the greenfield receipt is read and checked by default |
+| 5b | binding conformance fixture: `fixtures/layout/surface-bound-conformance-v1.json` or `fixtures/layout/window-bound-conformance-v1.json` | `check:bindings`, `test:ts`, `test:vitest`, `check:consumer-isolation`, `check:repo-containment` | generated conformance outputs, byte-checked by the layout domain and imported by the Bun and Svelte layout suites; no `proof:artifacts` member reads them |
 | 6 | opaque: `Cargo.lock` | conservative: Rust lane + `check:bindings` + both `check:agent-*-release-absence` + `proof:artifacts` + `check:prototypes` + `release:floor` | no lock-only selector; build, generator and copied-workspace consumers all depend on it |
 | 6b | opaque config: `config/release.toml` | `check:release-gates`, `test:release-tooling`, private-candidate proof, `check:runner-tools` | alignment, tool mapping, candidate facts |
 
@@ -652,6 +727,10 @@ proofs. Missing any of those is a silent break.
   `sync:prototype-locks` is the only writer and is not a gate.
 - Untracked files outside a manifest/glob reach select nothing. That is
   unresolved, not "no checks".
+- Verifier and fixture routing is reader-based, not name-based. A
+  `scripts/verify-*.ts` with no selector wiring, or a `fixtures/**` file no
+  reader names, is unresolved -- it is not routed to `proof:artifacts` by its
+  filename or its location.
 
 ## Evidence and limits
 
@@ -675,4 +754,4 @@ Longhorn already keeps next to those tasks. Proof members are scripts inside
 the `proof:artifacts` aggregate, not selectors; only `proof:pack-typecheck`
 and `proof:agent-tool-dispatch-source-consumer` dispatch on their own.
 Independent review should check each entry against the manifest or script it
-names and walk the seven synthetic change sets on paper.
+names and walk the eight synthetic change sets on paper.
