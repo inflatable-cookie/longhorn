@@ -13,6 +13,7 @@ Every topic has exactly one owning file. Link to it; don't restate it.
 | Durable rules and interfaces | [contracts/contract-index.md](contracts/contract-index.md) |
 | Working rules | [contracts/001-working-rules.md](contracts/001-working-rules.md) |
 | How we release | [contracts/release.md](contracts/release.md) |
+| Change-scoped validation inputs | [validation-input-map.md](validation-input-map.md) |
 | Writing policy | [contracts/writing-style.md](contracts/writing-style.md) |
 | Retired concepts | [retired.toml](retired.toml) |
 | Open questions | [questions.md](questions.md) |
