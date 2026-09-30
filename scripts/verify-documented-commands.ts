@@ -19,16 +19,21 @@ const repoRoot = resolve(import.meta.dir, "..");
 /**
  * Task names `effigy` will accept.
  *
- * Two shapes in `effigy.toml`: quoted keys under `[tasks]`, and bare keys whose
- * value is an array, which are the aggregates like `qa`. Reading only the first
- * shape reports `qa` as missing, which is how the first measurement of this
- * drift came out one too high.
+ * Three shapes in `effigy.toml`: quoted keys under `[tasks]`; bare keys whose
+ * value is an array, which are the aggregates like `qa`; and `[tasks."name"]`
+ * tables, which a task needs to carry keys such as `admission = "heavy"`.
+ * Reading only the first shape reports `qa` as missing, which is how the first
+ * measurement of this drift came out one too high. Missing the third reported
+ * `check:agent-control-release-absence` as missing after it moved to a table.
  */
 function definedTasks(): Set<string> {
   const manifest = readFileSync(join(repoRoot, "effigy.toml"), "utf8");
   const names = new Set<string>();
   for (const [, name] of manifest.matchAll(/^"([a-z0-9:_.-]+)"\s*=/gm)) names.add(name!);
   for (const [, name] of manifest.matchAll(/^([a-z0-9:_.-]+)\s*=\s*\[/gm)) names.add(name!);
+  for (const [, quoted, bare] of manifest.matchAll(/^\[tasks\.(?:"([a-z0-9:_.-]+)"|([a-z0-9_-]+))\]/gm)) {
+    names.add((quoted ?? bare)!);
+  }
   return names;
 }
 
