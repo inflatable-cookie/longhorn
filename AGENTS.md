@@ -28,6 +28,12 @@ next with `plan.get` (see the `northstar` skill).
 
 Use Effigy for repository work:
 
+Effigy guidance is maintained in the installed shared `effigy` Agent Skill;
+do not add a Longhorn vendored copy. Longhorn owns the selectors and project
+rules below. If missing, install it globally with
+`npx skills add inflatable-cookie/effigy -g`, then start a fresh agent session
+so the guidance is loaded.
+
 ```sh
 effigy tasks
 effigy doctor
