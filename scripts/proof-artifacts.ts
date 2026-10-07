@@ -27,6 +27,7 @@ type Timing = {
 };
 
 const timings: Timing[] = [];
+let failed = false;
 
 for (const member of members) {
   console.log(`proof ${member}`);
@@ -53,11 +54,12 @@ for (const member of members) {
   if (exitCode !== 0) {
     reportTimings();
     process.exitCode = 1;
+    failed = true;
     break;
   }
 }
 
-if (timings.length === members.length) reportTimings();
+if (!failed) reportTimings();
 
 function reportTimings(): void {
   console.error("proof:artifacts timings (seconds)");
