@@ -13,7 +13,7 @@
 //!
 //! It is not in `effigy qa` and cannot be: it needs a window server.
 
-use gpui::{App, Application};
+use gpui::App;
 use longhorn_core::{ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement};
 use longhorn_gpui_windowing::{
     GpuiApplyOutcome, GpuiDisplayFacts, GpuiDisplayFactsSource, GpuiDisplayObservation,
@@ -45,7 +45,7 @@ impl GpuiDisplayFactsSource for LearnedDisplayFacts {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    gpui_platform::application().run(|cx: &mut App| {
         cx.activate(true);
         let report = drive(cx);
         println!("{report}");

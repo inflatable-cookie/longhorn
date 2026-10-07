@@ -19,7 +19,7 @@ mod store;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use gpui::{
-    App, AppContext, Application, Bounds, Context, InteractiveElement, IntoElement, MouseButton,
+    App, AppContext, Bounds, Context, InteractiveElement, IntoElement, MouseButton,
     ParentElement, Render, Styled, Window, WindowBounds, WindowOptions, div, point, px, size,
 };
 use longhorn_core::{
@@ -293,7 +293,7 @@ impl Render for CompositionRoot {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    gpui_platform::application().run(|cx: &mut App| {
         // Two windows, side by side, because one window cannot prove a
         // cross-window drag. Step 4 and 5 — the window backend and lifecycle
         // host — are the neighbouring `gpui-windowing` prototype's subject;

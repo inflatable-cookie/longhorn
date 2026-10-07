@@ -7,6 +7,8 @@ crates by git tag and the packages by version.
 ## [Unreleased]
 
 ### Changed
+- **`longhorn-poodle` now requires Poodle `v0.4.12`.** Consumers that also
+  take Poodle crates by tag must move to the same tag.
 - **Update and licence commands return their outcomes.** Awaiting a command
   reports a commit, an update deferral, an authority rejection, or a transport
   failure directly. `lastRejection` clears when the next command starts, so a

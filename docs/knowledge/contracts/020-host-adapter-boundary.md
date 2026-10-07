@@ -147,8 +147,8 @@ readback taken in the same turn therefore disagrees with an operation that
 succeeded, and a caller that trusted it would reschedule that operation
 forever.
 
-Observed directly rather than reasoned about — `prototypes/gpui-windowing`'s
-smoke binary, macOS 25.5, gpui 0.2.2.
+Observed directly rather than reasoned about — the historical
+`prototypes/gpui-windowing` smoke run on macOS 25.5 with `gpui` 0.2.2.
 
 **So a host declares which of its operations settle before it can read them
 back**, and convergence stops counting the rest. `DeferredSettlement` carries
@@ -195,8 +195,9 @@ origin, no work area. From that it looked as though a GPUI application could
 not know a display's scale until it had put a window there, and could not know
 where a display sits at all. Both were overstatements: **the facts are absent
 from the host API, not from the platform**, and GPUI hands over the key to
-reach them. `MacDisplay` is a newtype over `CGDirectDisplayID`, and `DisplayId`
-exposes it through `impl From<DisplayId> for u32`.
+reach them. GPUI 1.22 represents `DisplayId` as a `u64`; the GPUI prototype
+checked-narrows it to Longhorn's existing `u32` display fact before using it
+with CoreGraphics.
 
 Measured on a two-display desk, with no window open:
 
@@ -579,8 +580,8 @@ change, it changes for both hosts at once.
 
 Most of the GPUI adapter's behavioural evidence comes from an in-memory host
 implementing exactly `gpui::PlatformWindow`'s surface. That the surface is the
-real one is proved by `prototypes/gpui-windowing`, which binds the seam to
-`gpui` 0.2.2.
+real one is proved by `prototypes/gpui-windowing`, which now binds the seam to
+`gpui-unofficial` 1.22.0.
 
 One real GPUI window has been opened by Longhorn, placed from a shared plan,
 observed, maximized and closed — the smoke binary in that prototype. It found

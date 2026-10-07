@@ -19,7 +19,7 @@
 //!   laptop panel, any single answer is wrong for one of them.
 //! - `GpuiWindowCreateRequest::on_display`, which exists and has never run.
 
-use gpui::{App, Application};
+use gpui::App;
 use longhorn_core::{ScreenPoint, ScreenSize, WindowId, WindowPlacement};
 use longhorn_gpui_windowing::{
     GpuiApplyOutcome, GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowKey,
@@ -48,7 +48,7 @@ mod facts {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    gpui_platform::application().run(|cx: &mut App| {
         cx.activate(true);
         let report = drive(cx);
         println!("{report}");
