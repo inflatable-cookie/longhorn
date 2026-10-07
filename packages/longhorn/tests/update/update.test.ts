@@ -286,8 +286,13 @@ describe("update controller", () => {
     });
 
     await controller.start();
-    await controller.apply("1.4.0");
+    const result = await controller.apply("1.4.0");
 
+    expect(result).toEqual({
+      status: "committedWithDeferral",
+      snapshot: gated,
+      deferral: { version: "1.4.0", cause },
+    });
     expect(controller.status).toEqual({ kind: "ready" });
     expect(controller.deferral).toEqual({ version: "1.4.0", cause });
     expect(controller.lastRejection).toBeUndefined();
@@ -306,19 +311,23 @@ describe("update controller", () => {
     });
 
     await controller.start();
-    await controller.apply("1.4.0");
+    const result = await controller.apply("1.4.0");
 
+    expect(result).toEqual({ status: "rejected", code: "notWritable", snapshot: snapshot() });
     expect(controller.status).toEqual({ kind: "ready" });
     expect(controller.lastRejection).toBe("notWritable");
     expect(controller.deferral).toBeUndefined();
   });
 
-  test("a later committed command clears the previous rejection", async () => {
+  test("a transport failure returns its error and clears the previous rejection", async () => {
     let refuse = true;
+    let fail = false;
+    const transportError = new Error("connection lost");
     const controller = new UpdateController({
-      port: new Port(snapshot(), () =>
-        refuse ? { status: "rejected", code: "unreachable", snapshot: snapshot() } : committed(),
-      ),
+      port: new Port(snapshot(), () => {
+        if (fail) throw transportError;
+        return refuse ? { status: "rejected", code: "unreachable", snapshot: snapshot() } : committed();
+      }),
     });
 
     await controller.start();
@@ -326,9 +335,20 @@ describe("update controller", () => {
     expect(controller.lastRejection).toBe("unreachable");
 
     refuse = false;
-    await controller.check();
+    fail = true;
+    const result = await controller.check();
 
+    expect(result).toEqual({ status: "failed", error: transportError });
+    expect(controller.status).toEqual({ kind: "failed", error: transportError });
     expect(controller.lastRejection).toBeUndefined();
+  });
+
+  test("a committed command returns its snapshot", async () => {
+    const expected = snapshot();
+    const controller = new UpdateController({ port: new Port(expected) });
+    await controller.start();
+
+    await expect(controller.check()).resolves.toEqual({ status: "committed", snapshot: expected });
   });
 
   test("a command sends the epoch the last snapshot carried", async () => {

@@ -234,21 +234,35 @@ describe("licence controller", () => {
     expect(controller.limit("pro")).toBeUndefined();
   });
 
-  test("a rejection is recorded with its code and cleared by the next commit", async () => {
+  test("a transport failure returns its error and clears the previous rejection", async () => {
     let refuse = true;
+    let fail = false;
+    const transportError = new Error("connection lost");
     const controller = new LicenceController({
-      port: new Port(snapshot(), () =>
-        refuse ? { status: "rejected", code: "revoked", snapshot: snapshot() } : committed(),
-      ),
+      port: new Port(snapshot(), () => {
+        if (fail) throw transportError;
+        return refuse ? { status: "rejected", code: "revoked", snapshot: snapshot() } : committed();
+      }),
     });
     await controller.start();
 
-    await controller.deactivate();
+    const rejected = await controller.deactivate();
+    expect(rejected).toEqual({ status: "rejected", code: "revoked", snapshot: snapshot() });
     expect(controller.lastRejection).toBe("revoked");
 
     refuse = false;
-    await controller.refreshLease();
+    fail = true;
+    const failed = await controller.refreshLease();
+    expect(failed).toEqual({ status: "failed", error: transportError });
+    expect(controller.status).toEqual({ kind: "failed", error: transportError });
     expect(controller.lastRejection).toBeUndefined();
+  });
+
+  test("a committed command returns its snapshot", async () => {
+    const expected = snapshot();
+    const controller = await ready(expected);
+
+    await expect(controller.refreshLease()).resolves.toEqual({ status: "committed", snapshot: expected });
   });
 
   test("a command before the first read fails saying so", async () => {
