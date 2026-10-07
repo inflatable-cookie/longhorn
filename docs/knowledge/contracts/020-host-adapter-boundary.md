@@ -195,8 +195,9 @@ origin, no work area. From that it looked as though a GPUI application could
 not know a display's scale until it had put a window there, and could not know
 where a display sits at all. Both were overstatements: **the facts are absent
 from the host API, not from the platform**, and GPUI hands over the key to
-reach them. `MacDisplay` is a newtype over `CGDirectDisplayID`, and `DisplayId`
-exposes it through `impl From<DisplayId> for u32`.
+reach them. GPUI 1.22 represents `DisplayId` as a `u64`; the GPUI prototype
+checked-narrows it to Longhorn's existing `u32` display fact before using it
+with CoreGraphics.
 
 Measured on a two-display desk, with no window open:
 

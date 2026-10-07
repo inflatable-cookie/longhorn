@@ -16,7 +16,7 @@
 //! being proved is "this draws", and a person has to look.
 
 use gpui::{
-    App, AppContext, Application, Bounds, Context, IntoElement, ParentElement, Render, Styled,
+    App, AppContext, Bounds, Context, IntoElement, ParentElement, Render, Styled,
     Window, WindowBounds, WindowOptions, div, px, size,
 };
 use longhorn_core::HostServices;
@@ -198,7 +198,7 @@ impl Render for ProofRoot {
 }
 
 fn main() {
-    Application::new().run(|cx: &mut App| {
+    gpui_platform::application().run(|cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(680.0), px(720.0)), cx);
         cx.open_window(
             WindowOptions {

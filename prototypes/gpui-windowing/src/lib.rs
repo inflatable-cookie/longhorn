@@ -107,15 +107,15 @@ impl GpuiWindowBackend for GpuiAppBackend<'_> {
     ) -> Result<GpuiWindowKey, GpuiWindowError> {
         let bounds = to_gpui_bounds(request.bounds())?;
         let display_id = match request.display_id() {
-            // `DisplayId` has no public constructor, so a target display is
-            // resolved by matching an id read back from `App::displays`
-            // rather than by minting one.
+            // Match an enumerated display instead of passing an unknown id to
+            // the platform. GPUI widens display ids to u64; Longhorn's host
+            // request uses u32, so compare after widening the request.
             Some(wanted) => Some(
                 self.app
                     .displays()
                     .iter()
                     .map(|display| display.id())
-                    .find(|id| u32::from(*id) == wanted)
+                    .find(|id| u64::from(*id) == u64::from(wanted))
                     .ok_or_else(|| GpuiWindowError::new(format!("gpui has no display {wanted}")))?,
             ),
             None => None,
@@ -196,12 +196,12 @@ impl GpuiWindowBackend for GpuiAppBackend<'_> {
 
     fn displays(&mut self) -> Result<Vec<GpuiDisplayFacts>, GpuiWindowError> {
         let primary = self.app.primary_display().map(|display| display.id());
-        Ok(self
+        self
             .app
             .displays()
             .iter()
             .map(|display| display_facts(display, primary))
-            .collect())
+            .collect()
     }
 }
 
@@ -252,16 +252,23 @@ fn bounds_state(window: &Window) -> GpuiWindowBoundsState {
 fn display_facts(
     display: &Rc<dyn PlatformDisplay>,
     primary: Option<DisplayId>,
-) -> GpuiDisplayFacts {
+) -> Result<GpuiDisplayFacts, GpuiWindowError> {
     // Three facts, and that is all `PlatformDisplay` has. No scale factor, no
     // work area, no built-in flag — the adapter reports their absence rather
-    // than inventing them.
-    GpuiDisplayFacts::new(
-        u32::from(display.id()),
+    // than inventing them. GPUI 1.22 uses u64 display ids while Longhorn's
+    // display fact uses u32, so preserve the value with a checked conversion.
+    let gpui_display_id = u64::from(display.id());
+    let display_id = u32::try_from(gpui_display_id).map_err(|_| {
+        GpuiWindowError::new(format!(
+            "gpui display id {gpui_display_id} exceeds Longhorn's 32-bit display id range"
+        ))
+    })?;
+    Ok(GpuiDisplayFacts::new(
+        display_id,
         display.uuid().ok().map(|uuid| uuid.to_string()),
         from_gpui_bounds(display.bounds()),
         primary == Some(display.id()),
-    )
+    ))
 }
 
 fn to_gpui_bounds(rect: GpuiLogicalRect) -> Result<Bounds<Pixels>, GpuiWindowError> {
@@ -291,9 +298,9 @@ fn from_gpui_bounds(bounds: Bounds<Pixels>) -> GpuiLogicalRect {
 /// GPUI's `PlatformDisplay` reports no scale, and `Window::scale_factor` needs
 /// a window — which looks like it makes a display's scale unknowable until
 /// something has been placed there. It does not. `MacDisplay` is a newtype
-/// over `CGDirectDisplayID`, and `DisplayId` exposes it through
-/// `impl From<DisplayId> for u32`, so the id GPUI already hands over is
-/// exactly the key CoreGraphics wants.
+/// over `CGDirectDisplayID`. GPUI 1.22 exposes its display id as `u64`; the
+/// adapter checked-narrows it to Longhorn's existing `u32` display fact
+/// before this function is called.
 ///
 /// The scale is the ratio of the current mode's pixel width to its point
 /// width: a 2× panel reports twice as many pixels as points. Safe bindings,
