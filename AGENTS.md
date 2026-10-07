@@ -114,7 +114,9 @@ Targeted checks per task, full QA at milestones (Tom, 2026-09-30).
   for the code it touched (for example `effigy test:rust`, `effigy test:ts`,
   `effigy test:vitest`, or the proof selector it changed), a compile of what
   it touched (`effigy check:ts`, `effigy lint:rust`), and `effigy qa:docs` for
-  docs. Then it opens the PR. No full `effigy qa`, no repeat passes.
+  docs. Then it opens the PR. No full `effigy qa`, no repeat passes. A heavy
+  proof selector the task changed, or one its brief names (for example
+  `effigy proof:artifacts`), is a targeted check: run it once.
 - **Prefer a bounded QA group** when one covers the change:
   `effigy --json tasks qa-groups list`, then
   `effigy --json tasks qa-group run <group> --scope <token>... --plan`, then
