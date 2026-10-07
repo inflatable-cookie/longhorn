@@ -235,7 +235,7 @@ qa = [
 
 [tasks."proof:artifacts"]
 admission = "heavy"
-run = ["sh -c 'for s in app-shell-proof bridge-topology-conformance bridge-topology-artifacts settings-composition-proof command-system-artifacts history-system-artifacts history-tree-artifacts operation-notification-artifacts native-content-artifacts poodle-preview greenfield-card125 guides-card126 documented-commands pack-typecheck; do echo \"proof $s\"; bun \"scripts/verify-$s.ts\" >/dev/null || exit 1; done'"]
+run = ["bun scripts/proof-artifacts.ts"]
 
 [tasks."check:prototypes"]
 admission = "heavy"

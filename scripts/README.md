@@ -17,6 +17,10 @@ worth wiring, and if it is not wired it should be deleted.
 
 `proof:artifacts`, a member of `qa`, runs fourteen of them in order:
 
+`scripts/proof-artifacts.ts` keeps that order and fail-fast behavior, suppresses
+member stdout as before, and prints each member's elapsed seconds and result to
+stderr when the run ends. A failed member is included in the summary.
+
 Artifact consumer stages install packed Longhorn tarballs with a private Bun
 cache. Exact consumer pins stay exact; other third-party versions use the root
 `bun.lock`. A staged version newer than the root lock fails the proof. The
