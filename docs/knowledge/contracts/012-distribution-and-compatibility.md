@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-24
+Updated: 2026-10-07
 Architecture: `../architecture/package-topology.md`
 
 ## Boundary
@@ -160,22 +160,22 @@ A release candidate requires:
 
 ## Current Poodle Checkpoint
 
-**Public registry, exact 0.4.4, moved 2026-09-27 by the 0.3.0 dependency
-sweep (task 024).** There is no packed preview artifact any more. Longhorn
-resolves Poodle the way any consumer does.
+**Poodle's npm packages remain at exact 0.4.4; the coordinated native Rust
+release is tag `v0.4.12`, adopted 2026-10-07 by the GPUI prototypes.** There
+is no packed preview artifact any more. Longhorn resolves Poodle the way any
+consumer does.
 
 - npm: `@inflatable-cookie/poodle-core@0.4.4` and
   `@inflatable-cookie/poodle-svelte@0.4.4`, both `latest` on the public
   registry. Exact, not a range: Longhorn's dev and proof installs pin one
   release, while the adapter's published peers take the `>=0.4.4 <0.5` range
   (ruling 2026-09-27, Workspace And Versions above).
-- Rust: git tag `v0.4.4` at `1c1f00764b7733d44008a7bdde9f34f695162731`. One
+- Rust: git tag `v0.4.12` at `654e0dec7bb5807724754833e9f196115ec20bae`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
   two sources for one crate are two incompatible types.
-- `gpui` resolves from crates.io at `0.2.2` on both sides of the graph, the
-  consumer's direct dependency and Poodle's transitive one. Poodle 0.2.1
-  exposed a fork identity here and is not adoptable; 0.2.0 and 0.2.1 are
-  both skipped.
+- GPUI resolves as `gpui-unofficial =1.22.0` on both sides of the prototype
+  graph, the consumer's direct dependency and Poodle's transitive backend
+  dependency. The manifest aliases it as `gpui` for source compatibility.
 - 0.4.4 adds a Text/Code `wrap` option and IconButton `data-*` forwarding;
   its peers are unchanged (`svelte >=5.56.8 <6`, `marked ^18.0.9`).
   `0.4.3` was never published.

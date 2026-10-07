@@ -147,8 +147,8 @@ readback taken in the same turn therefore disagrees with an operation that
 succeeded, and a caller that trusted it would reschedule that operation
 forever.
 
-Observed directly rather than reasoned about — `prototypes/gpui-windowing`'s
-smoke binary, macOS 25.5, gpui 0.2.2.
+Observed directly rather than reasoned about — the historical
+`prototypes/gpui-windowing` smoke run on macOS 25.5 with `gpui` 0.2.2.
 
 **So a host declares which of its operations settle before it can read them
 back**, and convergence stops counting the rest. `DeferredSettlement` carries
@@ -580,8 +580,8 @@ change, it changes for both hosts at once.
 
 Most of the GPUI adapter's behavioural evidence comes from an in-memory host
 implementing exactly `gpui::PlatformWindow`'s surface. That the surface is the
-real one is proved by `prototypes/gpui-windowing`, which binds the seam to
-`gpui` 0.2.2.
+real one is proved by `prototypes/gpui-windowing`, which now binds the seam to
+`gpui-unofficial` 1.22.0.
 
 One real GPUI window has been opened by Longhorn, placed from a shared plan,
 observed, maximized and closed — the smoke binary in that prototype. It found

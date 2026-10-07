@@ -1,7 +1,8 @@
 # GPUI Windowing Prototype
 
-Binds `longhorn-gpui-windowing`'s `GpuiWindowBackend` seam to real `gpui`
-0.2.2. Card 163 evidence.
+Binds `longhorn-gpui-windowing`'s `GpuiWindowBackend` seam to
+`gpui-unofficial` 1.22.0 (the manifest keeps `gpui` as its dependency key).
+Its Poodle Rust dependencies use tag `v0.4.12`. Card 163 evidence.
 
 ## Why it is outside the workspace
 
@@ -44,7 +45,7 @@ cd prototypes/gpui-windowing
 cargo run --bin smoke
 ```
 
-Recorded 2026-08-09, macOS 25.5, gpui 0.2.2:
+Historical run recorded 2026-08-09, macOS 25.5, with `gpui` 0.2.2:
 
 ```json
 {"ok":true,"created":true,"desired_state_reached":true,"dispositions":2,

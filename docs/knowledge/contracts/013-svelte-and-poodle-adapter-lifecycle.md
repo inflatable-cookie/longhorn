@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-24
+Updated: 2026-10-07
 Evidence: `003-foundation-boundary-characterization.md` (Git history),
 `011-client-svelte-poodle-and-shell-boundary.md` (Git history),
 `014-command-input-and-palette-boundary.md` (Git history)
@@ -84,8 +84,8 @@ an injected reporter.
 - The dev and proof installs pin exact
   `@inflatable-cookie/poodle-svelte@0.4.4` from the public registry; the
   adapter's published peer is the optional range `>=0.4.4 <0.5` (ruling
-  2026-09-27), with Rust tag `v0.4.4` at
-  `1c1f00764b7733d44008a7bdde9f34f695162731`. Contract 012 carries the full
+  2026-09-27). Its Rust crates now use tag `v0.4.12` at
+  `654e0dec7bb5807724754833e9f196115ec20bae`. Contract 012 carries the full
   checkpoint.
 - Superseded: Card 038 artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`, the
