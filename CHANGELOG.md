@@ -7,6 +7,10 @@ crates by git tag and the packages by version.
 ## [Unreleased]
 
 ### Changed
+- **Update and licence commands return their outcomes.** Awaiting a command
+  reports a commit, an update deferral, an authority rejection, or a transport
+  failure directly. `lastRejection` clears when the next command starts, so a
+  transport failure cannot leave an earlier refusal looking current.
 - **The stable Rust toolchain is pinned to 1.97.1.** `rust-toolchain.toml` is
 the one declaration; `ci.yml` and `release.yml` install exactly that channel
 instead of floating `stable`. Rust 1.98 added a Clippy lint that was green on

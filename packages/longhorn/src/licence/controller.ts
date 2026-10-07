@@ -3,6 +3,7 @@ import {
   LICENCE_PROTOCOL_VERSION,
   type HeldLicenceProjection,
   type LicenceCredentialProjection,
+  type LicenceOutcomeProjection,
   type LicenceRejectionCode,
   type LicenceSeatProjection,
   type LicenceSnapshot,
@@ -20,6 +21,15 @@ export type LicenceControllerStatus =
 export interface LicenceControllerOptions {
   readonly port: LicencePort;
 }
+
+export type LicenceCommandOutcome =
+  | { readonly status: "committed"; readonly snapshot: LicenceSnapshot }
+  | {
+      readonly status: "rejected";
+      readonly snapshot: LicenceSnapshot;
+      readonly code: LicenceRejectionCode;
+    }
+  | { readonly status: "failed"; readonly error: unknown };
 
 /**
  * What the operator should be told, if anything.
@@ -52,6 +62,7 @@ export class LicenceController {
   #lastRejection?: LicenceRejectionCode;
   #started = false;
   #lifecycle = 0;
+  #commandSequence = 0;
   #pending = false;
   #unlisten: LicenceUnlisten[] = [];
 
@@ -65,6 +76,7 @@ export class LicenceController {
   get usability(): LicenceUsabilityProjection | undefined { return this.licence?.usability; }
   get trustBasis(): LicenceTrustBasisProjection | undefined { return this.licence?.trustBasis; }
   get pending(): boolean { return this.#pending; }
+  /** The latest refusal, cleared as soon as the next command starts. */
   get lastRejection(): LicenceRejectionCode | undefined { return this.#lastRejection; }
 
   /** Whether a licence is held at all. Absence is not a usability state. */
@@ -199,8 +211,8 @@ export class LicenceController {
   async activate(
     credential: LicenceCredentialProjection,
     label: string | null = null,
-  ): Promise<void> {
-    await this.#command((client, epoch) =>
+  ): Promise<LicenceCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.activate({
         protocolVersion: LICENCE_PROTOCOL_VERSION,
         authorityEpoch: epoch,
@@ -217,8 +229,8 @@ export class LicenceController {
    * without a support conversation. Separate from `deactivate`, which leaves
    * the machine you are sitting at.
    */
-  async releaseSeat(machineId: string): Promise<void> {
-    await this.#command((client, epoch) =>
+  async releaseSeat(machineId: string): Promise<LicenceCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.releaseSeat({
         protocolVersion: LICENCE_PROTOCOL_VERSION,
         authorityEpoch: epoch,
@@ -228,15 +240,15 @@ export class LicenceController {
   }
 
   /** Releases this machine's seat. */
-  async deactivate(): Promise<void> {
-    await this.#command((client, epoch) =>
+  async deactivate(): Promise<LicenceCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.deactivate({ protocolVersion: LICENCE_PROTOCOL_VERSION, authorityEpoch: epoch }),
     );
   }
 
   /** Re-checks the lease now. */
-  async refreshLease(): Promise<void> {
-    await this.#command((client, epoch) =>
+  async refreshLease(): Promise<LicenceCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.refresh({ protocolVersion: LICENCE_PROTOCOL_VERSION, authorityEpoch: epoch }),
     );
   }
@@ -247,8 +259,8 @@ export class LicenceController {
    * `null` clears the label back to unnamed. The label stays the customer's
    * word: this is the one write that can change it after activation.
    */
-  async renameSeat(machineId: string, label: string | null): Promise<void> {
-    await this.#command((client, epoch) =>
+  async renameSeat(machineId: string, label: string | null): Promise<LicenceCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.renameSeat({
         protocolVersion: LICENCE_PROTOCOL_VERSION,
         authorityEpoch: epoch,
@@ -262,28 +274,39 @@ export class LicenceController {
     run: (
       client: LicenceClient,
       epoch: number,
-    ) => Promise<import("./generated/protocol.ts").LicenceOutcomeProjection>,
-  ): Promise<void> {
+    ) => Promise<LicenceOutcomeProjection>,
+  ): Promise<LicenceCommandOutcome> {
+    const commandSequence = ++this.#commandSequence;
+    this.#lastRejection = undefined;
     const epoch = this.#snapshot?.authorityEpoch;
     if (epoch === undefined) {
       // Inventing one would have the authority refuse it as stale, which reads
       // as a protocol fault rather than as "nothing has been read yet".
-      this.#setStatus({ kind: "failed", error: new Error("licence state has not been read yet") });
-      return;
+      const error = new Error("licence state has not been read yet");
+      this.#setStatus({ kind: "failed", error });
+      return { status: "failed", error };
     }
     const lifecycle = this.#lifecycle;
     this.#pending = true;
     this.#notify();
     try {
       const outcome = await run(this.#client, epoch);
-      if (lifecycle !== this.#lifecycle) return;
-      this.#snapshot = outcome.snapshot;
-      this.#lastRejection = outcome.status === "rejected" ? outcome.code : undefined;
-      this.#setStatus({ kind: "ready" });
+      const result: LicenceCommandOutcome = outcome.status === "rejected"
+        ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
+        : { status: "committed", snapshot: outcome.snapshot };
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#snapshot = outcome.snapshot;
+        this.#lastRejection = result.status === "rejected" ? result.code : undefined;
+        this.#setStatus({ kind: "ready" });
+      }
+      return result;
     } catch (error) {
-      if (lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#setStatus({ kind: "failed", error });
+      }
+      return { status: "failed", error };
     } finally {
-      if (lifecycle === this.#lifecycle) {
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
         this.#pending = false;
         this.#notify();
       }

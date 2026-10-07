@@ -4,6 +4,7 @@ import {
   type Channel,
   type DeferralCause,
   type UpdateAvailabilityProjection,
+  type UpdateOutcomeProjection,
   type UpdateProgressProjection,
   type UpdateRejectionCode,
   type UpdateSnapshot,
@@ -20,6 +21,20 @@ export type UpdateControllerStatus =
 export interface UpdateControllerOptions {
   readonly port: UpdatePort;
 }
+
+export type UpdateCommandOutcome =
+  | { readonly status: "committed"; readonly snapshot: UpdateSnapshot }
+  | {
+      readonly status: "committedWithDeferral";
+      readonly snapshot: UpdateSnapshot;
+      readonly deferral: NonNullable<UpdateSnapshot["deferral"]>;
+    }
+  | {
+      readonly status: "rejected";
+      readonly snapshot: UpdateSnapshot;
+      readonly code: UpdateRejectionCode;
+    }
+  | { readonly status: "failed"; readonly error: unknown };
 
 /**
  * What an update indicator should do.
@@ -38,18 +53,18 @@ export type UpdatePresence = "hidden" | "quiet" | "attention";
 /**
  * Holds update state for a surface and keeps the three outcomes apart.
  *
- * A command can end three ways, and collapsing any two of them produces a
- * wrong message:
+ * Commands resolve with an outcome, including transport failures, and also
+ * update `status` for callers that observe the controller instead:
  *
  * - **Committed.** State moved. Read the snapshot.
  * - **Committed with a deferral.** The install did not happen and that is not
  *   a failure — Card 154 step 6. The gate refused because the user has work in
  *   flight, and `deferral` says so. A surface that reports this as an error
  *   tells a customer their update is broken when nothing is.
- * - **Rejected.** The authority refused. `lastRejection` carries the code, and
- *   this is the only one of the three that is a fault.
+ * - **Rejected.** The authority refused. `lastRejection` carries the code.
  *
- * Transport failures are the fourth thing, and land in `status`.
+ * - **Failed.** The transport or local precondition failed. The error is in
+ *   the outcome and in `status`.
  */
 export class UpdateController {
   readonly #client: UpdateClient;
@@ -59,6 +74,7 @@ export class UpdateController {
   #lastRejection?: UpdateRejectionCode;
   #started = false;
   #lifecycle = 0;
+  #commandSequence = 0;
   #pending = false;
   #unlisten: UpdateUnlisten[] = [];
   /**
@@ -102,7 +118,7 @@ export class UpdateController {
     return this.#snapshot?.deferral ?? undefined;
   }
 
-  /** The last refusal, cleared by the next command that commits. */
+  /** The latest refusal, cleared as soon as the next command starts. */
   get lastRejection(): UpdateRejectionCode | undefined { return this.#lastRejection; }
 
   /**
@@ -218,29 +234,30 @@ export class UpdateController {
   }
 
   /** Asks the source for the channel's current manifest. */
-  async check(): Promise<void> {
-    await this.#command((client, epoch) =>
+  async check(): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.check({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch }),
     );
   }
 
   /** Follows a different channel from now on. */
-  async selectChannel(channel: Channel): Promise<void> {
-    await this.#command((client, epoch) =>
+  async selectChannel(channel: Channel): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.selectChannel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, channel }),
     );
   }
 
   /** Declines a version for now. */
-  async defer(version: string, cause: DeferralCause): Promise<void> {
-    await this.#command((client, epoch) =>
+  async defer(version: string, cause: DeferralCause): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.defer({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version, cause }),
+      true,
     );
   }
 
   /** Fetches, verifies and retains an update for a later apply. */
-  async prepare(version: string): Promise<void> {
-    await this.#command((client, epoch) =>
+  async prepare(version: string): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.prepare({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
     );
   }
@@ -251,28 +268,33 @@ export class UpdateController {
    * A gate refusal is a deferral: the artifact stays staged and the surface
    * can offer the restart again.
    */
-  async apply(version: string): Promise<void> {
-    await this.#command((client, epoch) =>
+  async apply(version: string): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.apply({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
+      true,
     );
   }
 
   /** Discards the retained staged artifact. */
-  async cancel(): Promise<void> {
-    await this.#command((client, epoch) =>
+  async cancel(): Promise<UpdateCommandOutcome> {
+    return this.#command((client, epoch) =>
       client.cancel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch }),
     );
   }
 
   async #command(
-    run: (client: UpdateClient, epoch: number) => Promise<import("./generated/protocol.ts").UpdateOutcomeProjection>,
-  ): Promise<void> {
+    run: (client: UpdateClient, epoch: number) => Promise<UpdateOutcomeProjection>,
+    committedMayDefer = false,
+  ): Promise<UpdateCommandOutcome> {
+    const commandSequence = ++this.#commandSequence;
+    this.#lastRejection = undefined;
     const epoch = this.#snapshot?.authorityEpoch;
     if (epoch === undefined) {
       // No snapshot means no epoch to send, and inventing one would have the
       // authority refuse it as stale. Say what is actually wrong.
-      this.#setStatus({ kind: "failed", error: new Error("update state has not been read yet") });
-      return;
+      const error = new Error("update state has not been read yet");
+      this.#setStatus({ kind: "failed", error });
+      return { status: "failed", error };
     }
     const lifecycle = this.#lifecycle;
     this.#pending = true;
@@ -280,15 +302,25 @@ export class UpdateController {
     this.#notify();
     try {
       const outcome = await run(this.#client, epoch);
-      if (lifecycle !== this.#lifecycle) return;
-      this.#snapshot = outcome.snapshot;
-      this.#liveProgress = undefined;
-      this.#lastRejection = outcome.status === "rejected" ? outcome.code : undefined;
-      this.#setStatus({ kind: "ready" });
+      const result: UpdateCommandOutcome = outcome.status === "rejected"
+        ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
+        : committedMayDefer && outcome.snapshot.deferral !== null
+          ? { status: "committedWithDeferral", snapshot: outcome.snapshot, deferral: outcome.snapshot.deferral }
+          : { status: "committed", snapshot: outcome.snapshot };
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#snapshot = outcome.snapshot;
+        this.#liveProgress = undefined;
+        this.#lastRejection = result.status === "rejected" ? result.code : undefined;
+        this.#setStatus({ kind: "ready" });
+      }
+      return result;
     } catch (error) {
-      if (lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#setStatus({ kind: "failed", error });
+      }
+      return { status: "failed", error };
     } finally {
-      if (lifecycle === this.#lifecycle) {
+      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
         this.#pending = false;
         this.#notify();
       }
