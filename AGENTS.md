@@ -109,6 +109,8 @@ rather than substituting commands from another repository.
 ## Validate
 
 Targeted checks per task, full QA at milestones (Tom, 2026-09-30).
+Longhorn does not use Northstar's compile-only option: its covering tests
+and groups are cheap, and the QA-group records need them (2026-10-09).
 
 - **A task** runs, once, the Effigy selectors for what it changed: the tests
   for the code it touched (for example `effigy test:rust`, `effigy test:ts`,
