@@ -51,7 +51,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -138,6 +138,9 @@ include = ["config/release.toml"]
 # `proof:artifacts`: heavy task table below ([tasks."proof:artifacts"]).
 "proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
 "proof:guides-card126" = "bun scripts/verify-guides-card126.ts"
+"proof:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
+"proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
+"proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"
 
 # Pre-release rehearsal of the five machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
@@ -436,8 +439,169 @@ members = [
       "path:docs/README.md",
       "path:README.md",
       "path:examples/greenfield-compositions/README.md",
+      "input:effigy-task-table-proof-guides-card126",
     ],
     limits = ["Checks the fixed guide corpus, local links, snippets, generated API inventory, and package counts"],
+  },
+]
+
+[qa.groups.longhorn-pack-typecheck]
+lifecycle = "maintained"
+purpose = "Typecheck the published Longhorn Svelte adapter against packed Longhorn and registry Poodle artifacts"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Checks only the packed Longhorn packages and their declared consumer type surface",
+  "Uses the current root node_modules state for Poodle version and peer metadata",
+  "Does not replace the full TypeScript lane or other artifact proofs",
+]
+members = [
+  {
+    id = "pack-typecheck",
+    kind = "proof",
+    surface = "published",
+    task = "proof:pack-typecheck",
+    args = [],
+    targets = [
+      "path:scripts/verify-pack-typecheck.ts",
+      "path:scripts/proof-install.ts",
+      "path:scripts/poodle-release.ts",
+      "bun-package:longhorn",
+      "bun-package:longhorn-poodle-svelte",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+    ],
+    covers = [
+      "path:scripts/verify-pack-typecheck.ts",
+      "path:scripts/proof-install.ts",
+      "path:scripts/poodle-release.ts",
+      "bun-package:longhorn",
+      "bun-package:longhorn-poodle-svelte",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+      "input:effigy-task-table-proof-pack-typecheck",
+    ],
+    limits = ["Proves the two packed Longhorn packages against locked registry dependencies; does not check unrelated packages"],
+  },
+]
+
+[qa.groups.longhorn-bridge-topology-conformance]
+lifecycle = "maintained"
+purpose = "Check the bridge topology proof and its exact source and capability inputs"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Checks only the bridge topology proof, bridge sources, and query-only capability",
+  "Does not replace package typechecks, Rust tests, or other artifact proofs",
+]
+members = [
+  {
+    id = "bridge-topology-conformance",
+    kind = "proof",
+    surface = "published",
+    task = "proof:bridge-topology-conformance",
+    args = [],
+    targets = [
+      "path:scripts/verify-bridge-topology-conformance.ts",
+      "path:examples/bridge-topology-proof/**",
+      "path:crates/longhorn-bridge/Cargo.toml",
+      "path:crates/longhorn-bridge/src/**",
+      "path:crates/longhorn-tauri-bridge/src/**",
+      "path:crates/longhorn-tauri-bridge/examples/capabilities/query-only.json",
+      "bun-package:longhorn",
+      "bun-package:longhorn-tauri",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+    ],
+    covers = [
+      "path:scripts/verify-bridge-topology-conformance.ts",
+      "path:examples/bridge-topology-proof/**",
+      "path:crates/longhorn-bridge/Cargo.toml",
+      "path:crates/longhorn-bridge/src/**",
+      "path:crates/longhorn-tauri-bridge/src/**",
+      "path:crates/longhorn-tauri-bridge/examples/capabilities/query-only.json",
+      "bun-package:longhorn",
+      "bun-package:longhorn-tauri",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+      "input:effigy-task-table-proof-bridge-topology-conformance",
+    ],
+    limits = ["Checks five declared bridge compositions and source-level boundaries"],
+  },
+]
+
+[qa.groups.longhorn-poodle-preview]
+lifecycle = "maintained"
+purpose = "Check the pinned Poodle release and installed package metadata used by artifact proofs"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Checks lock, version, integrity metadata, and the installed Poodle peer range",
+  "Does not typecheck packed Longhorn packages",
+]
+members = [
+  {
+    id = "poodle-preview",
+    kind = "proof",
+    surface = "published",
+    task = "proof:poodle-preview",
+    args = [],
+    targets = [
+      "path:scripts/verify-poodle-preview.ts",
+      "path:scripts/poodle-release.ts",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+    ],
+    covers = [
+      "path:scripts/verify-poodle-preview.ts",
+      "path:scripts/poodle-release.ts",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+      "input:effigy-task-table-proof-poodle-preview",
+    ],
+    limits = ["Verifies the Poodle release pin and installed metadata only"],
+  },
+]
+
+[qa.groups.longhorn-documented-commands]
+lifecycle = "maintained"
+purpose = "Check that Effigy commands documented by examples still resolve"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Scans Markdown files under examples and validates task names only",
+  "Does not validate command behavior or global Effigy configuration changes",
+]
+members = [
+  {
+    id = "documented-commands",
+    kind = "proof",
+    surface = "published",
+    task = "proof:documented-commands",
+    args = [],
+    targets = [
+      "path:scripts/verify-documented-commands.ts",
+      "path:examples/**/*.md",
+      "path:effigy.toml",
+    ],
+    covers = [
+      "path:scripts/verify-documented-commands.ts",
+      "path:examples/**/*.md",
+      "input:effigy-task-table-proof-documented-commands",
+    ],
+    limits = ["Checks documented command names, not whether their task bodies work"],
   },
 ]
 

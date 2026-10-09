@@ -49,6 +49,10 @@ release gates keep their current members and meaning.
 | --- | --- | --- |
 | `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |
 | `longhorn-getting-started-docs` | The two docs link selectors plus `proof:guides-card126` | The fixed guide corpus, its links and generated API inventory; other artifact proofs remain out. |
+| `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` | Five declared bridge compositions, source boundaries, and the query-only capability. |
+| `longhorn-pack-typecheck` | `proof:pack-typecheck` | Packed `longhorn` and `longhorn-poodle-svelte` packages, their locked registry dependencies, and declared installed Poodle metadata. |
+| `longhorn-poodle-preview` | `proof:poodle-preview` | Poodle lock/version/integrity metadata and the installed peer range; no Longhorn package typecheck. |
+| `longhorn-documented-commands` | `proof:documented-commands` | Effigy command names in Markdown under `examples/`; task bodies are not validated. |
 | `agent-tool-dispatch` | `check:agent-tool-dispatch` | Package obligations plus its workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
@@ -56,10 +60,31 @@ release gates keep their current members and meaning.
 | `longhorn-bindings` | `check:bindings` | All fifteen registered domains; the generator's compile-closure crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:bindings-generator-transitive-compile-dependencies` token. |
 | `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; the five release-absence compile crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:agent-control-marker-source-coverage` token. |
 
-The groups leave expected runtime unknown until the owner establishes a useful
-host/toolchain basis. Run records separate admission wait from execution
+Expected runtime is declared where the owner has a basis. For example,
+`agent-control-absence` declares `expected_wall_ms = 300000`; groups without an
+expectation report unknown. Run records separate admission wait from execution
 duration. An accepted plan resolves every declared member regardless of
 which covered scope token was supplied.
+
+### Task-table-only Effigy edits
+
+An `effigy.toml` edit is task-table-only only when it changes one `[tasks]`
+selector entry or one `[tasks."<selector>"]` table and leaves `qa`/`ci`
+membership, includes, `[qa.groups]`, admission, and toolchain settings
+untouched. The opaque token below asserts that classification and names the
+edited selector; Effigy does not inspect the diff. The group must contain that
+selector. Do not add `path:effigy.toml` for these cases: that token represents a
+global or otherwise unclassified manifest change and remains
+`needs_planner`, even when paired with a task-table token. Other task-table
+entries without a listed route also remain `needs_planner`.
+
+| Task-table scope tokens | Group | Selector the group runs |
+| --- | --- | --- |
+| `input:effigy-task-table-proof-pack-typecheck`, `external:root-node-modules`, `external:bun-runtime` | `longhorn-pack-typecheck` | `proof:pack-typecheck` |
+| `input:effigy-task-table-proof-bridge-topology-conformance`, `external:root-node-modules`, `external:bun-runtime` | `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` |
+| `input:effigy-task-table-proof-poodle-preview`, `external:root-node-modules`, `external:bun-runtime` | `longhorn-poodle-preview` | `proof:poodle-preview` |
+| `input:effigy-task-table-proof-documented-commands` | `longhorn-documented-commands` | `proof:documented-commands` |
+| `input:effigy-task-table-proof-guides-card126` | `longhorn-getting-started-docs` | `proof:guides-card126` |
 
 ## Selector detail
 
@@ -170,6 +195,8 @@ Companions: none. Admission: unmarked but heavyweight. Release gate (`source`).
 `scripts/check-release-gates-alignment.ts`,
 `scripts/check-release-runner-tools.ts`,
 `scripts/verify-private-candidate-docs-card127.ts` and their `.test.ts`,
+`scripts/qa-group-routing.test.ts` (which plans each maintained route with
+Effigy and asserts accepted/refused scope dispositions),
 `scripts/private-candidate-card127/**`, `Cargo.toml`, package manifests,
 `docs/reference/api-surface.md`, `skills/agent-control/SKILL.md`.
 Companions: `check:release-gates`. Admission: unmarked. In `qa`.
@@ -471,7 +498,11 @@ links in a new knowledge file.
 `proof:guides-card126` runs `scripts/verify-guides-card126.ts` as a standalone
 selector and remains one of the fourteen `proof:artifacts` members. The
 `longhorn-getting-started-docs` group combines it with the two relevant link
-selectors; it does not replace the artifact aggregate.
+selectors; its task-table token also routes an edit to that selector entry.
+`longhorn-bridge-topology-conformance`, `longhorn-pack-typecheck`,
+`longhorn-poodle-preview`, and `longhorn-documented-commands` each contain
+their corresponding standalone selector. These groups do not replace the
+artifact aggregate.
 
 **`held-surface`** — role: docs proof. Runs `scripts/verify-held-surface.ts`.
 Owns `docs/reference/held-surface.md`,
@@ -498,13 +529,16 @@ types.
 ### Artifact proofs
 
 `proof:artifacts` is `admission = "heavy"`, in `qa`, and runs fourteen
-scripts in order. `proof:pack-typecheck`,
-`proof:agent-tool-dispatch-source-consumer`, and `proof:guides-card126` are
-standalone proof selectors; the guides selector also reuses one aggregate
-member. Other `verify-*.ts` names below are script members of
-`proof:artifacts`, not dispatchable selectors. Members differ in what they do: four are
-source-level checks that stage nothing, the rest pack TypeScript and/or build
-an isolated Rust workspace.
+scripts in order. The artifact members with standalone selectors are
+`proof:pack-typecheck`, `proof:guides-card126`,
+`proof:bridge-topology-conformance`, `proof:poodle-preview`, and
+`proof:documented-commands`; the guide selector also reuses one aggregate
+member. The new standalone selectors do not change aggregate membership or
+order. `proof:agent-tool-dispatch-source-consumer` is separate from this
+aggregate. Other `verify-*.ts` names below are script members of
+`proof:artifacts`, not dispatchable selectors. Members differ in what they do:
+four are source-level checks that stage nothing, the rest pack TypeScript
+and/or build an isolated Rust workspace.
 
 **Shared inputs.** A change to any of these selects `proof:artifacts`:
 
@@ -531,28 +565,28 @@ an isolated Rust workspace.
 
 **Source-level members** (no pack, no stage, seconds):
 
-| Member script | Inputs beyond shared | Bindings domain | Role and limits |
+| Member script | Helper modules | Inputs beyond shared | Standalone route | Bindings domain | Role and limits |
 | --- | --- | --- | --- |
-| `verify-bridge-topology-conformance.ts` | `examples/bridge-topology-proof/**` (five shapes, `common.ts`, `proof.ts`, `proof.test.ts`, `declarations.json`, `README.md`); `crates/longhorn-bridge/{Cargo.toml,src/**}`; `crates/longhorn-tauri-bridge/{src/**,examples/capabilities/query-only.json}`; `packages/longhorn/src/bridge/**` | — | Runs the in-repo proof module and scans source; proves import graphs and absent production edges |
-| `verify-poodle-preview.ts` | `bun.lock`, installed `node_modules` Poodle, `packages/longhorn-poodle-svelte/package.json` peer range | — | Reads lock and installed copies; proves the pinned Poodle bytes and the Svelte peer range |
-| `verify-guides-card126.ts` | `docs/guides/*.md`, `docs/reference/{README,api-surface}.md`, `docs/README.md`, `README.md`, `examples/greenfield-compositions/README.md`; `crates/*`/`packages/*` directory counts; runs `scripts/generate-api-reference-card126.ts` | — | Checks guide content, local links, and the exact crate/package inventory |
-| `verify-documented-commands.ts` | `effigy.toml`; `examples/**/*.md` | — | Every `effigy <task>` named in an example README resolves |
+| `verify-bridge-topology-conformance.ts` | `examples/bridge-topology-proof/{common,proof,shape traces}.ts` | five shape files plus `proof.test.ts`, `declarations.json`, `README.md`; bridge crate manifest/source and query-only capability; Longhorn bridge package imports; root `node_modules` resolution | New: `proof:bridge-topology-conformance`, `longhorn-bridge-topology-conformance` | — | Runs the in-repo proof module and scans declared sources; proves import graphs and absent production edges |
+| `verify-poodle-preview.ts` | `scripts/poodle-release.ts` | root `package.json`, `bun.lock`, installed `node_modules/@inflatable-cookie/poodle-{core,svelte}/package.json` | New: `proof:poodle-preview`, `longhorn-poodle-preview` | — | Checks pinned release versions, lock integrity entries, and the installed Svelte peer range |
+| `verify-guides-card126.ts` | `scripts/generate-api-reference-card126.ts`, `scripts/longhorn-version.ts` | fixed docs list; local link targets; `Cargo.toml`; crate manifests/directories/README or library paths; package manifests/directories/README/export paths; `docs/reference/api-surface.md` | Existing: `proof:guides-card126`, `longhorn-getting-started-docs` | — | Checks guide content, local links, generated API inventory, and crate/package inventory |
+| `verify-documented-commands.ts` | none | `effigy.toml` task names; every Markdown file under `examples/` except `node_modules`, `target`, and `gen` | New: `proof:documented-commands`, `longhorn-documented-commands` | — | Every `effigy <task>` named in an example Markdown file resolves |
 
 **Staging members** (pack TypeScript and/or build an isolated Cargo
 workspace, minutes each):
 
-| Member script | Rust crates staged | Bindings domain | TypeScript packs | Inputs beyond shared | Root lock copied |
-| --- | --- | --- | --- | --- | --- |
-| `verify-app-shell-proof.ts` | none | — | longhorn, longhorn-poodle-svelte | `examples/app-shell-proof/{split-shell,nucleus,loophole,common}/**` | no |
-| `verify-bridge-topology-artifacts.ts` | core, bridge, tauri-bridge | `bridge` | longhorn, longhorn-tauri | `examples/bridge-topology-proof/**`; `scripts/bridge-topology-artifact-proof/**` | no |
-| `verify-settings-composition-proof.ts` | core, config, settings, settings-config, tauri-settings, tauri-config | — | longhorn, longhorn-poodle-svelte | `examples/settings-composition-proof/**`; `scripts/settings-composition-proof/**`; `fixtures/{config,settings}/protocol-v1.json` | no |
-| `verify-command-system-artifacts.ts` | core, config, settings, command, command-config, command-settings, tauri-command | `commands` | longhorn, longhorn-poodle-svelte | `examples/command-system-proof/**`; `scripts/command-system-artifact-proof/**` | no |
-| `verify-history-system-artifacts.ts` | core, history, tauri-history | `history` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-system-proof/**`; `consumer-absence.ts`, `test-count.ts` | yes |
-| `verify-history-tree-artifacts.ts` | core, history, history-tree, tauri-history-tree | `history-tree` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-tree-artifact-proof/**` | yes |
-| `verify-operation-notification-artifacts.ts` | core, bridge, operation, notifications, tauri-operation, tauri-notifications | `operation`, `notifications` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/operation-notification-proof/**`; `scripts/operation-notification-artifact-proof/**` | yes |
-| `verify-native-content-artifacts.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; `prototypes/{native-content-child-webview,native-content-isolated-window,native-content-backing-surface}/Cargo.toml` (the disposition check reads `publish = false` in all four manifests); `fixtures/native-content/protocol-v1.json`; `packages/longhorn/src/native-content/generated/protocol.ts` | yes |
-| `verify-greenfield-card125.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes |
-| `verify-pack-typecheck.ts` | none | — | longhorn, longhorn-poodle-svelte | root `package.json` dev pins; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no |
+| Member script | Helper modules | Rust crates staged | Bindings domain | TypeScript packs | Inputs beyond shared | Root lock copied | Standalone route |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `verify-app-shell-proof.ts` | `proof-install.ts`, `consumer-absence.ts`, `poodle-release.ts`, `test-count.ts`, `longhorn-version.ts` | none | — | longhorn, longhorn-poodle-svelte | `examples/app-shell-proof/{split-shell,nucleus,loophole,common}/**` | no | None; the consumer staging and installed-package closure is not separately mapped |
+| `verify-bridge-topology-artifacts.ts` | `scripts/bridge-topology-artifact-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `longhorn-version.ts` | core, bridge, tauri-bridge | `bridge` | longhorn, longhorn-tauri | `examples/bridge-topology-proof/**` | no | None; isolated Cargo packaging/consumer closure is not mapped to a member group |
+| `verify-settings-composition-proof.ts` | `scripts/settings-composition-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `poodle-release.ts`, `longhorn-version.ts` | core, config, settings, settings-config, tauri-settings, tauri-config | — | longhorn, longhorn-poodle-svelte | `examples/settings-composition-proof/**`; `fixtures/{config,settings}/protocol-v1.json` | no | None; isolated Cargo and staged registry-install closure is not mapped to a member group |
+| `verify-command-system-artifacts.ts` | `scripts/command-system-artifact-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `poodle-release.ts`, `longhorn-version.ts`, `consumer-absence.ts` | core, config, settings, command, command-config, command-settings, tauri-command | `commands` | longhorn, longhorn-poodle-svelte | `examples/command-system-proof/**` | no | None; isolated Cargo and staged registry-install closure is not mapped to a member group |
+| `verify-history-system-artifacts.ts` | `proof-install.ts`, `consumer-absence.ts`, `workspace-dependencies.ts`, `test-count.ts`, `poodle-release.ts`, `msrv.ts`, `longhorn-version.ts` | core, history, tauri-history | `history` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-system-proof/**` | yes | None; copied lock, Rust package and staged TypeScript closure is not mapped to a member group |
+| `verify-history-tree-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, history, history-tree, tauri-history-tree | `history-tree` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-tree-artifact-proof/**` | yes | None; copied lock and isolated Rust/TypeScript consumer closure is not mapped to a member group |
+| `verify-operation-notification-artifacts.ts` | `scripts/operation-notification-artifact-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `poodle-release.ts`, `longhorn-version.ts` | core, bridge, operation, notifications, tauri-operation, tauri-notifications | `operation`, `notifications` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/operation-notification-proof/**` | yes | None; copied lock and isolated Cargo/TypeScript closure is not mapped to a member group |
+| `verify-native-content-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; three prototype Cargo manifests; fixture and generated protocol | yes | None; also invokes `check:bindings`, whose transitive compile closure is an existing planner gap |
+| `verify-greenfield-card125.ts` | `proof-install.ts`, `msrv.ts`, `poodle-release.ts`, `longhorn-version.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes | None; generated Cargo workspace/24-crate compile closure is not mapped to a member group |
+| `verify-pack-typecheck.ts` | `proof-install.ts`, `poodle-release.ts` | none | — | longhorn, longhorn-poodle-svelte | root `package.json`; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no | Existing selector; new `longhorn-pack-typecheck` group |
 
 The 24 Rust crates greenfield stages are `longhorn-bridge`,
 `longhorn-command`, `longhorn-command-config`, `longhorn-command-settings`,
@@ -572,9 +606,10 @@ the source, independent of the proof. The greenfield member reads and checks
 `fixtures/greenfield/card125/composition-matrix-v1.json` in its default mode
 (`verifyReceipt`: schema, inventories, graph/hierarchy fields and audits);
 `WRITE_GREENFIELD_RECEIPT=1` switches it to the writer. A receipt-only edit
-therefore selects `proof:artifacts`. The aggregate is one heavy step, so there
-is no per-member admission and no selector narrower than `proof:artifacts`
-except `proof:pack-typecheck`.
+therefore selects `proof:artifacts`. The aggregate remains one heavy step;
+member-level groups are separate routes and do not change its admission or
+member order. Their input maps are limited to the declared standalone members;
+the other staging members remain planner-owned.
 
 ## Cross-cutting input classes
 
@@ -641,7 +676,8 @@ Select by which documentation surface changed:
   `docs/guides/getting-started.md`, `longhorn-getting-started-docs` runs that
   standalone proof with the two link checks.
 - `examples/**/*.md`: add `proof:artifacts` (member
-  `scripts/verify-documented-commands.ts`).
+  `scripts/verify-documented-commands.ts`); `longhorn-documented-commands`
+  runs that standalone proof for a mapped Markdown path.
 - Knowledge files: `qa:docs:paths` covers the index/contract set only.
 
 No Rust or TypeScript suite is required for a docs-only change.
@@ -657,6 +693,9 @@ implementation as an owned input of its selector.
 | Verifier implementation | Owning selector |
 | --- | --- |
 | `scripts/verify-app-shell-proof.ts`, `verify-bridge-topology-conformance.ts`, `verify-bridge-topology-artifacts.ts`, `verify-settings-composition-proof.ts`, `verify-command-system-artifacts.ts`, `verify-history-system-artifacts.ts`, `verify-history-tree-artifacts.ts`, `verify-operation-notification-artifacts.ts`, `verify-native-content-artifacts.ts`, `verify-poodle-preview.ts`, `verify-greenfield-card125.ts`, `verify-guides-card126.ts`, `verify-documented-commands.ts` | `proof:artifacts` |
+| `scripts/verify-bridge-topology-conformance.ts` | `proof:bridge-topology-conformance` (also a `proof:artifacts` member) |
+| `scripts/verify-poodle-preview.ts` | `proof:poodle-preview` (also a `proof:artifacts` member) |
+| `scripts/verify-documented-commands.ts` | `proof:documented-commands` (also a `proof:artifacts` member) |
 | `scripts/verify-guides-card126.ts` | `proof:guides-card126` (also a `proof:artifacts` member) |
 | `scripts/verify-pack-typecheck.ts` | `proof:pack-typecheck` (also a `proof:artifacts` member) |
 | `scripts/bridge-topology-artifact-proof/**`, `scripts/command-system-artifact-proof/**`, `scripts/operation-notification-artifact-proof/**`, `scripts/settings-composition-proof/**` | helper closures of their `proof:artifacts` members |
@@ -770,9 +809,9 @@ never selection inputs.
 | Input | Safe selection | Why |
 | --- | --- | --- |
 | `Cargo.lock` | conservative: full Rust lane + `check:bindings` + `check:api-reference` + `check:agent-control-release-absence` + `check:agent-tool-dispatch-release-absence` + `proof:artifacts` + `check:prototypes` + `release:floor`, plus the release-only `docs:rust` and `advisories` gates | no selector proves the lock alone; every `--locked` reader depends on it -- the Rust lane, `check:bindings` (generator compile), `check:api-reference` (`cargo metadata --locked`), `docs:rust` (`cargo doc --locked`, release-only), `advisories` (`cargo deny` reads the resolved graph, release-only), the absence proofs, and five proof members that copy it into disposable workspaces. Narrower selection is unresolved |
-| `bun.lock` | conservative: `bootstrap:deps`, full TypeScript lane, `proof:artifacts` | proofs install from the lock; `scripts/verify-poodle-preview.ts` and `proof:pack-typecheck` verify Poodle sha512/peer range against it |
-| `package.json` (root) | `bootstrap:deps`, `check:ts`, `check:svelte`, `proof:artifacts` | dev pins and peer ranges |
-| `effigy.toml` (tasks, includes) | conservative: full board + `check:release-gates` + `check:runner-tools` + `test:release-tooling` + `proof:artifacts` | changing tasks changes selection itself; no selector validates selection |
+| `bun.lock` | conservative: `bootstrap:deps`, full TypeScript lane, `proof:artifacts`; bounded: `longhorn-pack-typecheck`, `longhorn-poodle-preview` | proofs install from the lock; the standalone Poodle and pack proofs check the lock against installed Poodle metadata and staged registry resolution |
+| `package.json` (root) | `bootstrap:deps`, `check:ts`, `check:svelte`, `proof:artifacts`; bounded: `longhorn-bridge-topology-conformance`, `longhorn-pack-typecheck`, `longhorn-poodle-preview` | dev pins and peer ranges |
+| `effigy.toml` (global or unclassified changes) | `needs_planner`; no automatic board fallback | planner-owned conservative selection includes the board and the existing `check:release-gates`, `check:runner-tools`, `test:release-tooling`, and `proof:artifacts` obligations; task-table-only edits may route only through the exact selector tokens above |
 | `config/release.toml` | `check:release-gates`, `test:release-tooling`, private-candidate proof, `check:runner-tools` | release-gate alignment and runner-tool mapping |
 | `rust-toolchain.toml` | conservative: `fmt:rust` (rustfmt component), `lint:rust`, `lint:rust:features`, `test:rust`, `docs:rust` (release), `check:bindings`, `check:api-reference`, `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence`, `proof:artifacts` (members invoking unqualified `cargo`), `check:prototypes` (release), `release:source-consumer` (release), `ci:rehearse` (release) | rustup resolves the pinned channel and components for every unqualified `cargo`/`rustfmt` invocation, so a channel or component change can break any of these. Unlike the MSRV file, no gate asserts the channel itself. `release:floor` uses `rustup run <msrv>`, not this channel. Narrower selection is unresolved |
 | `release-baselines/rust-toolchains.env` | `release:floor`, `proof:artifacts`, `release:source-consumer` | MSRV gates, `msrv.ts` manifest generation, and the source-consumer `rust-version` (`scripts/verify-source-consumer.sh` sources the file) |
@@ -788,7 +827,7 @@ declare it broad and let the planner judge, never treat it as no checks.
 
 | # | Change | Expected selectors | Reason |
 | --- | --- | --- | --- |
-| 1 | `docs/guides/getting-started.md` prose edit | `qa:docs`, `proof:artifacts` (member `scripts/verify-guides-card126.ts`) | catalogue/link checks plus the guide-content member; there is no standalone guides selector |
+| 1 | `docs/guides/getting-started.md` prose edit | `qa:docs`, `longhorn-getting-started-docs` | catalogue/link checks plus the standalone guide proof; `proof:artifacts` keeps the same aggregate membership |
 | 2 | leaf Rust crate: `crates/longhorn-credential-keyring/src/**` | `fmt:rust`, `lint:rust`, `lint:rust:features`, `test:rust`, `check:consumer-isolation`, `check:repo-containment` | no per-crate selector and no proof stages it, but the lane is workspace-wide; `examples/update-licence-proof/rust/harness` depends on it, and the lane covers that dependent. A crate a proof stages (for example `longhorn-history`) also selects `proof:artifacts` |
 | 3 | shared Rust type: `crates/longhorn-history/src/**` | Rust lane + `check:bindings` + `check:ts` + `test:ts` + `test:vitest` + `proof:artifacts` + `check:prototypes` | history is a bindings domain; `longhorn-history` feeds `longhorn-bindings`, `history-tree`, `tauri-history`, `prototypes/history-tree` |
 | 3b | transitive prototype input: `crates/longhorn-display/src/**` or `crates/longhorn-surfaces-config/src/**` | Rust lane + `check:prototypes` (release gate) + `proof:artifacts` | reached by the prototypes only through `longhorn-windowing`/`longhorn-gpui-windowing` (display) and `longhorn-transfer` (surfaces-config); the greenfield member stages both |
@@ -845,9 +884,9 @@ proofs. Missing any of those is a silent break.
   its consumers are declared in the opaque-input table. `effigy.toml` task
   definitions and `.github/workflows/**` stay conservative beyond
   `check:runner-tools`.
-- `proof:artifacts` is one heavy step. There is no per-member admission, so a
-  one-fixture change cannot select a single member through admission today;
-  `proof:pack-typecheck` and `proof:guides-card126` have standalone selectors.
+- `proof:artifacts` remains one heavy aggregate with unchanged membership and
+  order. Maintained groups can invoke only the five standalone proof members
+  listed in the artifact section; the remaining members stay planner-routed.
 - Prototype locks (`prototypes/*/Cargo.lock`) and the root lock are separate;
   `sync:prototype-locks` is the only writer and is not a gate.
 - Untracked files outside a manifest/glob reach select nothing. That is
@@ -917,10 +956,11 @@ agent workflows), 080 (host-wide validation admission), and 081 (bounded QA
 groups), plus Effigy contract 051.
 
 This map records what the commands read and what they do not. It was not built
-by running the full board or measuring stable timings; cost figures come from
-the comments Longhorn already keeps next to those tasks. Proof members are
-scripts inside the `proof:artifacts` aggregate; only `proof:pack-typecheck`,
-`proof:agent-tool-dispatch-source-consumer`, and `proof:guides-card126`
-dispatch on their own.
+by running the full board or measuring stable timings; existing cost figures
+come from the comments Longhorn already keeps next to those tasks. Five
+artifact members dispatch through standalone selectors with bounded groups;
+the remaining artifact members still run only through `proof:artifacts`.
+`proof:agent-tool-dispatch-source-consumer` is standalone and is not a member
+of that aggregate.
 Independent review should check each entry against the manifest or script it
 names and walk the eleven synthetic change sets on paper.
