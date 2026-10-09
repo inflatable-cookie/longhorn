@@ -126,6 +126,11 @@ Targeted checks per task, full QA at milestones (Tom, 2026-09-30).
   never means run the full board. Groups and their limits:
   `docs/knowledge/validation-input-map.md`. Use the global `--json` prefix;
   the trailing form prints a banner first.
+- **The PR records QA-group evidence:** the changed inputs, the group and
+  exact `--scope` tokens, the plan result (`declared_match` or
+  `needs_planner` with its reason), each run's outcome and time, admission as
+  reported (`null` means unknown), any extra gap token, or why no group was
+  used. The planner sends these records to Effigy.
 - **Docs or instruction changes** also run
   `effigy skill run northstar/retired-concepts` and
   `effigy skill run northstar/cut -- check-links`, and inspect the final diff.
