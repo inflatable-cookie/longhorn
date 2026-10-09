@@ -59,8 +59,10 @@ test("mapped proof inputs route to their owning standalone selector", () => {
   expect(examples.members?.some((member) => member.task === "proof:documented-commands")).toBe(true);
 
   const packageClosure = planGroup("longhorn-pack-typecheck", [
-    "bun-package:longhorn",
-    "bun-package:longhorn-poodle-svelte",
+    "bun-package:@inflatable-cookie/longhorn",
+    "path:packages/longhorn/package.json",
+    "bun-package:@inflatable-cookie/longhorn-poodle-svelte",
+    "path:packages/longhorn-poodle-svelte/package.json",
     "path:package.json",
     "path:bun.lock",
     ...runtimeInputs,
@@ -69,6 +71,8 @@ test("mapped proof inputs route to their owning standalone selector", () => {
   expect(packageClosure.members?.some((member) => member.task === "proof:pack-typecheck")).toBe(true);
 
   const bridgeManifest = planGroup("longhorn-bridge-topology-conformance", [
+    "bun-package:@inflatable-cookie/longhorn",
+    "path:packages/longhorn/src/bridge/index.ts",
     "path:crates/longhorn-bridge/Cargo.toml",
     ...runtimeInputs,
   ]);

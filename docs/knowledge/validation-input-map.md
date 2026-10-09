@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-09-30
+Updated: 2026-10-09
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -49,8 +49,8 @@ release gates keep their current members and meaning.
 | --- | --- | --- |
 | `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |
 | `longhorn-getting-started-docs` | The two docs link selectors plus `proof:guides-card126` | The fixed guide corpus, its links and generated API inventory; other artifact proofs remain out. |
-| `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` | Five declared bridge compositions, source boundaries, and the query-only capability. |
-| `longhorn-pack-typecheck` | `proof:pack-typecheck` | Packed `longhorn` and `longhorn-poodle-svelte` packages, their locked registry dependencies, and declared installed Poodle metadata. |
+| `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` | Five declared bridge compositions, bridge crate sources, the Longhorn bridge package scope, and the query-only capability. |
+| `longhorn-pack-typecheck` | `proof:pack-typecheck` | Packed scoped Longhorn and adapter packages, their package paths, locked registry dependencies, and declared installed Poodle metadata. |
 | `longhorn-poodle-preview` | `proof:poodle-preview` | Poodle lock/version/integrity metadata and the installed peer range; no Longhorn package typecheck. |
 | `longhorn-documented-commands` | `proof:documented-commands` | Effigy command names in Markdown under `examples/`; task bodies are not validated. |
 | `agent-tool-dispatch` | `check:agent-tool-dispatch` | Package obligations plus its workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
@@ -567,7 +567,7 @@ and/or build an isolated Rust workspace.
 
 | Member script | Helper modules | Inputs beyond shared | Standalone route | Bindings domain | Role and limits |
 | --- | --- | --- | --- |
-| `verify-bridge-topology-conformance.ts` | `examples/bridge-topology-proof/{common,proof,shape traces}.ts` | five shape files plus `proof.test.ts`, `declarations.json`, `README.md`; bridge crate manifest/source and query-only capability; Longhorn bridge package imports; root `node_modules` resolution | New: `proof:bridge-topology-conformance`, `longhorn-bridge-topology-conformance` | — | Runs the in-repo proof module and scans declared sources; proves import graphs and absent production edges |
+| `verify-bridge-topology-conformance.ts` | `examples/bridge-topology-proof/{common,proof,shape traces}.ts` | five shape files plus `proof.test.ts`, `declarations.json`, `README.md`; bridge crate manifest/source and query-only capability; `packages/longhorn/src/bridge/**`; root `node_modules` resolution | New: `proof:bridge-topology-conformance`, `longhorn-bridge-topology-conformance` | — | Runs the in-repo proof module and scans declared sources; proves import graphs and absent production edges |
 | `verify-poodle-preview.ts` | `scripts/poodle-release.ts` | root `package.json`, `bun.lock`, installed `node_modules/@inflatable-cookie/poodle-{core,svelte}/package.json` | New: `proof:poodle-preview`, `longhorn-poodle-preview` | — | Checks pinned release versions, lock integrity entries, and the installed Svelte peer range |
 | `verify-guides-card126.ts` | `scripts/generate-api-reference-card126.ts`, `scripts/longhorn-version.ts` | fixed docs list; local link targets; `Cargo.toml`; crate manifests/directories/README or library paths; package manifests/directories/README/export paths; `docs/reference/api-surface.md` | Existing: `proof:guides-card126`, `longhorn-getting-started-docs` | — | Checks guide content, local links, generated API inventory, and crate/package inventory |
 | `verify-documented-commands.ts` | none | `effigy.toml` task names; every Markdown file under `examples/` except `node_modules`, `target`, and `gen` | New: `proof:documented-commands`, `longhorn-documented-commands` | — | Every `effigy <task>` named in an example Markdown file resolves |
@@ -586,7 +586,7 @@ workspace, minutes each):
 | `verify-operation-notification-artifacts.ts` | `scripts/operation-notification-artifact-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `poodle-release.ts`, `longhorn-version.ts` | core, bridge, operation, notifications, tauri-operation, tauri-notifications | `operation`, `notifications` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/operation-notification-proof/**` | yes | None; copied lock and isolated Cargo/TypeScript closure is not mapped to a member group |
 | `verify-native-content-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; three prototype Cargo manifests; fixture and generated protocol | yes | None; also invokes `check:bindings`, whose transitive compile closure is an existing planner gap |
 | `verify-greenfield-card125.ts` | `proof-install.ts`, `msrv.ts`, `poodle-release.ts`, `longhorn-version.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes | None; generated Cargo workspace/24-crate compile closure is not mapped to a member group |
-| `verify-pack-typecheck.ts` | `proof-install.ts`, `poodle-release.ts` | none | — | longhorn, longhorn-poodle-svelte | root `package.json`; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no | Existing selector; new `longhorn-pack-typecheck` group |
+| `verify-pack-typecheck.ts` | `proof-install.ts`, `poodle-release.ts` | none | — | `@inflatable-cookie/longhorn`, `@inflatable-cookie/longhorn-poodle-svelte` | both `packages/<package>/**` trees; root `package.json`; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no | Existing selector; new `longhorn-pack-typecheck` group |
 
 The 24 Rust crates greenfield stages are `longhorn-bridge`,
 `longhorn-command`, `longhorn-command-config`, `longhorn-command-settings`,
