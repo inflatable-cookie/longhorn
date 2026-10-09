@@ -1,3 +1,5 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -28,34 +30,46 @@ type Timing = {
 
 const timings: Timing[] = [];
 let failed = false;
+const retainedTargetDir = process.env.CARGO_TARGET_DIR;
+const targetDir = retainedTargetDir ?? await mkdtemp(
+  resolve(tmpdir(), "longhorn-proof-artifacts-target-"),
+);
+const ownsTargetDir = retainedTargetDir === undefined;
 
-for (const member of members) {
-  console.log(`proof ${member}`);
+try {
+  for (const member of members) {
+    console.log(`proof ${member}`);
 
-  const startedAt = performance.now();
-  let exitCode = 1;
-  try {
-    const child = Bun.spawn(["bun", `scripts/verify-${member}.ts`], {
-      cwd: repoRoot,
-      stdout: "ignore",
-      stderr: "inherit",
+    const startedAt = performance.now();
+    let exitCode = 1;
+    try {
+      const child = Bun.spawn(["bun", `scripts/verify-${member}.ts`], {
+        cwd: repoRoot,
+        env: { ...process.env, CARGO_TARGET_DIR: targetDir },
+        stdout: "ignore",
+        stderr: "inherit",
+      });
+      exitCode = await child.exited;
+    } catch (error) {
+      console.error(`failed to start proof ${member}: ${String(error)}`);
+    }
+
+    timings.push({
+      member,
+      seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
+      result: exitCode === 0 ? "pass" : "fail",
     });
-    exitCode = await child.exited;
-  } catch (error) {
-    console.error(`failed to start proof ${member}: ${String(error)}`);
+
+    if (exitCode !== 0) {
+      reportTimings();
+      process.exitCode = 1;
+      failed = true;
+      break;
+    }
   }
-
-  timings.push({
-    member,
-    seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
-    result: exitCode === 0 ? "pass" : "fail",
-  });
-
-  if (exitCode !== 0) {
-    reportTimings();
-    process.exitCode = 1;
-    failed = true;
-    break;
+} finally {
+  if (ownsTargetDir) {
+    await rm(targetDir, { recursive: true, force: true });
   }
 }
 

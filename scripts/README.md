@@ -19,7 +19,10 @@ worth wiring, and if it is not wired it should be deleted.
 
 `scripts/proof-artifacts.ts` keeps that order and fail-fast behavior, suppresses
 member stdout as before, and prints each member's elapsed seconds and result to
-stderr when the run ends. A failed member is included in the summary.
+stderr when the run ends. All members share one temporary Cargo target
+directory for the run, which is removed afterward; a caller-provided
+`CARGO_TARGET_DIR` is reused and left in place. A failed member is included in
+the summary.
 
 Artifact consumer stages install packed Longhorn tarballs with a private Bun
 cache. Exact consumer pins stay exact; other third-party versions use the root
