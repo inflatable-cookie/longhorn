@@ -8,13 +8,22 @@ use crate::RedactionRules;
 
 /// Pushes every occurrence of `secret`, including overlapping ones.
 pub(crate) fn exact(text: &str, secret: &str, out: &mut Vec<Range<usize>>) {
+    out.extend(occurrences(text, secret).map(|start| start..start + secret.len()));
+}
+
+/// Start of every occurrence of a non-empty `needle`, overlapping ones
+/// included. `str::match_indices` skips an occurrence that starts inside the
+/// previous one, which can hide a match only the later start satisfies.
+fn occurrences<'a>(text: &'a str, needle: &'a str) -> impl Iterator<Item = usize> + 'a {
     let mut from = 0;
-    while let Some(offset) = text[from..].find(secret) {
-        let start = from + offset;
-        out.push(start..start + secret.len());
-        let step = text[start..].chars().next().map_or(1, char::len_utf8);
-        from = start + step;
-    }
+    std::iter::from_fn(move || {
+        if needle.is_empty() || from > text.len() {
+            return None;
+        }
+        let start = from + text[from..].find(needle)?;
+        from = start + text[start..].chars().next().map_or(1, char::len_utf8);
+        Some(start)
+    })
 }
 
 /// Pushes the candidates of every enabled shape rule.
@@ -133,7 +142,7 @@ fn url_userinfo(text: &str, authorities: &[Range<usize>], out: &mut Vec<Range<us
 fn bearer(text: &str, out: &mut Vec<Range<usize>>) {
     const SCHEME: &str = "bearer ";
     let lower = text.to_ascii_lowercase();
-    for (index, _) in lower.match_indices(SCHEME) {
+    for index in occurrences(&lower, SCHEME) {
         let start = index + SCHEME.len();
         let end = run_end(text, start, |character| {
             character.is_whitespace() || matches!(character, '"' | '\'' | ',')
@@ -161,7 +170,7 @@ fn assignments(
             continue;
         }
         let is_authorization = key == "authorization";
-        for (index, _) in lower.match_indices(&key) {
+        for index in occurrences(&lower, &key) {
             if index > 0 && bytes[index - 1].is_ascii_alphanumeric() {
                 continue;
             }
@@ -185,9 +194,7 @@ fn assignments(
                 continue;
             }
             let end = match quote {
-                Some(quote) => run_end(text, start, |character| {
-                    character == char::from(quote) || matches!(character, '\n' | '\r')
-                }),
+                Some(quote) => run_end(text, start, |character| character == char::from(quote)),
                 None if is_authorization => line_end(text, start),
                 None => run_end(text, start, |character| {
                     character.is_whitespace() || matches!(character, '&' | ',' | ';')
@@ -228,7 +235,7 @@ fn token_prefix(text: &str, prefix: &str, out: &mut Vec<Range<usize>>) {
         return;
     }
     let bytes = text.as_bytes();
-    for (index, _) in text.match_indices(prefix) {
+    for index in occurrences(text, prefix) {
         if index > 0 && is_token_byte(bytes[index - 1]) {
             continue;
         }

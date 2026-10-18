@@ -94,7 +94,8 @@ Each rule only proposes spans.
   character is not ASCII alphanumeric (`_` is a boundary, so
   `NODE_AUTH_TOKEN` matches `token`), then optional spaces or tabs, then `=`
   or `:`, then optional spaces or tabs. The value:
-  - quoted: up to the closing quote, or the line end when it does not close;
+  - quoted: up to the closing quote, across line breaks, or the end of the
+    text when it does not close;
   - unquoted: up to whitespace, `&`, `,` or `;`;
   - for the key `authorization`: a value starting `Bearer ` (any case)
     proposes nothing, because the Bearer rule owns it. Any other value runs
@@ -109,7 +110,10 @@ Each rule only proposes spans.
   A bare prefix is kept. AWS key IDs use their issued upper-case
   `AKIA`/`ASIA`; Google API keys use `AIza`.
 
-Empty keys and empty prefixes propose nothing.
+Keys, prefixes and secrets match at every start position, overlapping
+occurrences included, so a key such as `a_a` matches inside `a_a_a=` at its
+second, boundary-satisfying start. Empty keys and empty prefixes propose
+nothing.
 
 ## Guarantees
 

@@ -282,3 +282,34 @@ fn never_panics_and_holds_guarantees_on_generated_utf8() {
         );
     }
 }
+
+fn custom_rules(assignment_keys: &[&str], token_prefixes: &[&str]) -> RedactionRules {
+    let mut rules = RedactionRules::exact_only();
+    rules.assignment_keys = assignment_keys
+        .iter()
+        .map(|key| (*key).to_owned())
+        .collect();
+    rules.token_prefixes = token_prefixes
+        .iter()
+        .map(|prefix| (*prefix).to_owned())
+        .collect();
+    rules
+}
+
+#[test]
+fn custom_assignment_key_matches_at_overlapping_start() {
+    let redactor = Redactor::new(Vec::new(), custom_rules(&["a_a"], &[]));
+    let redaction = redactor.redact("a_a_a=opaque-value tail");
+    assert_eq!(redaction.text, "a_a_a=[redacted] tail");
+    assert_guarantees("overlapping-key", &redactor, &[], &redaction);
+}
+
+#[test]
+fn custom_token_prefix_matches_at_overlapping_start() {
+    // `a.a` first occurs at index 1, after the token character `z`. The
+    // overlapping occurrence at index 3 follows `.`, a boundary.
+    let redactor = Redactor::new(Vec::new(), custom_rules(&[], &["a.a"]));
+    let redaction = redactor.redact("za.a.ab end");
+    assert_eq!(redaction.text, "za.[redacted] end");
+    assert_guarantees("overlapping-prefix", &redactor, &[], &redaction);
+}

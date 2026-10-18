@@ -397,12 +397,34 @@
       "dropped_secrets": 0
     },
     {
-      "name": "unclosed-quote-runs-to-line-end",
+      "name": "multiline-quoted-assignment-value",
       "source": "boundary",
       "rules": "common",
       "seeds": [],
-      "input": "secret=\"open value\nkept",
-      "expected": "secret=\"[redacted]\nkept",
+      "input": "password=\"first\nsecond\" tail",
+      "expected": "password=\"[redacted]\" tail",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "multiline-quoted-assignment-value-crlf",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "api_key: 'one\r\ntwo' tail",
+      "expected": "api_key: '[redacted]' tail",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "unclosed-quote-runs-to-end-of-text",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "secret=\"open value\nnext line",
+      "expected": "secret=\"[redacted]",
       "count": 1,
       "replaced": 1,
       "dropped_secrets": 0
