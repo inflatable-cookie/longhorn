@@ -56,7 +56,10 @@ fn assert_guarantees(label: &str, redactor: &Redactor, seeds: &[String], first: 
     }
     let second = redactor.redact(&first.text);
     assert_eq!(second.text, first.text, "{label}: second pass changed text");
-    assert_eq!(second.count, first.count, "{label}: second pass changed count");
+    assert_eq!(
+        second.count, first.count,
+        "{label}: second pass changed count"
+    );
     assert_eq!(second.replaced, 0, "{label}: second pass replaced spans");
     assert_eq!(
         first.count,
@@ -85,7 +88,11 @@ fn case_table_holds_with_guarantees() {
 
         assert_eq!(result.text, text(case, "expected"), "{name}: text");
         assert_eq!(result.count, number(case, "count"), "{name}: count");
-        assert_eq!(result.replaced, number(case, "replaced"), "{name}: replaced");
+        assert_eq!(
+            result.replaced,
+            number(case, "replaced"),
+            "{name}: replaced"
+        );
         assert_eq!(
             redactor.dropped_secrets(),
             number(case, "dropped_secrets"),
@@ -139,7 +146,10 @@ fn leaves_ordinary_github_material_alone() {
 
 #[test]
 fn ignores_trivially_short_secrets() {
-    let redactor = Redactor::new(vec!["ab".to_owned(), String::new()], RedactionRules::common());
+    let redactor = Redactor::new(
+        vec!["ab".to_owned(), String::new()],
+        RedactionRules::common(),
+    );
     assert_eq!(redactor.dropped_secrets(), 2);
     assert_eq!(
         redactor.redact("a table of contents").text,
