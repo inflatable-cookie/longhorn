@@ -32,6 +32,7 @@
 | `longhorn-notifications` | library | `bindings`, `operation` | [source](../../crates/longhorn-notifications/README.md) |
 | `longhorn-operation` | library | `bindings` | [source](../../crates/longhorn-operation/README.md) |
 | `longhorn-poodle` | library | none | [source](../../crates/longhorn-poodle/src/lib.rs) |
+| `longhorn-redact` | library | none | [source](../../crates/longhorn-redact/README.md) |
 | `longhorn-settings` | library | `bindings` | [source](../../crates/longhorn-settings/README.md) |
 | `longhorn-settings-config` | library | none | [source](../../crates/longhorn-settings-config/README.md) |
 | `longhorn-surface-transfer` | library | `bindings` | [source](../../crates/longhorn-surface-transfer/src/lib.rs) |

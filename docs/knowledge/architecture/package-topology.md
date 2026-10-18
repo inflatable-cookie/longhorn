@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-09-28
+Updated: 2026-10-18
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -55,6 +55,7 @@ discovery and validation entry points.
 | `longhorn-browser` | host-agnostic system browser launch for contract 019's RFC 8252 flow: allowlisted URL validation plus a launcher that spawns a program directly and never a shell | url, licence, serde |
 | `longhorn-agent-control` | host-agnostic agent app-control core (contract 022): tool vocabulary, discovery-file lifecycle, per-instance bearer token, native-surface provider seam; `evaluate` behind `agent-control-evaluate` | core, config, sysinfo |
 | `longhorn-agent-tool-dispatch` | opt-in transport-neutral production contextual-tool validation, exactly-once callback/result recording, cancellation terminality, and redacted evidence (contract 023) | none |
+| `longhorn-redact` | std-only secret redaction for desktop support text: seeded secrets plus token-prefix, assignment, `Bearer`, URL-userinfo, PEM and JWT rules, merged into one `[redacted]` marker per span (contract 024) | none |
 | `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-agent-control` | Tauri host wiring for the contract 022 control surface: `agent-control` compile-time opt-in, `agent-control-evaluate` split, window scope, `command` through the host's contract-006 bridge; empty library feature-off | core, agent-control, tauri-config, Tauri |

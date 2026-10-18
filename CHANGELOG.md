@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-redact`: one secret-redaction engine for desktop support text.** A `Redactor` seeded with exact secrets and a `RedactionRules` set (token prefixes, credential assignments, `Bearer`, URL userinfo, PEM private keys, JWTs) replaces each merged span with `[redacted]` and reports `count` and `replaced`. Std only. `RedactionRules::common()` carries published vendor formats; products choose seeds, rules and where output is redacted. Contract 024 owns the behaviour and lists the deltas from Acowtancy Desktop's three redactors.
+
 ### Changed
 - **`longhorn-poodle` now requires Poodle `v0.4.12`.** Consumers that also
   take Poodle crates by tag must move to the same tag.

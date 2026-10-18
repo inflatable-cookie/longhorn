@@ -3152,6 +3152,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-redact"
+version = "0.3.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "longhorn-settings"
 version = "0.3.0"
 dependencies = [
