@@ -6,17 +6,22 @@
 # the gtk3-rs `unmaintained` advisories were withdrawn upstream on
 # 2026-08-14, and the `unic-*` ones no longer match anything the refreshed
 # graph resolves. proc-macro-error (unmaintained) is still reached through
-# Tauri 2's build chain. zbus_names (unmaintained) joined it on 2026-10-18.
+# Tauri 2's build chain. zbus_names, zvariant and zvariant_derive
+# (unmaintained) joined it on 2026-10-18.
 
 [advisories]
 ignore = [
   # proc-macro-error (unmaintained) — via Tauri build chain.
   "RUSTSEC-2024-0370",
-  # zbus_names 4.3.4 (unmaintained) — via keyring 4.2.0 ->
-  # zbus-secret-service-keyring-store -> secret-service -> zbus, on the Linux
-  # secret-service path of longhorn-credential-keyring. Not a vulnerability;
-  # keyring 4.2.0 is the newest and no upgrade drops it. Accepted 2026-10-18.
+  # zbus_names 4.3.4, zvariant 5.15.0, zvariant_derive 5.15.0 (unmaintained)
+  # — via keyring 4.2.0 -> zbus-secret-service-keyring-store ->
+  # secret-service -> zbus 5, on the Linux secret-service path of
+  # longhorn-credential-keyring. Upstream merged them into zbus 6, which
+  # keyring 4.2.0 (the newest) does not use yet. Not vulnerabilities; no
+  # upgrade drops them. Accepted 2026-10-18.
+  "RUSTSEC-2026-0370",
   "RUSTSEC-2026-0371",
+  "RUSTSEC-2026-0372",
 ]
 
 [bans]

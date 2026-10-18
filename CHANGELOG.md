@@ -24,7 +24,7 @@ MSRV floor (`LONGHORN_GENERAL_MSRV`) is unchanged.
 
 ### Security
 - **`zip` moves from 8.6 to 9.0.5 (RUSTSEC-2026-0367).** zip before 9.0.0 keeps SUID/SGID bits when it extracts. Longhorn never extracts: `longhorn-config` reads backups in memory. Backup archives stay byte-identical, with no fixture change. The range stays caret, so consumers taking Longhorn by git tag resolve a compatible zip 9.x.
-- **`deny.toml` allows RUSTSEC-2026-0371 (`zbus_names` unmaintained).** It is reached only through `keyring` on the Linux secret-service path of `longhorn-credential-keyring`. It is not a vulnerability, and no upgrade removes it.
+- **`deny.toml` allows RUSTSEC-2026-0370, RUSTSEC-2026-0371 and RUSTSEC-2026-0372 (`zvariant`, `zbus_names` and `zvariant_derive` unmaintained).** They are reached only through `keyring` -> `zbus` 5 on the Linux secret-service path of `longhorn-credential-keyring`. Upstream merged them into zbus 6, which `keyring` 4.2.0 does not use yet. They are not vulnerabilities, and no upgrade removes them.
 
 ## [0.3.0] - 2026-09-27
 
