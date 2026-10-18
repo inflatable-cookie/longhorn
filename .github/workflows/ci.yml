@@ -21,6 +21,9 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  # Effigy 0.14 sends heavy selectors to a host scheduler; hosted runners have none.
+  # The override is the audited route (Effigy guide 080); papercut 25ead2bf asks for CI mode.
+  EFFIGY_SCHEDULER_OVERRIDE: "GitHub-hosted runner: one job per VM, no shared host scheduler"
 
 # Actions are pinned to commit SHAs (the tag is in the comment): tags are
 # mutable, and a compromised action is the other half of the supply-chain

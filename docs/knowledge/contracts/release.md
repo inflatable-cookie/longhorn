@@ -117,6 +117,13 @@ CI and release workflows pin Effigy `0.14.1` through
 the top-level `[qa]` groups in `effigy.toml`. Never use `bunx effigy` there:
 an unrelated npm package has that name.
 
+Both workflows set `EFFIGY_SCHEDULER_OVERRIDE` to
+`GitHub-hosted runner: one job per VM, no shared host scheduler`. Effigy 0.14
+routes heavy selectors to a host scheduler; GitHub-hosted VMs have none.
+This is the audited override route in Effigy guide 080, approved by Tom on
+2026-10-18 (decision `de2de5cb`). Effigy papercut `25ead2bf` asks for a CI mode.
+Local validation keeps host-wide admission.
+
 ## Verify
 
 - The release run is green: full QA, gates, tag-version check,
