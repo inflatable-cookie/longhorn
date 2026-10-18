@@ -37,11 +37,11 @@ fn canonical_archive_is_deterministic_and_round_trips() {
     .enumerate()
     {
         let entry = zip.by_index(index).unwrap();
-        assert_eq!(entry.name(), *expected);
+        assert_eq!(entry.name().unwrap(), *expected);
         assert_eq!(entry.compression(), CompressionMethod::Deflated);
         assert_eq!(entry.last_modified(), Some(DateTime::default()));
         assert_eq!(entry.unix_mode(), Some(0o100600));
         assert!(entry.comment().is_empty());
-        assert!(entry.extra_data().is_none_or(<[u8]>::is_empty));
+        assert!(entry.extra_data().is_none_or(|data| data.is_empty()));
     }
 }
