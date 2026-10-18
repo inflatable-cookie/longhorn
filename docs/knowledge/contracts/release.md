@@ -97,6 +97,15 @@ change. The floor unlocks MSRV-gated Clippy lints. The pinned stable channel in
 `rust-toolchain.toml` is a separate declaration with its own bump procedure
 ("Toolchain pin" above).
 
+## Lock maintenance
+
+The yanked `yoke-derive` 0.8.3 is replaced by 0.8.4 in the root and affected
+prototype locks. The targeted Cargo update also moves `cssparser-macros`
+0.7.1's `syn` edge from 3.0.6 to 2.0.119 where both are already locked.
+Its `>=2, <4` requirement permits both. The planner accepted this graph
+re-resolution on 2026-10-18: no package is added or removed, and only
+`yoke-derive` changes version.
+
 ## Publishing credentials
 
 No `NPM_TOKEN`. npmjs.com accepts publishes for each package only from this
