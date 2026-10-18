@@ -283,7 +283,7 @@ mod tests {
         assert_eq!(out, vec![0..4, 8..10, 12..20]);
 
         out.clear();
-        clip(5..7, &[4..8], &mut out);
+        clip(5..7, &[1..2, 4..8], &mut out);
         assert!(out.is_empty());
     }
 
