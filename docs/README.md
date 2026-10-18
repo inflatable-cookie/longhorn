@@ -4,11 +4,13 @@ Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
 are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 
-- **Released:** `0.3.0` (2026-09-27). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.3.0` for the Rust crates. Breaking:
-  Svelte floor `5.56.8`, and no `dev` feature on
-  `longhorn-tauri-agent-control`. Poodle is a peer range (`>=0.4.4 <0.5`) and
-  third-party Rust dependencies are ranges
+- **Released:** `0.3.1` (2026-10-18). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.3.1` for the Rust crates. Adds
+  `longhorn-redact` ([contract 024](knowledge/contracts/024-text-redaction.md));
+  `longhorn-poodle` needs Poodle `v0.4.12`. `0.3.0` set the Svelte floor
+  `5.56.8` and removed the `dev` feature on `longhorn-tauri-agent-control`.
+  Poodle is a peer range (`>=0.4.4 <0.5`) and third-party Rust dependencies
+  are ranges
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
