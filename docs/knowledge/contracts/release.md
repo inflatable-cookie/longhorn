@@ -97,14 +97,32 @@ change. The floor unlocks MSRV-gated Clippy lints. The pinned stable channel in
 `rust-toolchain.toml` is a separate declaration with its own bump procedure
 ("Toolchain pin" above).
 
+## Lock maintenance
+
+The yanked `yoke-derive` 0.8.3 is replaced by 0.8.4 in the root and affected
+prototype locks. The targeted Cargo update also moves `cssparser-macros`
+0.7.1's `syn` edge from 3.0.6 to 2.0.119 where both are already locked.
+Its `>=2, <4` requirement permits both. The planner accepted this graph
+re-resolution on 2026-10-18: no package is added or removed, and only
+`yoke-derive` changes version.
+
 ## Publishing credentials
 
 No `NPM_TOKEN`. npmjs.com accepts publishes for each package only from this
 repository and `release.yml`, authenticated by a per-run OIDC token, with
 provenance attached. A new package needs its trusted publisher configured at
 npmjs.com before its first release; until then the publish step fails closed.
-The workflow runs Effigy through `inflatable-cookie/setup-effigy`. Never use
-`bunx effigy` there: an unrelated npm package has that name.
+CI and release workflows pin Effigy `0.14.1` through
+`inflatable-cookie/setup-effigy`; bump both files together. This version reads
+the top-level `[qa]` groups in `effigy.toml`. Never use `bunx effigy` there:
+an unrelated npm package has that name.
+
+Both workflows set `EFFIGY_SCHEDULER_OVERRIDE` to
+`GitHub-hosted runner: one job per VM, no shared host scheduler`. Effigy 0.14
+routes heavy selectors to a host scheduler; GitHub-hosted VMs have none.
+This is the audited override route in Effigy guide 080, approved by Tom on
+2026-10-18 (decision `de2de5cb`). Effigy papercut `25ead2bf` asks for a CI mode.
+Local validation keeps host-wide admission.
 
 ## Verify
 

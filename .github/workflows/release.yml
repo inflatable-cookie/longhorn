@@ -47,6 +47,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # Effigy 0.14 sends heavy selectors to a host scheduler; hosted runners have none.
+  # The override is the audited route (Effigy guide 080); papercut 25ead2bf asks for CI mode.
+  EFFIGY_SCHEDULER_OVERRIDE: "GitHub-hosted runner: one job per VM, no shared host scheduler"
+
 jobs:
   release:
     name: Publish to npm
@@ -107,7 +112,7 @@ jobs:
       # how drift ships. Bump both together.
       - uses: inflatable-cookie/setup-effigy@987fd556617ea2c3e0ab5cef6b47b250817f50c8 # v1
         with:
-          version: '0.11.0'
+          version: '0.14.1'
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
