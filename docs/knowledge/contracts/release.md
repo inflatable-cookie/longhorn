@@ -103,8 +103,10 @@ No `NPM_TOKEN`. npmjs.com accepts publishes for each package only from this
 repository and `release.yml`, authenticated by a per-run OIDC token, with
 provenance attached. A new package needs its trusted publisher configured at
 npmjs.com before its first release; until then the publish step fails closed.
-The workflow runs Effigy through `inflatable-cookie/setup-effigy`. Never use
-`bunx effigy` there: an unrelated npm package has that name.
+CI and release workflows pin Effigy `0.14.1` through
+`inflatable-cookie/setup-effigy`; bump both files together. This version reads
+the top-level `[qa]` groups in `effigy.toml`. Never use `bunx effigy` there:
+an unrelated npm package has that name.
 
 ## Verify
 
