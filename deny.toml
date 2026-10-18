@@ -5,13 +5,18 @@
 # The 0.3.0 dependency sweep (2026-09-27) removed the 13 stale allowances:
 # the gtk3-rs `unmaintained` advisories were withdrawn upstream on
 # 2026-08-14, and the `unic-*` ones no longer match anything the refreshed
-# graph resolves. proc-macro-error (unmaintained) is the one remaining
-# transitive allowance, still reached through Tauri 2's build chain.
+# graph resolves. proc-macro-error (unmaintained) is still reached through
+# Tauri 2's build chain. zbus_names (unmaintained) joined it on 2026-10-18.
 
 [advisories]
 ignore = [
   # proc-macro-error (unmaintained) — via Tauri build chain.
   "RUSTSEC-2024-0370",
+  # zbus_names 4.3.4 (unmaintained) — via keyring 4.2.0 ->
+  # zbus-secret-service-keyring-store -> secret-service -> zbus, on the Linux
+  # secret-service path of longhorn-credential-keyring. Not a vulnerability;
+  # keyring 4.2.0 is the newest and no upgrade drops it. Accepted 2026-10-18.
+  "RUSTSEC-2026-0371",
 ]
 
 [bans]
