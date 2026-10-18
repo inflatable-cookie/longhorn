@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-09-28
+Updated: 2026-10-18
 
 ## Positioning
 
@@ -18,7 +18,7 @@ them.
 
 - **Core** — host-agnostic. Every application satisfies these whatever its
   backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
-  018 (policy), 019, 021.
+  018 (policy), 019, 021, 024.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
@@ -55,6 +55,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [021 Consumer-scoped Credential Slots](021-consumer-scoped-credential-slots.md) | validated built-in and consumer namespace/scope/purpose identities over one credential store | active compiled boundary |
 | [022 Agent App Control](022-agent-app-control.md) | compile-time opt-in MCP control surface: semantic input, capture, commands, and agent-answerable JS path selection | active; JS selection published in `0.2.1`; Rust pickers and file inputs amended 2026-09-26 |
 | [023 Production Contextual Agent Tool Boundary](023-production-contextual-agent-tool-boundary.md) | transport-neutral typed dispatch/validation record; production MCP role withdrawn | withdrawn for production MCP; contract 022 opt-in server is the production MCP |
+| [024 Text Redaction](024-text-redaction.md) | std-only secret redaction engine: span model, rules, guarantees, case table | active compiled boundary |
 
 ## Notes
 

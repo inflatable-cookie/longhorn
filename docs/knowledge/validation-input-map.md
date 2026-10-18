@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-10-09
+Updated: 2026-10-18
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -54,6 +54,7 @@ release gates keep their current members and meaning.
 | `longhorn-poodle-preview` | `proof:poodle-preview` | Poodle lock/version/integrity metadata and the installed peer range; no Longhorn package typecheck. |
 | `longhorn-documented-commands` | `proof:documented-commands` | Effigy command names in Markdown under `examples/`; task bodies are not validated. |
 | `agent-tool-dispatch` | `check:agent-tool-dispatch` | Package obligations plus its workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
+| `redact` | `check:redact` | `longhorn-redact` and its case table `fixtures/redact/**`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
@@ -127,10 +128,15 @@ rustdoc warnings (`docs:rust` is release-only).
 
 **`lint:agent-tool-dispatch`**, **`test:agent-tool-dispatch`**,
 **`docs:agent-tool-dispatch`** — role: scoped compile/test/rustdoc for
-`crates/longhorn-agent-tool-dispatch/**` and its dependency closure. The only
-per-crate Rust selectors besides `check:agent-tool-dispatch`. Companions: the
-release-absence proof, `check:api-reference` (aggregated by
-`check:agent-tool-dispatch`). Limits: no other crate has a scoped selector.
+`crates/longhorn-agent-tool-dispatch/**` and its dependency closure.
+Companions: the release-absence proof, `check:api-reference` (aggregated by
+`check:agent-tool-dispatch`).
+
+**`lint:redact`**, **`test:redact`**, **`docs:redact`** — role: scoped
+compile/test/rustdoc for `crates/longhorn-redact/**`. `test:redact` also
+reads `fixtures/redact/cases.json` (contract 024's case table). Companions:
+`check:api-reference` (aggregated by `check:redact`). Limits: these and the
+agent-tool-dispatch selectors are the only per-crate Rust selectors.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
 doc --workspace --no-deps --locked`. Owns all Rust doc comments and crate
@@ -446,6 +452,10 @@ Companions: `check:agent-tool-dispatch`. Admission: unmarked but builds; in
 `docs:agent-tool-dispatch`, `check:agent-tool-dispatch-release-absence`,
 `check:api-reference`.
 
+**`check:redact`** — role: aggregate (not in `qa`). Runs `lint:redact`,
+`test:redact`, `docs:redact`, `check:api-reference`. The `redact` QA group
+selects it.
+
 **`check:agent-control-skill`** — role: drift lock + fixtures. Runs
 `scripts/verify-agent-control-skill.ts`. Owns
 `crates/longhorn-agent-control/src/tools.rs` (`CONTROL_TOOL_NAMES`),
@@ -616,7 +626,7 @@ the other staging members remain planner-owned.
 ### Rust crate dependents
 
 `cargo test/clippy --workspace` is all-or-nothing. Only
-`longhorn-agent-tool-dispatch` has scoped selectors. Everything else needs the
+`longhorn-agent-tool-dispatch` and `longhorn-redact` have scoped selectors. Everything else needs the
 whole Rust lane: `lint:rust`, `lint:rust:features`, `test:rust`. A shared
 crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 (`longhorn-credential-keyring` has no in-tree dependents) select the same
@@ -746,6 +756,7 @@ Fixtures do not have one owner. Route by reader:
 | `fixtures/transfer/protocol-v1.json` | `check:bindings`, `test:ts`, `test:vitest` |
 | `fixtures/update/protocol-v1.json` | `check:bindings`, `test:ts` |
 | `fixtures/agent-tool-dispatch-provider-free/main.rs` | `proof:agent-tool-dispatch-source-consumer` |
+| `fixtures/redact/cases.json` | `test:redact`, `test:rust` |
 | any other `fixtures/**` file | unresolved unless a selector entry or a row above names a reader |
 
 Every file under `fixtures/`, `scripts/`, `examples/`, `crates/`, `packages/`
@@ -848,7 +859,8 @@ proofs. Missing any of those is a silent break.
 
 ## Coverage gaps and unresolved inputs
 
-- No per-crate Rust selector except `longhorn-agent-tool-dispatch`. A leaf and
+- No per-crate Rust selector except `longhorn-agent-tool-dispatch` and
+  `longhorn-redact`. A leaf and
   a shared crate select the same three-lane board. Missing evidence: an
   Effigy cargo package filter expressed as a selector, or per-crate
   `test:rust`/`lint:rust` tasks.

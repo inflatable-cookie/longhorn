@@ -1,0 +1,574 @@
+{
+  "schema": "longhorn.redact-cases.v1",
+  "cases": [
+    {
+      "name": "bearer-keeps-scheme-and-tail",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "header Authorization: Bearer abc.def.ghi, tail",
+      "expected": "header Authorization: Bearer [redacted], tail",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "authorization-value-to-line-end",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "authorization: private-value next",
+      "expected": "authorization: [redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "token-prefix",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "token ghp_ABCdef0123456789XYZ done",
+      "expected": "token [redacted] done",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "assignment-and-prefix-merge",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "token=ghp_12345",
+      "expected": "token=[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "assignments-with-underscore-boundaries",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "NODE_AUTH_TOKEN=npm_secret AWS_SECRET_ACCESS_KEY=aws_secret",
+      "expected": "NODE_AUTH_TOKEN=[redacted] AWS_SECRET_ACCESS_KEY=[redacted]",
+      "count": 2,
+      "replaced": 2,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "url-userinfo-absorbs-prefix-and-ignores-authority-key",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "https://x-access-token:gho_secret0123456789@github.com/org/repo.git",
+      "expected": "https://[redacted]@github.com/org/repo.git",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "url-user-without-password-kept",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "https://git@github.com/org/repo.git",
+      "expected": "https://git@github.com/org/repo.git",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "seed-inside-prefix-span",
+      "source": "table",
+      "rules": "common",
+      "seeds": [
+        "secret"
+      ],
+      "input": "ghp_secret",
+      "expected": "[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "seed-inside-userinfo-span",
+      "source": "table",
+      "rules": "common",
+      "seeds": [
+        "abcd"
+      ],
+      "input": "https://user:abcd@host",
+      "expected": "https://[redacted]@host",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "token-exposed-next-to-marker",
+      "source": "table",
+      "rules": "common",
+      "seeds": [
+        "abxy"
+      ],
+      "input": "abxyghp_abc",
+      "expected": "[redacted][redacted]",
+      "count": 2,
+      "replaced": 2,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "prefix-is-case-sensitive-with-boundary",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "Asian markets",
+      "expected": "Asian markets",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "aws-key-id-prefix",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "AKIAIOSFODNN7EXAMPLE",
+      "expected": "[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "short-bearer-is-prose",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "the bearer of bad news",
+      "expected": "the bearer of bad news",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "ordinary-github-material",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "origin is github.com/org/repo and https://github.com/login/device",
+      "expected": "origin is github.com/org/repo and https://github.com/login/device",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "pem-block-one-marker-line",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXk=\n-----END OPENSSH PRIVATE KEY-----",
+      "expected": "[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "short-seeds-dropped",
+      "source": "table",
+      "rules": "common",
+      "seeds": [
+        "ab",
+        ""
+      ],
+      "input": "a table of contents",
+      "expected": "a table of contents",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 2
+    },
+    {
+      "name": "marker-collision",
+      "source": "table",
+      "rules": "common",
+      "seeds": [
+        "redacted"
+      ],
+      "input": "[redacted] and redacted",
+      "expected": "[redacted] and [redacted]",
+      "count": 2,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "assignment-value-wholly-marker",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "token=[redacted]",
+      "expected": "token=[redacted]",
+      "count": 1,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "userinfo-already-holding-marker",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "https://[redacted]:plaintext-password@host",
+      "expected": "https://[redacted][redacted]@host",
+      "count": 2,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "assignment-value-split-by-marker",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "password=left[redacted]right",
+      "expected": "password=[redacted][redacted][redacted]",
+      "count": 3,
+      "replaced": 2,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "bearer-credential-clips-around-marker",
+      "source": "table",
+      "rules": "common",
+      "seeds": [],
+      "input": "Authorization: Bearer [redacted]tail",
+      "expected": "Authorization: Bearer [redacted][redacted]",
+      "count": 2,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "overlapping-seeds-merge",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "alphabet",
+        "betagamma"
+      ],
+      "input": "x alphabetagamma y",
+      "expected": "x [redacted] y",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "seed-next-to-multibyte-utf8",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "s3cr3tval"
+      ],
+      "input": "é漢s3cr3tvalü😀",
+      "expected": "é漢[redacted]ü😀",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "adjacent-seeds-merge",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "alphaseed",
+        "betaseed"
+      ],
+      "input": "<alphaseedbetaseed>",
+      "expected": "<[redacted]>",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "repeated-seed-overlapping-occurrences",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "zzzz"
+      ],
+      "input": "zzzzzz",
+      "expected": "[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "crlf-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "password=hunter22\r\nnext line\r\n",
+      "expected": "password=[redacted]\r\nnext line\r\n",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "crlf-authorization-to-line-end",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "authorization: opaque value\r\nnext",
+      "expected": "authorization: [redacted]\r\nnext",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "crlf-pem-block",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "before\r\n-----BEGIN PRIVATE KEY-----\r\nbody\r\n-----END PRIVATE KEY-----\r\nafter",
+      "expected": "before\r\n[redacted]\r\nafter",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "bearer-at-end-of-input",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "send Bearer",
+      "expected": "send Bearer",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "bearer-and-space-at-end-of-input",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "send Bearer ",
+      "expected": "send Bearer ",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "bearer-credential-at-end-of-input",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "send Bearer opaque1",
+      "expected": "send Bearer [redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "authorization-bearer-word-without-space",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "Authorization: Bearer",
+      "expected": "Authorization: [redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "double-quoted-assignment-value",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "password=\"two words here\" tail",
+      "expected": "password=\"[redacted]\" tail",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "single-quoted-assignment-value",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "api_key: 'k e y' tail",
+      "expected": "api_key: '[redacted]' tail",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "unclosed-quote-runs-to-line-end",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "secret=\"open value\nkept",
+      "expected": "secret=\"[redacted]\nkept",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "pem-block-with-context",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "before\n-----BEGIN RSA PRIVATE KEY-----\nbody-line\n-----END RSA PRIVATE KEY-----\nafter\n",
+      "expected": "before\n[redacted]\nafter\n",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "pem-block-without-end",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "log\n-----BEGIN EC PRIVATE KEY-----\nbody-line\nmore",
+      "expected": "log\n[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "pem-public-key-kept",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "-----BEGIN PUBLIC KEY-----\nbody-line\n-----END PUBLIC KEY-----",
+      "expected": "-----BEGIN PUBLIC KEY-----\nbody-line\n-----END PUBLIC KEY-----",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "jwt",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "id eyJhbGciOi.eyJzdWIi.c2lnbmF0dXJl end",
+      "expected": "id [redacted] end",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "jwt-needs-two-dots",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "see eyJhbGciOi.only end",
+      "expected": "see eyJhbGciOi.only end",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "vendor-prefixes",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "OPENAI_API_KEY=sk-proj-secret slack xoxb-1-2 google ya29.a0b and AIzaSyNeutral",
+      "expected": "OPENAI_API_KEY=[redacted] slack [redacted] google [redacted] and [redacted]",
+      "count": 4,
+      "replaced": 4,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "bare-prefix-kept",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "prefix ghp_ alone",
+      "expected": "prefix ghp_ alone",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "seed-trimmed",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "  padded-secret \n"
+      ],
+      "input": "value padded-secret here",
+      "expected": "value [redacted] here",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "duplicate-seeds-accepted-once",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "dup-secret",
+        "dup-secret"
+      ],
+      "input": "dup-secret",
+      "expected": "[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "multibyte-short-seed-dropped",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [
+        "日本語"
+      ],
+      "input": "日本語 text",
+      "expected": "日本語 text",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 1
+    },
+    {
+      "name": "exact-only-ignores-shapes",
+      "source": "boundary",
+      "rules": "exact_only",
+      "seeds": [],
+      "input": "token=ghp_12345 Bearer opaque1",
+      "expected": "token=ghp_12345 Bearer opaque1",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "exact-only-seed",
+      "source": "boundary",
+      "rules": "exact_only",
+      "seeds": [
+        "12345"
+      ],
+      "input": "token=ghp_12345",
+      "expected": "token=ghp_[redacted]",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "key-needs-word-boundary",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "mytoken=visible",
+      "expected": "mytoken=visible",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "existing-markers-counted",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "[redacted] plain [redacted]",
+      "expected": "[redacted] plain [redacted]",
+      "count": 2,
+      "replaced": 0,
+      "dropped_secrets": 0
+    }
+  ]
+}
