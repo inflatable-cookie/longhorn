@@ -15,6 +15,9 @@ use super::{
     manifest::{DeclaredPayload, validate_manifest},
 };
 
+/// General-purpose bit 11: the entry name is UTF-8.
+const LANGUAGE_ENCODING_FLAG: u16 = 1 << 11;
+
 /// Parses and verifies a plaintext backup without extracting to the filesystem.
 pub fn inspect_backup_archive(
     bytes: &[u8],
@@ -120,17 +123,18 @@ fn validate_entry_metadata<R: Read>(
 ) -> Result<String, BackupArchiveError> {
     let raw_name = std::str::from_utf8(entry.name_raw()).map_err(|error| {
         BackupArchiveError::InvalidEntryName {
-            path: entry.name().into(),
+            path: String::from_utf8_lossy(entry.name_raw()).into_owned(),
             detail: error.to_string(),
         }
     })?;
-    if raw_name != entry.name() {
+    // A non-ASCII name without the UTF-8 flag decodes as CP437 elsewhere.
+    if !raw_name.is_ascii() && entry.flags().as_u16() & LANGUAGE_ENCODING_FLAG == 0 {
         return Err(BackupArchiveError::InvalidEntryName {
-            path: entry.name().into(),
+            path: raw_name.into(),
             detail: "name is not canonical UTF-8".into(),
         });
     }
-    let path = entry.name().to_owned();
+    let path = raw_name.to_owned();
     if path.len() > limits.max_path_bytes() {
         return Err(BackupArchiveError::PathTooLong {
             path,

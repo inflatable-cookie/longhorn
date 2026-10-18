@@ -194,8 +194,8 @@ ts-rs = { version = "=12.0.1", default-features = false, features = ["no-serde-w
 # publication, determinism, retention, and restore suites. Backup archives
 # are compared byte-for-byte. Longhorn's Cargo.lock is the tested set;
 # every dependency refresh reruns those suites. Consumers taking Longhorn
-# by git tag can resolve a compatible zip 8.x.
-zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# by git tag can resolve a compatible zip 9.x.
+zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"
