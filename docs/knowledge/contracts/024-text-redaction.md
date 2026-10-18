@@ -163,7 +163,9 @@ Against the Acowtancy donor at `1d2d13022`:
 - A prefix body stops at any character outside `[A-Za-z0-9_-]`. `install_log`
   ran to whitespace or one of `"`, `'`, `)`, `]`, `,`, `;`, so `ya29.a0b.c` now keeps `.c`.
 - Userinfo without a password is kept. `install_log` redacted any userinfo.
-- `Bearer` credentials under four characters are kept by both former paths.
+- `Bearer` credentials under four characters are now kept. Both former
+  paths redacted them (`Bearer abc` became `Bearer [redacted]`). This is a
+  deliberate reduction in protection, so prose like "bearer of" survives.
 - `Bearer` matches in any case. `diagnostics::redact` matched `Bearer ` only.
 - JWTs need a case-sensitive `eyJ`; PEM markers are case-sensitive.
   `install_log` matched both in any case.
