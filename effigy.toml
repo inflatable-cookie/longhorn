@@ -26,6 +26,8 @@ include = ["config/release.toml"]
 "lint:redact" = "cargo clippy -p longhorn-redact --all-targets --locked -- -D warnings"
 "lint:support-log" = "cargo clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
 "lint:diagnostics" = "cargo clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
+# Contract 027 and its shared archive path rule (contract 018 and 027).
+"lint:tool-provision" = "cargo clippy -p longhorn-tool-provision -p longhorn-archive-path --all-targets --locked -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
@@ -34,6 +36,7 @@ include = ["config/release.toml"]
 "test:redact" = "cargo test -p longhorn-redact --locked"
 "test:support-log" = "cargo test -p longhorn-support-log --locked"
 "test:diagnostics" = "cargo test -p longhorn-diagnostics --locked"
+"test:tool-provision" = "cargo test -p longhorn-tool-provision -p longhorn-archive-path --locked"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this task — `cargo test` — because the doc tests
 # are part of the claim. The built-in remains a convenience for iteration.
@@ -42,6 +45,7 @@ include = ["config/release.toml"]
 "docs:redact" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-redact --no-deps --locked'"
 "docs:support-log" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-support-log --no-deps --locked'"
 "docs:diagnostics" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-diagnostics --no-deps --locked'"
+"docs:tool-provision" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
 # are the only artefacts binding a Longhorn seam to a real host SDK, and until
@@ -148,6 +152,12 @@ include = ["config/release.toml"]
   { task = "lint:diagnostics" },
   { task = "test:diagnostics" },
   { task = "docs:diagnostics" },
+  { task = "check:api-reference" },
+]
+"check:tool-provision" = [
+  { task = "lint:tool-provision" },
+  { task = "test:tool-provision" },
+  { task = "docs:tool-provision" },
   { task = "check:api-reference" },
 ]
 "proof:agent-tool-dispatch-source-consumer" = "bun scripts/verify-agent-tool-dispatch-source-consumer.ts"
@@ -726,6 +736,34 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-diagnostics", "path:crates/longhorn-diagnostics/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.tool-provision]
+lifecycle = "maintained"
+purpose = "Check the tool-provision crate against contract 027 and the archive path rule it shares"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover longhorn-update-install, which consumes the shared path rule and is checked by the Rust lane",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "tool-provision-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:tool-provision",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-tool-provision",
+      "path:crates/longhorn-tool-provision/**",
+      "cargo-package:longhorn-archive-path",
+      "path:crates/longhorn-archive-path/**",
+    ],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

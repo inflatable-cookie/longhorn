@@ -18,7 +18,7 @@ them.
 
 - **Core** — host-agnostic. Every application satisfies these whatever its
   backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
-  018 (policy), 019, 021, 024, 025, 026.
+  018 (policy), 019, 021, 024, 025, 026, 027.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
@@ -58,6 +58,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [024 Text Redaction](024-text-redaction.md) | std-only secret redaction engine: span model, rules, guarantees, case table | active compiled boundary |
 | [025 Bounded Support Logs](025-bounded-support-logs.md) | redact-then-bound ring log, rotating line log and output tails: bounds, rotation, failure rules, UTC timestamps | active compiled boundary |
 | [026 Diagnostics Bundle](026-diagnostics-bundle.md) | pure diagnostics renderer: exact layout, redact-last with the app's redactor, marker count, caller-owned product text | active compiled boundary |
+| [027 Managed Tool Provisioning](027-managed-tool-provisioning.md) | verified artifacts (digest, then vendor team on the extracted executable), bounded single-member extraction, failure classes; release source and install pipeline pending (4b, 4c) | active; 4a compiled |
 
 ## Notes
 

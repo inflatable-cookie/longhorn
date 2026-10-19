@@ -1,0 +1,615 @@
+//! Contract 027: bounded extraction of one executable, through the public
+//! API only. Archives are built in fresh temporary directories.
+
+mod support;
+
+use std::{os::unix::fs::PermissionsExt, path::Path};
+
+use longhorn_tool_provision::{
+    ArtifactShape, Declaration, DigestSource, ExtractionLimits, Fault, ProvisionError, Refusal,
+    SignatureReport, SignatureVerifier, StagedExecutable, VerifiedArtifact, extract_executable,
+    verify_artifact, verify_signature,
+};
+use support::{TarEntry, ZipEntry, sha256_hex, tar_gz, write_file, zip_of};
+
+const BINARY: &[u8] = b"#!/bin/sh\necho tool\n";
+
+/// The archive, written into its own directory, verified by digest.
+fn verified(dir: &Path, asset: &str, archive: &[u8]) -> VerifiedArtifact {
+    let path = write_file(dir, asset, archive);
+    let checksums = format!("{}  {asset}\n", sha256_hex(archive));
+    verify_artifact(
+        &path,
+        asset,
+        Declaration {
+            digest: Some(DigestSource::ReleaseChecksums(&checksums)),
+            vendor_team: None,
+        },
+    )
+    .expect("the fixture digest matches")
+}
+
+/// A fresh staging directory inside `root`.
+fn staging(root: &Path, name: &str) -> std::path::PathBuf {
+    let dir = root.join(name);
+    std::fs::create_dir(&dir).expect("staging directory");
+    dir
+}
+
+fn limits() -> ExtractionLimits {
+    ExtractionLimits::DEFAULT
+}
+
+fn refused(result: Result<StagedExecutable, ProvisionError>) -> Refusal {
+    match result {
+        Err(ProvisionError::Refused(refusal)) => refusal,
+        Err(ProvisionError::Fault(fault)) => panic!("expected a refusal, got fault {fault}"),
+        Ok(_) => panic!("expected a refusal, got an extracted executable"),
+    }
+}
+
+fn tar_archive_refused(members: &[TarEntry<'_>]) -> Refusal {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool.tar.gz", &tar_gz(members));
+    refused(extract_executable(
+        &artifact,
+        ArtifactShape::TarGz { member: "tool" },
+        &staging(temp.path(), "out"),
+        "tool",
+        limits(),
+    ))
+}
+
+fn file(name: &str) -> TarEntry<'_> {
+    TarEntry::File {
+        name,
+        bytes: BINARY.to_vec(),
+        mode: 0o755,
+    }
+}
+
+#[test]
+fn a_tar_gz_member_is_written_with_the_executable_mode_not_the_archives() {
+    let temp = tempfile::tempdir().unwrap();
+    // A setuid bit in the archive must not reach the staged file.
+    let archive = tar_gz(&[
+        TarEntry::Dir { name: "./" },
+        TarEntry::File {
+            name: "./tool-2.0.0/bin/tool",
+            bytes: BINARY.to_vec(),
+            mode: 0o4755,
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    let out = staging(temp.path(), "out");
+    extract_executable(
+        &artifact,
+        ArtifactShape::TarGz {
+            member: "tool-2.0.0/bin/tool",
+        },
+        &out,
+        "tool",
+        limits(),
+    )
+    .expect("the member extracts");
+    assert_eq!(std::fs::read(out.join("tool")).unwrap(), BINARY);
+    let mode = std::fs::metadata(out.join("tool"))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o7777, 0o755, "the mode is set here, setuid dropped");
+}
+
+#[test]
+fn a_zip_member_in_a_nested_directory_is_extracted() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[
+        ZipEntry::Dir {
+            name: "tool_2.0.0_macOS_arm64/",
+        },
+        ZipEntry::File {
+            name: "tool_2.0.0_macOS_arm64/bin/tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::File {
+            name: "tool_2.0.0_macOS_arm64/README",
+            bytes: b"docs".to_vec(),
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    let out = staging(temp.path(), "out");
+    extract_executable(
+        &artifact,
+        ArtifactShape::Zip {
+            member: "tool_2.0.0_macOS_arm64/bin/tool",
+        },
+        &out,
+        "tool",
+        limits(),
+    )
+    .expect("the member extracts");
+    assert_eq!(std::fs::read(out.join("tool")).unwrap(), BINARY);
+    assert!(
+        !out.join("README").exists(),
+        "only the requested member is written"
+    );
+}
+
+#[test]
+fn a_raw_artifact_is_staged_as_the_executable() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool-darwin-arm64", BINARY);
+    let out = staging(temp.path(), "out");
+    extract_executable(&artifact, ArtifactShape::Raw, &out, "tool", limits())
+        .expect("the raw artifact stages");
+    assert_eq!(std::fs::read(out.join("tool")).unwrap(), BINARY);
+    let mode = std::fs::metadata(out.join("tool"))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o755);
+}
+
+#[test]
+fn a_missing_member_refuses() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool.tar.gz", &tar_gz(&[file("other")]));
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::TarGz { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::MemberMissing { member, .. } if member == "tool"
+    ));
+}
+
+#[test]
+fn a_member_held_twice_refuses() {
+    assert!(matches!(
+        tar_archive_refused(&[file("tool"), file("tool")]),
+        Refusal::DuplicateMember { .. }
+    ));
+}
+
+#[test]
+fn escaping_and_absolute_names_refuse_anywhere_in_the_archive() {
+    for name in ["../escape", "/absolute/escape", "bin/../../escape"] {
+        assert!(
+            matches!(
+                tar_archive_refused(&[file("tool"), file(name)]),
+                Refusal::UnsafeEntry {
+                    reason: Some(_),
+                    ..
+                }
+            ),
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn a_backslash_in_a_name_refuses() {
+    assert!(matches!(
+        tar_archive_refused(&[file("tool"), file("bin\\escape")]),
+        Refusal::UnsafeEntry { reason: None, .. }
+    ));
+    let temp = tempfile::tempdir().unwrap();
+    let zip = zip_of(&[ZipEntry::File {
+        name: "bin\\tool",
+        bytes: BINARY.to_vec(),
+    }]);
+    let artifact = verified(temp.path(), "tool.zip", &zip);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "bin/tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::UnsafeEntry { reason: None, .. }
+    ));
+}
+
+#[test]
+fn a_zip_entry_with_a_parent_component_refuses() {
+    let temp = tempfile::tempdir().unwrap();
+    let zip = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::File {
+            name: "../escape",
+            bytes: b"x".to_vec(),
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &zip);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::UnsafeEntry {
+            reason: Some(_),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn symlink_and_hard_link_members_refuse_even_when_they_are_not_the_member() {
+    assert!(matches!(
+        tar_archive_refused(&[
+            file("tool"),
+            TarEntry::Symlink {
+                name: "link",
+                target: "tool",
+            },
+        ]),
+        Refusal::LinkEntry { .. }
+    ));
+    assert!(matches!(
+        tar_archive_refused(&[
+            file("tool"),
+            TarEntry::HardLink {
+                name: "hard",
+                target: "tool",
+            },
+        ]),
+        Refusal::LinkEntry { .. }
+    ));
+    let temp = tempfile::tempdir().unwrap();
+    let zip = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::Symlink {
+            name: "link",
+            target: "tool",
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &zip);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::LinkEntry { .. }
+    ));
+}
+
+#[test]
+fn a_fifo_entry_refuses_as_unsupported() {
+    assert!(matches!(
+        tar_archive_refused(&[file("tool"), TarEntry::Fifo { name: "pipe" }]),
+        Refusal::UnsupportedEntry { .. }
+    ));
+}
+
+#[test]
+fn the_member_count_bound_refuses_and_its_boundary_passes() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[file("a"), file("b"), file("tool")]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::TarGz { member: "tool" },
+            &staging(temp.path(), "over"),
+            "tool",
+            ExtractionLimits::new(2, u64::MAX),
+        )),
+        Refusal::TooManyMembers { limit: 2, .. }
+    ));
+    extract_executable(
+        &artifact,
+        ArtifactShape::TarGz { member: "tool" },
+        &staging(temp.path(), "at"),
+        "tool",
+        ExtractionLimits::new(3, u64::MAX),
+    )
+    .expect("exactly the limit passes");
+
+    let zip = zip_of(&[
+        ZipEntry::File {
+            name: "a",
+            bytes: vec![],
+        },
+        ZipEntry::File {
+            name: "b",
+            bytes: vec![],
+        },
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &zip);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "zip-over"),
+            "tool",
+            ExtractionLimits::new(2, u64::MAX),
+        )),
+        Refusal::TooManyMembers { .. }
+    ));
+}
+
+#[test]
+fn skipped_members_count_against_the_decompressed_byte_bound() {
+    // The target's declared size is 10 bytes, well under the bound. The 2 KiB
+    // member before it is not the target, but the tar reader still
+    // decompresses it, so the stream exceeds the bound.
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[
+        TarEntry::File {
+            name: "filler",
+            bytes: vec![0u8; 2048],
+            mode: 0o644,
+        },
+        TarEntry::File {
+            name: "tool",
+            bytes: vec![1u8; 10],
+            mode: 0o755,
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::TarGz { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            ExtractionLimits::new(100, 1024),
+        )),
+        Refusal::ArchiveTooLarge { limit: 1024, .. }
+    ));
+}
+
+#[test]
+fn a_raw_artifact_over_the_byte_bound_refuses() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool-darwin-arm64", &vec![0u8; 4096]);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Raw,
+            &staging(temp.path(), "out"),
+            "tool",
+            ExtractionLimits::new(100, 1024),
+        )),
+        Refusal::ArchiveTooLarge { .. }
+    ));
+}
+
+/// Rewrites the declared uncompressed size of every zip record for `name` (the
+/// local header and the central directory) to `declared`, so the header
+/// claims less than the member really decompresses to.
+fn declare_size(archive: &mut [u8], name: &str, declared: u32) {
+    // (signature, name-length offset, name offset, uncompressed-size offset)
+    // within the record, per the zip format's local and central headers.
+    let records = [
+        (&b"PK\x03\x04"[..], 26usize, 30usize, 22usize),
+        (&b"PK\x01\x02"[..], 28, 46, 24),
+    ];
+    let mut offsets = Vec::new();
+    for (signature, length_offset, name_offset, size_offset) in records {
+        for start in 0..archive.len().saturating_sub(name_offset) {
+            if &archive[start..start + 4] != signature {
+                continue;
+            }
+            let length_at = start + length_offset;
+            let length = u16::from_le_bytes([archive[length_at], archive[length_at + 1]]) as usize;
+            let stored = start + name_offset;
+            if archive.get(stored..stored + length) == Some(name.as_bytes()) {
+                offsets.push(start + size_offset);
+            }
+        }
+    }
+    assert_eq!(offsets.len(), 2, "the fixture holds the member twice");
+    for offset in offsets {
+        archive[offset..offset + 4].copy_from_slice(&declared.to_le_bytes());
+    }
+}
+
+#[test]
+fn a_zip_member_larger_than_its_declared_size_refuses_as_unreadable() {
+    // The zip reader caps each member at its declared size and fails the
+    // moment the stream runs past it. A header that understates its member
+    // is a damaged archive; the declared size is never allowed to hide real
+    // bytes.
+    let temp = tempfile::tempdir().unwrap();
+    let mut archive = zip_of(&[ZipEntry::File {
+        name: "tool",
+        bytes: vec![0u8; 4096],
+    }]);
+    declare_size(&mut archive, "tool", 16);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            ExtractionLimits::new(100, 1024),
+        )),
+        Refusal::UnreadableArchive { .. }
+    ));
+}
+
+#[test]
+fn an_honest_zip_member_over_the_byte_bound_refuses_as_too_large() {
+    // Declared and real sizes agree, so the budget is what refuses.
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[ZipEntry::File {
+        name: "tool",
+        bytes: vec![0u8; 4096],
+    }]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            ExtractionLimits::new(100, 1024),
+        )),
+        Refusal::ArchiveTooLarge { limit: 1024, .. }
+    ));
+}
+
+#[test]
+fn an_unreadable_archive_refuses_as_unreadable() {
+    let temp = tempfile::tempdir().unwrap();
+    let garbage = b"not an archive at all".to_vec();
+    let tar = verified(temp.path(), "tool.tar.gz", &garbage);
+    assert!(matches!(
+        refused(extract_executable(
+            &tar,
+            ArtifactShape::TarGz { member: "tool" },
+            &staging(temp.path(), "tar-out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::UnreadableArchive { .. }
+    ));
+    let zip = verified(temp.path(), "tool.zip", &garbage);
+    assert!(matches!(
+        refused(extract_executable(
+            &zip,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "zip-out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::UnreadableArchive { .. }
+    ));
+}
+
+#[test]
+fn a_staged_name_that_is_not_one_file_name_is_a_usage_fault() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool-darwin-arm64", BINARY);
+    let error = extract_executable(
+        &artifact,
+        ArtifactShape::Raw,
+        &staging(temp.path(), "out"),
+        "nested/tool",
+        limits(),
+    )
+    .unwrap_err();
+    assert!(
+        matches!(error, ProvisionError::Fault(Fault::Usage { .. })),
+        "{error}"
+    );
+}
+
+#[test]
+fn a_member_path_that_escapes_is_a_usage_fault_not_an_archive_refusal() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool.tar.gz", &tar_gz(&[file("tool")]));
+    let error = extract_executable(
+        &artifact,
+        ArtifactShape::TarGz { member: "../tool" },
+        &staging(temp.path(), "out"),
+        "tool",
+        limits(),
+    )
+    .unwrap_err();
+    assert!(
+        matches!(error, ProvisionError::Fault(Fault::Usage { .. })),
+        "{error}"
+    );
+}
+
+#[test]
+fn an_existing_staged_file_is_a_fault_and_is_never_overwritten() {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool-darwin-arm64", BINARY);
+    let out = staging(temp.path(), "out");
+    write_file(&out, "tool", b"earlier");
+    let error =
+        extract_executable(&artifact, ArtifactShape::Raw, &out, "tool", limits()).unwrap_err();
+    assert!(
+        matches!(error, ProvisionError::Fault(Fault::Io { .. })),
+        "{error}"
+    );
+    assert_eq!(std::fs::read(out.join("tool")).unwrap(), b"earlier");
+}
+
+#[test]
+fn a_root_directory_entry_and_a_dot_slash_member_extract() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[
+        TarEntry::Dir { name: "./" },
+        TarEntry::File {
+            name: "./tool",
+            bytes: BINARY.to_vec(),
+            mode: 0o755,
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    extract_executable(
+        &artifact,
+        ArtifactShape::TarGz { member: "tool" },
+        &staging(temp.path(), "out"),
+        "tool",
+        limits(),
+    )
+    .expect("a ./ root and a ./ member are ordinary tar output");
+}
+
+/// The contract 027 chain: digest, bounded extraction, team, installable.
+#[test]
+fn the_chain_verifies_extracts_and_checks_the_team_before_installable() {
+    struct Vendor;
+    impl SignatureVerifier for Vendor {
+        fn report(&self, path: &Path) -> Result<SignatureReport, ProvisionError> {
+            assert!(
+                path.is_file(),
+                "the signature is checked on the staged file"
+            );
+            Ok(SignatureReport::Team("TEAMID0001".to_owned()))
+        }
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[file("tool-2.0.0/tool")]);
+    let path = write_file(temp.path(), "tool.tar.gz", &archive);
+    let checksums = format!("{}  tool.tar.gz\n", sha256_hex(&archive));
+    let artifact = verify_artifact(
+        &path,
+        "tool.tar.gz",
+        Declaration {
+            digest: Some(DigestSource::ReleaseChecksums(&checksums)),
+            vendor_team: Some("TEAMID0001"),
+        },
+    )
+    .expect("the digest matches");
+    let out = staging(temp.path(), "out");
+    let staged = extract_executable(
+        &artifact,
+        ArtifactShape::TarGz {
+            member: "tool-2.0.0/tool",
+        },
+        &out,
+        "tool",
+        limits(),
+    )
+    .expect("the member extracts");
+    let installable = verify_signature(staged, &Vendor).expect("the team verifies");
+    assert_eq!(installable.path(), out.join("tool"));
+    assert_eq!(installable.vendor_team(), Some("TEAMID0001"));
+}

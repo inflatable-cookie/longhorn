@@ -17,7 +17,12 @@ are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
 - **On `main`, unreleased:** `longhorn-diagnostics`
   ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)), the pure
-  diagnostics bundle renderer, for Acowtancy Desktop's next migration.
+  diagnostics bundle renderer, for Acowtancy Desktop's next migration;
+  `longhorn-tool-provision`
+  ([contract 027](knowledge/contracts/027-managed-tool-provisioning.md)),
+  part 4a of managed tool provisioning (verification and bounded extraction),
+  and `longhorn-archive-path`, the archive path rule it shares with
+  `longhorn-update-install`.
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
 - **Consumer adoption** of Longhorn features is consumer-owned. Longhorn does

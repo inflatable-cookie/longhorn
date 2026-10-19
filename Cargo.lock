@@ -2857,6 +2857,10 @@ name = "longhorn-agent-tool-dispatch"
 version = "0.3.2"
 
 [[package]]
+name = "longhorn-archive-path"
+version = "0.3.2"
+
+[[package]]
 name = "longhorn-bindings"
 version = "0.3.2"
 dependencies = [
@@ -3455,6 +3459,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-tool-provision"
+version = "0.3.2"
+dependencies = [
+ "flate2",
+ "hex",
+ "longhorn-archive-path",
+ "sha2 0.11.0",
+ "tar",
+ "tempfile",
+ "zip",
+]
+
+[[package]]
 name = "longhorn-transfer"
 version = "0.3.2"
 dependencies = [
@@ -3488,6 +3505,7 @@ name = "longhorn-update-install"
 version = "0.3.2"
 dependencies = [
  "flate2",
+ "longhorn-archive-path",
  "longhorn-update",
  "minisign",
  "minisign-verify",

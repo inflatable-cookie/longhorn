@@ -1,0 +1,26 @@
+[package]
+name = "longhorn-tool-provision"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Verified artifacts and bounded extraction for managed command-line tools (contract 027)"
+publish = false
+
+[dependencies]
+flate2.workspace = true
+hex.workspace = true
+longhorn-archive-path.workspace = true
+sha2.workspace = true
+tar.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+flate2.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+zip.workspace = true
+
+[lints]
+workspace = true

@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 flate2.workspace = true
+longhorn-archive-path.workspace = true
 longhorn-update.workspace = true
 minisign-verify.workspace = true
 semver.workspace = true
