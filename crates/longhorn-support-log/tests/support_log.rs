@@ -182,7 +182,7 @@ fn a_retained_handle_still_enforces_the_bound_on_every_write() {
     let root = tempfile::tempdir().unwrap();
     let log = RotatingLog::open(config(root.path(), MAX_BYTES), redactor());
     let detail = "x".repeat(1024);
-    for _ in 0..800 {
+    for _ in 0..1_600 {
         log.record("apply.start", &detail);
     }
 
@@ -194,7 +194,7 @@ fn a_retained_handle_still_enforces_the_bound_on_every_write() {
     assert_eq!(
         log.stats(),
         LogStats {
-            written: 800,
+            written: 1_600,
             oversized: 0,
             failed: 0
         }
@@ -466,13 +466,13 @@ fn cuts_next_to_multi_byte_utf8_land_on_character_boundaries() {
     assert_eq!(bound_field(&redactor(), "ééé", 6), "ééé");
     assert_eq!(bound_field(&redactor(), "界", 2), "");
 
-    // A tail cut moves forward past a split character.
+    // A tail cut moves forward past a split character. The input is 60 bytes.
     for extra in 0..4 {
         let bounds = TailBounds {
             lines: 10,
             bytes: OMITTED_MARKER.len() + 7 + extra,
         };
-        let tail = bounded_tail(&redactor(), "界界界界界", bounds);
+        let tail = bounded_tail(&redactor(), &"界".repeat(20), bounds);
         assert!(tail.len() <= bounds.bytes);
         assert!(tail.starts_with(OMITTED_MARKER));
         let kept = &tail[OMITTED_MARKER.len()..];
