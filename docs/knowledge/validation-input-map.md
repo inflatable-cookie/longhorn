@@ -45,6 +45,13 @@ An unmapped input and every declared coverage gap return `needs_planner`
 before execution. The existing `qa`, `qa:docs`, `proof:artifacts`, CI and
 release gates keep their current members and meaning.
 
+Known unmapped inputs (planner ruling, 2026-10-20; PR 78 precedent):
+`CHANGELOG.md`, `Cargo.toml`, `Cargo.lock` and `effigy.toml` are PR gap tokens,
+not group scope tokens. Record `qa:docs` for `CHANGELOG.md`; record `lint:rust`
+and the affected package group for the manifests. If a plan returns
+`needs_planner` only for these inputs, retain that result and reason, then
+plan again without them. Every other unmapped input still needs the planner.
+
 | Group | Declared work | Boundary |
 | --- | --- | --- |
 | `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |

@@ -4,9 +4,11 @@ Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
 are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 
-- **Released:** `0.3.2` (2026-10-19). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.3.2` for the Rust crates. `0.3.2` adds
-  `longhorn-support-log`
+- **Released:** `0.3.3` (2026-10-19). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.3.3` for the Rust crates. `0.3.3` adds
+  `longhorn-diagnostics`
+  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)); `0.3.2`
+  added `longhorn-support-log`
   ([contract 025](knowledge/contracts/025-bounded-support-logs.md)); `0.3.1`
   added `longhorn-redact`
   ([contract 024](knowledge/contracts/024-text-redaction.md)) and moved
@@ -15,10 +17,7 @@ are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
   Poodle is a peer range (`>=0.4.4 <0.5`) and third-party Rust dependencies
   are ranges
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
-- **On `main`, unreleased:** `longhorn-diagnostics`
-  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)), the pure
-  diagnostics bundle renderer, for Acowtancy Desktop's next migration;
-  `longhorn-tool-provision`
+- **On `main`, unreleased:** `longhorn-tool-provision`
   ([contract 027](knowledge/contracts/027-managed-tool-provisioning.md)),
   part 4a of managed tool provisioning (verification and bounded extraction),
   and `longhorn-archive-path`, the archive path rule it shares with
