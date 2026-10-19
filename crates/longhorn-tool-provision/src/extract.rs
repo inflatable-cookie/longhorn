@@ -143,19 +143,29 @@ pub fn extract_executable(
             Some(member_path(member)?)
         }
     };
-    // Only a file this call creates is ours to remove. An existing file at the
-    // staged path refuses as an I/O fault and is left exactly as it was.
-    let created_here = fs::symlink_metadata(&destination).is_err();
+    // Ownership starts only when create_new succeeds, never from an earlier
+    // existence check: another extraction may create the file in between.
+    let mut created_here = false;
     let sealed = seal(artifact, staging, staged_name)?;
     let asset = artifact.asset();
     let extracted = match (shape, member.as_deref()) {
-        (ArtifactShape::TarGz { .. }, Some(member)) => {
-            extract_tar_gz(&sealed, asset, member, &destination, limits)
-        }
-        (ArtifactShape::Zip { .. }, Some(member)) => {
-            extract_zip(&sealed, asset, member, &destination, limits)
-        }
-        _ => copy_raw(&sealed, asset, &destination, limits),
+        (ArtifactShape::TarGz { .. }, Some(member)) => extract_tar_gz(
+            &sealed,
+            asset,
+            member,
+            &destination,
+            &mut created_here,
+            limits,
+        ),
+        (ArtifactShape::Zip { .. }, Some(member)) => extract_zip(
+            &sealed,
+            asset,
+            member,
+            &destination,
+            &mut created_here,
+            limits,
+        ),
+        _ => copy_raw(&sealed, asset, &destination, &mut created_here, limits),
     };
     let removed = fs::remove_file(&sealed).map_err(io_fault(&sealed));
     let finished = extracted
@@ -316,6 +326,7 @@ fn refuse_link(asset: &str, name: &str) -> ProvisionError {
 fn copy_member<R: Read>(
     reader: &mut R,
     destination: &Path,
+    created_here: &mut bool,
     on_read_error: impl Fn(&io::Error) -> ProvisionError,
 ) -> Result<(), ProvisionError> {
     let mut out = OpenOptions::new()
@@ -323,6 +334,7 @@ fn copy_member<R: Read>(
         .create_new(true)
         .open(destination)
         .map_err(io_fault(destination))?;
+    *created_here = true;
     let mut buffer = vec![0u8; 64 * 1024];
     loop {
         let read = match reader.read(&mut buffer) {
@@ -341,11 +353,12 @@ fn copy_raw(
     sealed: &Path,
     asset: &str,
     destination: &Path,
+    created_here: &mut bool,
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let source = File::open(sealed).map_err(io_fault(sealed))?;
     let mut reader = BudgetReader::new(source, limits.max_bytes());
-    copy_member(&mut reader, destination, |error| {
+    copy_member(&mut reader, destination, created_here, |error| {
         if error_is_budget(error) {
             ProvisionError::Refused(Refusal::ArchiveTooLarge {
                 asset: asset.to_owned(),
@@ -365,6 +378,7 @@ fn extract_tar_gz(
     asset: &str,
     member: &Path,
     destination: &Path,
+    created_here: &mut bool,
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let file = File::open(sealed).map_err(io_fault(sealed))?;
@@ -410,7 +424,7 @@ fn extract_tar_gz(
                 return Err(duplicate(asset, member));
             }
             found = true;
-            copy_member(&mut entry, destination, &on_read)?;
+            copy_member(&mut entry, destination, created_here, &on_read)?;
         }
     }
     if found {
@@ -431,6 +445,7 @@ fn extract_zip(
     asset: &str,
     member: &Path,
     destination: &Path,
+    created_here: &mut bool,
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let file = File::open(sealed).map_err(io_fault(sealed))?;
@@ -486,12 +501,12 @@ fn extract_zip(
         match entry.compression() {
             zip::CompressionMethod::Stored => {
                 let mut budget = BudgetReader::new(&mut entry, limits.max_bytes());
-                copy_member(&mut budget, destination, &on_read)?;
+                copy_member(&mut budget, destination, created_here, &on_read)?;
             }
             zip::CompressionMethod::Deflated => {
                 let decoder = DeflateDecoder::new(&mut entry);
                 let mut budget = BudgetReader::new(decoder, limits.max_bytes());
-                copy_member(&mut budget, destination, &on_read)?;
+                copy_member(&mut budget, destination, created_here, &on_read)?;
             }
             method => {
                 return Err(ProvisionError::Refused(Refusal::UnreadableArchive {

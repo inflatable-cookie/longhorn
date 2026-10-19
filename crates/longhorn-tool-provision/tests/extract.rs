@@ -789,3 +789,74 @@ fn a_zip_refusal_after_the_member_is_written_leaves_no_executable_behind() {
     );
     assert_eq!(std::fs::read_dir(&out).unwrap().count(), 0);
 }
+
+/// Hold sealing at a FIFO so a competing writer wins the destination after
+/// extraction starts but before create_new. No scheduling race is needed.
+#[test]
+#[cfg(unix)]
+fn a_file_created_during_sealing_is_not_removed_by_the_losing_extraction() {
+    use std::{
+        fs::OpenOptions,
+        io::Write,
+        process::Command,
+        thread,
+        time::{Duration, Instant},
+    };
+
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "artifact.bin", BINARY);
+    let source = temp.path().join("artifact.bin");
+    std::fs::remove_file(&source).unwrap();
+    assert!(
+        Command::new("/usr/bin/mkfifo")
+            .arg(&source)
+            .status()
+            .unwrap()
+            .success()
+    );
+    // Opening both ends keeps fixture setup nonblocking. The extractor gets
+    // EOF when this handle closes, after it has consumed the supplied bytes.
+    let mut pipe = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&source)
+        .unwrap();
+    let out = staging(temp.path(), "out");
+    let sealed = out.join(".tool.artifact");
+    let destination = out.join("tool");
+
+    thread::scope(|scope| {
+        let extraction = scope
+            .spawn(|| extract_executable(&artifact, ArtifactShape::Raw, &out, "tool", limits()));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !sealed.exists() && Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(1));
+        }
+        assert!(sealed.exists(), "extraction reached sealing");
+        let mut winner = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&destination)
+            .unwrap();
+        winner.write_all(b"winner").unwrap();
+        drop(winner);
+        pipe.write_all(BINARY).unwrap();
+        while std::fs::metadata(&sealed).unwrap().len() != BINARY.len() as u64
+            && Instant::now() < deadline
+        {
+            thread::sleep(Duration::from_millis(1));
+        }
+        assert_eq!(
+            std::fs::metadata(&sealed).unwrap().len(),
+            BINARY.len() as u64
+        );
+        drop(pipe);
+        let error = extraction.join().unwrap().unwrap_err();
+        assert!(
+            matches!(error, ProvisionError::Fault(Fault::Io { .. })),
+            "{error}"
+        );
+    });
+    assert_eq!(std::fs::read(&destination).unwrap(), b"winner");
+    assert!(!sealed.exists(), "the losing call removes its private copy");
+}

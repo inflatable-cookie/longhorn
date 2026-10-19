@@ -148,7 +148,9 @@ caller. A name with a directory part is `Fault::Usage`.
   overwritten.
 - A refusal or fault after the file was written removes it: a later entry
   can refuse an archive whose member was already written. A file that was at
-  the path before the call is never touched.
+  the path before the call is never touched. Cleanup ownership starts only
+  after atomic file creation succeeds; a losing concurrent call cannot remove
+  the winner's file.
 - The mode is set to `0755` after the write. No permission from the archive
   is applied.
 - Raw artifacts are copied to the staged name under the same byte bound.
