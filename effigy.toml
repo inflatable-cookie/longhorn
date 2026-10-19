@@ -25,6 +25,7 @@ include = ["config/release.toml"]
 "lint:agent-tool-dispatch" = "cargo clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
 "lint:redact" = "cargo clippy -p longhorn-redact --all-targets --locked -- -D warnings"
 "lint:support-log" = "cargo clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
+"lint:diagnostics" = "cargo clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
@@ -32,6 +33,7 @@ include = ["config/release.toml"]
 "test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
 "test:redact" = "cargo test -p longhorn-redact --locked"
 "test:support-log" = "cargo test -p longhorn-support-log --locked"
+"test:diagnostics" = "cargo test -p longhorn-diagnostics --locked"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this task — `cargo test` — because the doc tests
 # are part of the claim. The built-in remains a convenience for iteration.
@@ -39,6 +41,7 @@ include = ["config/release.toml"]
 "docs:agent-tool-dispatch" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-agent-tool-dispatch --no-deps --locked'"
 "docs:redact" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-redact --no-deps --locked'"
 "docs:support-log" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-support-log --no-deps --locked'"
+"docs:diagnostics" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-diagnostics --no-deps --locked'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
 # are the only artefacts binding a Longhorn seam to a real host SDK, and until
@@ -137,6 +140,14 @@ include = ["config/release.toml"]
   { task = "lint:support-log" },
   { task = "test:support-log" },
   { task = "docs:support-log" },
+  { task = "check:api-reference" },
+]
+# Contract 026's crate. check:api-reference keeps the generated crate row
+# honest.
+"check:diagnostics" = [
+  { task = "lint:diagnostics" },
+  { task = "test:diagnostics" },
+  { task = "docs:diagnostics" },
   { task = "check:api-reference" },
 ]
 "proof:agent-tool-dispatch-source-consumer" = "bun scripts/verify-agent-tool-dispatch-source-consumer.ts"
@@ -693,6 +704,28 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-support-log", "path:crates/longhorn-support-log/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.diagnostics]
+lifecycle = "maintained"
+purpose = "Check the diagnostics crate against contract 026"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "diagnostics-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:diagnostics",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-diagnostics", "path:crates/longhorn-diagnostics/**"],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

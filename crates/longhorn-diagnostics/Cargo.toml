@@ -1,0 +1,16 @@
+[package]
+name = "longhorn-diagnostics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure diagnostics bundle renderer for desktop apps"
+publish = false
+
+[dependencies]
+longhorn-redact = { workspace = true }
+longhorn-support-log = { workspace = true }
+
+[lints]
+workspace = true

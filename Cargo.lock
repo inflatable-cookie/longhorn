@@ -2983,6 +2983,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-diagnostics"
+version = "0.3.2"
+dependencies = [
+ "longhorn-redact",
+ "longhorn-support-log",
+]
+
+[[package]]
 name = "longhorn-display"
 version = "0.3.2"
 dependencies = [

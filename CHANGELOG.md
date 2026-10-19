@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-diagnostics`: the pure diagnostics bundle renderer.** Takes the facts a desktop app has already gathered, lays them out as one support text in sections, and redacts the whole text last with the app's `longhorn-redact` `Redactor`, so a span that crosses a label and its value is still caught. Returns the redacted text and how many `[redacted]` markers it holds. Interior CR and LF are escaped before the pass, so a seed whose match depends on a raw line break is not caught; contract 026 lists that delta and pins it. No filesystem, network, credential or app-state reads, and no product text: the title, redaction statement, section list, headings, labels and empty-section sentences are caller values. Contract 026 owns the layout and lists the deltas from Acowtancy Desktop's `bundle.rs`.
+
 ## [0.3.2] - 2026-10-19
 
 ### Added
