@@ -207,15 +207,17 @@ Against the Acowtancy donor at `89c8bf568`:
 
 ## Extraction state
 
-Contract 003 steps 1–4 are done: donor behaviour named, donor tests ported,
-this contract, and the crate.
+Contract 003 steps 1–5 and 7 are done. Acowtancy Desktop migrated in
+acowtancy-v2 PR 931 (merged 2026-10-19 at `3c21b1ac8`) and took every Longhorn
+crate at `v0.3.2`. Its ring log, update log, install log and install-failure
+tail all use `longhorn-support-log`, so output is redacted before it is
+bounded. Capacities, bounds, file names, the Logs directory lookup and the
+record fields stay in Acowtancy. Longhorn's contract and tests are now
+authoritative.
 
 Open:
 
-- Step 5: Acowtancy Desktop migrates its three logs after a Longhorn release
-  carries this crate. That is Acowtancy's task.
 - Step 6: second-consumer conformance has no named consumer yet.
-- Steps 7–8 follow the migration.
 
 ## Stop Conditions
 
