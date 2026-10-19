@@ -1,0 +1,18 @@
+[package]
+name = "longhorn-support-log"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bounded, redacted support logs for desktop apps"
+publish = false
+
+[dependencies]
+longhorn-redact = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

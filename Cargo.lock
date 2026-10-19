@@ -3189,6 +3189,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-support-log"
+version = "0.3.1"
+dependencies = [
+ "longhorn-redact",
+ "tempfile",
+]
+
+[[package]]
 name = "longhorn-surface-transfer"
 version = "0.3.1"
 dependencies = [
