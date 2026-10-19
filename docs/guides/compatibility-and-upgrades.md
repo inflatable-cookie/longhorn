@@ -15,11 +15,9 @@ is the map of those claims, and what an upgrade involves when one arrives.
 
 ## Availability
 
-Longhorn `0.3.2` is released. This `0.3.3` bump candidate has 52 Rust crates
-and three TypeScript packages. Rust crates use `publish = false` and move by
-git tag; the three npm packages publish under `@inflatable-cookie` at the
-coordinated version. The 0.3.3 tag and npm versions are not available until
-the release procedure completes.
+Longhorn releases one coordinated version: Rust crates use `publish = false`
+and move by git tag; three npm packages publish under `@inflatable-cookie` at
+that version. `docs/README.md` gives the current release.
 
 Private consumers use exact clean source receipts or produced archives and an
 exact lock. Moving branches, dirty unrecorded sources, sibling workspace
