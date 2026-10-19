@@ -87,8 +87,8 @@ and `PathRefusal`. The one entry-name and link-target rule.
 
 ## Verification
 
-A digest source is parsed and checked before any extraction. The file's
-SHA-256 is compared with the parsed digest. Each source has its own format.
+A digest source, when declared, is parsed and checked before extraction. The
+file's SHA-256 is compared with the parsed digest. Each source has its own format.
 
 - **Release checksum file.** Lines are `<digest>  <name>`, with whitespace
   between, and an optional `*` before the name. The digest may be upper or
@@ -105,16 +105,17 @@ vendor team declared is `NothingDeclared`, returned before the file is read. A
 declared team with no digest is accepted here; the team is checked after
 extraction.
 
-`VerifiedArtifact` is the gate. `extract_executable` takes one, so no path
-from downloaded bytes to a staged file exists without the declared digest
-check. `verify_artifact` records what it checked; it does not vouch for the
-file afterwards.
+`VerifiedArtifact` records a valid declaration and any digest check.
+`extract_executable` takes one and rechecks the digest on its private copy
+when declared. A team-only artifact can be staged without a digest check;
+it cannot become an `InstallableExecutable` until its declared signature
+passes. `verify_artifact` does not vouch for the file afterwards.
 
 **The check that counts is on the copy extraction reads.** Before anything
 is read, extraction copies the artifact into a private file in the staging
 directory and hashes that copy as it writes it. A declared digest is compared
 with that hash. A mismatch is `DigestMismatch` with the origin, and the copy
-and any staged file are removed. A source that changed after verification
+and any staged file are removed. With a declared digest, changed source bytes
 therefore cannot reach the executable. The private copy is removed before
 `extract_executable` returns, on success and on refusal.
 
@@ -130,6 +131,12 @@ archive: Apple signs Mach-O binaries, not archives. The check is the port
 - No team declared: the executable passes through. Its digest was the
   declared check, and the verifier is not consulted.
 - The verifier cannot run: `Fault::Verifier`, not a judgment.
+
+Every failed signature check removes the staged file, including adapter
+refusals and verifier faults. Successful checks keep it for installation.
+If cleanup fails, the result is `Fault::Io` with the staged path, the cleanup
+failure and the original signature error in its detail; the caller must
+resolve that host fault. A file already removed counts as cleaned up.
 
 The macOS adapter (`CodesignVerifier`) runs `/usr/bin/codesign --verify
 --strict --verbose=1 <path>`, then `codesign -dv <path>` for the
@@ -203,7 +210,8 @@ so.
   `UnsupportedEntry`, `DuplicateMember`, `MemberMissing`, `TeamMismatch`,
   `Unsigned`, `SignatureUnsupported`.
 - **Fault.** The host could not finish. A retry may succeed: `Io` (a file
-  could not be opened, read or written), `Verifier` (codesign could not run).
+  could not be opened, read, written or removed), `Verifier` (codesign could
+  not run).
   `Usage` is a caller bug: a staged name or member this crate cannot use.
 
 Callers match the enums. The messages are for people.
@@ -230,7 +238,8 @@ Against the Acowtancy donor at `3c21b1ac8`:
   refuses where the donor's always ran `/usr/bin/codesign`.
 - `verify_signature(binary, team, verifier) -> Result<(), String>` becomes
   `verify_signature(StagedExecutable, verifier) -> Result<InstallableExecutable, _>`.
-  The type carries the check.
+  The type carries the check. A failed signature check removes the staged
+  executable; a cleanup failure is an I/O fault.
 
 `install.rs`
 
@@ -274,7 +283,9 @@ Against the Acowtancy donor at `3c21b1ac8`:
   directories. They cover the donor's verification and extraction cases with
   neutral names and digests; checksum and sidecar edge cases; a digest
   mismatch; neither source declared; a team mismatch and an unsigned binary
-  through a scripted verifier; the macOS adapter refusing an unsigned file
+  through a scripted verifier; failed signature checks removing the staged
+  file (mismatch, unsigned, unsupported adapter and verifier fault), cleanup
+  failure reported as an I/O fault; the macOS adapter refusing an unsigned file
   (off macOS, the unsupported refusal); tar.gz and zip archives with `..`,
   absolute and backslash names (tar and zip), symlink and hard-link members,
   too many members, skipped bytes counted against the bound, an honest member

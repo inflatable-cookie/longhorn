@@ -131,7 +131,7 @@ pub enum Refusal {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Fault {
-    /// A file could not be opened, read or written.
+    /// A file could not be opened, read, written or removed.
     Io {
         /// The file involved.
         path: PathBuf,

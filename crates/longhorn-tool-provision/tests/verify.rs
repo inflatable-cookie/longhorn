@@ -282,6 +282,7 @@ fn a_digest_only_declaration_never_consults_the_signature_verifier() {
     let installable =
         verify_signature(staged, &NeverConsulted).expect("no team, no signature check");
     assert_eq!(installable.vendor_team(), None);
+    assert_eq!(std::fs::read(installable.path()).unwrap(), BOVINE);
 }
 
 #[test]
@@ -320,6 +321,7 @@ fn the_signature_check_matches_the_declared_team_only() {
         ),
         Refusal::TeamMismatch { found, expected } if found == "OTHERTEAM1" && expected == "TEAMID0001"
     ));
+    assert!(!temp.path().join("other").exists());
 
     assert!(matches!(
         refused(
@@ -333,6 +335,21 @@ fn the_signature_check_matches_the_declared_team_only() {
         ),
         Refusal::Unsigned { expected, .. } if expected == "TEAMID0001"
     ));
+    assert!(!temp.path().join("unsigned").exists());
+
+    let unsupported = ProvisionError::Refused(Refusal::SignatureUnsupported {
+        platform: "unsupported".to_owned(),
+    });
+    assert_eq!(
+        verify_signature(
+            staged_for("unsupported"),
+            &Scripted(Err(unsupported.clone()))
+        )
+        .unwrap_err(),
+        unsupported
+    );
+    assert!(!temp.path().join("unsupported").exists());
+    assert_eq!(std::fs::read(installable.path()).unwrap(), BOVINE);
 }
 
 #[test]
@@ -367,6 +384,52 @@ fn a_verifier_that_cannot_run_is_a_fault_not_a_judgment() {
         error,
         ProvisionError::Fault(Fault::Verifier { .. })
     ));
+    assert!(!temp.path().join("tool-staged").exists());
+}
+
+#[test]
+fn a_signature_cleanup_failure_is_an_io_fault_with_the_staged_path() {
+    struct ReplacedWithDirectory;
+
+    impl SignatureVerifier for ReplacedWithDirectory {
+        fn report(&self, binary: &Path) -> Result<SignatureReport, ProvisionError> {
+            // Force a portable removal failure without relying on user IDs or
+            // filesystem permissions. All mutation stays in this fixture.
+            std::fs::remove_file(binary).unwrap();
+            std::fs::create_dir(binary).unwrap();
+            Ok(SignatureReport::Unverified {
+                detail: "scripted signature refusal".to_owned(),
+            })
+        }
+    }
+
+    let temp = tempfile::tempdir().unwrap();
+    let path = write_file(temp.path(), "tool", BOVINE);
+    let verified = verify_artifact(
+        &path,
+        "tool",
+        Declaration {
+            digest: None,
+            vendor_team: Some("TEAMID0001"),
+        },
+    )
+    .unwrap();
+    let staged = longhorn_tool_provision::extract_executable(
+        &verified,
+        longhorn_tool_provision::ArtifactShape::Raw,
+        temp.path(),
+        "tool-staged",
+        longhorn_tool_provision::ExtractionLimits::DEFAULT,
+    )
+    .unwrap();
+    match verify_signature(staged, &ReplacedWithDirectory).unwrap_err() {
+        ProvisionError::Fault(Fault::Io { path, detail }) => {
+            assert_eq!(path, temp.path().join("tool-staged"));
+            assert!(detail.contains("scripted signature refusal"));
+            assert!(path.is_dir(), "cleanup failure is reported, not hidden");
+        }
+        error => panic!("expected a cleanup I/O fault, got {error}"),
+    }
 }
 
 #[test]
@@ -397,6 +460,7 @@ fn the_codesign_adapter_refuses_an_unsigned_binary() {
         refused(verify_signature(staged, &CodesignVerifier).unwrap_err()),
         Refusal::Unsigned { .. }
     ));
+    assert!(!temp.path().join("tool-staged").exists());
 }
 
 #[test]
@@ -425,4 +489,5 @@ fn the_codesign_adapter_refuses_a_declared_team_off_macos() {
         refused(verify_signature(staged, &CodesignVerifier).unwrap_err()),
         Refusal::SignatureUnsupported { .. }
     ));
+    assert!(!temp.path().join("tool-staged").exists());
 }

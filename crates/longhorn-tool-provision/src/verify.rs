@@ -1,9 +1,9 @@
 //! Artifact verification (contract 027).
 //!
-//! A downloaded artifact becomes a [`VerifiedArtifact`] only when every
-//! declared check passes. The type is the gate: extraction takes a
-//! `&VerifiedArtifact`, so bytes cannot reach an extracted executable
-//! without the checks the caller declared.
+//! A downloaded artifact becomes a [`VerifiedArtifact`] when its declaration
+//! is valid and its digest passes, when declared. Extraction requires this
+//! type. A declared vendor team is checked after extraction, before the
+//! executable becomes installable.
 
 use std::path::{Path, PathBuf};
 
@@ -67,8 +67,9 @@ struct VerifiedDigest {
     origin: DigestOrigin,
 }
 
-/// An artifact whose declared checks passed. Only [`verify_artifact`]
-/// makes one; extraction requires one.
+/// An artifact with a valid declaration and a checked digest, when declared.
+/// Only [`verify_artifact`] makes one; extraction requires one. A declared
+/// vendor team is checked on the extracted executable.
 ///
 /// The value records what was checked, not a claim about the file. The
 /// file may change after this point, so extraction copies it and checks the

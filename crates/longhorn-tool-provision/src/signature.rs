@@ -5,7 +5,10 @@
 //! injected port so tests script it. The macOS adapter runs the fixed
 //! `/usr/bin/codesign` with an argument vector and never through a shell.
 
-use std::path::{Path, PathBuf};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 #[cfg(target_os = "macos")]
 use std::process::Command;
@@ -141,7 +144,9 @@ impl InstallableExecutable {
 ///
 /// [`Refusal::TeamMismatch`] for another team, [`Refusal::Unsigned`] for a
 /// signature that does not verify or names no team, the adapter's own
-/// [`Refusal`] or [`Fault`].
+/// [`Refusal`] or [`Fault`]. Every failed check removes the staged file.
+/// If removal fails, [`Fault::Io`] reports the path, cleanup failure and
+/// original signature error instead.
 pub fn verify_signature(
     staged: StagedExecutable,
     verifier: &dyn SignatureVerifier,
@@ -152,18 +157,30 @@ pub fn verify_signature(
             vendor_team: None,
         });
     };
-    match verifier.report(staged.path())? {
-        SignatureReport::Team(found) if found == expected => Ok(InstallableExecutable {
+    let error = match verifier.report(staged.path()) {
+        Ok(SignatureReport::Team(found)) if found == expected => {
+            return Ok(InstallableExecutable {
+                path: staged.path().to_path_buf(),
+                vendor_team: Some(expected),
+            });
+        }
+        Ok(SignatureReport::Team(found)) => {
+            ProvisionError::Refused(Refusal::TeamMismatch { found, expected })
+        }
+        Ok(SignatureReport::Unverified { detail }) => {
+            ProvisionError::Refused(Refusal::Unsigned { expected, detail })
+        }
+        Err(error) => error,
+    };
+    if let Err(cleanup) = fs::remove_file(staged.path())
+        && cleanup.kind() != io::ErrorKind::NotFound
+    {
+        return Err(ProvisionError::Fault(Fault::Io {
             path: staged.path().to_path_buf(),
-            vendor_team: Some(expected),
-        }),
-        SignatureReport::Team(found) => Err(ProvisionError::Refused(Refusal::TeamMismatch {
-            found,
-            expected,
-        })),
-        SignatureReport::Unverified { detail } => Err(ProvisionError::Refused(Refusal::Unsigned {
-            expected,
-            detail,
-        })),
+            detail: format!(
+                "could not remove the staged executable after signature verification failed ({error}): {cleanup}"
+            ),
+        }));
     }
+    Err(error)
 }

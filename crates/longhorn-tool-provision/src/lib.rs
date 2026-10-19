@@ -3,7 +3,7 @@
 //!
 //! Three steps, each a type the next step needs:
 //!
-//! 1. [`verify_artifact`] checks the declared digest against the download and
+//! 1. [`verify_artifact`] checks a digest against the download when declared and
 //!    returns a [`VerifiedArtifact`].
 //! 2. [`extract_executable`] takes that artifact and writes one requested
 //!    member into a caller's staging directory, within [`ExtractionLimits`],
