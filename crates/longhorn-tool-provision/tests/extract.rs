@@ -725,3 +725,67 @@ fn the_chain_verifies_extracts_and_checks_the_team_before_installable() {
     assert_eq!(installable.path(), out.join("tool"));
     assert_eq!(installable.vendor_team(), Some("TEAMID0001"));
 }
+
+#[test]
+fn a_refusal_after_the_member_is_written_leaves_no_executable_behind() {
+    // The member is written before a later link entry refuses the archive.
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[
+        file("tool"),
+        TarEntry::Symlink {
+            name: "link",
+            target: "tool",
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    let out = staging(temp.path(), "out");
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::TarGz { member: "tool" },
+            &out,
+            "tool",
+            limits(),
+        )),
+        Refusal::LinkEntry { .. }
+    ));
+    assert!(
+        !out.join("tool").exists(),
+        "a refused executable is removed"
+    );
+    assert_eq!(std::fs::read_dir(&out).unwrap().count(), 0);
+}
+
+#[test]
+fn a_zip_refusal_after_the_member_is_written_leaves_no_executable_behind() {
+    const S_IFIFO: u32 = 0o010000;
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::Mode {
+            name: "pipe",
+            bytes: Vec::new(),
+            mode: S_IFIFO | 0o644,
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    let out = staging(temp.path(), "out");
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &out,
+            "tool",
+            limits(),
+        )),
+        Refusal::UnsupportedEntry { .. }
+    ));
+    assert!(
+        !out.join("tool").exists(),
+        "a refused executable is removed"
+    );
+    assert_eq!(std::fs::read_dir(&out).unwrap().count(), 0);
+}

@@ -119,6 +119,8 @@ impl StagedExecutable {
 ///
 /// # Errors
 ///
+/// On any error, nothing this call wrote remains at the staged path.
+///
 /// Refusals: [`Refusal::DigestMismatch`] when the copy does not hash to the
 /// declared digest (the source changed after verification),
 /// [`Refusal::TooManyMembers`], [`Refusal::ArchiveTooLarge`] (the real
@@ -141,9 +143,12 @@ pub fn extract_executable(
             Some(member_path(member)?)
         }
     };
+    // Only a file this call creates is ours to remove. An existing file at the
+    // staged path refuses as an I/O fault and is left exactly as it was.
+    let created_here = fs::symlink_metadata(&destination).is_err();
     let sealed = seal(artifact, staging, staged_name)?;
     let asset = artifact.asset();
-    let outcome = match (shape, member.as_deref()) {
+    let extracted = match (shape, member.as_deref()) {
         (ArtifactShape::TarGz { .. }, Some(member)) => {
             extract_tar_gz(&sealed, asset, member, &destination, limits)
         }
@@ -152,10 +157,16 @@ pub fn extract_executable(
         }
         _ => copy_raw(&sealed, asset, &destination, limits),
     };
-    let removed = fs::remove_file(&sealed);
-    outcome?;
-    removed.map_err(io_fault(&sealed))?;
-    set_executable(&destination)?;
+    let removed = fs::remove_file(&sealed).map_err(io_fault(&sealed));
+    let finished = extracted
+        .and(removed)
+        .and_then(|()| set_executable(&destination));
+    if finished.is_err() && created_here {
+        // A refusal can come after the member was written (a link later in
+        // the archive, say). Nothing refused may remain at the staged path.
+        let _ = fs::remove_file(&destination);
+    }
+    finished?;
     Ok(StagedExecutable::new(
         destination,
         artifact.vendor_team().map(str::to_owned),
