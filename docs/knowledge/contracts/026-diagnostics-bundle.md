@@ -57,7 +57,7 @@ Crate `longhorn-diagnostics`: depends on `longhorn-redact`,
     `empty` renders as the only list row;
   - `Records { heading, records, empty }` — one row per
     `RingRecord::line()`; when `records` is empty, `empty` renders as the
-    only indented row without a dash.
+    only list row.
 - `Facts { generated_at: SystemTime, title, redaction_statement, sections }`.
 - `Bundle { text, generated_at, redactions }`: `text` is the complete
   redacted text; `generated_at` is the timestamp as it renders in the text;
@@ -80,14 +80,15 @@ The text is, in order:
 
 Row shapes:
 
-- **Fact row:** two spaces, the label, `:`, then `18` minus the label's
-  byte length spaces (none when the label is at or over 18 bytes), then the
-  value, then the newline. The padding counts bytes, not characters: a
-  multi-byte label fills less of the column than it appears to.
+- **Fact row:** two spaces, the label, `:`, then `18` minus the escaped
+  label's byte length spaces (none when the label is at or over 18 bytes),
+  then the value, then the newline. The padding counts bytes, not
+  characters: a multi-byte label fills less of the column than it appears
+  to.
 - **List row:** `  - `, the item, the newline.
 - **Record row:** two spaces, `RingRecord::line()`, the newline.
-- **Empty sentence:** for `Items`, the sentence renders as a list row; for
-  `Records`, as an indented row without the dash.
+- **Empty sentence:** the sentence renders as a list row, dash included,
+  for both `Items` and `Records`.
 
 Lines: interior CR and LF never break the layout. In the title, the
 redaction statement, every heading, label, value, list item and empty
@@ -106,6 +107,17 @@ The crate builds the complete text first, then runs one
 colon and its value is still caught, because no section, row or field is
 redacted in isolation. The redactor repeats its internal passes per
 contract 024.
+
+**Order limitation:** the interior CR and LF of the caller's text are
+escaped as the text is built, before the pass. The pass therefore sees the
+two characters `\r` and `\n` where the caller's text had a break, and an
+exact seed whose match depends on a raw line break is not caught. Shape
+rules do not depend on the caller's breaks and still catch their spans — a
+PEM block pasted into a value is one marker. The donor redacted the raw
+text and caught such seeds; that is a listed delta, pinned by test. The
+crate escapes after assembly because the escape must never move a caller's
+marker: the marker count, the marker text and the caller's own
+`[redacted]` inputs survive the pass untouched.
 
 `redactions` is `Redaction::count`: the `[redacted]` occurrences in the
 final text, including any the caller's inputs already carried. No public
@@ -131,6 +143,9 @@ Against the Acowtancy donor at `3c21b1ac8`, `bundle.rs`:
   milliseconds (`2026-10-21T12:00:00.000Z`).
 - **Interior CR and LF:** the donor wrote them raw; the crate escapes them
   per contract 025's line rule.
+- **Raw-break seeds:** the donor redacted the raw text, so an exact seed
+  spanning a raw CR or LF was caught; the crate escapes before the pass and
+  is not (see Redact last). Pinned by test.
 - **Padding:** the donor pads by the raw label's byte length; the crate
   pads by the escaped label's byte length. They are identical for labels
   without CR or LF, which is every label the donor produces.
@@ -147,8 +162,10 @@ Against the Acowtancy donor at `3c21b1ac8`, `bundle.rs`:
   reaching the text and counted), then: a committed golden text rendered
   byte for byte, a secret split across a label and its value, seeded
   secrets in every section kind, a `RingRecord` tail, a label at or over
-  the column, multi-byte UTF-8 labels, interior CR and LF, empty sections,
-  and a second render matching the first.
+  the column, multi-byte UTF-8 labels, interior CR and LF, empty sections
+  with their list-row sentences, the pinned raw-break-seed delta, a PEM
+  block in a value caught as one marker, and a second render matching the
+  first.
 
 ## Extraction state
 

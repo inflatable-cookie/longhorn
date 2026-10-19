@@ -33,4 +33,4 @@ Attention
   - Publish — delivery is unknown
 
 Recent log (up to the last 100 entries)
-  No entries recorded this launch.
+  - No entries recorded this launch.

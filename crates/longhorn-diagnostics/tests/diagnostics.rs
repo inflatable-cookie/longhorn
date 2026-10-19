@@ -233,6 +233,50 @@ fn secret_split_across_label_and_value_is_caught() {
 }
 
 #[test]
+fn seed_spanning_a_raw_line_break_is_not_caught_and_is_pinned() {
+    let mut input = facts();
+    input.sections = vec![Section::Facts {
+        heading: "Application".to_owned(),
+        facts: vec![Fact::new("Version", "line-one-secret\nline-two-secret")],
+    }];
+    let seeds = Redactor::new(
+        vec!["line-one-secret\nline-two-secret".to_owned()],
+        RedactionRules::exact_only(),
+    );
+    let bundle = render(&seeds, &input);
+
+    // Contract 026's listed delta: the text is escaped before the single
+    // redact pass, so this seed — whose match depends on a raw line break —
+    // is not caught. The halves stay, escaped onto one line. Shape rules
+    // need no raw break and still catch their spans (see the PEM test).
+    assert_eq!(bundle.redactions, 0);
+    assert!(
+        bundle
+            .text
+            .contains("  Version:           line-one-secret\\nline-two-secret\n")
+    );
+    assert_eq!(bundle.text.lines().count(), 6);
+}
+
+#[test]
+fn pem_block_in_a_value_is_redacted_as_one_marker() {
+    let mut input = facts();
+    input.sections = vec![Section::Facts {
+        heading: "Application".to_owned(),
+        facts: vec![Fact::new(
+            "Version",
+            "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----",
+        )],
+    }];
+    let bundle = render(&redactor(), &input);
+    assert!(!bundle.text.contains("MIIEvQ"));
+    assert!(!bundle.text.contains("BEGIN"));
+    assert_eq!(bundle.redactions, 1);
+    // The escaped block sits on the row's one line, so the layout holds.
+    assert_eq!(bundle.text.lines().count(), 6);
+}
+
+#[test]
 fn seeded_secrets_in_every_section_kind_are_counted() {
     let mut input = facts();
     input.title = "Support diagnostics seed-title-x1".to_owned();
@@ -435,7 +479,7 @@ fn empty_sections_render_their_heading_and_their_empty_sentence() {
     assert!(
         bundle
             .text
-            .contains("Recent log\n  No entries recorded this launch.\n")
+            .contains("Recent log\n  - No entries recorded this launch.\n")
     );
 }
 

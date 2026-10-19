@@ -51,7 +51,7 @@ pub enum Section {
         empty: String,
     },
     /// One row per [`RingRecord::line`], indented without a dash. An empty
-    /// list renders the `empty` sentence as the only indented row.
+    /// list renders the `empty` sentence as the only list row.
     Records {
         /// The section's heading line.
         heading: String,
@@ -119,12 +119,6 @@ fn push_record_row(out: &mut String, record: &RingRecord) {
     out.push('\n');
 }
 
-fn push_sentence_row(out: &mut String, sentence: &str) {
-    out.push_str("  ");
-    out.push_str(&single_line(sentence));
-    out.push('\n');
-}
-
 fn push_section(out: &mut String, section: &Section) {
     match section {
         Section::Facts { heading, facts } => {
@@ -157,7 +151,7 @@ fn push_section(out: &mut String, section: &Section) {
             out.push_str(&single_line(heading));
             out.push('\n');
             if records.is_empty() {
-                push_sentence_row(out, empty);
+                push_item_row(out, empty);
             } else {
                 for record in records {
                     push_record_row(out, record);
@@ -167,11 +161,13 @@ fn push_section(out: &mut String, section: &Section) {
     }
 }
 
-/// Lays the facts out as one text, then redacts the whole text with one
-/// `Redactor::redact` call, so a span that crosses a label and its value is
-/// still caught. The same facts through an equivalent redactor render to the
-/// same bytes. The crate applies no size bound: the inputs are already
-/// bounded by their sources.
+/// Lays the facts out as one text, escaping interior CR and LF as it goes,
+/// then redacts the whole text with one `Redactor::redact` call, so a span
+/// that crosses a label and its value is still caught. Because the escape
+/// runs first, a seed whose match depends on a raw line break is not caught;
+/// contract 026 lists that delta. The same facts through an equivalent
+/// redactor render to the same bytes. The crate applies no size bound: the
+/// inputs are already bounded by their sources.
 #[must_use]
 pub fn render(redactor: &Redactor, facts: &Facts) -> Bundle {
     let generated_at = utc_timestamp(facts.generated_at);
