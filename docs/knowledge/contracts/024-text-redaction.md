@@ -189,13 +189,16 @@ changes, to `[redacted]`.
 
 ## Extraction state
 
-Contract 003 steps 1–4 are done: donor named, donor tests captured, contract
-defined, crate implemented. Open:
+Contract 003 steps 1–5 are done. Acowtancy Desktop migrated in acowtancy-v2
+PR 920 (merged 2026-10-19 at `89c8bf568`) and took every Longhorn crate at
+`v0.3.1`. Its three donor redactors are removed: diagnostics, install logs,
+Git and clone errors, and the local publisher all use `longhorn-redact`, and
+the product key names stay in Acowtancy. Longhorn's contract and tests are now
+authoritative.
 
-- Acowtancy migration (step 5) needs a Longhorn release and runs in
-  Acowtancy's own Queue.
+Open:
+
 - Second-consumer conformance (step 6) has no named consumer yet.
-- Donor copies stay authoritative in Acowtancy until its cutover.
 
 ## Stop Conditions
 
