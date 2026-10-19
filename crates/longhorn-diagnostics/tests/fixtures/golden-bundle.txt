@@ -1,0 +1,36 @@
+Support diagnostics
+Generated: 2026-03-31T23:33:20.000Z
+Redaction: applied before this text was created.
+
+Application
+  Version:           0.1.13
+  Channel:           production
+  Updates:           installed 0.1.13 on production; availability up to date; staged none
+
+System
+  OS:                TestOS 15.1
+  Architecture:      arm64
+
+Setup
+  You:               complete
+  Sign-in:           complete
+  Workspace:         current
+  Ready:             pending
+
+Tools
+  - Teapot: 0.9.1 at /usr/local/bin/teapot; signed in; catalogue loaded; ready
+
+Connection
+  State:             connected: the service is connected.
+
+Workspace
+  Path:              /workspace/teapot
+  Branch:            client/teapot
+  Remote:            example.com/acme/teapot
+  Synchronization:   in sync with the remote and no local changes
+
+Attention
+  - Publish — delivery is unknown
+
+Recent log (up to the last 100 entries)
+  No entries recorded this launch.

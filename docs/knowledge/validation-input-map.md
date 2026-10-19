@@ -56,6 +56,7 @@ release gates keep their current members and meaning.
 | `agent-tool-dispatch` | `check:agent-tool-dispatch` | Package obligations plus its workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `redact` | `check:redact` | `longhorn-redact` and its case table `fixtures/redact/**`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `support-log` | `check:support-log` | `longhorn-support-log`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact`. |
+| `diagnostics` | `check:diagnostics` | `longhorn-diagnostics`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact` or `longhorn-support-log`. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
@@ -141,7 +142,12 @@ reads `fixtures/redact/cases.json` (contract 024's case table). Companions:
 **`lint:support-log`**, **`test:support-log`**, **`docs:support-log`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-support-log/**`
 (contract 025). Companions: `check:api-reference` (aggregated by
-`check:support-log`). Limits: these, the redact and the
+`check:support-log`).
+
+**`lint:diagnostics`**, **`test:diagnostics`**, **`docs:diagnostics`** —
+role: scoped compile/test/rustdoc for `crates/longhorn-diagnostics/**`
+(contract 026). Companions: `check:api-reference` (aggregated by
+`check:diagnostics`). Limits: these, the support-log, redact and
 agent-tool-dispatch selectors are the only per-crate Rust selectors.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
@@ -466,6 +472,10 @@ selects it.
 `lint:support-log`, `test:support-log`, `docs:support-log`,
 `check:api-reference`. The `support-log` QA group selects it.
 
+**`check:diagnostics`** — role: aggregate (not in `qa`). Runs
+`lint:diagnostics`, `test:diagnostics`, `docs:diagnostics`,
+`check:api-reference`. The `diagnostics` QA group selects it.
+
 **`check:agent-control-skill`** — role: drift lock + fixtures. Runs
 `scripts/verify-agent-control-skill.ts`. Owns
 `crates/longhorn-agent-control/src/tools.rs` (`CONTROL_TOOL_NAMES`),
@@ -636,7 +646,8 @@ the other staging members remain planner-owned.
 ### Rust crate dependents
 
 `cargo test/clippy --workspace` is all-or-nothing. Only
-`longhorn-agent-tool-dispatch`, `longhorn-redact` and `longhorn-support-log` have scoped selectors. Everything else needs the
+`longhorn-agent-tool-dispatch`, `longhorn-redact`, `longhorn-support-log`
+and `longhorn-diagnostics` have scoped selectors. Everything else needs the
 whole Rust lane: `lint:rust`, `lint:rust:features`, `test:rust`. A shared
 crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 (`longhorn-credential-keyring` has no in-tree dependents) select the same
@@ -870,8 +881,8 @@ proofs. Missing any of those is a silent break.
 ## Coverage gaps and unresolved inputs
 
 - No per-crate Rust selector except `longhorn-agent-tool-dispatch`,
-  `longhorn-redact` and `longhorn-support-log`. A leaf and
-  a shared crate select the same three-lane board. Missing evidence: an
+  `longhorn-redact`, `longhorn-support-log` and `longhorn-diagnostics`. A
+  leaf and a shared crate select the same three-lane board. Missing evidence: an
   Effigy cargo package filter expressed as a selector, or per-crate
   `test:rust`/`lint:rust` tasks.
 - Package TypeScript selectors typecheck one package and select its Bun or

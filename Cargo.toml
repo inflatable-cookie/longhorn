@@ -12,6 +12,7 @@ members = [
   "crates/longhorn-config-age",
   "crates/longhorn-core",
   "crates/longhorn-credential-keyring",
+  "crates/longhorn-diagnostics",
   "crates/longhorn-display",
   "crates/longhorn-gpui-windowing",
   "crates/longhorn-history",
