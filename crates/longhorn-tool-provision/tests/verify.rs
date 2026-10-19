@@ -47,6 +47,13 @@ fn refused(error: ProvisionError) -> Refusal {
 }
 
 #[test]
+fn sha256_file_hashes_the_exact_bytes() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = write_file(temp.path(), "bovine", BOVINE);
+    assert_eq!(sha256_file(&path).unwrap(), BOVINE_DIGEST);
+}
+
+#[test]
 fn checksum_entries_parse_and_match_names() {
     let amd64 = "a".repeat(64);
     let arm64 = "B".repeat(64);

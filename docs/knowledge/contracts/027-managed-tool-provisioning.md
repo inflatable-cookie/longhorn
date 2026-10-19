@@ -107,7 +107,16 @@ extraction.
 
 `VerifiedArtifact` is the gate. `extract_executable` takes one, so no path
 from downloaded bytes to a staged file exists without the declared digest
-check.
+check. `verify_artifact` records what it checked; it does not vouch for the
+file afterwards.
+
+**The check that counts is on the copy extraction reads.** Before anything
+is read, extraction copies the artifact into a private file in the staging
+directory and hashes that copy as it writes it. A declared digest is compared
+with that hash. A mismatch is `DigestMismatch` with the origin, and the copy
+and any staged file are removed. A source that changed after verification
+therefore cannot reach the executable. The private copy is removed before
+`extract_executable` returns, on success and on refusal.
 
 ## Signature check
 
@@ -143,11 +152,17 @@ caller. A name with a directory part is `Fault::Usage`.
 
 **Bounds count real bytes.** Limits are `ExtractionLimits`, 20 000 members and
 4 GiB by default. A tar reader counts every decompressed byte it consumes,
-members it skips included. A zip reader counts the bytes of the requested
-member only; other members are never decompressed. Declared sizes are never
-the bound. The zip reader itself refuses a member that decompresses past its
-declared size; that is a damaged archive (`UnreadableArchive`), so a header
-cannot hide real bytes. An honest member over the bound is `ArchiveTooLarge`.
+members it skips included. A zip reader reads the requested member's stored
+stream without the zip library's decompression; a deflated member is decoded
+here and every byte it produces is counted. Entries that are not extracted
+are never decompressed. The header's uncompressed size is never read, so a
+header that understates its member cannot hide real bytes: a member that
+decompresses past the bound is `ArchiveTooLarge` whatever it declares.
+
+Zip members are `Stored` or `Deflated`. Any other compression method, and any
+encrypted member, is `UnreadableArchive`. The zip extraction does not check
+the CRC-32 in the header: integrity is the declared digest's job, and for a
+team-only declaration the signature check on the staged executable is.
 
 **Every entry is checked, not only the member.** A tar or zip is refused
 whole if any entry anywhere:
@@ -156,7 +171,9 @@ whole if any entry anywhere:
   (`UnsafeEntry`);
 - is a symbolic or hard link (`LinkEntry`);
 - is neither a file nor a directory, such as a device or fifo
-  (`UnsupportedEntry`).
+  (`UnsupportedEntry`). For zip the file type is the Unix mode's `S_IFMT`
+  bits, not the name: a fifo, character or block device, or socket with a
+  file name is refused. A zip without Unix attributes is a file.
 
 The root directory entry (`./`) is skipped. `./` prefixes are normalised, so
 `./tool` and `tool` name the same member. The member occurring twice is
@@ -217,8 +234,14 @@ Against the Acowtancy donor at `3c21b1ac8`:
 - **Tar member copy:** the donor had no byte bound on the copy. The bound now
   counts every decompressed byte.
 - **Zip bytes:** the donor summed declared sizes over all entries. It now
-  counts real bytes of the member copied. A header that understates its
-  member is refused as unreadable.
+  counts the real decompressed bytes of the member copied and never reads the
+  declared size. A header that understates its member is refused only if the
+  real bytes pass the bound.
+- **Zip special files:** the donor's zip path did not check the Unix type. Fifos,
+  devices and sockets are refused.
+- **Digest timing:** the donor checked the digest before extraction on the
+  source file. Here the digest is checked on the copy extraction reads (see
+  Verification), so the source can change after verification without effect.
 - **Unsafe names:** the donor skipped an unsafe entry and went on. It now
   refuses the archive. The donor's `safe_member` is the shared rule plus the
   backslash refusal.
@@ -248,11 +271,13 @@ Against the Acowtancy donor at `3c21b1ac8`:
   mismatch; neither source declared; a team mismatch and an unsigned binary
   through a scripted verifier; the macOS adapter refusing an unsigned file
   (off macOS, the unsupported refusal); tar.gz and zip archives with `..`,
-  absolute and backslash names, symlink and hard-link members, too many
-  members, skipped bytes counted against the bound, an honest member over
-  the bound, a header that understates its member, a missing member, a
-  duplicate member, a raw artifact, and the executable mode on the staged
-  file.
+  absolute and backslash names (tar and zip), symlink and hard-link members,
+  too many members, skipped bytes counted against the bound, an honest member
+  over the bound, a zip header that understates its member and whose real
+  bytes pass the bound (`ArchiveTooLarge`), zip fifo, device and socket
+  entries, a source changed after verification (`DigestMismatch`, nothing
+  left in staging), a missing member, a duplicate member, a raw artifact, and
+  the executable mode on the staged file. The mode tests are Unix-only.
 - `longhorn-update-install`'s tests pass unchanged against the shared rule.
 
 ## Extraction state

@@ -3,12 +3,15 @@
 
 mod support;
 
-use std::{os::unix::fs::PermissionsExt, path::Path};
+use std::path::Path;
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 use longhorn_tool_provision::{
-    ArtifactShape, Declaration, DigestSource, ExtractionLimits, Fault, ProvisionError, Refusal,
-    SignatureReport, SignatureVerifier, StagedExecutable, VerifiedArtifact, extract_executable,
-    verify_artifact, verify_signature,
+    ArtifactShape, Declaration, DigestOrigin, DigestSource, ExtractionLimits, Fault,
+    ProvisionError, Refusal, SignatureReport, SignatureVerifier, StagedExecutable,
+    VerifiedArtifact, extract_executable, verify_artifact, verify_signature,
 };
 use support::{TarEntry, ZipEntry, sha256_hex, tar_gz, write_file, zip_of};
 
@@ -69,6 +72,7 @@ fn file(name: &str) -> TarEntry<'_> {
 }
 
 #[test]
+#[cfg(unix)]
 fn a_tar_gz_member_is_written_with_the_executable_mode_not_the_archives() {
     let temp = tempfile::tempdir().unwrap();
     // A setuid bit in the archive must not reach the staged file.
@@ -136,6 +140,7 @@ fn a_zip_member_in_a_nested_directory_is_extracted() {
 }
 
 #[test]
+#[cfg(unix)]
 fn a_raw_artifact_is_staged_as_the_executable() {
     let temp = tempfile::tempdir().unwrap();
     let artifact = verified(temp.path(), "tool-darwin-arm64", BINARY);
@@ -426,11 +431,9 @@ fn declare_size(archive: &mut [u8], name: &str, declared: u32) {
 }
 
 #[test]
-fn a_zip_member_larger_than_its_declared_size_refuses_as_unreadable() {
-    // The zip reader caps each member at its declared size and fails the
-    // moment the stream runs past it. A header that understates its member
-    // is a damaged archive; the declared size is never allowed to hide real
-    // bytes.
+fn a_zip_member_whose_real_size_exceeds_the_bound_refuses_while_its_declared_size_does_not() {
+    // The header claims 16 bytes; the member decompresses to 4096. The bound
+    // counts what is produced, so the header cannot keep the bytes out.
     let temp = tempfile::tempdir().unwrap();
     let mut archive = zip_of(&[ZipEntry::File {
         name: "tool",
@@ -446,8 +449,117 @@ fn a_zip_member_larger_than_its_declared_size_refuses_as_unreadable() {
             "tool",
             ExtractionLimits::new(100, 1024),
         )),
-        Refusal::UnreadableArchive { .. }
+        Refusal::ArchiveTooLarge { limit: 1024, .. }
     ));
+}
+
+#[test]
+fn a_zip_member_with_an_absolute_name_refuses() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::File {
+            name: "/absolute/escape",
+            bytes: b"x".to_vec(),
+        },
+    ]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::Zip { member: "tool" },
+            &staging(temp.path(), "out"),
+            "tool",
+            limits(),
+        )),
+        Refusal::UnsafeEntry {
+            reason: Some(_),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn zip_special_file_types_refuse_while_an_explicit_regular_file_passes() {
+    // The Unix mode decides the entry type, whatever the name says: a fifo, a
+    // character device, a block device and a socket are not files.
+    const S_IFCHR: u32 = 0o020000;
+    const S_IFBLK: u32 = 0o060000;
+    const S_IFIFO: u32 = 0o010000;
+    const S_IFSOCK: u32 = 0o140000;
+    const S_IFREG: u32 = 0o100000;
+    for special in [S_IFIFO, S_IFCHR, S_IFBLK, S_IFSOCK] {
+        let temp = tempfile::tempdir().unwrap();
+        let archive = zip_of(&[ZipEntry::Mode {
+            name: "tool",
+            bytes: Vec::new(),
+            mode: special | 0o644,
+        }]);
+        let artifact = verified(temp.path(), "tool.zip", &archive);
+        assert!(
+            matches!(
+                refused(extract_executable(
+                    &artifact,
+                    ArtifactShape::Zip { member: "tool" },
+                    &staging(temp.path(), "out"),
+                    "tool",
+                    limits(),
+                )),
+                Refusal::UnsupportedEntry { .. }
+            ),
+            "mode {special:o}"
+        );
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[ZipEntry::Mode {
+        name: "tool",
+        bytes: BINARY.to_vec(),
+        mode: S_IFREG | 0o644,
+    }]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    extract_executable(
+        &artifact,
+        ArtifactShape::Zip { member: "tool" },
+        &staging(temp.path(), "out"),
+        "tool",
+        limits(),
+    )
+    .expect("an explicitly regular file extracts");
+}
+
+#[test]
+fn a_source_changed_after_verification_refuses_and_leaves_nothing_behind() {
+    let temp = tempfile::tempdir().unwrap();
+    let archive = tar_gz(&[file("tool")]);
+    let artifact = verified(temp.path(), "tool.tar.gz", &archive);
+    // The same path, different bytes, after the digest was checked.
+    std::fs::write(
+        temp.path().join("tool.tar.gz"),
+        b"replaced after verification",
+    )
+    .unwrap();
+    let out = staging(temp.path(), "out");
+    assert!(matches!(
+        refused(extract_executable(
+            &artifact,
+            ArtifactShape::TarGz { member: "tool" },
+            &out,
+            "tool",
+            limits(),
+        )),
+        Refusal::DigestMismatch {
+            origin: DigestOrigin::ReleaseChecksums,
+            ..
+        }
+    ));
+    assert_eq!(
+        std::fs::read_dir(&out).unwrap().count(),
+        0,
+        "neither the staged file nor the private copy remains"
+    );
 }
 
 #[test]

@@ -36,9 +36,23 @@ pub enum TarEntry<'a> {
 
 /// A zip member.
 pub enum ZipEntry<'a> {
-    File { name: &'a str, bytes: Vec<u8> },
-    Dir { name: &'a str },
-    Symlink { name: &'a str, target: &'a str },
+    File {
+        name: &'a str,
+        bytes: Vec<u8>,
+    },
+    Dir {
+        name: &'a str,
+    },
+    Symlink {
+        name: &'a str,
+        target: &'a str,
+    },
+    /// A member whose full Unix mode, file type included, is written as given.
+    Mode {
+        name: &'a str,
+        bytes: Vec<u8>,
+        mode: u32,
+    },
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
@@ -113,6 +127,13 @@ pub fn zip_of(entries: &[ZipEntry<'_>]) -> Vec<u8> {
             }
             ZipEntry::Dir { name } => {
                 zip.add_directory(*name, options).expect("zip dir");
+            }
+            ZipEntry::Mode { name, bytes, mode } => {
+                let options =
+                    zip::write::SimpleFileOptions::default().external_attributes(mode << 16);
+                zip.start_file(*name, options)
+                    .expect("zip mode member starts");
+                std::io::Write::write_all(&mut zip, bytes).expect("zip mode member writes");
             }
             ZipEntry::Symlink { name, target } => {
                 zip.add_symlink(*name, *target, options)

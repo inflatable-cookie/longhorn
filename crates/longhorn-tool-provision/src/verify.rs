@@ -60,12 +60,24 @@ pub struct Declaration<'a> {
     pub vendor_team: Option<&'a str>,
 }
 
+/// The digest a [`VerifiedArtifact`] was checked against.
+#[derive(Clone, Debug)]
+struct VerifiedDigest {
+    hex: String,
+    origin: DigestOrigin,
+}
+
 /// An artifact whose declared checks passed. Only [`verify_artifact`]
 /// makes one; extraction requires one.
+///
+/// The value records what was checked, not a claim about the file. The
+/// file may change after this point, so extraction copies it and checks the
+/// digest on the copy before reading a byte of it.
 #[derive(Debug)]
 pub struct VerifiedArtifact {
     path: PathBuf,
     asset: String,
+    digest: Option<VerifiedDigest>,
     vendor_team: Option<String>,
 }
 
@@ -75,9 +87,16 @@ impl VerifiedArtifact {
         &self.asset
     }
 
-    /// The downloaded file.
+    /// The downloaded file as it was when verified.
     pub(crate) fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// The declared digest to check the copy against, when one was declared.
+    pub(crate) fn digest(&self) -> Option<(&str, DigestOrigin)> {
+        self.digest
+            .as_ref()
+            .map(|digest| (digest.hex.as_str(), digest.origin))
     }
 
     /// The vendor team the executable must carry, when declared.
@@ -108,6 +127,7 @@ pub fn verify_artifact(
             asset: asset.to_owned(),
         }));
     }
+    let mut digest = None;
     if let Some(source) = declared.digest {
         let (expected, origin) = match source {
             DigestSource::ReleaseChecksums(checksums) => (
@@ -132,10 +152,15 @@ pub fn verify_artifact(
                 origin,
             }));
         }
+        digest = Some(VerifiedDigest {
+            hex: expected,
+            origin,
+        });
     }
     Ok(VerifiedArtifact {
         path: path.to_path_buf(),
         asset: asset.to_owned(),
+        digest,
         vendor_team: declared.vendor_team.map(str::to_owned),
     })
 }
