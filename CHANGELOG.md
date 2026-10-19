@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-support-log`: bounded, redacted support logs.** A fixed-capacity `RingLog`, a size-bounded `RotatingLog` with numbered rotations and text or JSON lines, and `bound_field` and `bounded_tail` helpers. Every text goes through the caller's `longhorn-redact` `Redactor` before any cut, so a tail cut never keeps part of a private key. Bounds hold on every write, across threads and restarts; a line over the file bound is dropped and counted. Timestamps are UTC with milliseconds. The app supplies every capacity, bound, directory and file name. Contract 025 owns the behaviour and lists the deltas from Acowtancy Desktop's three logs.
+
 ## [0.3.1] - 2026-10-18
 
 ### Added

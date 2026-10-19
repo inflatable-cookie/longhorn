@@ -24,18 +24,21 @@ include = ["config/release.toml"]
 "lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
 "lint:agent-tool-dispatch" = "cargo clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
 "lint:redact" = "cargo clippy -p longhorn-redact --all-targets --locked -- -D warnings"
+"lint:support-log" = "cargo clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
 "test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
 "test:redact" = "cargo test -p longhorn-redact --locked"
+"test:support-log" = "cargo test -p longhorn-support-log --locked"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this task — `cargo test` — because the doc tests
 # are part of the claim. The built-in remains a convenience for iteration.
 "docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
 "docs:agent-tool-dispatch" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-agent-tool-dispatch --no-deps --locked'"
 "docs:redact" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-redact --no-deps --locked'"
+"docs:support-log" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-support-log --no-deps --locked'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
 # are the only artefacts binding a Longhorn seam to a real host SDK, and until
@@ -126,6 +129,14 @@ include = ["config/release.toml"]
   { task = "lint:redact" },
   { task = "test:redact" },
   { task = "docs:redact" },
+  { task = "check:api-reference" },
+]
+# Contract 025's crate. check:api-reference keeps the generated crate row
+# honest.
+"check:support-log" = [
+  { task = "lint:support-log" },
+  { task = "test:support-log" },
+  { task = "docs:support-log" },
   { task = "check:api-reference" },
 ]
 "proof:agent-tool-dispatch-source-consumer" = "bun scripts/verify-agent-tool-dispatch-source-consumer.ts"
@@ -660,6 +671,28 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-redact", "path:crates/longhorn-redact/**", "path:fixtures/redact/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.support-log]
+lifecycle = "maintained"
+purpose = "Check the support-log crate against contract 025"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "support-log-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:support-log",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-support-log", "path:crates/longhorn-support-log/**"],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

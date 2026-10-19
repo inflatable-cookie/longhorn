@@ -25,6 +25,7 @@ members = [
   "crates/longhorn-operation",
   "crates/longhorn-poodle",
   "crates/longhorn-redact",
+  "crates/longhorn-support-log",
   "crates/longhorn-settings",
   "crates/longhorn-settings-config",
   "crates/longhorn-tauri-bridge",
@@ -116,6 +117,7 @@ longhorn-notifications = { path = "crates/longhorn-notifications", version = "0.
 longhorn-operation = { path = "crates/longhorn-operation", version = "0.3.1" }
 longhorn-poodle = { path = "crates/longhorn-poodle", version = "0.3.1" }
 longhorn-redact = { path = "crates/longhorn-redact", version = "0.3.1" }
+longhorn-support-log = { path = "crates/longhorn-support-log", version = "0.3.1" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "0.3.1" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "0.3.1" }
 longhorn-tauri-agent-control = { path = "crates/longhorn-tauri-agent-control", version = "0.3.1" }

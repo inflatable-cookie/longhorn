@@ -35,6 +35,7 @@
 | `longhorn-redact` | library | none | [source](../../crates/longhorn-redact/README.md) |
 | `longhorn-settings` | library | `bindings` | [source](../../crates/longhorn-settings/README.md) |
 | `longhorn-settings-config` | library | none | [source](../../crates/longhorn-settings-config/README.md) |
+| `longhorn-support-log` | library | none | [source](../../crates/longhorn-support-log/README.md) |
 | `longhorn-surface-transfer` | library | `bindings` | [source](../../crates/longhorn-surface-transfer/src/lib.rs) |
 | `longhorn-surface-windowing` | library | none | [source](../../crates/longhorn-surface-windowing/src/lib.rs) |
 | `longhorn-surfaces` | library | `bindings` | [source](../../crates/longhorn-surfaces/src/lib.rs) |

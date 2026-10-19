@@ -12,6 +12,9 @@ are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
   Poodle is a peer range (`>=0.4.4 <0.5`) and third-party Rust dependencies
   are ranges
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
+- **On `main`, unreleased:** `longhorn-support-log`
+  ([contract 025](knowledge/contracts/025-bounded-support-logs.md)), bounded
+  redacted support logs for Acowtancy Desktop's next migration.
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
 - **Consumer adoption** of Longhorn features is consumer-owned. Longhorn does
