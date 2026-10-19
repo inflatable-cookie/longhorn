@@ -1,7 +1,7 @@
 # Compatibility And Upgrades
 
 Status: checked private adoption guidance
-Updated: 2026-09-26
+Updated: 2026-10-19
 Governing contracts: [010](../knowledge/contracts/010-rust-typescript-ipc-and-events.md)
 and [012](../knowledge/contracts/012-distribution-and-compatibility.md)
 
@@ -15,23 +15,21 @@ is the map of those claims, and what an upgrade involves when one arrives.
 
 ## Availability
 
-Longhorn is a coordinated `0.1.0` workspace awaiting its first publication.
-Rust crates use `publish = false` and move by git tag. The TypeScript
-packages are publishable — scoped `@inflatable-cookie`,
-`publishConfig.access: public`, MIT — and the `@inflatable-cookie` scope was
-claimed on 2026-08-09. The v0.1.0 tag and npm publication wait on the Poodle
-v0.2.0 release (g02.014). Until then there is no npm/crates.io install,
-hosted docs, tag, or public release claim.
+Longhorn `0.3.2` is released. This `0.3.3` bump candidate has 52 Rust crates
+and three TypeScript packages. Rust crates use `publish = false` and move by
+git tag; the three npm packages publish under `@inflatable-cookie` at the
+coordinated version. The 0.3.3 tag and npm versions are not available until
+the release procedure completes.
 
 Private consumers use exact clean source receipts or produced archives and an
 exact lock. Moving branches, dirty unrecorded sources, sibling workspace
 resolution, and unpacked source aliases are not compatibility evidence.
 
-## Current Compatibility Evidence
+## Compatibility Evidence
 
 | Layer | Current checked claim |
 | --- | --- |
-| Longhorn version | coordinated private `0.1.0` |
+| Frozen consumer receipt | Card 127 private `0.1.0` candidate: 36 Rust crates across seven consumer graphs; historical evidence only |
 | Rust | edition 2024; MSRV 1.95 with exact compatible lock |
 | TypeScript/Svelte | Svelte 5; exact peer ranges are package-specific in the generated API surface |
 | Tauri renderer API | `@inflatable-cookie/longhorn-tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
@@ -69,11 +67,11 @@ Svelte omits the adapter rather than its peer; an application that mounts it
 supplies one Svelte runtime inside the declared range. The Poodle peers stay
 optional: an application that selects no Poodle shell resolves none of them.
 
-The current coordinated receipt is the Card 127
-[private `0.1.0` candidate](../reference/private-0-1-candidate.md). It binds
-the exact five-package Poodle set, all Longhorn packages, seven consumer
-graphs, and two reproducible production runs. It does not claim compatibility
-with every future Poodle `0.1.0` source state.
+The frozen Card 127
+[private `0.1.0` candidate](../reference/private-0-1-candidate.md) binds the
+exact five-package Poodle set, all Longhorn packages, and two reproducible
+production runs. It does not claim compatibility with the current `0.3.3`
+candidate or every future Poodle `0.1.0` source state.
 
 ## Protocol Compatibility
 
