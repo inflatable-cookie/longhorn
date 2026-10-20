@@ -27,8 +27,9 @@ use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
     ActionReceipt, CommandResult, ControlHandler, ElementRef, EvaluateResult, InstanceToken,
     ListWindowsResult, PageState, ScreenshotResult, SelectionRegistry, SemanticNode,
-    SnapshotResult, ToolError, WaitForResult, carrier::select_instance, control_router,
-    publish_discovery,
+    SnapshotResult, ToolError, WaitForResult,
+    carrier::{CarrierError, CarrierExit, run_carrier, select_instance},
+    control_router, publish_discovery,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -617,6 +618,52 @@ async fn carrier_exits_2_without_a_live_instance() {
         stderr.contains("no live agent-control instance"),
         "{stderr}"
     );
+}
+
+#[tokio::test]
+async fn carrier_refuses_a_non_loopback_endpoint_before_any_exchange() {
+    let dir = TempDir::new().unwrap();
+    let discovery_dir = dir.path().join("agent-control");
+    let published = publish_discovery(
+        &discovery_dir,
+        "dev.example.tls",
+        49154,
+        InstanceToken::generate().unwrap(),
+    )
+    .unwrap();
+    let selection = select_instance(&discovery_dir, None).unwrap();
+    // The public field can name TLS, a remote host, or a deceptive userinfo
+    // prefix. All must be refused before reading any harness input.
+    for endpoint in [
+        "https://127.0.0.1:49154/mcp",
+        "http://remote.example:49154/mcp",
+        "http://127.0.0.1:49154@remote.example/mcp",
+        "not a URL",
+    ] {
+        let mut invalid = selection.clone();
+        invalid.endpoint = endpoint.to_owned();
+        let result = timeout(
+            Duration::from_secs(1),
+            run_carrier(invalid, tokio::io::empty(), tokio::io::sink()),
+        )
+        .await
+        .expect("endpoint validation must finish without an exchange");
+        assert!(
+            matches!(result, Err(CarrierError::InvalidRecord(_))),
+            "{endpoint}: {result:?}"
+        );
+    }
+    let result = timeout(
+        Duration::from_secs(1),
+        run_carrier(selection, tokio::io::empty(), tokio::io::sink()),
+    )
+    .await
+    .expect("a loopback endpoint must finish when harness input closes");
+    assert!(
+        matches!(result, Ok(CarrierExit::HarnessClosed)),
+        "{result:?}"
+    );
+    published.remove().unwrap();
 }
 
 #[tokio::test]

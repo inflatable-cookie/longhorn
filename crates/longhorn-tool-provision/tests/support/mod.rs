@@ -150,3 +150,90 @@ pub fn write_file(dir: &Path, name: &str, bytes: &[u8]) -> std::path::PathBuf {
     std::fs::write(&path, bytes).expect("fixture writes");
     path
 }
+
+/// A release listing as GitHub answers it, for a fixture route.
+pub fn release_listing(tag: &str, draft: bool, prerelease: bool, assets: &[&str]) -> Vec<u8> {
+    serde_json::to_vec(&serde_json::json!({
+        "tag_name": tag,
+        "draft": draft,
+        "prerelease": prerelease,
+        "assets": assets.iter().map(|name| serde_json::json!({ "name": name })).collect::<Vec<_>>(),
+    }))
+    .expect("a fixture listing serialises")
+}
+
+/// A loopback server for one connection, for the responses the fixture server
+/// cannot express: an undeclared length, a truncated body, or silence.
+pub struct RawServer {
+    port: u16,
+    worker: Option<std::thread::JoinHandle<()>>,
+}
+
+impl RawServer {
+    /// Answers the first connection with `wire` and closes it. With `silent`,
+    /// reads the request and never answers, so the client's timeout fires.
+    pub fn answering(wire: Vec<u8>, silent: bool) -> Self {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("loopback listener binds");
+        let port = listener.local_addr().expect("local addr").port();
+        let worker = std::thread::spawn(move || {
+            let Ok((mut stream, _)) = listener.accept() else {
+                return;
+            };
+            let mut request = Vec::new();
+            let mut chunk = [0u8; 1024];
+            while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                match stream.read(&mut chunk) {
+                    Ok(0) | Err(_) => break,
+                    Ok(read) => request.extend_from_slice(&chunk[..read]),
+                }
+            }
+            if silent {
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+                return;
+            }
+            let _ = stream.write_all(&wire);
+        });
+        Self {
+            port,
+            worker: Some(worker),
+        }
+    }
+
+    /// The base URL, `http://127.0.0.1:{port}`.
+    pub fn base_url(&self) -> String {
+        format!("http://127.0.0.1:{}", self.port)
+    }
+}
+
+impl Drop for RawServer {
+    fn drop(&mut self) {
+        // Wake the worker if the client never connected, then join it so the
+        // loopback port does not outlive the test.
+        let _ = std::net::TcpStream::connect(("127.0.0.1", self.port));
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
+/// A response with no `Content-Length`, sent with chunked transfer encoding.
+/// The client learns no length in advance.
+pub fn chunked_wire(body: &[u8]) -> Vec<u8> {
+    let mut wire =
+        b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n".to_vec();
+    wire.extend_from_slice(format!("{:x}\r\n", body.len()).as_bytes());
+    wire.extend_from_slice(body);
+    wire.extend_from_slice(b"\r\n0\r\n\r\n");
+    wire
+}
+
+/// A response that declares `declared` bytes and sends only `sent`, then
+/// closes: the body is truncated.
+pub fn truncated_wire(declared: usize, sent: &[u8]) -> Vec<u8> {
+    let mut wire =
+        format!("HTTP/1.1 200 OK\r\nContent-Length: {declared}\r\nConnection: close\r\n\r\n")
+            .into_bytes();
+    wire.extend_from_slice(sent);
+    wire
+}

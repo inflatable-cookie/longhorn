@@ -156,9 +156,11 @@ objc2-web-kit = { version = "0.3.2", features = ["WKSnapshotConfiguration", "WKW
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 minisign = "0.9.1"
 minisign-verify = "0.2.5"
-# HTTP-only (no TLS back end): the g02.044 stdio carrier speaks to the
-# contract 022 server on loopback only, so `https` URLs cannot be built.
-# That is a second guard behind the carrier's 127.0.0.1-only selection.
+# No TLS back end in this declaration. The g02.044 stdio carrier speaks to the
+# contract 022 server on loopback only, and its client refuses any other
+# endpoint in code (`run_carrier`). That code guard does not depend on this
+# feature set: a crate that enables reqwest's TLS back end (longhorn-tool-provision
+# does, with rustls) still unifies it into the carrier's build.
 reqwest = { version = "0.13.2", default-features = false }
 # The line the Card 227 spike proved on the wire: `legacy_session_mode:
 # false` mints no session ids, and 2026-07-28 is supported but not the
