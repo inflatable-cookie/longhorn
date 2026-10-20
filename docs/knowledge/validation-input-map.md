@@ -724,8 +724,10 @@ does not prove the TypeScript compiles, so `check:ts` is always a companion.
 Select by which documentation surface changed:
 
 - Any Markdown under `docs/` or `README.md`/`AGENTS.md`:
-  `longhorn-docs` for the four bounded link, index-path, and agent-default
-  checks. `qa:docs` remains the seven-member docs aggregate when
+  `longhorn-docs` for its five bounded members: the link, index-path,
+  agent-default and catalog-link checks, plus `changelog` for `CHANGELOG.md`.
+  A group run executes all five members, not only the ones the changed file
+  touches. `qa:docs` remains the seven-member docs aggregate when
   `held-surface` and `host-protocol` obligations apply or its owning validator
   is required.
 - `docs/reference/{held-surface,api-surface}.md` or `docs/guides/package-selection.md`:
