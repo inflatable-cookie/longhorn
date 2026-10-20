@@ -169,11 +169,12 @@ Against the Acowtancy donor at `3c21b1ac8`, `bundle.rs`:
 
 ## Extraction state
 
-Contract 003 steps 1–4 are done: the donor is named, its tests are ported,
-this contract is the generic definition, and `longhorn-diagnostics` is the
-smallest shared package. Steps 5–7 are Acowtancy's own migration task, in
-Acowtancy's Queue, after a Longhorn release it can tag. The Praxis map's
-split is honoured: the fact list, the title and the file name are product.
+Contract 003 steps 1–5 and 7 are done. Acowtancy Desktop migrated in
+acowtancy-v2 PR 941 (merged 2026-10-20 at `8ed2e1219`) and took every Longhorn
+crate at `v0.3.3`. Its `diagnostics/bundle.rs` renders through
+`longhorn_diagnostics::render` with the app's seeded `Redactor`. Desktop keeps
+the title, the section list, the labels, the `DiagnosticsBundle` wire type and
+the save dialog. Longhorn's contract and tests are now authoritative.
 
 Open:
 
