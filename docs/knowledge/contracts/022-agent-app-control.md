@@ -75,6 +75,12 @@ agent can use while the app runs unfocused in the background.
   (opt-in `client` feature): it fronts the discovered instance with its
   bearer over stdio, one POST per message, and owns no catalogue,
   registry, lease, or listener. No second production MCP server exists.
+  Every reply a harness receives through the carrier is the router's own
+  reply to the same exchange made directly over HTTP: the carrier stamps
+  each POST with the harness's own declared protocol version, so the server
+  answers both paths from the same source and the two cannot drift. The
+  carrier suite (`test:agent-control-carrier`) proves this exchange by
+  exchange.
 
 ### Discovery
 

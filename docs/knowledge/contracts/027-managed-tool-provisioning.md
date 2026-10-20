@@ -496,7 +496,7 @@ unreachable fault.
   is kept in code instead: `run_carrier` parses the endpoint and requires scheme
   `http` and host `127.0.0.1`. A loopback-looking userinfo prefix cannot select a
   remote host, and the carrier cannot speak TLS whatever the feature set.
-  `test:agent-control-carrier-guard` runs that refusal.
+  `test:agent-control-carrier` runs that refusal.
 
 ### Failure classes
 

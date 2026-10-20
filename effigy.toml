@@ -33,10 +33,13 @@ include = ["config/release.toml"]
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
-# The stdio carrier's endpoint guard (contract 022, g02.044). The guard test
-# compiles only with the `client` feature, and nothing else runs it. The rest of
-# the carrier suite is not selected: two of its parity tests fail at HEAD.
-"test:agent-control-carrier-guard" = "cargo test -p longhorn-agent-control --features client --locked --test carrier -- carrier_refuses_a_non_loopback_endpoint"
+# The agent-control test lane with the stdio carrier enabled (contract 022,
+# g02.044): the package's unit tests plus every integration target, including
+# the whole carrier end-to-end suite (HTTP parity, listen/resource
+# pass-through, exit codes, and the loopback-endpoint guard). The carrier
+# code and its suite compile only with the `client` feature, and no
+# default-feature selector runs them.
+"test:agent-control-carrier" = "cargo test -p longhorn-agent-control --features client --locked"
 "test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
 "test:redact" = "cargo test -p longhorn-redact --locked"
 "test:support-log" = "cargo test -p longhorn-support-log --locked"
@@ -257,6 +260,7 @@ qa = [
   { task = "lint:rust" },
   { task = "lint:rust:features" },
   { task = "test:rust" },
+  { task = "test:agent-control-carrier" },
   { task = "check:ts" },
   { task = "check:svelte" },
   { task = "check:packages" },
@@ -1152,6 +1156,32 @@ members = [
     targets = ["path:packages/longhorn/src/agent-control/inject.ts", "path:packages/longhorn/src/agent-control/shim.ts", "path:crates/longhorn-tauri-agent-control/src/agent_control_shim.js"],
     covers = ["path:packages/longhorn/src/agent-control/inject.ts", "path:packages/longhorn/src/agent-control/shim.ts", "path:crates/longhorn-tauri-agent-control/src/agent_control_shim.js"],
     limits = ["Builds and compares the committed shim only"],
+  },
+]
+
+[qa.groups.agent-control-carrier]
+lifecycle = "maintained"
+purpose = "Run the agent-control stdio carrier end-to-end suite with the client feature"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Runs the carrier suite only; does not cover the rest of the longhorn-agent-control crate",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "carrier-suite",
+    kind = "test",
+    surface = "published",
+    task = "test:agent-control-carrier",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "path:crates/longhorn-agent-control/src/carrier.rs",
+      "path:crates/longhorn-agent-control/src/bin/longhorn-agent-control-client.rs",
+      "path:crates/longhorn-agent-control/tests/carrier.rs",
+    ],
+    limits = ["Runs the package's tests with --features client, carrier suite included; does not run other workspace packages"],
   },
 ]
 
