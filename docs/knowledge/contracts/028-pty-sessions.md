@@ -43,11 +43,14 @@ belong to the host adapter.
 The child calls `setsid` and makes the PTY slave its controlling terminal
 before `exec`. Its process id is therefore also its session and process-group
 id. The child receives the PTY slave for stdin, stdout, and stderr. The parent
-retains one slave descriptor until the output reader finishes its final
-post-exit drain, then closes it. Some platforms discard unread
-slave-to-master data on last slave close, so without the retained copy a
-child that writes and exits before the reader's next drain would lose its
-output; the retained copy makes last close happen only after that drain.
+retains one slave descriptor while the output reader is draining and closes
+it when the reader finishes: after its final post-exit drain when the
+consumer reads to the exit, or at its early exit when the consumer dropped
+the receiver. Some platforms discard unread slave-to-master data on last
+slave close, so without the retained copy a child that writes and exits
+before the reader's next drain would lose its output. In the dropped path
+the child's own slave copies still hold the slave open, so last close still
+cannot precede the child's own end.
 
 `write`, `resize`, close, and child status polling share one lifecycle lock.
 The child is reaped once by rustix `waitpid`; the cached result closes the
