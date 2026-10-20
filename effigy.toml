@@ -26,6 +26,8 @@ include = ["config/release.toml"]
 "lint:redact" = "cargo clippy -p longhorn-redact --all-targets --locked -- -D warnings"
 "lint:support-log" = "cargo clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
 "lint:diagnostics" = "cargo clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
+# Contract 028: real PTY lifecycle and process-group behavior.
+"lint:pty" = "cargo clippy -p longhorn-pty --all-targets --locked -- -D warnings"
 # Contract 027 and its shared archive path rule (contract 018 and 027). The
 # fixture-server feature compiles the part 4b release tests and their server.
 "lint:tool-provision" = "cargo clippy -p longhorn-tool-provision -p longhorn-archive-path --all-targets --locked --features longhorn-tool-provision/fixture-server -- -D warnings"
@@ -41,6 +43,7 @@ include = ["config/release.toml"]
 "test:redact" = "cargo test -p longhorn-redact --locked"
 "test:support-log" = "cargo test -p longhorn-support-log --locked"
 "test:diagnostics" = "cargo test -p longhorn-diagnostics --locked"
+"test:pty" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:tool-provision" = "cargo test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this task — `cargo test` — because the doc tests
@@ -50,6 +53,7 @@ include = ["config/release.toml"]
 "docs:redact" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-redact --no-deps --locked'"
 "docs:support-log" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-support-log --no-deps --locked'"
 "docs:diagnostics" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-diagnostics --no-deps --locked'"
+"docs:pty" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-pty --no-deps --locked'"
 "docs:tool-provision" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server'"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
@@ -157,6 +161,12 @@ include = ["config/release.toml"]
   { task = "lint:diagnostics" },
   { task = "test:diagnostics" },
   { task = "docs:diagnostics" },
+  { task = "check:api-reference" },
+]
+"check:pty" = [
+  { task = "lint:pty" },
+  { task = "test:pty" },
+  { task = "docs:pty" },
   { task = "check:api-reference" },
 ]
 "check:tool-provision" = [
@@ -758,6 +768,28 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-diagnostics", "path:crates/longhorn-diagnostics/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.pty]
+lifecycle = "maintained"
+purpose = "Check the PTY sessions crate against contract 028"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "pty-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:pty",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-pty", "path:crates/longhorn-pty/**"],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

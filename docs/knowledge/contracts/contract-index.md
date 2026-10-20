@@ -18,7 +18,7 @@ them.
 
 - **Core** — host-agnostic. Every application satisfies these whatever its
   backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
-  018 (policy), 019, 021, 024, 025, 026, 027.
+  018 (policy), 019, 021, 024, 025, 026, 027, 028.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
@@ -59,6 +59,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [025 Bounded Support Logs](025-bounded-support-logs.md) | redact-then-bound ring log, rotating line log and output tails: bounds, rotation, failure rules, UTC timestamps | active compiled boundary |
 | [026 Diagnostics Bundle](026-diagnostics-bundle.md) | pure diagnostics renderer: exact layout, redact-last with the app's redactor, marker count, caller-owned product text | active compiled boundary |
 | [027 Managed Tool Provisioning](027-managed-tool-provisioning.md) | verified artifacts (digest, then vendor team on the extracted executable), bounded single-member extraction, release resolution and bounded download, install pipeline, health and login-shell PATH discovery | active; 4a, 4b and 4c compiled |
+| [028 PTY Sessions](028-pty-sessions.md) | one child on a real PTY, bounded output, process-group lifecycle, close escalation, typed exit result | active compiled boundary |
 
 ## Notes
 

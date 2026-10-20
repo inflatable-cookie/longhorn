@@ -65,6 +65,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `redact` | `check:redact` | `longhorn-redact` and its case table `fixtures/redact/**`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `support-log` | `check:support-log` | `longhorn-support-log`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact`. |
 | `diagnostics` | `check:diagnostics` | `longhorn-diagnostics`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact` or `longhorn-support-log`. |
+| `pty` | `check:pty` | `longhorn-pty` and its public PTY lifecycle tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
@@ -156,8 +157,16 @@ role: scoped compile/test/rustdoc for `crates/longhorn-support-log/**`
 **`lint:diagnostics`**, **`test:diagnostics`**, **`docs:diagnostics`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-diagnostics/**`
 (contract 026). Companions: `check:api-reference` (aggregated by
-`check:diagnostics`). Limits: these, the support-log, redact and
-agent-tool-dispatch selectors are the only per-crate Rust selectors.
+`check:diagnostics`).
+
+**`lint:pty`**, **`test:pty`**, **`docs:pty`** — role: scoped
+compile/test/rustdoc for `crates/longhorn-pty/**` (contract 028). `test:pty`
+uses nextest's 30-second slow-test period, two-period termination with a
+one-second forced-kill grace, and immediate stop of remaining tests after the
+first failure. Companions: `check:api-reference` (aggregated by `check:pty`).
+
+Limits: these, the diagnostics, support-log, redact, and agent-tool-dispatch
+selectors are the only per-crate Rust selectors.
 
 **`lint:tool-provision`**, **`test:tool-provision`**, **`docs:tool-provision`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-tool-provision/**` and
@@ -691,7 +700,7 @@ the other staging members remain planner-owned.
 
 `cargo test/clippy --workspace` is all-or-nothing. Only
 `longhorn-agent-tool-dispatch`, `longhorn-redact`, `longhorn-support-log`,
-`longhorn-diagnostics` and `longhorn-tool-provision` have scoped selectors. Everything else needs the
+`longhorn-diagnostics`, `longhorn-pty` and `longhorn-tool-provision` have scoped selectors. Everything else needs the
 whole Rust lane: `lint:rust`, `lint:rust:features`, `test:rust`. A shared
 crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 (`longhorn-credential-keyring` has no in-tree dependents) select the same
