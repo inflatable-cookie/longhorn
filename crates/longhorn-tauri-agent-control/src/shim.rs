@@ -17,7 +17,12 @@ pub const SHIM_SOURCE: &str = include_str!("agent_control_shim.js");
 
 /// Marks the current turn as agent-originated so a picker called from
 /// `evaluate` is captured. Input tools mark origin inside the shim.
-pub const MARK_AGENT_ORIGIN_JS: &str = "globalThis.__longhornAgentControl && globalThis.__longhornAgentControl.markAgentOrigin && globalThis.__longhornAgentControl.markAgentOrigin()";
+pub const MARK_AGENT_ORIGIN_JS: &str = "globalThis.__longhornAgentControl && globalThis.__longhornAgentControl.markAgentOrigin && globalThis.__longhornAgentControl.markAgentOrigin();";
+
+/// Prepends the origin marker without changing the caller's completion value.
+pub(crate) fn compose_evaluate_js(js: &str) -> String {
+    format!("{MARK_AGENT_ORIGIN_JS}\n{js}")
+}
 
 const POLL: Duration = Duration::from_millis(50);
 
@@ -182,6 +187,55 @@ mod tests {
     use super::*;
     use longhorn_agent_control::ElementRef;
     use serde_json::json;
+
+    #[test]
+    fn evaluate_prefix_executes_caller_scripts_in_bun() {
+        let scripts = [
+            (
+                "(() => 42)()",
+                json!({ "value": 42, "markAgentOriginCalls": 1 }),
+            ),
+            (
+                "[1, 2].length",
+                json!({ "value": 2, "markAgentOriginCalls": 1 }),
+            ),
+            ("1 + 2", json!({ "value": 3, "markAgentOriginCalls": 1 })),
+        ];
+        let sources = scripts
+            .iter()
+            .map(|(js, _)| compose_evaluate_js(js))
+            .collect::<Vec<_>>();
+        let sources_json = serde_json::to_string(&sources).expect("sources are JSON strings");
+        let program = r#"
+const sources = JSON.parse(process.env.LONGHORN_EVALUATE_SOURCES);
+const results = sources.map((source) => {
+  let markAgentOriginCalls = 0;
+  globalThis.__longhornAgentControl = {
+    markAgentOrigin() { markAgentOriginCalls += 1; },
+  };
+  return { value: eval(source), markAgentOriginCalls };
+});
+console.log(JSON.stringify(results));
+"#;
+        let output = std::process::Command::new("bun")
+            .arg("-e")
+            .arg(program)
+            .env("LONGHORN_EVALUATE_SOURCES", sources_json)
+            .output()
+            .expect("Bun must be available to execute the composed JavaScript");
+        assert!(
+            output.status.success(),
+            "Bun evaluation failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let actual: Vec<Value> = serde_json::from_slice(&output.stdout)
+            .expect("Bun prints the evaluated results as JSON");
+        let expected = scripts
+            .iter()
+            .map(|(_, result)| result.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+    }
 
     #[test]
     fn decode_maps_unresolved_ref_onto_the_vocabulary() {
