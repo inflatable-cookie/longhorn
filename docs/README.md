@@ -4,20 +4,20 @@ Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
 are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 
-- **Released:** `0.3.2` (2026-10-19). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.3.2` for the Rust crates. `0.3.2` adds
-  `longhorn-support-log`
-  ([contract 025](knowledge/contracts/025-bounded-support-logs.md)); `0.3.1`
-  added `longhorn-redact`
-  ([contract 024](knowledge/contracts/024-text-redaction.md)) and moved
-  `longhorn-poodle` to Poodle `v0.4.12`. `0.3.0` set the Svelte floor
-  `5.56.8` and removed the `dev` feature on `longhorn-tauri-agent-control`.
-  Poodle is a peer range (`>=0.4.4 <0.5`) and third-party Rust dependencies
-  are ranges
+- **Released:** `0.3.3` (2026-10-20). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.3.3` for the Rust crates. The `0.3.x`
+  line adds desktop support crates extracted from Acowtancy Desktop:
+  `longhorn-redact` in `0.3.1`
+  ([contract 024](knowledge/contracts/024-text-redaction.md)),
+  `longhorn-support-log` in `0.3.2`
+  ([contract 025](knowledge/contracts/025-bounded-support-logs.md)) and
+  `longhorn-diagnostics` in `0.3.3`
+  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)). `0.3.1`
+  also moved `longhorn-poodle` to Poodle `v0.4.12`. `0.3.0` set the Svelte
+  floor `5.56.8` and removed the `dev` feature on
+  `longhorn-tauri-agent-control`. Poodle is a peer range (`>=0.4.4 <0.5`)
+  and third-party Rust dependencies are ranges
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
-- **On `main`, unreleased:** `longhorn-diagnostics`
-  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)), the pure
-  diagnostics bundle renderer, for Acowtancy Desktop's next migration.
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
 - **Consumer adoption** of Longhorn features is consumer-owned. Longhorn does
