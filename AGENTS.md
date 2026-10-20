@@ -44,7 +44,8 @@ effigy qa
 `doctor` is cheap orientation: it runs `fmt:rust`, `check:runner-tools`, and
 built-in scans without compiling the workspace. `effigy qa` is the full
 Rust/TypeScript gate. `effigy test` uses the built-in test plan, which runs
-Cargo nextest and therefore does not cover the doc tests counted by `qa`.
+nextest and therefore does not cover the doc tests counted by `qa`. Use
+`test:rust` when doc tests are part of the check.
 The MSRV floor is a release gate. Before a release, run
 `effigy ci:rehearse`; it checks clean-runner properties that local `qa` can
 miss and is a full rehearsal.
@@ -53,6 +54,23 @@ Prefer `effigy <task>` for supported work. Do not mirror Effigy tasks into
 package scripts. A missing target-local maintenance task is a routing gap;
 use the installed `northstar` skill's tasks (`effigy skill run northstar/<task>`)
 rather than substituting commands from another repository.
+
+## Rust build routing
+
+Effigy Rust build selectors use `oxide` locally and plain `cargo` when
+`GITHUB_ACTIONS=true`. Install Oxide for local builds; there is no silent
+fallback. If Oxide is unavailable, use `lint:rust:cargo`, `test:rust:cargo`, or
+`test:pty:cargo` for those three lanes.
+
+`fmt:rust` stays on Cargo because it only reads workspace metadata and formats
+the members-only package list. Keep Cargo for commands that intentionally set
+`CARGO_TARGET_DIR`: `scripts/verify-agent-control-release-absence.ts`,
+`scripts/verify-agent-tool-dispatch-release-absence.ts`,
+`scripts/verify-agent-tool-dispatch-source-consumer.ts`, and
+`scripts/proof-artifacts.ts` with its artifact proof scripts. Tauri CLI example
+builds and the Queue warm-merge hook manifest under `.git/queue-hooks` also
+stay on Cargo. Leave direct Cargo uses in `config/release.toml` and all
+`.github/workflows/` unchanged.
 
 ## Product rules
 
@@ -96,7 +114,7 @@ rather than substituting commands from another repository.
   concurrent thread.
 - For a repo-wide rename, use a hyphen-free token when it is also a Rust name.
   Text and identifier changes need separate substitutions; run
-  `cargo check --workspace` before committing.
+  `oxide check --workspace` before committing.
 - During a redaction sweep, treat `scripts/` as executable code. A placeholder
   that reads well in prose can be a runtime failure.
 - When a small, solvable execution hurdle appears, file it in Queue as a
@@ -186,3 +204,14 @@ strict profile state before assessment. Record findings before mutation, keep
 repairs inside recorder-authorized files, preserve pre-existing dirty work, and
 use repository-owned compiler, framework, lint, and test evidence without
 installing dependencies or inventing commands.
+
+<!-- oxide:begin -->
+## Rust commands: use `oxide`
+
+- Write `oxide` wherever you would write `cargo`: `oxide check`, `oxide test`, `oxide run -- <args>`, `oxide add <crate>`.
+- Profiles: `quick` (default), `--profile debug` for a debugger, `--release`. Oxide places build output, so it refuses `--target-dir`.
+- A `waiting for …` line means another build holds a slot; let it wait. `oxide status` shows the pool, slots and waits.
+- Use `oxide clean`, not `cargo clean`.
+
+Managed by `oxide init`; edits between these markers are replaced.
+<!-- oxide:end -->
