@@ -275,8 +275,14 @@ Against the Acowtancy donor at `3c21b1ac8`:
   source file. Here the digest is checked on the copy extraction reads (see
   Verification), so the source can change after verification without effect.
 - **Unsafe names:** the donor skipped an unsafe entry and went on. It now
-  refuses the archive. The donor's `safe_member` is the shared rule plus the
-  backslash refusal.
+  refuses the archive. The donor's `safe_member` refused an empty name, a
+  leading `/`, a backslash, and any name that contains `..` as a substring.
+  The name rule here is the shared component rule plus the backslash refusal.
+  It refuses an empty name, a root or drive prefix, a `..` component and a
+  backslash. A name with `..` inside a component, such as `tool..backup`, is
+  now accepted. The donor's substring refusal is deliberately not kept: the
+  shared rule is also `longhorn-update-install`'s, whose behaviour must not
+  change.
 - **Links:** the donor ignored link entries. It now refuses the archive.
 - **Duplicates:** the donor took the first match. It now refuses.
 - **Member comparison:** the donor compared the raw name. It now compares the
