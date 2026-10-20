@@ -11,6 +11,8 @@
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -275,4 +277,135 @@ fn a_relative_working_directory_is_applied() {
     let (exit, output) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Code(0));
     assert!(text(&output).contains("/usr"));
+}
+
+fn check_stress_exit(id: usize, code: i32) {
+    let marker = format!("marker-exit-{id}");
+    let (_session, receiver) = open(shell(&format!("printf '{marker}'; exit {code}")));
+    let (exit, output) = receive_until_exit(&receiver);
+    let body = text(&output);
+    assert!(
+        body.contains(&marker),
+        "an exit-{code} session lost its output: {body:?}"
+    );
+    assert_eq!(
+        exit,
+        ExitResult::Code(code),
+        "an exit-{code} session reported {exit:?}"
+    );
+}
+
+fn check_stress_signal(id: usize, signal: i32) {
+    let marker = format!("marker-signal-{id}");
+    let (_session, receiver) = open(shell(&format!("printf '{marker}'; kill -{signal} $$")));
+    let (exit, output) = receive_until_exit(&receiver);
+    let body = text(&output);
+    assert!(
+        body.contains(&marker),
+        "a self-signal-{signal} session lost its output: {body:?}"
+    );
+    assert_eq!(
+        exit,
+        ExitResult::Signal(signal),
+        "a self-signal-{signal} session reported {exit:?}"
+    );
+}
+
+fn check_stress_close(id: usize) {
+    let marker = format!("marker-close-{id}");
+    let (session, receiver) = open(shell(&format!(
+        "printf '{marker}'; trap '' HUP; while :; do sleep 1; done"
+    )));
+    // The marker arriving here proves the session was alive and streaming
+    // before close; nothing is written after it, so the post-close output
+    // is legitimately empty and only the exit is asserted below.
+    receive_until_text(&receiver, &marker);
+    session.close().expect("the process group closes");
+    let (exit, _) = receive_until_exit(&receiver);
+    assert_eq!(
+        exit,
+        ExitResult::Signal(9),
+        "a closed session reported {exit:?}"
+    );
+}
+
+/// Scheduler pressure without pseudo-terminal pressure: tight fork-and-exec
+/// churn in plain child processes (no PTY) stalls thread startup across the
+/// process, including session reader threads, while holding no PTY itself.
+fn storm_worker(stop: Arc<AtomicBool>) {
+    while !stop.load(Ordering::Relaxed) {
+        let mut child = std::process::Command::new("/bin/sh")
+            .arg("-c")
+            .arg("exit 0")
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("the storm child starts");
+        let _ = child.wait();
+    }
+}
+
+fn burst_round(base: usize, count: usize) {
+    use std::sync::Barrier;
+    let barrier = Arc::new(Barrier::new(count));
+    let mut handles = Vec::new();
+    for i in 0..count {
+        let barrier = barrier.clone();
+        handles.push(thread::spawn(move || {
+            let id = base + i;
+            let marker = format!("marker-burst-{id}");
+            let code = (id % 124 + 1) as i32;
+            barrier.wait();
+            let (_session, receiver) = open(shell(&format!("printf '{marker}'; exit {code}")));
+            let (exit, output) = receive_until_exit(&receiver);
+            let body = text(&output);
+            assert!(
+                body.contains(&marker),
+                "a burst session lost its output: {body:?}"
+            );
+            assert_eq!(
+                exit,
+                ExitResult::Code(code),
+                "a burst session reported {exit:?}"
+            );
+        }));
+    }
+    for handle in handles {
+        handle.join().expect("the burst thread finishes");
+    }
+}
+
+/// In-process independence under load: hundreds of sessions share this one
+/// test process with the rest of the suite (mixed exits with codes,
+/// self-signals, and closes that escalate to KILL) while fork-and-exec
+/// storms stall thread startup. Each session asserts its own exit and its
+/// own unique output marker. Live sessions stay few at a time (one churn
+/// loop, one burst of three) so loaded hosts do not exhaust
+/// pseudo-terminals.
+#[test]
+fn many_concurrent_sessions_share_one_process() {
+    let stop = Arc::new(AtomicBool::new(false));
+    let mut storms = Vec::new();
+    for _ in 0..4 {
+        let stop = stop.clone();
+        storms.push(thread::spawn(move || storm_worker(stop)));
+    }
+    for round in 0..200 {
+        let id = round;
+        check_stress_exit(id, (id % 124 + 1) as i32);
+        if round % 12 == 0 {
+            check_stress_signal(1_000_000 + id, 15);
+        }
+        if round % 25 == 0 {
+            check_stress_close(2_000_000 + round);
+        }
+    }
+    for round in 0..30 {
+        burst_round(100_000 + round * 3, 3);
+    }
+    stop.store(true, Ordering::Relaxed);
+    for storm in storms {
+        storm.join().expect("the storm thread finishes");
+    }
 }

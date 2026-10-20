@@ -132,8 +132,9 @@ The public-API integration suite starts real `/bin/sh` and system utility
 children. It covers output order, stdin, controlling-terminal access, resize,
 exact environment, code and signal exits, 300 ms close escalation, a same-group
 grandchild, ended operations, independent sessions, a slow consumer, and the
-working directory. A second in-process suite opens many sessions at once
-from threads in one process, each asserting its own exit and its own output
-marker under churn, synchronized open bursts, fork-and-exec storms, and
-close escalations. The `pty` QA group runs these tests, Clippy, rustdoc, and
-the generated API surface check.
+working directory. A final stress test shares the same binary, so under
+`cargo test` it runs as one more thread in the same process: many sessions
+at once, each asserting its own exit and its own output marker under churn,
+synchronized open bursts, fork-and-exec storms, and close escalations. The
+`pty` QA group runs these tests, Clippy, rustdoc, and the generated API
+surface check.
