@@ -495,6 +495,14 @@ selects it.
 `lint:diagnostics`, `test:diagnostics`, `docs:diagnostics`,
 `check:api-reference`. The `diagnostics` QA group selects it.
 
+**`test:agent-control-carrier-guard`** — role: runs the stdio carrier's
+loopback-endpoint guard test (`carrier_refuses_a_non_loopback_endpoint_before_any_exchange`),
+which compiles only with feature `client`. No other selector runs it. Limits:
+it does not run the carrier's other end-to-end tests, two of which fail at
+HEAD (`carrier_proxies_tools_with_http_parity`,
+`carrier_adapts_listen_and_resources_by_pass_through`), and `lint:rust:features`
+compiles but does not run them. Not in a QA group.
+
 **`check:tool-provision`** — role: aggregate (not in `qa`). Runs
 `lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,
 `check:api-reference`. The `tool-provision` QA group selects it.

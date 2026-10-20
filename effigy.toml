@@ -33,6 +33,10 @@ include = ["config/release.toml"]
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "cargo test --workspace --locked"
+# The stdio carrier's endpoint guard (contract 022, g02.044). The guard test
+# compiles only with the `client` feature, and nothing else runs it. The rest of
+# the carrier suite is not selected: two of its parity tests fail at HEAD.
+"test:agent-control-carrier-guard" = "cargo test -p longhorn-agent-control --features client --locked --test carrier -- carrier_refuses_a_non_loopback_endpoint"
 "test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
 "test:redact" = "cargo test -p longhorn-redact --locked"
 "test:support-log" = "cargo test -p longhorn-support-log --locked"

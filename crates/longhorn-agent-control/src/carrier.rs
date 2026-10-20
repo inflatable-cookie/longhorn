@@ -568,6 +568,14 @@ pub async fn run_carrier(
     stdin: impl tokio::io::AsyncRead + Unpin + Send + 'static,
     stdout: impl tokio::io::AsyncWrite + Unpin + Send + 'static,
 ) -> Result<CarrierExit, CarrierError> {
+    // Plain HTTP to loopback only. This guard is code, not a feature set:
+    // Cargo unifies reqwest's features across a build, so a TLS back end that
+    // another crate enables would otherwise let this client reach `https`.
+    if !selection.endpoint.starts_with("http://127.0.0.1:") {
+        return Err(CarrierError::InvalidRecord(
+            "the carrier speaks plain HTTP to 127.0.0.1 only".to_owned(),
+        ));
+    }
     let client = reqwest::Client::builder()
         .build()
         .map_err(|error| CarrierError::Exchange(format!("HTTP client failed: {error}")))?;

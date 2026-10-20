@@ -672,6 +672,57 @@ fn the_token_is_absent_from_every_error_and_debug_output() {
 }
 
 #[test]
+fn the_token_is_absent_from_oversized_download_errors() {
+    let server = release_server(TAG, &[ASSET]);
+    let bounded = || ReleaseOptions::new("example-app/test").with_max_artifact_bytes(8);
+    let source = source_with(
+        server.endpoints().expect("loopback endpoints"),
+        Some(TOKEN),
+        bounded(),
+    );
+    let release = source
+        .resolve_release(&query(Some(TAG), None))
+        .expect("resolves");
+    let directory = tempfile::tempdir().expect("a fresh directory");
+
+    // A declared length over the bound.
+    let declared = source
+        .download_asset(&release, ASSET, directory.path())
+        .expect_err("the declared length refuses");
+    assert!(
+        matches!(
+            declared,
+            ReleaseError::Refused(ReleaseRefusal::ArtifactTooLarge { .. })
+        ),
+        "{declared:?}"
+    );
+    assert_no_token(&declared);
+
+    // Streamed past the bound with no declared length: the error is the
+    // refusal, the partial file is gone, and the token is nowhere in the text.
+    let raw = RawServer::answering(chunked_wire(&[7u8; 64]), false);
+    let streamed_source = source_with(
+        ReleaseEndpoints::loopback_for_tests(&server.base_url(), &raw.base_url())
+            .expect("loopback endpoints"),
+        Some(TOKEN),
+        bounded(),
+    );
+    let streamed = streamed_source
+        .download_asset(&release, ASSET, directory.path())
+        .expect_err("the streamed bytes refuse");
+    assert!(
+        matches!(
+            streamed,
+            ReleaseError::Refused(ReleaseRefusal::ArtifactTooLarge { .. })
+        ),
+        "{streamed:?}"
+    );
+    assert_no_token(&streamed);
+    assert!(!directory.path().join(ASSET).exists());
+    assert!(!format!("{streamed_source:?}").contains(TOKEN));
+}
+
+#[test]
 fn a_non_https_endpoint_is_refused_outside_the_fixture_constructor() {
     let plain_api = ReleaseEndpoints::new("http://api.example.test", "https://github.example.test");
     assert!(matches!(
