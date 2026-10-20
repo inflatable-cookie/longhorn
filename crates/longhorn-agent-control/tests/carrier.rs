@@ -28,7 +28,7 @@ use longhorn_agent_control::{
     ActionReceipt, CommandResult, ControlHandler, ElementRef, EvaluateResult, InstanceToken,
     ListWindowsResult, PageState, ScreenshotResult, SelectionRegistry, SemanticNode,
     SnapshotResult, ToolError, WaitForResult,
-    carrier::{CarrierError, run_carrier, select_instance},
+    carrier::{CarrierError, CarrierExit, run_carrier, select_instance},
     control_router, publish_discovery,
 };
 use serde_json::{Value, json};
@@ -631,12 +631,36 @@ async fn carrier_refuses_a_non_loopback_endpoint_before_any_exchange() {
         InstanceToken::generate().unwrap(),
     )
     .unwrap();
-    let mut selection = select_instance(&discovery_dir, None).unwrap();
-    // The field is public, so a caller can build a selection that names https.
-    selection.endpoint = "https://127.0.0.1:49154/mcp".to_owned();
-    let result = run_carrier(selection, tokio::io::empty(), tokio::io::sink()).await;
+    let selection = select_instance(&discovery_dir, None).unwrap();
+    // The public field can name TLS, a remote host, or a deceptive userinfo
+    // prefix. All must be refused before reading any harness input.
+    for endpoint in [
+        "https://127.0.0.1:49154/mcp",
+        "http://remote.example:49154/mcp",
+        "http://127.0.0.1:49154@remote.example/mcp",
+        "not a URL",
+    ] {
+        let mut invalid = selection.clone();
+        invalid.endpoint = endpoint.to_owned();
+        let result = timeout(
+            Duration::from_secs(1),
+            run_carrier(invalid, tokio::io::empty(), tokio::io::sink()),
+        )
+        .await
+        .expect("endpoint validation must finish without an exchange");
+        assert!(
+            matches!(result, Err(CarrierError::InvalidRecord(_))),
+            "{endpoint}: {result:?}"
+        );
+    }
+    let result = timeout(
+        Duration::from_secs(1),
+        run_carrier(selection, tokio::io::empty(), tokio::io::sink()),
+    )
+    .await
+    .expect("a loopback endpoint must finish when harness input closes");
     assert!(
-        matches!(result, Err(CarrierError::InvalidRecord(_))),
+        matches!(result, Ok(CarrierExit::HarnessClosed)),
         "{result:?}"
     );
     published.remove().unwrap();

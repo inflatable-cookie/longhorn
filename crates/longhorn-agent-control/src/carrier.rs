@@ -571,7 +571,12 @@ pub async fn run_carrier(
     // Plain HTTP to loopback only. This guard is code, not a feature set:
     // Cargo unifies reqwest's features across a build, so a TLS back end that
     // another crate enables would otherwise let this client reach `https`.
-    if !selection.endpoint.starts_with("http://127.0.0.1:") {
+    // Parse before checking the host: a textual loopback prefix can be userinfo
+    // in a URL whose actual host is remote.
+    let endpoint = reqwest::Url::parse(&selection.endpoint).map_err(|_| {
+        CarrierError::InvalidRecord("the carrier endpoint is not a valid URL".to_owned())
+    })?;
+    if endpoint.scheme() != "http" || endpoint.host_str() != Some("127.0.0.1") {
         return Err(CarrierError::InvalidRecord(
             "the carrier speaks plain HTTP to 127.0.0.1 only".to_owned(),
         ));

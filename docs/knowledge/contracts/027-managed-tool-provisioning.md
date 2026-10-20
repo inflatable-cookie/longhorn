@@ -493,8 +493,9 @@ unreachable fault.
 - Feature unification: Cargo unifies reqwest's features across one build. A
   build that enables this crate and the agent-control carrier's `client` feature
   therefore gives the carrier's client a TLS back end. The carrier's boundary
-  is kept in code instead: `run_carrier` refuses any endpoint that is not plain
-  `http://127.0.0.1:`, so the carrier cannot speak TLS whatever the feature set.
+  is kept in code instead: `run_carrier` parses the endpoint and requires scheme
+  `http` and host `127.0.0.1`. A loopback-looking userinfo prefix cannot select a
+  remote host, and the carrier cannot speak TLS whatever the feature set.
   `test:agent-control-carrier-guard` runs that refusal.
 
 ### Failure classes
