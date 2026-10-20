@@ -72,6 +72,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
 | `longhorn-bindings` | `check:bindings` | All fifteen registered domains; the generator's compile-closure crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:bindings-generator-transitive-compile-dependencies` token. |
 | `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; the five release-absence compile crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:agent-control-marker-source-coverage` token. |
+| `agent-control-carrier` | `test:agent-control-carrier` | The carrier sources and suite only (`src/carrier.rs`, the client binary, `tests/carrier.rs`); not the rest of `longhorn-agent-control`, and not a general workspace or lockfile group. |
 
 Expected runtime is declared where the owner has a basis. For example,
 `agent-control-absence` declares `expected_wall_ms = 300000`; groups without an
@@ -508,13 +509,14 @@ selects it.
 `lint:diagnostics`, `test:diagnostics`, `docs:diagnostics`,
 `check:api-reference`. The `diagnostics` QA group selects it.
 
-**`test:agent-control-carrier-guard`** — role: runs the stdio carrier's
-loopback-endpoint guard test (`carrier_refuses_a_non_loopback_endpoint_before_any_exchange`),
-which compiles only with feature `client`. No other selector runs it. Limits:
-it does not run the carrier's other end-to-end tests, two of which fail at
-HEAD (`carrier_proxies_tools_with_http_parity`,
-`carrier_adapts_listen_and_resources_by_pass_through`), and `lint:rust:features`
-compiles but does not run them. Not in a QA group.
+**`test:agent-control-carrier`** — role: runs the `longhorn-agent-control`
+tests with feature `client`: the package's unit tests plus every integration
+target, including the whole carrier end-to-end suite
+(`crates/longhorn-agent-control/tests/carrier.rs`) — HTTP parity,
+listen/resource pass-through, exit codes, and the loopback-endpoint guard test
+(`carrier_refuses_a_non_loopback_endpoint_before_any_exchange`). No
+default-feature selector runs them. In `qa`. The `agent-control-carrier` QA
+group selects it.
 
 **`check:tool-provision`** — role: aggregate (not in `qa`). Runs
 `lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,

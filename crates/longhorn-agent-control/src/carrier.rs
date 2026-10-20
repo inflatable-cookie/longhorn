@@ -280,20 +280,43 @@ pub fn select_instance(dir: &Path, app_id: Option<&str>) -> Result<CarrierSelect
     }
 }
 
-/// Session state negotiated with the server: the protocol version from the
-/// `initialize` result and the tool input schemas cached from `tools/list`
-/// results. Both feed the SEP-2243 header synthesis, mirroring rmcp's own
-/// streamable-HTTP client.
+/// Session state for one harness connection: the protocol version the
+/// harness itself declared, the fallback version from the server's
+/// `initialize` answer, and the tool input schemas cached from `tools/list`
+/// results. Version and schemas feed the SEP-2243 header synthesis, mirroring
+/// rmcp's own streamable-HTTP client.
+///
+/// The harness's declared version ranks first because `initialize` predates
+/// per-request negotiation: rmcp always answers the handshake with the
+/// newest legacy version it supports (today `2025-11-25`), even when the
+/// harness asked for `2026-07-28`. Stamping that answer onto later requests
+/// would pin the whole session to the legacy wire shape — no `resultType`,
+/// `cacheScope`, or `ttlMs`, and `subscriptions/listen` answered as
+/// method-not-found — while a direct HTTP client declaring `2026-07-28`
+/// gets the modern shape. The handshake answer stays only as the fallback
+/// for harnesses that never declare a version.
 #[derive(Clone, Debug, Default)]
 struct SessionState {
+    /// What the harness itself declared in its `initialize` params: the
+    /// version later requests are stamped with.
+    harness_version: Option<String>,
+    /// The server's `initialize`-answer version. Legacy-handshake fallback
+    /// only; see the struct docs.
     negotiated: Option<String>,
     tool_schemas: HashMap<String, serde_json::Map<String, Value>>,
 }
 
 impl SessionState {
-    fn standard_headers(&self) -> bool {
-        self.negotiated
+    /// Effective session version: the harness's own declaration first, the
+    /// handshake answer as fallback.
+    fn effective_version(&self) -> Option<&str> {
+        self.harness_version
             .as_deref()
+            .or(self.negotiated.as_deref())
+    }
+
+    fn standard_headers(&self) -> bool {
+        self.effective_version()
             .is_some_and(|version| version >= STANDARD_HEADERS_VERSION)
     }
 }
@@ -310,14 +333,14 @@ const META_CLIENT_CAPABILITIES: &str = "io.modelcontextprotocol/clientCapabiliti
 /// already declares its own `_meta` keeps it (its version also selects
 /// the `MCP-Protocol-Version` header, which must match the body), while a
 /// plain stdio harness — which knows nothing of the HTTP envelope — gets
-/// the negotiated version and empty client capabilities merged into its
-/// params. Without this, every post-`initialize` request from a plain
+/// the harness's own `initialize`-declared version and empty client
+/// capabilities merged into its params. Without this, every post-`initialize` request from a plain
 /// harness would fail the server's `_meta` requirement; with it, the
 /// carrier takes the same strict code path an rmcp HTTP client takes.
-/// Below the negotiated standard version (or before negotiation) the body
-/// and headers stay legacy-bare and the server skips both validations, so
+/// Below the effective standard version (or before any version is known)
+/// the body and headers stay legacy-bare and the server skips both validations, so
 /// older harnesses pass through untouched.
-fn prepare_outgoing(message: &mut Value, session: &SessionState) -> Vec<(String, String)> {
+fn prepare_outgoing(message: &mut Value, session: &mut SessionState) -> Vec<(String, String)> {
     let mut headers = Vec::new();
     let Some(method) = message
         .get("method")
@@ -341,13 +364,27 @@ fn prepare_outgoing(message: &mut Value, session: &SessionState) -> Vec<(String,
             promote_param_headers(params, session, &mut headers);
         }
     }
+    if method == "initialize" {
+        // Record what the harness itself declared, after stamping this
+        // handshake exactly as before (bare on first contact, matching
+        // rmcp's own client): later requests are governed by per-request
+        // negotiation, not by the handshake answer.
+        if let Some(version) = message
+            .get("params")
+            .and_then(|params| params.get("protocolVersion"))
+            .and_then(Value::as_str)
+        {
+            session.harness_version = Some(version.to_owned());
+        }
+    }
     headers
 }
 
 /// Merges the strict-path `_meta` envelope into a request body's params
 /// without touching anything the harness already declared. Returns the
 /// effective protocol version for the header: the harness's own `_meta`
-/// version when present, else the negotiated one, else none.
+/// version when present, else the harness's `initialize` declaration, else
+/// the handshake answer, else none.
 fn assure_meta(message: &mut Value, session: &SessionState) -> Option<String> {
     let params = message.get_mut("params")?;
     let params = params.as_object_mut()?;
@@ -357,7 +394,9 @@ fn assure_meta(message: &mut Value, session: &SessionState) -> Option<String> {
         .and_then(|meta| meta.get(META_PROTOCOL_VERSION))
         .and_then(Value::as_str)
         .map(str::to_owned);
-    let effective = declared.or_else(|| session.negotiated.clone())?;
+    let effective = declared
+        .or_else(|| session.harness_version.clone())
+        .or_else(|| session.negotiated.clone())?;
     if effective.as_str() >= STANDARD_HEADERS_VERSION {
         let meta = params
             .entry("_meta".to_owned())
@@ -690,7 +729,7 @@ where
         // The POST body is the stdio bytes plus the `_meta` envelope when
         // the strict path needs it; the harness's own bytes are never
         // rewritten, only additively completed.
-        let headers = prepare_outgoing(&mut message, &self.session.lock().unwrap());
+        let headers = prepare_outgoing(&mut message, &mut self.session.lock().unwrap());
         let raw = serde_json::to_string(&message).unwrap_or(raw);
         let method = message
             .get("method")
@@ -954,12 +993,21 @@ mod tests {
 
     fn session_at(version: &str) -> SessionState {
         SessionState {
+            harness_version: None,
             negotiated: Some(version.to_owned()),
             tool_schemas: HashMap::new(),
         }
     }
 
-    fn prepare(message: Value, session: &SessionState) -> (Value, Vec<(String, String)>) {
+    fn session_harness_at(version: &str) -> SessionState {
+        SessionState {
+            harness_version: Some(version.to_owned()),
+            negotiated: None,
+            tool_schemas: HashMap::new(),
+        }
+    }
+
+    fn prepare(message: Value, session: &mut SessionState) -> (Value, Vec<(String, String)>) {
         let mut message = message;
         let headers = prepare_outgoing(&mut message, session);
         (message, headers)
@@ -969,7 +1017,7 @@ mod tests {
     fn unnegotiated_messages_carry_method_but_no_version() {
         let (_, headers) = prepare(
             json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}),
-            &SessionState::default(),
+            &mut SessionState::default(),
         );
         assert!(headers.contains(&("Mcp-Method".to_owned(), "tools/list".to_owned())));
         assert!(
@@ -988,7 +1036,7 @@ mod tests {
                 "method": "tools/call",
                 "params": {"name": "snapshot", "arguments": {}}
             }),
-            &session_at("2026-07-28"),
+            &mut session_at("2026-07-28"),
         );
         assert!(headers.contains(&("Mcp-Method".to_owned(), "tools/call".to_owned())));
         assert!(headers.contains(&("Mcp-Name".to_owned(), "snapshot".to_owned())));
@@ -1004,7 +1052,7 @@ mod tests {
                 "method": "resources/read",
                 "params": {"uri": "longhorn://agent-control/console"}
             }),
-            &session_at("2025-06-18"),
+            &mut session_at("2025-06-18"),
         );
         assert!(headers.contains(&("Mcp-Method".to_owned(), "resources/read".to_owned())));
         assert!(headers.contains(&(
@@ -1027,7 +1075,7 @@ mod tests {
                 "method": "resources/read",
                 "params": {"uri": "longhorn://agent-control/console"}
             }),
-            &session_at("2026-07-28"),
+            &mut session_at("2026-07-28"),
         );
         assert!(headers.contains(&(
             "Mcp-Name".to_owned(),
@@ -1044,7 +1092,7 @@ mod tests {
                 "method": "tools/list",
                 "params": {}
             }),
-            &session_at("2026-07-28"),
+            &mut session_at("2026-07-28"),
         );
         let meta = &message["params"]["_meta"];
         assert_eq!(
@@ -1070,7 +1118,7 @@ mod tests {
                     "io.modelcontextprotocol/clientInfo": {"name": "harness", "version": "1"},
                 }}
             }),
-            &session_at("2026-07-28"),
+            &mut session_at("2026-07-28"),
         );
         let meta = &message["params"]["_meta"];
         assert_eq!(
@@ -1095,7 +1143,7 @@ mod tests {
                     "io.modelcontextprotocol/protocolVersion": "2025-06-18",
                 }}
             }),
-            &session_at("2026-07-28"),
+            &mut session_at("2026-07-28"),
         );
         // The harness's version wins the header (it must match the body)
         // and no strict envelope is merged over a legacy declaration.
@@ -1142,7 +1190,7 @@ mod tests {
                 "method": "tools/call",
                 "params": {"name": "press", "arguments": {"key": "Enter", "nested": {"a": 1}}}
             }),
-            &session,
+            &mut session,
         );
         assert!(headers.contains(&("Mcp-Param-key".to_owned(), "Enter".to_owned())));
         assert!(!headers.iter().any(|(name, _)| name == "Mcp-Param-nested"));
@@ -1157,6 +1205,80 @@ mod tests {
             &mut session,
         );
         assert!(session.standard_headers());
+    }
+
+    #[test]
+    fn initialize_records_the_harness_declaration_for_later_requests() {
+        let mut session = SessionState::default();
+        let (message, headers) = prepare(
+            json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2026-07-28",
+                    "capabilities": {},
+                    "clientInfo": {"name": "harness", "version": "0"},
+                }
+            }),
+            &mut session,
+        );
+        // The handshake POST itself stays bare, exactly as the harness sent
+        // it: no version is stored yet when it is stamped.
+        assert!(headers.contains(&("Mcp-Method".to_owned(), "initialize".to_owned())));
+        assert!(
+            !headers
+                .iter()
+                .any(|(name, _)| name == "MCP-Protocol-Version")
+        );
+        assert!(message["params"].get("_meta").is_none());
+        assert_eq!(session.harness_version.as_deref(), Some("2026-07-28"));
+        // The next request takes the modern path the harness declared.
+        let (message, headers) = prepare(
+            json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+            &mut session,
+        );
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2026-07-28".to_owned())));
+        assert_eq!(
+            message["params"]["_meta"]["io.modelcontextprotocol/protocolVersion"],
+            json!("2026-07-28")
+        );
+        assert!(session.standard_headers());
+    }
+
+    #[test]
+    fn harness_declaration_beats_the_handshake_answer() {
+        // rmcp answers `initialize` with the newest legacy version it
+        // supports even when the harness asked for modern: that answer must
+        // not pin later requests to the legacy wire shape.
+        let mut session = SessionState {
+            harness_version: Some("2026-07-28".to_owned()),
+            negotiated: Some("2025-11-25".to_owned()),
+            tool_schemas: HashMap::new(),
+        };
+        let (message, headers) = prepare(
+            json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+            &mut session,
+        );
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2026-07-28".to_owned())));
+        assert_eq!(
+            message["params"]["_meta"]["io.modelcontextprotocol/protocolVersion"],
+            json!("2026-07-28")
+        );
+        assert!(session.standard_headers());
+    }
+
+    #[test]
+    fn legacy_harness_declaration_stays_legacy() {
+        let mut session = session_harness_at("2025-06-18");
+        let (message, headers) = prepare(
+            json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}),
+            &mut session,
+        );
+        assert!(headers.contains(&("Mcp-Method".to_owned(), "tools/list".to_owned())));
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2025-06-18".to_owned())));
+        assert!(message["params"].get("_meta").is_none());
+        assert!(!session.standard_headers());
     }
 
     #[test]
