@@ -64,7 +64,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -205,6 +205,10 @@ include = ["config/release.toml"]
 
 # --- Documentation ------------------------------------------------------
 "qa:docs:catalog-links" = "effigy docs check links"
+# Effigy's release parser must accept CHANGELOG.md (the Release facts case); its
+# links must resolve. The script reads release status JSON, so the empty
+# [Unreleased] gap that exits nonzero still passes.
+"qa:docs:changelog" = "sh -c 'bun scripts/check-changelog.ts && exec effigy docs check links CHANGELOG.md'"
 "qa:docs:links" = "effigy docs check links README.md AGENTS.md docs/README.md docs/knowledge/README.md docs/knowledge/architecture/README.md docs/knowledge/contracts/README.md docs/guides/README.md docs/guides/getting-started.md docs/reference/README.md"
 "qa:docs:agent-defaults" = "effigy docs check forbidden AGENTS.md README.md docs/README.md --forbid '--repo .'"
 # Backticked paths in the orientation files and every knowledge file must exist.
@@ -214,6 +218,7 @@ include = ["config/release.toml"]
   { task = "qa:docs:agent-defaults" },
   { task = "qa:docs:paths" },
   { task = "qa:docs:catalog-links" },
+  { task = "qa:docs:changelog" },
   { task = "held-surface" },
   { task = "host-protocol" },
 ]
@@ -425,6 +430,18 @@ members = [
     targets = ["path:README.md", "path:docs/**/*.md"],
     covers = ["path:README.md", "path:docs/**/*.md"],
     limits = ["Checks links only; does not run held-surface or host-protocol proofs"],
+  },
+  {
+    id = "changelog",
+    kind = "docs",
+    surface = "published",
+    task = "qa:docs:changelog",
+    args = [],
+    targets = ["path:CHANGELOG.md"],
+    covers = ["path:CHANGELOG.md"],
+    limits = [
+      "Parses CHANGELOG.md with Effigy's release parser and checks its links; does not judge release wording or whether entries are accurate",
+    ],
   },
 ]
 
