@@ -160,10 +160,14 @@ agent-tool-dispatch selectors are the only per-crate Rust selectors.
 
 **`lint:tool-provision`**, **`test:tool-provision`**, **`docs:tool-provision`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-tool-provision/**` and
-`crates/longhorn-archive-path/**` (contract 027). Companions:
+`crates/longhorn-archive-path/**` (contract 027). The three selectors pass
+`--features longhorn-tool-provision/fixture-server`, so the part 4b release
+tests and the fixture server compile and run. Companions:
 `check:api-reference` (aggregated by `check:tool-provision`). Limits: the
 `longhorn-update-install` path-rule consumer is not in this selector; its
-covering checks are `lint:rust` and `test:rust`.
+covering checks are `lint:rust` and `test:rust`. The default build (no
+feature) is covered by `lint:rust` and `test:rust`, which skip the
+fixture-gated tests.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
 doc --workspace --no-deps --locked`. Owns all Rust doc comments and crate

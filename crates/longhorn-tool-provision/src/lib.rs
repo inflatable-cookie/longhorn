@@ -11,21 +11,39 @@
 //! 3. [`verify_signature`] checks the declared vendor team on the staged
 //!    executable and returns an [`InstallableExecutable`].
 //!
+//! Part 4b adds release resolution and a bounded download: a [`ReleaseSource`]
+//! resolves one release of a repository and downloads one of its assets. The
+//! production source is [`HttpReleases`], over blocking HTTP with rustls. The
+//! caller supplies the owner, repository, pin, floor, endpoints, bounds and
+//! optional token. The bytes it writes are checked by step 1, not trusted.
+//!
 //! The crate names no product: the caller supplies the artifact shape, the
-//! member path, the digest source and the expected team. Catalogue entries,
-//! pins and release names stay with the caller. Release resolution, download
-//! and the install pipeline are later parts of this contract (4b and 4c).
+//! member path, the digest source, the expected team, and the release query.
+//! Catalogue entries, pins and release names stay with the caller. The install
+//! pipeline is part 4c.
+//!
+//! Test support is behind the `fixture-server` feature: a loopback server
+//! (`FixtureServer`) and `ReleaseEndpoints::loopback_for_tests`.
 
 mod budget;
 mod digest;
 mod extract;
 mod failure;
+#[cfg(feature = "fixture-server")]
+mod fixture;
+mod release;
 mod signature;
 mod verify;
 
 pub use digest::{digest_from_checksums, digest_from_sidecar, sha256_file};
 pub use extract::{ArtifactShape, ExtractionLimits, StagedExecutable, extract_executable};
 pub use failure::{Fault, ProvisionError, Refusal};
+#[cfg(feature = "fixture-server")]
+pub use fixture::{FixtureRoute, FixtureServer};
+pub use release::{
+    HttpReleases, Release, ReleaseEndpoints, ReleaseError, ReleaseFault, ReleaseOptions,
+    ReleaseQuery, ReleaseRefusal, ReleaseSource, version_from_tag,
+};
 pub use signature::{
     CodesignVerifier, InstallableExecutable, SignatureReport, SignatureVerifier, verify_signature,
 };

@@ -1,6 +1,6 @@
 # 027 Managed Tool Provisioning
 
-Status: active compiled boundary for part 4a; 4b and 4c not yet specified
+Status: active compiled boundary for parts 4a and 4b; 4c not yet specified
 Owner: Longhorn maintainers
 Created: 2026-10-19
 Depends on: contracts 001, 003, 012, 018 and 024; the shared path rule in
@@ -45,8 +45,11 @@ version pins, vendor team identifiers, release and asset names, the
 ## Public API
 
 Crate `longhorn-tool-provision`: depends on `longhorn-archive-path`, `sha2`,
-`hex`, `flate2`, `tar` and `zip`. No features, no TypeScript binding, no
-Tauri, no network.
+`hex`, `flate2`, `tar` and `zip`, and for part 4b on `reqwest` (blocking,
+rustls), `secrecy`, `semver`, `serde` and `serde_json`. One feature,
+`fixture-server`, is test support and is off by default. No TypeScript
+binding and no Tauri. The network is used only by the release source
+(part 4b, below).
 
 Verification:
 
@@ -321,6 +324,20 @@ Against the Acowtancy donor at `3c21b1ac8`:
   (`DigestMismatch`, nothing left in staging), a missing member, a duplicate
   member, a raw artifact, and
   the executable mode on the staged file. The mode tests are Unix-only.
+- Part 4b (`tests/release.rs`, feature `fixture-server`): the donor's resolution
+  tests with neutral names (latest without paging, a pinned tag without latest,
+  a missing pin, a tag mismatch, the token on listing calls only, the call
+  budget); draft and pre-release refusal on both routes; a floor; a tag that
+  names no version; a malformed listing; a tag that is not plain; a rate limit
+  with and without a reset; a declared length over the bound; a stream over
+  the bound without a declared length (chunked); a truncated body; a partial
+  file removed after each failure; an existing file not overwritten; a
+  listing redirect to the same origin (token kept) and to another origin
+  (refused, nothing requested there); a download redirect (no token); the
+  token absent from every error and `Debug` output; a non-HTTPS endpoint
+  refused outside `loopback_for_tests`; a name with a separator refused before
+  any request; zero bounds refused; and a silent source as an unreachable
+  fault at the timeout.
 - Cleanup-boundary unit tests force removal errors with fixture-local
   directories: staged-file cleanup, private-copy cleanup after a refusal or
   successful extraction, both removals failing, and a sealing copy fault.
@@ -349,15 +366,188 @@ Open:
 
 ### Part 4b: release source and download
 
-Not yet specified. A `ReleaseSource` trait, GitHub release resolution and a
-bounded download over the workspace `reqwest`, with the API token passed in as
-a value. Specified and tested in its own task.
+Specified below in [Part 4b](#part-4b-release-source-and-download). Contract
+003 steps 1 to 4 are done for this part: the donor is named, its tests are
+ported with neutral names, this section is the generic definition, and the
+crate carries it. Steps 5 to 7 are Acowtancy's migration, after a Longhorn
+release it can tag.
 
 ### Part 4c: install pipeline
 
 Not yet specified. Staging, the version probe, the receipt, the swap with
 rollback, login-shell PATH discovery, and a host-injected executor with no
 Tauri. Specified and tested in its own task.
+
+## Part 4b: release source and download
+
+Donor: `acowtancy/acowtancy-v2` at `75e425296`,
+`apps/bovine-desktop/src-tauri/src/managed_tools/releases.rs` (its tests
+included). From this section on, this contract owns the behaviour.
+
+### Generic versus product
+
+The crate takes every value: the owner, the repository, an optional pinned
+tag, an optional version floor, the endpoints, the user agent, the bounds and
+an optional API token. The caller owns the tool catalogue (owners, repositories,
+pins, floors, asset names), the token broker and keychain access, the user-agent
+string, and Acowtancy contract 042. The crate names no tool, owner or
+repository, and its tests use neutral ones.
+
+### API
+
+- `ReleaseSource` (trait): `resolve_release(&ReleaseQuery) -> Result<Release, ReleaseError>`
+  and `download_asset(&Release, asset, destination_directory) -> Result<PathBuf, ReleaseError>`.
+- `ReleaseQuery { owner, repository, pinned_tag, version_floor }`, all borrowed,
+  public fields.
+- `Release`: `owner()`, `repository()`, `tag()`, `version() -> Option<&Version>`,
+  `asset_names()`, `has_asset()`. Only `resolve_release` makes one.
+- `ReleaseEndpoints::github()`, `ReleaseEndpoints::new(api, download)`
+  (`https` only), and with feature `fixture-server`,
+  `ReleaseEndpoints::loopback_for_tests(api, download)` (`http` or `https`,
+  loopback hosts only).
+- `ReleaseOptions::new(user_agent)`, with `with_timeout` and
+  `with_max_artifact_bytes`. Defaults: 60 seconds and 2 GiB
+  (`DEFAULT_TIMEOUT`, `DEFAULT_MAX_ARTIFACT_BYTES`).
+- `HttpReleases::new(endpoints, options, Option<SecretString>) -> Result<HttpReleases, ReleaseError>`:
+  the one production source, blocking, over rustls.
+- `version_from_tag(&str) -> Option<Version>`.
+- Feature `fixture-server` (test support, off by default, no extra
+  dependency): `FixtureServer` and `FixtureRoute`. The server binds
+  `127.0.0.1` on an OS-assigned port, answers one request at a time, and
+  records each request's path and headers.
+
+### Resolution
+
+- A pinned query asks `GET {api}/repos/{owner}/{repository}/releases/tags/{tag}`.
+  An unpinned query asks `GET {api}/repos/{owner}/{repository}/releases/latest`.
+  One listing request per resolve. Nothing pages.
+- `404`: `NoCompatibleRelease`, naming the pin when there is one.
+- A draft or a pre-release, on either route: `NoCompatibleRelease`.
+- A pinned tag must equal the listing's `tag_name` exactly. A different
+  answer, even a newer one, is `TagMismatch`. It is never installed.
+- A listed tag that is not a plain name (below) is `Malformed`.
+- The version is `version_from_tag`: `v1.2.3`, `1.2.3` and `rust-v1.2.3` name
+  1.2.3. Any other tag names no version.
+- With a floor, a release with no version or a version below the floor is
+  `NoCompatibleRelease{floor}`. Without a floor, a release with no version
+  resolves, and `version()` is `None`.
+- Names are plain when they are ASCII letters, digits, `.`, `_`, `-` or `+`,
+  and not `.` or `..`. The owner, repository, pinned tag and asset name must
+  each be plain. A name that is not plain is a usage fault, before any request.
+
+### Rate limit
+
+A `403` or `429` with `X-RateLimit-Remaining: 0` is `RateLimited`, with
+`reset_unix` from `X-RateLimit-Reset` when it parses. The rate-limit answer is
+never paged around or retried inside one call. Any other `403` or `429` is an
+unreachable fault.
+
+### Download
+
+- An asset must be listed by the release, or it is `MissingAsset` and nothing
+  is requested.
+- The request is `GET {download}/{owner}/{repository}/releases/download/{tag}/{asset}`
+  on the download client, which carries no token.
+- A declared `Content-Length` over the bound is `ArtifactTooLarge`, refused
+  before any file is created.
+- The file is created new in the destination directory. A file already there
+  is an I/O fault. Nothing is overwritten.
+- Bytes are counted as they arrive, through `take(bound + 1)`. A stream past
+  the bound is `ArtifactTooLarge`, whatever it declared. The bound counts the
+  bytes the server sent: no gzip or other decoding is enabled.
+- Any failure after the file is created removes it. A failed removal is an
+  I/O fault that keeps the original failure in its detail. A read failure or a
+  truncated body is an unreachable fault.
+- The timeout bounds the whole request, the body included. A bound raised for
+  a large artifact needs a timeout that can finish it too.
+
+### Tokens
+
+- The token is a `secrecy::SecretString`, passed in by the caller.
+- It is sent only as `Authorization: Bearer` on listing requests, to the
+  configured API origin. It never rides a download, and a redirect that leaves
+  the origin is refused before the token is sent.
+- It never appears in an error, a `Debug` output or a log. The crate logs
+  nothing. Tests check the display and debug text of the refusals and faults
+  a token-bearing query produces (a rate limit, a malformed listing, a missing
+  release, a cross-origin redirect, a missing asset, an oversized download),
+  and of the source and release values.
+
+### Redirects and TLS
+
+- Production endpoints are `https` only. `ReleaseEndpoints::new` refuses any
+  other scheme as a usage fault. Plain `http` is allowed only through
+  `loopback_for_tests`, on `127.0.0.1` or `localhost`.
+- Listing redirects: followed only to the same origin (scheme, host and port),
+  up to 10 hops. A cross-origin redirect is `UnsafeRedirect`, and the target is
+  never requested.
+- Download redirects: followed to any `https` target (or loopback `http` in a
+  test endpoint), up to 10 hops. A non-HTTPS target is `UnsafeRedirect`.
+- TLS is rustls with the aws-lc-rs provider, as the donor ships it. Enabled
+  reqwest features: `blocking` and `rustls`. Default features are off, so
+  `http2`, `charset` and `system-proxy` are not enabled, and no gzip decoding
+  runs. The donor's feature set was the same, plus `json`, which this crate
+  does not need.
+  The crate's normal dependencies add no `tokio`. The blocking client runs on
+  its own runtime inside reqwest, as the donor's did.
+
+### Failure classes
+
+`ReleaseError` splits the verdict from the host, as `ProvisionError` does:
+
+- **Refused** (`ReleaseRefusal`): the same answer refuses again.
+  `NoCompatibleRelease`, `TagMismatch`, `Malformed`, `MissingAsset`,
+  `UnsafeRedirect`, `ArtifactTooLarge`.
+- **Fault** (`ReleaseFault`): a retry may succeed. `Unreachable` (transport,
+  timeout, a failing status, a truncated body), `RateLimited`, `Io` (a file
+  could not be created, written or removed), `Client` (the HTTP client could
+  not be built), `Usage` (a caller bug: a non-HTTPS endpoint, a name that is
+  not plain, a zero bound or timeout, or an empty user agent).
+
+Callers match the enums. The messages are for people.
+
+### Compatibility for consumers
+
+Against the donor at `75e425296`:
+
+- `ReleaseSource::resolve_release(&ToolSpec)` becomes `resolve_release(&ReleaseQuery)`.
+  The catalogue's repo, pin and floor move to the query's `owner`,
+  `repository`, `pinned_tag` and `version_floor`. The donor's `spec.pinned_tag()`
+  is `v{pinned version}`. The caller supplies the tag string now.
+- `download_asset(&ToolSpec, &Release, asset, dir)` becomes
+  `download_asset(&Release, asset, dir)`. The release carries the owner and
+  repository it came from.
+- `Release { tag, version, asset_names }`: crate-private fields become accessors.
+  `version` is `Option`, so a tag that names no version resolves unless a floor
+  refuses it. The donor refused every release with no version.
+- `ReleaseFailure` becomes `ReleaseError::{Refused, Fault}`. `NoCompatibleRelease`,
+  `MissingAsset` and `RateLimited` keep their shapes. `RateLimited` loses the
+  donor's local-time text: the reset is unix seconds, and the caller formats it.
+- `Unreachable(String)` stays a fault, now `Unreachable { detail }`. The donor
+  also folded an unreadable body into `Malformed`. Here a body that cannot be
+  read is `Unreachable`, and a body that is not release JSON is `Malformed`.
+- A pinned tag: the donor compared the listing's version with the pin's. Here
+  the listing's `tag_name` must equal the pinned tag exactly, and a different
+  answer is `TagMismatch`, a refusal rather than `Malformed`.
+- A pinned draft or pre-release names the pin in `NoCompatibleRelease`. The
+  donor named none.
+- Download: the donor created the file with truncation, overwriting any file
+  there. Here it is created new, and an existing file is an I/O fault.
+- Overflow: the donor refused a declared length over the bound as
+  `Unreachable`, and removed the file on a real-bytes overflow. Here both are
+  `ArtifactTooLarge`, and any failure after creation removes the partial file.
+- Redirects: the donor used reqwest's default policy (any scheme, ten hops). The
+  listing now stays on its origin, and a download must be `https`.
+- User agent and timeout: the donor fixed the user agent and the 60-second
+  timeout. Both are caller values here. The defaults match the donor.
+- Token: the donor read the token from Acowtancy's broker in
+  `HttpReleases::github()`. The broker read stays in Acowtancy, which passes the
+  token in as a `SecretString`. The donor's `Zeroizing<String>` is replaced.
+- Asset names: the donor passed any name to the URL. Here a name that is not
+  plain (the names above) is a usage fault. Acowtancy's catalogue asset names
+  must satisfy the rule, or the consumer change refuses them.
+- `HttpReleases::github()` (broker-backed) and the donor's `FixtureReleases`
+  stay in Acowtancy. The crate has `FixtureServer` for the same end-to-end use.
 
 ## Stop Conditions
 
@@ -366,4 +556,6 @@ Tauri. Specified and tested in its own task.
 - A path reaches an installable executable without a declared check passing.
 - The bounds stop counting real bytes, or a declared size becomes the bound.
 - The path rule diverges between `longhorn-archive-path` and its consumers.
-- The crate grows a network client, a shell invocation, or a Tauri type.
+- The crate grows a network call outside the release source, a shell
+  invocation, or a Tauri type. Part 4b adds `HttpReleases` as the one network
+  call site.
