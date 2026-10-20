@@ -115,11 +115,13 @@ impl StagedExecutable {
 /// is written as `staging/staged_name`, created new (an existing file refuses
 /// as a fault), and set to mode `0755` afterwards. The archive's own
 /// permissions are never applied. The private copy is removed before this
-/// returns.
+/// returns unless cleanup fails with [`Fault::Io`].
 ///
 /// # Errors
 ///
-/// On any error, nothing this call wrote remains at the staged path.
+/// On failure, removal is attempted for both files owned by this call.
+/// A cleanup failure is [`Fault::Io`] with the failed path and the original
+/// error in its detail. Other owned files still get a cleanup attempt.
 ///
 /// Refusals: [`Refusal::DigestMismatch`] when the copy does not hash to the
 /// declared digest (the source changed after verification),
@@ -167,20 +169,51 @@ pub fn extract_executable(
         ),
         _ => copy_raw(&sealed, asset, &destination, &mut created_here, limits),
     };
-    let removed = fs::remove_file(&sealed).map_err(io_fault(&sealed));
-    let finished = extracted
-        .and(removed)
-        .and_then(|()| set_executable(&destination));
-    if finished.is_err() && created_here {
-        // A refusal can come after the member was written (a link later in
-        // the archive, say). Nothing refused may remain at the staged path.
-        let _ = fs::remove_file(&destination);
-    }
-    finished?;
+    finish_extraction(extracted, &sealed, &destination, created_here)?;
     Ok(StagedExecutable::new(
         destination,
         artifact.vendor_team().map(str::to_owned),
     ))
+}
+
+/// Finish only after removing the private copy. Every failed outcome also
+/// removes an executable this call created, even if private-copy removal failed.
+fn finish_extraction(
+    extracted: Result<(), ProvisionError>,
+    sealed: &Path,
+    destination: &Path,
+    created_here: bool,
+) -> Result<(), ProvisionError> {
+    let finished = cleanup_owned_file(sealed, extracted).and_then(|()| set_executable(destination));
+    if finished.is_err() && created_here {
+        cleanup_owned_file(destination, finished)
+    } else {
+        finished
+    }
+}
+
+/// Removal failures take precedence over the original outcome, retaining
+/// its context. Call only for a path this extraction created atomically.
+fn cleanup_owned_file(
+    path: &Path,
+    outcome: Result<(), ProvisionError>,
+) -> Result<(), ProvisionError> {
+    match fs::remove_file(path) {
+        Ok(()) => outcome,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => outcome,
+        Err(error) => {
+            let detail = match outcome {
+                Ok(()) => format!("could not remove the extraction file: {error}"),
+                Err(original) => {
+                    format!("could not remove the extraction file after {original}: {error}")
+                }
+            };
+            Err(ProvisionError::Fault(Fault::Io {
+                path: path.to_path_buf(),
+                detail,
+            }))
+        }
+    }
 }
 
 fn usage(detail: impl Into<String>) -> ProvisionError {
@@ -232,11 +265,11 @@ fn seal(
         .open(&sealed)
         .map_err(io_fault(&sealed))?;
     let outcome = copy_and_check(artifact, out, &sealed);
-    if outcome.is_err() {
+    match outcome {
         // The copy is ours: `create_new` succeeded, so nothing else owned it.
-        let _ = fs::remove_file(&sealed);
+        Err(error) => cleanup_owned_file(&sealed, Err(error)).map(|()| sealed),
+        Ok(()) => Ok(sealed),
     }
-    outcome.map(|()| sealed)
 }
 
 fn copy_and_check(
@@ -554,4 +587,112 @@ fn set_executable(path: &Path) -> Result<(), ProvisionError> {
 fn set_executable(_path: &Path) -> Result<(), ProvisionError> {
     // File modes carry no executable bit on this platform.
     Ok(())
+}
+
+#[cfg(test)]
+mod cleanup_tests {
+    use super::*;
+
+    fn archive_refusal() -> ProvisionError {
+        ProvisionError::Refused(Refusal::LinkEntry {
+            asset: "tool.tar.gz".to_owned(),
+            name: "link".to_owned(),
+        })
+    }
+
+    fn cleanup_fault(error: ProvisionError, failed_path: &Path) -> String {
+        match error {
+            ProvisionError::Fault(Fault::Io { path, detail }) => {
+                assert_eq!(path, failed_path);
+                detail
+            }
+            error => panic!("expected a cleanup I/O fault, got {error}"),
+        }
+    }
+
+    // Fixture-local directories force remove_file to fail on every platform,
+    // without depending on user IDs or filesystem permission enforcement.
+    #[test]
+    fn a_staged_cleanup_failure_preserves_the_refusal_and_removes_the_copy() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let staged = temp.path().join("tool");
+        fs::write(&sealed, b"artifact").unwrap();
+        fs::create_dir(&staged).unwrap();
+        let original = archive_refusal();
+
+        let error = finish_extraction(Err(original.clone()), &sealed, &staged, true).unwrap_err();
+        assert!(cleanup_fault(error, &staged).contains(&original.to_string()));
+        assert!(!sealed.exists(), "the private copy was still cleaned up");
+        assert!(staged.is_dir(), "the failed path is reported to the caller");
+    }
+
+    #[test]
+    fn a_copy_cleanup_failure_is_not_hidden_by_an_extraction_refusal() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let staged = temp.path().join("tool");
+        fs::create_dir(&sealed).unwrap();
+        fs::write(&staged, b"partial executable").unwrap();
+        let original = archive_refusal();
+
+        let error = finish_extraction(Err(original.clone()), &sealed, &staged, true).unwrap_err();
+        assert!(cleanup_fault(error, &sealed).contains(&original.to_string()));
+        assert!(
+            !staged.exists(),
+            "staged cleanup runs after copy cleanup fails"
+        );
+    }
+
+    #[test]
+    fn both_cleanup_failures_retain_both_paths_and_the_original_refusal() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let staged = temp.path().join("tool");
+        fs::create_dir(&sealed).unwrap();
+        fs::create_dir(&staged).unwrap();
+        let original = archive_refusal();
+
+        let error = finish_extraction(Err(original.clone()), &sealed, &staged, true).unwrap_err();
+        let detail = cleanup_fault(error, &staged);
+        assert!(detail.contains(&sealed.display().to_string()));
+        assert!(detail.contains(&original.to_string()));
+    }
+
+    #[test]
+    fn a_copy_cleanup_failure_also_removes_a_successfully_extracted_binary() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let staged = temp.path().join("tool");
+        fs::create_dir(&sealed).unwrap();
+        fs::write(&staged, b"executable").unwrap();
+
+        let error = finish_extraction(Ok(()), &sealed, &staged, true).unwrap_err();
+        cleanup_fault(error, &sealed);
+        assert!(!staged.exists(), "cleanup failure cannot finish extraction");
+    }
+
+    #[test]
+    fn sealing_cleanup_failure_preserves_the_copy_fault() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        fs::create_dir(&sealed).unwrap();
+        let original = ProvisionError::Fault(Fault::Io {
+            path: temp.path().join("source"),
+            detail: "scripted copy failure".to_owned(),
+        });
+
+        let error = cleanup_owned_file(&sealed, Err(original.clone())).unwrap_err();
+        assert!(cleanup_fault(error, &sealed).contains(&original.to_string()));
+    }
+
+    #[test]
+    fn an_already_removed_file_preserves_the_original_failure() {
+        let temp = tempfile::tempdir().unwrap();
+        let original = archive_refusal();
+        assert_eq!(
+            cleanup_owned_file(&temp.path().join("absent"), Err(original.clone())),
+            Err(original)
+        );
+    }
 }

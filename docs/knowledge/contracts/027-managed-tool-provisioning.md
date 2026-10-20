@@ -114,10 +114,11 @@ passes. `verify_artifact` does not vouch for the file afterwards.
 **The check that counts is on the copy extraction reads.** Before anything
 is read, extraction copies the artifact into a private file in the staging
 directory and hashes that copy as it writes it. A declared digest is compared
-with that hash. A mismatch is `DigestMismatch` with the origin, and the copy
-and any staged file are removed. With a declared digest, changed source bytes
-therefore cannot reach the executable. The private copy is removed before
-`extract_executable` returns, on success and on refusal.
+with that hash. A mismatch is `DigestMismatch` with the origin; extraction
+attempts to remove the private copy. With a declared digest, changed source
+bytes therefore cannot reach the executable. The private copy is removed
+before `extract_executable` returns unless cleanup fails with `Fault::Io`
+(see Extraction).
 
 ## Signature check
 
@@ -153,14 +154,22 @@ caller. A name with a directory part is `Fault::Usage`.
 
 - The file is created new. An existing file is an I/O fault and is not
   overwritten.
-- A refusal or fault after the file was written removes it: a later entry
-  can refuse an archive whose member was already written. A file that was at
+- A refusal or fault after the file was written triggers removal: a later
+  entry can refuse an archive whose member was already written. A file that was at
   the path before the call is never touched. Cleanup ownership starts only
   after atomic file creation succeeds; a losing concurrent call cannot remove
   the winner's file.
 - The mode is set to `0755` after the write. No permission from the archive
   is applied.
 - Raw artifacts are copied to the staged name under the same byte bound.
+
+**Cleanup failures are host faults.** Removal is attempted for every owned
+file, even if extraction or an earlier cleanup already failed. A failed
+removal returns `Fault::Io` with the failed path and the original error in
+its detail. If both removals fail, the final fault retains both paths and
+the original error. This also covers a copy or digest failure while sealing
+the artifact. A file already removed counts as cleaned up. A failed removal
+may leave that file behind; the caller must resolve the reported host fault.
 
 **Bounds count real bytes.** Limits are `ExtractionLimits`, 20 000 members and
 4 GiB by default. A tar reader counts every decompressed byte it consumes,
@@ -279,7 +288,7 @@ Against the Acowtancy donor at `3c21b1ac8`:
 
 - `effigy check:tool-provision` (QA group `tool-provision`): Clippy, the
   tests, rustdoc with warnings denied, and the API-reference inventory.
-- The tests use the public API only, with archives built in fresh temporary
+- The integration tests use the public API only, with archives built in fresh temporary
   directories. They cover the donor's verification and extraction cases with
   neutral names and digests; checksum and sidecar edge cases; a digest
   mismatch; neither source declared; a team mismatch and an unsigned binary
@@ -294,6 +303,12 @@ Against the Acowtancy donor at `3c21b1ac8`:
   entries, a source changed after verification (`DigestMismatch`, nothing
   left in staging), a missing member, a duplicate member, a raw artifact, and
   the executable mode on the staged file. The mode tests are Unix-only.
+- Cleanup-boundary unit tests force removal errors with fixture-local
+  directories: staged-file cleanup, private-copy cleanup after a refusal or
+  successful extraction, both removals failing, and a sealing copy fault.
+  They check the I/O class, failed paths, retained original failure and that
+  the other owned file still gets a cleanup attempt. Missing files preserve
+  the original result.
 - `longhorn-update-install`'s tests pass unchanged against the shared rule.
 
 ## Extraction state
