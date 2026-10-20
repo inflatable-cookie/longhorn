@@ -1238,10 +1238,7 @@ mod tests {
             json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
             &mut session,
         );
-        assert!(headers.contains(&(
-            "MCP-Protocol-Version".to_owned(),
-            "2026-07-28".to_owned()
-        )));
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2026-07-28".to_owned())));
         assert_eq!(
             message["params"]["_meta"]["io.modelcontextprotocol/protocolVersion"],
             json!("2026-07-28")
@@ -1263,10 +1260,7 @@ mod tests {
             json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
             &mut session,
         );
-        assert!(headers.contains(&(
-            "MCP-Protocol-Version".to_owned(),
-            "2026-07-28".to_owned()
-        )));
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2026-07-28".to_owned())));
         assert_eq!(
             message["params"]["_meta"]["io.modelcontextprotocol/protocolVersion"],
             json!("2026-07-28")
@@ -1282,10 +1276,7 @@ mod tests {
             &mut session,
         );
         assert!(headers.contains(&("Mcp-Method".to_owned(), "tools/list".to_owned())));
-        assert!(headers.contains(&(
-            "MCP-Protocol-Version".to_owned(),
-            "2025-06-18".to_owned()
-        )));
+        assert!(headers.contains(&("MCP-Protocol-Version".to_owned(), "2025-06-18".to_owned())));
         assert!(message["params"].get("_meta").is_none());
         assert!(!session.standard_headers());
     }
