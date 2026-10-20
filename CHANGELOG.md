@@ -17,6 +17,9 @@ crates by git tag and the packages by version.
 - **The agent-control stdio carrier now gives the router's own replies.** The carrier stamped every post-`initialize` POST with the protocol version from the server's `initialize` answer, but rmcp always answers that handshake with the newest legacy version it supports (`2025-11-25`), even when the harness asked for `2026-07-28`. The server therefore treated the carrier as a legacy peer: `tools/list` and `resources/list` lost the `resultType`, `cacheScope` and `ttlMs` fields the direct router returns (all three come from rmcp's own `ListToolsResult`, SEP-2322/SEP-2549), and `subscriptions/listen` was refused as method-not-found. The carrier now stamps each POST with the harness's own declared version — its per-request `_meta` first, then its `initialize` params — and keeps the handshake answer only as the fallback, so both paths are answered from the same source and cannot drift. The widened `test:agent-control-carrier` selector runs the whole carrier suite with `--features client`, joins the `qa` aggregate, and is selected by the new `agent-control-carrier` QA group.
 - **`evaluate` separates the origin marker from the caller's JavaScript.** Scripts beginning with `(` or `[` now run and retain their synchronous completion value.
 
+### Security
+- **Allow RUSTSEC-2026-0374 (`basic-toml` unmaintained).** It is reached at build time through `age` -> `i18n-embed-fl`/`i18n-embed-impl` -> `i18n-config` -> `basic-toml`, only via proc macros. It is not a vulnerability, no upgrade drops it, and it is build-time only. Accepted 2026-10-20.
+
 ## [0.3.3] - 2026-10-19
 
 ### Added
