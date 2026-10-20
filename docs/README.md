@@ -21,7 +21,8 @@ are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 - **On `main`, unreleased:** `longhorn-tool-provision`
   ([contract 027](knowledge/contracts/027-managed-tool-provisioning.md)),
   parts 4a (verification and bounded extraction) and 4b (release resolution
-  and bounded download) of managed tool provisioning, and
+  and bounded download), and 4c (install pipeline, health and login-shell PATH)
+  of managed tool provisioning, and
   `longhorn-archive-path`, the archive path rule it shares with
   `longhorn-update-install`.
 - **Held surface:** built but not consumer-ready; see the

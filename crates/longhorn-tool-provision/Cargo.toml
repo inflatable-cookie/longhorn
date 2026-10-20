@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Verified artifacts, bounded extraction and release download for managed command-line tools (contract 027)"
+description = "Verified artifact release and install pipelines for managed command-line tools (contract 027)"
 publish = false
 
 [features]
@@ -16,8 +16,11 @@ fixture-server = []
 
 [dependencies]
 flate2.workspace = true
+fs4.workspace = true
 hex.workspace = true
 longhorn-archive-path.workspace = true
+longhorn-redact.workspace = true
+longhorn-support-log.workspace = true
 # Blocking client for the host's blocking executor (contract 027, part 4b),
 # with rustls for https. Default features stay off: no gzip (the bounds count
 # the bytes the server sent), no system proxy, no cookies, no charset.
@@ -28,12 +31,12 @@ serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 tar.workspace = true
+tempfile.workspace = true
 zip.workspace = true
 
 [dev-dependencies]
 flate2.workspace = true
 tar.workspace = true
-tempfile.workspace = true
 zip.workspace = true
 
 [lints]
