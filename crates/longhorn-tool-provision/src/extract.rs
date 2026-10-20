@@ -503,9 +503,9 @@ fn extract_zip(
         // regular file does not make it a directory.
         let file_type = entry.unix_mode().map(|mode| mode & S_IFMT);
         let is_dir = file_type == Some(S_IFDIR);
-        let Some(safe) = check_name(asset, &name, is_dir)? else {
-            continue;
-        };
+        // `None` is the root directory (`./`). It is still checked below:
+        // only the write is skipped, never the entry checks.
+        let safe = check_name(asset, &name, is_dir)?;
         match file_type {
             Some(S_IFLNK) => return Err(refuse_link(asset, &name)),
             // A zip without Unix attributes carries no file type: a file.
@@ -535,7 +535,7 @@ fn extract_zip(
                 }));
             }
         };
-        if is_dir || safe != member {
+        if is_dir || safe.as_deref() != Some(member) {
             continue;
         }
         if found {

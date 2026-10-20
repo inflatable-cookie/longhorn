@@ -199,7 +199,7 @@ whole if any entry anywhere:
 - for zip, is encrypted or uses a compression method other than `Stored` or
   `Deflated` (`UnreadableArchive`).
 
-The root directory entry (`./`) is skipped. `./` prefixes are normalised, so
+The root directory entry (`./`) writes nothing, but it is still checked. `./` prefixes are normalised, so
 `./tool` and `tool` name the same member. The member occurring twice is
 `DuplicateMember`. A missing member is `MemberMissing`. Too many entries is
 `TooManyMembers`. A file the reader cannot decode is `UnreadableArchive`.
@@ -308,9 +308,10 @@ Against the Acowtancy donor at `3c21b1ac8`:
   over the bound, a zip header that understates its member and whose real
   bytes pass the bound (`ArchiveTooLarge`), zip fifo, device and socket
   entries, a zip regular file named with a trailing slash, an encrypted or
-  unsupported-compression zip entry that is not the member
-  (`UnreadableArchive`), a source changed after verification
-  (`DigestMismatch`, nothing left in staging), a missing member, a duplicate member, a raw artifact, and
+  unsupported-compression zip entry that is not the member or is the `./`
+  root (`UnreadableArchive`), a source changed after verification
+  (`DigestMismatch`, nothing left in staging), a missing member, a duplicate
+  member, a raw artifact, and
   the executable mode on the staged file. The mode tests are Unix-only.
 - Cleanup-boundary unit tests force removal errors with fixture-local
   directories: staged-file cleanup, private-copy cleanup after a refusal or

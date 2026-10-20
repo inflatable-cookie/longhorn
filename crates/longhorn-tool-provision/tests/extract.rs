@@ -540,6 +540,39 @@ fn an_encrypted_member_anywhere_in_a_zip_refuses() {
 }
 
 #[test]
+fn a_zip_root_directory_entry_is_skipped_but_still_checked() {
+    let root_and_tool = || {
+        zip_of(&[
+            ZipEntry::Dir { name: "./" },
+            ZipEntry::File {
+                name: "tool",
+                bytes: BINARY.to_vec(),
+            },
+        ])
+    };
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool.zip", &root_and_tool());
+    extract_executable(
+        &artifact,
+        ArtifactShape::Zip { member: "tool" },
+        &staging(temp.path(), "out"),
+        "tool",
+        limits(),
+    )
+    .expect("a ./ root names nothing to write");
+
+    // Flag bit 0 (encrypted) and method 12 (bzip2) on the root entry itself.
+    for (field, value) in [(ZipField::Flags, 1u16), (ZipField::Method, 12)] {
+        let mut archive = root_and_tool();
+        patch_records(&mut archive, "./", field, &value.to_le_bytes());
+        assert!(matches!(
+            zip_refused(&archive),
+            Refusal::UnreadableArchive { .. }
+        ));
+    }
+}
+
+#[test]
 fn an_unsupported_compression_method_anywhere_in_a_zip_refuses() {
     let mut archive = zip_of(&[
         ZipEntry::File {
