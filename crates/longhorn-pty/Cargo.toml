@@ -9,7 +9,7 @@ description = "Bounded pseudo-terminal sessions for desktop hosts (contract 028)
 publish = false
 
 [target.'cfg(unix)'.dependencies]
-rustix = { workspace = true, features = ["pty", "process", "termios"] }
+rustix = { workspace = true, features = ["event", "pty", "process", "termios"] }
 
 [dev-dependencies]
 tempfile.workspace = true

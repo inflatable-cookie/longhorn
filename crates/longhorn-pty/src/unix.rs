@@ -10,6 +10,7 @@ use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
 
+use rustix::event::{PollFd, PollFlags, Timespec, poll};
 use rustix::fd::OwnedFd;
 use rustix::fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open as open_file};
 use rustix::io::{Errno, FdFlags, dup, fcntl_setfd};
@@ -26,6 +27,10 @@ use crate::api::{
 };
 
 const REAPER_POLL_INTERVAL: Duration = Duration::from_millis(10);
+const OUTPUT_POLL_TIMEOUT: Timespec = Timespec {
+    tv_sec: 0,
+    tv_nsec: 10_000_000,
+};
 
 pub(crate) struct Inner {
     shared: Arc<Shared>,
@@ -232,37 +237,65 @@ fn reap_child(shared: Arc<Shared>) {
     }
 }
 
-fn read_output(mut master: File, sender: SyncSender<PtyEvent>, shared: Arc<Shared>) {
-    let mut read_failed = false;
+enum DrainResult {
+    Drained,
+    Finished,
+}
+
+fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<DrainResult, Failure> {
     loop {
         // A blocked send owns this buffer; no second full-size output buffer
         // remains in the reader while queue capacity is exhausted.
         let mut buffer = vec![0u8; OUTPUT_CHUNK_BYTES];
         match master.read(&mut buffer) {
-            Ok(0) => break,
+            Ok(0) => return Ok(DrainResult::Finished),
             Ok(length) => {
                 buffer.truncate(length);
                 if sender.send(PtyEvent::Output(buffer)).is_err() {
-                    break;
+                    return Ok(DrainResult::Finished);
                 }
             }
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let process = process_lock(&shared);
-                if process.exit.is_some() || process.wait_failed {
-                    break;
-                }
-                let (process, _) = shared
-                    .changed
-                    .wait_timeout(process, REAPER_POLL_INTERVAL)
-                    .unwrap_or_else(std::sync::PoisonError::into_inner);
-                if process.exit.is_some() || process.wait_failed {
-                    break;
-                }
+                return Ok(DrainResult::Drained);
             }
             Err(error) if error.raw_os_error() == Some(Errno::IO.raw_os_error()) => {
+                return Ok(DrainResult::Finished);
+            }
+            Err(_) => return Err(Failure::ReadOutput),
+        }
+    }
+}
+
+fn read_output(mut master: File, sender: SyncSender<PtyEvent>, shared: Arc<Shared>) {
+    let mut read_failed = false;
+    loop {
+        match drain_output(&mut master, &sender) {
+            Ok(DrainResult::Drained) => {}
+            Ok(DrainResult::Finished) => break,
+            Err(_) => {
+                read_failed = true;
                 break;
             }
+        }
+
+        let process_ended = {
+            let process = process_lock(&shared);
+            process.exit.is_some() || process.wait_failed
+        };
+        if process_ended {
+            // The leader may have exited after the prior read reached WouldBlock.
+            // Drain once more before reporting its result, without waiting for
+            // descendants that still hold the slave descriptor.
+            if drain_output(&mut master, &sender).is_err() {
+                read_failed = true;
+            }
+            break;
+        }
+
+        let mut descriptors = [PollFd::new(&master, PollFlags::IN)];
+        match poll(&mut descriptors, Some(&OUTPUT_POLL_TIMEOUT)) {
+            Ok(_) | Err(Errno::INTR) => {}
             Err(_) => {
                 read_failed = true;
                 break;
