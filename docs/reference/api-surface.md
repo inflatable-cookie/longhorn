@@ -11,6 +11,7 @@
 | --- | --- | --- | --- |
 | `longhorn-agent-control` | library | `agent-control-evaluate`, `client` | [source](../../crates/longhorn-agent-control/README.md) |
 | `longhorn-agent-tool-dispatch` | library | none | [source](../../crates/longhorn-agent-tool-dispatch/README.md) |
+| `longhorn-archive-path` | library | none | [source](../../crates/longhorn-archive-path/README.md) |
 | `longhorn-bindings` | library | none | [source](../../crates/longhorn-bindings/src/lib.rs) |
 | `longhorn-bridge` | library | `bindings`, `supervision` | [source](../../crates/longhorn-bridge/README.md) |
 | `longhorn-browser` | library | none | [source](../../crates/longhorn-browser/src/lib.rs) |
@@ -55,6 +56,7 @@
 | `longhorn-tauri-transfer` | library | `surface-transfer` | [source](../../crates/longhorn-tauri-transfer/src/lib.rs) |
 | `longhorn-tauri-update` | library | none | [source](../../crates/longhorn-tauri-update/src/lib.rs) |
 | `longhorn-tauri-windowing` | library | none | [source](../../crates/longhorn-tauri-windowing/src/lib.rs) |
+| `longhorn-tool-provision` | library | none | [source](../../crates/longhorn-tool-provision/README.md) |
 | `longhorn-transfer` | library | `bindings` | [source](../../crates/longhorn-transfer/src/lib.rs) |
 | `longhorn-update` | library | `bindings` | [source](../../crates/longhorn-update/src/lib.rs) |
 | `longhorn-update-install` | library | none | [source](../../crates/longhorn-update-install/src/lib.rs) |

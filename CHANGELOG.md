@@ -6,6 +6,10 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-tool-provision`: verified artifacts and bounded extraction for managed tools (part 4a).** A declared digest (release checksum file, `.sha256` sidecar or pin) is checked before any extraction; a `VerifiedArtifact` is the only input extraction takes. One requested member is written into a caller's staging directory, within a member and real-decompressed-byte bound, with the mode set here. A declared vendor team is checked on the staged executable through an injected signature port, whose macOS adapter runs the fixed `/usr/bin/codesign`. Failures are typed as refusals or host faults. Contract 027 owns the behaviour; release source and the install pipeline follow in parts 4b and 4c.
+- **`longhorn-archive-path`: the shared archive path rule.** The entry-name and link-target rule that `longhorn-update-install` used privately, moved here unchanged so the managed-tool extraction shares it. `longhorn-update-install`'s behaviour is unchanged.
+
 ## [0.3.3] - 2026-10-19
 
 ### Added

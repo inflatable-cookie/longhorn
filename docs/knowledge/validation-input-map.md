@@ -45,6 +45,13 @@ An unmapped input and every declared coverage gap return `needs_planner`
 before execution. The existing `qa`, `qa:docs`, `proof:artifacts`, CI and
 release gates keep their current members and meaning.
 
+Known unmapped inputs (planner ruling, 2026-10-20; PR 78 precedent):
+`CHANGELOG.md`, `Cargo.toml`, `Cargo.lock` and `effigy.toml` are PR gap tokens,
+not group scope tokens. Record `qa:docs` for `CHANGELOG.md`; record `lint:rust`
+and the affected package group for the manifests. If a plan returns
+`needs_planner` only for these inputs, retain that result and reason, then
+plan again without them. Every other unmapped input still needs the planner.
+
 | Group | Declared work | Boundary |
 | --- | --- | --- |
 | `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |
@@ -57,6 +64,7 @@ release gates keep their current members and meaning.
 | `redact` | `check:redact` | `longhorn-redact` and its case table `fixtures/redact/**`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `support-log` | `check:support-log` | `longhorn-support-log`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact`. |
 | `diagnostics` | `check:diagnostics` | `longhorn-diagnostics`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact` or `longhorn-support-log`. |
+| `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
@@ -149,6 +157,13 @@ role: scoped compile/test/rustdoc for `crates/longhorn-diagnostics/**`
 (contract 026). Companions: `check:api-reference` (aggregated by
 `check:diagnostics`). Limits: these, the support-log, redact and
 agent-tool-dispatch selectors are the only per-crate Rust selectors.
+
+**`lint:tool-provision`**, **`test:tool-provision`**, **`docs:tool-provision`** —
+role: scoped compile/test/rustdoc for `crates/longhorn-tool-provision/**` and
+`crates/longhorn-archive-path/**` (contract 027). Companions:
+`check:api-reference` (aggregated by `check:tool-provision`). Limits: the
+`longhorn-update-install` path-rule consumer is not in this selector; its
+covering checks are `lint:rust` and `test:rust`.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
 doc --workspace --no-deps --locked`. Owns all Rust doc comments and crate
@@ -476,6 +491,10 @@ selects it.
 `lint:diagnostics`, `test:diagnostics`, `docs:diagnostics`,
 `check:api-reference`. The `diagnostics` QA group selects it.
 
+**`check:tool-provision`** — role: aggregate (not in `qa`). Runs
+`lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,
+`check:api-reference`. The `tool-provision` QA group selects it.
+
 **`check:agent-control-skill`** — role: drift lock + fixtures. Runs
 `scripts/verify-agent-control-skill.ts`. Owns
 `crates/longhorn-agent-control/src/tools.rs` (`CONTROL_TOOL_NAMES`),
@@ -646,8 +665,8 @@ the other staging members remain planner-owned.
 ### Rust crate dependents
 
 `cargo test/clippy --workspace` is all-or-nothing. Only
-`longhorn-agent-tool-dispatch`, `longhorn-redact`, `longhorn-support-log`
-and `longhorn-diagnostics` have scoped selectors. Everything else needs the
+`longhorn-agent-tool-dispatch`, `longhorn-redact`, `longhorn-support-log`,
+`longhorn-diagnostics` and `longhorn-tool-provision` have scoped selectors. Everything else needs the
 whole Rust lane: `lint:rust`, `lint:rust:features`, `test:rust`. A shared
 crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 (`longhorn-credential-keyring` has no in-tree dependents) select the same
@@ -881,7 +900,8 @@ proofs. Missing any of those is a silent break.
 ## Coverage gaps and unresolved inputs
 
 - No per-crate Rust selector except `longhorn-agent-tool-dispatch`,
-  `longhorn-redact`, `longhorn-support-log` and `longhorn-diagnostics`. A
+  `longhorn-redact`, `longhorn-support-log`, `longhorn-diagnostics` and
+  `longhorn-tool-provision`. A
   leaf and a shared crate select the same three-lane board. Missing evidence: an
   Effigy cargo package filter expressed as a selector, or per-crate
   `test:rust`/`lint:rust` tasks.

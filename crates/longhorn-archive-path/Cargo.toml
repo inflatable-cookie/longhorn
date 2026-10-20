@@ -1,0 +1,14 @@
+[package]
+name = "longhorn-archive-path"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The archive entry-name and link-target rule shared by Longhorn's bounded extractions"
+publish = false
+
+[dependencies]
+
+[lints]
+workspace = true

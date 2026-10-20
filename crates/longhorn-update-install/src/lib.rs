@@ -53,7 +53,7 @@ pub use provenance::{detect_provenance, observe_install};
 
 use std::{
     fs,
-    path::{Component, Path, PathBuf},
+    path::{Path, PathBuf},
 };
 
 use flate2::read::GzDecoder;
@@ -435,26 +435,12 @@ fn unpack_within(
 /// Tauri strips the first component and unpacks; this checks first. An
 /// archive is untrusted input even after its signature verifies, because a
 /// signature proves origin, not good intent. Applied to entry names and to
-/// link targets alike.
+/// link targets alike. The rule is `longhorn-archive-path`'s, shared with
+/// `longhorn-tool-provision` (contract 027), so the two cannot drift.
 fn bounded(path: &Path) -> Result<PathBuf, InstallFailure> {
-    let mut safe = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::Normal(part) => safe.push(part),
-            Component::CurDir => {}
-            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-                return Err(InstallFailure::MalformedArtifact {
-                    detail: format!("archive entry escapes the destination: {}", path.display()),
-                });
-            }
-        }
-    }
-    if safe.as_os_str().is_empty() {
-        return Err(InstallFailure::MalformedArtifact {
-            detail: "archive entry has an empty path".to_owned(),
-        });
-    }
-    Ok(safe)
+    longhorn_archive_path::bounded(path).map_err(|refusal| InstallFailure::MalformedArtifact {
+        detail: refusal.to_string(),
+    })
 }
 
 /// Refuses a destination whose existing ancestors resolve outside `staging`.

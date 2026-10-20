@@ -48,7 +48,9 @@ install path defines the artifact shape — a gzip tar whose single top-level
 entry is the application — and Longhorn matches it exactly, so one signed
 release serves both hosts. Longhorn diverges only where the plugin's approach
 is unsafe to copy: no shell interpolation, classified failures, and bounded
-extraction. See `longhorn-update-install`.
+extraction. See `longhorn-update-install`. The entry-name and link-target
+rule it applies is `longhorn-archive-path`'s, shared with
+`longhorn-tool-provision` (contract 027); this crate's behaviour is unchanged.
 
 Authorization remains host-agnostic: `UpdateGate::authorize` answers whether
 an install may proceed, whoever performs it. Since the 2026-09-22 amendment
