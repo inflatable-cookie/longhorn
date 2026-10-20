@@ -3560,8 +3560,11 @@ name = "longhorn-tool-provision"
 version = "0.3.3"
 dependencies = [
  "flate2",
+ "fs4",
  "hex",
  "longhorn-archive-path",
+ "longhorn-redact",
+ "longhorn-support-log",
  "reqwest",
  "secrecy",
  "semver",

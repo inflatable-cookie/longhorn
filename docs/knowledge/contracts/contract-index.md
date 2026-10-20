@@ -58,7 +58,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [024 Text Redaction](024-text-redaction.md) | std-only secret redaction engine: span model, rules, guarantees, case table | active compiled boundary |
 | [025 Bounded Support Logs](025-bounded-support-logs.md) | redact-then-bound ring log, rotating line log and output tails: bounds, rotation, failure rules, UTC timestamps | active compiled boundary |
 | [026 Diagnostics Bundle](026-diagnostics-bundle.md) | pure diagnostics renderer: exact layout, redact-last with the app's redactor, marker count, caller-owned product text | active compiled boundary |
-| [027 Managed Tool Provisioning](027-managed-tool-provisioning.md) | verified artifacts (digest, then vendor team on the extracted executable), bounded single-member extraction, failure classes; release resolution and bounded download (4b); install pipeline pending (4c) | active; 4a and 4b compiled |
+| [027 Managed Tool Provisioning](027-managed-tool-provisioning.md) | verified artifacts (digest, then vendor team on the extracted executable), bounded single-member extraction, release resolution and bounded download, install pipeline, health and login-shell PATH discovery | active; 4a, 4b and 4c compiled |
 
 ## Notes
 

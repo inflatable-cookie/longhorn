@@ -1,7 +1,7 @@
 # Longhorn Tool Provision
 
-Verified artifacts and bounded extraction for managed command-line tools.
-Contract 027 owns its behaviour.
+Verified release, installation and health mechanisms for managed command-line
+tools. Contract 027 owns their behaviour.
 
 A downloaded artifact passes three steps, each a type the next one needs:
 
@@ -24,8 +24,22 @@ tests; it is off by default.
 
 The crate reads no catalogue, pins no digest and names no vendor. The caller
 supplies the artifact shape, the member path, the digest source, the expected
-team, and the release query, endpoints, bounds and token. The install
-pipeline is part 4c.
+team, the release query, endpoints, bounds and token, plus a managed root and
+version arguments. `install_tool` composes release resolution, download,
+verification, extraction, signature checking, version probes, atomic
+replacement with rollback, and an atomic receipt. Its process runner and
+progress callback are injected. `CommandRunner` is the production adapter;
+it starts programs with argument vectors, never a shell string.
+
+`tool_health` probes the managed executable without a network request.
+`LoginPathCache` discovers the login-shell PATH through fixed markers, caches
+the result and supports an explicit refresh. Executable lookup follows PATH
+order and symlinks. Hosts supply the `Redactor` used for bounded probe details.
+
+The generic API owns no catalogue, install root, user bin directory, tool
+labels, release asset templates, token broker or product-facing progress
+strings. `ToolDescription` carries those values that describe one tool;
+consumers choose where the managed root lives and how progress stages appear.
 
 Entry names and link targets are checked by `longhorn-archive-path`, shared
 with `longhorn-update-install`. Links are refused, backslash names too, and
