@@ -14,6 +14,7 @@ members = [
   "crates/longhorn-core",
   "crates/longhorn-credential-keyring",
   "crates/longhorn-diagnostics",
+  "crates/longhorn-pty",
   "crates/longhorn-display",
   "crates/longhorn-gpui-windowing",
   "crates/longhorn-history",

@@ -25,6 +25,9 @@ are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
   of managed tool provisioning, and
   `longhorn-archive-path`, the archive path rule it shares with
   `longhorn-update-install`.
+- **On `main`, unreleased:** `longhorn-pty`
+  ([contract 028](knowledge/contracts/028-pty-sessions.md)), a bounded,
+  process-group-aware PTY session crate.
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
 - **Consumer adoption** of Longhorn features is consumer-owned. Longhorn does

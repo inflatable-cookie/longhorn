@@ -1,0 +1,22 @@
+[package]
+name = "longhorn-pty"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bounded pseudo-terminal sessions for desktop hosts (contract 028)"
+publish = false
+
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["pty", "process", "termios"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "deny"
+
+[lints.clippy]
+all = "deny"

@@ -3267,6 +3267,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-pty"
+version = "0.3.3"
+dependencies = [
+ "rustix",
+ "tempfile",
+]
+
+[[package]]
 name = "longhorn-redact"
 version = "0.3.3"
 dependencies = [
