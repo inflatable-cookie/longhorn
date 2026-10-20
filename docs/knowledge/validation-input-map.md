@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-10-18
+Updated: 2026-10-20
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -46,15 +46,16 @@ before execution. The existing `qa`, `qa:docs`, `proof:artifacts`, CI and
 release gates keep their current members and meaning.
 
 Known unmapped inputs (planner ruling, 2026-10-20; PR 78 precedent):
-`CHANGELOG.md`, `Cargo.toml`, `Cargo.lock` and `effigy.toml` are PR gap tokens,
-not group scope tokens. Record `qa:docs` for `CHANGELOG.md`; record `lint:rust`
-and the affected package group for the manifests. If a plan returns
+`Cargo.toml`, `Cargo.lock` and `effigy.toml` are PR gap tokens, not group scope
+tokens. Record `lint:rust` and the affected package group for the manifests.
+`CHANGELOG.md` is no longer unmapped: `longhorn-docs` covers it through the
+`changelog` member (`qa:docs:changelog`). If a plan returns
 `needs_planner` only for these inputs, retain that result and reason, then
 plan again without them. Every other unmapped input still needs the planner.
 
 | Group | Declared work | Boundary |
 | --- | --- | --- |
-| `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links` | General links, index paths and agent defaults only; omits `held-surface` and `host-protocol`. |
+| `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links`, `qa:docs:changelog` | General links, index paths, agent defaults and `CHANGELOG.md` (parse and links) only; omits `held-surface` and `host-protocol`. |
 | `longhorn-getting-started-docs` | The two docs link selectors plus `proof:guides-card126` | The fixed guide corpus, its links and generated API inventory; other artifact proofs remain out. |
 | `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` | Five declared bridge compositions, bridge crate sources, the Longhorn bridge package scope, and the query-only capability. |
 | `longhorn-pack-typecheck` | `proof:pack-typecheck` | Packed scoped Longhorn and adapter packages, their package paths, locked registry dependencies, and declared installed Poodle metadata. |
@@ -227,6 +228,7 @@ Companions: none. Admission: unmarked but heavyweight. Release gate (`source`).
 `scripts/longhorn-version.ts`, `scripts/release-bump.ts`,
 `scripts/check-release-gates-alignment.ts`,
 `scripts/check-release-runner-tools.ts`,
+`scripts/check-changelog.ts`,
 `scripts/verify-private-candidate-docs-card127.ts` and their `.test.ts`,
 `scripts/qa-group-routing.test.ts` (which plans each maintained route with
 Effigy and asserts accepted/refused scope dispositions),
@@ -525,9 +527,9 @@ not a standing gate.
 
 **`qa:docs`** — role: docs aggregate. Members below.
 The `longhorn-docs` group contains exactly `qa:docs:links`,
-`qa:docs:agent-defaults`, `qa:docs:paths`, and `qa:docs:catalog-links`.
-It does not include `held-surface` or `host-protocol`; the `qa:docs`
-aggregate still runs all six members.
+`qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links`, and
+`qa:docs:changelog`. It does not include `held-surface` or `host-protocol`; the
+`qa:docs` aggregate still runs all seven members.
 
 **`qa:docs:links`** — role: docs. Link check on `README.md`, `AGENTS.md`,
 `docs/README.md`, the knowledge indexes, `docs/guides/README.md`,
@@ -543,6 +545,15 @@ architecture and contract file to exist.
 **`qa:docs:catalog-links`** — role: docs. `effigy docs check links` over
 `README.md` and all Markdown under `docs/`. This is the check that resolves
 links in a new knowledge file.
+
+**`qa:docs:changelog`** — role: docs (parse and links). Runs
+`scripts/check-changelog.ts`, which asks `effigy --json release status` whether
+Effigy's release parser accepts `CHANGELOG.md`, then `effigy docs check links
+CHANGELOG.md`. It fails on an unknown category (the longhorn#049 `Release facts`
+case) or a malformed release heading. An empty `[Unreleased]` passes: Effigy
+exits nonzero there, but reports it as a blocker on a valid changelog, and the
+script reads that JSON shape rather than the exit code. Limits: does not judge
+release wording or whether entries are accurate.
 
 `proof:guides-card126` runs `scripts/verify-guides-card126.ts` as a standalone
 selector and remains one of the fourteen `proof:artifacts` members. The
@@ -713,8 +724,10 @@ does not prove the TypeScript compiles, so `check:ts` is always a companion.
 Select by which documentation surface changed:
 
 - Any Markdown under `docs/` or `README.md`/`AGENTS.md`:
-  `longhorn-docs` for the four bounded link, index-path, and agent-default
-  checks. `qa:docs` remains the six-member docs aggregate when
+  `longhorn-docs` for its five bounded members: the link, index-path,
+  agent-default and catalog-link checks, plus `changelog` for `CHANGELOG.md`.
+  A group run executes all five members, not only the ones the changed file
+  touches. `qa:docs` remains the seven-member docs aggregate when
   `held-surface` and `host-protocol` obligations apply or its owning validator
   is required.
 - `docs/reference/{held-surface,api-surface}.md` or `docs/guides/package-selection.md`:
@@ -729,6 +742,7 @@ Select by which documentation surface changed:
   `scripts/verify-documented-commands.ts`); `longhorn-documented-commands`
   runs that standalone proof for a mapped Markdown path.
 - Knowledge files: `qa:docs:paths` covers the index/contract set only.
+- `CHANGELOG.md`: `longhorn-docs` (member `changelog`, `qa:docs:changelog`).
 
 No Rust or TypeScript suite is required for a docs-only change.
 
