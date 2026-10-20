@@ -499,8 +499,10 @@ fn extract_zip(
         // member is extracted, and the header's uncompressed size is never read.
         let mut entry = archive.by_index_raw(index).map_err(unreadable)?;
         let name = entry.name().map_err(unreadable)?.into_owned();
+        // The type is the mode's, never the name's: a trailing slash on a
+        // regular file does not make it a directory.
         let file_type = entry.unix_mode().map(|mode| mode & S_IFMT);
-        let is_dir = entry.is_dir() || file_type == Some(S_IFDIR);
+        let is_dir = file_type == Some(S_IFDIR);
         let Some(safe) = check_name(asset, &name, is_dir)? else {
             continue;
         };
@@ -515,6 +517,24 @@ fn extract_zip(
                 }));
             }
         }
+        // Checked on every entry, so an archive with an encrypted or
+        // undecodable member anywhere is refused whole.
+        if entry.encrypted() {
+            return Err(ProvisionError::Refused(Refusal::UnreadableArchive {
+                asset: asset.to_owned(),
+                detail: format!("the encrypted member {name:?} is not supported"),
+            }));
+        }
+        let deflated = match entry.compression() {
+            zip::CompressionMethod::Stored => false,
+            zip::CompressionMethod::Deflated => true,
+            method => {
+                return Err(ProvisionError::Refused(Refusal::UnreadableArchive {
+                    asset: asset.to_owned(),
+                    detail: format!("compression method {method:?} of {name:?} is not supported"),
+                }));
+            }
+        };
         if is_dir || safe != member {
             continue;
         }
@@ -523,30 +543,15 @@ fn extract_zip(
         }
         found = true;
         let on_read = archive_read_failure(asset, limits.max_bytes());
-        if entry.encrypted() {
-            return Err(ProvisionError::Refused(Refusal::UnreadableArchive {
-                asset: asset.to_owned(),
-                detail: "encrypted members are not supported".to_owned(),
-            }));
-        }
         // Decoded here, so the budget counts the bytes this extraction
         // produces, whatever the header claims.
-        match entry.compression() {
-            zip::CompressionMethod::Stored => {
-                let mut budget = BudgetReader::new(&mut entry, limits.max_bytes());
-                copy_member(&mut budget, destination, created_here, &on_read)?;
-            }
-            zip::CompressionMethod::Deflated => {
-                let decoder = DeflateDecoder::new(&mut entry);
-                let mut budget = BudgetReader::new(decoder, limits.max_bytes());
-                copy_member(&mut budget, destination, created_here, &on_read)?;
-            }
-            method => {
-                return Err(ProvisionError::Refused(Refusal::UnreadableArchive {
-                    asset: asset.to_owned(),
-                    detail: format!("compression method {method:?} is not supported"),
-                }));
-            }
+        if deflated {
+            let decoder = DeflateDecoder::new(&mut entry);
+            let mut budget = BudgetReader::new(decoder, limits.max_bytes());
+            copy_member(&mut budget, destination, created_here, &on_read)?;
+        } else {
+            let mut budget = BudgetReader::new(&mut entry, limits.max_bytes());
+            copy_member(&mut budget, destination, created_here, &on_read)?;
         }
     }
     if found {

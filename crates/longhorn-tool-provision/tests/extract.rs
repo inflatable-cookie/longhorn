@@ -404,14 +404,44 @@ fn a_raw_artifact_over_the_byte_bound_refuses() {
 /// local header and the central directory) to `declared`, so the header
 /// claims less than the member really decompresses to.
 fn declare_size(archive: &mut [u8], name: &str, declared: u32) {
-    // (signature, name-length offset, name offset, uncompressed-size offset)
-    // within the record, per the zip format's local and central headers.
+    patch_records(
+        archive,
+        name,
+        ZipField::UncompressedSize,
+        &declared.to_le_bytes(),
+    );
+}
+
+/// A field of a zip record, at its offset in the local and central headers.
+#[derive(Clone, Copy)]
+enum ZipField {
+    Flags,
+    Method,
+    UncompressedSize,
+}
+
+impl ZipField {
+    /// (local offset, central offset), per the zip format.
+    const fn offsets(self) -> (usize, usize) {
+        match self {
+            Self::Flags => (6, 8),
+            Self::Method => (8, 10),
+            Self::UncompressedSize => (22, 24),
+        }
+    }
+}
+
+/// Overwrites `field` in both records (local and central) for `name`.
+fn patch_records(archive: &mut [u8], name: &str, field: ZipField, value: &[u8]) {
+    let (local, central) = field.offsets();
+    // (signature, name-length offset, name offset, field offset) within the
+    // record, per the zip format's local and central headers.
     let records = [
-        (&b"PK\x03\x04"[..], 26usize, 30usize, 22usize),
-        (&b"PK\x01\x02"[..], 28, 46, 24),
+        (&b"PK\x03\x04"[..], 26usize, 30usize, local),
+        (&b"PK\x01\x02"[..], 28, 46, central),
     ];
     let mut offsets = Vec::new();
-    for (signature, length_offset, name_offset, size_offset) in records {
+    for (signature, length_offset, name_offset, field_offset) in records {
         for start in 0..archive.len().saturating_sub(name_offset) {
             if &archive[start..start + 4] != signature {
                 continue;
@@ -420,14 +450,118 @@ fn declare_size(archive: &mut [u8], name: &str, declared: u32) {
             let length = u16::from_le_bytes([archive[length_at], archive[length_at + 1]]) as usize;
             let stored = start + name_offset;
             if archive.get(stored..stored + length) == Some(name.as_bytes()) {
-                offsets.push(start + size_offset);
+                offsets.push(start + field_offset);
             }
         }
     }
     assert_eq!(offsets.len(), 2, "the fixture holds the member twice");
     for offset in offsets {
-        archive[offset..offset + 4].copy_from_slice(&declared.to_le_bytes());
+        archive[offset..offset + value.len()].copy_from_slice(value);
     }
+}
+
+fn zip_refused(archive: &[u8]) -> Refusal {
+    let temp = tempfile::tempdir().unwrap();
+    let artifact = verified(temp.path(), "tool.zip", archive);
+    let out = staging(temp.path(), "out");
+    let refusal = refused(extract_executable(
+        &artifact,
+        ArtifactShape::Zip { member: "tool" },
+        &out,
+        "tool",
+        limits(),
+    ));
+    assert_eq!(
+        std::fs::read_dir(&out).unwrap().count(),
+        0,
+        "a refused zip leaves nothing behind"
+    );
+    refusal
+}
+
+const S_IFREG: u32 = 0o100000;
+
+#[test]
+fn a_zip_regular_file_with_a_trailing_slash_is_a_file_not_a_directory() {
+    // The Unix mode says regular file; the name's slash does not override it.
+    let temp = tempfile::tempdir().unwrap();
+    let archive = zip_of(&[ZipEntry::Mode {
+        name: "tool/",
+        bytes: BINARY.to_vec(),
+        mode: S_IFREG | 0o644,
+    }]);
+    let artifact = verified(temp.path(), "tool.zip", &archive);
+    let out = staging(temp.path(), "out");
+    extract_executable(
+        &artifact,
+        ArtifactShape::Zip { member: "tool" },
+        &out,
+        "tool",
+        limits(),
+    )
+    .expect("the mode makes it the member");
+    assert_eq!(std::fs::read(out.join("tool")).unwrap(), BINARY);
+
+    let archive = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::Mode {
+            name: "tool/",
+            bytes: b"other".to_vec(),
+            mode: S_IFREG | 0o644,
+        },
+    ]);
+    assert!(matches!(
+        zip_refused(&archive),
+        Refusal::DuplicateMember { .. }
+    ));
+}
+
+#[test]
+fn an_encrypted_member_anywhere_in_a_zip_refuses() {
+    let mut archive = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::File {
+            name: "notes",
+            bytes: b"secret".to_vec(),
+        },
+    ]);
+    // General-purpose flag bit 0: the member is encrypted.
+    patch_records(&mut archive, "notes", ZipField::Flags, &1u16.to_le_bytes());
+    assert!(matches!(
+        zip_refused(&archive),
+        Refusal::UnreadableArchive { .. }
+    ));
+}
+
+#[test]
+fn an_unsupported_compression_method_anywhere_in_a_zip_refuses() {
+    let mut archive = zip_of(&[
+        ZipEntry::File {
+            name: "tool",
+            bytes: BINARY.to_vec(),
+        },
+        ZipEntry::File {
+            name: "notes",
+            bytes: b"notes".to_vec(),
+        },
+    ]);
+    // Method 12 is bzip2, which this crate does not decode.
+    patch_records(
+        &mut archive,
+        "notes",
+        ZipField::Method,
+        &12u16.to_le_bytes(),
+    );
+    assert!(matches!(
+        zip_refused(&archive),
+        Refusal::UnreadableArchive { .. }
+    ));
 }
 
 #[test]
@@ -490,7 +624,6 @@ fn zip_special_file_types_refuse_while_an_explicit_regular_file_passes() {
     const S_IFBLK: u32 = 0o060000;
     const S_IFIFO: u32 = 0o010000;
     const S_IFSOCK: u32 = 0o140000;
-    const S_IFREG: u32 = 0o100000;
     for special in [S_IFIFO, S_IFCHR, S_IFBLK, S_IFSOCK] {
         let temp = tempfile::tempdir().unwrap();
         let archive = zip_of(&[ZipEntry::Mode {

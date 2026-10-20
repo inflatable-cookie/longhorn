@@ -181,7 +181,7 @@ header that understates its member cannot hide real bytes: a member that
 decompresses past the bound is `ArchiveTooLarge` whatever it declares.
 
 Zip members are `Stored` or `Deflated`. Any other compression method, and any
-encrypted member, is `UnreadableArchive`. The zip extraction does not check
+encrypted member, is `UnreadableArchive`, wherever it sits in the archive. The zip extraction does not check
 the CRC-32 in the header: integrity is the declared digest's job, and for a
 team-only declaration the signature check on the staged executable is.
 
@@ -194,7 +194,10 @@ whole if any entry anywhere:
 - is neither a file nor a directory, such as a device or fifo
   (`UnsupportedEntry`). For zip the file type is the Unix mode's `S_IFMT`
   bits, not the name: a fifo, character or block device, or socket with a
-  file name is refused. A zip without Unix attributes is a file.
+  file name is refused, and a regular file whose name ends in `/` is a file.
+  A zip without Unix attributes is a file;
+- for zip, is encrypted or uses a compression method other than `Stored` or
+  `Deflated` (`UnreadableArchive`).
 
 The root directory entry (`./`) is skipped. `./` prefixes are normalised, so
 `./tool` and `tool` name the same member. The member occurring twice is
@@ -262,6 +265,10 @@ Against the Acowtancy donor at `3c21b1ac8`:
   real bytes pass the bound.
 - **Zip special files:** the donor's zip path did not check the Unix type. Fifos,
   devices and sockets are refused.
+- **Zip entry type:** the donor took a directory from the name's trailing
+  slash. The Unix mode now decides it. Encrypted and unsupported-compression
+  entries are still refused archive-wide, now by a check of each entry's
+  header instead of the zip library's open.
 - **Digest timing:** the donor checked the digest before extraction on the
   source file. Here the digest is checked on the copy extraction reads (see
   Verification), so the source can change after verification without effect.
@@ -300,8 +307,10 @@ Against the Acowtancy donor at `3c21b1ac8`:
   too many members, skipped bytes counted against the bound, an honest member
   over the bound, a zip header that understates its member and whose real
   bytes pass the bound (`ArchiveTooLarge`), zip fifo, device and socket
-  entries, a source changed after verification (`DigestMismatch`, nothing
-  left in staging), a missing member, a duplicate member, a raw artifact, and
+  entries, a zip regular file named with a trailing slash, an encrypted or
+  unsupported-compression zip entry that is not the member
+  (`UnreadableArchive`), a source changed after verification
+  (`DigestMismatch`, nothing left in staging), a missing member, a duplicate member, a raw artifact, and
   the executable mode on the staged file. The mode tests are Unix-only.
 - Cleanup-boundary unit tests force removal errors with fixture-local
   directories: staged-file cleanup, private-copy cleanup after a refusal or
