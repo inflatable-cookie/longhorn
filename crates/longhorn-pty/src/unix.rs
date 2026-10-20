@@ -80,6 +80,12 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
     let stdout_fd = duplicate(&slave)?;
     let stderr_fd = duplicate(&slave)?;
     let ctty_fd = duplicate(&slave)?;
+    // The parent keeps one slave descriptor until the output reader finishes
+    // its final post-exit drain. Some platforms discard unread
+    // slave-to-master data on last slave close, so dropping every parent
+    // copy at spawn would let a child that writes and exits before the
+    // reader's next drain lose its output.
+    let retained_slave = duplicate(&slave)?;
     let ctty_file = File::from(ctty_fd);
     drop(master);
     drop(slave);
@@ -130,7 +136,14 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
 
     if thread::Builder::new()
         .name("longhorn-pty-output".to_owned())
-        .spawn(move || read_output(File::from(reader_master), sender, shared))
+        .spawn(move || {
+            read_output(
+                File::from(reader_master),
+                File::from(retained_slave),
+                sender,
+                shared,
+            )
+        })
         .is_err()
     {
         let _ = session.close();
@@ -248,7 +261,10 @@ fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<Drai
         // remains in the reader while queue capacity is exhausted.
         let mut buffer = vec![0u8; OUTPUT_CHUNK_BYTES];
         match master.read(&mut buffer) {
-            Ok(0) => return Ok(DrainResult::Finished),
+            // A zero-byte read is not end-of-file on a pseudo-terminal: it
+            // carries no information about the child, so poll again exactly
+            // like a momentarily empty master.
+            Ok(0) => return Ok(DrainResult::Drained),
             Ok(length) => {
                 buffer.truncate(length);
                 if sender.send(PtyEvent::Output(buffer)).is_err() {
@@ -267,7 +283,12 @@ fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<Drai
     }
 }
 
-fn read_output(mut master: File, sender: SyncSender<PtyEvent>, shared: Arc<Shared>) {
+fn read_output(
+    mut master: File,
+    held_slave: File,
+    sender: SyncSender<PtyEvent>,
+    shared: Arc<Shared>,
+) {
     let mut read_failed = false;
     loop {
         match drain_output(&mut master, &sender) {
@@ -303,6 +324,9 @@ fn read_output(mut master: File, sender: SyncSender<PtyEvent>, shared: Arc<Share
         }
     }
     drop(master);
+    // The retained slave kept the child's output readable past its death.
+    // It closes only after the final drain above, so its queue is empty.
+    drop(held_slave);
 
     let mut process = process_lock(&shared);
     while process.exit.is_none() && !process.wait_failed {
