@@ -415,8 +415,10 @@ allow-lists named crates/ports by hand.
 **`check:runner-tools`** — role: scan. `bun scripts/check-runner-tools.ts`.
 Scans `scripts/**`, `.github/**`, `config/**` (`.ts .tsx .js .mjs .cjs .sh
 .yml .yaml .toml`), `effigy.toml`, and `config/release.toml` for forbidden
-runner tools (`rg`, `ripgrep`), and checks `.github/workflows/release.yml`
-installs every tool a release gate needs. Companions:
+runner tools (`rg`, `ripgrep`), checks `.github/workflows/release.yml`
+installs every tool a release gate needs, and checks `ci.yml`'s `rust` and
+`rust-floor` jobs install the same pinned Bun as `clients` before Effigy.
+Companions:
 `test:release-tooling`. Admission: unmarked (seconds). In `health` and `qa`.
 
 **`check:consumer-isolation`** — role: scan (containment). Runs

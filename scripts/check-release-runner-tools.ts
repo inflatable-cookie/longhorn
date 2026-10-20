@@ -116,6 +116,7 @@ export type WorkflowStep = {
   readonly ifCondition: string | null;
   readonly uses: string | null;
   readonly run: string | null;
+  readonly bunVersion: string | null;
 };
 
 export function tokenize(input: string): string[] {
@@ -304,8 +305,11 @@ function parseStepBlock(job: string, block: string[]): WorkflowStep {
   let ifCondition: string | null = null;
   let uses: string | null = null;
   let run: string | null = null;
+  let bunVersion: string | null = null;
   for (let index = 0; index < block.length; ) {
     const stripped = stripYamlComment(block[index]!);
+    const bunVersionMatch = /^\s*bun-version:\s*['"]?([^'"\s]+)['"]?\s*$/.exec(stripped);
+    if (bunVersionMatch?.[1]) bunVersion = bunVersionMatch[1];
     const ifMatch = /^\s+-?\s*if:\s*(.*)$/.exec(stripped);
     if (ifMatch) {
       const value = ifMatch[1].trim();
@@ -347,7 +351,7 @@ function parseStepBlock(job: string, block: string[]): WorkflowStep {
     if (rest.length > 0) run = rest;
     index += 1;
   }
-  return { job, ifCondition, uses, run };
+  return { job, ifCondition, uses, run, bunVersion };
 }
 
 function groupStepsByJob(steps: readonly WorkflowStep[]): WorkflowStep[][] {
