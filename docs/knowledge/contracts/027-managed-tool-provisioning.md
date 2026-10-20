@@ -203,6 +203,8 @@ The root directory entry (`./`) writes nothing, but it is still checked. `./` pr
 `./tool` and `tool` name the same member. The member occurring twice is
 `DuplicateMember`. A missing member is `MemberMissing`. Too many entries is
 `TooManyMembers`. A file the reader cannot decode is `UnreadableArchive`.
+A host failure while reading the private copy is `Fault::Io` with the copy's
+path, never a refusal: the archive is not at fault.
 
 **Path rule.** The name and target rule is `longhorn-archive-path::bounded`:
 `..`, a root or a drive prefix refuses with `Escapes`; nothing left refuses
@@ -319,6 +321,10 @@ Against the Acowtancy donor at `3c21b1ac8`:
   They check the I/O class, failed paths, retained original failure and that
   the other owned file still gets a cleanup attempt. Missing files preserve
   the original result.
+- Read-fault unit tests drive the tar.gz and zip readers over a source that
+  fails mid-read and expect `Fault::Io` with the copy's path; undecodable
+  bytes from a healthy source still refuse as `UnreadableArchive`. The public
+  API reads only its own private copy, so it cannot inject this fault.
 - `longhorn-update-install`'s tests pass unchanged against the shared rule.
 
 ## Extraction state

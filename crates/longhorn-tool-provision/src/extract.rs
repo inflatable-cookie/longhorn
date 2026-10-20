@@ -11,7 +11,7 @@
 
 use std::{
     fs::{self, File, OpenOptions},
-    io::{self, Read, Write},
+    io::{self, Read, Seek, Write},
     path::{Component, Path, PathBuf},
 };
 
@@ -20,7 +20,7 @@ use longhorn_archive_path::bounded;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    budget::{BudgetReader, ByteBudgetExceeded},
+    budget::{BudgetReader, ByteBudgetExceeded, SourceFault, SourceReader},
     failure::{Fault, ProvisionError, Refusal},
     verify::VerifiedArtifact,
 };
@@ -302,14 +302,24 @@ fn copy_and_check(
     Ok(())
 }
 
-/// Maps a read failure: the budget's own error is the bound, anything else
-/// means the archive cannot be read.
-fn archive_read_failure(asset: &str, limit: u64) -> impl Fn(&io::Error) -> ProvisionError + '_ {
+/// Maps a read failure: the budget's own error is the bound, a failed host
+/// read of the private copy is a fault, anything else means the archive
+/// cannot be read.
+fn archive_read_failure<'a>(
+    asset: &'a str,
+    sealed: &'a Path,
+    limit: u64,
+) -> impl Fn(&io::Error) -> ProvisionError + 'a {
     move |error| {
         if error_is_budget(error) {
             ProvisionError::Refused(Refusal::ArchiveTooLarge {
                 asset: asset.to_owned(),
                 limit,
+            })
+        } else if error_is_source(error) {
+            ProvisionError::Fault(Fault::Io {
+                path: sealed.to_path_buf(),
+                detail: error.to_string(),
             })
         } else {
             ProvisionError::Refused(Refusal::UnreadableArchive {
@@ -324,6 +334,12 @@ fn error_is_budget(error: &io::Error) -> bool {
     error
         .get_ref()
         .is_some_and(|inner| inner.is::<ByteBudgetExceeded>())
+}
+
+fn error_is_source(error: &io::Error) -> bool {
+    error
+        .get_ref()
+        .is_some_and(|inner| inner.is::<SourceFault>())
 }
 
 /// The entry name, checked by the shared rule plus this crate's backslash
@@ -415,12 +431,34 @@ fn extract_tar_gz(
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let file = File::open(sealed).map_err(io_fault(sealed))?;
+    read_tar_gz(
+        SourceReader::new(file),
+        sealed,
+        asset,
+        member,
+        destination,
+        created_here,
+        limits,
+    )
+}
+
+/// Extracts from `source`, the private copy at `sealed` behind a
+/// [`SourceReader`], so its host faults stay faults.
+fn read_tar_gz<R: Read>(
+    source: SourceReader<R>,
+    sealed: &Path,
+    asset: &str,
+    member: &Path,
+    destination: &Path,
+    created_here: &mut bool,
+    limits: ExtractionLimits,
+) -> Result<(), ProvisionError> {
     // The budget sits on the decompressed side, so it counts every byte the
     // tar reader consumes, members it skips included.
-    let budget = BudgetReader::new(GzDecoder::new(file), limits.max_bytes());
+    let budget = BudgetReader::new(GzDecoder::new(source), limits.max_bytes());
     let mut archive = tar::Archive::new(budget);
     archive.set_preserve_permissions(false);
-    let on_read = archive_read_failure(asset, limits.max_bytes());
+    let on_read = archive_read_failure(asset, sealed, limits.max_bytes());
     let entries = archive.entries().map_err(|error| on_read(&error))?;
 
     let mut seen = 0usize;
@@ -482,13 +520,37 @@ fn extract_zip(
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let file = File::open(sealed).map_err(io_fault(sealed))?;
-    let unreadable = |error: zip::result::ZipError| {
-        ProvisionError::Refused(Refusal::UnreadableArchive {
+    read_zip(
+        SourceReader::new(file),
+        sealed,
+        asset,
+        member,
+        destination,
+        created_here,
+        limits,
+    )
+}
+
+/// Extracts from `source`, the private copy at `sealed` behind a
+/// [`SourceReader`], so its host faults stay faults.
+fn read_zip<R: Read + Seek>(
+    source: SourceReader<R>,
+    sealed: &Path,
+    asset: &str,
+    member: &Path,
+    destination: &Path,
+    created_here: &mut bool,
+    limits: ExtractionLimits,
+) -> Result<(), ProvisionError> {
+    let on_read = archive_read_failure(asset, sealed, limits.max_bytes());
+    let unreadable = |error: zip::result::ZipError| match error {
+        zip::result::ZipError::Io(error) => on_read(&error),
+        error => ProvisionError::Refused(Refusal::UnreadableArchive {
             asset: asset.to_owned(),
             detail: error.to_string(),
-        })
+        }),
     };
-    let mut archive = zip::ZipArchive::new(file).map_err(unreadable)?;
+    let mut archive = zip::ZipArchive::new(source).map_err(unreadable)?;
 
     let mut found = false;
     for index in 0..archive.len() {
@@ -542,7 +604,6 @@ fn extract_zip(
             return Err(duplicate(asset, member));
         }
         found = true;
-        let on_read = archive_read_failure(asset, limits.max_bytes());
         // Decoded here, so the budget counts the bytes this extraction
         // produces, whatever the header claims.
         if deflated {
@@ -699,5 +760,142 @@ mod cleanup_tests {
             cleanup_owned_file(&temp.path().join("absent"), Err(original.clone())),
             Err(original)
         );
+    }
+}
+
+/// A host read fault cannot be forced through the public API: extraction
+/// reads its own private copy. These drive the readers that copy feeds, over
+/// a source that fails, through the same decoders.
+#[cfg(test)]
+mod read_fault_tests {
+    use std::io::{Cursor, SeekFrom};
+
+    use super::*;
+
+    /// Serves `bytes`, but fails every read that starts before `fail_below`,
+    /// and every read once `budget` bytes have passed.
+    struct Failing {
+        bytes: Cursor<Vec<u8>>,
+        budget: u64,
+        fail_below: u64,
+    }
+
+    impl Read for Failing {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            if self.bytes.position() < self.fail_below || self.budget == 0 {
+                return Err(io::Error::other("scripted host read failure"));
+            }
+            let limit = buffer
+                .len()
+                .min(usize::try_from(self.budget).unwrap_or(usize::MAX));
+            let read = self.bytes.read(&mut buffer[..limit])?;
+            self.budget -= read as u64;
+            Ok(read)
+        }
+    }
+
+    impl Seek for Failing {
+        fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
+            self.bytes.seek(position)
+        }
+    }
+
+    fn tar_gz_bytes() -> Vec<u8> {
+        let mut builder = tar::Builder::new(flate2::write::GzEncoder::new(
+            Vec::new(),
+            flate2::Compression::default(),
+        ));
+        let body = vec![7u8; 64 * 1024];
+        let mut header = tar::Header::new_gnu();
+        header.set_size(body.len() as u64);
+        header.set_mode(0o755);
+        header.set_cksum();
+        builder.append_data(&mut header, "tool", &body[..]).unwrap();
+        builder.into_inner().unwrap().finish().unwrap()
+    }
+
+    fn zip_bytes() -> Vec<u8> {
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        zip.start_file("tool", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(&[7u8; 1024]).unwrap();
+        zip.finish().unwrap().into_inner()
+    }
+
+    fn assert_host_fault(result: Result<(), ProvisionError>, sealed: &Path) {
+        match result {
+            Err(ProvisionError::Fault(Fault::Io { path, detail })) => {
+                assert_eq!(path, sealed);
+                assert!(detail.contains("scripted host read failure"), "{detail}");
+            }
+            other => panic!("expected a host I/O fault, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_tar_gz_host_read_failure_mid_archive_is_a_fault_not_a_refusal() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let bytes = tar_gz_bytes();
+        let source = Failing {
+            budget: (bytes.len() / 2) as u64,
+            bytes: Cursor::new(bytes),
+            fail_below: 0,
+        };
+        let mut created_here = false;
+        let result = read_tar_gz(
+            SourceReader::new(source),
+            &sealed,
+            "tool.tar.gz",
+            Path::new("tool"),
+            &temp.path().join("tool"),
+            &mut created_here,
+            ExtractionLimits::DEFAULT,
+        );
+        assert_host_fault(result, &sealed);
+    }
+
+    #[test]
+    fn a_zip_host_read_failure_after_opening_is_a_fault_not_a_refusal() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        // The central directory sits at the end and is read first; the local
+        // header and member data at the start then fail to read.
+        let source = Failing {
+            bytes: Cursor::new(zip_bytes()),
+            budget: u64::MAX,
+            fail_below: 30,
+        };
+        let mut created_here = false;
+        let result = read_zip(
+            SourceReader::new(source),
+            &sealed,
+            "tool.zip",
+            Path::new("tool"),
+            &temp.path().join("tool"),
+            &mut created_here,
+            ExtractionLimits::DEFAULT,
+        );
+        assert_host_fault(result, &sealed);
+    }
+
+    #[test]
+    fn undecodable_bytes_from_a_healthy_source_still_refuse() {
+        let temp = tempfile::tempdir().unwrap();
+        let sealed = temp.path().join(".tool.artifact");
+        let mut created_here = false;
+        let result = read_tar_gz(
+            SourceReader::new(Cursor::new(b"not a gzip stream".to_vec())),
+            &sealed,
+            "tool.tar.gz",
+            Path::new("tool"),
+            &temp.path().join("tool"),
+            &mut created_here,
+            ExtractionLimits::DEFAULT,
+        );
+        assert!(matches!(
+            result,
+            Err(ProvisionError::Refused(Refusal::UnreadableArchive { .. }))
+        ));
     }
 }
