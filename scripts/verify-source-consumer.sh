@@ -101,11 +101,11 @@ EOF
   printf '}\n'
 } > "$release_consumer_root/src/main.rs"
 
-cargo generate-lockfile --manifest-path "$release_consumer_root/Cargo.toml"
-cargo check --manifest-path "$release_consumer_root/Cargo.toml" --locked
+bash scripts/rust-command.sh generate-lockfile --manifest-path "$release_consumer_root/Cargo.toml"
+bash scripts/rust-command.sh check --manifest-path "$release_consumer_root/Cargo.toml" --locked
 
 release_metadata="$release_tmp/metadata.json"
-cargo metadata \
+bash scripts/rust-command.sh metadata \
   --manifest-path "$release_consumer_root/Cargo.toml" \
   --format-version 1 \
   --locked \

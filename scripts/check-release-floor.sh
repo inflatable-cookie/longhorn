@@ -27,11 +27,11 @@ fi
 # Both feature passes, matching the `lint` / `lint:features` release gates:
 # default features and --all-features compile disjoint code, and the floor
 # claim has to cover everything a consumer can switch on.
-nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo clippy \
+RUSTUP_TOOLCHAIN="$LONGHORN_GENERAL_MSRV" nice -n 5 bash scripts/rust-command.sh clippy \
   --workspace --all-targets --locked -- -D warnings
-nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo clippy \
+RUSTUP_TOOLCHAIN="$LONGHORN_GENERAL_MSRV" nice -n 5 bash scripts/rust-command.sh clippy \
   --workspace --all-targets --all-features --locked -- -D warnings
-nice -n 5 rustup run "$LONGHORN_GENERAL_MSRV" cargo test \
+RUSTUP_TOOLCHAIN="$LONGHORN_GENERAL_MSRV" nice -n 5 bash scripts/rust-command.sh test \
   --workspace --locked
 
 printf 'floor-toolchain Clippy and full tests passed at %s\n' \

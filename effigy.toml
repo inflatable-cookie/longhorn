@@ -21,43 +21,46 @@ include = ["config/release.toml"]
 # while passing its own gate. The package list comes from `--no-deps`, which
 # is genuinely members-only.
 "fmt:rust" = "sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
-"lint:rust" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
-"lint:agent-tool-dispatch" = "cargo clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
-"lint:redact" = "cargo clippy -p longhorn-redact --all-targets --locked -- -D warnings"
-"lint:support-log" = "cargo clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
-"lint:diagnostics" = "cargo clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
+"lint:rust" = "bash scripts/rust-command.sh clippy --workspace --all-targets --locked -- -D warnings"
+"lint:rust:cargo" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
+"lint:agent-tool-dispatch" = "bash scripts/rust-command.sh clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
+"lint:redact" = "bash scripts/rust-command.sh clippy -p longhorn-redact --all-targets --locked -- -D warnings"
+"lint:support-log" = "bash scripts/rust-command.sh clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
+"lint:diagnostics" = "bash scripts/rust-command.sh clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
 # Contract 028: real PTY lifecycle and process-group behavior.
-"lint:pty" = "cargo clippy -p longhorn-pty --all-targets --locked -- -D warnings"
+"lint:pty" = "bash scripts/rust-command.sh clippy -p longhorn-pty --all-targets --locked -- -D warnings"
 # Contract 027 and its shared archive path rule (contract 018 and 027). The
 # fixture-server feature compiles the part 4b release tests and their server.
-"lint:tool-provision" = "cargo clippy -p longhorn-tool-provision -p longhorn-archive-path --all-targets --locked --features longhorn-tool-provision/fixture-server -- -D warnings"
+"lint:tool-provision" = "bash scripts/rust-command.sh clippy -p longhorn-tool-provision -p longhorn-archive-path --all-targets --locked --features longhorn-tool-provision/fixture-server -- -D warnings"
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
-"lint:rust:features" = "cargo clippy --workspace --all-targets --all-features --locked -- -D warnings"
-"test:rust" = "cargo test --workspace --locked"
+"lint:rust:features" = "bash scripts/rust-command.sh clippy --workspace --all-targets --all-features --locked -- -D warnings"
+"test:rust" = "bash scripts/rust-command.sh test --workspace --locked"
+"test:rust:cargo" = "cargo test --workspace --locked"
 # The agent-control test lane with the stdio carrier enabled (contract 022,
 # g02.044): the package's unit tests plus every integration target, including
 # the whole carrier end-to-end suite (HTTP parity, listen/resource
 # pass-through, exit codes, and the loopback-endpoint guard). The carrier
 # code and its suite compile only with the `client` feature, and no
 # default-feature selector runs them.
-"test:agent-control-carrier" = "cargo test -p longhorn-agent-control --features client --locked"
-"test:agent-tool-dispatch" = "cargo test -p longhorn-agent-tool-dispatch --locked"
-"test:redact" = "cargo test -p longhorn-redact --locked"
-"test:support-log" = "cargo test -p longhorn-support-log --locked"
-"test:diagnostics" = "cargo test -p longhorn-diagnostics --locked"
-"test:pty" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
-"test:tool-provision" = "cargo test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
+"test:agent-control-carrier" = "bash scripts/rust-command.sh test -p longhorn-agent-control --features client --locked"
+"test:agent-tool-dispatch" = "bash scripts/rust-command.sh test -p longhorn-agent-tool-dispatch --locked"
+"test:redact" = "bash scripts/rust-command.sh test -p longhorn-redact --locked"
+"test:support-log" = "bash scripts/rust-command.sh test -p longhorn-support-log --locked"
+"test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
+"test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
+"test:pty:cargo" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
+"test:tool-provision" = "bash scripts/rust-command.sh test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
-# tests. The gate runner is this task — `cargo test` — because the doc tests
-# are part of the claim. The built-in remains a convenience for iteration.
-"docs:rust" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc --workspace --no-deps --locked'"
-"docs:agent-tool-dispatch" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-agent-tool-dispatch --no-deps --locked'"
-"docs:redact" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-redact --no-deps --locked'"
-"docs:support-log" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-support-log --no-deps --locked'"
-"docs:diagnostics" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-diagnostics --no-deps --locked'"
-"docs:pty" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-pty --no-deps --locked'"
-"docs:tool-provision" = "sh -c 'RUSTDOCFLAGS=\"-D warnings\" exec cargo doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server'"
+# tests. The gate runner is this selector because doc tests are part of the
+# claim. The built-in remains a convenience for iteration.
+"docs:rust" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc --workspace --no-deps --locked"
+"docs:agent-tool-dispatch" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-agent-tool-dispatch --no-deps --locked"
+"docs:redact" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-redact --no-deps --locked"
+"docs:support-log" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-support-log --no-deps --locked"
+"docs:diagnostics" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-diagnostics --no-deps --locked"
+"docs:pty" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-pty --no-deps --locked"
+"docs:tool-provision" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
 # are the only artefacts binding a Longhorn seam to a real host SDK, and until
@@ -76,7 +79,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -112,8 +115,8 @@ include = ["config/release.toml"]
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
 
 # --- Generated protocol bindings ----------------------------------------
-"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
-"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do cargo run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
+"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
+"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
 "check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
 "check:tauri-seam-strings" = "bun scripts/verify-tauri-seam-strings.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
@@ -309,7 +312,7 @@ run = ["bun scripts/proof-artifacts.ts"]
 
 [tasks."check:prototypes"]
 admission = "heavy"
-run = ["sh -c 'for d in prototypes/*/; do (cd \"$d\" && cargo check --all-targets --locked) || exit 1; done'"]
+run = ["sh -c 'rust_runner=\"$PWD/scripts/rust-command.sh\"; for d in prototypes/*/; do (cd \"$d\" && bash \"$rust_runner\" check --all-targets --locked) || exit 1; done'"]
 
 [tasks."ci:rehearse"]
 admission = "heavy"
