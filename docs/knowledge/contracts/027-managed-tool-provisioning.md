@@ -1,9 +1,9 @@
 # 027 Managed Tool Provisioning
 
-Status: active compiled boundary for parts 4a and 4b; 4c not yet specified
+Status: active compiled boundary for parts 4a, 4b and 4c
 Owner: Longhorn maintainers
 Created: 2026-10-19
-Depends on: contracts 001, 003, 012, 018 and 024; the shared path rule in
+Depends on: contracts 001, 003, 012, 018, 024 and 025; the shared path rule in
 `longhorn-archive-path`
 Affects: `longhorn-tool-provision`, `longhorn-archive-path`,
 `longhorn-update-install` (path rule only), desktop tool consumers
@@ -32,15 +32,17 @@ pipeline. One crate, `longhorn-tool-provision`, carries all three.
 ## Generic versus product
 
 Longhorn owns the mechanism: digest formats, the verification types, the
-signature port and its macOS adapter, bounded single-member extraction, the
-failure classes, and the shared path rule.
+signature port and its macOS adapter, bounded single-member extraction,
+release resolution and download, the install transaction and health probe,
+login-shell PATH discovery, the failure classes, and the shared path rule.
 
 The caller owns every value: the artifact shape and member path (already
-expanded), the asset name, the digest source text, the pinned digests, the
-expected vendor team, and the staging directory. The catalogue entries,
-version pins, vendor team identifiers, release and asset names, the
-`expand_template` of a member name against a version, and Acowtancy contract
-042 stay in Acowtancy.
+expanded), the tool and binary names, the asset name, the digest source text,
+the pinned tag and digest, the version floor and probe arguments, the expected
+vendor team, the managed root, release endpoints and token, the redactor, and
+the user-facing progress labels. Catalogue entries, install-root and user-bin
+choices, vendor identifiers, release and asset templates, `expand_template`,
+the token broker and Acowtancy contract 042 stay in Acowtancy.
 
 ## Public API
 
@@ -49,7 +51,9 @@ Crate `longhorn-tool-provision`: depends on `longhorn-archive-path`, `sha2`,
 rustls), `secrecy`, `semver`, `serde` and `serde_json`. One feature,
 `fixture-server`, is test support and is off by default. No TypeScript
 binding and no Tauri. The network is used only by the release source
-(part 4b, below).
+(part 4b, below). Part 4c uses `fs4` for cross-process install admission,
+`tempfile` for same-volume atomic replacements, and `longhorn-redact` plus
+`longhorn-support-log` for process output.
 
 Verification:
 
@@ -80,6 +84,29 @@ Signature:
 - `verify_signature(StagedExecutable, &dyn SignatureVerifier) -> Result<InstallableExecutable, ProvisionError>`.
 - `InstallableExecutable`: `path()` and `vendor_team()`. The only value that
   counts as installable. Its constructor is `verify_signature`.
+
+Part 4c:
+
+- `DigestDeclaration`: caller-pinned digest, release-checksum asset, sidecar
+  asset, or no digest. The last form still needs a vendor team.
+- `ToolDescription`: caller values for tool and binary names, release query,
+  artifact name and shape, digest declaration, optional vendor team, and
+  version-probe arguments.
+- `install_tool(&ToolDescription, managed_root, ReleaseSource,
+  SignatureVerifier, ProcessRunner, Redactor, progress) -> InstallReceipt`.
+- `InstallStage`: product-neutral progress events. Consumers map them to
+  their own user-facing labels.
+- `InstallReceipt`: installed name and version, optional release tag,
+  replaced version and already-current flag.
+- `tool_health(...) -> ToolHealth`: `Installed`, `NotInstalled` or `Broken`,
+  without network access.
+- `ProcessRunner` and `ProcessOutput`: injected fixed-program execution and
+  bounded process output. `CommandRunner` is the production adapter.
+- `LoginPathCache`: cached login-shell PATH discovery with `get` and
+  `refresh`; `parse_login_path_output`, `find_executable_on_path` and
+  `is_executable` are public host-integration helpers.
+- `InstallError` preserves `ReleaseError` and `ProvisionError`, and adds
+  typed install refusals and host faults.
 
 Failures (contract 027's classes; see Failure classes):
 
@@ -349,6 +376,18 @@ Against the Acowtancy donor at `3c21b1ac8`:
   bytes from a healthy source still refuse as `UnreadableArchive`. The public
   API reads only its own private copy, so it cannot inject this fault.
 - `longhorn-update-install`'s tests pass unchanged against the shared rule.
+- Part 4c (`tests/install.rs`, feature `fixture-server`): the public pipeline
+  installs and upgrades neutral raw tools, follows an exact tag pin, downloads
+  both checksum-file and sidecar metadata, and checks a team through a scripted
+  verifier. It covers a release-floor refusal, a staged-version mismatch, a
+  pre-swap probe failure leaving the old binary untouched, a post-swap probe
+  failure restoring it, a failed atomic receipt commit rolling back the
+  binary, same-binary concurrent admission, and redacted output bounded to
+  4 KiB per field. Health
+  covers all three states. Login PATH tests parse noisy startup output, cache
+  and refresh values, and fall back to the process PATH with a detail.
+  Executable lookup follows PATH order and symlinks. Fixtures use only the
+  public API.
 
 ## Extraction state
 
@@ -374,9 +413,11 @@ release it can tag.
 
 ### Part 4c: install pipeline
 
-Not yet specified. Staging, the version probe, the receipt, the swap with
-rollback, login-shell PATH discovery, and a host-injected executor with no
-Tauri. Specified and tested in its own task.
+Specified below in [Part 4c](#part-4c-install-pipeline). Contract 003 steps 1
+to 4 are done for this part: the donor is named, its tests are ported with
+neutral names, this section is the generic definition, and the crate carries
+it. Steps 5 to 7 are Acowtancy's migration, after a Longhorn release it can
+tag.
 
 ## Part 4b: release source and download
 
@@ -556,6 +597,167 @@ Against the donor at `75e425296`:
 - `HttpReleases::github()` (broker-backed) and the donor's `FixtureReleases`
   stay in Acowtancy. The crate has `FixtureServer` for the same end-to-end use.
 
+## Part 4c: install pipeline
+
+Donor: `acowtancy/acowtancy-v2` at `93866f852`,
+`apps/bovine-desktop/src-tauri/src/managed_tools/{install,path}.rs`. From this
+section on, this contract owns the behaviour.
+
+### Pipeline inputs and stages
+
+`ToolDescription` carries only caller values: a plain tool name and binary
+name, a `ReleaseQuery` (owner, repository, exact optional tag and floor), one
+release asset name, an `ArtifactShape` with its already-expanded member, a
+`DigestDeclaration`, optional expected vendor team, and a vector of version
+arguments. The host supplies the managed root, `ReleaseSource`, signature
+verifier, process runner, redactor and a callback. Longhorn derives no install
+root, user bin directory, OS target, asset template or product label.
+
+The callback receives `InstallStage` values in this order where applicable:
+`Checking`, `Resolving`, `Downloading`, `DownloadingChecksums`, `Verifying`,
+`Extracting`, `VerifyingSignature`, `Probing`, `Installing`. Checksum and
+signature stages are omitted when their declarations do not need them. The
+consumer maps events to user-facing labels.
+
+The pipeline validates its description, takes the per-binary admission lock,
+and probes an existing binary. If an exact pin names a version and the
+installed version is newer than that pin and still satisfies the floor, it
+returns an already-current receipt without network access. Otherwise it
+resolves the exact pin or latest release through `ReleaseSource`; it refuses
+a mismatched tag or a release below the floor even if a custom source did not
+enforce those query rules. A resolved release whose version and receipt agree
+with a successful live probe is already current and needs no download.
+
+The named artifact is downloaded once. `DigestDeclaration` selects a pinned
+digest, a release-checksum file, a sidecar, or no digest. A checksum file or
+sidecar must be listed by the release and is downloaded before verification;
+its body is limited to 64 KiB. No digest is accepted only with a declared
+vendor team. `verify_artifact`, `extract_executable` and `verify_signature`
+remain the 4a gates; the pipeline cannot construct or bypass their verified
+types. Extraction stages the caller's binary name in a unique temporary
+directory under `managed_root/bin`, keeping replacement on the same volume.
+
+The fixed version program is the staged binary path and the arguments are the
+caller's vector. No shell parses caller data. The probe takes the first
+semantic-version token, trims a leading `v`, trailing comma or `)`, and
+ignores build metadata after `+`. A versioned release must equal the staged
+version. The staged version must also meet the floor. An unversioned release
+is installable only when there is no floor; its probed version is recorded.
+The staged executable is probed before any current binary changes.
+
+### Process output and failures
+
+`ProcessRunner` is injected. `CommandRunner` is the production adapter. It
+starts a fixed program path with an argument vector, captures both streams
+concurrently, retains at most 64 KiB from each and drains the rest. It does
+not invoke a shell for version probes. The pipeline decodes no more than that
+bound, runs the caller's `Redactor`, then uses
+`longhorn-support-log::bound_field` to retain no more than 4 KiB for each
+failure field. Debug output from `ProcessOutput` reports sizes and status,
+never raw streams. The host runs this synchronous operation on its blocking
+executor; normal dependencies contain no `tokio`.
+
+`InstallError` preserves 4a `ProvisionError` and 4b `ReleaseError` classes.
+`InstallRefusal` adds `BelowFloor` and `VersionMismatch`. `InstallFault` adds
+filesystem `Io`, `ProcessStart`, bounded `Probe`, `ConcurrentInstall`,
+`RecoveryRequired` and `Rollback`. A refusal is a verdict on the release or
+bytes. A host fault may succeed on retry. Rollback faults retain the original
+failure and identify each rollback operation that also failed.
+
+### Admission, swap, rollback and receipt
+
+One binary install is refused while another owns it. The process holds a
+mutex reservation and an exclusive `fs4` lock on
+`managed_root/state/tool-provision/locks/<binary_name>.lock`; a busy lock is a
+typed `ConcurrentInstall` fault. Lock files are stable coordination files and
+remain in place. Names are plain non-hidden path components, so the reserved
+names below cannot be a tool binary.
+
+After a staged probe succeeds, the pipeline copies an existing regular binary
+to `managed_root/bin/.<binary_name>.previous` through a same-volume temporary
+file. An existing previous file means `RecoveryRequired`; it is never deleted
+as presumed debris. The new executable is copied to a same-volume temporary
+file named with prefix `.<binary_name>.incoming-`, made executable and
+synced, then atomically persisted over the binary path. The previous copy
+stays until the new binary probes successfully at its final path and the
+receipt commits. Any post-swap probe, digest-read or receipt failure restores
+the previous binary atomically; a failed first install removes its new binary.
+Rollback restores previous receipt bytes too. On success the previous copy is
+removed. Temporary staging is explicitly closed before the swap.
+The install target must be absent or a regular file. A symlink or other file
+type is refused before network access because this protocol does not preserve
+that target type during rollback; PATH lookup and health probing still follow
+symlinks to regular executables.
+
+The receipt path is
+`managed_root/state/tool-provision/<tool_name>.json`. Its UTF-8 JSON object
+contains exactly `name`, `version`, `release_tag`, `asset`, `sha256` and
+`installed_at_unix`. The digest is recomputed from the installed binary.
+Receipt bytes are written and synced to a temporary file in the receipt
+directory, then atomically renamed over the receipt. An incomplete write
+cannot replace the prior receipt.
+
+### Health and login-shell PATH
+
+`tool_health` reads no network state. A missing or non-file binary is
+`NotInstalled`; a successful probe is `Installed` with the reported version,
+the receipt version when readable, and its floor result; a failed or
+unparseable probe is `Broken` with a bounded, redacted detail. Receipt damage
+does not turn a runnable binary into a failed probe.
+
+`LoginPathCache` runs one fixed login shell: `/bin/zsh -lc` on macOS and
+`/bin/bash -lc` elsewhere. The fixed script prints the line markers
+`__LONGHORN_LOGIN_PATH_BEGIN__` and `__LONGHORN_LOGIN_PATH_END__`, with
+`$PATH` on the intervening line. Startup output before the opening marker is
+ignored. The next two lines must be a non-empty PATH and the exact closing
+marker. The first `get` caches the result; `refresh` runs the shell again and
+replaces it. A start/exit, output or marker failure returns the process PATH
+(or `/usr/bin:/bin` if absent) and a detail; login-shell failure does not make
+PATH discovery fail. `find_executable_on_path` checks absolute entries in
+order. `is_executable` follows symlinks and on Unix requires at least one
+execute bit. Local-bin appending and home-directory resolution remain
+consumer-owned.
+
+### Compatibility for consumers
+
+Against the donor at `93866f852`:
+
+`install.rs`
+
+- Private `install_tool(&ToolSpec, ...)` becomes public generic
+  `install_tool(&ToolDescription, ...)`. Product catalogue, target selection,
+  checksum/asset templates and user-facing strings remain in the consumer.
+- The donor's direct `Command::output` version probe becomes the injected
+  `ProcessRunner` with a production `CommandRunner`; commands use a binary path
+  and argument vector, and retained output is redacted before it is bounded.
+- Stage names become `InstallStage` variants. The consumer maps them to its
+  own labels.
+- Stage/final version mismatches and floor failures are typed refusals. Release
+  and artifact failures retain the 4b and 4a enums instead of strings.
+- The donor's `.incoming` copy and ignored rollback errors become a same-volume
+  atomic persist, a retained `.previous` copy and an explicit rollback fault.
+  A receipt failure also rolls back the binary; receipt writes use a temporary
+  file and atomic rename.
+- The donor's product-specific stored receipt becomes the generic JSON record
+  at `state/tool-provision/<tool_name>.json`; it records the name, release
+  tag, asset, installed digest and unix timestamp.
+- A newer installed version is kept when an exact version pin is older and the
+  installed version still satisfies the floor. A current receipt is trusted
+  only when it agrees with a successful live probe.
+
+`path.rs`
+
+- The donor's Acowtancy markers become the neutral `__LONGHORN_LOGIN_PATH_*__`
+  markers. The script is fixed and executed by the injected runner with a
+  fixed argument vector.
+- Login PATH caching is a host-owned `LoginPathCache` value with explicit
+  refresh, rather than a process-global static. The parser ignores startup
+  noise before the opening marker and returns a detail with process-PATH
+  fallback on failure.
+- Executable lookup and symlink-aware execute checks are generic. `real_home`,
+  `user_bin_dir`, `install_root`, local-bin appending and per-product command
+  catalogues remain in the consumer.
+
 ## Stop Conditions
 
 - A product value (a team identifier, a pin, an asset name, a catalogue
@@ -563,6 +765,6 @@ Against the donor at `75e425296`:
 - A path reaches an installable executable without a declared check passing.
 - The bounds stop counting real bytes, or a declared size becomes the bound.
 - The path rule diverges between `longhorn-archive-path` and its consumers.
-- The crate grows a network call outside the release source, a shell
-  invocation, or a Tauri type. Part 4b adds `HttpReleases` as the one network
-  call site.
+- The crate grows a network call outside the release source, any shell
+  invocation beyond part 4c's fixed login-PATH script, or a Tauri type. Part 4b
+  adds `HttpReleases` as the one network call site.
