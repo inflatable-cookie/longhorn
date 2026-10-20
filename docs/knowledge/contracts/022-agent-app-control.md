@@ -109,7 +109,11 @@ agent can use while the app runs unfocused in the background.
   drag-and-drop, and `isTrusted` checks are out of scope.
 - `evaluate`: run JS in the page. Escape hatch, not the primary path, and
   behind the `agent-control-evaluate` feature; a packaged build omits it and
-  the tool answers typed `Unsupported`.
+  the tool answers typed `Unsupported`. It returns the script's synchronous
+  completion value as JSON (`string`, `number`, `boolean`, or `null`):
+  `undefined` becomes `null`, and other objects fall back to their
+  description. A Promise is not awaited. Return a value, or `JSON.stringify`
+  it, synchronously.
 - `wait_for`: predicate over the semantic tree or page state, bounded by
   timeout. Waiting is DOM-relative, never time- or animation-relative:
   WKWebView coalesces DOM timers in every window state and stops
