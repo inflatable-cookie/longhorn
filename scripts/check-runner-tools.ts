@@ -1,5 +1,6 @@
-// Fails when scripts invoke tools a clean GitHub runner does not have, and
-// when a release gate needs a tool `release.yml` does not install.
+// Fails when scripts invoke tools a clean GitHub runner does not have, when a
+// release gate needs a tool `release.yml` does not install, or when the Rust
+// CI jobs lack the pinned Bun their tests require.
 //
 // Release run 6 died on missing `rg` twice: once in the greenfield proof, once
 // in check-release-floor.sh, where `set -o pipefail` made the absence look
@@ -12,6 +13,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 
+import { checkCiRunnerTools } from "./check-ci-runner-tools.ts";
 import {
   checkReleaseRunnerTools,
   formatReleaseRunnerToolsFailure,
@@ -47,8 +49,9 @@ for (const root of ROOTS) {
 inspect("effigy.toml", await readFile(join(repoRoot, "effigy.toml"), "utf8"));
 
 const release = checkReleaseRunnerTools(repoRoot);
+const ciFailures = checkCiRunnerTools(await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8"));
 
-if (findings.length > 0 || release.failures.length > 0) {
+if (findings.length > 0 || release.failures.length > 0 || ciFailures.length > 0) {
   if (findings.length > 0) {
     const lines = findings.map(
       ({ file, line, tool, text }) => `  ${file}:${line} invokes '${tool}' — ${text}`,
@@ -61,6 +64,12 @@ if (findings.length > 0 || release.failures.length > 0) {
   }
   if (release.failures.length > 0) {
     console.error(formatReleaseRunnerToolsFailure(release));
+  }
+  if (ciFailures.length > 0) {
+    console.error(
+      `CI jobs must install the same pinned Bun as clients before running Effigy:\n\n` +
+        ciFailures.map((failure) => `  ${failure}`).join("\n"),
+    );
   }
   process.exit(1);
 }

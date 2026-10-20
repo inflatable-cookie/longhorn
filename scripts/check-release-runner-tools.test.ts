@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { checkCiRunnerTools } from "./check-ci-runner-tools.ts";
 import {
   cargoInstallCrates,
   checkReleaseRunnerTools,
@@ -27,6 +28,25 @@ const setup = `
       - uses: dtolnay/rust-toolchain@abc
       - uses: oven-sh/setup-bun@abc
       - uses: inflatable-cookie/setup-effigy@abc
+`;
+
+const ciBunSetup = `      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.3.14' # pinned: the version local qa runs
+`;
+
+const ciWorkflow = (rustBun = ciBunSetup, floorBun = ciBunSetup) => `
+name: CI
+jobs:
+  clients:
+    steps:
+${ciBunSetup}      - run: effigy check:ts
+  rust:
+    steps:
+${rustBun}      - run: effigy test:rust
+  rust-floor:
+    steps:
+${floorBun}      - run: effigy release:floor
 `;
 
 const workflowWithDeny = `
@@ -182,6 +202,37 @@ describe("release-gate runner tools", () => {
     expect(deny?.gate).toBe("advisories");
     expect(deny?.provided).toBe(true);
     expect(deny?.via).toBe("cargo install cargo-deny");
+  });
+});
+
+describe("CI Rust runner tools", () => {
+  test("Rust and floor install the same pinned Bun before Effigy", () => {
+    expect(checkCiRunnerTools(ciWorkflow())).toEqual([]);
+  });
+
+  test("missing Bun in the Rust job fails", () => {
+    expect(checkCiRunnerTools(ciWorkflow("", ciBunSetup))).toContain(
+      "rust must install Bun before its first Effigy step",
+    );
+  });
+
+  test("Bun installed after Effigy fails", () => {
+    const afterEffigy = `      - run: effigy release:floor\n${ciBunSetup}`;
+    expect(checkCiRunnerTools(ciWorkflow(ciBunSetup, afterEffigy))).toContain(
+      "rust-floor must install Bun before its first Effigy step",
+    );
+  });
+
+  test("a different Bun pin fails", () => {
+    const differentVersion = ciBunSetup.replace("1.3.14", "1.3.13");
+    expect(checkCiRunnerTools(ciWorkflow(ciBunSetup, differentVersion))).toContain(
+      "rust-floor must use the same pinned Bun action and version as clients",
+    );
+  });
+
+  test("the live CI workflow keeps both Rust jobs aligned with clients", async () => {
+    const workflow = await readFile(join(import.meta.dir, "../.github/workflows/ci.yml"), "utf8");
+    expect(checkCiRunnerTools(workflow)).toEqual([]);
   });
 });
 

@@ -80,7 +80,10 @@ consumer). `effigy release:gates` is the same list minus `workspace`;
 extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
 `.github/workflows/release.yml` does not install them in an unconditional
 step of the same job, before `effigy release:gates`; a comment is not an
-install. The `private-candidate` gate reads version, Rust crate count, and
+install. It also checks that `ci.yml`'s `rust` and `rust-floor` jobs install
+the same SHA-pinned Bun action and version as `clients` before their first
+Effigy step, because the Rust test suites run a Bun script. The
+`private-candidate` gate reads version, Rust crate count, and
 consumer-graph count from the frozen receipt; CHANGELOG and the
 compatibility guide must still carry those facts, not a fixed phrase.
 `effigy test:release-tooling` covers the bump, the alignment check, that
