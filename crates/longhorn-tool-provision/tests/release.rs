@@ -760,6 +760,70 @@ fn version_from_tag_reads_the_common_tag_shapes() {
     assert_eq!(version_from_tag("nightly"), None);
 }
 
+#[test]
+fn version_from_tag_accepts_only_the_documented_forms() {
+    for tag in [
+        "vv1.2.3",
+        "release-1.2.3",
+        "codex-rust-v1.2.3",
+        "rust-vv1.2.3",
+        "vrust-v1.2.3",
+        " 1.2.3",
+        "1.2.3 ",
+        "v",
+        "",
+    ] {
+        assert_eq!(version_from_tag(tag), None, "{tag:?} names no version");
+    }
+}
+
+#[test]
+fn a_floor_does_not_accept_an_undocumented_tag_prefix() {
+    let floor = Version::new(1, 0, 0);
+    let server = FixtureServer::spawn(vec![FixtureRoute::new(
+        latest_path(),
+        200,
+        release_listing("vv1.2.0", false, false, &[ASSET]),
+    )])
+    .expect("the fixture server starts");
+    assert!(matches!(
+        expect_refused(source(&server, None).resolve_release(&query(None, Some(&floor)))),
+        ReleaseRefusal::NoCompatibleRelease { .. }
+    ));
+}
+
+#[test]
+fn a_download_redirect_to_a_remote_plain_http_host_is_refused_without_connecting() {
+    let server = FixtureServer::spawn(vec![
+        FixtureRoute::new(
+            tag_path(TAG),
+            200,
+            release_listing(TAG, false, false, &[ASSET]),
+        ),
+        FixtureRoute::new(asset_path(TAG), 302, Vec::new()).with_header(
+            "Location",
+            &format!("http://example.test{}", asset_path(TAG)),
+        ),
+    ])
+    .expect("the fixture server starts");
+    let source = source(&server, None);
+    let release = source
+        .resolve_release(&query(Some(TAG), None))
+        .expect("resolves");
+    let directory = tempfile::tempdir().expect("a fresh directory");
+    let error = source
+        .download_asset(&release, ASSET, directory.path())
+        .expect_err("a remote plain-http redirect refuses");
+    assert!(
+        matches!(
+            error,
+            ReleaseError::Refused(ReleaseRefusal::UnsafeRedirect { .. })
+        ),
+        "{error:?}"
+    );
+    assert!(!directory.path().join(ASSET).exists());
+}
+
 /// Unwraps a download's fault, or fails the test on any other result.
 fn expect_fault_download(result: Result<PathBuf, ReleaseError>) -> ReleaseFault {
     match result {

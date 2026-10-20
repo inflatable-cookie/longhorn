@@ -244,15 +244,15 @@ impl ReleaseOptions {
     }
 }
 
-/// `v1.2.3`, `1.2.3` and `rust-v1.2.3` all name 1.2.3. Anything else names no
-/// version.
+/// `v1.2.3`, `1.2.3` and `rust-v1.2.3` all name 1.2.3. Only those three forms
+/// name a version: one optional prefix, then a semver version, with no
+/// trimming. Anything else, such as `vv1.2.3` or `release-1.2.3`, names none.
 pub fn version_from_tag(tag: &str) -> Option<semver::Version> {
-    let stripped = tag.trim().trim_start_matches('v');
-    let stripped = stripped
-        .split_once("rust-v")
-        .map(|(_, remainder)| remainder)
-        .unwrap_or(stripped);
-    semver::Version::parse(stripped).ok()
+    let version = tag
+        .strip_prefix("rust-v")
+        .or_else(|| tag.strip_prefix('v'))
+        .unwrap_or(tag);
+    semver::Version::parse(version).ok()
 }
 
 /// Builds a [`Release`] inside the crate. Keeps the fields private to it.

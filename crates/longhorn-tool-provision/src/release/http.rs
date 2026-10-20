@@ -349,12 +349,13 @@ fn redirect_verdict(
     }
     let scheme_allowed = match target.scheme() {
         "https" => true,
-        "http" => plain_http,
+        // Plain HTTP exists only for loopback test endpoints, never a remote host.
+        "http" => plain_http && super::is_loopback(target),
         _ => false,
     };
     if !scheme_allowed {
         return Err(format!(
-            "the redirect target uses {}, not https",
+            "the redirect target {} is not https or a loopback test URL",
             target.scheme()
         ));
     }
@@ -478,5 +479,13 @@ mod tests {
         assert!(redirect_verdict(&url("http://127.0.0.1:9/a"), 0, None, true).is_ok());
         assert!(redirect_verdict(&url("https://objects.example.test/a"), 0, None, false).is_ok());
         assert!(redirect_verdict(&asset, MAX_REDIRECTS, None, false).is_err());
+    }
+
+    #[test]
+    fn plain_http_in_test_mode_is_loopback_only() {
+        // Test endpoints may redirect to loopback http, never to a remote host.
+        assert!(redirect_verdict(&url("http://localhost:9/a"), 0, None, true).is_ok());
+        assert!(redirect_verdict(&url("http://example.test/a"), 0, None, true).is_err());
+        assert!(redirect_verdict(&url("http://10.0.0.1/a"), 0, None, true).is_err());
     }
 }
