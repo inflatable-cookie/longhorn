@@ -4,11 +4,13 @@ use std::{collections::BTreeMap, path::Path};
 
 use longhorn_core::SchemaVersion;
 
+use crate::StorageRootsResolve;
 use crate::{
-    AccessMode, BackupAdapterPayloadRef, BackupApplication, BackupArchiveInspection, BackupCatalog,
+    BackupAdapterPayloadRef, BackupApplication, BackupArchiveInspection, BackupCatalog,
     BackupManifestDomain, BackupProducer, BackupSourceState, ConfigStore, DomainDescriptor,
-    DomainLocation, RootKind, backup::CatalogDecision,
+    DomainLocation, backup::CatalogDecision,
 };
+use longhorn_storage_layout::{AccessMode, RootKind};
 
 use super::{
     staging::PrepareSourceError,

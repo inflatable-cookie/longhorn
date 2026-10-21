@@ -1,11 +1,6 @@
 use std::{fs, time::Duration};
 
-use longhorn_config::{
-    ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainIssue, DurabilityRequirement, LoadOutcome, LoadedOrigin, MigrationStep, MutationOptions,
-    PlatformDirectoryFact, PlatformDirectoryFacts, RootKind, StorageClass, StorageIdentity,
-    StorageLayoutRequest, StorageProfile, StorageRoots, TargetPlatform, resolve_storage_layout,
-};
+use longhorn_config::{ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, DurabilityRequirement, LoadOutcome, LoadedOrigin, MigrationStep, MutationOptions, StorageClass};use longhorn_storage_layout::{PlatformDirectoryFact, PlatformDirectoryFacts, RootKind, StorageIdentity, StorageLayoutRequest, StorageProfile, StorageRoots, TargetPlatform, resolve_storage_layout};
 use longhorn_core::{DomainId, SchemaVersion};
 use serde_json::{Value, json};
 

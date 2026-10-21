@@ -4,12 +4,16 @@ use longhorn_core::{DomainId, SchemaVersion};
 use serde_json::Value;
 use tempfile::tempdir;
 
+use crate::StorageRootsResolve;
 use crate::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainIssue, MigrationStep, PlatformDirectoryFacts, StorageClass, StorageIdentity,
-    StorageLayoutRequest, StorageProfile, StorageProfileSelection,
-    StorageTransitionExecutionOptions, StorageTransitionOutcome, TargetPlatform,
-    resolve_storage_bootstrap_paths, resolve_storage_layout,
+    DomainIssue, MigrationStep, StorageClass, StorageTransitionExecutionOptions,
+    StorageTransitionOutcome,
+};
+use longhorn_storage_layout::{
+    PlatformDirectoryFacts, StorageIdentity, StorageLayoutRequest, StorageProfile,
+    StorageProfileSelection, TargetPlatform, resolve_storage_bootstrap_paths,
+    resolve_storage_layout,
 };
 
 use super::*;

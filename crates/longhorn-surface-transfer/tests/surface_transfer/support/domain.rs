@@ -2,12 +2,13 @@ use std::{fs, time::Duration};
 
 use longhorn_config::{
     ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath, DurabilityRequirement,
-    LoadOutcome, MutationOptions, StorageClass, StorageRoots,
+    LoadOutcome, MutationOptions, StorageClass,
 };
 use longhorn_core::{
     DisplayId, DomainId, SchemaVersion, ScreenPoint, ScreenRect, ScreenSize, SurfaceId,
     SurfaceRevision, WindowId, WindowPlacement,
 };
+use longhorn_storage_layout::StorageRoots;
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, EmptyDisplayProvisionTarget, SurfaceTransferPolicy,
 };

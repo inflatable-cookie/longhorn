@@ -5,9 +5,9 @@ use std::{collections::BTreeMap, fs, time::Duration};
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
     DomainIssue, DurabilityRequirement, LoadOutcome, MigrationStep, MutationOptions, StorageClass,
-    StorageRoots,
 };
 use longhorn_core::{DomainId, SchemaVersion, ScreenPoint, ScreenSize, WindowId, WindowPlacement};
+use longhorn_storage_layout::StorageRoots;
 use longhorn_windowing::{
     CapturedDisplayAssociation, CapturedWindowPlacement, WindowFlushRequest, WindowFlushScope,
     WindowFlushTarget, WindowPlacementSink,

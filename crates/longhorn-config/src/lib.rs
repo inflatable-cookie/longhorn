@@ -79,9 +79,7 @@ pub use domain::{
     ConfigDomain, DocumentFormat, DomainDescriptor, DomainDescriptorError, DomainFilePath,
     DomainFilePathError, DomainIssue, MigrationStep, StorageClass,
 };
-pub use location::{
-    AccessMode, DomainLocation, ResolvedFile, RootKind, StorageRootError, StorageRoots,
-};
+pub use location::{DomainLocation, ResolvedFile, StorageRootsResolve};
 pub use operations::{
     BackupArchiveProjection, BackupCaptureReceiptProjection, BackupCreateCommand,
     BackupCreateOutcome, BackupEncryptionState, BackupExportCommand, BackupExportOutcome,
@@ -116,25 +114,16 @@ pub use operations::{
 };
 pub use registry::RegistrationError;
 pub use storage_layout::{
-    LegacyStorageCandidate, LegacyStorageDiscovery, PlatformDirectoryFact, PlatformDirectoryFacts,
-    ResolvedStorageLayout, ResolvedStorageRoot, StorageBootstrapOrigin, StorageBootstrapPathError,
-    StorageBootstrapPaths, StorageBootstrapRecovery, StorageBootstrapRecoveryKind,
-    StorageBootstrapSelection, StorageBootstrapState, StorageFileEvidence, StorageIdentity,
-    StorageIdentityError, StorageIdentityErrorKind, StorageIdentityField, StorageLayoutDiagnostic,
-    StorageLayoutError, StorageLayoutOverrides, StorageLayoutRequest, StorageLayoutWarning,
-    StorageLeafProvenance, StorageProfile, StorageProfileIdError, StorageProfileLocator,
-    StorageProfileSelection, StorageProfileSelectionError, StorageRootProvenance,
-    StorageTransitionAction, StorageTransitionAdapter, StorageTransitionCatalog,
-    StorageTransitionCleanupPlan, StorageTransitionCleanupReceipt, StorageTransitionConflict,
-    StorageTransitionConflictKind, StorageTransitionDomain, StorageTransitionError,
-    StorageTransitionExclusion, StorageTransitionExecutionOptions, StorageTransitionGuard,
-    StorageTransitionLimits, StorageTransitionOutcome, StorageTransitionPlan,
-    StorageTransitionPlanError, StorageTransitionPreview, StorageTransitionReceipt,
-    StorageTransitionRecoveryReceipt, StorageTransitionRequest, StorageTransitionUnknownFile,
-    TargetPlatform, apply_storage_transition_cleanup, discover_legacy_storage,
-    execute_storage_transition, inspect_storage_bootstrap, inspect_storage_transition,
-    plan_storage_transition, recover_storage_transition, resolve_storage_bootstrap_paths,
-    resolve_storage_layout,
+    LegacyStorageCandidate, LegacyStorageDiscovery, StorageFileEvidence, StorageTransitionAction,
+    StorageTransitionAdapter, StorageTransitionCatalog, StorageTransitionCleanupPlan,
+    StorageTransitionCleanupReceipt, StorageTransitionConflict, StorageTransitionConflictKind,
+    StorageTransitionDomain, StorageTransitionError, StorageTransitionExclusion,
+    StorageTransitionExecutionOptions, StorageTransitionGuard, StorageTransitionLimits,
+    StorageTransitionOutcome, StorageTransitionPlan, StorageTransitionPlanError,
+    StorageTransitionPreview, StorageTransitionReceipt, StorageTransitionRecoveryReceipt,
+    StorageTransitionRequest, StorageTransitionUnknownFile, apply_storage_transition_cleanup,
+    discover_legacy_storage, execute_storage_transition, inspect_storage_transition,
+    plan_storage_transition, recover_storage_transition,
 };
 pub use store::{
     CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore,

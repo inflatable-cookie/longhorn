@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 use serde::{Deserialize, Serialize};
 
 use super::{PlatformDirectoryFact, PlatformDirectoryFacts, StorageIdentity, TargetPlatform};
-use crate::Sha256Digest;
+use crate::StorageLayoutDigest;
 
 pub use types::{
     StorageBootstrapOrigin, StorageBootstrapPathError, StorageBootstrapPaths,
@@ -123,7 +123,7 @@ pub fn inspect_storage_bootstrap(
         }
     };
     let last_committed_layout_digest = match locator.last_committed_layout_sha256 {
-        Some(value) => match Sha256Digest::new(value) {
+        Some(value) => match StorageLayoutDigest::new(value) {
             Ok(digest) => Some(digest),
             Err(error) => {
                 return Ok(recovery(
@@ -153,7 +153,8 @@ pub fn inspect_storage_bootstrap(
     ))
 }
 
-pub(crate) fn encode_locator(locator: &StorageProfileLocator) -> Vec<u8> {
+/// Serializes a validated locator into the exact bytes written at the fixed path.
+pub fn encode_locator(locator: &StorageProfileLocator) -> Vec<u8> {
     serde_json::to_vec(&LocatorDocument {
         schema_version: LOCATOR_SCHEMA_VERSION,
         canonical_application_id: locator.canonical_application_id().to_owned(),
@@ -170,11 +171,12 @@ pub(crate) fn encode_locator(locator: &StorageProfileLocator) -> Vec<u8> {
     .expect("validated storage locator is serializable")
 }
 
-pub(crate) fn locator_matches(
+/// Reports whether the persisted locator selects exactly this transition and layout.
+pub fn locator_matches(
     paths: &StorageBootstrapPaths,
     canonical_application_id: &str,
     transition_id: &str,
-    layout_digest: &Sha256Digest,
+    layout_digest: &StorageLayoutDigest,
 ) -> Result<bool, String> {
     let bytes = match fs::read(paths.locator()) {
         Ok(bytes) => bytes,

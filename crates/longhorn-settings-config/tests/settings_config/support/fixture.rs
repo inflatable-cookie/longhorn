@@ -1,6 +1,7 @@
 use std::fs;
 
-use longhorn_config::{ConfigStore, CoordinationAuthority, StorageRoots};
+use longhorn_config::{ConfigStore, CoordinationAuthority};
+use longhorn_storage_layout::StorageRoots;
 use tempfile::TempDir;
 
 pub(crate) struct Fixture {

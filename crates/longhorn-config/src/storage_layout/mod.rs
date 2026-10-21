@@ -1,19 +1,6 @@
-mod bootstrap;
-mod identity;
-mod resolver;
 mod transition;
-mod types;
 
-pub use bootstrap::{
-    StorageBootstrapOrigin, StorageBootstrapPathError, StorageBootstrapPaths,
-    StorageBootstrapRecovery, StorageBootstrapRecoveryKind, StorageBootstrapSelection,
-    StorageBootstrapState, StorageProfileLocator, StorageProfileSelection,
-    StorageProfileSelectionError, inspect_storage_bootstrap, resolve_storage_bootstrap_paths,
-};
-pub use identity::{
-    StorageIdentity, StorageIdentityError, StorageIdentityErrorKind, StorageIdentityField,
-};
-pub use resolver::resolve_storage_layout;
+use longhorn_storage_layout::StorageLayoutDigest;
 pub use transition::{
     LegacyStorageCandidate, LegacyStorageDiscovery, StorageFileEvidence, StorageTransitionAction,
     StorageTransitionAdapter, StorageTransitionCatalog, StorageTransitionCleanupPlan,
@@ -26,9 +13,29 @@ pub use transition::{
     discover_legacy_storage, execute_storage_transition, inspect_storage_transition,
     plan_storage_transition, recover_storage_transition,
 };
-pub use types::{
-    PlatformDirectoryFact, PlatformDirectoryFacts, ResolvedStorageLayout, ResolvedStorageRoot,
-    StorageLayoutDiagnostic, StorageLayoutError, StorageLayoutOverrides, StorageLayoutRequest,
-    StorageLayoutWarning, StorageLeafProvenance, StorageProfile, StorageProfileIdError,
-    StorageRootProvenance, TargetPlatform,
-};
+
+/// Converts resolver layout evidence into the config store's digest type.
+///
+/// Both types carry the same validated lowercase hexadecimal SHA-256 string;
+/// the layout digest is always produced by this crate's resolver receipt, so
+/// the conversion cannot fail.
+pub(crate) fn committed_layout_digest(digest: &StorageLayoutDigest) -> crate::Sha256Digest {
+    crate::Sha256Digest::new(digest.as_str().to_owned())
+        .expect("layout digest is a validated SHA-256 hexadecimal string")
+}
+
+/// Converts a committed store digest into the resolver's layout evidence type.
+///
+/// The store digest was validated when it was parsed or computed, so the
+/// conversion cannot fail.
+pub(crate) fn layout_evidence(digest: &crate::Sha256Digest) -> StorageLayoutDigest {
+    StorageLayoutDigest::new(digest.as_str().to_owned())
+        .expect("committed layout digest is a validated SHA-256 hexadecimal string")
+}
+
+pub(crate) fn layout_digest_matches(
+    store_digest: &crate::Sha256Digest,
+    layout_digest: &StorageLayoutDigest,
+) -> bool {
+    store_digest.as_str() == layout_digest.as_str()
+}

@@ -4,13 +4,15 @@ use longhorn_core::{DomainId, SchemaVersion};
 use serde_json::Value;
 use tempfile::TempDir;
 
+use crate::StorageRootsResolve;
 use crate::{
     BackupApplication, BackupKind, BackupMetadata, BackupProducer, ConfigDomain,
     CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, DomainLocation,
     DurabilityRequirement, LoadOutcome, MigrationStep, MutationError, MutationOptions,
     RestoreCurrentEvidence, RestoreOperationState, RestoreRecoveryOutcome, Sha256Digest,
-    StorageClass, StorageRoots, UnavailableState,
+    StorageClass, UnavailableState,
 };
+use longhorn_storage_layout::StorageRoots;
 
 use super::*;
 use crate::backup::restore::{

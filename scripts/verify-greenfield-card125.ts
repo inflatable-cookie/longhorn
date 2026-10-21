@@ -61,6 +61,7 @@ const allRustCrates = [
   "longhorn-history",
   "longhorn-settings",
   "longhorn-settings-config",
+  "longhorn-storage-layout",
   "longhorn-surface-transfer",
   "longhorn-surface-windowing",
   "longhorn-surfaces",
@@ -79,15 +80,16 @@ const allRustCrates = [
 
 const baseRust = [
   "longhorn-config", "longhorn-core", "longhorn-settings",
-  "longhorn-settings-config", "longhorn-tauri-config", "longhorn-tauri-settings",
+  "longhorn-settings-config", "longhorn-storage-layout", "longhorn-tauri-config",
+  "longhorn-tauri-settings",
 ] as const;
 const workspaceRust = [
   "longhorn-command", "longhorn-command-config", "longhorn-command-settings",
   "longhorn-config", "longhorn-core", "longhorn-display",
-  "longhorn-surfaces", "longhorn-surfaces-config", "longhorn-settings",
-  "longhorn-settings-config", "longhorn-tauri-command", "longhorn-tauri-config",
-  "longhorn-tauri-settings", "longhorn-tauri-windowing", "longhorn-windowing",
-  "longhorn-windowing-config",
+  "longhorn-storage-layout", "longhorn-surfaces", "longhorn-surfaces-config",
+  "longhorn-settings", "longhorn-settings-config", "longhorn-tauri-command",
+  "longhorn-tauri-config", "longhorn-tauri-settings", "longhorn-tauri-windowing",
+  "longhorn-windowing", "longhorn-windowing-config",
 ] as const;
 const fullRust = [
   ...workspaceRust,

@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::{ConfigStore, DomainLocation, RootKind, StorageClass};
+use crate::StorageRootsResolve;
+use crate::{ConfigStore, DomainLocation, StorageClass};
+use longhorn_storage_layout::RootKind;
 
 use super::{
     LegacyStorageCandidate, LegacyStorageDiscovery, StorageFileEvidence, StorageTransitionAction,

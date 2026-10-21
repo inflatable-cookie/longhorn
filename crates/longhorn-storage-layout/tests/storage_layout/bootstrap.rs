@@ -1,6 +1,6 @@
 use std::fs;
 
-use longhorn_config::{
+use longhorn_storage_layout::{
     PlatformDirectoryFact, PlatformDirectoryFacts, StorageBootstrapOrigin,
     StorageBootstrapRecoveryKind, StorageBootstrapState, StorageIdentity, StorageProfile,
     StorageProfileSelection, TargetPlatform, inspect_storage_bootstrap,

@@ -1,10 +1,12 @@
 use std::{fs, path::PathBuf};
 
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainIssue, DomainLocation, MigrationStep, StorageClass, StorageRoots,
+    DomainIssue, DomainLocation, MigrationStep, StorageClass,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::StorageRoots;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tempfile::TempDir;

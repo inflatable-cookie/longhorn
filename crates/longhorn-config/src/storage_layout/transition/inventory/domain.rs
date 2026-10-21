@@ -1,5 +1,6 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
+use crate::StorageRootsResolve;
 use crate::{BackupAdapterRestoreParticipation, DomainDescriptor, DomainLocation, StorageClass};
 
 use super::{
@@ -101,7 +102,7 @@ pub(crate) fn inspect_domain(
 }
 
 fn remember_adapter_paths(
-    layout: &crate::ResolvedStorageLayout,
+    layout: &longhorn_storage_layout::ResolvedStorageLayout,
     descriptor: &DomainDescriptor,
     adapter: &dyn super::super::StorageTransitionAdapter,
     known: &mut BTreeSet<PathBuf>,

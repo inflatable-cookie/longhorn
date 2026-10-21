@@ -4,9 +4,10 @@ use longhorn_config::{
     BackupApplication, BackupArchiveLimits, BackupCaptureOptions, BackupCatalog, BackupKind,
     BackupLimits, BackupMetadata, BackupProducer, BackupScope, ConfigDomain, ConfigStore,
     CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, MigrationStep,
-    StorageClass, StorageRoots, encode_backup_archive,
+    StorageClass, encode_backup_archive,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::StorageRoots;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

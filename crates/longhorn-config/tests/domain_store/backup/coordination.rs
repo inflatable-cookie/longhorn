@@ -10,9 +10,10 @@ use longhorn_config::{
     BackupCatalog, BackupScope, ConfigDomain, ConfigStore, CoordinationAuthority,
     CoordinationFailureKind, DebounceClock, DebouncePolicy, DebounceStrategy, DebouncedMutation,
     DomainDescriptor, DomainIssue, DurabilityRequirement, FlushOutcome, MigrationStep,
-    MutationOptions, StorageRoots,
+    MutationOptions,
 };
 use longhorn_core::SchemaVersion;
+use longhorn_storage_layout::StorageRoots;
 use serde_json::{Value, json};
 
 use crate::common::{Fixture, Preferences, PreferencesDomain, config_domain, document};

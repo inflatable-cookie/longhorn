@@ -11,14 +11,16 @@ use longhorn_command_config::{
     CommandKeymapPreviewResult, CommandKeymapService, NoCommandKeymapMigration,
     RegisteredCommandKeymapDomain,
 };
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainLocation, DurabilityRequirement, MutationOptions, StorageClass, StorageRoots,
+    DomainLocation, DurabilityRequirement, MutationOptions, StorageClass,
 };
 use longhorn_core::{
     CommandBindingId, CommandCategoryId, CommandContextId, CommandId, CommandRequestId,
     CommandRouteId, DomainId, SchemaVersion,
 };
+use longhorn_storage_layout::StorageRoots;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

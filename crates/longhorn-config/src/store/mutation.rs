@@ -1,4 +1,6 @@
-use crate::{AccessMode, ConfigDomain, DomainIssue, DomainLocation, ResolvedFile, RootKind};
+use crate::StorageRootsResolve;
+use crate::{ConfigDomain, DomainIssue, DomainLocation, ResolvedFile};
+use longhorn_storage_layout::{AccessMode, RootKind};
 
 use super::{
     CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore, LoadOutcome,

@@ -1,10 +1,12 @@
+use crate::StorageRootsResolve;
 use crate::{
-    AccessMode, BackupCatalog, BackupKind, ConfigDomain, ConfigStore, DomainLocation, LoadOutcome,
+    BackupCatalog, BackupKind, ConfigDomain, ConfigStore, DomainLocation, LoadOutcome,
     LoadedOrigin, MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt,
     RestoreAction, RestoreCurrentEvidence, RestoreExecutionOptions, RestoreExecutionStage,
-    RestoreFailureTerminal, RestoreStaging, RootKind, Sha256Digest, StoreError,
+    RestoreFailureTerminal, RestoreStaging, Sha256Digest, StoreError,
     store::{document::SerializedDocument, load::load_file},
 };
+use longhorn_storage_layout::{AccessMode, RootKind};
 
 use super::{
     execution::{execute_guarded, failure},

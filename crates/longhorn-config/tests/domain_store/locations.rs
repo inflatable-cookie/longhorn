@@ -1,8 +1,10 @@
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
     ConfigDomain, ConfigStore, DomainLocation, LoadOutcome, LoadedOrigin, RegistrationError,
-    RootKind, StorageClass, StorageRoots, StoreError, UnavailableState,
+    StorageClass, StoreError, UnavailableState,
 };
 use longhorn_core::DomainId;
+use longhorn_storage_layout::{RootKind, StorageRoots};
 
 use super::common::{Fixture, PreferencesDomain, config_domain};
 

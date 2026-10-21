@@ -1,6 +1,7 @@
 use serde_json::json;
 
-use crate::{Sha256Digest, storage_layout::types::root_kind_id};
+use crate::Sha256Digest;
+use longhorn_storage_layout::root_kind_id;
 
 use super::super::{
     StorageFileEvidence, StorageTransitionAction, StorageTransitionConflict,

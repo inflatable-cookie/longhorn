@@ -2,7 +2,8 @@ use std::{fs, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Sha256Digest, StorageBootstrapPaths};
+use crate::Sha256Digest;
+use longhorn_storage_layout::StorageBootstrapPaths;
 
 use super::{
     StorageFileEvidence, StorageTransitionAction, StorageTransitionError, StorageTransitionPlan, io,

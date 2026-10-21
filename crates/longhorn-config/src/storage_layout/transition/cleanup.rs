@@ -1,12 +1,13 @@
 use std::{fs, path::Path, time::Duration};
 
+use crate::StorageRootsResolve;
 use crate::{DomainLocation, StorageFileEvidence};
 
 use super::{
     StorageTransitionCleanupPlan, StorageTransitionCleanupReceipt, StorageTransitionError,
     StorageTransitionOutcome, StorageTransitionReceipt, StorageTransitionRequest, execution, io,
 };
-use crate::storage_layout::bootstrap::locator_matches;
+use longhorn_storage_layout::locator_matches;
 
 /// Applies an exact, receipt-bound cleanup after target authority is reverified.
 pub fn apply_storage_transition_cleanup(
@@ -16,9 +17,11 @@ pub fn apply_storage_transition_cleanup(
     lock_timeout: Duration,
 ) -> Result<StorageTransitionCleanupReceipt, StorageTransitionError> {
     validate_binding(receipt, plan)?;
-    if receipt.target_layout_digest != *request.target_layout.digest()
-        || request.source_layout.identity().canonical_application_id()
-            != request.target_layout.identity().canonical_application_id()
+    if !crate::storage_layout::layout_digest_matches(
+        &receipt.target_layout_digest,
+        request.target_layout.digest(),
+    ) || request.source_layout.identity().canonical_application_id()
+        != request.target_layout.identity().canonical_application_id()
     {
         return Err(StorageTransitionError::CleanupRefused(
             "cleanup request does not match the receipt target layout".into(),
@@ -29,7 +32,7 @@ pub fn apply_storage_transition_cleanup(
         &request.bootstrap,
         request.source_layout.identity().canonical_application_id(),
         receipt.transition_id(),
-        receipt.target_layout_digest(),
+        &crate::storage_layout::layout_evidence(receipt.target_layout_digest()),
     )
     .map_err(StorageTransitionError::Locator)?;
     if !target_committed {

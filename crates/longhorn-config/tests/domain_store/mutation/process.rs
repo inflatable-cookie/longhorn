@@ -9,8 +9,9 @@ use std::{
 use longhorn_config::{
     ConfigStore, CoordinationAuthority, CoordinationFailureKind, DebounceClock, DebouncePolicy,
     DebounceStrategy, DebouncedMutation, DomainIssue, DurabilityRequirement, LoadOutcome,
-    MutationError, MutationOptions, StorageRoots,
+    MutationError, MutationOptions,
 };
+use longhorn_storage_layout::StorageRoots;
 use serde_json::json;
 
 use crate::common::{Fixture, config_domain, document};

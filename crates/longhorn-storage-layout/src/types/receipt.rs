@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{RootKind, Sha256Digest, StorageIdentity, StorageRoots};
+use crate::{RootKind, StorageIdentity, StorageLayoutDigest, StorageRoots};
 
 use super::{
     StorageLayoutWarning, StorageLeafProvenance, StorageProfile, StorageRootProvenance,
@@ -56,7 +56,7 @@ pub struct StorageLayoutDiagnostic {
     leaf_provenance: StorageLeafProvenance,
     roots: Vec<ResolvedStorageRoot>,
     warnings: Vec<StorageLayoutWarning>,
-    digest: Sha256Digest,
+    digest: StorageLayoutDigest,
 }
 
 impl StorageLayoutDiagnostic {
@@ -104,7 +104,7 @@ impl StorageLayoutDiagnostic {
 
     /// Returns the deterministic layout digest.
     #[must_use]
-    pub fn digest(&self) -> &Sha256Digest {
+    pub fn digest(&self) -> &StorageLayoutDigest {
         &self.digest
     }
 }
@@ -120,7 +120,7 @@ pub struct ResolvedStorageLayout {
     pub(crate) roots: BTreeMap<RootKind, ResolvedStorageRoot>,
     pub(crate) storage_roots: StorageRoots,
     pub(crate) warnings: Vec<StorageLayoutWarning>,
-    pub(crate) digest: Sha256Digest,
+    pub(crate) digest: StorageLayoutDigest,
 }
 
 impl ResolvedStorageLayout {
@@ -174,7 +174,7 @@ impl ResolvedStorageLayout {
 
     /// Returns the deterministic layout digest.
     #[must_use]
-    pub fn digest(&self) -> &Sha256Digest {
+    pub fn digest(&self) -> &StorageLayoutDigest {
         &self.digest
     }
 

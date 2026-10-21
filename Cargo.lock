@@ -2925,6 +2925,7 @@ dependencies = [
  "http-body-util",
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "reqwest",
  "rmcp",
  "schemars 1.2.2",
@@ -3020,6 +3021,7 @@ dependencies = [
  "longhorn-command",
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "serde",
  "serde_json",
  "sha2 0.11.0",
@@ -3042,6 +3044,7 @@ dependencies = [
  "cap-std",
  "fs4",
  "longhorn-core",
+ "longhorn-storage-layout",
  "proptest",
  "rusqlite",
  "rustix",
@@ -3061,6 +3064,7 @@ dependencies = [
  "age",
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "serde",
  "serde_json",
  "tempfile",
@@ -3300,6 +3304,17 @@ dependencies = [
  "longhorn-config",
  "longhorn-core",
  "longhorn-settings",
+ "longhorn-storage-layout",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tempfile",
+]
+
+[[package]]
+name = "longhorn-storage-layout"
+version = "0.3.4"
+dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
@@ -3320,6 +3335,7 @@ version = "0.3.4"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "longhorn-surfaces",
  "longhorn-surfaces-config",
  "longhorn-transfer",
@@ -3356,6 +3372,7 @@ version = "0.3.4"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "longhorn-surfaces",
  "longhorn-surfaces-config",
  "serde",
@@ -3411,6 +3428,7 @@ version = "0.3.4"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "serde",
  "serde_json",
  "tauri",
@@ -3591,6 +3609,7 @@ version = "0.3.4"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "longhorn-surfaces",
  "longhorn-surfaces-config",
  "serde",
@@ -3662,6 +3681,7 @@ version = "0.3.4"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "longhorn-windowing",
  "serde",
  "serde_json",

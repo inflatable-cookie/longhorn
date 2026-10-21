@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use longhorn_config::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
+use longhorn_storage_layout::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
 
 /// Raw desktop directory paths obtained at a Tauri application edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -99,7 +99,7 @@ pub fn platform_directory_facts(snapshot: TauriDirectorySnapshot) -> PlatformDir
 mod tests {
     use std::path::Path;
 
-    use longhorn_config::{PlatformDirectoryFact, TargetPlatform};
+    use longhorn_storage_layout::{PlatformDirectoryFact, TargetPlatform};
 
     use super::*;
 
