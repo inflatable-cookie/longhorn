@@ -80,6 +80,14 @@ test("mapped proof inputs route to their owning standalone selector", () => {
   expect(bridgeManifest.members?.some((member) => member.task === "proof:bridge-topology-conformance")).toBe(true);
 });
 
+test("prototype dependency changes route through rustdoc and prototype checks", () => {
+  const plan = planGroup("prototype-dependencies", ["cargo-package:longhorn-config"]);
+  expect(plan.scope_assessment).toBe("declared_match");
+  expect(plan.members?.some((member) => member.task === "docs:rust")).toBe(true);
+  expect(plan.members?.some((member) => member.task === "check:prototypes")).toBe(true);
+  expect(plan.members?.some((member) => member.task === "check:prototype-dependency-coverage")).toBe(true);
+});
+
 test("global Effigy changes remain planner-owned, even beside a task-table token", () => {
   const globalChange = "path:effigy.toml";
   for (const scope of [

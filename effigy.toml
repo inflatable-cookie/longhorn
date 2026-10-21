@@ -70,24 +70,20 @@ include = ["config/release.toml"]
 "docs:storage-layout" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-storage-layout --no-deps --locked"
 "docs:tool-provision" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server"
 
-# Prototypes are separate workspaces, so no selector above touches them. They
-# are the only artefacts binding a Longhorn seam to a real host SDK, and until
-# this existed the one proving the GPUI seam was the one thing nothing built —
-# it was broken by a signature change and caught by a hand-run.
-#
-# `check` rather than `build`: the failure mode is API drift, which type
-# checking catches, and `gpui` alone is 757 packages and 3.3 GiB of artifacts
-# once linked. Deliberately absent from `qa`; wired into the release gates
-# instead, because "the host seam still matches its SDK" is a claim that must
-# hold before a tag rather than before every commit.
+# Prototypes are separate workspaces, so the Rust workspace selectors do not
+# touch them. Their host seam is checked by the prototype-dependencies QA
+# group and again at release. `check` catches API drift without linking the
+# 757-package GPUI SDK (about 3.3 GiB of linked artifacts).
 # `check:prototypes`: heavy task table below ([tasks."check:prototypes"]).
-# Pre-gate only: refresh excluded prototype locks (and the root lock) after a
-# Longhorn version bump. Does not replace or weaken check:prototypes --locked.
+# Refresh excluded prototype locks after workspace graph or version changes;
+# sync admits Longhorn path additions/version rewrites only and leaves the
+# locked prototype check intact.
 "sync:prototype-locks" = "bun scripts/sync-prototype-locks.ts"
+"check:prototype-dependency-coverage" = "bun scripts/check-prototype-dependency-coverage.ts"
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -844,6 +840,88 @@ members = [
   },
 ]
 
+[qa.groups.prototype-dependencies]
+lifecycle = "maintained"
+purpose = "Check prototype consumers and rustdoc for every workspace crate they depend on"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Compiles every prototype for any one covered package change; check:prototypes is heavy and takes the full matrix",
+  "Checks all targets with default features and --locked; it does not link or run prototypes",
+  "docs:rust checks workspace rustdoc with default features and does not prove all-features rustdoc",
+]
+members = [
+  {
+    id = "dependency-coverage",
+    kind = "proof",
+    surface = "published",
+    task = "check:prototype-dependency-coverage",
+    args = [],
+    targets = ["workspace:root", "path:prototypes/**"],
+    covers = ["path:prototypes/**"],
+    limits = ["Reads prototype manifest members and their locked dependency edges offline, then checks the Longhorn closure against both package member maps"],
+  },
+  {
+    id = "rustdoc",
+    kind = "compile",
+    surface = "published",
+    task = "docs:rust",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-config",
+      "cargo-package:longhorn-core",
+      "cargo-package:longhorn-display",
+      "cargo-package:longhorn-gpui-windowing",
+      "cargo-package:longhorn-history",
+      "cargo-package:longhorn-licence",
+      "cargo-package:longhorn-notifications",
+      "cargo-package:longhorn-operation",
+      "cargo-package:longhorn-poodle",
+      "cargo-package:longhorn-settings",
+      "cargo-package:longhorn-storage-layout",
+      "cargo-package:longhorn-surfaces",
+      "cargo-package:longhorn-surfaces-config",
+      "cargo-package:longhorn-transfer",
+      "cargo-package:longhorn-update",
+      "cargo-package:longhorn-url",
+      "cargo-package:longhorn-windowing",
+      "cargo-package:longhorn-windowing-config",
+    ],
+    limits = ["Workspace-wide rustdoc with default features; feature-gated rustdoc paths outside the default feature set remain uncovered"],
+  },
+  {
+    id = "prototype-check",
+    kind = "compile",
+    surface = "published",
+    task = "check:prototypes",
+    args = [],
+    targets = ["workspace:root", "path:prototypes/**"],
+    covers = [
+      "path:prototypes/**",
+      "cargo-package:longhorn-config",
+      "cargo-package:longhorn-core",
+      "cargo-package:longhorn-display",
+      "cargo-package:longhorn-gpui-windowing",
+      "cargo-package:longhorn-history",
+      "cargo-package:longhorn-licence",
+      "cargo-package:longhorn-notifications",
+      "cargo-package:longhorn-operation",
+      "cargo-package:longhorn-poodle",
+      "cargo-package:longhorn-settings",
+      "cargo-package:longhorn-storage-layout",
+      "cargo-package:longhorn-surfaces",
+      "cargo-package:longhorn-surfaces-config",
+      "cargo-package:longhorn-transfer",
+      "cargo-package:longhorn-update",
+      "cargo-package:longhorn-url",
+      "cargo-package:longhorn-windowing",
+      "cargo-package:longhorn-windowing-config",
+    ],
+    limits = ["Heavy host check of every prototype workspace with default features; typechecks without linking or runtime validation"],
+  },
+]
+
 [qa.groups.tool-provision]
 lifecycle = "maintained"
 purpose = "Check the tool-provision crate against contract 027 and the archive path rule it shares"
@@ -1188,6 +1266,16 @@ members = [
       "path:packages/longhorn/src/**/generated/**",
     ],
     limits = ["Checks all registered domains and outputs; a new domain still needs to be added to the selector loop"],
+  },
+  {
+    id = "rustdoc",
+    kind = "compile",
+    surface = "published",
+    task = "docs:rust",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["cargo-package:longhorn-bindings"],
+    limits = ["Workspace rustdoc with default features; does not run other workspace obligations"],
   },
 ]
 

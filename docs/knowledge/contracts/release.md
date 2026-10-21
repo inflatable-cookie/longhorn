@@ -89,11 +89,14 @@ compatibility guide must still carry those facts, not a fixed phrase.
 `effigy test:release-tooling` covers the bump, the alignment check, that
 mapping, and this fact check.
 
-Effigy `release prepare` cannot see the eight workspace-excluded
-`prototypes/*/Cargo.lock` files. `sync:prototype-locks` is the pre-gate
-rewrite: Longhorn path-package versions only, then
-`cargo metadata --locked --offline`. Do not fold it into `[release.gates]` or
-weaken `check:prototypes --locked`.
+Effigy `release prepare` cannot see the workspace-excluded
+`prototypes/*/Cargo.lock` files. `sync:prototype-locks` rewrites Longhorn
+path-package versions or copies a missing Longhorn path package and its
+dependency edges from the root lock. It refuses any third-party lock
+movement, then proves each lock with
+`cargo metadata --locked --offline --no-deps`. Run it before a task-time
+prototype check if a path package or version changed. Keep it
+out of `[release.gates]`; do not weaken `check:prototypes --locked`.
 
 When bumping `LONGHORN_GENERAL_MSRV`, run `effigy release:floor` in the same
 change. The floor unlocks MSRV-gated Clippy lints. The pinned stable channel in

@@ -58,6 +58,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `longhorn-docs` | `qa:docs:links`, `qa:docs:agent-defaults`, `qa:docs:paths`, `qa:docs:catalog-links`, `qa:docs:changelog` | General links, index paths, agent defaults and `CHANGELOG.md` (parse and links) only; omits `held-surface` and `host-protocol`. |
 | `longhorn-getting-started-docs` | The two docs link selectors plus `proof:guides-card126` | The fixed guide corpus, its links and generated API inventory; other artifact proofs remain out. |
 | `longhorn-bridge-topology-conformance` | `proof:bridge-topology-conformance` | Five declared bridge compositions, bridge crate sources, the Longhorn bridge package scope, and the query-only capability. |
+| `prototype-dependencies` | `check:prototype-dependency-coverage`, `docs:rust`, `check:prototypes` | The resolved prototype dependency closure, workspace rustdoc with default features, and every prototype workspace. `check:prototypes` is heavy and checks the full matrix for any covered crate. |
 | `longhorn-pack-typecheck` | `proof:pack-typecheck` | Packed scoped Longhorn and adapter packages, their package paths, locked registry dependencies, and declared installed Poodle metadata. |
 | `longhorn-poodle-preview` | `proof:poodle-preview` | Poodle lock/version/integrity metadata and the installed peer range; no Longhorn package typecheck. |
 | `longhorn-documented-commands` | `proof:documented-commands` | Effigy command names in Markdown under `examples/`; task bodies are not validated. |
@@ -71,7 +72,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
-| `longhorn-bindings` | `check:bindings` | All fifteen registered domains; the generator's compile-closure crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:bindings-generator-transitive-compile-dependencies` token. |
+| `longhorn-bindings` | `check:bindings`, `docs:rust` | All fifteen registered domains and workspace rustdoc; the generator's compile-closure crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:bindings-generator-transitive-compile-dependencies` token. |
 | `agent-control-absence` | `check:agent-control-release-absence`, `check:agent-control-shim` | Compile/absence and generated-shim checks; the five release-absence compile crates are gaps on both `cargo-package:` and `path:crates/<crate>/**` tokens, plus the opaque `input:agent-control-marker-source-coverage` token. |
 | `agent-control-carrier` | `test:agent-control-carrier` | The carrier sources and suite only (`src/carrier.rs`, the client binary, `tests/carrier.rs`); not the rest of `longhorn-agent-control`, and not a general workspace or lockfile group. |
 
@@ -191,8 +192,9 @@ fixture-gated tests.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
 doc --workspace --no-deps --locked`. Owns all Rust doc comments and crate
-manifests. Admission: unmarked; release gate (`rustdoc`). Not in `qa`. Limits:
-release-only; slowest of the cheap gates.
+manifests. Admission: unmarked; release gate (`rustdoc`) and member of the
+`prototype-dependencies` QA group. Not in the `qa` aggregate. Limits: default
+features only; slowest of the cheap gates.
 
 **`check:prototypes`** — role: compile. `cargo check --all-targets --locked`
 in each `prototypes/*/` workspace. Owns `prototypes/*/**` (each has its own
@@ -202,12 +204,13 @@ or through a local prototype crate. The edges:
 - `prototypes/agent-control/` — none (it depends on no workspace crate).
 - `prototypes/gpui-composition/` — full closure through the local
   `longhorn-gpui-windowing-prototype`: core, config, display, gpui-windowing,
-  licence, notifications, operation, poodle, settings, surfaces,
-  surfaces-config, transfer, update, url, windowing, windowing-config.
-- `prototypes/gpui-windowing/` — the same closure: core, config, display,
-  gpui-windowing, licence, notifications, operation, poodle, settings,
+  licence, notifications, operation, poodle, settings, storage-layout,
   surfaces, surfaces-config, transfer, update, url, windowing,
   windowing-config.
+- `prototypes/gpui-windowing/` — the same closure: core, config, display,
+  gpui-windowing, licence, notifications, operation, poodle, settings,
+  storage-layout, surfaces, surfaces-config, transfer, update, url,
+  windowing, windowing-config.
 - `prototypes/history-tree/` — core, history.
 - `prototypes/native-content/` — core.
 - `prototypes/native-content-backing-surface/` — core.
@@ -215,19 +218,21 @@ or through a local prototype crate. The edges:
 - `prototypes/native-content-isolated-window/` — core, display, windowing
   (display arrives through windowing).
 
-Union: `longhorn-{config,core,display,gpui-windowing,history,licence,notifications,operation,poodle,settings,surfaces,surfaces-config,transfer,update,url,windowing,windowing-config}`.
+Union: `longhorn-{config,core,display,gpui-windowing,history,licence,notifications,operation,poodle,settings,storage-layout,surfaces,surfaces-config,transfer,update,url,windowing,windowing-config}`.
 Transitive edges that are easy to miss: gpui-windowing and windowing pull
 `longhorn-display`; poodle pulls `longhorn-settings`; transfer pulls
 `longhorn-surfaces` and `longhorn-surfaces-config`; licence and update pull
 `longhorn-url`. The workspace `longhorn-native-content*` crates are not
 prototype dependencies; the native-content prototypes use the prototype-local
-`longhorn-native-content-prototype` and `longhorn-core` only. Propagation: a
-change to any crate in that union selects this release-only aggregate even
-when no prototype file moves.
+`longhorn-native-content-prototype` and `longhorn-core` only. The maintained
+`prototype-dependencies` QA group checks this closure and compares it with the
+resolved prototype manifests so package coverage cannot drift. A change to
+any crate in the union selects that group even when no prototype file moves.
 
-Companions: `sync:prototype-locks` after a version bump. Admission: `heavy`.
-Release gate (`prototypes`); deliberately absent from `qa`. Limits: `check`,
-not `build` -- proves the seam typechecks, not that it links.
+Companion: `sync:prototype-locks` when workspace graph or versions change.
+Admission: `heavy`. Member of the `prototype-dependencies` QA group and the
+release gate (`prototypes`); deliberately absent from the `qa` aggregate.
+Limits: `check`, not `build` -- proves the seam typechecks, not that it links.
 
 **`release:floor`** — role: compile/lint/test at the MSRV. Runs
 `scripts/check-release-floor.sh`, which reads
@@ -253,18 +258,29 @@ Companions: none. Admission: unmarked but heavyweight. Release gate (`source`).
 `scripts/check-release-runner-tools.ts`,
 `scripts/check-changelog.ts`,
 `scripts/verify-private-candidate-docs-card127.ts` and their `.test.ts`,
-`scripts/qa-group-routing.test.ts` (which plans each maintained route with
-Effigy and asserts accepted/refused scope dispositions),
+`scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`,
+`scripts/check-prototype-dependency-coverage.ts` and their tests,
+`scripts/qa-group-routing.test.ts` (which plans maintained routes with Effigy
+and asserts accepted/refused scope dispositions),
 `scripts/private-candidate-card127/**`, `Cargo.toml`, package manifests,
 `docs/reference/api-surface.md`, `skills/agent-control/SKILL.md`.
 Companions: `check:release-gates`. Admission: unmarked. In `qa`.
 
-**`sync:prototype-locks`** — role: maintenance. Rewrites only Longhorn
-path-package version fields in `prototypes/*/Cargo.lock` and proves each with
-`cargo metadata --locked --offline`. Owns `prototypes/*/Cargo.lock` and the
-workspace version. Admission: unmarked. Pre-gate step for `effigy
-release:bump`; not in `[release.gates]`. Limits: never `cargo update`; refuses
-third-party movement.
+**`check:prototype-dependency-coverage`** — role: proof. Resolves each
+prototype workspace and the root workspace metadata with locked, offline
+`--no-deps`, walks the prototype lock edges, and checks the resulting
+Longhorn crate set against both `prototype-check` and `rustdoc` member maps.
+It does not compile prototypes. Admission: unmarked. In the
+`prototype-dependencies` QA group.
+
+**`sync:prototype-locks`** — role: maintenance. Rewrites Longhorn
+path-package versions and copies missing Longhorn path-package entries with
+their dependency edges from the root lock. A missing third-party package or
+any third-party movement stops and restores the lock. It proves each result
+with `cargo metadata --locked --offline --no-deps`. Owns the root and
+`prototypes/*/Cargo.lock` files and the workspace version. Admission:
+unmarked. Pre-gate step for `effigy release:bump`; not in
+`[release.gates]`. Never runs `cargo update` or accesses the network.
 
 **`release:bump`** — role: maintenance (Rhai). Owns the workspace version, the
 three npm manifests, adapter peers, `CHANGELOG.md`, the skill stamp,
@@ -532,8 +548,9 @@ group selects it.
 (`crates/longhorn-config/tests/toml_domain.rs`) — human-written TOML domain
 reads, line/column error reports, read-only refusals, in-memory migration, and
 backup exclusion (contract 004, phase 1). No default-feature selector compiles
-the feature, so `test:rust` never sees them. In `qa`. No QA group selects it;
-there is no `cargo-package:longhorn-config` group.
+the feature, so `test:rust` never sees them. In `qa`, but no QA group selects
+this feature-gated test. `prototype-dependencies` covers config rustdoc and
+prototype consumers, not its transition suite.
 
 **`check:tool-provision`** — role: aggregate (not in `qa`). Runs
 `lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,
@@ -733,9 +750,10 @@ the other staging members remain planner-owned.
 whole Rust lane: `lint:rust`, `lint:rust:features`, `test:rust`. A shared
 crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 (`longhorn-credential-keyring` has no in-tree dependents) select the same
-three. `check:prototypes` additionally applies when a prototype
-path-depends on the changed crate, and `proof:artifacts` when a proof member
-stages the crate (the greenfield member alone stages 24). Evidence missing
+three. `prototype-dependencies` runs `docs:rust` and `check:prototypes` when a
+prototype path-depends on the changed crate; its coverage is checked against
+the resolved prototype manifests. `proof:artifacts` also applies when a proof
+member stages the crate (the greenfield member alone stages 24). Evidence missing
 for narrowing: no per-crate `test:rust:<crate>` selector exists, and `cargo`
 alone is not an admissible Effigy selector.
 
@@ -1007,7 +1025,9 @@ proofs. Missing any of those is a silent break.
   order. Maintained groups can invoke only the five standalone proof members
   listed in the artifact section; the remaining members stay planner-routed.
 - Prototype locks (`prototypes/*/Cargo.lock`) and the root lock are separate;
-  `sync:prototype-locks` is the only writer and is not a gate.
+  `sync:prototype-locks` is the only writer. The prototype check is in the
+  `prototype-dependencies` QA group and remains a release gate; neither sync
+  nor the check is added to the `qa` aggregate.
 - Untracked files outside a manifest/glob reach select nothing. That is
   unresolved, not "no checks".
 - Verifier and fixture routing is reader-based, not name-based. A
