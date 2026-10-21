@@ -583,8 +583,10 @@ local build differ on which changelog text they accept: 0.14.1 refused an
 unindented continuation line inside a category entry as `unexpected content in
 category`, and the local build accepted it (longhorn#063). Keep every
 continuation line of a multi-line entry indented. `EFFIGY_BIN` points the check
-at one exact binary; the tests use it to check the released version without
-replacing the installed one. Limits: does not judge release wording or whether
+at one exact binary. The unit test proves the override with a stub binary, not
+the released build: the released build is checked by pointing the selector at it
+with `EFFIGY_BIN` by hand, and by the runner's `effigy` on PATH during
+`release.yml`'s full QA gate. Limits: does not judge release wording or whether
 entries are accurate.
 
 `proof:guides-card126` runs `scripts/verify-guides-card126.ts` as a standalone
