@@ -3194,6 +3194,7 @@ dependencies = [
  "cap-std",
  "fs4",
  "longhorn-core",
+ "longhorn-storage-layout",
  "rustix",
  "serde",
  "serde_json",
@@ -3325,6 +3326,15 @@ name = "longhorn-settings"
 version = "0.4.0"
 dependencies = [
  "longhorn-core",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+]
+
+[[package]]
+name = "longhorn-storage-layout"
+version = "0.4.0"
+dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.0",
