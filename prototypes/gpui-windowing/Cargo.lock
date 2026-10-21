@@ -3189,11 +3189,12 @@ dependencies = [
 
 [[package]]
 name = "longhorn-config"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "cap-std",
  "fs4",
  "longhorn-core",
+ "longhorn-storage-layout",
  "rustix",
  "serde",
  "serde_json",
@@ -3203,14 +3204,14 @@ dependencies = [
 
 [[package]]
 name = "longhorn-core"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "longhorn-display"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3218,7 +3219,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-gpui-windowing"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3252,7 +3253,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-licence"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek",
@@ -3267,7 +3268,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-notifications"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3275,7 +3276,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-operation"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3283,7 +3284,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-poodle"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3298,7 +3299,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-settings"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3307,8 +3308,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-storage-layout"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+]
+
+[[package]]
 name = "longhorn-surfaces"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3316,7 +3326,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-surfaces-config"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3327,7 +3337,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-transfer"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3338,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-update"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "longhorn-url",
@@ -3350,11 +3360,11 @@ dependencies = [
 
 [[package]]
 name = "longhorn-url"
-version = "0.3.4"
+version = "0.4.0"
 
 [[package]]
 name = "longhorn-windowing"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
