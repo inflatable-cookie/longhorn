@@ -29,6 +29,7 @@ longhorn-gpui-windowing = { path = "../../crates/longhorn-gpui-windowing" }
 longhorn-gpui-windowing-prototype = { path = "../gpui-windowing" }
 longhorn-transfer = { path = "../../crates/longhorn-transfer" }
 longhorn-config = { path = "../../crates/longhorn-config" }
+longhorn-storage-layout = { path = "../../crates/longhorn-storage-layout" }
 longhorn-windowing = { path = "../../crates/longhorn-windowing" }
 longhorn-windowing-config = { path = "../../crates/longhorn-windowing-config" }
 serde = { version = "1", features = ["derive"] }

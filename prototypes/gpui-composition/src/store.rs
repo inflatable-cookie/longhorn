@@ -18,9 +18,9 @@ use std::{collections::BTreeMap, fs, path::PathBuf, time::Duration};
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
     DomainIssue, DurabilityRequirement, LoadOutcome, MigrationStep, MutationOptions, StorageClass,
-    StorageRoots,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::StorageRoots;
 use longhorn_windowing::CapturedWindowPlacement;
 use longhorn_windowing_config::ConfigWindowPlacementSink;
 use serde::{Deserialize, Serialize};

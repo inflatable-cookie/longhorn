@@ -3230,6 +3230,7 @@ dependencies = [
  "longhorn-gpui-windowing-prototype",
  "longhorn-notifications",
  "longhorn-poodle",
+ "longhorn-storage-layout",
  "longhorn-transfer",
  "longhorn-windowing",
  "longhorn-windowing-config",
