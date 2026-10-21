@@ -29,6 +29,8 @@ include = ["config/release.toml"]
 "lint:diagnostics" = "bash scripts/rust-command.sh clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
 # Contract 028: real PTY lifecycle and process-group behavior.
 "lint:pty" = "bash scripts/rust-command.sh clippy -p longhorn-pty --all-targets --locked -- -D warnings"
+# Contract 004's storage layout crate: identity, resolver, roots, locator.
+"lint:storage-layout" = "bash scripts/rust-command.sh clippy -p longhorn-storage-layout --all-targets --locked -- -D warnings"
 # Contract 027 and its shared archive path rule (contract 018 and 027). The
 # fixture-server feature compiles the part 4b release tests and their server.
 "lint:tool-provision" = "bash scripts/rust-command.sh clippy -p longhorn-tool-provision -p longhorn-archive-path --all-targets --locked --features longhorn-tool-provision/fixture-server -- -D warnings"
@@ -53,6 +55,7 @@ include = ["config/release.toml"]
 "test:support-log" = "bash scripts/rust-command.sh test -p longhorn-support-log --locked"
 "test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
+"test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
 "test:pty:cargo" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:tool-provision" = "bash scripts/rust-command.sh test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
@@ -64,6 +67,7 @@ include = ["config/release.toml"]
 "docs:support-log" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-support-log --no-deps --locked"
 "docs:diagnostics" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-diagnostics --no-deps --locked"
 "docs:pty" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-pty --no-deps --locked"
+"docs:storage-layout" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-storage-layout --no-deps --locked"
 "docs:tool-provision" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server"
 
 # Prototypes are separate workspaces, so no selector above touches them. They
@@ -177,6 +181,14 @@ include = ["config/release.toml"]
   { task = "lint:pty" },
   { task = "test:pty" },
   { task = "docs:pty" },
+  { task = "check:api-reference" },
+]
+# Contract 004's storage layout crate. check:api-reference keeps the generated
+# crate row honest.
+"check:storage-layout" = [
+  { task = "lint:storage-layout" },
+  { task = "test:storage-layout" },
+  { task = "docs:storage-layout" },
   { task = "check:api-reference" },
 ]
 "check:tool-provision" = [
@@ -802,6 +814,32 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-pty", "path:crates/longhorn-pty/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.storage-layout]
+lifecycle = "maintained"
+purpose = "Check the storage layout crate against contract 004"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Does not cover longhorn-config's transition tests, which the workspace Rust lane owns",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "storage-layout-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:storage-layout",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-storage-layout",
+      "path:crates/longhorn-storage-layout/**",
+    ],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

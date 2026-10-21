@@ -35,6 +35,16 @@ to the current directory or a home-directory dotfile.
 
 ## Roots And Paths
 
+- The storage identity, profile resolver, layout types, `StorageRoots`, the
+  fixed locator, and platform-directory facts live in the
+  `longhorn-storage-layout` crate. `longhorn-config` owns the store, backup,
+  restore, and transition machinery built on them and never re-exports the
+  moved types.
+- Hosts without a webview resolve platform-directory facts natively
+  (macOS from `HOME`, Linux from XDG with the spec defaults, Windows
+  known-folder variables); the provider and Tauri's adapter produce
+  identical facts for the same machine snapshot, and a required fact that
+  is unavailable is reported, never invented.
 - Pure storage code receives platform-directory facts, storage identity,
   profile selection, and explicit overrides through dependency injection.
 - Resolution does no filesystem or environment access. It returns a complete
