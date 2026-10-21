@@ -1,7 +1,7 @@
 {
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
-    "longhornSelected": "d7a136093a05cc9a2b052f4f9a280fb74ff0dff2",
+    "longhornSelected": "1155768c423519e62eb7a82e6ebfa3d6485626a3",
     "poodleSelected": "0.4.4@registry"
   },
   "artifacts": {
@@ -77,6 +77,7 @@
       ],
       "typescript": [
         "@inflatable-cookie/longhorn",
+        "@inflatable-cookie/longhorn-poodle-svelte",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
@@ -110,6 +111,7 @@
       ],
       "typescript": [
         "@inflatable-cookie/longhorn",
+        "@inflatable-cookie/longhorn-poodle-svelte",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [

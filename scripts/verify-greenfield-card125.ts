@@ -227,7 +227,10 @@ async function writeReceipt(report: {
         shape.shape,
         {
           hierarchy: [...shape.hierarchy],
-          typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"].sort(),
+          // Record what this run measured, not a constant: the in-run policy
+          // assertions are the composition claim, and the receipt is evidence
+          // of what actually resolved (bun hoisting moves peer ranges).
+          typescript: [...shape.typescriptPackages].sort(),
           rust: [...shape.rust.rustPackages].sort(),
         },
       ];
