@@ -54,7 +54,7 @@ impl StorageClass {
 ///
 /// Paths use `/` separators and ASCII alphanumeric, `.`, `_`, or `-`
 /// characters in each segment. [`DomainFilePath::new`] requires a `.json`
-/// suffix for ordinary JSON domains; [`DomainFilePath::new_toml`] requires
+/// suffix for ordinary JSON domains; `DomainFilePath::new_toml` requires
 /// `.toml` for human-written TOML domains behind the `toml` feature.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DomainFilePath(String);
