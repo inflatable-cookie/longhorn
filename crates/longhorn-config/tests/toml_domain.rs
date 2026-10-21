@@ -11,10 +11,11 @@ use longhorn_config::{
     BackupCaptureOptions, BackupCatalog, BackupExclusion, BackupKind, BackupLimits, BackupMetadata,
     BackupOperationalRoot, BackupProducer, BackupScope, ConfigDomain, ConfigStore,
     CoordinationAuthority, DebounceClock, DebouncePolicy, DebounceStrategy, DebouncedMutation,
-    DomainDescriptor, DomainFilePath, DomainIssue, DurabilityRequirement, LoadDiagnosticCode,
-    LoadOutcome, LoadedOrigin, MigrationRewriteError, MigrationRewriteOptions, MigrationStep,
-    MutationError, MutationOptions, MutationRefusal, RecoveryKind, RestoreSafetyBackupOptions,
-    SourcePosition, StorageClass, StorageRoots,
+    DomainDescriptor, DomainFilePath, DomainIssue, DomainLocation, DurabilityRequirement,
+    LoadDiagnosticCode, LoadOutcome, LoadedOrigin, MigrationRewriteError, MigrationRewriteOptions,
+    MigrationStep, MutationError, MutationOptions, MutationRefusal, RecoveryKind,
+    RestoreDomainCompatibility, RestoreSafetyBackupOptions, SourcePosition, StorageClass,
+    StorageRoots, encode_backup_archive, inspect_backup_archive,
 };
 use longhorn_core::{DomainId, SchemaVersion};
 use serde_json::{Value, json};
@@ -178,6 +179,71 @@ impl ConfigDomain for SettingsDomain {
 }
 
 // --- permissive domain for type-mapping edge cases -----------------------
+
+/// A human TOML domain in the policy class. The fixture injects no policy
+/// root, so it resolves to `RootRequired` and every write path must refuse
+/// instead of assuming a file location.
+struct PolicyTomlDomain {
+    descriptor: DomainDescriptor,
+}
+
+impl PolicyTomlDomain {
+    fn new() -> Self {
+        Self {
+            descriptor: DomainDescriptor::new_toml(
+                DomainId::new("example.cli.policy").unwrap(),
+                SchemaVersion::new(1).unwrap(),
+                StorageClass::Policy,
+                Some(DomainFilePath::new_toml("cli-policy.toml").unwrap()),
+            )
+            .unwrap(),
+        }
+    }
+}
+
+impl ConfigDomain for PolicyTomlDomain {
+    type Value = Value;
+
+    fn descriptor(&self) -> &DomainDescriptor {
+        &self.descriptor
+    }
+
+    fn default_value(&self) -> Self::Value {
+        json!({})
+    }
+
+    fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
+        Ok(value)
+    }
+
+    fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
+        Ok(value.clone())
+    }
+
+    fn validate(&self, _value: &Self::Value) -> Result<(), DomainIssue> {
+        Ok(())
+    }
+
+    fn validate_raw(
+        &self,
+        _schema_version: SchemaVersion,
+        value: &Value,
+    ) -> Result<(), DomainIssue> {
+        if value.is_object() {
+            Ok(())
+        } else {
+            Err(DomainIssue::new("shape", "value must be a table"))
+        }
+    }
+
+    fn migrate_one(
+        &self,
+        _from: SchemaVersion,
+        _value: Value,
+    ) -> Result<Option<MigrationStep>, DomainIssue> {
+        Ok(None)
+    }
+}
 
 struct FreeformDomain {
     descriptor: DomainDescriptor,
@@ -398,28 +464,43 @@ fn validation_errors_report_the_document_start() {
 #[test]
 fn a_file_broken_after_a_good_load_keeps_the_last_good_value_and_the_bytes() {
     let fixture = Fixture::new();
-    fixture.write_config("cli-settings.toml", "name = \"cli\"\nenabled = true\n");
+    let good = "name = \"cli\"\nenabled = true\n";
+    fixture.write_config("cli-settings.toml", good);
     let domain = SettingsDomain::new();
     let mut store = fixture.store();
     store.register(&domain).unwrap();
 
-    let LoadOutcome::Ready(good) = store.load(&domain).unwrap() else {
+    let LoadOutcome::Ready(first) = store.load(&domain).unwrap() else {
         panic!("expected the first load to succeed");
     };
+    assert_eq!(first.value, json!({"name": "cli", "enabled": true}));
 
     let broken = "name = \"cli\"\nenabled = {\n";
     fixture.write_config("cli-settings.toml", broken);
 
+    // The broken reload is a recovery state, never a silent default reset.
     let outcome = store.load(&domain).unwrap();
     let LoadOutcome::Recovery(recovery) = outcome else {
         panic!("expected a recovery state after the file broke");
     };
     assert_eq!(recovery.kind, RecoveryKind::CorruptDocument);
-    // The last good value stays usable and is not replaced by the default.
-    assert_eq!(good.value, json!({"name": "cli", "enabled": true}));
-    assert_ne!(good.value, domain.default_value());
-    // The file was never touched by the store.
+    assert_eq!(
+        recovery.source.expect("source bytes kept").bytes,
+        broken.as_bytes()
+    );
+    // The store wrote nothing: the file still holds exactly the broken
+    // bytes, so the last good value was never destroyed.
     assert_eq!(fixture.read_config("cli-settings.toml"), broken.as_bytes());
+
+    // The person repairs the file; the next load returns the same good
+    // value the session held before the break.
+    fixture.write_config("cli-settings.toml", good);
+    let outcome = store.load(&domain).unwrap();
+    let LoadOutcome::Ready(repaired) = outcome else {
+        panic!("expected the repaired file to load");
+    };
+    assert_eq!(repaired.value, first.value);
+    assert_eq!(repaired.origin, LoadedOrigin::File);
 }
 
 // --- read-only refusals ---------------------------------------------------
@@ -465,6 +546,41 @@ fn every_mutation_path_refuses_a_toml_domain() {
         fixture.read_config("cli-settings.toml"),
         original.as_bytes()
     );
+}
+
+#[test]
+fn a_toml_domain_without_an_injected_root_refuses_instead_of_panicking() {
+    let fixture = Fixture::new();
+    let domain = PolicyTomlDomain::new();
+    let mut store = fixture.store();
+    // The fixture injects no policy root, so the domain resolves to
+    // RootRequired; registration still succeeds.
+    store.register(&domain).unwrap();
+
+    let refused = store
+        .mutate(&domain, mutation_options(), |value| {
+            value["enabled"] = Value::Bool(false);
+            Ok(())
+        })
+        .unwrap_err();
+    assert!(matches!(
+        refused,
+        MutationError::Refused(MutationRefusal::Unavailable {
+            location: DomainLocation::RootRequired { .. }
+        })
+    ));
+
+    let checked = store.mutate_checked(
+        &domain,
+        mutation_options(),
+        |_| -> Result<(), std::convert::Infallible> { Ok(()) },
+    );
+    assert!(matches!(
+        checked,
+        Err(longhorn_config::CheckedMutationError::Mutation(
+            MutationError::Refused(MutationRefusal::Unavailable { .. })
+        ))
+    ));
 }
 
 #[test]
@@ -670,6 +786,70 @@ fn backup_catalog_include_refuses_a_toml_domain() {
     );
 }
 
+#[test]
+fn restore_inspection_refuses_an_ordinary_target_for_a_toml_domain() {
+    // Donor: a JSON domain under the exact identity the target registers as
+    // human TOML, captured as an ordinary present archive payload.
+    let donor = Fixture::new();
+    let donor_domain = JsonDomain::named("example.cli.settings", "cli-settings.json", 2);
+    donor.write_config(
+        "cli-settings.json",
+        &json!({
+            "domain": "example.cli.settings",
+            "schemaVersion": 2,
+            "value": {"name": "donor", "enabled": true},
+        })
+        .to_string(),
+    );
+    let mut donor_store = donor.store();
+    donor_store.register(&donor_domain).unwrap();
+    let mut donor_catalog = BackupCatalog::new();
+    donor_catalog.include(&donor_domain).unwrap();
+    let snapshot = donor_store
+        .capture_backup(
+            &donor_catalog,
+            &BackupScope::AllRegistered,
+            capture_metadata("cli-donor"),
+            BackupCaptureOptions::new(Duration::from_secs(2), BackupLimits::default()),
+        )
+        .unwrap();
+    let encoded = encode_backup_archive(&snapshot, BackupArchiveLimits::default()).unwrap();
+    let archive = inspect_backup_archive(encoded.bytes(), BackupArchiveLimits::default()).unwrap();
+
+    // Target: the same identity as a human TOML domain.
+    let target = Fixture::new();
+    let original = "name = \"cli\"\nenabled = true\n";
+    target.write_config("cli-settings.toml", original);
+    let toml_domain = SettingsDomain::new();
+    let mut target_store = target.store();
+    target_store.register(&toml_domain).unwrap();
+    let mut target_catalog = BackupCatalog::new();
+    // An include policy would be honoured for a JSON domain; the TOML
+    // refusal must override it.
+    target_catalog.include(&toml_domain).unwrap();
+
+    let inspection = target_store.inspect_restore(
+        &target_catalog,
+        &archive,
+        &BackupApplication::new("com.example.cli", "1.0.0").unwrap(),
+        &BackupProducer::new("longhorn-config", "0.1.0").unwrap(),
+    );
+
+    let report = inspection
+        .domains()
+        .iter()
+        .find(|domain| domain.domain() == toml_domain.descriptor().id())
+        .expect("the manifest domain must be inspected against the target");
+    assert_eq!(
+        report.compatibility(),
+        &RestoreDomainCompatibility::PolicyExcluded {
+            reason: "human-written, read-only in phase 1".to_owned(),
+        }
+    );
+    assert_eq!(inspection.receipt().restorable(), 0);
+    assert_eq!(target.read_config("cli-settings.toml"), original.as_bytes());
+}
+
 // --- type mapping ----------------------------------------------------------
 
 #[test]
@@ -755,12 +935,18 @@ struct JsonDomain {
 
 impl JsonDomain {
     fn new() -> Self {
+        Self::named("example.cli.json", "cli-json.json", 1)
+    }
+
+    /// A JSON domain with an exact id, path, and schema version, so a donor
+    /// archive can name a target store's domain.
+    fn named(id: &str, path: &str, version: u32) -> Self {
         Self {
             descriptor: DomainDescriptor::new(
-                DomainId::new("example.cli.json").unwrap(),
-                SchemaVersion::new(1).unwrap(),
+                DomainId::new(id).unwrap(),
+                SchemaVersion::new(version).unwrap(),
                 USER_CONFIG_CLASS,
-                Some(DomainFilePath::new("cli-json.json").unwrap()),
+                Some(DomainFilePath::new(path).unwrap()),
             )
             .unwrap(),
         }

@@ -92,16 +92,18 @@ where
         .map_err(CheckedMutationError::Mutation)?;
     #[cfg(feature = "toml")]
     if domain.descriptor().is_human_toml() {
-        let location = store.roots.resolve(domain.descriptor());
-        let path = match location {
-            DomainLocation::File(file) => file.full_path().to_path_buf(),
-            _ => unreachable!("human TOML domains are file-backed"),
+        let refusal = match store.roots.resolve(domain.descriptor()) {
+            DomainLocation::File(file) => MutationRefusal::HumanWrittenToml {
+                domain: domain.descriptor().id().clone(),
+                path: file.full_path().to_path_buf(),
+            },
+            // A human TOML domain whose optional root is not injected
+            // (policy, workspace-local, project-shared) has no location to
+            // name; the unavailable refusal is the typed answer there too.
+            location => MutationRefusal::Unavailable { location },
         };
         return Err(CheckedMutationError::Mutation(MutationError::Refused(
-            MutationRefusal::HumanWrittenToml {
-                domain: domain.descriptor().id().clone(),
-                path,
-            },
+            refusal,
         )));
     }
     let location = store.roots.resolve(domain.descriptor());
