@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 longhorn-config.workspace = true
+longhorn-storage-layout.workspace = true
 serde.workspace = true
 tauri.workspace = true
 

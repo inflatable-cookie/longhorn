@@ -2,10 +2,8 @@ use std::path::{Path, PathBuf};
 
 use longhorn_core::DomainId;
 
-use crate::{
-    BackupAdapterId, BackupAdapterRestoreParticipation, Sha256Digest, StorageClass,
-    StorageProfileSelection,
-};
+use crate::{BackupAdapterId, BackupAdapterRestoreParticipation, Sha256Digest, StorageClass};
+use longhorn_storage_layout::StorageProfileSelection;
 
 /// Exact current ordinary-file state.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -163,7 +161,7 @@ impl StorageTransitionConflict {
 /// Unregistered source or target file preserved by transition policy.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StorageTransitionUnknownFile {
-    pub(crate) root: crate::RootKind,
+    pub(crate) root: longhorn_storage_layout::RootKind,
     pub(crate) path: PathBuf,
     pub(crate) evidence: StorageFileEvidence,
 }
@@ -171,7 +169,7 @@ pub struct StorageTransitionUnknownFile {
 impl StorageTransitionUnknownFile {
     /// Returns root purpose.
     #[must_use]
-    pub const fn root(&self) -> crate::RootKind {
+    pub const fn root(&self) -> longhorn_storage_layout::RootKind {
         self.root
     }
     /// Returns exact path.

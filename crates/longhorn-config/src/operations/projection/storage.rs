@@ -1,9 +1,11 @@
 use crate::{
-    ConfigOperationProjectionError, PlatformDirectoryFact, RootKind, Sha256Digest, StorageClass,
-    StorageFileEvidence, StorageLayoutDiagnostic, StorageLayoutWarning, StorageLeafProvenance,
-    StorageProfile, StorageRootProvenance, StorageTransitionAction,
-    StorageTransitionCleanupReceipt, StorageTransitionConflictKind, StorageTransitionOutcome,
-    StorageTransitionPreview, StorageTransitionReceipt, TargetPlatform,
+    ConfigOperationProjectionError, Sha256Digest, StorageClass, StorageFileEvidence,
+    StorageTransitionAction, StorageTransitionCleanupReceipt, StorageTransitionConflictKind,
+    StorageTransitionOutcome, StorageTransitionPreview, StorageTransitionReceipt,
+};
+use longhorn_storage_layout::{
+    PlatformDirectoryFact, RootKind, StorageLayoutDiagnostic, StorageLayoutWarning,
+    StorageLeafProvenance, StorageProfile, StorageRootProvenance, TargetPlatform,
 };
 
 use super::super::{

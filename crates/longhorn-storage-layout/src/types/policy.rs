@@ -3,6 +3,7 @@ use std::{error::Error, fmt};
 use crate::RootKind;
 
 use super::PlatformDirectoryFact;
+use crate::root_kind_id;
 
 /// Versioned built-in layout policy.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -107,21 +108,6 @@ impl StorageRootProvenance {
             Self::DerivedFrom(root) => format!("derived:{}", root_kind_id(root)),
             Self::ExplicitOverride => "override".to_owned(),
         }
-    }
-}
-
-pub(crate) const fn root_kind_id(kind: RootKind) -> &'static str {
-    match kind {
-        RootKind::Config => "config",
-        RootKind::Data => "data",
-        RootKind::State => "state",
-        RootKind::Cache => "cache",
-        RootKind::Runtime => "runtime",
-        RootKind::Log => "log",
-        RootKind::Backup => "backup",
-        RootKind::Policy => "policy",
-        RootKind::Workspace => "workspace",
-        RootKind::Project => "project",
     }
 }
 

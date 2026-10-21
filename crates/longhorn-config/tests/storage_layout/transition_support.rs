@@ -1,12 +1,15 @@
 use std::{fs, path::PathBuf};
 
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainIssue, MigrationStep, PlatformDirectoryFacts, ResolvedStorageLayout, StorageClass,
-    StorageIdentity, StorageLayoutRequest, StorageProfile, StorageProfileSelection, TargetPlatform,
-    resolve_storage_layout,
+    DomainIssue, MigrationStep, StorageClass,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::{
+    PlatformDirectoryFacts, ResolvedStorageLayout, StorageIdentity, StorageLayoutRequest,
+    StorageProfile, StorageProfileSelection, TargetPlatform, resolve_storage_layout,
+};
 use serde_json::Value;
 use tempfile::TempDir;
 
@@ -65,8 +68,9 @@ impl TransitionFixture {
         )
     }
 
-    pub(crate) fn bootstrap(&self) -> longhorn_config::StorageBootstrapPaths {
-        longhorn_config::resolve_storage_bootstrap_paths(&self.identity, &self.facts).unwrap()
+    pub(crate) fn bootstrap(&self) -> longhorn_storage_layout::StorageBootstrapPaths {
+        longhorn_storage_layout::resolve_storage_bootstrap_paths(&self.identity, &self.facts)
+            .unwrap()
     }
 }
 

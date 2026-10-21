@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use longhorn_core::SchemaVersion;
 
+use crate::StorageRootsResolve;
 use crate::{
     BackupArchiveInspection, BackupCatalog, BackupSourceIssue, BackupSourceState, ConfigDomain,
     ConfigStore, DomainLocation, LoadOutcome, LoadedOrigin, RecoveryKind, Sha256Digest,

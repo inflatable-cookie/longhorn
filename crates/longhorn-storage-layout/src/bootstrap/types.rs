@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{Sha256Digest, StorageProfile};
+use crate::{StorageLayoutDigest, StorageProfile};
 
 /// Fixed native files used to select and recover a storage profile.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -199,7 +199,7 @@ pub struct StorageBootstrapSelection {
     selection: StorageProfileSelection,
     origin: StorageBootstrapOrigin,
     transition_id: Option<String>,
-    last_committed_layout_digest: Option<Sha256Digest>,
+    last_committed_layout_digest: Option<StorageLayoutDigest>,
     paths: Option<StorageBootstrapPaths>,
     locator: Option<StorageProfileLocator>,
 }
@@ -209,7 +209,7 @@ impl StorageBootstrapSelection {
         selection: StorageProfileSelection,
         origin: StorageBootstrapOrigin,
         transition_id: Option<String>,
-        last_committed_layout_digest: Option<Sha256Digest>,
+        last_committed_layout_digest: Option<StorageLayoutDigest>,
         paths: Option<StorageBootstrapPaths>,
     ) -> Self {
         Self {
@@ -247,7 +247,7 @@ impl StorageBootstrapSelection {
 
     /// Returns the last committed layout evidence.
     #[must_use]
-    pub fn last_committed_layout_digest(&self) -> Option<&Sha256Digest> {
+    pub fn last_committed_layout_digest(&self) -> Option<&StorageLayoutDigest> {
         self.last_committed_layout_digest.as_ref()
     }
 
@@ -270,15 +270,16 @@ pub struct StorageProfileLocator {
     canonical_application_id: String,
     selection: StorageProfileSelection,
     transition_id: Option<String>,
-    last_committed_layout_digest: Option<Sha256Digest>,
+    last_committed_layout_digest: Option<StorageLayoutDigest>,
 }
 
 impl StorageProfileLocator {
-    pub(crate) fn new(
+    /// Projects one persisted locator after its document validated.
+    pub fn new(
         canonical_application_id: String,
         selection: StorageProfileSelection,
         transition_id: Option<String>,
-        last_committed_layout_digest: Option<Sha256Digest>,
+        last_committed_layout_digest: Option<StorageLayoutDigest>,
     ) -> Self {
         Self {
             canonical_application_id,
@@ -308,7 +309,7 @@ impl StorageProfileLocator {
 
     /// Returns the committed target-layout evidence.
     #[must_use]
-    pub fn last_committed_layout_digest(&self) -> Option<&Sha256Digest> {
+    pub fn last_committed_layout_digest(&self) -> Option<&StorageLayoutDigest> {
         self.last_committed_layout_digest.as_ref()
     }
 }

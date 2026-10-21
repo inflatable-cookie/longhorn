@@ -4,7 +4,7 @@ mod inspect;
 mod roots;
 mod scanning;
 
-use crate::RootKind;
+use longhorn_storage_layout::RootKind;
 
 use super::{
     StorageFileEvidence, StorageTransitionAction, StorageTransitionConflict,

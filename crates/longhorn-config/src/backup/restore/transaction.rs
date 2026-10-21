@@ -3,6 +3,7 @@ use std::{
     io::{self, Read},
 };
 
+use crate::StorageRootsResolve;
 use crate::{
     BackupArchiveLimits, BackupLimits, BackupPublicationReceipt, ConfigStore, DomainLocation,
     RestoreExecutionError, RestoreExecutionStage, RestoreFailureTerminal, RestoreStaging,

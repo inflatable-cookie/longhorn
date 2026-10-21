@@ -4,7 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{RootKind, Sha256Digest};
+use crate::Sha256Digest;
+use longhorn_storage_layout::RootKind;
 
 use super::super::{StorageFileEvidence, StorageTransitionError, StorageTransitionUnknownFile};
 
@@ -55,7 +56,7 @@ pub(crate) fn read_evidence(
 }
 
 pub(crate) fn scan_layout(
-    layout: &crate::ResolvedStorageLayout,
+    layout: &longhorn_storage_layout::ResolvedStorageLayout,
     known: &BTreeSet<PathBuf>,
     limits: super::super::StorageTransitionLimits,
     total: &mut usize,

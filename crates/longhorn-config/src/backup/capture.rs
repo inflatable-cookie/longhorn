@@ -4,6 +4,7 @@ mod source;
 
 use longhorn_core::DomainId;
 
+use crate::StorageRootsResolve;
 use crate::{
     BackupCaptureOptions, BackupCatalog, BackupConsistencyGroup, BackupExclusion,
     BackupExclusionReason, BackupManifestDomain, BackupMetadata, BackupPayloadManifest,

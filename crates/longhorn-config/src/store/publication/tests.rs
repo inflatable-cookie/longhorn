@@ -3,10 +3,9 @@ use std::fs;
 use longhorn_core::{DomainId, SchemaVersion};
 use tempfile::TempDir;
 
-use crate::{
-    AccessMode, DomainDescriptor, DomainFilePath, DomainLocation, RootKind, StorageClass,
-    StorageRoots,
-};
+use crate::StorageRootsResolve;
+use crate::{DomainDescriptor, DomainFilePath, DomainLocation, StorageClass};
+use longhorn_storage_layout::{AccessMode, RootKind, StorageRoots};
 
 use super::*;
 

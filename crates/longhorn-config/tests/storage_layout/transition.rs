@@ -1,14 +1,17 @@
 use std::{fs, time::Duration};
 
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
-    ConfigDomain, LegacyStorageCandidate, StorageBootstrapOrigin, StorageBootstrapState,
-    StorageClass, StorageFileEvidence, StorageRoots, StorageTransitionAction,
-    StorageTransitionCatalog, StorageTransitionCleanupPlan, StorageTransitionConflictKind,
-    StorageTransitionError, StorageTransitionExclusion, StorageTransitionExecutionOptions,
-    StorageTransitionLimits, StorageTransitionOutcome, StorageTransitionPlanError,
-    StorageTransitionRequest, apply_storage_transition_cleanup, discover_legacy_storage,
-    execute_storage_transition, inspect_storage_bootstrap, inspect_storage_transition,
+    ConfigDomain, LegacyStorageCandidate, StorageClass, StorageFileEvidence,
+    StorageTransitionAction, StorageTransitionCatalog, StorageTransitionCleanupPlan,
+    StorageTransitionConflictKind, StorageTransitionError, StorageTransitionExclusion,
+    StorageTransitionExecutionOptions, StorageTransitionLimits, StorageTransitionOutcome,
+    StorageTransitionPlanError, StorageTransitionRequest, apply_storage_transition_cleanup,
+    discover_legacy_storage, execute_storage_transition, inspect_storage_transition,
     plan_storage_transition,
+};
+use longhorn_storage_layout::{
+    StorageBootstrapOrigin, StorageBootstrapState, StorageRoots, inspect_storage_bootstrap,
 };
 
 use crate::transition_support::{TestDomain, TransitionFixture};
@@ -262,13 +265,13 @@ fn target_state_and_overlapping_roots_block_before_mutation() {
         .config()
         .join("nested-portable");
     let nested_selection =
-        longhorn_config::StorageProfileSelection::portable(&nested_root).unwrap();
-    let nested_layout = longhorn_config::resolve_storage_layout(
-        &longhorn_config::StorageLayoutRequest::new(
+        longhorn_storage_layout::StorageProfileSelection::portable(&nested_root).unwrap();
+    let nested_layout = longhorn_storage_layout::resolve_storage_layout(
+        &longhorn_storage_layout::StorageLayoutRequest::new(
             fixture.identity.clone(),
             fixture.facts.clone(),
         )
-        .with_profile(longhorn_config::StorageProfile::PortableV1)
+        .with_profile(longhorn_storage_layout::StorageProfile::PortableV1)
         .with_portable_root(nested_root),
     )
     .unwrap();
@@ -295,21 +298,21 @@ fn target_state_and_overlapping_roots_block_before_mutation() {
 #[test]
 fn shared_product_target_is_visible_in_transition_evidence() {
     let fixture = TransitionFixture::new();
-    let identity = longhorn_config::StorageIdentity::new("com.inflatablecookie.loophole")
+    let identity = longhorn_storage_layout::StorageIdentity::new("com.inflatablecookie.loophole")
         .unwrap()
         .with_storage_name("Loophole")
         .unwrap();
     let facts = fixture.facts.clone().with(
-        longhorn_config::PlatformDirectoryFact::SharedData,
+        longhorn_storage_layout::PlatformDirectoryFact::SharedData,
         fixture.temp.path().join("shared-product-data"),
     );
-    let source = longhorn_config::resolve_storage_layout(
-        &longhorn_config::StorageLayoutRequest::new(identity.clone(), facts.clone()),
+    let source = longhorn_storage_layout::resolve_storage_layout(
+        &longhorn_storage_layout::StorageLayoutRequest::new(identity.clone(), facts.clone()),
     )
     .unwrap();
-    let target = longhorn_config::resolve_storage_layout(
-        &longhorn_config::StorageLayoutRequest::new(identity.clone(), facts.clone())
-            .with_profile(longhorn_config::StorageProfile::SharedProductRootV1),
+    let target = longhorn_storage_layout::resolve_storage_layout(
+        &longhorn_storage_layout::StorageLayoutRequest::new(identity.clone(), facts.clone())
+            .with_profile(longhorn_storage_layout::StorageProfile::SharedProductRootV1),
     )
     .unwrap();
     let domain = TestDomain::new(
@@ -323,8 +326,9 @@ fn shared_product_target_is_visible_in_transition_evidence() {
     target_store.register(&domain).unwrap();
     let mut catalog = StorageTransitionCatalog::new();
     catalog.include(&domain).unwrap();
-    let selection = longhorn_config::StorageProfileSelection::shared_product();
-    let bootstrap = longhorn_config::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let selection = longhorn_storage_layout::StorageProfileSelection::shared_product();
+    let bootstrap =
+        longhorn_storage_layout::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
     let request = StorageTransitionRequest::new(
         &source_store,
         &target_store,
@@ -339,8 +343,8 @@ fn shared_product_target_is_visible_in_transition_evidence() {
     assert!(preview.conflicts().is_empty());
     assert_eq!(preview.target_selection(), &selection);
     assert_eq!(
-        preview.target_layout_digest(),
-        target.digest(),
+        preview.target_layout_digest().as_str(),
+        target.digest().as_str(),
         "transition evidence must bind the selected shared-product layout"
     );
     assert!(target.storage_roots().config().ends_with("Loophole/config"));
@@ -349,17 +353,17 @@ fn shared_product_target_is_visible_in_transition_evidence() {
 #[test]
 fn same_layout_adoption_allows_derived_workspace_under_state() {
     let fixture = TransitionFixture::new();
-    let identity = longhorn_config::StorageIdentity::new("com.inflatablecookie.loophole")
+    let identity = longhorn_storage_layout::StorageIdentity::new("com.inflatablecookie.loophole")
         .unwrap()
         .with_storage_name("Loophole")
         .unwrap();
     let facts = fixture.facts.clone().with(
-        longhorn_config::PlatformDirectoryFact::SharedData,
+        longhorn_storage_layout::PlatformDirectoryFact::SharedData,
         fixture.temp.path().join("shared-product-data"),
     );
-    let layout = longhorn_config::resolve_storage_layout(
-        &longhorn_config::StorageLayoutRequest::new(identity.clone(), facts.clone())
-            .with_profile(longhorn_config::StorageProfile::SharedProductRootV1),
+    let layout = longhorn_storage_layout::resolve_storage_layout(
+        &longhorn_storage_layout::StorageLayoutRequest::new(identity.clone(), facts.clone())
+            .with_profile(longhorn_storage_layout::StorageProfile::SharedProductRootV1),
     )
     .unwrap();
     let domain = TestDomain::new(
@@ -379,13 +383,14 @@ fn same_layout_adoption_allows_derived_workspace_under_state() {
         .join("large-retained-product-data.bin");
     fs::create_dir_all(retained.parent().unwrap()).unwrap();
     fs::write(&retained, b"not transition input").unwrap();
-    let bootstrap = longhorn_config::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let bootstrap =
+        longhorn_storage_layout::resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
     let request = StorageTransitionRequest::new(
         &source_store,
         &target_store,
         &layout,
         &layout,
-        longhorn_config::StorageProfileSelection::shared_product(),
+        longhorn_storage_layout::StorageProfileSelection::shared_product(),
         &catalog,
         bootstrap,
     );

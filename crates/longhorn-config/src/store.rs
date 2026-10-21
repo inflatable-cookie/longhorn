@@ -13,6 +13,7 @@ pub use types::{
     SourceDocument, SourcePosition, StoreError, UnavailableState,
 };
 
+use crate::StorageRootsResolve;
 use crate::{
     BackupApplication, BackupArchiveInspection, BackupCaptureError, BackupCaptureOptions,
     BackupCatalog, BackupMetadata, BackupProducer, BackupScope, BackupSnapshot, ConfigDomain,
@@ -24,8 +25,9 @@ use crate::{
     RestoreExecutionOptions, RestoreExecutionReceipt, RestoreInspection, RestoreOperationState,
     RestorePlan, RestorePlanError, RestorePrepareError, RestorePrepareOptions,
     RestoreRecoveryError, RestoreRecoveryOptions, RestoreRecoveryReceipt, RestoreStaging,
-    Sha256Digest, StorageRoots, coordination::Coordinator, registry::DomainRegistry,
+    Sha256Digest, coordination::Coordinator, registry::DomainRegistry,
 };
+use longhorn_storage_layout::StorageRoots;
 
 use self::load::{load_file, validated_default};
 

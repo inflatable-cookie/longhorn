@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::StorageRootsResolve;
 use crate::{ConfigStore, DomainLocation, ResolvedFile, coordination::CoordinationGuard};
 
 use super::{

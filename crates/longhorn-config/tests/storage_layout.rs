@@ -1,13 +1,6 @@
-//! Cross-platform storage layout profile conformance.
+//! Storage transition and legacy-discovery conformance. The pure layout,
+//! identity, and locator suites moved with `longhorn-storage-layout`.
 
-#[path = "storage_layout/behavior.rs"]
-mod behavior;
-#[path = "storage_layout/bootstrap.rs"]
-mod bootstrap;
-#[path = "storage_layout/profiles.rs"]
-mod profiles;
-#[path = "storage_layout/support.rs"]
-mod support;
 #[path = "storage_layout/transition.rs"]
 mod transition;
 #[path = "storage_layout/transition_sqlite.rs"]

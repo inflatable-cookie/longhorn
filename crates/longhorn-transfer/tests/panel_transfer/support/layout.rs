@@ -1,13 +1,15 @@
 use std::{fs, path::PathBuf, time::Duration};
 
+use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
     ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainLocation,
-    DurabilityRequirement, MutationOptions, StorageClass, StorageRoots,
+    DurabilityRequirement, MutationOptions, StorageClass,
 };
 use longhorn_core::{
     DomainId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
     SchemaVersion, SurfaceId, SurfaceRevision,
 };
+use longhorn_storage_layout::StorageRoots;
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
     PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,

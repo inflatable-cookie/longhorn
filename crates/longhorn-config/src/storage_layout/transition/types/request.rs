@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use crate::{ResolvedStorageLayout, StorageBootstrapPaths, StorageProfileSelection, StorageRoots};
+use longhorn_storage_layout::{
+    ResolvedStorageLayout, StorageBootstrapPaths, StorageProfileSelection, StorageRoots,
+};
 
 use super::{StorageTransitionDomain, StorageTransitionError, StorageTransitionUnknownFile};
 use crate::storage_layout::transition::StorageTransitionCatalog;

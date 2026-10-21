@@ -33,6 +33,7 @@ const typescriptPackages = [
 const rustCrates = [
   "longhorn-core",
   "longhorn-config",
+  "longhorn-storage-layout",
   "longhorn-settings",
   "longhorn-command",
   "longhorn-command-config",
@@ -352,6 +353,7 @@ members = [
   "consumers/loophole",
   "crates/longhorn-core",
   "crates/longhorn-config",
+  "crates/longhorn-storage-layout",
   "crates/longhorn-settings",
   "crates/longhorn-command",
   "crates/longhorn-command-config",
@@ -370,6 +372,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 [workspace.dependencies]
 longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
 longhorn-config = { path = "crates/longhorn-config", version = "${LONGHORN_VERSION}" }
+longhorn-storage-layout = { path = "crates/longhorn-storage-layout", version = "${LONGHORN_VERSION}" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "${LONGHORN_VERSION}" }
 longhorn-command = { path = "crates/longhorn-command", version = "${LONGHORN_VERSION}" }
 longhorn-command-config = { path = "crates/longhorn-command-config", version = "${LONGHORN_VERSION}" }
@@ -386,6 +389,7 @@ ${workspaceDependencies([
   "sha2",
   "tauri",
   "tempfile",
+  "toml",
   "ts-rs",
   "zip",
 ])}

@@ -72,6 +72,64 @@ substitute for choosing a coherent profile.
 Profile ids are versioned path contracts. An existing id never changes its
 resolution when Longhorn is upgraded.
 
+## Longhorn For CLI Apps
+
+A plain Rust program — a CLI with no Tauri stack — can adopt the same
+storage policy without the config store, backup, or webview machinery.
+Everything in this section is the `longhorn-storage-layout` crate: storage
+identity, the pure profile resolver, `StorageRoots`, and platform-directory
+facts. `longhorn-config` builds its store, backup, and transition machinery
+on that crate and does not re-export it, so a CLI never pulls the store to
+resolve its paths.
+
+The identity rules are the ones at the top of this guide: one immutable
+canonical application id, optionally one explicit stable storage name that
+replaces the leaf. The id is the default leaf, so an unconfigured CLI lands
+in the same directories a Tauri application with the same id lands in.
+
+A CLI supplies platform-directory facts natively instead of through Tauri:
+
+```rust
+use longhorn_storage_layout::{
+    RootKind, StorageIdentity, StorageLayoutRequest, native_platform_directory_facts,
+    resolve_storage_layout,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let identity = StorageIdentity::new("com.example.product")?;
+    let facts = native_platform_directory_facts()?;
+    let layout = resolve_storage_layout(&StorageLayoutRequest::new(identity, facts))?;
+    println!(
+        "config: {}",
+        layout.root(RootKind::Config).unwrap().path().display()
+    );
+    Ok(())
+}
+```
+
+The native provider reads the environment once and maps it exactly the way
+the Tauri adapter does, so the paths match on every platform:
+
+| Platform | Facts source |
+| --- | --- |
+| macOS | `$HOME/Library/Application Support`, `$HOME/Library/Caches`, `$HOME/Library/Logs`, system temp |
+| Linux | `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` with the spec defaults `$HOME/.config`, `$HOME/.local/share`, `$HOME/.local/state`, `$HOME/.cache`; `XDG_RUNTIME_DIR` has no default |
+| Windows | `LOCALAPPDATA`, roaming `APPDATA` for shared data, system temp |
+
+A missing `HOME`, an unset `XDG_RUNTIME_DIR`, or a missing Windows
+known-folder variable leaves its facts unavailable; resolution reports the
+gap instead of inventing a home dotfile. Per-purpose roots and profiles are
+overridable the same way as for a Tauri app — the env snapshot form
+(`native_platform_directory_facts_from`) is pure and testable, and the
+resolver rejects relative roots and paths.
+
+The full store (validated domains, atomic mutation, backup, restore) stays
+in `longhorn-config`; a CLI that needs it composes the same
+[`StorageRoots`](#configuration-in-code) round-trip shown below. For a
+hand-edited TOML file instead of JSON, `longhorn-config`'s opt-in `toml`
+feature takes human-written read-only TOML domains — see the guide's
+[Human TOML Config For CLI Apps](#human-toml-config-for-cli-apps) section.
+
 ## Domains And Databases
 
 Register one stable domain id, schema version, codec, default, storage class,
@@ -130,9 +188,10 @@ use std::time::Duration;
 use longhorn_config::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
     DomainIssue, DurabilityRequirement, LoadedOrigin, MigrationStep, MutationOptions,
-    StorageClass, StorageRoots,
+    StorageClass,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::StorageRoots;
 use serde_json::{json, Value};
 
 // A domain is a typed, validated slice of config owned by one authority.

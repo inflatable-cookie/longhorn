@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
-use crate::storage_layout::types::root_kind_id;
+use longhorn_storage_layout::root_kind_id;
 
 use super::{
     MIGRATING_ROOTS, StorageTransitionConflict, StorageTransitionConflictKind,

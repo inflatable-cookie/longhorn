@@ -8,7 +8,7 @@ use longhorn_agent_control::{
     enumerate_discovery_with, process_alive, publish_discovery, remove_discovery_file,
     resolve_discovery_dir, resolve_discovery_dir_with_state_override, sweep_stale_discovery,
 };
-use longhorn_config::{PlatformDirectoryFacts, TargetPlatform};
+use longhorn_storage_layout::{PlatformDirectoryFacts, TargetPlatform};
 use tempfile::TempDir;
 
 fn facts(platform: TargetPlatform, root: &Path) -> PlatformDirectoryFacts {

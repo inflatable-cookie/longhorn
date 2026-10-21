@@ -22,7 +22,8 @@ discovery and validation entry points.
 | Package | Responsibility | Depends on |
 | --- | --- | --- |
 | `longhorn-core` | ids, revisions, typed units, geometry, errors | none |
-| `longhorn-config` | domains, roots, coordinated safe writes, backup, ordinary restore, grouped custom-adapter restore, boot recovery | core, `cap-std`, `fs4` |
+| `longhorn-storage-layout` | storage identity, pure profile resolver, layout types, `StorageRoots`, fixed bootstrap locator, native and Tauri-injectable platform-directory facts | none (std, `serde`, `sha2`) |
+| `longhorn-config` | domains, coordinated safe writes, backup, ordinary restore, grouped custom-adapter restore, boot recovery, profile transition and legacy discovery | core, storage-layout, `cap-std`, `fs4` |
 | `longhorn-config-age` | optional authenticated binary age v1 backup envelopes | config, exact `age` adapter |
 | `longhorn-display` | known/observed displays and correlation | core |
 | `longhorn-windowing` | placement, desired/apply plans, pure event attribution and settling, host-agnostic capture/flush model and placement port | core, display |

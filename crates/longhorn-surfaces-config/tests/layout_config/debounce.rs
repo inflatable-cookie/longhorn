@@ -276,7 +276,7 @@ fn timeout_retains_same_pending_generation_for_explicit_retry() {
 
 fn external_fixture(root: &std::path::Path) -> ConfigStore {
     let data = root.join("data");
-    let roots = longhorn_config::StorageRoots::new(
+    let roots = longhorn_storage_layout::StorageRoots::new(
         root.join("config"),
         &data,
         root.join("state"),

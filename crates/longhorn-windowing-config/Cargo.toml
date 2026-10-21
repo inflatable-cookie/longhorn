@@ -13,6 +13,7 @@ longhorn-core.workspace = true
 longhorn-windowing.workspace = true
 
 [dev-dependencies]
+longhorn-storage-layout.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

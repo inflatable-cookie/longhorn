@@ -14,9 +14,10 @@ pub(super) fn exact_path(path: &Path) -> Result<String, ConfigOperationProjectio
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        PlatformDirectoryFacts, StorageIdentity, StorageLayoutProjection, StorageLayoutRequest,
-        TargetPlatform, resolve_storage_layout,
+    use crate::StorageLayoutProjection;
+    use longhorn_storage_layout::{
+        PlatformDirectoryFacts, StorageIdentity, StorageLayoutRequest, TargetPlatform,
+        resolve_storage_layout,
     };
 
     #[test]

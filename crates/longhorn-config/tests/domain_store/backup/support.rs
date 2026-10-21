@@ -1,3 +1,5 @@
+use longhorn_config::StorageRootsResolve;
+
 use super::*;
 
 pub(super) struct OpaqueDomain {

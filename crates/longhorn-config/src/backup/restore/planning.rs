@@ -4,6 +4,7 @@ use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::SchemaVersion;
 use serde_json::json;
 
+use crate::StorageRootsResolve;
 use crate::{ConfigStore, DomainLocation, ResolvedFile, Sha256Digest};
 
 use super::types::{

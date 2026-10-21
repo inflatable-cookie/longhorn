@@ -25,7 +25,7 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use longhorn_config::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
+use longhorn_storage_layout::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
 use serde_json::Value;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},

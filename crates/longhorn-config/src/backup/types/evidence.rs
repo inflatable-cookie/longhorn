@@ -22,12 +22,6 @@ impl Sha256Digest {
         Self(bytes_to_lowercase_hex(&Sha256::digest(bytes)))
     }
 
-    /// Wraps an already finalized SHA-256 output.
-    #[must_use]
-    pub(crate) fn from_output(output: &[u8]) -> Self {
-        Self(bytes_to_lowercase_hex(output))
-    }
-
     /// Validates an existing lowercase hexadecimal digest.
     pub fn new(value: impl Into<String>) -> Result<Self, Sha256DigestError> {
         let value = value.into();

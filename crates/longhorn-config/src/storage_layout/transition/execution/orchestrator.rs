@@ -1,9 +1,8 @@
 use std::fs;
 
-use crate::{
-    DomainLocation, DurabilityRequirement, Sha256Digest, StorageProfileLocator,
-    storage_layout::bootstrap::{encode_locator, locator_matches},
-};
+use crate::StorageRootsResolve;
+use crate::{DomainLocation, DurabilityRequirement, Sha256Digest};
+use longhorn_storage_layout::{StorageProfileLocator, encode_locator, locator_matches};
 
 use super::super::{
     StorageTransitionAction, StorageTransitionError, StorageTransitionExecutionOptions,
@@ -34,9 +33,13 @@ pub fn recover_storage_transition(
     let Some(active) = journal::read(&request.bootstrap)? else {
         return Ok(None);
     };
-    if active.source_layout_digest != *request.source_layout.digest()
-        || active.target_layout_digest != *request.target_layout.digest()
-    {
+    if !crate::storage_layout::layout_digest_matches(
+        &active.source_layout_digest,
+        request.source_layout.digest(),
+    ) || !crate::storage_layout::layout_digest_matches(
+        &active.target_layout_digest,
+        request.target_layout.digest(),
+    ) {
         return Err(StorageTransitionError::RecoveryRequired(
             "journal layout evidence does not match supplied layouts".into(),
         ));
@@ -47,7 +50,7 @@ pub fn recover_storage_transition(
         &request.bootstrap,
         request.source_layout.identity().canonical_application_id(),
         &active.transition_id,
-        &active.target_layout_digest,
+        &crate::storage_layout::layout_evidence(&active.target_layout_digest),
     )
     .map_err(StorageTransitionError::Locator)?;
     verify_journal_authority(request, &active, target_committed)?;
@@ -154,7 +157,9 @@ pub(crate) fn execute_inner(
             .to_owned(),
         plan.preview.target_selection.clone(),
         Some(options.transition_id.clone()),
-        Some(plan.preview.target_layout_digest.clone()),
+        Some(crate::storage_layout::layout_evidence(
+            &plan.preview.target_layout_digest,
+        )),
     );
     io::atomic_write(request.bootstrap.locator(), &encode_locator(&locator))?;
     if injected == Some(InjectedFailure::AfterLocator) {

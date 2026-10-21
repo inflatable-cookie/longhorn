@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::RootKind;
+use longhorn_storage_layout::RootKind;
 
 use super::{
     INVENTORY_ROOTS, MIGRATING_ROOTS, StorageTransitionConflict, StorageTransitionConflictKind,
@@ -84,8 +84,12 @@ pub fn inspect_storage_transition(
     let evidence_digest = evidence_digest(&domains, &source_unknown, &target_unknown, &conflicts);
     let confirmation_digest = confirmation_digest(request, &evidence_digest);
     Ok(StorageTransitionPreview {
-        source_layout_digest: request.source_layout.digest().clone(),
-        target_layout_digest: request.target_layout.digest().clone(),
+        source_layout_digest: crate::storage_layout::committed_layout_digest(
+            request.source_layout.digest(),
+        ),
+        target_layout_digest: crate::storage_layout::committed_layout_digest(
+            request.target_layout.digest(),
+        ),
         target_selection: request.target_selection.clone(),
         domains,
         source_unknown,

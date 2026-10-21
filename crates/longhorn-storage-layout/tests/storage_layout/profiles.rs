@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use longhorn_config::{
+use longhorn_storage_layout::{
     PlatformDirectoryFact, PlatformDirectoryFacts, RootKind, StorageIdentity, StorageLayoutRequest,
     StorageLayoutWarning, StorageProfile, TargetPlatform, resolve_storage_layout,
 };
@@ -200,7 +200,7 @@ fn shared_product_profile_uses_one_exact_stable_leaf_across_platforms() {
             );
             assert_eq!(
                 layout.root(kind).unwrap().provenance(),
-                longhorn_config::StorageRootProvenance::SharedProductProfile(
+                longhorn_storage_layout::StorageRootProvenance::SharedProductProfile(
                     PlatformDirectoryFact::SharedData,
                 )
             );

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use longhorn_config::{
+use longhorn_storage_layout::{
     PlatformDirectoryFact, PlatformDirectoryFacts, RootKind, StorageIdentity, StorageLayoutError,
     StorageLayoutOverrides, StorageLayoutRequest, StorageLeafProvenance, StorageProfile,
     StorageRootProvenance, TargetPlatform, resolve_storage_layout,

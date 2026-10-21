@@ -8,7 +8,7 @@ use super::{
     StorageLayoutRequest, StorageLayoutWarning, StorageLeafProvenance, StorageProfile,
     StorageRootProvenance, TargetPlatform,
 };
-use crate::{RootKind, Sha256Digest, StorageRoots};
+use crate::{RootKind, StorageLayoutDigest, StorageRoots};
 
 const REQUIRED_ROOTS: [RootKind; 7] = [
     RootKind::Config,
@@ -325,7 +325,7 @@ fn layout_digest(
     leaf_provenance: StorageLeafProvenance,
     roots: &BTreeMap<RootKind, ResolvedStorageRoot>,
     warnings: &[StorageLayoutWarning],
-) -> Sha256Digest {
+) -> StorageLayoutDigest {
     let mut digest = Sha256::new();
     digest_field(&mut digest, request.profile.id().as_bytes());
     digest_field(&mut digest, request.facts.platform().id().as_bytes());
@@ -343,7 +343,7 @@ fn layout_digest(
     for warning in warnings {
         digest_field(&mut digest, warning.id().as_bytes());
     }
-    Sha256Digest::from_output(&digest.finalize())
+    StorageLayoutDigest::from_output(&digest.finalize())
 }
 
 fn digest_field(digest: &mut Sha256, bytes: &[u8]) {

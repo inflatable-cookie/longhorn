@@ -15,8 +15,9 @@ use tempfile::TempDir;
 use crate::{
     ConfigDomain, ConfigStore, CoordinationAuthority, DebounceClock, DebouncePolicy,
     DebounceStrategy, DomainDescriptor, DomainFilePath, DomainIssue, DurabilityRequirement,
-    MutationOptions, StorageClass, StorageRoots,
+    MutationOptions, StorageClass,
 };
+use longhorn_storage_layout::StorageRoots;
 
 #[derive(Clone, Default)]
 pub(super) struct FakeClock(Arc<AtomicU64>);

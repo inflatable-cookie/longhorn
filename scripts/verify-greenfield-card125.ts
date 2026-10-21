@@ -61,6 +61,7 @@ const allRustCrates = [
   "longhorn-history",
   "longhorn-settings",
   "longhorn-settings-config",
+  "longhorn-storage-layout",
   "longhorn-surface-transfer",
   "longhorn-surface-windowing",
   "longhorn-surfaces",
@@ -79,15 +80,16 @@ const allRustCrates = [
 
 const baseRust = [
   "longhorn-config", "longhorn-core", "longhorn-settings",
-  "longhorn-settings-config", "longhorn-tauri-config", "longhorn-tauri-settings",
+  "longhorn-settings-config", "longhorn-storage-layout", "longhorn-tauri-config",
+  "longhorn-tauri-settings",
 ] as const;
 const workspaceRust = [
   "longhorn-command", "longhorn-command-config", "longhorn-command-settings",
   "longhorn-config", "longhorn-core", "longhorn-display",
-  "longhorn-surfaces", "longhorn-surfaces-config", "longhorn-settings",
-  "longhorn-settings-config", "longhorn-tauri-command", "longhorn-tauri-config",
-  "longhorn-tauri-settings", "longhorn-tauri-windowing", "longhorn-windowing",
-  "longhorn-windowing-config",
+  "longhorn-storage-layout", "longhorn-surfaces", "longhorn-surfaces-config",
+  "longhorn-settings", "longhorn-settings-config", "longhorn-tauri-command",
+  "longhorn-tauri-config", "longhorn-tauri-settings", "longhorn-tauri-windowing",
+  "longhorn-windowing", "longhorn-windowing-config",
 ] as const;
 const fullRust = [
   ...workspaceRust,
@@ -225,7 +227,10 @@ async function writeReceipt(report: {
         shape.shape,
         {
           hierarchy: [...shape.hierarchy],
-          typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"].sort(),
+          // Record what this run measured, not a constant: the in-run policy
+          // assertions are the composition claim, and the receipt is evidence
+          // of what actually resolved (bun hoisting moves peer ranges).
+          typescript: [...shape.typescriptPackages].sort(),
           rust: [...shape.rust.rustPackages].sort(),
         },
       ];

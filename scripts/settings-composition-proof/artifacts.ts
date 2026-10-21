@@ -17,6 +17,7 @@ export const POODLE_RELEASE = poodleRelease();
 const rustCrates = [
   "longhorn-core",
   "longhorn-config",
+  "longhorn-storage-layout",
   "longhorn-settings",
   "longhorn-settings-config",
   "longhorn-tauri-settings",
@@ -200,6 +201,7 @@ members = [
   "consumer",
   "crates/longhorn-core",
   "crates/longhorn-config",
+  "crates/longhorn-storage-layout",
   "crates/longhorn-settings",
   "crates/longhorn-settings-config",
   "crates/longhorn-tauri-settings",
@@ -217,6 +219,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 [workspace.dependencies]
 longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
 longhorn-config = { path = "crates/longhorn-config", version = "${LONGHORN_VERSION}" }
+longhorn-storage-layout = { path = "crates/longhorn-storage-layout", version = "${LONGHORN_VERSION}" }
 longhorn-settings = { path = "crates/longhorn-settings", version = "${LONGHORN_VERSION}" }
 longhorn-settings-config = { path = "crates/longhorn-settings-config", version = "${LONGHORN_VERSION}" }
 longhorn-tauri-settings = { path = "crates/longhorn-tauri-settings", version = "${LONGHORN_VERSION}" }
@@ -232,6 +235,7 @@ ${workspaceDependencies([
   "sha2",
   "tauri",
   "tempfile",
+  "toml",
   "ts-rs",
   "zip",
 ])}

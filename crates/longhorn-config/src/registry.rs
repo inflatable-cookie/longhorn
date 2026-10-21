@@ -7,7 +7,9 @@ use std::{
 
 use longhorn_core::DomainId;
 
-use crate::{DomainDescriptor, DomainLocation, RootKind, StorageRoots};
+use crate::StorageRootsResolve;
+use crate::{DomainDescriptor, DomainLocation};
+use longhorn_storage_layout::{RootKind, StorageRoots};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum LocationKey {
