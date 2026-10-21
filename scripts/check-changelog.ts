@@ -9,7 +9,9 @@
 // reports it as a blocker and exits nonzero, so the exit code alone cannot
 // tell it from a parse error. The JSON can: a parse error has no `details`,
 // while the empty section reports `changelog.valid: true`, `unreleased.empty:
-// true`, and that one blocker.
+// true`, and that one blocker. Released Effigy 0.14.1 and the local build print
+// that shape alike (`effigy.release.status.v1`); they differ on which changelog
+// text they accept, which is why `EFFIGY_BIN` exists.
 
 import { resolve } from "node:path";
 
@@ -30,6 +32,15 @@ type ReleaseStatusEnvelope = {
 export type ChangelogVerdict =
   | { outcome: "pass"; note: string }
   | { outcome: "fail"; reason: string };
+
+// The workflows install the released Effigy through `inflatable-cookie/setup-effigy`,
+// which can parse CHANGELOG.md differently from a newer local build
+// (longhorn#063: 0.14.1 refused an unindented continuation line). `EFFIGY_BIN`
+// points this check at one exact binary; unset, it uses `effigy` from PATH.
+export function effigyBinary(): string {
+  const override = process.env.EFFIGY_BIN?.trim();
+  return override === undefined || override === "" ? "effigy" : override;
+}
 
 function parseEnvelope(stdout: string): ReleaseStatusEnvelope | undefined {
   try {
@@ -65,7 +76,7 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
 }
 
 export async function checkChangelog(repoRoot = defaultRepoRoot): Promise<ChangelogVerdict> {
-  const proc = Bun.spawn(["effigy", "--json", "release", "status"], {
+  const proc = Bun.spawn([effigyBinary(), "--json", "release", "status"], {
     cwd: repoRoot,
     stdout: "pipe",
     stderr: "pipe",

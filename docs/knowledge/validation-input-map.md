@@ -577,8 +577,15 @@ Effigy's release parser accepts `CHANGELOG.md`, then `effigy docs check links
 CHANGELOG.md`. It fails on an unknown category (the longhorn#049 `Release facts`
 case) or a malformed release heading. An empty `[Unreleased]` passes: Effigy
 exits nonzero there, but reports it as a blocker on a valid changelog, and the
-script reads that JSON shape rather than the exit code. Limits: does not judge
-release wording or whether entries are accurate.
+script reads that JSON shape rather than the exit code. Release `0.14.1`, the
+version `release.yml` and `ci.yml` install through `setup-effigy`, and a newer
+local build differ on which changelog text they accept: 0.14.1 refused an
+unindented continuation line inside a category entry as `unexpected content in
+category`, and the local build accepted it (longhorn#063). Keep every
+continuation line of a multi-line entry indented. `EFFIGY_BIN` points the check
+at one exact binary; the tests use it to check the released version without
+replacing the installed one. Limits: does not judge release wording or whether
+entries are accurate.
 
 `proof:guides-card126` runs `scripts/verify-guides-card126.ts` as a standalone
 selector and remains one of the fourteen `proof:artifacts` members. The
