@@ -6,6 +6,8 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-21
+
 ### Breaking
 - **Storage identity, layout resolution, `StorageRoots`, and the bootstrap locator moved from `longhorn-config` to a new `longhorn-storage-layout` crate.** The moved surface is `StorageIdentity` (with its error types), `resolve_storage_layout`, `StorageLayoutRequest`, `StorageLayoutOverrides`, `ResolvedStorageLayout`, `ResolvedStorageRoot`, `StorageLayoutDiagnostic`, `StorageLayoutError`, `StorageProfile`, `StorageProfileIdError`, `StorageLayoutWarning`, `StorageLeafProvenance`, `StorageRootProvenance`, `PlatformDirectoryFact(s)`, `TargetPlatform`, `RootKind`, `AccessMode`, `StorageRoots`, `StorageRootError`, `root_kind_id`, `resolve_storage_bootstrap_paths`, `inspect_storage_bootstrap`, `StorageBootstrapState`, `StorageBootstrapSelection`, `StorageBootstrapPaths`, `StorageBootstrapOrigin`, `StorageBootstrapRecovery(Kind)`, `StorageProfileLocator`, `StorageProfileSelection(Error)`, and `encode_locator`/`locator_matches`. Imports change from `longhorn_config::…` to `longhorn_storage_layout::…` with no re-export shim (decision 6f239e7b); `longhorn-config` signatures may still take the moved types. The layout digest type is now `StorageLayoutDigest` (same validated lowercase-hex SHA-256 content; `longhorn-config` converts at the transition boundary). `StorageRoots::resolve(&DomainDescriptor)` stays in `longhorn-config` as the `StorageRootsResolve` extension trait. Paths on disk do not change: profiles, profile ids, leaf rules, and the fixed locator path are identical.
 
