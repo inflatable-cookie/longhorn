@@ -6,6 +6,8 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-21
+
 ### Added
 - **`longhorn-pty`: bounded pseudo-terminal sessions.** Runs one caller-selected child with an exact caller environment, streams raw output in 8 KiB chunks through an eight-event bounded queue, writes input, resizes the controlling terminal, and closes the process group with a 300 ms `SIGHUP` grace before `SIGKILL`. Child exit is reaped once and reported as a typed code or signal; post-exit operations are `Ended`. Contract 028 owns the API and compatibility deltas from Acowtancy Desktop's `pty.rs`.
 - **`longhorn-tool-provision`: synchronous managed-tool install, health and login-shell PATH (part 4c).** `install_tool` composes release resolution and bounded download with the verified-artifact gate, extraction, optional vendor-team check, a scripted version probe, floor and pin rules, per-binary concurrency refusal, an atomic replace with rollback, and an atomic JSON receipt. A host-injected runner starts fixed programs with argument vectors; probe output passes through `longhorn-redact` and `longhorn-support-log` before errors retain it. `tool_health` reports installed, absent or broken state. `LoginPathCache` reads neutral markers from the fixed login-shell script, caches the PATH, and supports refresh with a process-PATH fallback. Catalogue entries, install roots, user bin paths and user-facing stage labels stay with the consumer. Contract 027 owns the protocol and compatibility deltas.
