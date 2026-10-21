@@ -48,6 +48,47 @@ impl PlatformEnvironment {
         }
     }
 
+    fn from_process_for(platform: TargetPlatform, fact: PlatformDirectoryFact) -> Self {
+        let variable = |name: &str| env::var_os(name).map(PathBuf::from);
+        let mut environment = Self::default();
+        match (platform, fact) {
+            (TargetPlatform::MacOs, PlatformDirectoryFact::Runtime)
+            | (TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
+                environment.temp_dir = Some(env::temp_dir());
+            }
+            (TargetPlatform::MacOs, _) => environment.home_dir = variable("HOME"),
+            (TargetPlatform::Windows, PlatformDirectoryFact::SharedData) => {
+                environment.windows_roaming_app_data = variable("APPDATA");
+            }
+            (TargetPlatform::Windows, _) => {
+                environment.windows_local_app_data = variable("LOCALAPPDATA");
+            }
+            (TargetPlatform::Linux, PlatformDirectoryFact::Config) => {
+                environment.home_dir = variable("HOME");
+                environment.xdg_config_home = variable("XDG_CONFIG_HOME");
+            }
+            (
+                TargetPlatform::Linux,
+                PlatformDirectoryFact::Data | PlatformDirectoryFact::SharedData,
+            ) => {
+                environment.home_dir = variable("HOME");
+                environment.xdg_data_home = variable("XDG_DATA_HOME");
+            }
+            (TargetPlatform::Linux, PlatformDirectoryFact::State | PlatformDirectoryFact::Log) => {
+                environment.home_dir = variable("HOME");
+                environment.xdg_state_home = variable("XDG_STATE_HOME");
+            }
+            (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => {
+                environment.home_dir = variable("HOME");
+                environment.xdg_cache_home = variable("XDG_CACHE_HOME");
+            }
+            (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => {
+                environment.xdg_runtime_dir = variable("XDG_RUNTIME_DIR");
+            }
+        }
+        environment
+    }
+
     /// Replaces the home directory entry.
     #[must_use]
     pub fn with_home_dir(mut self, home_dir: Option<PathBuf>) -> Self {
@@ -154,16 +195,37 @@ impl Error for NativePlatformFactsError {}
 /// invented as a home dotfile.
 pub fn native_platform_directory_facts() -> Result<PlatformDirectoryFacts, NativePlatformFactsError>
 {
-    let platform = match std::env::consts::OS {
-        "macos" => TargetPlatform::MacOs,
-        "windows" => TargetPlatform::Windows,
-        "linux" => TargetPlatform::Linux,
-        _ => return Err(NativePlatformFactsError::UnsupportedPlatform),
-    };
+    let platform = native_target_platform()?;
     Ok(native_platform_directory_facts_from(
         platform,
         &PlatformEnvironment::from_process(),
     ))
+}
+
+/// Reads only the environment entries needed for one native directory fact.
+///
+/// The returned fact set contains at most the requested fact, and can be
+/// passed directly to [`crate::StorageLayoutRequest`]. If the host has no
+/// value for the requested fact, the set is empty for that platform and
+/// resolving a root that needs it reports `MissingPlatformFact`.
+pub fn native_platform_directory_fact(
+    fact: PlatformDirectoryFact,
+) -> Result<PlatformDirectoryFacts, NativePlatformFactsError> {
+    let platform = native_target_platform()?;
+    Ok(native_platform_directory_fact_from(
+        platform,
+        fact,
+        &PlatformEnvironment::from_process_for(platform, fact),
+    ))
+}
+
+fn native_target_platform() -> Result<TargetPlatform, NativePlatformFactsError> {
+    match std::env::consts::OS {
+        "macos" => Ok(TargetPlatform::MacOs),
+        "windows" => Ok(TargetPlatform::Windows),
+        "linux" => Ok(TargetPlatform::Linux),
+        _ => Err(NativePlatformFactsError::UnsupportedPlatform),
+    }
 }
 
 /// Maps one environment snapshot to platform directory facts for one platform.
@@ -185,70 +247,87 @@ pub fn native_platform_directory_facts_from(
     platform: TargetPlatform,
     environment: &PlatformEnvironment,
 ) -> PlatformDirectoryFacts {
-    match platform {
-        TargetPlatform::MacOs => macos_facts(environment),
-        TargetPlatform::Windows => windows_facts(environment),
-        TargetPlatform::Linux => linux_facts(environment),
+    let mut facts = PlatformDirectoryFacts::new(platform);
+    for fact in [
+        PlatformDirectoryFact::Config,
+        PlatformDirectoryFact::Data,
+        PlatformDirectoryFact::State,
+        PlatformDirectoryFact::Cache,
+        PlatformDirectoryFact::Log,
+        PlatformDirectoryFact::Runtime,
+        PlatformDirectoryFact::SharedData,
+    ] {
+        if let Some(path) = native_directory_path_from(platform, fact, environment) {
+            facts = facts.with(fact, path);
+        }
     }
+    facts
 }
 
-fn macos_facts(environment: &PlatformEnvironment) -> PlatformDirectoryFacts {
-    let home = environment.home();
-    let support = home.map(|home| home.join("Library").join("Application Support"));
-    let cache = home.map(|home| home.join("Library").join("Caches"));
-    let log = home.map(|home| home.join("Library").join("Logs"));
-    let runtime = absolute(environment.temp_dir.as_ref());
-    facts_with(
-        TargetPlatform::MacOs,
-        support.clone(),
-        support.clone(),
-        support.clone(),
-        cache,
-        log,
-        runtime,
-        support,
-    )
+/// Maps one environment snapshot to a fact for one platform.
+///
+/// The returned set contains only `fact` when its source is valid; otherwise
+/// it is empty. A relative XDG value is ignored in favour of the spec default,
+/// except `XDG_RUNTIME_DIR`, which has no default.
+#[must_use]
+pub fn native_platform_directory_fact_from(
+    platform: TargetPlatform,
+    fact: PlatformDirectoryFact,
+    environment: &PlatformEnvironment,
+) -> PlatformDirectoryFacts {
+    let mut facts = PlatformDirectoryFacts::new(platform);
+    if let Some(path) = native_directory_path_from(platform, fact, environment) {
+        facts = facts.with(fact, path);
+    }
+    facts
 }
 
-fn windows_facts(environment: &PlatformEnvironment) -> PlatformDirectoryFacts {
-    let local = absolute(environment.windows_local_app_data.as_ref());
-    let roaming = absolute(environment.windows_roaming_app_data.as_ref());
-    let runtime = absolute(environment.temp_dir.as_ref());
-    facts_with(
-        TargetPlatform::Windows,
-        local.clone(),
-        local.clone(),
-        local.clone(),
-        local.clone(),
-        local,
-        runtime,
-        roaming,
-    )
-}
-
-fn linux_facts(environment: &PlatformEnvironment) -> PlatformDirectoryFacts {
-    let config = environment.xdg(environment.xdg_config_home.as_ref(), |home| {
-        home.join(".config")
-    });
-    let data = environment.xdg(environment.xdg_data_home.as_ref(), |home| {
-        home.join(".local").join("share")
-    });
-    let state = environment.xdg(environment.xdg_state_home.as_ref(), |home| {
-        home.join(".local").join("state")
-    });
-    let cache = environment.xdg(environment.xdg_cache_home.as_ref(), |home| {
-        home.join(".cache")
-    });
-    facts_with(
-        TargetPlatform::Linux,
-        config,
-        data.clone(),
-        state.clone(),
-        cache,
-        state,
-        absolute(environment.xdg_runtime_dir.as_ref()),
-        data,
-    )
+fn native_directory_path_from(
+    platform: TargetPlatform,
+    fact: PlatformDirectoryFact,
+    environment: &PlatformEnvironment,
+) -> Option<PathBuf> {
+    match (platform, fact) {
+        (TargetPlatform::MacOs, PlatformDirectoryFact::Runtime)
+        | (TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
+            absolute(environment.temp_dir.as_ref())
+        }
+        (TargetPlatform::MacOs, PlatformDirectoryFact::Cache) => environment
+            .home()
+            .map(|home| home.join("Library").join("Caches")),
+        (TargetPlatform::MacOs, PlatformDirectoryFact::Log) => environment
+            .home()
+            .map(|home| home.join("Library").join("Logs")),
+        (TargetPlatform::MacOs, _) => environment
+            .home()
+            .map(|home| home.join("Library").join("Application Support")),
+        (TargetPlatform::Windows, PlatformDirectoryFact::SharedData) => {
+            absolute(environment.windows_roaming_app_data.as_ref())
+        }
+        (TargetPlatform::Windows, _) => absolute(environment.windows_local_app_data.as_ref()),
+        (TargetPlatform::Linux, PlatformDirectoryFact::Config) => environment
+            .xdg(environment.xdg_config_home.as_ref(), |home| {
+                home.join(".config")
+            }),
+        (
+            TargetPlatform::Linux,
+            PlatformDirectoryFact::Data | PlatformDirectoryFact::SharedData,
+        ) => environment.xdg(environment.xdg_data_home.as_ref(), |home| {
+            home.join(".local").join("share")
+        }),
+        (TargetPlatform::Linux, PlatformDirectoryFact::State | PlatformDirectoryFact::Log) => {
+            environment.xdg(environment.xdg_state_home.as_ref(), |home| {
+                home.join(".local").join("state")
+            })
+        }
+        (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => environment
+            .xdg(environment.xdg_cache_home.as_ref(), |home| {
+                home.join(".cache")
+            }),
+        (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => {
+            absolute(environment.xdg_runtime_dir.as_ref())
+        }
+    }
 }
 
 fn absolute(value: Option<&PathBuf>) -> Option<PathBuf> {
@@ -256,34 +335,6 @@ fn absolute(value: Option<&PathBuf>) -> Option<PathBuf> {
         .map(PathBuf::as_path)
         .filter(|path| !path.as_os_str().is_empty() && path.is_absolute())
         .map(Path::to_path_buf)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn facts_with(
-    platform: TargetPlatform,
-    config: Option<PathBuf>,
-    data: Option<PathBuf>,
-    state: Option<PathBuf>,
-    cache: Option<PathBuf>,
-    log: Option<PathBuf>,
-    runtime: Option<PathBuf>,
-    shared_data: Option<PathBuf>,
-) -> PlatformDirectoryFacts {
-    let mut facts = PlatformDirectoryFacts::new(platform);
-    for (fact, path) in [
-        (PlatformDirectoryFact::Config, config),
-        (PlatformDirectoryFact::Data, data),
-        (PlatformDirectoryFact::State, state),
-        (PlatformDirectoryFact::Cache, cache),
-        (PlatformDirectoryFact::Log, log),
-        (PlatformDirectoryFact::Runtime, runtime),
-        (PlatformDirectoryFact::SharedData, shared_data),
-    ] {
-        if let Some(path) = path {
-            facts = facts.with(fact, path);
-        }
-    }
-    facts
 }
 
 #[cfg(test)]
@@ -516,6 +567,76 @@ mod tests {
             PlatformDirectoryFact::SharedData,
         ] {
             assert_eq!(facts.get(unavailable), None, "{unavailable:?} invented");
+        }
+    }
+
+    #[test]
+    fn lazy_fact_matches_the_eager_provider_for_existing_environment_shapes() {
+        let snapshots = [
+            (TargetPlatform::MacOs, macos_home("/Users/example")),
+            (
+                TargetPlatform::MacOs,
+                PlatformEnvironment::default().with_temp_dir(home("/private/tmp")),
+            ),
+            (
+                TargetPlatform::Linux,
+                linux_home("/home/example")
+                    .with_xdg_config_home(home("/xdg/config"))
+                    .with_xdg_data_home(home("/xdg/data"))
+                    .with_xdg_state_home(home("/xdg/state"))
+                    .with_xdg_cache_home(home("/xdg/cache"))
+                    .with_xdg_runtime_dir(home("/run/user/1000")),
+            ),
+            (TargetPlatform::Linux, linux_home("/home/example")),
+            (
+                TargetPlatform::Linux,
+                linux_home("/home/example").with_xdg_runtime_dir(home("run/user")),
+            ),
+            (TargetPlatform::Linux, linux_home("home/example")),
+            (
+                TargetPlatform::Linux,
+                PlatformEnvironment::default().with_home_dir(Some(PathBuf::new())),
+            ),
+            (
+                TargetPlatform::Windows,
+                PlatformEnvironment::default()
+                    .with_temp_dir(home("/windows/Temp"))
+                    .with_windows_local_app_data(home("/windows/LocalAppData"))
+                    .with_windows_roaming_app_data(home("/windows/RoamingAppData")),
+            ),
+            (
+                TargetPlatform::Windows,
+                PlatformEnvironment::default().with_temp_dir(home("/windows/Temp")),
+            ),
+        ];
+
+        for (platform, environment) in snapshots {
+            let eager = native_platform_directory_facts_from(platform, &environment);
+            for fact in [
+                PlatformDirectoryFact::Config,
+                PlatformDirectoryFact::Data,
+                PlatformDirectoryFact::State,
+                PlatformDirectoryFact::Cache,
+                PlatformDirectoryFact::Log,
+                PlatformDirectoryFact::Runtime,
+                PlatformDirectoryFact::SharedData,
+            ] {
+                let lazy = native_platform_directory_fact_from(platform, fact, &environment);
+                assert_eq!(lazy.get(fact), eager.get(fact), "{platform:?} {fact:?}");
+                for other in [
+                    PlatformDirectoryFact::Config,
+                    PlatformDirectoryFact::Data,
+                    PlatformDirectoryFact::State,
+                    PlatformDirectoryFact::Cache,
+                    PlatformDirectoryFact::Log,
+                    PlatformDirectoryFact::Runtime,
+                    PlatformDirectoryFact::SharedData,
+                ] {
+                    if other != fact {
+                        assert_eq!(lazy.get(other), None, "lazy call returned {other:?}");
+                    }
+                }
+            }
         }
     }
 }

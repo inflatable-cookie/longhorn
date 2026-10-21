@@ -123,6 +123,42 @@ overridable the same way as for a Tauri app — the env snapshot form
 (`native_platform_directory_facts_from`) is pure and testable, and the
 resolver rejects relative roots and paths.
 
+A CLI that needs only a few locations can resolve each one on demand. The
+single-fact provider reads only the environment entries needed for that fact,
+and the request may contain that one fact. Missing inputs for other roots do
+not block the call:
+
+```rust
+use std::{error::Error, io};
+
+use longhorn_storage_layout::{
+    PlatformDirectoryFact, RootKind, StorageIdentity, StorageLayoutRequest,
+    native_platform_directory_fact, resolve_storage_root,
+};
+
+fn print_selected_roots() -> Result<(), Box<dyn Error>> {
+    let identity = StorageIdentity::new("com.example.product")?;
+    for (kind, fact) in [
+        (RootKind::Config, PlatformDirectoryFact::Config),
+        (RootKind::Cache, PlatformDirectoryFact::Cache),
+        (RootKind::State, PlatformDirectoryFact::State),
+    ] {
+        let request = StorageLayoutRequest::new(
+            identity.clone(),
+            native_platform_directory_fact(fact)?,
+        );
+        let root = resolve_storage_root(&request, kind)?
+            .ok_or_else(|| io::Error::other("required root was absent"))?;
+        println!("{kind:?}: {}", root.path().display());
+    }
+    Ok(())
+}
+```
+
+On Linux, config, cache, and state still resolve from `HOME` defaults when
+`XDG_RUNTIME_DIR` is unset. Asking for runtime reports the missing runtime
+fact. A root override needs no platform fact or home environment entry.
+
 The full store (validated domains, atomic mutation, backup, restore) stays
 in `longhorn-config`; a CLI that needs it composes the same
 [`StorageRoots`](#configuration-in-code) round-trip shown below. For a

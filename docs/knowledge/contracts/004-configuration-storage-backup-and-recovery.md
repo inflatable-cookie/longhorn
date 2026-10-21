@@ -47,6 +47,17 @@ to the current directory or a home-directory dotfile.
   is unavailable is reported, never invented.
 - Pure storage code receives platform-directory facts, storage identity,
   profile selection, and explicit overrides through dependency injection.
+- `resolve_storage_root` resolves one requested root with the same profile,
+  fact, and override rules as `resolve_storage_layout`. Its request may carry
+  only the facts that root needs; a root override needs no platform fact.
+  Workspace derives from state unless overridden. Policy and project roots are
+  absent until explicitly overridden. A one-root result has no layout digest;
+  `resolve_storage_layout` remains the complete, digest-bearing projection.
+- Hosts may request one native directory fact at a time. The native provider
+  reads only the environment entries for that fact, while its snapshot form
+  is pure. Linux ignores relative `XDG_*` directory values and uses the spec
+  default where one exists; runtime has no default. The eager provider keeps
+  its complete-facts behavior by collecting the same per-fact mapping.
 - Resolution does no filesystem or environment access. It returns a complete
   layout, provenance, warnings, and typed failures.
 - Tauri adapters resolve platform-directory facts through the application path

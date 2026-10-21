@@ -4,6 +4,8 @@
 mod behavior;
 #[path = "storage_layout/bootstrap.rs"]
 mod bootstrap;
+#[path = "storage_layout/per_root.rs"]
+mod per_root;
 #[path = "storage_layout/profiles.rs"]
 mod profiles;
 #[path = "storage_layout/support.rs"]
