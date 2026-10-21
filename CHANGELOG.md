@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-config`: read-only human-written TOML domains (contract 004, phase 1).** A domain can declare its file a human-written TOML document, opt-in per domain behind the new `toml` feature (`DomainDescriptor::new_toml`, `.toml` file paths). Longhorn reads the file, maps it to the domain's JSON value model, validates it, and migrates it in memory; the file holds the value only, with the reserved optional `schema_version` key (missing means current). Parse, schema-version and type-mapping refusals are typed recovery states with a one-based line and column. Every write path — mutation, checked mutation, debounced flush, destructive migration rewrite, and restore — refuses with a typed error naming the domain as human-written and read-only, and the file is never touched. Backups record the domain as an explicit exclusion (`human-written, read-only in phase 1`); an explicit catalogue include is refused. Off by default: without the feature no TOML code or dependency compiles and JSON domains are byte-identical. The new `test:config-toml` selector runs the feature-gated suite and joins `qa`.
+
 ## [0.3.4] - 2026-10-21
 
 ### Added

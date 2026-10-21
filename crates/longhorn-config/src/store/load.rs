@@ -2,15 +2,21 @@ use std::{io, path::PathBuf};
 
 use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::SchemaVersion;
+use serde_json::Value;
 
 use crate::{ConfigDomain, DomainIssue, MigrationStep, ResolvedFile};
 
 use super::{
     LoadDiagnostic, LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, RecoveryKind,
-    RecoveryState, SourceDocument, document::SerializedDocument,
+    RecoveryState, SourceDocument, SourcePosition, document::SerializedDocument,
 };
 
 pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> LoadOutcome<D::Value> {
+    #[cfg(feature = "toml")]
+    if domain.descriptor().is_human_toml() {
+        return crate::toml_domain::load_toml_file(domain, file);
+    }
+
     let source = match read_source(file) {
         Ok(source) => source,
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
@@ -22,6 +28,7 @@ pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> Loa
                 path: Some(file.full_path().to_path_buf()),
                 source: None,
                 detail: error.to_string(),
+                position: None,
             });
         }
     };
@@ -29,7 +36,7 @@ pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> Loa
     load_source(domain, source)
 }
 
-fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
+pub(crate) fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
     let directory = Dir::open_ambient_dir(file.root(), ambient_authority())?;
     let bytes = directory.read(file.relative_path().as_path())?;
 
@@ -39,7 +46,7 @@ fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
     })
 }
 
-pub(super) fn validated_default<D: ConfigDomain>(
+pub(crate) fn validated_default<D: ConfigDomain>(
     domain: &D,
     path: Option<PathBuf>,
     missing: bool,
@@ -51,6 +58,7 @@ pub(super) fn validated_default<D: ConfigDomain>(
             path,
             None,
             issue,
+            None,
         ));
     }
 
@@ -84,6 +92,7 @@ pub(crate) fn load_source<D: ConfigDomain>(
                 path: Some(source.path.clone()),
                 source: Some(source),
                 detail: error.to_string(),
+                position: None,
             });
         }
     };
@@ -99,6 +108,7 @@ pub(crate) fn load_source<D: ConfigDomain>(
                 descriptor.id(),
                 document.domain
             ),
+            position: None,
         });
     }
 
@@ -112,6 +122,7 @@ pub(crate) fn load_source<D: ConfigDomain>(
                 document.schema_version,
                 descriptor.schema_version()
             ),
+            position: None,
         });
     }
 
@@ -123,10 +134,28 @@ fn migrate_and_decode<D: ConfigDomain>(
     source: SourceDocument,
     document: SerializedDocument,
 ) -> LoadOutcome<D::Value> {
+    migrate_from(
+        domain,
+        source,
+        document.schema_version,
+        document.value,
+        None,
+    )
+}
+
+/// Validates, migrates in memory, and decodes a raw value declared at
+/// `version`. `content_position` pins domain issues on the file's own content
+/// to the document start for human TOML loads; JSON loads pass `None`.
+pub(crate) fn migrate_from<D: ConfigDomain>(
+    domain: &D,
+    source: SourceDocument,
+    version: SchemaVersion,
+    mut value: Value,
+    content_position: Option<SourcePosition>,
+) -> LoadOutcome<D::Value> {
     let descriptor = domain.descriptor();
-    let original_version = document.schema_version;
-    let mut version = original_version;
-    let mut value = document.value;
+    let mut version = version;
+    let source_version = version;
 
     if let Err(issue) = domain.validate_raw(version, &value) {
         return LoadOutcome::Recovery(recovery_from_issue(
@@ -134,6 +163,7 @@ fn migrate_and_decode<D: ConfigDomain>(
             Some(source.path.clone()),
             Some(source),
             issue,
+            content_position,
         ));
     }
 
@@ -146,6 +176,7 @@ fn migrate_and_decode<D: ConfigDomain>(
                     path: Some(source.path.clone()),
                     source: Some(source),
                     detail: format!("schema {version} cannot advance"),
+                    position: None,
                 });
             }
         };
@@ -158,6 +189,7 @@ fn migrate_and_decode<D: ConfigDomain>(
                     path: Some(source.path.clone()),
                     source: Some(source),
                     detail: format!("missing migration from schema {version}"),
+                    position: None,
                 });
             }
             Err(issue) => {
@@ -166,6 +198,7 @@ fn migrate_and_decode<D: ConfigDomain>(
                     Some(source.path.clone()),
                     Some(source),
                     issue,
+                    content_position,
                 ));
             }
         };
@@ -180,6 +213,7 @@ fn migrate_and_decode<D: ConfigDomain>(
                 Some(source.path.clone()),
                 Some(source),
                 issue,
+                content_position,
             ));
         }
 
@@ -195,6 +229,7 @@ fn migrate_and_decode<D: ConfigDomain>(
                 Some(source.path.clone()),
                 Some(source),
                 issue,
+                content_position,
             ));
         }
     };
@@ -204,14 +239,15 @@ fn migrate_and_decode<D: ConfigDomain>(
             Some(source.path.clone()),
             Some(source),
             issue,
+            content_position,
         ));
     }
 
-    let origin = if original_version == version {
+    let origin = if source_version == version {
         LoadedOrigin::File
     } else {
         LoadedOrigin::MigratedInMemory {
-            from: original_version,
+            from: source_version,
             to: version,
         }
     };
@@ -239,6 +275,7 @@ fn invalid_migration_step(
             "migration from schema {from} returned schema {}; expected {expected}",
             step.schema_version
         ),
+        position: None,
     }
 }
 
@@ -247,11 +284,13 @@ fn recovery_from_issue(
     path: Option<PathBuf>,
     source: Option<SourceDocument>,
     issue: DomainIssue,
+    position: Option<SourcePosition>,
 ) -> RecoveryState {
     RecoveryState {
         kind,
         path,
         source,
         detail: format!("{}: {}", issue.code, issue.message),
+        position,
     }
 }

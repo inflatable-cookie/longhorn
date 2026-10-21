@@ -4,6 +4,20 @@ use longhorn_core::{DomainId, SchemaVersion};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// On-disk document format of one file-backed domain.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum DocumentFormat {
+    /// A versioned JSON envelope written and read by Longhorn.
+    Json,
+    /// A human-written TOML document holding the domain value only.
+    ///
+    /// Requires the `toml` feature. The file is read-only: Longhorn reads,
+    /// validates, and migrates it in memory, and never writes it.
+    #[cfg(feature = "toml")]
+    Toml,
+}
+
 /// Persistence authority and default root for a configuration domain.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -36,18 +50,32 @@ impl StorageClass {
     }
 }
 
-/// Portable relative path for one JSON domain file.
+/// Portable relative path for one domain file.
 ///
 /// Paths use `/` separators and ASCII alphanumeric, `.`, `_`, or `-`
-/// characters in each segment. They must end in `.json`.
+/// characters in each segment. [`DomainFilePath::new`] requires a `.json`
+/// suffix for ordinary JSON domains; [`DomainFilePath::new_toml`] requires
+/// `.toml` for human-written TOML domains behind the `toml` feature.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct DomainFilePath(String);
 
 impl DomainFilePath {
     /// Validates and constructs a domain file path.
     pub fn new(value: impl Into<String>) -> Result<Self, DomainFilePathError> {
-        let value = value.into();
+        Self::validate(value.into(), ".json", DomainFilePathError::NotJson)
+    }
 
+    /// Validates and constructs a human-written TOML domain file path.
+    #[cfg(feature = "toml")]
+    pub fn new_toml(value: impl Into<String>) -> Result<Self, DomainFilePathError> {
+        Self::validate(value.into(), ".toml", DomainFilePathError::NotToml)
+    }
+
+    fn validate(
+        value: String,
+        suffix: &str,
+        suffix_error: DomainFilePathError,
+    ) -> Result<Self, DomainFilePathError> {
         if value.is_empty() {
             return Err(DomainFilePathError::Empty);
         }
@@ -69,8 +97,8 @@ impl DomainFilePath {
             }
         }
 
-        if !value.ends_with(".json") {
-            return Err(DomainFilePathError::NotJson);
+        if !value.ends_with(suffix) {
+            return Err(suffix_error);
         }
 
         Ok(Self(value))
@@ -116,6 +144,9 @@ pub enum DomainFilePathError {
     },
     /// The path did not end in `.json`.
     NotJson,
+    /// The path did not end in `.toml`.
+    #[cfg(feature = "toml")]
+    NotToml,
 }
 
 impl fmt::Display for DomainFilePathError {
@@ -136,6 +167,8 @@ impl fmt::Display for DomainFilePathError {
                 )
             }
             Self::NotJson => formatter.write_str("domain file path must end in .json"),
+            #[cfg(feature = "toml")]
+            Self::NotToml => formatter.write_str("domain file path must end in .toml"),
         }
     }
 }
@@ -149,6 +182,7 @@ pub struct DomainDescriptor {
     schema_version: SchemaVersion,
     storage_class: StorageClass,
     file_path: Option<DomainFilePath>,
+    file_format: DocumentFormat,
 }
 
 impl DomainDescriptor {
@@ -174,6 +208,26 @@ impl DomainDescriptor {
             schema_version,
             storage_class,
             file_path,
+            file_format: DocumentFormat::Json,
+        })
+    }
+
+    /// Constructs a descriptor whose file is a human-written TOML document.
+    ///
+    /// Requires the `toml` feature and a `.toml` file path. Every mutation
+    /// path refuses the domain: Longhorn reads, validates, and migrates the
+    /// file in memory and never writes it (contract 004, phase 1).
+    #[cfg(feature = "toml")]
+    pub fn new_toml(
+        id: DomainId,
+        schema_version: SchemaVersion,
+        storage_class: StorageClass,
+        file_path: Option<DomainFilePath>,
+    ) -> Result<Self, DomainDescriptorError> {
+        let descriptor = Self::new(id, schema_version, storage_class, file_path)?;
+        Ok(Self {
+            file_format: DocumentFormat::Toml,
+            ..descriptor
         })
     }
 
@@ -199,6 +253,19 @@ impl DomainDescriptor {
     #[must_use]
     pub fn file_path(&self) -> Option<&DomainFilePath> {
         self.file_path.as_ref()
+    }
+
+    /// Returns the declared on-disk document format.
+    #[must_use]
+    pub const fn file_format(&self) -> DocumentFormat {
+        self.file_format
+    }
+
+    /// Returns whether the file is a human-written TOML document.
+    #[cfg(feature = "toml")]
+    #[must_use]
+    pub const fn is_human_toml(&self) -> bool {
+        matches!(self.file_format, DocumentFormat::Toml)
     }
 }
 
@@ -345,5 +412,31 @@ mod tests {
                 storage_class: StorageClass::Secret
             })
         );
+    }
+
+    #[cfg(feature = "toml")]
+    #[test]
+    fn toml_declaration_keeps_json_default_and_confined_paths() {
+        let id = DomainId::new("example.cli").unwrap();
+        let version = SchemaVersion::new(1).unwrap();
+
+        assert_eq!(
+            DomainFilePath::new_toml("cli-settings"),
+            Err(DomainFilePathError::NotToml)
+        );
+        assert_eq!(
+            DomainFilePath::new("cli-settings.toml"),
+            Err(DomainFilePathError::NotJson)
+        );
+
+        let descriptor = DomainDescriptor::new_toml(
+            id,
+            version,
+            StorageClass::UserConfig,
+            Some(DomainFilePath::new_toml("cli-settings.toml").unwrap()),
+        )
+        .unwrap();
+        assert_eq!(descriptor.file_format(), DocumentFormat::Toml);
+        assert!(descriptor.is_human_toml());
     }
 }

@@ -184,6 +184,10 @@ serde = { version = "1.0.229", features = ["derive"] }
 secrecy = "0.10.3"
 serde_json = "1.0.151"
 sha2 = "0.11.0"
+# Human-written TOML domain documents (contract 004, `toml` feature of
+# `longhorn-config`). Parse-only: Longhorn never writes a TOML domain file in
+# phase 1, so the display writer stays out.
+toml = { version = "1.1", default-features = false, features = ["parse"] }
 # Process liveness only (`system` feature): discovery files go stale by dead
 # pid, and std has no safe cross-platform liveness probe.
 sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }

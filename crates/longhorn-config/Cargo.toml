@@ -9,6 +9,10 @@ publish = false
 
 [features]
 bindings = ["dep:ts-rs", "longhorn-core/bindings"]
+# Read-only human-written TOML domain documents (contract 004). Without the
+# feature no TOML code or dependency is compiled, and JSON domains are
+# unchanged.
+toml = ["dep:toml"]
 
 [dependencies]
 cap-std.workspace = true
@@ -17,6 +21,7 @@ longhorn-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+toml = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 zip.workspace = true
 

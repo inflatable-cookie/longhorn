@@ -37,6 +37,12 @@ pub(crate) fn rewrite<D: ConfigDomain>(
             },
         ));
     }
+    #[cfg(feature = "toml")]
+    if domain.descriptor().is_human_toml() {
+        return Err(MigrationRewriteError::HumanWrittenToml {
+            domain: domain.descriptor().id().clone(),
+        });
+    }
     let DomainLocation::File(file) = store.roots.resolve(descriptor) else {
         return Err(MigrationRewriteError::Unavailable(
             crate::UnavailableState::Authority {

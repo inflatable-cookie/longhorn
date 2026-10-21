@@ -22,6 +22,14 @@ pub enum BackupCaptureError {
         /// Domain requiring policy.
         domain: DomainId,
     },
+    /// A human-written TOML domain was included in a backup catalogue.
+    /// Phase 1 never captures or restores those files; the standing default
+    /// is an explicit exclusion.
+    #[cfg(feature = "toml")]
+    HumanWrittenToml {
+        /// Included human-written domain.
+        domain: DomainId,
+    },
     /// A registered descriptor changed after policy declaration.
     DescriptorChanged {
         /// Changed domain.
@@ -121,6 +129,13 @@ impl fmt::Display for BackupCaptureError {
             }
             Self::MissingPolicy { domain } => {
                 write!(formatter, "backup domain {domain} has no policy")
+            }
+            #[cfg(feature = "toml")]
+            Self::HumanWrittenToml { domain } => {
+                write!(
+                    formatter,
+                    "backup domain {domain} is human-written TOML and read-only in phase 1"
+                )
             }
             Self::DescriptorChanged { domain } => {
                 write!(

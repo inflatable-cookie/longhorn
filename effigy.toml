@@ -44,6 +44,10 @@ include = ["config/release.toml"]
 # code and its suite compile only with the `client` feature, and no
 # default-feature selector runs them.
 "test:agent-control-carrier" = "bash scripts/rust-command.sh test -p longhorn-agent-control --features client --locked"
+# The human TOML domain lane (contract 004, phase 1): the `toml`-gated
+# integration suite. No default-feature selector compiles the feature, so
+# `test:rust` never sees these tests.
+"test:config-toml" = "bash scripts/rust-command.sh test -p longhorn-config --features toml --locked"
 "test:agent-tool-dispatch" = "bash scripts/rust-command.sh test -p longhorn-agent-tool-dispatch --locked"
 "test:redact" = "bash scripts/rust-command.sh test -p longhorn-redact --locked"
 "test:support-log" = "bash scripts/rust-command.sh test -p longhorn-support-log --locked"
@@ -274,6 +278,7 @@ qa = [
   { task = "lint:rust:features" },
   { task = "test:rust" },
   { task = "test:agent-control-carrier" },
+  { task = "test:config-toml" },
   { task = "check:ts" },
   { task = "check:svelte" },
   { task = "check:packages" },

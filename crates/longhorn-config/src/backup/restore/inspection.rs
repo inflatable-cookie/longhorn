@@ -131,6 +131,24 @@ fn inspect_domain(
     };
     match decision {
         CatalogDecision::Include(domain) => {
+            #[cfg(feature = "toml")]
+            if descriptor.is_human_toml() {
+                // A human TOML domain cannot receive an ordinary restore:
+                // phase 1 never captures it, and no archive payload may
+                // write its file. Custom adapters keep their own symmetric
+                // capture/restore path.
+                return (
+                    domain_report(
+                        source,
+                        target_schema,
+                        RestoreDomainCompatibility::PolicyExcluded {
+                            reason: "human-written, read-only in phase 1".to_owned(),
+                        },
+                    ),
+                    None,
+                    None,
+                );
+            }
             inspect_ordinary_domain(store, archive, source, descriptor, target_schema, domain)
         }
         CatalogDecision::Exclude(reason) => (

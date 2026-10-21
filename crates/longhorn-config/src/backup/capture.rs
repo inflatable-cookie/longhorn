@@ -79,10 +79,21 @@ fn capture_coordinated<'catalog>(
     allow_external: bool,
 ) -> Result<(), BackupCaptureError> {
     for descriptor in descriptors {
-        let decision = catalog.decision(descriptor).or_else(|| {
-            BackupExclusionReason::default_for(descriptor.storage_class())
-                .map(CatalogDecision::Exclude)
-        });
+        let decision = catalog
+            .decision(descriptor)
+            .or_else(|| {
+                #[cfg(feature = "toml")]
+                let human_default = descriptor
+                    .is_human_toml()
+                    .then(|| CatalogDecision::Exclude(BackupExclusionReason::human_written_toml()));
+                #[cfg(not(feature = "toml"))]
+                let human_default = None;
+                human_default
+            })
+            .or_else(|| {
+                BackupExclusionReason::default_for(descriptor.storage_class())
+                    .map(CatalogDecision::Exclude)
+            });
         let Some(decision) = decision else {
             return Err(BackupCaptureError::MissingPolicy {
                 domain: descriptor.id().clone(),
@@ -138,6 +149,12 @@ fn capture_coordinated<'catalog>(
                 }
             },
             CatalogDecision::Include(domain) => {
+                #[cfg(feature = "toml")]
+                if descriptor.is_human_toml() {
+                    return Err(BackupCaptureError::HumanWrittenToml {
+                        domain: descriptor.id().clone(),
+                    });
+                }
                 assembly.add_group(BackupConsistencyGroup::ordinary())?;
                 let location = store.roots.resolve(descriptor);
                 let DomainLocation::File(file) = location else {

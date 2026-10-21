@@ -24,7 +24,7 @@ Read it with two rules:
 
 ## Gate surfaces
 
-`qa` is the board: twenty-four steps, run whole by `effigy qa`. The steps that
+`qa` is the board: twenty-six steps, run whole by `effigy qa`. The steps that
 carry a selector are the selection keys; `bootstrap:deps` and `fmt:rust` are
 steps too. `health` is `effigy doctor`'s cheap orientation subset and is not
 full validation.
@@ -517,6 +517,14 @@ listen/resource pass-through, exit codes, and the loopback-endpoint guard test
 (`carrier_refuses_a_non_loopback_endpoint_before_any_exchange`). No
 default-feature selector runs them. In `qa`. The `agent-control-carrier` QA
 group selects it.
+
+**`test:config-toml`** — role: runs the `longhorn-config` tests with feature
+`toml`: the whole package's tests plus the `toml`-gated integration suite
+(`crates/longhorn-config/tests/toml_domain.rs`) — human-written TOML domain
+reads, line/column error reports, read-only refusals, in-memory migration, and
+backup exclusion (contract 004, phase 1). No default-feature selector compiles
+the feature, so `test:rust` never sees them. In `qa`. No QA group selects it;
+there is no `cargo-package:longhorn-config` group.
 
 **`check:tool-provision`** — role: aggregate (not in `qa`). Runs
 `lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,

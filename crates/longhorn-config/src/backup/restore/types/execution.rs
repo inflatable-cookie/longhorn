@@ -74,6 +74,12 @@ pub enum MigrationRewriteError {
     Unavailable(UnavailableState),
     /// Current source is absent or already current.
     NotRequired,
+    /// The domain file is human-written TOML; phase 1 never rewrites it.
+    #[cfg(feature = "toml")]
+    HumanWrittenToml {
+        /// Refused domain.
+        domain: DomainId,
+    },
     /// Current-schema encoding or validation failed.
     Preparation(String),
     /// Safety backup, journal, publication, verification, or rollback failed.
@@ -98,6 +104,11 @@ impl fmt::Display for MigrationRewriteError {
                 )
             }
             Self::NotRequired => formatter.write_str("destructive migration is not required"),
+            #[cfg(feature = "toml")]
+            Self::HumanWrittenToml { domain } => write!(
+                formatter,
+                "domain {domain} is human-written TOML and read-only in phase 1"
+            ),
             Self::Preparation(detail) => {
                 write!(formatter, "cannot prepare migration rewrite: {detail}")
             }
