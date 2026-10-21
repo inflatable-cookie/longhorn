@@ -19,6 +19,7 @@ crates by git tag and the packages by version.
 - **The agent-control stdio carrier now gives the router's own replies.** The carrier stamped every post-`initialize` POST with the protocol version from the server's `initialize` answer, but rmcp always answers that handshake with the newest legacy version it supports (`2025-11-25`), even when the harness asked for `2026-07-28`. The server therefore treated the carrier as a legacy peer: `tools/list` and `resources/list` lost the `resultType`, `cacheScope` and `ttlMs` fields the direct router returns (all three come from rmcp's own `ListToolsResult`, SEP-2322/SEP-2549), and `subscriptions/listen` was refused as method-not-found. The carrier now stamps each POST with the harness's own declared version — its per-request `_meta` first, then its `initialize` params — and keeps the handshake answer only as the fallback, so both paths are answered from the same source and cannot drift. The widened `test:agent-control-carrier` selector runs the whole carrier suite with `--features client`, joins the `qa` aggregate, and is selected by the new `agent-control-carrier` QA group.
 - **`longhorn-pty` keeps one slave descriptor until the reader's final drain.** Some platforms discard unread slave-to-master pseudo-terminal data on last slave close. The crate dropped every parent slave copy at spawn, so a child that wrote and exited before the reader's next 10 ms drain lost its output (observed as an empty result with a clean exit under `cargo test` load). The parent now retains one slave descriptor, moved to the output-reader thread and closed after its final post-exit drain, so last close cannot precede delivery. A zero-byte master read now polls again instead of ending the stream, since it carries no information about the child. Contract 028 records the retained descriptor.
 - **`evaluate` separates the origin marker from the caller's JavaScript.** Scripts beginning with `(` or `[` now run and retain their synchronous completion value.
+- **The release dry run's changelog check passes with the released Effigy 0.14.1.** Effigy 0.14.1, the version `release.yml` installs through `setup-effigy`, refused the four unindented continuation lines of the `[0.3.1]` `Changed` toolchain entry ("unexpected content in category"); the local build accepts them, so the runner's `test:release-tooling` verdict could not agree with the local one. Those continuation lines are now indented, with no wording change. `scripts/check-changelog.ts` takes an `EFFIGY_BIN` override so both builds can be checked, and a failing test verdict prints Effigy's reason instead of only `fail`.
 
 ### Security
 - **Allow RUSTSEC-2026-0374 (`basic-toml` unmaintained).** It is reached at build time through `age` -> `i18n-embed-fl`/`i18n-embed-impl` -> `i18n-config` -> `basic-toml`, only via proc macros. It is not a vulnerability, no upgrade drops it, and it is build-time only. Accepted 2026-10-20.
@@ -47,10 +48,10 @@ crates by git tag and the packages by version.
   failure directly. `lastRejection` clears when the next command starts, so a
   transport failure cannot leave an earlier refusal looking current.
 - **The stable Rust toolchain is pinned to 1.97.1.** `rust-toolchain.toml` is
-the one declaration; `ci.yml` and `release.yml` install exactly that channel
-instead of floating `stable`. Rust 1.98 added a Clippy lint that was green on
-1.97.1 locally and red on the runner, and stopped a dry run before publish. The
-MSRV floor (`LONGHORN_GENERAL_MSRV`) is unchanged.
+  the one declaration; `ci.yml` and `release.yml` install exactly that channel
+  instead of floating `stable`. Rust 1.98 added a Clippy lint that was green on
+  1.97.1 locally and red on the runner, and stopped a dry run before publish. The
+  MSRV floor (`LONGHORN_GENERAL_MSRV`) is unchanged.
 
 ### Security
 - **`zip` moves from 8.6 to 9.0.5 (RUSTSEC-2026-0367).** zip before 9.0.0 keeps SUID/SGID bits when it extracts. Longhorn never extracts: `longhorn-config` reads backups in memory. Backup archives stay byte-identical, with no fixture change. The range stays caret, so consumers taking Longhorn by git tag resolve a compatible zip 9.x.

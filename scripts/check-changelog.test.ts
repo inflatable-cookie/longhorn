@@ -1,9 +1,9 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { checkChangelog, judgeReleaseStatus } from "./check-changelog.ts";
+import { checkChangelog, type ChangelogVerdict, judgeReleaseStatus } from "./check-changelog.ts";
 
 // Each fixture is a fresh mktemp repo with only what Effigy's release status
 // reads: the workspace version, the release table, and the changelog.
@@ -83,10 +83,18 @@ afterAll(async () => {
   }
 });
 
+// A bare `expect(outcome).toBe("pass")` hides why Effigy refused the file, and
+// the first CI failure on the released 0.14.1 explained nothing (longhorn#063).
+function expectPass(verdict: ChangelogVerdict): void {
+  if (verdict.outcome === "fail") {
+    throw new Error(`Effigy refused CHANGELOG.md: ${verdict.reason}`);
+  }
+}
+
 describe("changelog check against Effigy's release parser", () => {
   test("passes a changelog with entries under [Unreleased]", async () => {
     const verdict = await checkChangelog(await fixture(withEntries));
-    expect(verdict.outcome).toBe("pass");
+    expectPass(verdict);
   });
 
   test("passes an empty [Unreleased], the normal state after a release", async () => {
@@ -113,11 +121,73 @@ describe("changelog check against Effigy's release parser", () => {
 
   test("passes the repository's own CHANGELOG.md", async () => {
     const verdict = await checkChangelog();
-    expect(verdict.outcome).toBe("pass");
+    expectPass(verdict);
+  });
+
+  test("reads the binary from EFFIGY_BIN, so the released version can be checked", async () => {
+    const binDir = await mkdtemp(join(tmpdir(), "check-changelog-bin-"));
+    scratchRoots.push(binDir);
+    const bin = join(binDir, "effigy");
+    await writeFile(bin, `#!/bin/sh\nprintf '%s\\n' '{"ok":true}'\n`);
+    await chmod(bin, 0o755);
+    const previous = process.env.EFFIGY_BIN;
+    process.env.EFFIGY_BIN = bin;
+    try {
+      const verdict = await checkChangelog(await fixture(withEntries));
+      expect(verdict).toEqual({
+        outcome: "pass",
+        note: "Effigy's release parser accepts CHANGELOG.md",
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env.EFFIGY_BIN;
+      } else {
+        process.env.EFFIGY_BIN = previous;
+      }
+    }
   });
 });
 
 describe("judgeReleaseStatus", () => {
+  test("accepts the empty [Unreleased] envelope released 0.14.1 prints", () => {
+    const stdout = JSON.stringify({
+      binary: {
+        active_version: "0.14.1",
+        display_version: "v0.14.1",
+        name: "effigy",
+        version: "0.14.1",
+      },
+      command: { kind: "release", name: "release" },
+      ok: false,
+      result: null,
+      schema: "effigy.command.v1",
+      schema_version: 1,
+      error: {
+        kind: "RunnerError",
+        message: "command failed (json output available)",
+        details: {
+          blockers: ["unreleased changelog section has no entries"],
+          changelog: { diagnostic_count: 0, diagnostics: [], path: "CHANGELOG.md", valid: true },
+          current_version: "0.3.4",
+          gate_check_passed: false,
+          gates: { checked: false, configured_count: 0, results: [] },
+          gates_passed: false,
+          next_version: null,
+          ready: false,
+          schema: "effigy.release.status.v1",
+          schema_version: 1,
+          suggested_bump: "none",
+          tag: null,
+          unreleased: { counts: {}, empty: true, entry_count: 0 },
+        },
+      },
+    });
+    expect(judgeReleaseStatus(stdout)).toEqual({
+      outcome: "pass",
+      note: "CHANGELOG.md parses; [Unreleased] is empty",
+    });
+  });
+
   test("does not read a non-changelog runner failure as the empty gap", () => {
     const stdout = JSON.stringify({
       ok: false,
