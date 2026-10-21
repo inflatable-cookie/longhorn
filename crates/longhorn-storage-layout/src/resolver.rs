@@ -39,7 +39,11 @@ pub fn resolve_storage_layout(
         roots.insert(kind, resolved);
     }
 
-    resolve_workspace_root(request, &mut roots)?;
+    let state = roots
+        .get(&RootKind::State)
+        .expect("state root resolved first");
+    let workspace = resolve_workspace_root(request, Some(state))?;
+    roots.insert(RootKind::Workspace, workspace);
     resolve_optional_override(request, RootKind::Policy, &mut roots)?;
     resolve_optional_override(request, RootKind::Project, &mut roots)?;
 
@@ -58,6 +62,42 @@ pub fn resolve_storage_layout(
         warnings,
         digest,
     })
+}
+
+/// Resolves one root using the same profile, fact, and override rules as a
+/// complete layout.
+///
+/// A required root returns `Some`. Workspace is derived from the resolved
+/// state root unless explicitly overridden. Policy and project roots return
+/// `None` when no explicit override is configured. This projection has no
+/// complete-layout digest; use [`resolve_storage_layout`] when a receipt is
+/// required.
+pub fn resolve_storage_root(
+    request: &StorageLayoutRequest,
+    kind: RootKind,
+) -> Result<Option<ResolvedStorageRoot>, StorageLayoutError> {
+    validate_portable_input(request)?;
+
+    if matches!(kind, RootKind::Policy | RootKind::Project) {
+        return request
+            .overrides
+            .get(kind)
+            .map(|path| override_root(kind, path))
+            .transpose();
+    }
+
+    if kind == RootKind::Workspace {
+        let state = if request.overrides.get(RootKind::Workspace).is_some() {
+            None
+        } else {
+            let leaf = request.identity.effective_leaf();
+            Some(resolve_required_root(request, RootKind::State, leaf)?)
+        };
+        return resolve_workspace_root(request, state.as_ref()).map(Some);
+    }
+
+    let leaf = request.identity.effective_leaf();
+    resolve_required_root(request, kind, leaf).map(Some)
 }
 
 fn validate_portable_input(request: &StorageLayoutRequest) -> Result<(), StorageLayoutError> {
@@ -242,22 +282,22 @@ fn override_root(kind: RootKind, path: &Path) -> Result<ResolvedStorageRoot, Sto
 
 fn resolve_workspace_root(
     request: &StorageLayoutRequest,
-    roots: &mut BTreeMap<RootKind, ResolvedStorageRoot>,
-) -> Result<(), StorageLayoutError> {
+    state_root: Option<&ResolvedStorageRoot>,
+) -> Result<ResolvedStorageRoot, StorageLayoutError> {
     let root = match request.overrides.get(RootKind::Workspace) {
         Some(path) => override_root(RootKind::Workspace, path)?,
-        None => ResolvedStorageRoot::new(
-            RootKind::Workspace,
-            roots
-                .get(&RootKind::State)
-                .expect("state root resolved first")
-                .path()
-                .join("workspaces"),
-            StorageRootProvenance::DerivedFrom(RootKind::State),
-        ),
+        None => {
+            let state_root = state_root.ok_or(StorageLayoutError::MissingPlatformFact {
+                fact: PlatformDirectoryFact::State,
+            })?;
+            ResolvedStorageRoot::new(
+                RootKind::Workspace,
+                state_root.path().join("workspaces"),
+                StorageRootProvenance::DerivedFrom(RootKind::State),
+            )
+        }
     };
-    roots.insert(RootKind::Workspace, root);
-    Ok(())
+    Ok(root)
 }
 
 fn resolve_optional_override(

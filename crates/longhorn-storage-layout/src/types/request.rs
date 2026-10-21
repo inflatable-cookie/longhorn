@@ -32,7 +32,11 @@ impl StorageLayoutOverrides {
     }
 }
 
-/// Complete pure input to storage layout resolution.
+/// Pure input to storage resolution.
+///
+/// `facts` may contain only the platform directories needed by a call to
+/// [`crate::resolve_storage_root`]. A complete layout still requires every
+/// fact its selected profile uses.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StorageLayoutRequest {
     pub(crate) identity: StorageIdentity,

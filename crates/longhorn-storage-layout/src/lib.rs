@@ -5,8 +5,9 @@
 //! profile selection, and explicit overrides through dependency injection. It
 //! performs no filesystem or environment access and returns a complete
 //! layout, provenance, warnings, and typed failures. Hosts without Tauri
-//! supply facts through [`native_platform_directory_facts`], which reads the
-//! process environment once and never invents a missing fact.
+//! supply facts through [`native_platform_directory_facts`], or request one
+//! fact at a time through [`native_platform_directory_fact`]. Missing facts
+//! are never invented.
 
 mod bootstrap;
 mod digest;
@@ -28,10 +29,11 @@ pub use identity::{
     StorageIdentity, StorageIdentityError, StorageIdentityErrorKind, StorageIdentityField,
 };
 pub use native::{
-    NativePlatformFactsError, PlatformEnvironment, native_platform_directory_facts,
+    NativePlatformFactsError, PlatformEnvironment, native_platform_directory_fact,
+    native_platform_directory_fact_from, native_platform_directory_facts,
     native_platform_directory_facts_from,
 };
-pub use resolver::resolve_storage_layout;
+pub use resolver::{resolve_storage_layout, resolve_storage_root};
 pub use roots::{AccessMode, RootKind, StorageRootError, StorageRoots, root_kind_id};
 pub use types::{
     PlatformDirectoryFact, PlatformDirectoryFacts, ResolvedStorageLayout, ResolvedStorageRoot,
