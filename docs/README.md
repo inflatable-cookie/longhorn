@@ -4,22 +4,28 @@ Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
 are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 
-- **Released:** `0.3.4` (2026-10-21). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.3.4` for the Rust crates. The `0.3.x`
-  line adds desktop support crates extracted from Acowtancy Desktop:
-  `longhorn-redact` in `0.3.1`
+- **Released:** `0.4.0` (2026-10-21). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.4.0` for the Rust crates. Breaking:
+  storage identity, layout resolution, `StorageRoots` and the bootstrap
+  locator moved from `longhorn-config` to `longhorn-storage-layout`
+  ([contract 004](knowledge/contracts/004-configuration-storage-backup-and-recovery.md)).
+  Only the import paths change; the paths on disk do not. `0.4.0` also adds a
+  native platform-directory facts provider for hosts without Tauri, and
+  read-only human-written TOML domains in `longhorn-config` (feature `toml`),
+  so CLI apps can adopt Longhorn's storage layout (guide: "Longhorn For CLI
+  Apps" in [storage, configuration and backup](guides/storage-configuration-backup.md)).
+  The `0.3.x` line added the desktop support crates extracted from Acowtancy
+  Desktop: `longhorn-redact`
   ([contract 024](knowledge/contracts/024-text-redaction.md)),
-  `longhorn-support-log` in `0.3.2`
+  `longhorn-support-log`
   ([contract 025](knowledge/contracts/025-bounded-support-logs.md)),
-  `longhorn-diagnostics` in `0.3.3`
-  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)), and
+  `longhorn-diagnostics`
+  ([contract 026](knowledge/contracts/026-diagnostics-bundle.md)),
   `longhorn-tool-provision` with `longhorn-archive-path`
   ([contract 027](knowledge/contracts/027-managed-tool-provisioning.md)) and
-  `longhorn-pty` ([contract 028](knowledge/contracts/028-pty-sessions.md)) in
-  `0.3.4`. `0.3.4` also fixes `evaluate` scripts that begin with `(` or `[`.
-  `0.3.0` set the Svelte floor `5.56.8` and removed the `dev` feature on
-  `longhorn-tauri-agent-control`. Poodle is a peer range (`>=0.4.4 <0.5`)
-  and third-party Rust dependencies are ranges
+  `longhorn-pty` ([contract 028](knowledge/contracts/028-pty-sessions.md)).
+  Poodle is a peer range (`>=0.4.4 <0.5`) and third-party Rust dependencies
+  are ranges
   ([contract 012](knowledge/contracts/012-distribution-and-compatibility.md)).
 - **Held surface:** built but not consumer-ready; see the
   [register](reference/held-surface.md).
