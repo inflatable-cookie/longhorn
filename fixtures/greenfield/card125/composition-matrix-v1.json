@@ -1,14 +1,14 @@
 {
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
-    "longhornSelected": "b7c719c0dd5b39548ebc09d8cd99612ca297ca2d",
-    "poodleSelected": "5ef12f0c3a058dff5713142b6177d020f3b1a7e5"
+    "longhornSelected": "d7a136093a05cc9a2b052f4f9a280fb74ff0dff2",
+    "poodleSelected": "0.4.4@registry"
   },
   "artifacts": {
     "sets": {
-      "typescript": "cbdeecff49ca06dcb6a26be4d2332727090cb1ee6f3f3628cd0f1195488ada8f",
-      "poodle": "ec626ac7c66cfd45249690270195e7be74e34fe96940e32a938852a41ed7bba8",
-      "rust": "48769f8444e37c5a5e739c301135d748d76765ec82998e7c8eb6491ed414b831"
+      "typescript": "fc858ba31c13a798c9f82dbf99cc6b4f8eafd89a1cfa8b73e92cc879e7a61097",
+      "poodle": "f6220c83a510cb83f50adb75f9133ec6206fe28a48a3fd344516583d62c4ec97",
+      "rust": "bdfb085112442696347a38d68f6c74164bccbbc6b1be77c2085df03e338039a1"
     },
     "inventories": {
       "typescript": [
@@ -29,12 +29,13 @@
         "longhorn-core",
         "longhorn-display",
         "longhorn-history",
-        "longhorn-surfaces",
-        "longhorn-surfaces-config",
         "longhorn-settings",
         "longhorn-settings-config",
+        "longhorn-storage-layout",
         "longhorn-surface-transfer",
         "longhorn-surface-windowing",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-tauri-bridge",
         "longhorn-tauri-command",
         "longhorn-tauri-config",
@@ -62,6 +63,7 @@
         "longhorn-core",
         "longhorn-settings",
         "longhorn-settings-config",
+        "longhorn-storage-layout",
         "longhorn-tauri-config",
         "longhorn-tauri-settings"
       ]
@@ -75,7 +77,6 @@
       ],
       "typescript": [
         "@inflatable-cookie/longhorn",
-        "@inflatable-cookie/longhorn-poodle-svelte",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
@@ -85,10 +86,11 @@
         "longhorn-config",
         "longhorn-core",
         "longhorn-display",
-        "longhorn-surfaces",
-        "longhorn-surfaces-config",
         "longhorn-settings",
         "longhorn-settings-config",
+        "longhorn-storage-layout",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-tauri-command",
         "longhorn-tauri-config",
         "longhorn-tauri-settings",
@@ -108,7 +110,6 @@
       ],
       "typescript": [
         "@inflatable-cookie/longhorn",
-        "@inflatable-cookie/longhorn-poodle-svelte",
         "@inflatable-cookie/longhorn-tauri"
       ],
       "rust": [
@@ -119,12 +120,13 @@
         "longhorn-core",
         "longhorn-display",
         "longhorn-history",
-        "longhorn-surfaces",
-        "longhorn-surfaces-config",
         "longhorn-settings",
         "longhorn-settings-config",
+        "longhorn-storage-layout",
         "longhorn-surface-transfer",
         "longhorn-surface-windowing",
+        "longhorn-surfaces",
+        "longhorn-surfaces-config",
         "longhorn-tauri-command",
         "longhorn-tauri-config",
         "longhorn-tauri-history",
@@ -151,6 +153,7 @@
         "longhorn-core",
         "longhorn-settings",
         "longhorn-settings-config",
+        "longhorn-storage-layout",
         "longhorn-tauri-bridge",
         "longhorn-tauri-config",
         "longhorn-tauri-settings"
@@ -162,6 +165,7 @@
     "longhorn-core",
     "longhorn-settings",
     "longhorn-settings-config",
+    "longhorn-storage-layout",
     "longhorn-tauri-config",
     "longhorn-tauri-settings"
   ],
