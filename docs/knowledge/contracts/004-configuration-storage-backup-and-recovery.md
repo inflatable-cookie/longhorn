@@ -2,7 +2,7 @@
 
 Status: active  
 Owner: Tom  
-Updated: 2026-08-03
+Updated: 2026-10-22
 Evidence: `002-shared-desktop-systems-follow-up.md` (Git history);
 `004-configuration-coordination-and-atomic-mutation.md` (Git history);
 `005-debounced-mutation-and-explicit-flush.md` (Git history);
@@ -197,6 +197,46 @@ and source state under both store coordinators and remains idempotent.
 - Older schemas migrate through ordered, testable steps.
 - A pre-migration backup is created before the first destructive rewrite.
 - Migrations are idempotent at their declared source and target versions.
+
+## Human TOML Domains
+
+A domain may declare its file a human-written TOML document, opt-in per
+domain behind the `toml` feature of `longhorn-config`. The feature is off by
+default; without it no TOML code or dependency is compiled, and JSON domains
+are unchanged.
+
+- The file holds the domain value only. There is no envelope.
+- The top-level key `schema_version` is reserved. When present it must be a
+  positive TOML integer naming the document version; when absent the document
+  is at the domain's current version. The key never reaches the domain's
+  value model.
+- A human TOML domain's file path ends in `.toml`; JSON domain paths keep
+  `.json`.
+- Type mapping: tables map to objects, arrays to arrays, strings to strings,
+  integers to 64-bit signed numbers, finite floats to numbers, booleans to
+  booleans, and offset date-times to RFC 3339 strings. Integers outside the
+  64-bit signed range, non-finite floats (`nan`, `inf`), and datetimes
+  without a UTC offset are refused with the reason stated. TOML has no null:
+  a TOML domain's value model must not require null in its file form, and
+  Longhorn never synthesizes null while mapping.
+- Phase 1 is read-only. Every write path — immediate and checked mutation,
+  debounced flush, destructive migration rewrite, and restore into the
+  domain — refuses with a typed error naming the domain as human-written and
+  read-only. No path writes, rewrites, or deletes the file.
+- A parse, schema-version, or type-mapping refusal is a typed recovery state
+  with a one-based line and column: the exact span for parse, version, and
+  unmappable-value refusals, and the document start for domain issues on the
+  file's own content. The source bytes stay in the recovery state, the file
+  is never touched, and the next load reads the file again — a half-written
+  editor buffer is just a parse error. The last good value loaded for the
+  session stays usable.
+- Older versions migrate in memory only. The file stays as the person wrote
+  it, and no pre-migration backup is taken because nothing is rewritten.
+- Backups exclude human TOML domains by default with the reason
+  `human-written, read-only in phase 1`, recorded as an explicit exclusion in
+  the manifest. An explicit catalogue include is refused, and restore reports
+  such a domain as policy-excluded. Capturing or restoring the original bytes
+  is phase 2 work with an archive-format change.
 
 ## Write
 
@@ -603,6 +643,9 @@ restore operate at explicit scopes.
   ordinary files
 - legacy discovery does not mutate either layout
 - a killed/failed write preserves the previous valid document
+- a human TOML domain loads and migrates in memory, refuses every write path,
+  reports line and column for broken files, and appears in backups only as an
+  explicit exclusion
 - older schemas migrate after a verified pre-migration backup
 - future and corrupt schemas preserve their original bytes
 - two concurrent partial updates cannot lose an unrelated field/domain

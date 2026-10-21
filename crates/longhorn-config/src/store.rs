@@ -10,7 +10,7 @@ pub use types::{
     CoordinatedLoadError, Durability, DurabilityRequirement, LoadDiagnostic, LoadDiagnosticCode,
     LoadOutcome, LoadedConfig, LoadedOrigin, MutationError, MutationOptions, MutationReceipt,
     MutationRefusal, PublicationFailure, PublicationStage, RecoveryKind, RecoveryState,
-    SourceDocument, StoreError, UnavailableState,
+    SourceDocument, SourcePosition, StoreError, UnavailableState,
 };
 
 use crate::{

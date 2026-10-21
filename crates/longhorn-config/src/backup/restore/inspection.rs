@@ -106,6 +106,22 @@ fn inspect_domain(
         );
     };
     let target_schema = Some(descriptor.schema_version());
+    #[cfg(feature = "toml")]
+    if descriptor.is_human_toml() {
+        // A human TOML domain cannot receive a restore: phase 1 never
+        // captures it, and no archive payload may write its file.
+        return (
+            domain_report(
+                source,
+                target_schema,
+                RestoreDomainCompatibility::PolicyExcluded {
+                    reason: "human-written, read-only in phase 1".to_owned(),
+                },
+            ),
+            None,
+            None,
+        );
+    }
     if descriptor.storage_class() != source.storage_class() {
         return (
             domain_report(

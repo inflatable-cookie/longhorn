@@ -104,6 +104,22 @@ pub struct RecoveryState {
     pub source: Option<SourceDocument>,
     /// Human-readable detail.
     pub detail: String,
+    /// One-based line and column of the offending source text, when known.
+    ///
+    /// Only human TOML loads pinpoint a span: parse, schema-version, and
+    /// type-mapping refusals name the offending byte span, and domain issues
+    /// on the file's own content name the document start. JSON documents and
+    /// migration-produced values carry `None`.
+    pub position: Option<SourcePosition>,
+}
+
+/// One-based line and column inside a source document.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct SourcePosition {
+    /// One-based line number.
+    pub line: u32,
+    /// One-based column, counted in characters.
+    pub column: u32,
 }
 
 /// Stable recovery category.
@@ -250,6 +266,13 @@ pub enum MutationRefusal {
         from: SchemaVersion,
         /// Current schema.
         to: SchemaVersion,
+    },
+    /// The domain file is human-written TOML and read-only in this phase.
+    HumanWrittenToml {
+        /// Refused domain.
+        domain: DomainId,
+        /// Human-written file.
+        path: PathBuf,
     },
 }
 

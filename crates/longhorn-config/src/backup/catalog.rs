@@ -38,6 +38,13 @@ impl BackupExclusionReason {
             ))
         })
     }
+
+    /// The standing reason human-written TOML domains leave backups alone.
+    /// Phase 1 is read-only; capture of the original bytes is phase 2.
+    #[cfg(feature = "toml")]
+    pub(crate) fn human_written_toml() -> Self {
+        Self("human-written, read-only in phase 1".to_owned())
+    }
 }
 
 /// Stable identifier for a consumer-owned custom backup adapter.

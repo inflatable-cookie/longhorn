@@ -90,6 +90,20 @@ where
         .ensure_registered(domain)
         .map_err(MutationError::Store)
         .map_err(CheckedMutationError::Mutation)?;
+    #[cfg(feature = "toml")]
+    if domain.descriptor().is_human_toml() {
+        let location = store.roots.resolve(domain.descriptor());
+        let path = match location {
+            DomainLocation::File(file) => file.full_path().to_path_buf(),
+            _ => unreachable!("human TOML domains are file-backed"),
+        };
+        return Err(CheckedMutationError::Mutation(MutationError::Refused(
+            MutationRefusal::HumanWrittenToml {
+                domain: domain.descriptor().id().clone(),
+                path,
+            },
+        )));
+    }
     let location = store.roots.resolve(domain.descriptor());
     let file = writable_file(location).map_err(CheckedMutationError::Mutation)?;
     let guard = store

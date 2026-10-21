@@ -21,6 +21,8 @@ mod operations;
 mod registry;
 mod storage_layout;
 mod store;
+#[cfg(feature = "toml")]
+mod toml_domain;
 
 pub use backup::{
     BackupAdapter, BackupAdapterCapabilities, BackupAdapterCapture, BackupAdapterCaptureMode,
@@ -74,8 +76,8 @@ pub use debounce::{
     PendingSnapshot, RetryDisposition, StageDisposition, StageError, StageReceipt, SystemClock,
 };
 pub use domain::{
-    ConfigDomain, DomainDescriptor, DomainDescriptorError, DomainFilePath, DomainFilePathError,
-    DomainIssue, MigrationStep, StorageClass,
+    ConfigDomain, DocumentFormat, DomainDescriptor, DomainDescriptorError, DomainFilePath,
+    DomainFilePathError, DomainIssue, MigrationStep, StorageClass,
 };
 pub use location::{
     AccessMode, DomainLocation, ResolvedFile, RootKind, StorageRootError, StorageRoots,
@@ -139,5 +141,5 @@ pub use store::{
     CoordinatedLoadError, CoordinatedLoadSet, Durability, DurabilityRequirement, LoadDiagnostic,
     LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, MutationError, MutationOptions,
     MutationReceipt, MutationRefusal, PublicationFailure, PublicationStage, RecoveryKind,
-    RecoveryState, SourceDocument, StoreError, UnavailableState,
+    RecoveryState, SourceDocument, SourcePosition, StoreError, UnavailableState,
 };

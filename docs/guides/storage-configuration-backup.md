@@ -1,7 +1,7 @@
 # Storage, Configuration, Backup, And Recovery
 
 Status: checked private adoption guidance
-Updated: 2026-08-03
+Updated: 2026-10-22
 Governing contracts: [004](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md)
 and [005](../knowledge/contracts/005-settings-and-system-registration.md)
 
@@ -230,6 +230,61 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(reloaded.origin, LoadedOrigin::File);
     Ok(())
 }
+```
+
+## Human TOML Config For CLI Apps
+
+CLI and Tauri apps share one config system. An app that wants a
+hand-editable file declares a domain whose file is human-written TOML. This
+is opt-in per domain behind the `toml` feature of `longhorn-config`; without
+the feature no TOML code compiles and JSON domains are byte-identical.
+
+Declare the descriptor with `DomainDescriptor::new_toml` and a `.toml` file
+path. The file lives at the domain's resolved location: the platform config
+root (see the profile tables above) plus the registered relative path, for
+example `~/Library/Application Support/<leaf>/config/cli-settings.toml` on
+macOS or `$XDG_CONFIG_HOME/<leaf>/cli-settings.toml` on Linux.
+
+The file holds the domain value only — no envelope:
+
+```toml
+# cli-settings.toml — schema_version is optional and reserved.
+# Without it, the file is read at the domain's current schema version.
+schema_version = 2
+
+name = "cli"
+enabled = true
+
+[profile]
+tags = ["fast", "quiet"]
+```
+
+Type mapping follows contract 004: tables become objects, arrays become
+arrays, integers stay 64-bit signed, floats must be finite, and offset
+date-times (`1979-05-27T07:32:00Z`) become RFC 3339 strings. TOML has no
+null. `nan`, `inf`, integers beyond 64 bits, and local datetimes without a
+UTC offset are refused with the reason stated.
+
+The file is read-only in this phase. Longhorn reads, validates, and migrates
+it in memory and never writes it — every mutation, debounced flush, migration
+rewrite, and restore into the domain refuses with a typed error naming the
+domain as human-written and read-only. Migration leaves the file exactly as
+the person wrote it. Backups record the domain as an explicit exclusion
+(`human-written, read-only in phase 1`) instead of capturing it.
+
+A broken file never touches the last good state. Errors come back as a typed
+recovery state with a one-based line and column: parse, `schema_version`, and
+unmappable-value refusals point at the exact span, and domain validation
+issues point at the document start. A half-saved editor buffer is just a
+parse error — the next load reads the file again.
+
+```rust
+let descriptor = DomainDescriptor::new_toml(
+    DomainId::new("com.example.product.cli-settings").unwrap(),
+    SchemaVersion::new(2).unwrap(),
+    StorageClass::UserConfig,
+    Some(DomainFilePath::new_toml("cli-settings.toml").unwrap()),
+)?;
 ```
 
 ## Profile Selection And Migration
