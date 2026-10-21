@@ -20,6 +20,7 @@ crates by git tag and the packages by version.
 
 ### Security
 - **Allow RUSTSEC-2026-0374 (`basic-toml` unmaintained).** It is reached at build time through `age` -> `i18n-embed-fl`/`i18n-embed-impl` -> `i18n-config` -> `basic-toml`, only via proc macros. It is not a vulnerability, no upgrade drops it, and it is build-time only. Accepted 2026-10-20.
+- **Update `rustls-webpki` to 0.103.16 and `webpki-root-certs` to 1.0.10 (RUSTSEC-2026-0382, RUSTSEC-2026-0383).** `rustls-webpki` 0.103.15 could accept certificate paths through the distrusted emSign roots (RUSTSEC-2026-0382), and `webpki-root-certs` 1.0.9 bundled `emSign ECC Root CA - G3` (RUSTSEC-2026-0383). Both are lock-only updates to the fixed patch releases; no `deny.toml` allowance. `cargo deny check advisories` passes again.
 
 ## [0.3.3] - 2026-10-19
 
