@@ -15,9 +15,10 @@ use longhorn_config::{
     LoadDiagnosticCode, LoadOutcome, LoadedOrigin, MigrationRewriteError, MigrationRewriteOptions,
     MigrationStep, MutationError, MutationOptions, MutationRefusal, RecoveryKind,
     RestoreDomainCompatibility, RestoreSafetyBackupOptions, SourcePosition, StorageClass,
-    StorageRoots, encode_backup_archive, inspect_backup_archive,
+    encode_backup_archive, inspect_backup_archive,
 };
 use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::StorageRoots;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

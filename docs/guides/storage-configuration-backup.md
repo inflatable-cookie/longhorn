@@ -125,9 +125,10 @@ resolver rejects relative roots and paths.
 
 The full store (validated domains, atomic mutation, backup, restore) stays
 in `longhorn-config`; a CLI that needs it composes the same
-[`StorageRoots`](#configuration-in-code) round-trip shown below. TOML as a
-human-writable config format for CLI domains arrives in a later `0.4.0`
-step of the `cli-adoption` lane; JSON domains are the format until then.
+[`StorageRoots`](#configuration-in-code) round-trip shown below. For a
+hand-edited TOML file instead of JSON, `longhorn-config`'s opt-in `toml`
+feature takes human-written read-only TOML domains — see the guide's
+[Human TOML Config For CLI Apps](#human-toml-config-for-cli-apps) section.
 
 ## Domains And Databases
 

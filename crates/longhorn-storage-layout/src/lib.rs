@@ -23,7 +23,7 @@ pub use bootstrap::{
     StorageProfileSelectionError, encode_locator, inspect_storage_bootstrap, locator_matches,
     resolve_storage_bootstrap_paths,
 };
-pub use digest::StorageLayoutDigest;
+pub use digest::{StorageLayoutDigest, StorageLayoutDigestError};
 pub use identity::{
     StorageIdentity, StorageIdentityError, StorageIdentityErrorKind, StorageIdentityField,
 };

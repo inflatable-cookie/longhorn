@@ -235,6 +235,7 @@ ${workspaceDependencies([
   "sha2",
   "tauri",
   "tempfile",
+  "toml",
   "ts-rs",
   "zip",
 ])}
