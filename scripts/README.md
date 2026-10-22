@@ -140,14 +140,16 @@ vocabulary inside the greenfield example root.
 
 ## CI rehearsal
 
-`effigy ci:rehearse` reproduces the five developer-machine properties that hid
+`effigy ci:rehearse` reproduces the six developer-machine properties that hid
 defects from local `qa` during the first release runs:
 
-1. `check:repo-containment` + `check:consumer-isolation` — no sibling path
-2. `check:bun-links` — no active bun global link; registered ones are reported
-3. `check:runner-tools` — scripts must not invoke `rg`; a `release:gates` cargo plugin must be installed in the same `release.yml` job, before `effigy release:gates`
-4. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
-5. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
+1. `effigy bootstrap:deps` — the locked Bun install CI runs before its proofs;
+   a fresh worktree may have no `node_modules`, so the rehearsal installs it
+2. `check:repo-containment` + `check:consumer-isolation` — no sibling path
+3. `check:bun-links` — no active bun global link; registered ones are reported
+4. `check:runner-tools` — scripts must not invoke `rg`; a `release:gates` cargo plugin must be installed in the same `release.yml` job, before `effigy release:gates`
+5. `cargo fetch --locked` under a fresh `CARGO_HOME`, then offline metadata
+6. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output
    and a cold cache
 
 Not a substitute for dispatching `release.yml`. Run it before a release when
