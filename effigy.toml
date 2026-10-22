@@ -218,7 +218,7 @@ include = ["config/release.toml"]
 "proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
 "proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"
 
-# Pre-release rehearsal of the five machine properties that made local qa green
+# Pre-release rehearsal of the six machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
 # `ci:rehearse`: heavy task table below ([tasks."ci:rehearse"]).
 
