@@ -24,7 +24,10 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-    execution::{Git, isolate_process_group, kill_child_tree, read_tail, redact_git_detail},
+    execution::{
+        Git, MAX_CAPTURED_STDERR_BYTES, isolate_process_group, kill_child_tree, read_capped,
+        redact_git_detail, stderr_detail,
+    },
     policy::GitCredential,
 };
 
@@ -178,7 +181,7 @@ impl Git<'_> {
         let mut stderr_handle = child
             .stderr
             .take()
-            .map(|pipe| thread::spawn(move || read_tail(pipe)));
+            .map(|pipe| thread::spawn(move || read_capped(pipe, MAX_CAPTURED_STDERR_BYTES)));
         loop {
             if cancel.load(Ordering::SeqCst) {
                 stop(&mut child, stderr_handle.take());
@@ -190,11 +193,12 @@ impl Git<'_> {
                     return Ok(());
                 }
                 Ok(Some(_)) => {
-                    let stderr = stderr_handle.take().map(join).unwrap_or_default();
+                    let (stderr, overflowed) = stderr_handle.take().map(join).unwrap_or_default();
                     return Err(CloneFailure::Refused {
-                        detail: redact_git_detail(
+                        detail: stderr_detail(
                             self.redactor(),
-                            &String::from_utf8_lossy(&stderr),
+                            &stderr,
+                            overflowed,
                             credential.map(GitCredential::secret),
                         ),
                     });
@@ -220,11 +224,6 @@ fn stop(child: &mut std::process::Child, stderr: Option<StderrReader>) {
 
 type StderrReader = thread::JoinHandle<io::Result<(Vec<u8>, bool)>>;
 
-fn join(reader: StderrReader) -> Vec<u8> {
-    reader
-        .join()
-        .ok()
-        .and_then(Result::ok)
-        .map(|(bytes, _truncated)| bytes)
-        .unwrap_or_default()
+fn join(reader: StderrReader) -> (Vec<u8>, bool) {
+    reader.join().ok().and_then(Result::ok).unwrap_or_default()
 }

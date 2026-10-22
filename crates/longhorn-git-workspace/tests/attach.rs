@@ -244,3 +244,40 @@ fn remote_aliases_name_the_same_repository() {
         "ssh://github.com/example/content.git"
     );
 }
+
+#[test]
+fn a_wrong_remote_never_returns_a_caller_seeded_secret() {
+    let fixture = Fixture::worktree();
+    let other = fixture.temp.path().join("controlled-secret.git");
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &[
+            "remote",
+            "set-url",
+            "origin",
+            other.to_str().expect("a path"),
+        ],
+    );
+    let policy = fixture.policy();
+    let git = longhorn_git_workspace::Git::new(
+        &policy,
+        longhorn_redact::Redactor::new(
+            ["controlled-secret".to_owned()],
+            longhorn_redact::RedactionRules::common(),
+        ),
+    );
+
+    let reading = git.read_attach(
+        &fixture.root,
+        EXPECTED_BRANCH,
+        fixture.remote.to_str().expect("a fixture path"),
+    );
+
+    let AttachReading::WrongRemote { observed, .. } = reading else {
+        panic!("expected a wrong remote, got {reading:?}");
+    };
+    let observed = observed.expect("the fixture has an origin");
+    assert!(!observed.contains("controlled-secret"), "{observed}");
+    assert!(observed.contains("[redacted]"), "{observed}");
+}

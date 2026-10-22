@@ -246,3 +246,88 @@ fn a_credential_failure_stops_a_remote_read_before_git_runs() {
     assert_eq!(failure.detail(), "the application holds no credential");
     assert_eq!(policy.credential_calls(), vec![GITHUB_REMOTE.to_owned()]);
 }
+
+#[cfg(unix)]
+#[test]
+fn a_run_whose_git_exits_before_its_descendants_is_still_timed_out() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+
+    // Git itself exits successfully at once, but the backgrounded descendant
+    // inherits the output pipes. The call has not finished until they close.
+    let started = Instant::now();
+    let failure = git
+        .run(
+            &fixture.root,
+            &["-c", "alias.longhorn-orphan=!sleep 2 &", "longhorn-orphan"],
+            GitFailureCode::StatusFailed,
+            Duration::from_millis(100),
+        )
+        .expect_err("output was still held at the bound");
+    let elapsed = started.elapsed();
+
+    assert!(
+        matches!(failure, GitFailure::TimedOut { .. }),
+        "expected a timeout, got {failure:?}"
+    );
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "the hard clock returned after {elapsed:?}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_long_stderr_never_returns_private_key_body_text() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+
+    // Filler first, then a private-key block longer than any tail window, so a
+    // tail cut would drop the BEGIN line and leave the body behind.
+    let failure = git
+        .run(
+            &fixture.root,
+            &[
+                "-c",
+                "alias.longhorn-key=!head -c 100000 /dev/zero | tr '\\0' x >&2; printf -- '-----BEGIN PRIVATE KEY-----\\n' >&2; yes SENSITIVE_PRIVATE_KEY_BODY | head -n 20000 >&2; printf -- '-----END PRIVATE KEY-----\\n' >&2; exit 1",
+                "longhorn-key",
+            ],
+            GitFailureCode::StatusFailed,
+            Duration::from_secs(60),
+        )
+        .expect_err("the alias exits non-zero");
+
+    let GitFailure::Refused { detail, .. } = failure else {
+        panic!("expected a refusal, got {failure:?}");
+    };
+    assert!(!detail.contains("SENSITIVE_PRIVATE_KEY_BODY"), "{detail}");
+    assert!(detail.contains("[redacted]"), "{detail}");
+}
+
+#[cfg(unix)]
+#[test]
+fn stderr_past_the_capture_bound_is_withheld_with_a_note() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+
+    let failure = git
+        .run(
+            &fixture.root,
+            &[
+                "-c",
+                "alias.longhorn-flood=!head -c 1500000 /dev/zero | tr '\\0' x >&2; exit 1",
+                "longhorn-flood",
+            ],
+            GitFailureCode::StatusFailed,
+            Duration::from_secs(60),
+        )
+        .expect_err("the alias exits non-zero");
+
+    let GitFailure::Refused { detail, .. } = failure else {
+        panic!("expected a refusal, got {failure:?}");
+    };
+    assert!(detail.contains("later output was not retained"), "{detail}");
+}

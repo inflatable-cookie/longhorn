@@ -48,8 +48,8 @@ pub use clone::{
     target_already_present,
 };
 pub use execution::{
-    FAILURE_DETAIL_BOUND, Git, MAX_CAPTURED_OUTPUT_BYTES, is_remote_credential_operation,
-    redact_git_detail,
+    FAILURE_DETAIL_BOUND, Git, MAX_CAPTURED_OUTPUT_BYTES, MAX_CAPTURED_STDERR_BYTES,
+    is_remote_credential_operation, redact_git_detail,
 };
 pub use failure::{GitFailure, GitFailureCode};
 pub use model::{GitBranch, GitBranchKind, GitStatus, GitWorkspaceState};

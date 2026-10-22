@@ -111,7 +111,7 @@ Free functions:
   `is_remote_credential_operation`, `remotes_match`, `remote_identity`,
   `remote_for_display`, `has_switch_blocking_dirt`;
 - output treatment: `redact_git_detail`, `FAILURE_DETAIL_BOUND`,
-  `MAX_CAPTURED_OUTPUT_BYTES`.
+  `MAX_CAPTURED_OUTPUT_BYTES`, `MAX_CAPTURED_STDERR_BYTES`.
 
 Wire projections: `GitWorkspaceState`, `GitStatus`, `GitBranch`,
 `GitBranchKind` derive `serde::Serialize` with the donor's key shapes
@@ -138,23 +138,32 @@ its own result and copy from them.
   failure as `AuthenticationRequired`, the policy is asked once for a refreshed
   credential and the call is retried once. A refusal to refresh keeps the
   original failure.
-- Standard output is retained from its head and standard error from its tail,
-  each within `MAX_CAPTURED_OUTPUT_BYTES` (64 KiB). A successful call whose
-  standard output exceeds that bound fails with `git.output_too_large` instead
-  of returning a partial answer. Both streams are drained, so a chatty child
-  cannot fill a pipe and stall the wait.
+- Standard output is retained from its head within
+  `MAX_CAPTURED_OUTPUT_BYTES` (64 KiB). A successful call whose standard output
+  exceeds that bound fails with `git.output_too_large` instead of returning a
+  partial answer.
+- Standard error is retained from its head within
+  `MAX_CAPTURED_STDERR_BYTES` (1 MiB). A tail cut can remove the opening line
+  of a private-key block, and redaction then no longer recognises the body that
+  follows, so the capture keeps the head: a cut at the end leaves an
+  unterminated block, which the rules redact through the end of the text. Past
+  the bound, later output is not retained and the returned detail says so.
+- Both streams are drained, so a chatty child cannot fill a pipe and stall the
+  wait.
 - Successful standard output is redacted with the caller's redactor and the
   invocation secret before `Git::run` returns it. Parsing reads (`status`,
   branch discovery, the attach comparison, the credential decision) take the
   exact bytes, because redaction would corrupt an identifier; the values they
   publish (`origin_url`) are redacted at the public boundary.
 - `Git::run` is the only bounded call. The child runs in its own process group
-  on Unix, so on reaching its `timeout` the group is killed, the child is
-  reaped and its readers are joined: the returned `GitFailure::TimedOut` comes
-  at the bound even when Git's own children still hold the output pipes. The
-  readings in this part impose no wall clock; a caller that needs one uses
-  `run`, and a clone is bounded by its cancellation flag, which kills the same
-  process group.
+  on Unix, and its `timeout` covers both the wait and the drain. On reaching
+  the bound the group is killed, the child is reaped and both readers are
+  joined, so the returned `GitFailure::TimedOut` comes at the bound even when
+  Git has already exited and a shell alias, a remote helper or another
+  descendant still holds its output pipes: the call has not finished until that
+  output does. The readings in this part impose no wall clock; a caller that
+  needs one uses `run`, and a clone is bounded by its cancellation flag, which
+  kills the same process group.
 - Capture readers are joined on every exit, including a kill, so a call leaves
   no reader or child behind.
 
@@ -298,7 +307,8 @@ expected remote. It never mutates the checkout. The readings are:
 - `WrongBranchDirty` when a tracked, staged or conflicted path exists on
   another branch;
 - `WrongRemote` when `origin` does not match, carrying the observed remote in
-  `remote_for_display` form, with any user-info credential removed;
+  `remote_for_display` form with any user-info credential removed, redacted
+  with the caller's redactor like every other Git text the crate returns;
 - `NotRepository` when the folder cannot be read as a worktree, carrying the
   classified failure.
 
@@ -316,9 +326,12 @@ is the failure form: the secret pass, then the caller's redactor, then
 `longhorn-support-log::bounded_tail` with `FAILURE_DETAIL_BOUND` — at most 40
 lines and 4096 bytes, the newest bytes kept, moved to a character boundary
 with `OMITTED_MARKER` in front. Every failure detail the crate returns goes
-through it; a clone's refused stderr too. Standard error is captured as a tail
-within 64 KiB first, so a long clone log never grows memory and still carries
-the fatal line.
+through it; a clone's refused stderr too.
+
+Standard error is redacted from its captured head, before any cut. A stream
+past `MAX_CAPTURED_STDERR_BYTES` carries a note that later output was not
+retained, so a cut never returns a private-key body whose opening line the cut
+removed.
 
 Successful standard output takes the same two redaction passes before
 `Git::run` returns it, then `longhorn-support-log::bound_field` keeps it within
@@ -327,7 +340,15 @@ truncated. `origin_url` is redacted the same way, so a credential in the
 remote's user-info component never leaves the crate; `remotes_match` and
 `remote_identity` remain usable on the redacted value because they remove that
 component before comparing, and `remote_for_display` stays available for raw
-values a caller obtained itself.
+values a caller obtained itself. An attach reading's `WrongRemote.observed`
+takes the same redaction after its display form.
+
+Structured identifiers Git reports stay exact: branch names and ids, upstream
+references, the current branch or detached revision shorthand, and the
+canonical root. They are addresses, not prose — a branch id is handed back to
+`switch_branch`, so a redacted identifier would stop addressing anything. A
+caller that displays one applies its own redaction policy, as it does for its
+own paths.
 
 ## Required evidence
 
@@ -341,9 +362,12 @@ values a caller obtained itself.
   every stop state, branch switching, clone staging and the exclusive rename
   including an existing target and a failed clone, attach in every reading, the
   credential hook and its delivered environment, redaction of successful
-  standard output and of failure detail, the capture bound, and the hard wall
-  clock against a sleeping descendant that holds the output pipes. A clone
-  against a remote that hangs proves cancellation returns at its flag.
+  standard output, of an attach reading's observed remote and of failure
+  detail, a private-key block longer than any tail window, the capture bound
+  and its withheld-overflow note, and the hard wall clock both against a
+  sleeping descendant that holds the output pipes and against a Git process
+  that exits before its backgrounded descendant does. A clone against a remote
+  that hangs proves cancellation returns at its flag.
 - `effigy lint:git-workspace` compiles every target with clippy at `-D
   warnings`; `effigy docs:git-workspace` builds rustdoc with warnings denied.
 - `effigy check:git-workspace` aggregates those three and
@@ -357,7 +381,9 @@ policy proves the credential hook, its delivered environment and its failure
 mode. The exclusive rename is proved on Linux and macOS only; elsewhere the
 function reports `Unsupported`. Process-group termination is Unix only; on a
 host without it the direct child is killed, so a descendant that keeps an
-output pipe open can delay cleanup there.
+output pipe open can delay cleanup there. One invocation retains at most 64 KiB
+of standard output and 1 MiB of standard error, plus the redaction copies of
+those bytes, for the length of the call.
 
 ## Part 5b: GitHub sign-in
 
@@ -406,13 +432,14 @@ Deltas from Acowtancy Desktop's mechanism at `4993376c`:
 - `GitWorktreeFacts` is removed. `GitWorkspaceState`'s fields are public and
   `GitStatus::clean` is computed once, so a readiness check reads the same
   facts the mechanism computed.
-- Output is bounded and redacted where the donor was not: 64 KiB per captured
-  stream, a failure detail cut to 4096 bytes / 40 lines, successful standard
-  output redacted with the caller's redactor and the invocation secret, and
-  `origin_url` redacted at the public boundary. A donor caller that expected
-  full stderr in a diagnostic now receives the redacted tail, and one that
-  expected raw `git log`-style output from `run_git` reads the parsed readings
-  instead.
+- Output is bounded and redacted where the donor was not: 64 KiB of standard
+  output and 1 MiB of standard error per invocation, a failure detail cut to
+  4096 bytes / 40 lines, successful standard output redacted with the caller's
+  redactor and the invocation secret, and `origin_url` and an attach reading's
+  observed remote redacted at the public boundary. A donor caller that expected
+  full stderr in a diagnostic now receives the redacted head or a withheld
+  note, and one that expected raw `git log`-style output from `run_git` reads
+  the parsed readings instead.
 - A timeout or a clone cancellation kills the child's process group on Unix
   instead of only the direct child, so the bound holds when Git's own children
   (a shell alias, a remote helper) are still writing.

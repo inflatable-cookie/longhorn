@@ -6,16 +6,17 @@
 //!
 //! A child's environment is cleared of author and committer identity, prompts
 //! are disabled, and the caller's isolation is applied before the invocation
-//! credential, so the credential wins. Standard output is retained from its
-//! head and standard error from its tail, each within
-//! [`MAX_CAPTURED_OUTPUT_BYTES`]; a failure's detail is then redacted with the
-//! caller's [`longhorn_redact::Redactor`] and the invocation secret, and cut to
-//! [`FAILURE_DETAIL_BOUND`].
+//! credential, so the credential wins. Both streams are retained from their
+//! head, within [`MAX_CAPTURED_OUTPUT_BYTES`] and
+//! [`MAX_CAPTURED_STDERR_BYTES`]; every Git text the crate returns is then
+//! redacted with the caller's [`longhorn_redact::Redactor`] and the invocation
+//! secret, and a failure's detail is cut to [`FAILURE_DETAIL_BOUND`].
 
 use std::{
     io::{self, Read},
     path::Path,
     process::{Child, Command, ExitStatus, Stdio},
+    sync::mpsc::{self, RecvTimeoutError},
     thread,
     time::{Duration, Instant},
 };
@@ -29,13 +30,20 @@ use crate::{
     preflight::{RemoteAccessFailure, classify_remote_failure, is_https_github},
 };
 
-/// Most bytes retained from either Git output stream by one invocation.
+/// Most bytes retained from Git's standard output by one invocation.
 ///
-/// Standard output keeps its head, because callers parse it; standard error
-/// keeps its tail, because Git reports the cause there. A successful call whose
-/// standard output exceeds this bound fails with
+/// A successful call whose standard output exceeds this bound fails with
 /// [`GitFailureCode::OutputTooLarge`] rather than returning a partial answer.
 pub const MAX_CAPTURED_OUTPUT_BYTES: usize = 64 * 1024;
+
+/// Most bytes retained from Git's standard error before it is redacted.
+///
+/// Standard error is retained from its head, not its tail. A tail cut can
+/// remove the opening line of a private-key block, and redaction no longer
+/// recognises the body that follows; a cut at the end leaves an unterminated
+/// block, which the rules redact through the end of the text. Beyond this
+/// bound, later output is not retained and the returned detail says so.
+pub const MAX_CAPTURED_STDERR_BYTES: usize = 1024 * 1024;
 
 /// The bound one failure's Git detail keeps after redaction.
 pub const FAILURE_DETAIL_BOUND: TailBounds = TailBounds {
@@ -149,9 +157,10 @@ impl<'a> Git<'a> {
         }
         Err(GitFailure::Refused {
             code,
-            detail: redact_git_detail(
+            detail: stderr_detail(
                 &self.redactor,
-                &String::from_utf8_lossy(&capture.stderr),
+                &capture.stderr,
+                capture.stderr_overflowed,
                 credential.map(GitCredential::secret),
             ),
         })
@@ -179,9 +188,10 @@ impl<'a> Git<'a> {
         }
         Err(GitFailure::Refused {
             code,
-            detail: redact_git_detail(
+            detail: stderr_detail(
                 &self.redactor,
-                &String::from_utf8_lossy(&process.capture.stderr),
+                &process.capture.stderr,
+                process.capture.stderr_overflowed,
                 process.credential.as_ref().map(GitCredential::secret),
             ),
         })
@@ -338,6 +348,27 @@ fn redact_text(redactor: &Redactor, text: &str, secret: Option<&str>) -> String 
     redactor.redact(&scrubbed).text
 }
 
+/// Redacts one captured standard-error stream for a failure detail.
+///
+/// The stream is retained from its head, so an opening private-key line is
+/// present whenever its block starts within the capture. A stream past
+/// [`MAX_CAPTURED_STDERR_BYTES`] carries a note that later output was not
+/// retained instead of returning a cut that could hide a block opening.
+pub(crate) fn stderr_detail(
+    redactor: &Redactor,
+    bytes: &[u8],
+    overflowed: bool,
+    secret: Option<&str>,
+) -> String {
+    let mut text = redact_text(redactor, &String::from_utf8_lossy(bytes), secret);
+    if overflowed {
+        text.push_str(&format!(
+            "\nGit standard error exceeded {MAX_CAPTURED_STDERR_BYTES} bytes; later output was not retained."
+        ));
+    }
+    bounded_tail(redactor, &text, FAILURE_DETAIL_BOUND)
+}
+
 fn apply_credential(command: &mut Command, credential: &GitCredential) {
     for (key, value) in credential.env_vars() {
         command.env(key, value);
@@ -359,6 +390,7 @@ struct Capture {
     stdout: Vec<u8>,
     stdout_truncated: bool,
     stderr: Vec<u8>,
+    stderr_overflowed: bool,
 }
 
 fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Capture> {
@@ -367,6 +399,7 @@ fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Captur
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let mut child = command.spawn()?;
+    let child_pid = child.id();
     let Some(stdout_pipe) = child.stdout.take() else {
         kill_child_tree(&mut child);
         return Err(io::Error::other("Git standard output was not captured"));
@@ -375,33 +408,84 @@ fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Captur
         kill_child_tree(&mut child);
         return Err(io::Error::other("Git standard error was not captured"));
     };
-    let stdout_reader = thread::spawn(move || read_head(stdout_pipe));
-    let stderr_reader = thread::spawn(move || read_tail(stderr_pipe));
-    let status = wait_bounded(&mut child, timeout);
-    let stdout = join(stdout_reader);
-    let stderr = join(stderr_reader);
+    let (stdout_sender, stdout_receiver) = mpsc::channel();
+    let (stderr_sender, stderr_receiver) = mpsc::channel();
+    let stdout_reader = thread::spawn(move || {
+        let _ = stdout_sender.send(read_capped(stdout_pipe, MAX_CAPTURED_OUTPUT_BYTES));
+    });
+    let stderr_reader = thread::spawn(move || {
+        let _ = stderr_sender.send(read_capped(stderr_pipe, MAX_CAPTURED_STDERR_BYTES));
+    });
+
+    let deadline = timeout.map(|bound| Instant::now() + bound);
+    let status = wait_bounded(&mut child, deadline);
+    // The bound covers the drain too. Git can exit while a shell alias, a
+    // remote helper or another descendant still holds its output pipes; a call
+    // that is still waiting for that output has not finished inside its bound.
+    let drained = receive(&stdout_receiver, deadline)
+        .and_then(|stdout| receive(&stderr_receiver, deadline).map(|stderr| (stdout, stderr)));
+    let drained = match drained {
+        Ok(drained) => Ok(drained),
+        Err(error) => {
+            if error.kind() == io::ErrorKind::TimedOut {
+                // The direct child may already be reaped, so end the group by
+                // the id captured at spawn.
+                kill_process_group_of(child_pid);
+            }
+            Err(error)
+        }
+    };
+    // A reader that could not deliver before the deadline ends once the group
+    // is gone; join both so no reader outlives the call.
+    let _ = stdout_reader.join();
+    let _ = stderr_reader.join();
+    let (stdout, stderr) = drained?;
     let status = status?;
-    let (stdout, stdout_truncated) = stdout?;
-    let (stderr, _stderr_truncated) = stderr?;
+    let (stdout, stdout_truncated) = stdout;
+    let (stderr, stderr_overflowed) = stderr;
     Ok(Capture {
         success: status.success(),
         stdout,
         stdout_truncated,
         stderr,
+        stderr_overflowed,
     })
+}
+
+/// Waits for one reader's captured stream, bounded by the call's deadline.
+fn receive<T>(
+    receiver: &mpsc::Receiver<io::Result<T>>,
+    deadline: Option<Instant>,
+) -> io::Result<T> {
+    match deadline {
+        None => receiver
+            .recv()
+            .map_err(|_| io::Error::other("the Git output reader stopped unexpectedly"))?,
+        Some(deadline) => {
+            match receiver.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+                Ok(received) => received,
+                Err(RecvTimeoutError::Timeout) => Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "Git output was still held at its wall clock",
+                )),
+                Err(RecvTimeoutError::Disconnected) => Err(io::Error::other(
+                    "the Git output reader stopped unexpectedly",
+                )),
+            }
+        }
+    }
 }
 
 /// Waits for the child, and kills and reaps it when the bound is reached or the
 /// wait itself fails, so no reader is left waiting on a live child.
-fn wait_bounded(child: &mut Child, timeout: Option<Duration>) -> io::Result<ExitStatus> {
-    let Some(timeout) = timeout else {
+fn wait_bounded(child: &mut Child, deadline: Option<Instant>) -> io::Result<ExitStatus> {
+    let Some(deadline) = deadline else {
         let status = child.wait();
         if status.is_err() {
             kill_child_tree(child);
         }
         return status;
     };
-    let deadline = Instant::now() + timeout;
     loop {
         match child.try_wait() {
             Ok(Some(status)) => return Ok(status),
@@ -434,30 +518,31 @@ pub(crate) fn isolate_process_group(command: &mut Command) {
 #[cfg(not(unix))]
 pub(crate) fn isolate_process_group(_command: &mut Command) {}
 
-/// Kills the child's whole process group where the host has one, then kills
-/// and reaps the direct child. A descendant holding an output pipe therefore
-/// cannot keep a bounded call alive.
-pub(crate) fn kill_child_tree(child: &mut Child) {
+/// Ends one process group by the id its leader had at spawn.
+pub(crate) fn kill_process_group_of(pid: u32) {
     #[cfg(unix)]
     {
-        if let Ok(pid) = i32::try_from(child.id())
+        if let Ok(pid) = i32::try_from(pid)
             && let Some(pid) = rustix::process::Pid::from_raw(pid)
         {
             let _ = rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
         }
     }
+    #[cfg(not(unix))]
+    let _ = pid;
+}
+
+/// Kills the child's whole process group where the host has one, then kills
+/// and reaps the direct child. A descendant holding an output pipe therefore
+/// cannot keep a bounded call alive.
+pub(crate) fn kill_child_tree(child: &mut Child) {
+    kill_process_group_of(child.id());
     let _ = child.kill();
     let _ = child.wait();
 }
 
-fn join(reader: thread::JoinHandle<io::Result<(Vec<u8>, bool)>>) -> io::Result<(Vec<u8>, bool)> {
-    reader
-        .join()
-        .map_err(|_| io::Error::other("the Git output reader stopped unexpectedly"))?
-}
-
-fn read_head(mut pipe: impl Read) -> io::Result<(Vec<u8>, bool)> {
-    let mut retained = Vec::with_capacity(MAX_CAPTURED_OUTPUT_BYTES);
+pub(crate) fn read_capped(mut pipe: impl Read, cap: usize) -> io::Result<(Vec<u8>, bool)> {
+    let mut retained = Vec::with_capacity(cap.min(64 * 1024));
     let mut truncated = false;
     let mut buffer = [0u8; 8192];
     loop {
@@ -465,29 +550,10 @@ fn read_head(mut pipe: impl Read) -> io::Result<(Vec<u8>, bool)> {
         if read == 0 {
             break;
         }
-        let remaining = MAX_CAPTURED_OUTPUT_BYTES.saturating_sub(retained.len());
+        let remaining = cap.saturating_sub(retained.len());
         let keep = read.min(remaining);
         retained.extend_from_slice(&buffer[..keep]);
         truncated |= keep < read;
-    }
-    Ok((retained, truncated))
-}
-
-pub(crate) fn read_tail(mut pipe: impl Read) -> io::Result<(Vec<u8>, bool)> {
-    let mut retained = Vec::new();
-    let mut truncated = false;
-    let mut buffer = [0u8; 8192];
-    loop {
-        let read = pipe.read(&mut buffer)?;
-        if read == 0 {
-            break;
-        }
-        retained.extend_from_slice(&buffer[..read]);
-        if retained.len() > MAX_CAPTURED_OUTPUT_BYTES {
-            truncated = true;
-            let excess = retained.len() - MAX_CAPTURED_OUTPUT_BYTES;
-            retained.drain(..excess);
-        }
     }
     Ok((retained, truncated))
 }

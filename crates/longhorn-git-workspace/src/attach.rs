@@ -45,7 +45,8 @@ pub enum AttachReading {
     WrongRemote {
         /// The canonical worktree root.
         root: String,
-        /// The observed remote, safe for display, when there is one.
+        /// The observed remote, safe for display and redacted with the
+        /// caller's redactor, when there is one.
         observed: Option<String>,
     },
     /// Another branch holds tracked, staged or conflicted work.
@@ -87,7 +88,8 @@ impl Git<'_> {
             observed => {
                 return AttachReading::WrongRemote {
                     root,
-                    observed: observed.map(|remote| remote_for_display(&remote)),
+                    observed: observed
+                        .map(|remote| self.redacted_output(&remote_for_display(&remote), None)),
                 };
             }
         }
