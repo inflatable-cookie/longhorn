@@ -6,6 +6,8 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-22
+
 ### Added
 - **`longhorn-storage-layout`: resolve one root and read one native directory fact on demand.** `resolve_storage_root` shares the complete resolver's per-root rules and accepts partial platform facts; `native_platform_directory_fact` reads only the environment entries for the requested fact. Complete layout resolution and its digest are unchanged. Contract 004 owns the behavior.
 
