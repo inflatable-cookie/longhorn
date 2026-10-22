@@ -78,6 +78,13 @@ impl<'a> Git<'a> {
     /// its bound even when Git's own children still hold its output pipes; the
     /// result is [`GitFailure::TimedOut`].
     ///
+    /// The bound governs Git processes and their output, not caller code.
+    /// [`GitPolicy::credential`] and [`GitPolicy::refresh_credential`] run
+    /// synchronously on the calling thread and cannot be preempted: a hook that
+    /// overruns delays the return until it answers, and the call then reports
+    /// [`GitFailure::TimedOut`] without starting Git again. A policy that must
+    /// keep the bound returns from its hooks promptly.
+    ///
     /// Standard output is redacted with the caller's redactor and the
     /// invocation secret before it is returned, so a value Git printed never
     /// leaves the crate unprotected.

@@ -24,7 +24,8 @@ One `Git` handle carries the caller's `GitPolicy` and the caller's
   not-a-repository. It never mutates the checkout.
 - `clone_into` clones into the invocation's own empty staging folder, bounded
   by the caller's cancellation flag.
-- `run` executes one argument vector under a hard wall clock.
+- `run` executes one argument vector under a hard wall clock over Git
+  processes and their output; the synchronous policy hooks run outside it.
 
 Staging helpers are free functions: `target_already_present`, `staging_parent`,
 `create_owned_staging`, `rename_exclusive` and `remove_owned_staging`. The

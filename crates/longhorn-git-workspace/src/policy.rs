@@ -17,6 +17,11 @@ use crate::failure::GitFailure;
 /// Isolation is application configuration law and the credential posture is
 /// application credential policy. The mechanism stops rather than falling
 /// back to an ambient helper or a prompt.
+///
+/// Every hook runs synchronously on the caller's thread. The wall clock of
+/// [`crate::Git::run`] bounds Git processes, not these hooks: a hook that
+/// blocks past the bound delays the call's return until it answers. A
+/// credential lookup or refresh that can be slow carries its own limit.
 pub trait GitPolicy: Send + Sync {
     /// Applies application-owned process isolation and Git configuration.
     ///

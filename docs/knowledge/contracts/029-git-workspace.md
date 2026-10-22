@@ -142,6 +142,12 @@ its own result and copy from them.
   covers the origin lookup, both attempts and the policy's refresh. A refresh
   that answers after the deadline, with a replacement or without one, reports
   `GitFailure::TimedOut` without a retry.
+- The wall clock bounds Git processes and their output, not caller code.
+  `GitPolicy::credential` and `GitPolicy::refresh_credential` run
+  synchronously on the calling thread and the mechanism cannot preempt them: a
+  hook that blocks past the bound delays the return until it answers, and the
+  call then reports `TimedOut` without starting Git again. Keeping the hooks
+  prompt, or giving a slow lookup its own limit, is the policy's obligation.
 - Standard output is retained from its head within
   `MAX_CAPTURED_OUTPUT_BYTES` (64 KiB). A successful call whose standard output
   exceeds that bound fails with `git.output_too_large` instead of returning a
@@ -388,7 +394,10 @@ Limits. No test reaches a real host, so the network and authentication classes
 are proved by their classification and by local refusals, not by a live
 refusal. The authentication refusal that drives refresh-and-retry is a scripted
 local `ext::` program, not a real host's; the scripted policy proves the
-credential hook, its delivered environment, its failure mode and its refresh. The exclusive rename is proved on Linux and macOS only; elsewhere the
+credential hook, its delivered environment, its failure mode and its refresh. The
+wall clock cannot preempt a synchronous policy hook: a slow `credential` or
+`refresh_credential` delays `Git::run` past its bound, and the call reports
+`TimedOut` once the hook answers. The exclusive rename is proved on Linux and macOS only; elsewhere the
 function reports `Unsupported`. Process-group termination is Unix only; on a
 host without it the direct child is killed, so a descendant that keeps an
 output pipe open can delay cleanup there. One invocation retains at most 64 KiB
