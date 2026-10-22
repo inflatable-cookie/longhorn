@@ -4,8 +4,11 @@ Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
 are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
 
-- **Released:** `0.4.0` (2026-10-21). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.4.0` for the Rust crates. Breaking:
+- **Released:** `0.4.1` (2026-10-22). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.4.1` for the Rust crates. `0.4.1`
+  adds per-root storage resolution (`resolve_storage_root`) and one native
+  directory fact on demand (`native_platform_directory_fact`), so a CLI
+  needs only the inputs of the roots it uses. `0.4.0` was breaking:
   storage identity, layout resolution, `StorageRoots` and the bootstrap
   locator moved from `longhorn-config` to `longhorn-storage-layout`
   ([contract 004](knowledge/contracts/004-configuration-storage-backup-and-recovery.md)).
