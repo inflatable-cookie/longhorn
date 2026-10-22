@@ -1,0 +1,35 @@
+# A neutral second consumer for Longhorn's desktop support crates (contract
+# 003 step 6, contracts 024-028). Every value is a caller value: no product
+# name, path, key or rule set appears anywhere in this crate.
+#
+# The workspace dependencies below are inherited on purpose. This manifest is
+# a template, not a root workspace member: `scripts/verify-desktop-support-
+# conformance.ts` copies it into a disposable private workspace and builds it
+# there, so the proof resolves packaged crate sources and never the live
+# Longhorn workspace. Building it in place would need that private workspace.
+[package]
+name = "longhorn-desktop-support-conformance"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "longhorn-desktop-support-conformance"
+path = "src/main.rs"
+
+[dependencies]
+flate2.workspace = true
+hex.workspace = true
+longhorn-diagnostics.workspace = true
+longhorn-pty.workspace = true
+longhorn-redact.workspace = true
+longhorn-support-log.workspace = true
+longhorn-tool-provision = { workspace = true, features = ["fixture-server"] }
+secrecy.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -67,9 +67,12 @@ the members-only package list. Keep Cargo for commands that intentionally set
 `CARGO_TARGET_DIR`: `scripts/verify-agent-control-release-absence.ts`,
 `scripts/verify-agent-tool-dispatch-release-absence.ts`,
 `scripts/verify-agent-tool-dispatch-source-consumer.ts`, and
-`scripts/proof-artifacts.ts` with its artifact proof scripts. Tauri CLI example
-builds and the Queue warm-merge hook manifest under `.git/queue-hooks` also
-stay on Cargo. Leave direct Cargo uses in `config/release.toml` and all
+`scripts/proof-artifacts.ts` with its artifact proof scripts.
+`scripts/verify-desktop-support-conformance.ts` calls plain Cargo too: it builds
+its consumer in a disposable private workspace that Oxide does not manage, and
+its package inventories run in this checkout. Tauri CLI example builds and the
+Queue warm-merge hook manifest under `.git/queue-hooks` also stay on Cargo.
+Leave direct Cargo uses in `config/release.toml` and all
 `.github/workflows/` unchanged.
 
 ## Product rules

@@ -189,16 +189,23 @@ changes, to `[redacted]`.
 
 ## Extraction state
 
-Contract 003 steps 1–5 are done. Acowtancy Desktop migrated in acowtancy-v2
+Contract 003 steps 1–6 are done. Acowtancy Desktop migrated in acowtancy-v2
 PR 920 (merged 2026-10-19 at `89c8bf568`) and took every Longhorn crate at
 `v0.3.1`. Its three donor redactors are removed: diagnostics, install logs,
 Git and clone errors, and the local publisher all use `longhorn-redact`, and
 the product key names stay in Acowtancy. Longhorn's contract and tests are now
 authoritative.
 
+Step 6 is done by the neutral second consumer at
+`examples/desktop-support-conformance/` (task 073). A consumer crate staged
+from the packaged crates into a disposable private workspace replays a row set
+from this contract's table and checks every guarantee through the public API.
+Limits: it replays a chosen row set plus boundary checks, not the whole
+committed case table, and the proof runs on Unix hosts.
+
 Open:
 
-- Second-consumer conformance (step 6) has no named consumer yet.
+- Nothing for steps 1–6.
 
 ## Stop Conditions
 
