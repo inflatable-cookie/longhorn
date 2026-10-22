@@ -34,7 +34,7 @@ const longhornPackages = [
 ] as const;
 
 const shapes = {
-  "split-shell": {
+  "minimal-shell": {
     longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
     forbidden: ["@inflatable-cookie/longhorn/layout", "@inflatable-cookie/longhorn-poodle-svelte/poodle", "@inflatable-cookie/longhorn/transfer", "@inflatable-cookie/longhorn/surface-transfer"],
     regions: 0,
@@ -310,8 +310,8 @@ function assertCapabilityPolicy(
   const permissionSet = new Set(permissions);
   const base = permissionSet.has("allow-longhorn-transfer-base");
   const surfaces = permissionSet.has("allow-longhorn-transfer-surface");
-  if (shape === "split-shell" && (base || surfaces)) {
-    throw new Error("Split-shell capability includes transfer authority");
+  if (shape === "minimal-shell" && (base || surfaces)) {
+    throw new Error("Minimal shell capability includes transfer authority");
   }
   if (shape === "nucleus" && surfaces) {
     throw new Error("Nucleus capability includes Surface transfer authority");

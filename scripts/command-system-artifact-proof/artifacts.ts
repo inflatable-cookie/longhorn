@@ -318,7 +318,7 @@ async function auditRustBoundary(workspace: string): Promise<void> {
 
 function assertSharedSourceNeutral(label: string, source: string): void {
   const normalized = source.toLowerCase().replaceAll(/\s+/g, "");
-  for (const marker of ["loophole:", "jetstream:", "soundcheck:", "split-shell:"]) {
+  for (const marker of ["loophole:", "jetstream:", "soundcheck:"]) {
     if (normalized.includes(marker)) {
       throw new Error(`${label} contains donor payload marker ${marker}`);
     }

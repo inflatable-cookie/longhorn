@@ -46,8 +46,7 @@ effigy qa
 
 ## Current State
 
-Pre-1.0. Five consumers migrated: Nucleus, Loophole, Soundcheck, Split-shell,
-Jetstream. The three TypeScript packages are on npm under `@inflatable-cookie`,
+Pre-1.0. Four consumers migrated: Nucleus, Loophole, Soundcheck, Jetstream. The three TypeScript packages are on npm under `@inflatable-cookie`,
 and the Rust crates enumerated by the
 [generated API reference](docs/reference/api-surface.md) are taken by git tag.
 [docs/README.md](docs/README.md) has the current release and what is being

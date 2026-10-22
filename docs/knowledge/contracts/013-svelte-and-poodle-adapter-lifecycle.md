@@ -129,4 +129,4 @@ Evidence: the retired logs (Git history).
 - public Poodle adapters cover tabs, regions, and split views without source
   duplication
 - cross-window drag uses no Poodle-private selector or payload
-- a minimal Split-shell shell and full Loophole shell use different compositions
+- a minimal-shell proof shell and full Loophole shell use different compositions

@@ -6,9 +6,9 @@ import {
   type ReactiveConnection,
 } from "@inflatable-cookie/longhorn-poodle-svelte";
 
-import SplitShell, {
-  type SplitShellAuthority,
-} from "./SplitShell.svelte";
+import MinimalShell, {
+  type MinimalShellAuthority,
+} from "./MinimalShell.svelte";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -18,13 +18,13 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-describe("Split-shell shell", () => {
+describe("Minimal shell", () => {
   it("reveals only after authority and tears down its connection", async () => {
     const ready = deferred<void>();
     const events: string[] = [];
-    let current: SplitShellAuthority | undefined;
+    let current: MinimalShellAuthority | undefined;
     let disposals = 0;
-    const state = new ReactiveClientState<SplitShellAuthority>({
+    const state = new ReactiveClientState<MinimalShellAuthority>({
       capability: {
         kind: "supported",
         connect: () =>
@@ -34,10 +34,10 @@ describe("Split-shell shell", () => {
             async dispose() {
               disposals += 1;
             },
-          }) satisfies ReactiveConnection<SplitShellAuthority>,
+          }) satisfies ReactiveConnection<MinimalShellAuthority>,
       },
     });
-    const screen = render(SplitShell, {
+    const screen = render(MinimalShell, {
       props: {
         clientState: state,
         async reveal() {
@@ -49,14 +49,14 @@ describe("Split-shell shell", () => {
     expect(screen.getByText("Loading workspace authority")).toBeTruthy();
     expect(events).toEqual([]);
     current = {
-      documentTitle: "Split Shell",
+      documentTitle: "Minimal Shell",
       sectionTitle: "Accounts",
     };
     events.push("authority");
     ready.resolve();
 
     await waitFor(() =>
-      expect(screen.getByRole("main", { name: "Split-shell workspace" })).toBeTruthy(),
+      expect(screen.getByRole("main", { name: "Minimal shell workspace" })).toBeTruthy(),
     );
     expect(events).toEqual(["authority", "reveal"]);
     expect(document.documentElement.dataset.theme).toBe("clay");
@@ -67,13 +67,13 @@ describe("Split-shell shell", () => {
   });
 
   it("renders an unsupported host instead of a fallback document", async () => {
-    const state = new ReactiveClientState<SplitShellAuthority>({
+    const state = new ReactiveClientState<MinimalShellAuthority>({
       capability: {
         kind: "unsupported",
         reason: "guarded reveal command is absent",
       },
     });
-    const screen = render(SplitShell, {
+    const screen = render(MinimalShell, {
       props: { clientState: state, reveal: async () => undefined },
     });
 

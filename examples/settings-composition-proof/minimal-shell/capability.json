@@ -1,5 +1,5 @@
 {
-  "identifier": "split-shell-settings",
+  "identifier": "minimal-shell-settings",
   "description": "One staged preference page in a modal host.",
   "windows": ["main"],
   "permissions": [

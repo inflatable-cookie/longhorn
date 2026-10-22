@@ -35,7 +35,7 @@ try {
     artifacts: typescript.paths,
     declarations,
   });
-  const splitShell = consumers.find(({ shape }) => shape === "split-shell")!;
+  const minimalShell = consumers.find(({ shape }) => shape === "minimal-shell")!;
   const reconnectingLifecycle = consumers.find(({ shape }) => shape === "reconnecting-lifecycle")!;
   console.log(
     JSON.stringify(
@@ -46,7 +46,7 @@ try {
         rustCompileGraphs: rust.compileGraphs,
         typescriptArtifacts: typescript.identities,
         consumers,
-        protocol: splitShell.trace.protocol,
+        protocol: minimalShell.trace.protocol,
         lifecycle: reconnectingLifecycle.trace.lifecycle,
         audits: {
           generatedBindingsDrift: false,

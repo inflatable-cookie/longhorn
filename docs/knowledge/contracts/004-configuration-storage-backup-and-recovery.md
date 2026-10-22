@@ -689,7 +689,7 @@ restore operate at explicit scopes.
 - restore preview is bound to current evidence and stale confirmation fails
 - every publication failure rolls back and verifies or blocks normal writes
 - a crash journal recovers before later mutation
-- Loophole, Soundcheck, and Split-shell state map without sharing product schemas
+- Loophole, Soundcheck, and the minimal-shell proof state map without sharing product schemas
 
 ## Settings Policy Resolution
 

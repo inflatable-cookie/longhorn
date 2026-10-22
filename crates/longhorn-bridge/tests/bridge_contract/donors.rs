@@ -39,15 +39,15 @@ fn absent_domains_remain_absent_and_extra_domains_are_rejected() {
 }
 
 #[test]
-fn query_only_split_shell_fixture_has_no_subscription_or_service_feature() {
-    let split_shell = receipt(
-        host("host:split-shell-desktop", BridgeHostForm::TauriLocal),
-        "session:split-shell",
+fn query_only_minimal_shell_fixture_has_no_subscription_or_service_feature() {
+    let minimal_shell = receipt(
+        host("host:minimal-shell-desktop", BridgeHostForm::TauriLocal),
+        "session:minimal-shell",
         &["request_reply"],
-        vec![capabilities("split-shell.workspace", &["query"]).unwrap()],
+        vec![capabilities("minimal-shell.workspace", &["query"]).unwrap()],
         vec![authority(
-            "split-shell.workspace",
-            "scope:split-shell-workspace",
+            "minimal-shell.workspace",
+            "scope:minimal-shell-workspace",
             ReadAuthority::Authoritative,
             WriteAuthority::None,
             ExecutionAuthority::None,
@@ -57,14 +57,14 @@ fn query_only_split_shell_fixture_has_no_subscription_or_service_feature() {
     )
     .unwrap();
 
-    let feature_names: Vec<_> = split_shell
+    let feature_names: Vec<_> = minimal_shell
         .transport_features()
         .iter()
         .map(TransportFeatureId::as_str)
         .collect();
     assert_eq!(feature_names, ["request_reply"]);
     assert_eq!(
-        split_shell.domain_capabilities()[0].capabilities()[0].as_str(),
+        minimal_shell.domain_capabilities()[0].capabilities()[0].as_str(),
         "query"
     );
 }

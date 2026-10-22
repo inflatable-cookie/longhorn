@@ -5,7 +5,7 @@ one Longhorn app frame.
 
 | Shape | Composition | Longhorn graph |
 | --- | --- | --- |
-| Split-shell | one public Poodle split, generic authority lifetime | core, Svelte |
+| Minimal shell | one public Poodle split, generic authority lifetime | core, Svelte |
 | Nucleus | window, container, five regions, panels | core, layout, Svelte, Poodle |
 | Loophole | display, window, Surface, container, eight regions, panels, transfer | full optional client and adapter graph |
 

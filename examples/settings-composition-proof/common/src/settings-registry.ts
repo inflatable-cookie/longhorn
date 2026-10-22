@@ -7,7 +7,7 @@ import type {
 
 import settingsFixture from "./fixtures/settings-protocol-v1.json";
 
-export type ProofShape = "split-shell" | "soundcheck" | "loophole" | "nucleus";
+export type ProofShape = "minimal-shell" | "soundcheck" | "loophole" | "nucleus";
 
 const featureDefaults = {
   reset: false,
@@ -62,15 +62,15 @@ export function createProofSnapshot(
 
 function declarationsFor(shape: ProofShape) {
   switch (shape) {
-    case "split-shell":
+    case "minimal-shell":
       return productDeclarations(
         shape,
         [
-          page("split-shell:preferences", "split-shell:preferences", "Preferences", [
-            "split-shell:preferences",
+          page("minimal-shell:preferences", "minimal-shell:preferences", "Preferences", [
+            "minimal-shell:preferences",
           ]),
         ],
-        [{ id: "split-shell:preferences", timing: "staged" }],
+        [{ id: "minimal-shell:preferences", timing: "staged" }],
       );
     case "nucleus":
       return productDeclarations(
@@ -90,7 +90,7 @@ function declarationsFor(shape: ProofShape) {
 }
 
 function productDeclarations(
-  shape: "split-shell" | "nucleus",
+  shape: "minimal-shell" | "nucleus",
   pages: SettingsPageDefinition[],
   units: readonly { id: string; timing: SettingsMutationTiming }[],
 ) {

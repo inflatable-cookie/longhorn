@@ -1,12 +1,12 @@
-import { runSplitShellTrace } from "../../split-shell.ts";
+import { runMinimalShellTrace } from "../../minimal-shell.ts";
 import { protocolArtifactTrace } from "../../protocol-artifact.ts";
 
-const trace = await runSplitShellTrace();
+const trace = await runMinimalShellTrace();
 if (
   !trace.adapterParity ||
   trace.eventsResolved ||
   trace.serviceResolved
 ) {
-  throw new Error("Split-shell artifact trace violated query-only policy");
+  throw new Error("Minimal shell artifact trace violated query-only policy");
 }
 console.log(JSON.stringify({ trace, protocol: protocolArtifactTrace() }));

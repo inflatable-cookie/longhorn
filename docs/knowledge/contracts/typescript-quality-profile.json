@@ -50,7 +50,7 @@
           "examples/bridge-topology-proof/proof.ts",
           "examples/bridge-topology-proof/protocol-artifact.ts",
           "examples/bridge-topology-proof/reconnecting-lifecycle.ts",
-          "examples/bridge-topology-proof/split-shell.ts",
+          "examples/bridge-topology-proof/minimal-shell.ts",
           "examples/command-system-proof/common.ts",
           "examples/command-system-proof/setup.ts",
           "examples/command-system-proof/vitest.config.ts",
@@ -567,12 +567,12 @@
   "unregistered_candidates": [
     "examples/app-shell-proof/loophole/package.json",
     "examples/app-shell-proof/nucleus/package.json",
-    "examples/app-shell-proof/split-shell/package.json",
+    "examples/app-shell-proof/minimal-shell/package.json",
     "examples/bridge-topology-proof/consumers/capability-authority/package.json",
     "examples/bridge-topology-proof/consumers/jobs-and-service-failure/package.json",
     "examples/bridge-topology-proof/consumers/ordered-streams/package.json",
     "examples/bridge-topology-proof/consumers/reconnecting-lifecycle/package.json",
-    "examples/bridge-topology-proof/consumers/split-shell/package.json",
+    "examples/bridge-topology-proof/consumers/minimal-shell/package.json",
     "examples/command-system-proof/consumers/jetstream/package.json",
     "examples/command-system-proof/consumers/loophole/package.json",
     "examples/greenfield-compositions/full-hosting/package.json",
@@ -593,7 +593,7 @@
     "examples/settings-composition-proof/loophole/package.json",
     "examples/settings-composition-proof/nucleus/package.json",
     "examples/settings-composition-proof/soundcheck/package.json",
-    "examples/settings-composition-proof/split-shell/package.json"
+    "examples/settings-composition-proof/minimal-shell/package.json"
   ],
   "when_unresolved": "stop",
   "workflow": "explicit_audit_repair"

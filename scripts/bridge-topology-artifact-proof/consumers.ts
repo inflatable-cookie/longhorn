@@ -25,7 +25,7 @@ import type {
 const LONGHORN_VERSION = longhornVersion();
 
 const shapes: readonly ShapeName[] = [
-  "split-shell",
+  "minimal-shell",
   "ordered-streams",
   "jobs-and-service-failure",
   "capability-authority",
@@ -54,7 +54,7 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
   ]) {
     await cp(join(context.proofRoot, filename), join(stage, filename));
   }
-  if (shape === "split-shell") {
+  if (shape === "minimal-shell") {
     await cp(
       join(context.proofRoot, "protocol-artifact.ts"),
       join(stage, "protocol-artifact.ts"),

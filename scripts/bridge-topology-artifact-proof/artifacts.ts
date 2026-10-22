@@ -22,7 +22,6 @@ const rustCrates = [
 ] as const;
 
 const donorNames = [
-  "split-shell",
   "ordered-streams",
   "jobs-and-service-failure",
   "capability-authority",
