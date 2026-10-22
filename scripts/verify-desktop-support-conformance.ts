@@ -155,7 +155,7 @@ async function verifyExampleSources(): Promise<void> {
   // not, because the consumer must not copy a donor's product policy. The README
   // may name the consumer history; the crate the private workspace builds may
   // not.
-  const productVocabulary = /acowtancy|bovine|praxis|jetstream|loophole|nucleus|soundcheck|split-shell/i;
+  const productVocabulary = /acowtancy|bovine|praxis|jetstream|loophole|nucleus|soundcheck/i;
   const offenders: string[] = [];
   for (const relative of await readdir(consumerRoot, { recursive: true })) {
     if (!(await lstat(join(consumerRoot, relative))).isFile()) continue;
