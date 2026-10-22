@@ -29,6 +29,9 @@ include = ["config/release.toml"]
 "lint:diagnostics" = "bash scripts/rust-command.sh clippy -p longhorn-diagnostics --all-targets --locked -- -D warnings"
 # Contract 028: real PTY lifecycle and process-group behavior.
 "lint:pty" = "bash scripts/rust-command.sh clippy -p longhorn-pty --all-targets --locked -- -D warnings"
+# Contract 029 part 5a: policy-hooked execution, status, preflight, sync,
+# branch switch, clone staging and attach.
+"lint:git-workspace" = "bash scripts/rust-command.sh clippy -p longhorn-git-workspace --all-targets --locked -- -D warnings"
 # Contract 004's storage layout crate: identity, resolver, roots, locator.
 "lint:storage-layout" = "bash scripts/rust-command.sh clippy -p longhorn-storage-layout --all-targets --locked -- -D warnings"
 # Contract 027 and its shared archive path rule (contract 018 and 027). The
@@ -57,6 +60,11 @@ include = ["config/release.toml"]
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
 "test:pty:cargo" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
+# Real local Git only: the fixtures build their own bare remotes in temporary
+# folders. nextest's slow-test period, two-period termination with a
+# one-second forced-kill grace, and immediate stop after the first failure keep
+# a hung Git child from holding the run.
+"test:git-workspace" = "bash scripts/rust-command.sh nextest run -p longhorn-git-workspace --locked --config-file crates/longhorn-git-workspace/nextest.toml --max-fail 1:immediate"
 "test:tool-provision" = "bash scripts/rust-command.sh test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
 # `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
 # tests. The gate runner is this selector because doc tests are part of the
@@ -67,6 +75,7 @@ include = ["config/release.toml"]
 "docs:support-log" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-support-log --no-deps --locked"
 "docs:diagnostics" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-diagnostics --no-deps --locked"
 "docs:pty" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-pty --no-deps --locked"
+"docs:git-workspace" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-git-workspace --no-deps --locked"
 "docs:storage-layout" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-storage-layout --no-deps --locked"
 "docs:tool-provision" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-tool-provision -p longhorn-archive-path --no-deps --locked --features longhorn-tool-provision/fixture-server"
 
@@ -177,6 +186,14 @@ include = ["config/release.toml"]
   { task = "lint:pty" },
   { task = "test:pty" },
   { task = "docs:pty" },
+  { task = "check:api-reference" },
+]
+# Contract 029 part 5a's crate. check:api-reference keeps the generated crate
+# row honest.
+"check:git-workspace" = [
+  { task = "lint:git-workspace" },
+  { task = "test:git-workspace" },
+  { task = "docs:git-workspace" },
   { task = "check:api-reference" },
 ]
 # Contract 004's storage layout crate. check:api-reference keeps the generated
@@ -819,6 +836,33 @@ members = [
     args = [],
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-pty", "path:crates/longhorn-pty/**"],
+    limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.git-workspace]
+lifecycle = "maintained"
+purpose = "Check the Git workspace mechanism crate against contract 029"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Includes a workspace-wide API-reference inventory check",
+  "Runs real local Git against temporary repositories and bare remotes only: no network, no remote host, no credential store",
+  "Does not cover a real authentication refusal, so the credential-refresh retry path is unproved here",
+  "Does not cover Cargo.lock changes or unrelated workspace obligations",
+]
+members = [
+  {
+    id = "git-workspace-package",
+    kind = "proof",
+    surface = "published",
+    task = "check:git-workspace",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-git-workspace",
+      "path:crates/longhorn-git-workspace/**",
+    ],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
 ]

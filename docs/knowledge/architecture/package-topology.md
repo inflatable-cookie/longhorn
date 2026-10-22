@@ -2,7 +2,7 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-10-18
+Updated: 2026-10-22
 Contract: `../contracts/012-distribution-and-compatibility.md`
 
 ## Repository Shape
@@ -62,6 +62,7 @@ discovery and validation entry points.
 | `longhorn-pty` | one caller-configured child on a real PTY, bounded output with back-pressure, process-group resize and close, typed exit result (contract 028) | rustix |
 | `longhorn-archive-path` | the shared archive entry-name and link-target rule for bounded extractions: `..`, root and drive-prefix components refuse, `.` drops (contracts 018 and 027) | none |
 | `longhorn-tool-provision` | managed command-line tools: verified release resolution and bounded download, digest and signature checks, bounded single-member extraction, injected version runner, atomic install/rollback and receipt, health and login-shell PATH discovery (contract 027) | archive-path, redact, support-log, fs4, tempfile |
+| `longhorn-git-workspace` | generic Git workspace mechanism: policy-hooked execution with bounded, redacted output, status and branch reading, remote-refusal preflight, Legacy Sync, branch switch, clone staging with a same-parent exclusive rename, and attach (contract 029, part 5a) | redact, support-log, secrecy, uuid; rustix for the exclusive rename on Linux and macOS |
 | `longhorn-poodle` | projects Longhorn's domains into `poodle-specs`, the shared renderer-neutral contract Poodle's adapters consume | core, config, licence, notifications, operation, settings, update, `poodle-specs` |
 | `longhorn-tauri-bridge` | narrow registered-domain handler assembly over the generic bridge protocol | core, bridge, Tauri plus adapted domains |
 | `longhorn-tauri-agent-control` | Tauri host wiring for the contract 022 control surface: `agent-control` compile-time opt-in, `agent-control-evaluate` split, window scope, `command` through the host's contract-006 bridge; empty library feature-off | core, agent-control, tauri-config, Tauri |
