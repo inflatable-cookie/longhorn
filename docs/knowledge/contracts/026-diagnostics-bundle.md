@@ -169,16 +169,23 @@ Against the Acowtancy donor at `3c21b1ac8`, `bundle.rs`:
 
 ## Extraction state
 
-Contract 003 steps 1–5 and 7 are done. Acowtancy Desktop migrated in
+Contract 003 steps 1–7 are done. Acowtancy Desktop migrated in
 acowtancy-v2 PR 941 (merged 2026-10-20 at `8ed2e1219`) and took every Longhorn
 crate at `v0.3.3`. Its `diagnostics/bundle.rs` renders through
 `longhorn_diagnostics::render` with the app's seeded `Redactor`. Desktop keeps
 the title, the section list, the labels, the `DiagnosticsBundle` wire type and
 the save dialog. Longhorn's contract and tests are now authoritative.
 
+Step 6 is done by the neutral second consumer at
+`examples/desktop-support-conformance/` (task 073): `render` over caller facts
+that include a `RingRecord` tail is checked against this contract's layout
+byte for byte, with a seeded span that crosses a label and its value, the
+CR/LF escaping, the empty-section sentences and the marker count. Limits: one
+fact set, and the proof runs on Unix hosts.
+
 Open:
 
-- Step 6: second-consumer conformance has no named consumer yet.
+- Nothing for steps 1–7.
 
 ## Stop Conditions
 

@@ -217,6 +217,15 @@ include = ["config/release.toml"]
 "proof:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
 "proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
 "proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"
+# Contract 003 step 6 for contracts 024-028: a neutral consumer staged from
+# packaged crate sources into a disposable private workspace, asserting each
+# contract's behaviour, then a live tool install against the loopback fixture
+# server and a live /bin/sh PTY session. Unix hosts only, and a cold run
+# compiles the six crates in that workspace (minutes; seconds with a warm
+# compiler cache), so it is neither a `qa` member nor a `proof:artifacts`
+# member. The staged set and the proof limits are recorded in the
+# `desktop-support-conformance` QA group.
+"proof:desktop-support-conformance" = "bun scripts/verify-desktop-support-conformance.ts"
 
 # Pre-release rehearsal of the six machine properties that made local qa green
 # while the first release.yml runs failed. Not part of qa — minutes, not seconds.
@@ -947,6 +956,65 @@ members = [
       "path:crates/longhorn-archive-path/**",
     ],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+# Contract 003 step 6 for the desktop support lane. The consumer is a second
+# consumer, so its scope is the six staged crates plus the consumer's own
+# paths: a change to any staged crate source, the example or the proof script
+# is what can make the claim false. The crates' own selectors stay in their
+# groups; this one runs the outside-crate proof once.
+[qa.groups.desktop-support-conformance]
+lifecycle = "maintained"
+purpose = "Run the neutral second-consumer proof for the desktop support crates (contracts 024-028, contract 003 step 6)"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Runs on Unix hosts only: the PTY unit starts real /bin/sh children and the install unit needs POSIX file modes",
+  "The crate's loopback fixture server stands in for GitHub; no public network, published release, API token or code signature is exercised",
+  "Stages packaged crate sources into a disposable workspace instead of installing a published tag from a registry",
+  "Runs one contract row set per unit; it does not repeat the crates' own suites or their fixtures",
+]
+members = [
+  {
+    id = "desktop-support-conformance",
+    kind = "proof",
+    surface = "published",
+    task = "proof:desktop-support-conformance",
+    args = [],
+    targets = [
+      "path:examples/desktop-support-conformance/**",
+      "path:scripts/verify-desktop-support-conformance.ts",
+      "cargo-package:longhorn-redact",
+      "path:crates/longhorn-redact/**",
+      "cargo-package:longhorn-support-log",
+      "path:crates/longhorn-support-log/**",
+      "cargo-package:longhorn-diagnostics",
+      "path:crates/longhorn-diagnostics/**",
+      "cargo-package:longhorn-tool-provision",
+      "path:crates/longhorn-tool-provision/**",
+      "cargo-package:longhorn-archive-path",
+      "path:crates/longhorn-archive-path/**",
+      "cargo-package:longhorn-pty",
+      "path:crates/longhorn-pty/**",
+    ],
+    covers = [
+      "path:examples/desktop-support-conformance/**",
+      "path:scripts/verify-desktop-support-conformance.ts",
+      "cargo-package:longhorn-redact",
+      "path:crates/longhorn-redact/**",
+      "cargo-package:longhorn-support-log",
+      "path:crates/longhorn-support-log/**",
+      "cargo-package:longhorn-diagnostics",
+      "path:crates/longhorn-diagnostics/**",
+      "cargo-package:longhorn-tool-provision",
+      "path:crates/longhorn-tool-provision/**",
+      "cargo-package:longhorn-archive-path",
+      "path:crates/longhorn-archive-path/**",
+      "cargo-package:longhorn-pty",
+      "path:crates/longhorn-pty/**",
+    ],
+    limits = ["Stages all six crates, so a change to one rebuilds every unit's stage"],
   },
 ]
 

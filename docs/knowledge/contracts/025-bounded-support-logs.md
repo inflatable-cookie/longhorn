@@ -207,7 +207,7 @@ Against the Acowtancy donor at `89c8bf568`:
 
 ## Extraction state
 
-Contract 003 steps 1–5 and 7 are done. Acowtancy Desktop migrated in
+Contract 003 steps 1–7 are done. Acowtancy Desktop migrated in
 acowtancy-v2 PR 931 (merged 2026-10-19 at `3c21b1ac8`) and took every Longhorn
 crate at `v0.3.2`. Its ring log, update log, install log and install-failure
 tail all use `longhorn-support-log`, so output is redacted before it is
@@ -215,9 +215,16 @@ bounded. Capacities, bounds, file names, the Logs directory lookup and the
 record fields stay in Acowtancy. Longhorn's contract and tests are now
 authoritative.
 
+Step 6 is done by the neutral second consumer at
+`examples/desktop-support-conformance/` (task 073): a `RingLog` and a
+`RotatingLog` bound to a seeded `Redactor` check capacity and eviction, the
+redact-then-bound order with a private-key block cut, the tail bound, rotation
+at the byte bound, the oversized drop and a JSON line. Limits: one
+configuration per log, and the proof runs on Unix hosts.
+
 Open:
 
-- Step 6: second-consumer conformance has no named consumer yet.
+- Nothing for steps 1–7.
 
 ## Stop Conditions
 

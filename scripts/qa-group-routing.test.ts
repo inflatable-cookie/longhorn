@@ -88,6 +88,24 @@ test("prototype dependency changes route through rustdoc and prototype checks", 
   expect(plan.members?.some((member) => member.task === "check:prototype-dependency-coverage")).toBe(true);
 });
 
+test("every staged desktop support crate and the consumer route to the conformance proof", () => {
+  const plan = planGroup("desktop-support-conformance", [
+    "cargo-package:longhorn-redact",
+    "cargo-package:longhorn-support-log",
+    "cargo-package:longhorn-diagnostics",
+    "cargo-package:longhorn-tool-provision",
+    "cargo-package:longhorn-archive-path",
+    "cargo-package:longhorn-pty",
+    "path:crates/longhorn-pty/src/lib.rs",
+    "path:examples/desktop-support-conformance/consumer/src/main.rs",
+    "path:scripts/verify-desktop-support-conformance.ts",
+  ]);
+  expect(plan.scope_assessment).toBe("declared_match");
+  expect(
+    plan.members?.some((member) => member.task === "proof:desktop-support-conformance"),
+  ).toBe(true);
+});
+
 test("global Effigy changes remain planner-owned, even beside a task-table token", () => {
   const globalChange = "path:effigy.toml";
   for (const scope of [

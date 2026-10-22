@@ -391,12 +391,24 @@ Against the Acowtancy donor at `3c21b1ac8`:
 
 ## Extraction state
 
-Contract 003 steps 1 to 5 and 7 are done for parts 4a, 4b and 4c. Acowtancy Desktop migrated in acowtancy-v2 PR 974 (task #690, merged 2026-10-22 at `a7531c19`) and took every Longhorn crate at `v0.4.0`. Its proof was static and compile-only (10 checks); no live install run was recorded, so the first field run is still to come. Desktop's `managed_tools` verification, release source, install pipeline and PATH discovery use `longhorn-tool-provision`. The catalogue, pins, team IDs, token broker, stage labels, product installers and Acowtancy contract 042 stay in Desktop. Longhorn's contract and tests are now authoritative.
+Contract 003 steps 1 to 7 are done for parts 4a, 4b and 4c. Acowtancy Desktop migrated in acowtancy-v2 PR 974 (task #690, merged 2026-10-22 at `a7531c19`) and took every Longhorn crate at `v0.4.0`. Its proof was static and compile-only (10 checks); no live install run was recorded. Desktop's `managed_tools` verification, release source, install pipeline and PATH discovery use `longhorn-tool-provision`. The catalogue, pins, team IDs, token broker, stage labels, product installers and Acowtancy contract 042 stay in Desktop. Longhorn's contract and tests are now authoritative.
+
+Step 6 is done by the neutral second consumer at
+`examples/desktop-support-conformance/` (task 073). It is the first live
+install run recorded outside Acowtancy: against the crate's loopback
+`fixture-server`, with the production `HttpReleases` and `CommandRunner`, it
+resolves, downloads within the bound, verifies a release checksum file and a
+pinned digest, extracts a `tar.gz` member, probes the staged binary, swaps,
+writes the receipt and reads health; then it upgrades, recognises a current
+install without a download, and forces a rollback by obstructing the receipt
+commit. Limits: the fixture server stands in for GitHub, so no published
+release, API token or code signature is involved; the tool is a shell script,
+not a signed vendor binary; and the proof runs on Unix hosts.
 
 Open:
 
-- Step 6: second-consumer conformance has no named consumer yet. Candidate:
-  a greenfield tool-provision proof.
+- Nothing for steps 1–7. `LoginPathCache` has no second-consumer unit; its
+  coverage stays the crate's own suite.
 
 ### Part 4b: release source and download
 
