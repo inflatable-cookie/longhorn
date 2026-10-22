@@ -137,7 +137,11 @@ its own result and copy from them.
 - When a credential-scoped call fails and `classify_remote_failure` reads the
   failure as `AuthenticationRequired`, the policy is asked once for a refreshed
   credential and the call is retried once. A refusal to refresh keeps the
-  original failure.
+  original failure. The retry runs under the same deadline as the first
+  attempt: a bounded call fixes its deadline when it starts, and that deadline
+  covers the origin lookup, both attempts and the policy's refresh. A refresh
+  that returns after the deadline reports `GitFailure::TimedOut` without a
+  retry.
 - Standard output is retained from its head within
   `MAX_CAPTURED_OUTPUT_BYTES` (64 KiB). A successful call whose standard output
   exceeds that bound fails with `git.output_too_large` instead of returning a
@@ -277,8 +281,10 @@ bounded sixteen times on a collision. `clone_into` requires that empty folder,
 spawns `git clone --progress -- <remote> <staging>`, applies isolation before
 the caller's credential environment, and bounds the clone by the caller's
 cancellation flag: a cancelled clone has its process group killed, is reaped
-and is reported as `Cancelled`. Standard error keeps its tail within the
-capture bound; its refusal detail is redacted with the caller's redactor and
+and is reported as `Cancelled`. The flag also bounds the drain after Git
+exits: a remote helper or another descendant that still holds standard error
+cannot delay a cancel, which kills the group by the id taken at spawn. Standard
+error keeps its head within the capture bound; its refusal detail is redacted with the caller's redactor and
 the credential secret, then cut to `FAILURE_DETAIL_BOUND`.
 
 `rename_exclusive` moves the staging folder into place with a same-parent
@@ -367,7 +373,11 @@ own paths.
   and its withheld-overflow note, and the hard wall clock both against a
   sleeping descendant that holds the output pipes and against a Git process
   that exits before its backgrounded descendant does. A clone against a remote
-  that hangs proves cancellation returns at its flag.
+  that hangs proves cancellation returns at its flag, and a clone whose Git
+  exits while a descendant holds standard error proves a cancel during the
+  drain does too. A scripted `ext::` remote refuses for authentication: one
+  test proves a refreshed credential is retried once and succeeds, and one
+  proves the retry stays inside the first attempt's deadline.
 - `effigy lint:git-workspace` compiles every target with clippy at `-D
   warnings`; `effigy docs:git-workspace` builds rustdoc with warnings denied.
 - `effigy check:git-workspace` aggregates those three and
@@ -375,10 +385,9 @@ own paths.
 
 Limits. No test reaches a real host, so the network and authentication classes
 are proved by their classification and by local refusals, not by a live
-refusal. An offline host cannot provoke a real authentication refusal, so the
-refresh-and-retry path is compiled and reviewed but not exercised; the scripted
-policy proves the credential hook, its delivered environment and its failure
-mode. The exclusive rename is proved on Linux and macOS only; elsewhere the
+refusal. The authentication refusal that drives refresh-and-retry is a scripted
+local `ext::` program, not a real host's; the scripted policy proves the
+credential hook, its delivered environment, its failure mode and its refresh. The exclusive rename is proved on Linux and macOS only; elsewhere the
 function reports `Unsupported`. Process-group termination is Unix only; on a
 host without it the direct child is killed, so a descendant that keeps an
 output pipe open can delay cleanup there. One invocation retains at most 64 KiB

@@ -230,3 +230,51 @@ fn a_cancelled_clone_returns_at_the_cancel_even_when_the_remote_hangs() {
     );
     assert!(staging_leftovers(&parent).is_empty());
 }
+
+#[cfg(unix)]
+#[test]
+fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
+    // The remote program exits at once and Git refuses, but a backgrounded
+    // descendant keeps Git's standard error open for three seconds.
+    let fixture = Fixture::worktree();
+    let program = support::script(
+        fixture.temp.path(),
+        "orphan.sh",
+        "sleep 3 </dev/null >/dev/null &\nexit 1",
+    );
+    let policy = fixture.policy().with_isolation(vec![
+        ("GIT_CONFIG_COUNT".to_owned(), "1".to_owned()),
+        (
+            "GIT_CONFIG_KEY_0".to_owned(),
+            "protocol.ext.allow".to_owned(),
+        ),
+        ("GIT_CONFIG_VALUE_0".to_owned(), "always".to_owned()),
+    ]);
+    let git = handle(&policy);
+    let parent = fixture.temp.path().join("destination");
+    fs::create_dir(&parent).expect("a destination parent");
+    let staging =
+        create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&cancel);
+    let setter = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(300));
+        flag.store(true, Ordering::SeqCst);
+    });
+
+    let started = Instant::now();
+    let remote = format!("ext::{}", program.display());
+    let failure = git
+        .clone_into(&remote, &staging, &cancel, None)
+        .expect_err("the caller cancelled");
+    let elapsed = started.elapsed();
+    setter.join().expect("the cancelling thread");
+    remove_owned_staging(&staging);
+
+    assert!(matches!(failure, CloneFailure::Cancelled), "{failure:?}");
+    assert!(
+        elapsed < Duration::from_millis(1500),
+        "cancellation returned after {elapsed:?}"
+    );
+    assert!(staging_leftovers(&parent).is_empty());
+}

@@ -34,7 +34,9 @@ pub struct Policy {
     isolation: Vec<(String, String)>,
     credential: Option<(Vec<(String, String)>, String)>,
     credential_error: Option<GitFailure>,
+    refreshed: Option<(Vec<(String, String)>, String)>,
     credential_calls: Mutex<Vec<String>>,
+    refresh_calls: Mutex<usize>,
 }
 
 impl Policy {
@@ -51,7 +53,9 @@ impl Policy {
             ],
             credential: None,
             credential_error: None,
+            refreshed: None,
             credential_calls: Mutex::new(Vec::new()),
+            refresh_calls: Mutex::new(0),
         }
     }
 
@@ -75,6 +79,22 @@ impl Policy {
     pub fn with_credential_error(mut self, failure: GitFailure) -> Self {
         self.credential_error = Some(failure);
         self
+    }
+
+    /// A policy that replaces a rejected credential with this one.
+    #[must_use]
+    pub fn with_refresh(mut self, env: Vec<(String, String)>, secret: &str) -> Self {
+        self.refreshed = Some((env, secret.to_owned()));
+        self
+    }
+
+    /// How many times the mechanism asked for a refreshed credential.
+    #[must_use]
+    pub fn refresh_calls(&self) -> usize {
+        *self
+            .refresh_calls
+            .lock()
+            .expect("the refresh call count is not poisoned")
     }
 
     /// Every remote the mechanism asked this policy for a credential about.
@@ -109,9 +129,13 @@ impl GitPolicy for Policy {
     }
 
     fn refresh_credential(&self, _rejected: &GitCredential) -> Option<GitCredential> {
-        // Offline tests cannot provoke a real authentication refusal, so the
-        // refresh posture is "no replacement".
-        None
+        *self
+            .refresh_calls
+            .lock()
+            .expect("the refresh call count is not poisoned") += 1;
+        self.refreshed
+            .as_ref()
+            .map(|(env, secret)| GitCredential::new(env.clone(), secret.clone()))
     }
 }
 
@@ -132,6 +156,40 @@ pub fn rewrite_env(local: &Path, remote: &str) -> Vec<(String, String)> {
         ),
         ("GIT_CONFIG_VALUE_1".to_owned(), String::new()),
     ]
+}
+
+/// The child environment that points one HTTPS remote at a local program
+/// through Git's `ext::` transport, so a test can script a remote's refusal
+/// offline.
+pub fn ext_remote_env(program: &Path, remote: &str) -> Vec<(String, String)> {
+    vec![
+        ("GIT_CONFIG_COUNT".to_owned(), "3".to_owned()),
+        (
+            "GIT_CONFIG_KEY_0".to_owned(),
+            format!("url.ext::{}.insteadOf", program.display()),
+        ),
+        ("GIT_CONFIG_VALUE_0".to_owned(), remote.to_owned()),
+        (
+            "GIT_CONFIG_KEY_1".to_owned(),
+            "protocol.ext.allow".to_owned(),
+        ),
+        ("GIT_CONFIG_VALUE_1".to_owned(), "always".to_owned()),
+        (
+            "GIT_CONFIG_KEY_2".to_owned(),
+            "credential.helper".to_owned(),
+        ),
+        ("GIT_CONFIG_VALUE_2".to_owned(), String::new()),
+    ]
+}
+
+/// Writes one executable shell program inside a fixture directory.
+#[cfg(unix)]
+pub fn script(dir: &Path, name: &str, body: &str) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt as _;
+    let path = dir.join(name);
+    fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("the scripted program");
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("an executable script");
+    path
 }
 
 /// One worktree tracking a bare local remote, with an empty global config.

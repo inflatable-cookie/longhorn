@@ -16,7 +16,10 @@ use std::{
     fs, io,
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::{self, RecvTimeoutError},
+    },
     thread,
     time::Duration,
 };
@@ -25,8 +28,8 @@ use uuid::Uuid;
 
 use crate::{
     execution::{
-        Git, MAX_CAPTURED_STDERR_BYTES, isolate_process_group, kill_child_tree, read_capped,
-        redact_git_detail, stderr_detail,
+        Git, MAX_CAPTURED_STDERR_BYTES, isolate_process_group, kill_child_tree,
+        kill_process_group_of, read_capped, redact_git_detail, stderr_detail,
     },
     policy::GitCredential,
 };
@@ -178,52 +181,69 @@ impl Git<'_> {
         let mut child = command.spawn().map_err(|error| CloneFailure::NotStarted {
             detail: redact_git_detail(self.redactor(), &error.to_string(), None),
         })?;
-        let mut stderr_handle = child
-            .stderr
-            .take()
-            .map(|pipe| thread::spawn(move || read_capped(pipe, MAX_CAPTURED_STDERR_BYTES)));
-        loop {
+        let child_pid = child.id();
+        let (sender, receiver) = mpsc::channel();
+        let mut stderr_handle = child.stderr.take().map(|pipe| {
+            thread::spawn(move || {
+                let _ = sender.send(read_capped(pipe, MAX_CAPTURED_STDERR_BYTES));
+            })
+        });
+        let status = loop {
             if cancel.load(Ordering::SeqCst) {
-                stop(&mut child, stderr_handle.take());
+                kill_child_tree(&mut child);
+                let _ = stderr_handle.take().map(thread::JoinHandle::join);
                 return Err(CloneFailure::Cancelled);
             }
             match child.try_wait() {
-                Ok(Some(status)) if status.success() => {
-                    let _ = stderr_handle.take().map(join);
-                    return Ok(());
-                }
-                Ok(Some(_)) => {
-                    let (stderr, overflowed) = stderr_handle.take().map(join).unwrap_or_default();
-                    return Err(CloneFailure::Refused {
-                        detail: stderr_detail(
-                            self.redactor(),
-                            &stderr,
-                            overflowed,
-                            credential.map(GitCredential::secret),
-                        ),
-                    });
-                }
-                Ok(None) => thread::sleep(Duration::from_millis(40)),
+                Ok(Some(status)) => break status,
+                Ok(None) => thread::sleep(POLL),
                 Err(error) => {
-                    stop(&mut child, stderr_handle.take());
+                    kill_child_tree(&mut child);
+                    let _ = stderr_handle.take().map(thread::JoinHandle::join);
                     return Err(CloneFailure::WaitFailed {
                         detail: redact_git_detail(self.redactor(), &error.to_string(), None),
                     });
                 }
             }
+        };
+        // Git has exited, but a remote helper or another descendant can still
+        // hold standard error. The drain stays bounded by the cancellation
+        // flag, and a cancel ends the whole group by the id taken at spawn.
+        let (stderr, overflowed) = match stderr_handle.take() {
+            None => (Vec::new(), false),
+            Some(reader) => loop {
+                match receiver.recv_timeout(POLL) {
+                    Ok(captured) => {
+                        let _ = reader.join();
+                        break captured.unwrap_or_default();
+                    }
+                    Err(RecvTimeoutError::Disconnected) => {
+                        let _ = reader.join();
+                        break (Vec::new(), false);
+                    }
+                    Err(RecvTimeoutError::Timeout) => {
+                        if cancel.load(Ordering::SeqCst) {
+                            kill_process_group_of(child_pid);
+                            let _ = reader.join();
+                            return Err(CloneFailure::Cancelled);
+                        }
+                    }
+                }
+            },
+        };
+        if status.success() {
+            return Ok(());
         }
+        Err(CloneFailure::Refused {
+            detail: stderr_detail(
+                self.redactor(),
+                &stderr,
+                overflowed,
+                credential.map(GitCredential::secret),
+            ),
+        })
     }
 }
 
-fn stop(child: &mut std::process::Child, stderr: Option<StderrReader>) {
-    kill_child_tree(child);
-    if let Some(reader) = stderr {
-        let _ = join(reader);
-    }
-}
-
-type StderrReader = thread::JoinHandle<io::Result<(Vec<u8>, bool)>>;
-
-fn join(reader: StderrReader) -> (Vec<u8>, bool) {
-    reader.join().ok().and_then(Result::ok).unwrap_or_default()
-}
+/// How often a clone checks its child and the cancellation flag.
+const POLL: Duration = Duration::from_millis(40);

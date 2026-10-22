@@ -208,6 +208,9 @@ impl<'a> Git<'a> {
     /// is a remote operation on an application-credential remote, then retries
     /// once with a refreshed credential when Git reports the credential was
     /// rejected.
+    ///
+    /// One deadline, fixed here, covers the origin lookup, the first attempt,
+    /// the policy's refresh and the retry: a retry never restarts the clock.
     fn run_process(
         &self,
         root: &Path,
@@ -215,8 +218,13 @@ impl<'a> Git<'a> {
         code: GitFailureCode,
         timeout: Option<Duration>,
     ) -> Result<Processed, GitFailure> {
-        let mut credential = self.credential_for(root, arguments)?;
-        let mut capture = self.spawn(root, arguments, credential.as_ref(), code, timeout)?;
+        let clock = Clock {
+            deadline: timeout.map(|bound| Instant::now() + bound),
+            bound: timeout.unwrap_or_default(),
+            code,
+        };
+        let mut credential = self.credential_for(root, arguments, &clock)?;
+        let mut capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
         if !capture.success
             && let Some(existing) = credential.as_ref()
             && matches!(
@@ -225,8 +233,11 @@ impl<'a> Git<'a> {
             )
             && let Some(refreshed) = self.policy.refresh_credential(existing)
         {
+            if clock.expired() {
+                return Err(clock.timed_out());
+            }
             credential = Some(refreshed);
-            capture = self.spawn(root, arguments, credential.as_ref(), code, timeout)?;
+            capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
         }
         Ok(Processed {
             capture,
@@ -241,6 +252,7 @@ impl<'a> Git<'a> {
         &self,
         root: &Path,
         arguments: &[&str],
+        clock: &Clock,
     ) -> Result<Option<GitCredential>, GitFailure> {
         if !matches!(
             arguments.first(),
@@ -248,10 +260,14 @@ impl<'a> Git<'a> {
         ) {
             return Ok(None);
         }
-        let Some(remote) = self.origin_url_raw(root) else {
-            return Ok(None);
+        // The origin lookup runs under the caller's clock; an unreadable
+        // origin means no credential, as an absent one does.
+        let remote = match self.spawn(root, &["remote", "get-url", "origin"], None, clock) {
+            Ok(origin) if origin.success && !origin.stdout_truncated => stdout(&origin.stdout),
+            Err(failure @ GitFailure::TimedOut { .. }) => return Err(failure),
+            Ok(_) | Err(_) => return Ok(None),
         };
-        if !is_remote_credential_operation(arguments, &remote) {
+        if remote.is_empty() || !is_remote_credential_operation(arguments, &remote) {
             return Ok(None);
         }
         self.policy.credential(&remote)
@@ -262,19 +278,15 @@ impl<'a> Git<'a> {
         root: &Path,
         arguments: &[&str],
         credential: Option<&GitCredential>,
-        code: GitFailureCode,
-        timeout: Option<Duration>,
+        clock: &Clock,
     ) -> Result<Capture, GitFailure> {
         let mut command = self.command(Some(root), arguments);
         if let Some(credential) = credential {
             apply_credential(&mut command, credential);
         }
-        capture(command, timeout).map_err(|error| {
+        capture(command, clock.deadline).map_err(|error| {
             if error.kind() == io::ErrorKind::TimedOut {
-                GitFailure::TimedOut {
-                    code,
-                    after: timeout.unwrap_or_default(),
-                }
+                clock.timed_out()
             } else {
                 GitFailure::Unavailable {
                     code: GitFailureCode::CommandUnavailable,
@@ -375,6 +387,28 @@ fn apply_credential(command: &mut Command, credential: &GitCredential) {
     }
 }
 
+/// One call's wall clock: a deadline fixed when the call starts, the bound the
+/// caller asked for, and the code a timeout reports.
+struct Clock {
+    deadline: Option<Instant>,
+    bound: Duration,
+    code: GitFailureCode,
+}
+
+impl Clock {
+    fn expired(&self) -> bool {
+        self.deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+    }
+
+    fn timed_out(&self) -> GitFailure {
+        GitFailure::TimedOut {
+            code: self.code,
+            after: self.bound,
+        }
+    }
+}
+
 struct Processed {
     capture: Capture,
     credential: Option<GitCredential>,
@@ -393,7 +427,7 @@ struct Capture {
     stderr_overflowed: bool,
 }
 
-fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Capture> {
+fn capture(mut command: Command, deadline: Option<Instant>) -> io::Result<Capture> {
     command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -417,7 +451,6 @@ fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Captur
         let _ = stderr_sender.send(read_capped(stderr_pipe, MAX_CAPTURED_STDERR_BYTES));
     });
 
-    let deadline = timeout.map(|bound| Instant::now() + bound);
     let status = wait_bounded(&mut child, deadline);
     // The bound covers the drain too. Git can exit while a shell alias, a
     // remote helper or another descendant still holds its output pipes; a call

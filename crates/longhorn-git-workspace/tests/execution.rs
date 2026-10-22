@@ -10,7 +10,7 @@ use longhorn_git_workspace::{
     is_remote_credential_operation, redact_git_detail,
 };
 use longhorn_redact::{RedactionRules, Redactor};
-use support::{Fixture, handle, redactor, rewrite_env};
+use support::{Fixture, ext_remote_env, handle, redactor, rewrite_env};
 
 const GITHUB_REMOTE: &str = "https://github.com/example/content";
 
@@ -274,6 +274,85 @@ fn a_run_whose_git_exits_before_its_descendants_is_still_timed_out() {
     assert!(
         elapsed < Duration::from_secs(1),
         "the hard clock returned after {elapsed:?}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_rejected_credential_is_refreshed_once_and_the_retry_succeeds() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    let refusal = support::script(
+        fixture.temp.path(),
+        "refuse.sh",
+        "echo 'fatal: Authentication failed for the remote' >&2\nexit 1",
+    );
+    let policy = fixture
+        .policy()
+        .with_credential(ext_remote_env(&refusal, GITHUB_REMOTE), "rejected-secret")
+        .with_refresh(
+            rewrite_env(&fixture.remote, GITHUB_REMOTE),
+            "refreshed-secret",
+        );
+    let git = handle(&policy);
+
+    git.run(
+        &fixture.root,
+        &["fetch"],
+        GitFailureCode::FetchFailed,
+        Duration::from_secs(60),
+    )
+    .expect("the refreshed credential reaches the remote");
+
+    assert_eq!(policy.refresh_calls(), 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_credential_refresh_never_restarts_the_wall_clock() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    // Each attempt is refused for authentication after one second, so a
+    // retry that restarted the clock would return a refusal after two.
+    let refusal = support::script(
+        fixture.temp.path(),
+        "slow-refuse.sh",
+        "sleep 1\necho 'fatal: Authentication failed for the remote' >&2\nexit 1",
+    );
+    let env = ext_remote_env(&refusal, GITHUB_REMOTE);
+    let policy = fixture
+        .policy()
+        .with_credential(env.clone(), "rejected-secret")
+        .with_refresh(env, "refreshed-secret");
+    let git = handle(&policy);
+
+    let started = Instant::now();
+    let failure = git
+        .run(
+            &fixture.root,
+            &["fetch"],
+            GitFailureCode::FetchFailed,
+            Duration::from_millis(1500),
+        )
+        .expect_err("the retry ran out of the call's bound");
+    let elapsed = started.elapsed();
+
+    assert!(
+        matches!(failure, GitFailure::TimedOut { .. }),
+        "expected a timeout, got {failure:?}"
+    );
+    assert_eq!(policy.refresh_calls(), 1);
+    assert!(
+        elapsed < Duration::from_millis(1900),
+        "the refreshed retry returned after {elapsed:?}"
     );
 }
 
