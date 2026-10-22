@@ -315,10 +315,11 @@ cargo-deny before `release:gates`). Admission: unmarked but network-bound;
 release-time only. Limits: no in-repo selector; the advisory database and tool
 version are external state, so a local pass is not reproducible evidence.
 
-**`ci:rehearse`** — role: proof (clean-runner rehearsal), `heavy`. Owns
-`scripts/**`, `.github/**`, `config/release.toml`, `Cargo.lock`, and every
-proof input. Release-time only. Limits: not a substitute for dispatching
-`release.yml`.
+**`ci:rehearse`** — role: proof (clean-runner rehearsal), `heavy`. Runs
+`effigy bootstrap:deps` first, as CI's install step does, so a fresh worktree
+needs no manual install. Owns `scripts/**`, `.github/**`,
+`config/release.toml`, `Cargo.lock`, and every proof input. Release-time only.
+Limits: not a substitute for dispatching `release.yml`.
 
 ### TypeScript and Svelte
 
