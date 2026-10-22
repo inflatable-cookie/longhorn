@@ -1,13 +1,11 @@
-// Refresh workspace-excluded prototype Cargo.lock files (and the root lock)
-// after a Longhorn version bump. Effigy `release prepare` syncs only the root
-// `Cargo.lock`; `check:prototypes --locked` then fails because the eight
-// prototype workspaces still pin `longhorn-*` crates at the previous version.
+// Refresh workspace-excluded prototype Cargo.lock files (and the root lock).
+// `release prepare` syncs only the root lock; this selector also admits a
+// missing Longhorn path package when an updated workspace graph requires it.
 //
-// `cargo update` re-resolves third-party crates, so this step rewrites only
-// path-package version fields to match `workspace.package.version`, then
-// proves each lock with `cargo metadata --locked --offline`. It is a pre-gate
-// maintenance step: it does not weaken `--locked` and does not belong in
-// `[release.gates]`. `effigy release:bump` runs it.
+// Missing Longhorn path-package entries are copied from the root workspace
+// lock with their dependency edges. The lock diff is restricted to these
+// additions and Longhorn version rewrites. Third-party movement is rejected;
+// `cargo metadata --locked --offline --no-deps` proves each resulting lock.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
@@ -27,6 +25,7 @@ export type ParsedLock = {
 };
 
 export type LockAssessment = {
+  added: string[];
   bumped: string[];
   thirdPartyMoved: string[];
   unexpected: string[];
@@ -34,6 +33,7 @@ export type LockAssessment = {
 
 export type LockSyncResult = {
   lock: string;
+  added: string[];
   stale: string[];
   bumped: string[];
 };
@@ -75,6 +75,75 @@ export function rewriteLonghornPathVersions(text: string, version: string): stri
   return [header, ...packages.map((body) => `[[package]]\n${body}`)].join("");
 }
 
+export function dependencyReferences(pkg: LockPackage): { name: string; version: string | undefined }[] {
+  const dependencies = /^dependencies = \[([\s\S]*?)^\]/m.exec(pkg.body)?.[1];
+  if (!dependencies) return [];
+  return [...dependencies.matchAll(/"([^"]+)"/g)].map(([, reference]) => {
+    const [name, version] = reference!.split(/\s+/, 2);
+    return { name: name!, version };
+  });
+}
+
+function packageMatchesReference(pkg: LockPackage, reference: { name: string; version: string | undefined }): boolean {
+  return pkg.name === reference.name && (reference.version === undefined || pkg.version === reference.version);
+}
+
+function serializeLock(lock: ParsedLock): string {
+  const sorted = [...lock.packages].sort((left, right) =>
+    left.name.localeCompare(right.name) || left.version.localeCompare(right.version),
+  );
+  return [lock.header, ...sorted.map((pkg) => `[[package]]\n${pkg.body}`)].join("");
+}
+
+export function addMissingLonghornPathPackages(
+  prototypeLockText: string,
+  workspaceLockText: string,
+): { text: string; added: string[] } {
+  const original = parseLock(prototypeLockText);
+  const workspacePackages = parseLock(workspaceLockText).packages.filter(isLonghornPathPackage);
+  const packages = [...original.packages];
+  const added = new Set<string>();
+
+  while (true) {
+    const missingLonghorn = new Map<string, { name: string; version: string | undefined }>();
+    for (const pkg of packages) {
+      for (const reference of dependencyReferences(pkg)) {
+        if (packages.some((candidate) => packageMatchesReference(candidate, reference))) continue;
+        if (reference.name.startsWith("longhorn-")) missingLonghorn.set(reference.name, reference);
+      }
+    }
+    if (missingLonghorn.size === 0) break;
+
+    let inserted = false;
+    for (const reference of missingLonghorn.values()) {
+      const workspacePackage = workspacePackages.find((pkg) => packageMatchesReference(pkg, reference));
+      if (!workspacePackage) {
+        throw new Error(`prototype lock references missing Longhorn path package ${reference.name}, absent from the workspace lock`);
+      }
+      packages.push(workspacePackage);
+      added.add(workspacePackage.name);
+      inserted = true;
+    }
+    if (!inserted) break;
+  }
+
+  // A missing registry package is never repairable from the workspace lock.
+  // Stop before any Cargo command can select a new version.
+  for (const pkg of packages) {
+    for (const reference of dependencyReferences(pkg)) {
+      if (packages.some((candidate) => packageMatchesReference(candidate, reference))) continue;
+      if (!reference.name.startsWith("longhorn-")) {
+        throw new Error(`prototype lock is missing third-party package ${reference.name}; refusing to resolve it`);
+      }
+    }
+  }
+
+  return {
+    text: added.size === 0 ? prototypeLockText : serializeLock({ header: original.header, packages }),
+    added: [...added].sort(),
+  };
+}
+
 function packageKey(pkg: LockPackage): string {
   return pkg.source === undefined ? `path:${pkg.name}` : `reg:${pkg.name}@${pkg.version}\0${pkg.source}`;
 }
@@ -83,9 +152,14 @@ export function assessLock(
   before: ParsedLock,
   after: ParsedLock,
   version: string,
+  allowedPathPackages: LockPackage[] = [],
 ): LockAssessment {
+  const allowedPathNames = new Set(
+    allowedPathPackages.filter(isLonghornPathPackage).map((pkg) => pkg.name),
+  );
   const unexpected: string[] = [];
   const thirdPartyMoved: string[] = [];
+  const added: string[] = [];
   const bumped: string[] = [];
   if (before.header !== after.header) unexpected.push("lockfile header changed");
 
@@ -101,6 +175,10 @@ export function assessLock(
   for (const name of new Set([...beforePath.keys(), ...afterPath.keys()])) {
     const previous = beforePath.get(name);
     const next = afterPath.get(name);
+    if (!previous && next && allowedPathNames.has(name) && isLonghornPathPackage(next) && next.version === version) {
+      added.push(name);
+      continue;
+    }
     if (!previous || !next) {
       unexpected.push(`path package ${name} added or removed`);
       continue;
@@ -127,7 +205,7 @@ export function assessLock(
     thirdPartyMoved.push(`registry entry moved: ${key.slice(4)}`);
   }
 
-  return { bumped, thirdPartyMoved, unexpected };
+  return { added, bumped, thirdPartyMoved, unexpected };
 }
 
 export async function cargoMetadataLocked(cwd: string, repoRoot: string): Promise<void> {
@@ -163,27 +241,46 @@ export async function syncPrototypeLocks(
     ...prototypeDirs.map((dir) => ({ dir, lock: join(dir, "Cargo.lock") })),
   ];
 
+  const originals = new Map<string, string>();
+  const candidates = new Map<string, string>();
   const results: LockSyncResult[] = [];
-  for (const target of lockTargets) {
-    const original = await readFile(target.lock, "utf8");
-    const before = parseLock(original);
-    const stale = staleLonghornPackages(before.packages, workspaceVersion);
-    const nextText = stale.length === 0 ? original : rewriteLonghornPathVersions(original, workspaceVersion);
-    if (nextText !== original) await writeFile(target.lock, nextText);
-    const after = parseLock(await readFile(target.lock, "utf8"));
-    const assessment = assessLock(before, after, workspaceVersion);
-    if (assessment.thirdPartyMoved.length > 0 || assessment.unexpected.length > 0) {
-      throw new Error(
-        `${relative(repoRoot, target.lock)} moved more than Longhorn path versions:\n` +
-          assessment.thirdPartyMoved.concat(assessment.unexpected).map((line) => `  ${line}`).join("\n"),
-      );
+  try {
+    const originalWorkspaceLock = await readFile(join(repoRoot, "Cargo.lock"), "utf8");
+    const workspaceLock = rewriteLonghornPathVersions(originalWorkspaceLock, workspaceVersion);
+    const allowedPathPackages = parseLock(workspaceLock).packages.filter(isLonghornPathPackage);
+
+    for (const target of lockTargets) {
+      const original = target.dir === repoRoot ? originalWorkspaceLock : await readFile(target.lock, "utf8");
+      originals.set(target.lock, original);
+      const before = parseLock(original);
+      const seeded = target.dir === repoRoot
+        ? { text: workspaceLock, added: [] as string[] }
+        : addMissingLonghornPathPackages(original, workspaceLock);
+      const candidate = rewriteLonghornPathVersions(seeded.text, workspaceVersion);
+      const after = parseLock(candidate);
+      const assessment = assessLock(before, after, workspaceVersion, allowedPathPackages);
+      if (assessment.thirdPartyMoved.length > 0 || assessment.unexpected.length > 0) {
+        throw new Error(
+          `${relative(repoRoot, target.lock)} moved more than Longhorn path packages:\n` +
+            assessment.thirdPartyMoved.concat(assessment.unexpected).map((line) => `  ${line}`).join("\n"),
+        );
+      }
+      candidates.set(target.lock, candidate);
+      results.push({
+        lock: relative(repoRoot, target.lock),
+        added: assessment.added,
+        stale: staleLonghornPackages(before.packages, workspaceVersion).map((pkg) => pkg.name),
+        bumped: assessment.bumped,
+      });
     }
-    if (verifyMetadata) await cargoMetadataLocked(target.dir, repoRoot);
-    results.push({
-      lock: relative(repoRoot, target.lock),
-      stale: stale.map((pkg) => pkg.name),
-      bumped: assessment.bumped,
-    });
+
+    for (const [lock, candidate] of candidates) await writeFile(lock, candidate);
+    if (verifyMetadata) {
+      for (const target of lockTargets) await cargoMetadataLocked(target.dir, repoRoot);
+    }
+  } catch (error) {
+    for (const [lock, original] of originals) await writeFile(lock, original);
+    throw error;
   }
 
   return { workspaceVersion, locks: results };
