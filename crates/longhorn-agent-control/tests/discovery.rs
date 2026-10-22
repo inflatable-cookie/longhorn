@@ -315,7 +315,7 @@ fn discovery_file_permissions_match_credential_class() {
     let dir = root.path().join("agent-control");
     let instance = publish_discovery(
         &dir,
-        "dev.example.split-shell",
+        "dev.example.minimal-shell",
         49159,
         InstanceToken::generate().unwrap(),
     )

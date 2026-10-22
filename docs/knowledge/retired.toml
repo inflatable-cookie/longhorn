@@ -28,3 +28,12 @@ replacement = "The plan is Queue lanes, lane documents and plan order; leads are
 owner = "docs/knowledge/README.md"
 paths = ["docs/plan.md", "docs/triage/"]
 allow = ["CHANGELOG.md"]
+
+[[retired]]
+id = "split-shell-consumer"
+retired = "2026-10-22"
+replacement = "No consumer. Its minimal configuration and settings composition is the neutral proof composition `minimal-shell` in the app-shell, settings-composition and bridge-topology proofs. Q-006 records the retirement."
+owner = "docs/knowledge/questions.md"
+terms = ["Split-shell", "Split_shell", "SplitShell", "Split Shell Desktop"]
+paths = ["examples/app-shell-proof/split-shell/", "examples/settings-composition-proof/split-shell/", "examples/bridge-topology-proof/split-shell.ts", "examples/bridge-topology-proof/consumers/split-shell/"]
+allow = ["CHANGELOG.md", "fixtures/release/card127/private-0-1-candidate-v1.json", "docs/reference/private-0-1-candidate.md", "scripts/verify-private-candidate-docs-card127.ts"]

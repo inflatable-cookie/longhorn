@@ -25,7 +25,7 @@ import type {
 const LONGHORN_VERSION = longhornVersion();
 
 const shapes: Record<string, ShapePolicy> = {
-  "split-shell": {
+  "minimal-shell": {
     longhorn: ["@inflatable-cookie/longhorn"],
     forbiddenImports: [
       "@inflatable-cookie/longhorn/config",

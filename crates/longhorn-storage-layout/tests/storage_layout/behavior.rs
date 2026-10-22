@@ -190,7 +190,11 @@ fn donor_identities_map_without_display_name_inference() {
     let cases = [
         ("audio.example.soundcheck", Some("Soundcheck"), "Soundcheck"),
         ("audio.example.loophole.aura", Some("Loophole"), "Loophole"),
-        ("com.example.split-shell", None, "com.example.split-shell"),
+        (
+            "com.example.minimal-shell",
+            None,
+            "com.example.minimal-shell",
+        ),
         ("dev.nucleus.desktop", Some("Nucleus"), "Nucleus"),
     ];
 

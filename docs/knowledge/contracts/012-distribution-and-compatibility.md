@@ -146,7 +146,7 @@ A release candidate requires:
 ## Acceptance
 
 - Nucleus composes window/layout support without importing Surfaces, and
-  Split-shell composes configuration and shell support without importing layout
+  the minimal-shell proof composes configuration and shell support without importing layout
   hosting. Stated as imports rather than installs: Card 164 put every domain
   in one package, so a consumer resolves them all and tree-shaking is what
   keeps the unused ones out of a bundle. The Rust tier keeps the install
@@ -212,16 +212,16 @@ The five packages are `@inflatable-cookie/poodle-headless`, `@inflatable-cookie/
 must verify the set id and individual SHA-256 values recorded in Card 038
 before mounting.
 
-Card 041 packs seven Longhorn packages and installs Split-shell, Nucleus, and
+Card 041 packs seven Longhorn packages and installs a minimal consumer (retired 2026-10-22), Nucleus, and
 Loophole proof consumers into isolated roots. Nucleus resolves no Surface
-package; Split-shell resolves no layout host; Loophole resolves the full optional
+package; a minimal consumer resolves no layout host; Loophole resolves the full optional
 graph. Each root contains one Svelte `5.38.6` runtime and the exact five
 Poodle tarballs.
 
 Evidence:
 the retired logs (Git history).
 
-Card 048 packs the settings TypeScript family and installs isolated Split-shell,
+Card 048 packs the settings TypeScript family and installs isolated minimal consumer (retired 2026-10-22),
 Soundcheck, Loophole, and Nucleus consumers against the same exact Poodle set.
 Each root contains one Svelte `5.38.6` runtime, no sibling source alias, and
 only its declared Longhorn optional systems. Six private Rust crate
@@ -241,7 +241,7 @@ Evidence:
 the retired logs (Git history).
 
 Card 055 packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn-tauri`, and
-`@inflatable-cookie/longhorn/bridge`, then installs Split-shell, Jetstream, Soundcheck, Nucleus, and
+`@inflatable-cookie/longhorn/bridge`, then installs a minimal consumer (retired 2026-10-22), Jetstream, Soundcheck, Nucleus, and
 Loophole-shaped consumers in isolated roots. Every consumer resolves version
 `0.1.0`, one Tauri API `2.10.1` peer, exact declared bridge subpaths, and no
 workspace or sibling source alias. Separate offline Rust consumers prove a

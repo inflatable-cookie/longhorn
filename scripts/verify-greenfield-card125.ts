@@ -347,7 +347,7 @@ async function verifyExampleSources(): Promise<void> {
   // Declared here, not at module scope: this script runs its main body at the
   // top level, above this point, so a module-scope const is still in the
   // temporal dead zone by the time this is called.
-  const donorVocabulary = /loophole|nucleus|soundcheck|split-shell|jetstream/i;
+  const donorVocabulary = /loophole|nucleus|soundcheck|minimal-shell|jetstream/i;
   const offenders: string[] = [];
   for (const relative of await readdir(exampleRoot, { recursive: true })) {
     const path = join(exampleRoot, relative);

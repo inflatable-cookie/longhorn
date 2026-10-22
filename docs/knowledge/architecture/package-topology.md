@@ -429,10 +429,10 @@ domain packages -> narrow host adapters -> Svelte/Poodle presentation
 Examples arrive with the capability they prove:
 
 - minimal configuration and shell
-- `app-shell-proof`: isolated Split-shell, Nucleus, and Loophole artifact installs
-- `settings-composition-proof`: isolated Split-shell, Soundcheck, Loophole, and
+- `app-shell-proof`: isolated minimal-shell, Nucleus, and Loophole artifact installs
+- `settings-composition-proof`: isolated minimal-shell, Soundcheck, Loophole, and
   Nucleus settings installs
-- `bridge-topology-proof`: isolated Split-shell, Jetstream, Soundcheck, Nucleus,
+- `bridge-topology-proof`: isolated minimal-shell, Jetstream, Soundcheck, Nucleus,
   and Loophole bridge installs plus query-only/full-host Rust graphs
 - `history-system-proof`: isolated minimal and Loophole-shaped linear history
   installs plus pure and Tauri-hosted Rust graphs

@@ -6,16 +6,16 @@ import {
   SETTINGS_RESET_COMMAND,
 } from "@inflatable-cookie/longhorn/settings";
 
-import SplitShellSettings from "./SplitShellSettings.svelte";
+import MinimalShellSettings from "./MinimalShellSettings.svelte";
 import { SettingsProofTransport } from "./settings-proof.ts";
 
 test("mounts one staged modal after authoritative load", async () => {
-  const transport = new SettingsProofTransport("split-shell");
+  const transport = new SettingsProofTransport("minimal-shell");
   const session = transport.session();
   const reveal = vi.fn(async () => undefined);
-  const mounted = render(SplitShellSettings, { props: { session, reveal } });
+  const mounted = render(MinimalShellSettings, { props: { session, reveal } });
 
-  await mounted.findByTestId("split-shell-preferences");
+  await mounted.findByTestId("minimal-shell-preferences");
   await waitFor(() => expect(reveal).toHaveBeenCalledOnce());
   expect(transport.authorityLoadedBeforeMutation()).toBe(true);
 
@@ -49,14 +49,14 @@ test.each([
 ] as const)(
   "publishes nothing for %s authority",
   async (mode, message) => {
-    const transport = new SettingsProofTransport("split-shell");
+    const transport = new SettingsProofTransport("minimal-shell");
     if (mode === "recoveryRequired") {
       transport.setRecoveryRequired();
     } else {
       transport.mutationMode = mode;
     }
     const session = transport.session();
-    const mounted = render(SplitShellSettings, {
+    const mounted = render(MinimalShellSettings, {
       props: { session, reveal: async () => undefined },
     });
     await fireEvent.click(

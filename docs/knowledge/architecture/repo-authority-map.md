@@ -53,11 +53,11 @@ The generic Echo transfer is complete under `loophole-migration-map.md`.
 Product schemas, policies, payloads, and named adapters remain in Loophole.
 Secondary-consumer selection and retained authority are compiled under
 `secondary-consumer-migration-map.md`; Card 113 now freezes exact receipts,
-behavior seams, selected packages, rollback inputs, and the protected Split-shell
+behavior seams, selected packages, rollback inputs, and the protected minimal consumer
 docs-only overlap before any new consumer write. Card 119 closes Soundcheck's
 selected graph and retains every SQLite, scan, plugin, DAW, Composer,
 Keepsake, Signal, Swallowtail, and visual-product authority downstream. Card
-120 moves only Split-shell's storage, preference persistence, settings structure,
+120 moves only the minimal consumer's storage, preference persistence, settings structure,
 and Tauri transport to Longhorn; content, hierarchy, navigation meaning,
 editorial, validation, Git, and SplitView presentation remain downstream.
 Card 121 closes the minimal graph with one preference authority, exact

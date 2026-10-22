@@ -6,14 +6,14 @@ use longhorn_settings::{
 use super::support::{capability_id, page_ids, register_capability, register_module_page};
 
 #[test]
-fn split_shell_fixture_is_one_staged_page_without_optional_systems() {
+fn minimal_shell_fixture_is_one_staged_page_without_optional_systems() {
     let mut builder = SettingsRegistryBuilder::new(
         SettingsRegistryGeneration::new(1),
         SettingsLimits::default(),
     );
     register_module_page(
         &mut builder,
-        "split-shell",
+        "minimal-shell",
         "Workspace",
         0,
         SettingsMutationTiming::Staged,
@@ -25,7 +25,7 @@ fn split_shell_fixture_is_one_staged_page_without_optional_systems() {
     );
 
     let registry = builder.seal([]).unwrap();
-    assert_eq!(page_ids(&registry), vec!["split-shell:page"]);
+    assert_eq!(page_ids(&registry), vec!["minimal-shell:page"]);
     assert_eq!(
         registry.apply_units().next().unwrap().timing,
         SettingsMutationTiming::Staged

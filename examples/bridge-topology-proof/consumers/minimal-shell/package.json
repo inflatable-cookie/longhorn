@@ -1,5 +1,5 @@
 {
-  "name": "longhorn-split-shell-bridge-artifact-proof",
+  "name": "longhorn-minimal-shell-bridge-artifact-proof",
   "private": true,
   "type": "module",
   "dependencies": {

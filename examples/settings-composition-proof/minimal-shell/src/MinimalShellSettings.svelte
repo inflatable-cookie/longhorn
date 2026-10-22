@@ -33,13 +33,13 @@
 </script>
 
 {#snippet preferencePage(context: SettingsPageRenderContext)}
-  <article data-testid="split-shell-preferences" data-dirty={context.dirty}>
+  <article data-testid="minimal-shell-preferences" data-dirty={context.dirty}>
     <h3>Editing</h3>
     <p>One consumer-owned staged preference domain.</p>
     <button
       type="button"
       onclick={() =>
-        void context.change("split-shell:preferences", {
+        void context.change("minimal-shell:preferences", {
           codecVersion: 1,
           value: { compactEditor: true },
         })}
@@ -49,7 +49,7 @@
     <button
       type="button"
       onclick={() =>
-        void context.requestReset("split-shell:preferences", ["split-shell:primary"])}
+        void context.requestReset("minimal-shell:preferences", ["minimal-shell:primary"])}
     >
       Reset preference
     </button>
@@ -59,7 +59,7 @@
 <UiPresentationProvider density="comfortable" sizeScale="md">
   <SettingsShell
     {session}
-    title="Split-shell preferences"
+    title="Minimal shell preferences"
     resolveRenderer={() => preferencePage}
   />
 </UiPresentationProvider>

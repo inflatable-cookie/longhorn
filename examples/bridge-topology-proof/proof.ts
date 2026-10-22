@@ -9,7 +9,7 @@ import {
   declarations,
   type ShapeName,
 } from "./common.ts";
-import { runSplitShellTrace } from "./split-shell.ts";
+import { runMinimalShellTrace } from "./minimal-shell.ts";
 import { runOrderedStreamsTrace } from "./ordered-streams.ts";
 import { runReconnectingLifecycleTrace } from "./reconnecting-lifecycle.ts";
 import { runCapabilityAuthorityTrace } from "./capability-authority.ts";
@@ -17,7 +17,7 @@ import { runJobsAndServiceFailureTrace } from "./jobs-and-service-failure.ts";
 
 export async function runBridgeTopologyProof() {
   const traces = {
-    "split-shell": await runSplitShellTrace(),
+    "minimal-shell": await runMinimalShellTrace(),
     "ordered-streams": await runOrderedStreamsTrace(),
     "jobs-and-service-failure": await runJobsAndServiceFailureTrace(),
     "capability-authority": await runCapabilityAuthorityTrace(),
@@ -89,7 +89,7 @@ function retryAudit() {
 
 function shapeNames(): ShapeName[] {
   return [
-    "split-shell",
+    "minimal-shell",
     "ordered-streams",
     "jobs-and-service-failure",
     "capability-authority",

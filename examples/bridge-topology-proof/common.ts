@@ -37,7 +37,7 @@ import {
 } from "@inflatable-cookie/longhorn-tauri/bridge";
 
 export type ShapeName =
-  | "split-shell"
+  | "minimal-shell"
   | "ordered-streams"
   | "jobs-and-service-failure"
   | "capability-authority"

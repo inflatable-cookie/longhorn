@@ -15,17 +15,17 @@ shape and admission questions.
 
 | Capability | Intended reusable unit | State | Main evidence |
 | --- | --- | --- | --- |
-| configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, Split-shell, Nucleus |
+| configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, minimal-shell proof, Nucleus |
 | backup and recovery | inventory, snapshot, verify, rotate, restore | promoted first pass | cross-app need; partial Loophole evidence |
 | display inventory | pure model plus Tauri probe adapter | contract 009 | Loophole, Nucleus, Soundcheck |
 | geometry/window planning | pure planner plus native host | contract 009 | Loophole, Nucleus, Soundcheck |
-| lifecycle and app chrome | small Tauri/Svelte helpers and guidance | provisional | all five apps |
+| lifecycle and app chrome | small Tauri/Svelte helpers and guidance | provisional | all four apps |
 | layout containers | Rust/TS region and panel state | promoted first pass | Loophole, Nucleus |
 | hosted Surfaces | optional layout-container host | promoted first pass | Loophole |
 | cross-window drag | id/coordinate protocol and host transaction | contract 011 | Loophole, Nucleus |
 | Svelte/Poodle bindings | stores, actions, adapters; no component fork | architecture | Loophole, Nucleus |
 | settings | registry-driven dialog shell and domain pages | promoted first pass | Loophole plus cross-app demand |
-| typed bridge | checked commands, events, errors, subscriptions | contract 010 | all five apps |
+| typed bridge | checked commands, events, errors, subscriptions | contract 010 | all four apps |
 | optional backend topology | local, embedded, or remote authority adapters | promoted first pass | Nucleus, Loophole |
 | commands/actions | sealed registry, bounded arguments, fresh admission, injected execution | compiled boundary | Loophole, Jetstream |
 | input/keymaps | physical keyboard, contexts, conflicts, durable sparse overrides | compiled boundary | Loophole, Jetstream |

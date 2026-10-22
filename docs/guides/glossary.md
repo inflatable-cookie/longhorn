@@ -13,7 +13,7 @@ language. If a word still confuses you, it belongs here.
 | authority | The single component that owns a durable domain — the only place writes to that domain may commit. "Product authority" means the app keeps its own policy; "transaction authority" means one coordinator makes several writes atomic; "bootstrap authority" means which system owns a domain at startup. |
 | admission | The decision that something is allowed to proceed. Behavioral admission: is this behavior worth extracting (see donor)? Artifact admission: do the produced packages install cleanly outside this repo? |
 | bounded | Deliberately limited, and the limit is part of the contract — bounded sessions, bounded retention, bounded debounce. Not a bug or an accident. |
-| consumer | An app that adopts Longhorn packages. Proven consumers: Nucleus, Loophole, Soundcheck, Split-shell, Jetstream. |
+| consumer | An app that adopts Longhorn packages. Proven consumers: Nucleus, Loophole, Soundcheck, Jetstream. |
 | conformance | Proof that a consumer's behavior matches the shared contract — or a fixture that verifies it. |
 | cutover | The step where a consumer switches a domain from its own implementation to Longhorn's. |
 | donor | An existing app whose proven behavior was extracted into Longhorn. A donor implementation is evidence, not automatically the shared contract. |
