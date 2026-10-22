@@ -358,6 +358,43 @@ fn a_credential_refresh_never_restarts_the_wall_clock() {
 
 #[cfg(unix)]
 #[test]
+fn a_declined_refresh_that_answers_late_is_a_timeout() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    let refusal = support::script(
+        fixture.temp.path(),
+        "refuse.sh",
+        "echo 'fatal: Authentication failed for the remote' >&2\nexit 1",
+    );
+    // The policy declines the refresh, but only after the call's bound.
+    let policy = fixture
+        .policy()
+        .with_credential(ext_remote_env(&refusal, GITHUB_REMOTE), "rejected-secret")
+        .with_refresh_delay(Duration::from_millis(1200));
+    let git = handle(&policy);
+
+    let failure = git
+        .run(
+            &fixture.root,
+            &["fetch"],
+            GitFailureCode::FetchFailed,
+            Duration::from_millis(800),
+        )
+        .expect_err("the refresh answered after the bound");
+
+    assert!(
+        matches!(failure, GitFailure::TimedOut { .. }),
+        "expected a timeout, got {failure:?}"
+    );
+    assert_eq!(policy.refresh_calls(), 1);
+}
+
+#[cfg(unix)]
+#[test]
 fn a_long_stderr_never_returns_private_key_body_text() {
     let fixture = Fixture::worktree();
     let policy = fixture.policy();

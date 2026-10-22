@@ -140,8 +140,8 @@ its own result and copy from them.
   original failure. The retry runs under the same deadline as the first
   attempt: a bounded call fixes its deadline when it starts, and that deadline
   covers the origin lookup, both attempts and the policy's refresh. A refresh
-  that returns after the deadline reports `GitFailure::TimedOut` without a
-  retry.
+  that answers after the deadline, with a replacement or without one, reports
+  `GitFailure::TimedOut` without a retry.
 - Standard output is retained from its head within
   `MAX_CAPTURED_OUTPUT_BYTES` (64 KiB). A successful call whose standard output
   exceeds that bound fails with `git.output_too_large` instead of returning a
@@ -377,7 +377,8 @@ own paths.
   exits while a descendant holds standard error proves a cancel during the
   drain does too. A scripted `ext::` remote refuses for authentication: one
   test proves a refreshed credential is retried once and succeeds, and one
-  proves the retry stays inside the first attempt's deadline.
+  proves the retry stays inside the first attempt's deadline, and one proves a
+  declined refresh that answers late is a timeout.
 - `effigy lint:git-workspace` compiles every target with clippy at `-D
   warnings`; `effigy docs:git-workspace` builds rustdoc with warnings denied.
 - `effigy check:git-workspace` aggregates those three and

@@ -210,7 +210,9 @@ impl<'a> Git<'a> {
     /// rejected.
     ///
     /// One deadline, fixed here, covers the origin lookup, the first attempt,
-    /// the policy's refresh and the retry: a retry never restarts the clock.
+    /// the policy's refresh and the retry: a retry never restarts the clock,
+    /// and a refresh that answers after the deadline, with or without a
+    /// replacement, is a timeout.
     fn run_process(
         &self,
         root: &Path,
@@ -231,13 +233,17 @@ impl<'a> Git<'a> {
                 classify_remote_failure(&String::from_utf8_lossy(&capture.stderr)),
                 RemoteAccessFailure::AuthenticationRequired
             )
-            && let Some(refreshed) = self.policy.refresh_credential(existing)
         {
+            let refreshed = self.policy.refresh_credential(existing);
+            // The refresh runs on the caller's clock whatever it returns: a
+            // late answer, even a declined one, is a timeout.
             if clock.expired() {
                 return Err(clock.timed_out());
             }
-            credential = Some(refreshed);
-            capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
+            if let Some(refreshed) = refreshed {
+                credential = Some(refreshed);
+                capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
+            }
         }
         Ok(Processed {
             capture,

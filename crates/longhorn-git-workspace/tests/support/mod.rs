@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Output},
     sync::Mutex,
+    time::Duration,
 };
 
 use longhorn_git_workspace::{Git, GitCredential, GitFailure, GitPolicy};
@@ -35,6 +36,7 @@ pub struct Policy {
     credential: Option<(Vec<(String, String)>, String)>,
     credential_error: Option<GitFailure>,
     refreshed: Option<(Vec<(String, String)>, String)>,
+    refresh_delay: Duration,
     credential_calls: Mutex<Vec<String>>,
     refresh_calls: Mutex<usize>,
 }
@@ -54,6 +56,7 @@ impl Policy {
             credential: None,
             credential_error: None,
             refreshed: None,
+            refresh_delay: Duration::ZERO,
             credential_calls: Mutex::new(Vec::new()),
             refresh_calls: Mutex::new(0),
         }
@@ -85,6 +88,13 @@ impl Policy {
     #[must_use]
     pub fn with_refresh(mut self, env: Vec<(String, String)>, secret: &str) -> Self {
         self.refreshed = Some((env, secret.to_owned()));
+        self
+    }
+
+    /// A policy whose refresh takes this long before it answers.
+    #[must_use]
+    pub fn with_refresh_delay(mut self, delay: Duration) -> Self {
+        self.refresh_delay = delay;
         self
     }
 
@@ -133,6 +143,7 @@ impl GitPolicy for Policy {
             .refresh_calls
             .lock()
             .expect("the refresh call count is not poisoned") += 1;
+        std::thread::sleep(self.refresh_delay);
         self.refreshed
             .as_ref()
             .map(|(env, secret)| GitCredential::new(env.clone(), secret.clone()))
