@@ -82,7 +82,7 @@ impl Git<'_> {
             }
         };
         let root = state.root.clone();
-        match self.origin_url(Path::new(&root)) {
+        match self.origin_url_raw(Path::new(&root)) {
             Some(observed) if remotes_match(&observed, expected_remote) => {}
             observed => {
                 return AttachReading::WrongRemote {

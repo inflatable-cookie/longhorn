@@ -24,7 +24,7 @@ use std::{
 use uuid::Uuid;
 
 use crate::{
-    execution::{Git, read_tail, redact_git_detail},
+    execution::{Git, isolate_process_group, kill_child_tree, read_tail, redact_git_detail},
     policy::GitCredential,
 };
 
@@ -166,6 +166,7 @@ impl Git<'_> {
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
         self.isolate(&mut command);
+        isolate_process_group(&mut command);
         if let Some(credential) = credential {
             for (key, value) in credential.env_vars() {
                 command.env(key, value);
@@ -211,8 +212,7 @@ impl Git<'_> {
 }
 
 fn stop(child: &mut std::process::Child, stderr: Option<StderrReader>) {
-    let _ = child.kill();
-    let _ = child.wait();
+    kill_child_tree(child);
     if let Some(reader) = stderr {
         let _ = join(reader);
     }

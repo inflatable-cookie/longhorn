@@ -63,6 +63,13 @@ impl Policy {
         self
     }
 
+    /// Adds isolation environment values after the fixture's own.
+    #[must_use]
+    pub fn with_isolation(mut self, env: Vec<(String, String)>) -> Self {
+        self.isolation.extend(env);
+        self
+    }
+
     /// A policy whose credential lookup fails, as a locked store would.
     #[must_use]
     pub fn with_credential_error(mut self, failure: GitFailure) -> Self {

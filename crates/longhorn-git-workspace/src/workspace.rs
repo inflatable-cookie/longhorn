@@ -78,9 +78,23 @@ impl Git<'_> {
         })
     }
 
-    /// The `origin` remote URL of one worktree, or `None` when Git refuses.
+    /// The `origin` remote URL of one worktree, redacted with the caller's
+    /// redactor, or `None` when Git refuses.
+    ///
+    /// Git reports the configured URL verbatim, so it can carry a credential in
+    /// its user-info component. The redaction keeps that value out of anything
+    /// a caller may display or log. [`crate::remote_identity`] still compares
+    /// two such values, because it removes the user-info component before
+    /// comparing.
     #[must_use]
     pub fn origin_url(&self, root: &Path) -> Option<String> {
+        let raw = self.origin_url_raw(root)?;
+        Some(self.redacted_output(&raw, None))
+    }
+
+    /// The exact `origin` value. Internal: the credential decision and the
+    /// attach comparison need the value Git reported, not a redacted form.
+    pub(crate) fn origin_url_raw(&self, root: &Path) -> Option<String> {
         self.run_git(
             root,
             &["remote", "get-url", "origin"],

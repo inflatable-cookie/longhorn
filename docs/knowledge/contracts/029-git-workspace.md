@@ -90,7 +90,8 @@ The readings, all methods on `Git`:
 
 - `status(&self, root) -> Result<GitStatus, GitFailure>`;
 - `inspect_worktree(&self, root) -> Result<GitWorkspaceState, GitFailure>`;
-- `origin_url(&self, root) -> Option<String>`;
+- `origin_url(&self, root) -> Option<String>`, redacted with the caller's
+  redactor;
 - `push_capability(&self, root) -> Result<(), RemoteAccessFailure>`;
 - `preflight_remote(&self, remote, credential: Option<&GitCredential>) ->
   Result<(), RemoteAccessFailure>`;
@@ -142,10 +143,18 @@ its own result and copy from them.
   standard output exceeds that bound fails with `git.output_too_large` instead
   of returning a partial answer. Both streams are drained, so a chatty child
   cannot fill a pipe and stall the wait.
-- `Git::run` is the only bounded call: on reaching its `timeout` it kills,
-  reaps and joins the child, and returns `GitFailure::TimedOut` with the bound
-  it reached. The readings in this part impose no wall clock; a caller that
-  needs one uses `run`, and a clone is bounded by its cancellation flag.
+- Successful standard output is redacted with the caller's redactor and the
+  invocation secret before `Git::run` returns it. Parsing reads (`status`,
+  branch discovery, the attach comparison, the credential decision) take the
+  exact bytes, because redaction would corrupt an identifier; the values they
+  publish (`origin_url`) are redacted at the public boundary.
+- `Git::run` is the only bounded call. The child runs in its own process group
+  on Unix, so on reaching its `timeout` the group is killed, the child is
+  reaped and its readers are joined: the returned `GitFailure::TimedOut` comes
+  at the bound even when Git's own children still hold the output pipes. The
+  readings in this part impose no wall clock; a caller that needs one uses
+  `run`, and a clone is bounded by its cancellation flag, which kills the same
+  process group.
 - Capture readers are joined on every exit, including a kill, so a call leaves
   no reader or child behind.
 
@@ -258,10 +267,10 @@ An invocation owns one unique staging folder under the destination's parent.
 bounded sixteen times on a collision. `clone_into` requires that empty folder,
 spawns `git clone --progress -- <remote> <staging>`, applies isolation before
 the caller's credential environment, and bounds the clone by the caller's
-cancellation flag: a cancelled clone is killed, reaped and reported as
-`Cancelled`. Standard error keeps its tail within the capture bound and its
-refusal detail is redacted with the caller's redactor and the credential
-secret, then cut to `FAILURE_DETAIL_BOUND`.
+cancellation flag: a cancelled clone has its process group killed, is reaped
+and is reported as `Cancelled`. Standard error keeps its tail within the
+capture bound; its refusal detail is redacted with the caller's redactor and
+the credential secret, then cut to `FAILURE_DETAIL_BOUND`.
 
 `rename_exclusive` moves the staging folder into place with a same-parent
 exclusive rename: `RENAME_NOREPLACE` on Linux and `RENAME_EXCL` on macOS,
@@ -301,18 +310,24 @@ expected remote. It never mutates the checkout. The readings are:
 
 ## Redaction and bounds
 
-`redact_git_detail(redactor, detail, secret)` runs the invocation secret
-through a `longhorn-redact` `Redactor` seeded with it and the common rules,
-then the caller's own redactor, then
-`longhorn-support-log::bounded_tail` with `FAILURE_DETAIL_BOUND`: at most 40
+The invocation secret and the caller's `longhorn-redact` `Redactor` run over
+every Git text the crate returns. `redact_git_detail(redactor, detail, secret)`
+is the failure form: the secret pass, then the caller's redactor, then
+`longhorn-support-log::bounded_tail` with `FAILURE_DETAIL_BOUND` — at most 40
 lines and 4096 bytes, the newest bytes kept, moved to a character boundary
 with `OMITTED_MARKER` in front. Every failure detail the crate returns goes
-through that treatment; a clone's refused stderr too. Standard error is
-captured as a tail within 64 KiB first, so a long clone log never grows memory
-and still carries the fatal line.
+through it; a clone's refused stderr too. Standard error is captured as a tail
+within 64 KiB first, so a long clone log never grows memory and still carries
+the fatal line.
 
-Successful standard output is returned only within `MAX_CAPTURED_OUTPUT_BYTES`
-and is refused, not truncated, beyond it.
+Successful standard output takes the same two redaction passes before
+`Git::run` returns it, then `longhorn-support-log::bound_field` keeps it within
+`MAX_CAPTURED_OUTPUT_BYTES`; a stream beyond that bound is refused, not
+truncated. `origin_url` is redacted the same way, so a credential in the
+remote's user-info component never leaves the crate; `remotes_match` and
+`remote_identity` remain usable on the redacted value because they remove that
+component before comparing, and `remote_for_display` stays available for raw
+values a caller obtained itself.
 
 ## Required evidence
 
@@ -325,8 +340,10 @@ and is refused, not truncated, beyond it.
   checkouts, a preflight refusal per class, the ambient-helper rule, sync in
   every stop state, branch switching, clone staging and the exclusive rename
   including an existing target and a failed clone, attach in every reading, the
-  credential hook and its delivered environment, redaction, the capture bound
-  and the wall clock.
+  credential hook and its delivered environment, redaction of successful
+  standard output and of failure detail, the capture bound, and the hard wall
+  clock against a sleeping descendant that holds the output pipes. A clone
+  against a remote that hangs proves cancellation returns at its flag.
 - `effigy lint:git-workspace` compiles every target with clippy at `-D
   warnings`; `effigy docs:git-workspace` builds rustdoc with warnings denied.
 - `effigy check:git-workspace` aggregates those three and
@@ -338,7 +355,9 @@ refusal. An offline host cannot provoke a real authentication refusal, so the
 refresh-and-retry path is compiled and reviewed but not exercised; the scripted
 policy proves the credential hook, its delivered environment and its failure
 mode. The exclusive rename is proved on Linux and macOS only; elsewhere the
-function reports `Unsupported`.
+function reports `Unsupported`. Process-group termination is Unix only; on a
+host without it the direct child is killed, so a descendant that keeps an
+output pipe open can delay cleanup there.
 
 ## Part 5b: GitHub sign-in
 
@@ -387,9 +406,16 @@ Deltas from Acowtancy Desktop's mechanism at `4993376c`:
 - `GitWorktreeFacts` is removed. `GitWorkspaceState`'s fields are public and
   `GitStatus::clean` is computed once, so a readiness check reads the same
   facts the mechanism computed.
-- Output is bounded where the donor was not: 64 KiB per captured stream, and a
-  failure detail cut to 4096 bytes / 40 lines. A donor caller that expected
-  full stderr in a diagnostic now receives the redacted tail.
+- Output is bounded and redacted where the donor was not: 64 KiB per captured
+  stream, a failure detail cut to 4096 bytes / 40 lines, successful standard
+  output redacted with the caller's redactor and the invocation secret, and
+  `origin_url` redacted at the public boundary. A donor caller that expected
+  full stderr in a diagnostic now receives the redacted tail, and one that
+  expected raw `git log`-style output from `run_git` reads the parsed readings
+  instead.
+- A timeout or a clone cancellation kills the child's process group on Unix
+  instead of only the direct child, so the bound holds when Git's own children
+  (a shell alias, a remote helper) are still writing.
 - The crate has no `sha2` and no `longhorn-core` dependency: exact-path commit,
   review fingerprints and credential slots stay with the application until
   part 5b and their own tasks.

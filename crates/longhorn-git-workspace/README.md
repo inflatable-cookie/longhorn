@@ -40,10 +40,15 @@ before the invocation credential. A credential is supplied by
 `GitPolicy::credential` for a credential-scoped remote, or explicitly as a
 `GitCredential` for a preflight or a clone. Git's standard output is retained
 from its head and its standard error from its tail, each within
-`MAX_CAPTURED_OUTPUT_BYTES`; a failure's detail is redacted with the caller's
-redactor and the invocation secret, then cut to `FAILURE_DETAIL_BOUND`.
-`redact_git_detail` exposes the same treatment for the caller's own
-diagnostics.
+`MAX_CAPTURED_OUTPUT_BYTES`. Successful standard output and every failure
+detail are redacted with the caller's redactor and the invocation secret; a
+failure's detail is then cut to `FAILURE_DETAIL_BOUND`, and `origin_url` is
+redacted at the public boundary. `redact_git_detail` exposes the same treatment
+for the caller's own diagnostics.
+
+A child runs in its own process group on Unix, so `run`'s wall clock and a
+clone's cancellation kill the whole group: a descendant that keeps an output
+pipe open cannot stretch either bound.
 
 The crate names no product. Isolation, the allowed remote, branch naming, the
 integration base, contract-readable root admission, and every user-facing

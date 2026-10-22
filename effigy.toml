@@ -848,6 +848,7 @@ coverage_gaps = []
 proof_limits = [
   "Includes a workspace-wide API-reference inventory check",
   "Runs real local Git against temporary repositories and bare remotes only: no network, no remote host, no credential store",
+  "Process-group termination is Unix only: no non-Unix host runs in this suite",
   "Does not cover a real authentication refusal, so the credential-refresh retry path is unproved here",
   "Does not cover Cargo.lock changes or unrelated workspace obligations",
 ]

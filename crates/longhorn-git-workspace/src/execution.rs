@@ -21,7 +21,7 @@ use std::{
 };
 
 use longhorn_redact::{RedactionRules, Redactor};
-use longhorn_support_log::{TailBounds, bounded_tail};
+use longhorn_support_log::{TailBounds, bound_field, bounded_tail};
 
 use crate::{
     failure::{GitFailure, GitFailureCode},
@@ -65,8 +65,14 @@ impl<'a> Git<'a> {
 
     /// Runs one Git argument vector in `root` with a hard wall clock.
     ///
-    /// `code` classifies a refusal. When the bound is reached the child is
-    /// killed and awaited, and the result is [`GitFailure::TimedOut`].
+    /// `code` classifies a refusal. When the bound is reached the child's whole
+    /// process group is killed and the child is reaped, so the call returns at
+    /// its bound even when Git's own children still hold its output pipes; the
+    /// result is [`GitFailure::TimedOut`].
+    ///
+    /// Standard output is redacted with the caller's redactor and the
+    /// invocation secret before it is returned, so a value Git printed never
+    /// leaves the crate unprotected.
     ///
     /// # Errors
     ///
@@ -80,7 +86,8 @@ impl<'a> Git<'a> {
         code: GitFailureCode,
         timeout: Duration,
     ) -> Result<String, GitFailure> {
-        self.run_with(root, arguments, code, Some(timeout))
+        let executed = self.run_captured(root, arguments, code, Some(timeout))?;
+        Ok(self.redacted_output(&executed.stdout, executed.credential.as_ref()))
     }
 
     pub(crate) fn run_git(
@@ -89,7 +96,7 @@ impl<'a> Git<'a> {
         arguments: &[&str],
         code: GitFailureCode,
     ) -> Result<String, GitFailure> {
-        self.run_with(root, arguments, code, None)
+        Ok(self.run_captured(root, arguments, code, None)?.stdout)
     }
 
     /// The caller's redactor, for a module that formats its own detail.
@@ -150,19 +157,25 @@ impl<'a> Git<'a> {
         })
     }
 
-    fn run_with(
+    /// Runs one invocation and returns its raw standard output. Callers that
+    /// return it unparsed redact it first; parsing callers need the exact
+    /// bytes.
+    fn run_captured(
         &self,
         root: &Path,
         arguments: &[&str],
         code: GitFailureCode,
         timeout: Option<Duration>,
-    ) -> Result<String, GitFailure> {
+    ) -> Result<Executed, GitFailure> {
         let process = self.run_process(root, arguments, code, timeout)?;
         if process.capture.success {
             if process.capture.stdout_truncated {
                 return Err(too_large());
             }
-            return Ok(stdout(&process.capture.stdout));
+            return Ok(Executed {
+                stdout: stdout(&process.capture.stdout),
+                credential: process.credential,
+            });
         }
         Err(GitFailure::Refused {
             code,
@@ -172,6 +185,13 @@ impl<'a> Git<'a> {
                 process.credential.as_ref().map(GitCredential::secret),
             ),
         })
+    }
+
+    /// Redacts Git text for a caller: the invocation secret first, then the
+    /// caller's own redactor, bounded to one captured stream.
+    pub(crate) fn redacted_output(&self, text: &str, credential: Option<&GitCredential>) -> String {
+        let scrubbed = redact_text(&self.redactor, text, credential.map(GitCredential::secret));
+        bound_field(&self.redactor, &scrubbed, MAX_CAPTURED_OUTPUT_BYTES)
     }
 
     /// Runs one Git invocation with the app credential when the argument vector
@@ -218,7 +238,7 @@ impl<'a> Git<'a> {
         ) {
             return Ok(None);
         }
-        let Some(remote) = self.origin_url(root) else {
+        let Some(remote) = self.origin_url_raw(root) else {
             return Ok(None);
         };
         if !is_remote_credential_operation(arguments, &remote) {
@@ -270,6 +290,7 @@ impl<'a> Git<'a> {
         // Isolation first: the credential and any caller environment are
         // applied afterwards and win.
         self.policy.isolate(&mut command);
+        isolate_process_group(&mut command);
         command
     }
 }
@@ -297,15 +318,24 @@ pub fn is_remote_credential_operation(arguments: &[&str], remote: &str) -> bool 
 /// diagnostics keep the same redaction and bound as the mechanism's failures.
 #[must_use]
 pub fn redact_git_detail(redactor: &Redactor, detail: &str, secret: Option<&str>) -> String {
+    bounded_tail(
+        redactor,
+        &redact_text(redactor, detail, secret),
+        FAILURE_DETAIL_BOUND,
+    )
+}
+
+/// The invocation secret and the caller's redactor, in that order.
+fn redact_text(redactor: &Redactor, text: &str, secret: Option<&str>) -> String {
     let scrubbed = match secret {
         Some(secret) => {
             Redactor::new([secret.to_owned()], RedactionRules::common())
-                .redact(detail)
+                .redact(text)
                 .text
         }
-        None => detail.to_owned(),
+        None => text.to_owned(),
     };
-    bounded_tail(redactor, &scrubbed, FAILURE_DETAIL_BOUND)
+    redactor.redact(&scrubbed).text
 }
 
 fn apply_credential(command: &mut Command, credential: &GitCredential) {
@@ -316,6 +346,11 @@ fn apply_credential(command: &mut Command, credential: &GitCredential) {
 
 struct Processed {
     capture: Capture,
+    credential: Option<GitCredential>,
+}
+
+struct Executed {
+    stdout: String,
     credential: Option<GitCredential>,
 }
 
@@ -333,11 +368,11 @@ fn capture(mut command: Command, timeout: Option<Duration>) -> io::Result<Captur
         .stderr(Stdio::piped());
     let mut child = command.spawn()?;
     let Some(stdout_pipe) = child.stdout.take() else {
-        terminate(&mut child);
+        kill_child_tree(&mut child);
         return Err(io::Error::other("Git standard output was not captured"));
     };
     let Some(stderr_pipe) = child.stderr.take() else {
-        terminate(&mut child);
+        kill_child_tree(&mut child);
         return Err(io::Error::other("Git standard error was not captured"));
     };
     let stdout_reader = thread::spawn(move || read_head(stdout_pipe));
@@ -362,7 +397,7 @@ fn wait_bounded(child: &mut Child, timeout: Option<Duration>) -> io::Result<Exit
     let Some(timeout) = timeout else {
         let status = child.wait();
         if status.is_err() {
-            terminate(child);
+            kill_child_tree(child);
         }
         return status;
     };
@@ -372,12 +407,12 @@ fn wait_bounded(child: &mut Child, timeout: Option<Duration>) -> io::Result<Exit
             Ok(Some(status)) => return Ok(status),
             Ok(None) => {}
             Err(error) => {
-                terminate(child);
+                kill_child_tree(child);
                 return Err(error);
             }
         }
         if Instant::now() >= deadline {
-            terminate(child);
+            kill_child_tree(child);
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 "Git exceeded its wall clock",
@@ -387,7 +422,30 @@ fn wait_bounded(child: &mut Child, timeout: Option<Duration>) -> io::Result<Exit
     }
 }
 
-fn terminate(child: &mut Child) {
+/// Puts one Git child in its own process group, so a bound or a cancellation
+/// can end every process it started instead of only the direct child.
+#[cfg(unix)]
+pub(crate) fn isolate_process_group(command: &mut Command) {
+    use std::os::unix::process::CommandExt as _;
+    command.process_group(0);
+}
+
+/// No process group is configured on this host.
+#[cfg(not(unix))]
+pub(crate) fn isolate_process_group(_command: &mut Command) {}
+
+/// Kills the child's whole process group where the host has one, then kills
+/// and reaps the direct child. A descendant holding an output pipe therefore
+/// cannot keep a bounded call alive.
+pub(crate) fn kill_child_tree(child: &mut Child) {
+    #[cfg(unix)]
+    {
+        if let Ok(pid) = i32::try_from(child.id())
+            && let Some(pid) = rustix::process::Pid::from_raw(pid)
+        {
+            let _ = rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
+        }
+    }
     let _ = child.kill();
     let _ = child.wait();
 }

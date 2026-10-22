@@ -4,7 +4,16 @@
 
 mod support;
 
-use std::{fs, path::Path, sync::atomic::AtomicBool};
+use std::{
+    fs,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
 use longhorn_git_workspace::{
     CloneFailure, GitCredential, create_owned_staging, remove_owned_staging, rename_exclusive,
@@ -177,5 +186,47 @@ fn a_cancelled_clone_starts_nothing_and_keeps_no_staging() {
 
     assert!(matches!(failure, CloneFailure::Cancelled));
     assert!(!target.exists());
+    assert!(staging_leftovers(&parent).is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_cancelled_clone_returns_at_the_cancel_even_when_the_remote_hangs() {
+    // A remote that is a two-second local program: Git waits on it, and its
+    // process is what holds the clone's output pipe.
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy().with_isolation(vec![
+        ("GIT_CONFIG_COUNT".to_owned(), "1".to_owned()),
+        (
+            "GIT_CONFIG_KEY_0".to_owned(),
+            "protocol.ext.allow".to_owned(),
+        ),
+        ("GIT_CONFIG_VALUE_0".to_owned(), "always".to_owned()),
+    ]);
+    let git = handle(&policy);
+    let parent = fixture.temp.path().join("destination");
+    fs::create_dir(&parent).expect("a destination parent");
+    let staging =
+        create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&cancel);
+    let setter = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(150));
+        flag.store(true, Ordering::SeqCst);
+    });
+
+    let started = Instant::now();
+    let failure = git
+        .clone_into("ext::sleep 2", &staging, &cancel, None)
+        .expect_err("the caller cancelled");
+    let elapsed = started.elapsed();
+    setter.join().expect("the cancelling thread");
+    remove_owned_staging(&staging);
+
+    assert!(matches!(failure, CloneFailure::Cancelled), "{failure:?}");
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "cancellation returned after {elapsed:?}"
+    );
     assert!(staging_leftovers(&parent).is_empty());
 }

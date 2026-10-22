@@ -3,7 +3,7 @@
 
 mod support;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use longhorn_git_workspace::{
     FAILURE_DETAIL_BOUND, Git, GitFailure, GitFailureCode, MAX_CAPTURED_OUTPUT_BYTES,
@@ -58,29 +58,64 @@ fn a_detail_helper_redacts_the_invocation_secret_and_bounds_the_text() {
 
 #[cfg(unix)]
 #[test]
-fn a_run_past_its_wall_clock_is_timed_out_without_waiting_on_its_output() {
+fn a_run_past_its_wall_clock_returns_at_the_bound_even_with_a_sleeping_descendant() {
     let fixture = Fixture::worktree();
     let policy = fixture.policy();
     let git = handle(&policy);
 
+    // The alias starts a two-second descendant that holds the output pipes.
+    // The bound is hard only when that descendant is ended with Git.
+    let started = Instant::now();
     let failure = git
         .run(
             &fixture.root,
             &[
                 "-c",
-                "alias.longhorn-slow=!yes x | head -c 100000; sleep 1",
+                "alias.longhorn-slow=!yes x | head -c 100000; sleep 2",
                 "longhorn-slow",
             ],
             GitFailureCode::StatusFailed,
             Duration::from_millis(100),
         )
         .expect_err("the alias outlives its bound");
+    let elapsed = started.elapsed();
 
     let GitFailure::TimedOut { code, after } = failure else {
         panic!("expected a timeout, got {failure:?}");
     };
     assert_eq!(code, GitFailureCode::StatusFailed);
     assert_eq!(after, Duration::from_millis(100));
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "the hard clock returned after {elapsed:?}"
+    );
+}
+
+#[test]
+fn successful_standard_output_is_redacted_before_it_is_returned() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["config", "user.name", "controlled-secret"],
+    );
+    let policy = fixture.policy();
+    let git = Git::new(
+        &policy,
+        Redactor::new(["controlled-secret".to_owned()], RedactionRules::common()),
+    );
+
+    let output = git
+        .run(
+            &fixture.root,
+            &["config", "--get", "user.name"],
+            GitFailureCode::StatusFailed,
+            Duration::from_secs(30),
+        )
+        .expect("Git prints the configured value");
+
+    assert_eq!(output, "[redacted]");
+    assert!(!output.contains("controlled-secret"));
 }
 
 #[cfg(unix)]
