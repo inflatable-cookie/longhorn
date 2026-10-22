@@ -42,17 +42,9 @@ and [package selection](../guides/package-selection.md). Governed by
 
 ## Q-006 — Where is the Split-shell consumer, and is it still a consumer?
 
-Status: open
-Context: Longhorn's records name "Split Shell Desktop" (Split-shell) as one of
-the five migrated consumers: a minimal configuration and settings consumer,
-last recorded at commit `8b3c19e8d1e96ce81d1dbbaf4769c9e72648dd28` (Card 121;
-see the [secondary consumer migration map](architecture/secondary-consumer-migration-map.md)).
-On 2026-10-21 no repository holding that commit was found: no checkout under
-`~/Dev`, no repository named like it under `inflatable-cookie`, `acowtancy`,
-`contact-patch`, `double-dip` or `decodelabs`, and `kimi-shell` does not hold
-the commit. Tom (2026-10-22) did not retire it and does not know where it
-went. Until this is answered, do not plan consumer work for Split-shell. The
-proof copy under `examples/app-shell-proof/split-shell` is Longhorn's own
-proof input and stays. Whether Split-shell needs the 0.4.0 import change is
-unknown.
-
+Status: answered 2026-10-22
+Answer: it no longer exists and is retired. Tom, 2026-10-22: "If it's not in
+~/Dev/projects now, it won't exist now and we can get rid of it." No checkout
+or repository for it was found (2026-10-21). The retirement and the removal of
+its live references are a Queue task; the entry lands in
+[retired.toml](retired.toml).

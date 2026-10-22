@@ -2,9 +2,8 @@
 
 Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Five consumers
-are migrated: Nucleus, Loophole, Soundcheck, Split-shell and Jetstream.
-Split-shell's source repository cannot be found now
-([Q-006](knowledge/questions.md#q-006--where-is-the-split-shell-consumer-and-is-it-still-a-consumer)).
+are migrated: Nucleus, Loophole, Soundcheck and Jetstream. Split-shell is
+retired ([Q-006](knowledge/questions.md#q-006--where-is-the-split-shell-consumer-and-is-it-still-a-consumer)).
 
 - **Released:** `0.4.1` (2026-10-22). Three npm packages under
   `@inflatable-cookie` and git tag `v0.4.1` for the Rust crates. `0.4.1`
