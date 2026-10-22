@@ -129,6 +129,14 @@ Compared with Acowtancy Desktop's `pty.rs`:
   reused pid or process group.
 - Non-Unix builds compile and report `Unsupported` from `open`.
 
+## Extraction state
+
+Contract 003 steps 1 to 5 and 7 are done. Acowtancy Desktop migrated in acowtancy-v2 PR 974 (task #690, merged 2026-10-22 at `a7531c19`) and took every Longhorn crate at `v0.4.0`. Its proof was static and compile-only (10 checks); no live PTY run was recorded, so the first field run is still to come. Desktop's terminal sessions use `longhorn-pty`; the managed environment, `TERM`/`COLORTERM`, the base64 events and the session ids stay in Desktop's IPC layer. Longhorn's contract and tests are now authoritative.
+
+Open:
+
+- Step 6: second-consumer conformance has no named consumer yet.
+
 ## Conformance
 
 The public-API integration suite starts real `/bin/sh` and system utility

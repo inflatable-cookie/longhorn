@@ -391,33 +391,22 @@ Against the Acowtancy donor at `3c21b1ac8`:
 
 ## Extraction state
 
-Contract 003 steps 1 to 4 are done for part 4a: the donor is named, its tests
-are ported with neutral names, this contract is the generic definition, and
-`longhorn-tool-provision` is the smallest shared package. Steps 5 to 7 are
-Acowtancy's migration, after a Longhorn release it can tag.
+Contract 003 steps 1 to 5 and 7 are done for parts 4a, 4b and 4c. Acowtancy Desktop migrated in acowtancy-v2 PR 974 (task #690, merged 2026-10-22 at `a7531c19`) and took every Longhorn crate at `v0.4.0`. Its proof was static and compile-only (10 checks); no live install run was recorded, so the first field run is still to come. Desktop's `managed_tools` verification, release source, install pipeline and PATH discovery use `longhorn-tool-provision`. The catalogue, pins, team IDs, token broker, stage labels, product installers and Acowtancy contract 042 stay in Desktop. Longhorn's contract and tests are now authoritative.
 
 Open:
 
 - Step 6: second-consumer conformance has no named consumer yet. Candidate:
   a greenfield tool-provision proof.
-- Acowtancy contract 042 remains the donor's behaviour until its own
-  migration task.
 
 ### Part 4b: release source and download
 
-Specified below in [Part 4b](#part-4b-release-source-and-download). Contract
-003 steps 1 to 4 are done for this part: the donor is named, its tests are
-ported with neutral names, this section is the generic definition, and the
-crate carries it. Steps 5 to 7 are Acowtancy's migration, after a Longhorn
-release it can tag.
+Specified below in [Part 4b](#part-4b-release-source-and-download). It migrated with parts 4a and 4c; see
+the extraction state above.
 
 ### Part 4c: install pipeline
 
-Specified below in [Part 4c](#part-4c-install-pipeline). Contract 003 steps 1
-to 4 are done for this part: the donor is named, its tests are ported with
-neutral names, this section is the generic definition, and the crate carries
-it. Steps 5 to 7 are Acowtancy's migration, after a Longhorn release it can
-tag.
+Specified below in [Part 4c](#part-4c-install-pipeline). It migrated with parts 4a and 4b; see
+the extraction state above.
 
 ## Part 4b: release source and download
 
