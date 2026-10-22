@@ -6,6 +6,9 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+### Added
+- **`longhorn-git-workspace`: the generic Git workspace mechanism (contract 029, part 5a).** One `Git` handle carries the application's `GitPolicy` and its `longhorn-redact` `Redactor`. It runs `git` as a fixed program with an argument vector, applies the application's isolation before the invocation credential, asks for a credential only for `fetch`, `push` or `ls-remote` on an HTTPS GitHub remote, retries once with a refreshed credential after an authentication refusal, and bounds both captured streams at 64 KiB. Readings cover worktree status, local and remote branch discovery, the upstream and detached state, a read-only remote preflight that classifies five refusal readings, Legacy Sync (clean, upstream-only, `--ff-only`, ahead-only push), an explicit branch switch that treats untracked content as in-progress work, clone into an invocation-owned staging folder with a same-parent exclusive rename, and attach over an explicit expected branch and remote. Failure details are Git's own words, run through the caller's redactor and the invocation secret and cut to a 4 KiB / 40-line tail; failures carry machine facts and wire codes, never product copy. The tests run real `git` against temporary local repositories and bare remotes with no network. GitHub sign-in is part 5b. Contract 029 owns the API, the guarantees and the deltas from Acowtancy Desktop's `git/mechanism/`.
+
 ### Changed
 - **Split-shell is retired; its proof compositions are renamed to `minimal-shell`.** The app-shell, settings-composition and bridge-topology proofs keep every assertion under the neutral name. No published API changes.
 

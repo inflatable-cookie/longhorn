@@ -16,6 +16,7 @@ members = [
   "crates/longhorn-diagnostics",
   "crates/longhorn-pty",
   "crates/longhorn-display",
+  "crates/longhorn-git-workspace",
   "crates/longhorn-gpui-windowing",
   "crates/longhorn-history",
   "crates/longhorn-history-tree",
@@ -112,6 +113,7 @@ longhorn-credential-keyring = { path = "crates/longhorn-credential-keyring", ver
 longhorn-config = { path = "crates/longhorn-config", version = "0.4.1" }
 longhorn-config-age = { path = "crates/longhorn-config-age", version = "0.4.1" }
 longhorn-display = { path = "crates/longhorn-display", version = "0.4.1" }
+longhorn-git-workspace = { path = "crates/longhorn-git-workspace", version = "0.4.1" }
 longhorn-gpui-windowing = { path = "crates/longhorn-gpui-windowing", version = "0.4.1" }
 longhorn-history = { path = "crates/longhorn-history", version = "0.4.1" }
 longhorn-history-tree = { path = "crates/longhorn-history-tree", version = "0.4.1" }
@@ -195,6 +197,10 @@ toml = { version = "1.1", default-features = false, features = ["parse"] }
 sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
 tar = "0.4.44"
 tempfile = "3.27.0"
+# Staging folder names: a v7 UUID gives the date-ordered unique suffix that a
+# same-parent clone staging path needs. Already resolved in this lockfile
+# through other hosts' dependencies; no version movement.
+uuid = { version = "1.26.1", features = ["v7"] }
 tokio = { version = "1.45.1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 tower = { version = "0.5.2", features = ["util"] }
 tauri = { version = "2.10.3", default-features = false }

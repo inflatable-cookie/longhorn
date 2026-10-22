@@ -3106,6 +3106,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-git-workspace"
+version = "0.4.1"
+dependencies = [
+ "longhorn-redact",
+ "longhorn-support-log",
+ "rustix",
+ "secrecy",
+ "serde",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "longhorn-gpui-windowing"
 version = "0.4.1"
 dependencies = [
