@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-10-20
+Updated: 2026-10-22
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -69,6 +69,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `pty` | `check:pty` | `longhorn-pty` and its public PTY lifecycle tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `storage-layout` | `check:storage-layout` | `longhorn-storage-layout` (identity, resolver, roots, locator, native facts) plus the workspace-wide API-reference inventory check; `longhorn-config`'s transition suite and every consumer import are workspace Rust lane inputs, not group members. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
+| `git-workspace` | `check:git-workspace` | `longhorn-git-workspace` and its real-Git integration tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `desktop-support-conformance` | `proof:desktop-support-conformance` | The six staged desktop support crates (024-028 plus `longhorn-archive-path`), the conformance example and its proof script. The crates' own obligations stay in their own groups; this group runs the outside-crate proof only, and it runs on Unix hosts. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
@@ -177,8 +178,20 @@ roots, locator, and native facts). Companions: `check:api-reference`
 transition and legacy-discovery suite, so its changes ride `lint:rust`,
 `test:rust` and the workspace lane, not this group.
 
-Limits: these, the diagnostics, support-log, redact, and agent-tool-dispatch
-selectors are the only per-crate Rust selectors.
+**`lint:git-workspace`**, **`test:git-workspace`**, **`docs:git-workspace`** —
+role: scoped compile/test/rustdoc for `crates/longhorn-git-workspace/**`
+(contract 029, part 5a). `test:git-workspace` runs real `git` against temporary
+local repositories and bare remotes, with no network and no stored credential,
+under nextest's 30-second slow-test period, two-period termination with a
+one-second forced-kill grace, and immediate stop of remaining tests after the
+first failure. Companions: `check:api-reference` (aggregated by
+`check:git-workspace`). Limits: no live remote host and no real authentication
+refusal, so the network and authentication classes are proved by their
+classification and the credential-refresh retry is unproved; the exclusive
+rename is Linux and macOS only.
+
+Limits: these, the diagnostics, support-log, redact, agent-tool-dispatch and
+git-workspace selectors are the only per-crate Rust selectors.
 
 **`lint:tool-provision`**, **`test:tool-provision`**, **`docs:tool-provision`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-tool-provision/**` and
@@ -577,6 +590,10 @@ prototype consumers, not its transition suite.
 **`check:tool-provision`** — role: aggregate (not in `qa`). Runs
 `lint:tool-provision`, `test:tool-provision`, `docs:tool-provision`,
 `check:api-reference`. The `tool-provision` QA group selects it.
+
+**`check:git-workspace`** — role: aggregate (not in `qa`). Runs
+`lint:git-workspace`, `test:git-workspace`, `docs:git-workspace`,
+`check:api-reference`. The `git-workspace` QA group selects it.
 
 **`check:agent-control-skill`** — role: drift lock + fixtures. Runs
 `scripts/verify-agent-control-skill.ts`. Owns

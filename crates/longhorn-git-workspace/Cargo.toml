@@ -1,0 +1,28 @@
+[package]
+name = "longhorn-git-workspace"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Generic Git workspace mechanism: policy-hooked execution, status, remote preflight, sync, branch switch, clone staging and attach (contract 029)"
+publish = false
+
+[dependencies]
+longhorn-redact.workspace = true
+longhorn-support-log.workspace = true
+secrecy.workspace = true
+serde.workspace = true
+uuid.workspace = true
+
+# Same-parent exclusive rename (`renameat_with` with the exclusive flag exists
+# on Linux `RENAME_NOREPLACE` and Apple `RENAME_EXCL` only) and the
+# process-group kill a timeout or a cancellation uses.
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["process"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
