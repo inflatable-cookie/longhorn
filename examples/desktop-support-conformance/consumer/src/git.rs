@@ -415,11 +415,13 @@ pub(crate) fn run() -> String {
     );
 
     // A second clone onto the same target is refused, and the target it would
-    // have replaced is unchanged.
+    // have replaced is unchanged. The caller's composition refuses an existing
+    // target before it creates a staging folder, and the exclusive rename
+    // refuses one that appeared in the meantime.
     assert!(target_already_present(&target), "the target exists now");
     assert!(
         staging_leftovers(fixture.temp.path()).is_empty(),
-        "an existing target is refused before any staging folder exists"
+        "the first clone left no staging folder behind"
     );
     let head_before = checked(&target, &fixture.config, &["rev-parse", "HEAD"]);
     let second = create_owned_staging(fixture.temp.path(), OsStr::new("workspace"))

@@ -832,23 +832,29 @@ Longhorn does not write to Acowtancy.
 Step 6 is done by the neutral second consumer at
 `examples/desktop-support-conformance/` (task 078, Tom approved 2026-10-23). A
 consumer crate staged from the packaged crates into a disposable private
-workspace replays this contract's rows through the public API of parts 5a and
-5b, with real local Git and no network: a clone into an invocation-owned
+workspace replays a row set from this contract through the public API of parts
+5a and 5b, with real local Git and no network: a clone into an invocation-owned
 staging folder and through the exclusive rename, a second clone refused with the
 existing workspace unchanged, a failed clone that leaves no target, worktree
 status and branch reading, a missing-credential and a missing-repository
 preflight refusal, a sync that fast-forwards and then pushes, a branch switch in
 its switched, already-current, not-found, blocked and remote-tracking readings,
 an attach in all five readings, and a loopback device-flow sign-in whose grant
-lands in an in-memory store under a consumer-scoped slot, read back through
-`fresh_access_token` and spent on a fetch through the askpass bridge, with the
-token proved absent from the child's arguments, the failure detail and the
-returned output. Limits: the flow, the token exchange and the askpass fetch use
-the crate's loopback server with a local bare repository behind the remote, so
-no live GitHub host, real OAuth registration or published release is involved;
-the clone, sync, switch and attach rows run on temporary local repositories, so
-the network and authentication classes are proved by classification and local
-refusals only; the proof is one row set per reading and runs on Unix hosts only.
+lands in an in-memory store under a consumer-scoped slot, is read back through
+`fresh_access_token` inside its skew, and is spent on a fetch through the
+askpass bridge, with the token proved absent from the child's arguments, the
+failure detail and the returned output. Limits: the flow, the token exchange
+and the askpass fetch use the crate's loopback server with a local bare
+repository behind the remote, so no live GitHub host, real OAuth registration or
+published release is involved; the clone, sync, switch and attach rows run on
+temporary local repositories, so the network and authentication classes are
+proved by classification and local refusals only; the proof is one row set per
+reading and runs on Unix hosts only. Rows this row set does not replay: the
+grant's single-use refresh (the stored access token is still inside its skew, so
+`fresh_access_token` makes no exchange), the token-endpoint failure, outage and
+rotation rows, sign-out, and the commit identity, whose profile route the
+loopback server does not serve. Those stay with the crate's own `auth`,
+`commit_identity` and `askpass` suites under `test:git-workspace`.
 
 Open:
 
