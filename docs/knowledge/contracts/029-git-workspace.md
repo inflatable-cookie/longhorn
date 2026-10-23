@@ -384,7 +384,8 @@ own paths.
   drain does too. A scripted `ext::` remote refuses for authentication: one
   test proves a refreshed credential is retried once and succeeds, and one
   proves the retry stays inside the first attempt's deadline, and one proves a
-  declined refresh that answers late is a timeout.
+  declined refresh that answers late is a timeout. A credential lookup that
+  fails after the bound is a timeout too.
 - `effigy lint:git-workspace` compiles every target with clippy at `-D
   warnings`; `effigy docs:git-workspace` builds rustdoc with warnings denied.
 - `effigy check:git-workspace` aggregates those three and

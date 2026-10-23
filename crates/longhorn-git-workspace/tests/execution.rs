@@ -393,6 +393,40 @@ fn a_declined_refresh_that_answers_late_is_a_timeout() {
     assert_eq!(policy.refresh_calls(), 1);
 }
 
+#[test]
+fn a_credential_error_that_answers_late_is_a_timeout() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    // The lookup fails, but only after the call's bound.
+    let policy = fixture
+        .policy()
+        .with_credential_error(GitFailure::Unavailable {
+            code: GitFailureCode::CommandUnavailable,
+            detail: "the credential store is locked".to_owned(),
+        })
+        .with_credential_delay(Duration::from_millis(1200));
+    let git = handle(&policy);
+
+    let failure = git
+        .run(
+            &fixture.root,
+            &["fetch"],
+            GitFailureCode::FetchFailed,
+            Duration::from_millis(800),
+        )
+        .expect_err("the lookup answered after the bound");
+
+    assert!(
+        matches!(failure, GitFailure::TimedOut { .. }),
+        "expected a timeout, got {failure:?}"
+    );
+    assert_eq!(policy.credential_calls(), vec![GITHUB_REMOTE.to_owned()]);
+}
+
 #[cfg(unix)]
 #[test]
 fn a_long_stderr_never_returns_private_key_body_text() {

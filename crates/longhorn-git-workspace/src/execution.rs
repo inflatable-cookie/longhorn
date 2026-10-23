@@ -283,7 +283,13 @@ impl<'a> Git<'a> {
         if remote.is_empty() || !is_remote_credential_operation(arguments, &remote) {
             return Ok(None);
         }
-        self.policy.credential(&remote)
+        let credential = self.policy.credential(&remote);
+        // The lookup runs on the caller's clock whatever it returns: a late
+        // answer, a credential or an error, is a timeout.
+        if clock.expired() {
+            return Err(clock.timed_out());
+        }
+        credential
     }
 
     fn spawn(

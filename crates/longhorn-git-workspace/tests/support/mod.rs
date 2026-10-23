@@ -37,6 +37,7 @@ pub struct Policy {
     credential_error: Option<GitFailure>,
     refreshed: Option<(Vec<(String, String)>, String)>,
     refresh_delay: Duration,
+    credential_delay: Duration,
     credential_calls: Mutex<Vec<String>>,
     refresh_calls: Mutex<usize>,
 }
@@ -57,6 +58,7 @@ impl Policy {
             credential_error: None,
             refreshed: None,
             refresh_delay: Duration::ZERO,
+            credential_delay: Duration::ZERO,
             credential_calls: Mutex::new(Vec::new()),
             refresh_calls: Mutex::new(0),
         }
@@ -98,6 +100,13 @@ impl Policy {
         self
     }
 
+    /// A policy whose credential lookup takes this long before it answers.
+    #[must_use]
+    pub fn with_credential_delay(mut self, delay: Duration) -> Self {
+        self.credential_delay = delay;
+        self
+    }
+
     /// How many times the mechanism asked for a refreshed credential.
     #[must_use]
     pub fn refresh_calls(&self) -> usize {
@@ -129,6 +138,7 @@ impl GitPolicy for Policy {
             .lock()
             .expect("the credential call log is not poisoned")
             .push(remote.to_owned());
+        std::thread::sleep(self.credential_delay);
         if let Some(failure) = &self.credential_error {
             return Err(failure.clone());
         }
