@@ -841,7 +841,7 @@ preflight refusal, a sync that fast-forwards and then pushes, a branch switch in
 its switched, already-current, not-found, blocked and remote-tracking readings,
 an attach in all five readings, and a loopback device-flow sign-in whose grant
 lands in an in-memory store under a consumer-scoped slot, is read back through
-`fresh_access_token` inside its skew, and is spent on a fetch through the
+`fresh_access_token` outside its refresh skew, and is spent on a fetch through the
 askpass bridge, with the token proved absent from the child's arguments, the
 failure detail and the returned output. Limits: the flow, the token exchange
 and the askpass fetch use the crate's loopback server with a local bare
@@ -850,7 +850,7 @@ published release is involved; the clone, sync, switch and attach rows run on
 temporary local repositories, so the network and authentication classes are
 proved by classification and local refusals only; the proof is one row set per
 reading and runs on Unix hosts only. Rows this row set does not replay: the
-grant's single-use refresh (the stored access token is still inside its skew, so
+grant's single-use refresh (the stored access token is still outside its refresh skew, so
 `fresh_access_token` makes no exchange), the token-endpoint failure, outage and
 rotation rows, sign-out, and the commit identity, whose profile route the
 loopback server does not serve. Those stay with the crate's own `auth`,
