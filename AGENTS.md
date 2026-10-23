@@ -124,18 +124,6 @@ Integration tests that re-exec themselves (`current_exe()` in
 no change: they re-run their own test binary, not a sibling binary beside it,
 and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
 
-### Known release-gate stop point: `advisories`
-
-`effigy release:gates` passes `private-candidate` and stops at `advisories`:
-RUSTSEC-2026-0385 flags `ctutils 0.4.2` from `Cargo.lock` as a vulnerability (the
-ID comes from the fetched advisory database, so it moves as that database does).
-The stop is the RustSec database against a committed lock, not the routing
-change: `deny.toml` and `Cargo.lock` are untouched by #077, and the same gate
-run on plain `cargo` exits 1 with the same output apart from the `rust runner:`
-line. Clearing it needs a `ctutils` bump, which is its own task, so nothing
-later in `release:gates` is proved here: `docs:rust`, `prototypes`, `floor` and
-`source` are covered by their own selectors instead.
-
 ## Product rules
 
 - Longhorn owns generic Rust, TypeScript, Svelte, host adapters, and their

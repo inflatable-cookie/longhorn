@@ -15,6 +15,9 @@ crates by git tag and the packages by version.
 ### Changed
 - **Split-shell is retired; its proof compositions are renamed to `minimal-shell`.** The app-shell, settings-composition and bridge-topology proofs keep every assertion under the neutral name. No published API changes.
 
+### Security
+- **Update `ctutils` to 0.4.5 (RUSTSEC-2026-0385).** Earlier versions could compile `Choice` mask generation or `u128` comparisons into branches on secret values on some platforms. This is a lock-only update to a fixed release; no `deny.toml` allowance.
+
 ## [0.4.1] - 2026-10-22
 
 ### Added
