@@ -8,8 +8,8 @@
 .agents.local.env
 
 # Rust build output
-/target/
-**/target/
+/target
+**/target
 
 # JavaScript workspace installs
 /node_modules/
