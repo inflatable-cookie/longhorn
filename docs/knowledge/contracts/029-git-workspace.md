@@ -444,10 +444,18 @@ own paths.
   exchange, two forced refreshes reusing a rotated grant, a refresh whose
   exchange signs out (the slot stays empty) and one whose exchange completes a
   new sign-in (that grant is adopted and kept), a bare stored value, the store
-  readings, sign-out, and the exchange classification. The production token
-  client is proved against the loopback server for a non-JSON 429, 503 and 200
-  answer (the first two `Offline`, the third `Failed`) and for a body that
-  stalls past the request clock (`TimedOut`). The commit
+  readings, sign-out, and the exchange classification. Values an endpoint or a
+  store supplies that the clock cannot represent are proved not to panic: a
+  stored grant with `u64::MAX` expiries reads as no declared expiry and still
+  refreshes on a forced call, a token response with `u64::MAX` expiries stores
+  no declared expiry, a device `interval` of `u64::MAX` waits only for the
+  declared second of wait, and an `expires_in` of `u64::MAX` is capped at
+  `MAX_DEVICE_WAIT` and stays cancellable. A response whose `error` echoes the
+  access token is proved absent from `Debug`, and a successful answer is proved
+  to carry no error text. The production token client is proved against the
+  loopback server for a non-JSON 429, 503 and 200 answer (the first two
+  `Offline`, the third `Failed`) and for a body that stalls past the request
+  clock (`TimedOut`). The commit
   identity suite covers the noreply address, the cache across a rotated token
   and a cleared cache, the display-name fallback, an unauthorized, rate-limited
   and unusable profile, an empty slot, and an identity read that refreshes.
@@ -516,7 +524,10 @@ wraps its own timeout, and the mechanism reads the wrapped value before it
 trusts the kind. A rate limit or a server fault is `Offline` whatever its body
 holds: 429 and 5xx are classified before the body is parsed, because GitHub's
 edge answers a rate limit with a page, not a token document. A response body is
-parsed once and never echoed into a failure, a log line or a `Debug` output.
+parsed once and never echoed into a failure, a log line or a `Debug` output:
+`AccessTokenResponse`'s `Debug` redacts the `error` field, because that field is
+body text rather than a fixed code and can echo a token. A successful answer is
+returned with that field cleared, for the same reason.
 
 Plain `http` exists only through the `fixture-server` feature's loopback
 constructors (`DeviceFlowEndpoints::loopback_for_tests`,
@@ -548,14 +559,17 @@ never below 5 s; `access_denied` is `Denied`; `expired_token` and
 `token_expired` are `TimedOut`; anything else is `Failed`; 429 and 5xx on a poll
 are `Offline`.
 
+A poll interval too large to represent waits only until the flow's deadline, so
+an endpoint's `interval` suggestion cannot panic the wait.
+
 The flow waits for the shorter of the device response's `expires_in` and
 `MAX_DEVICE_WAIT` (900 s). A wait that ends at that bound reports `TimedOut`
 instead of polling again, so a poll is never sent after the operator's window
-closed; an in-flight request keeps only its own `TOKEN_REQUEST_TIMEOUT`. It explores the caller's
-cancellation flag before the first request, before every poll, and every 100 ms
-of a poll wait, and reports `Cancelled` when it is set. The mechanism never
-opens a browser: the application shows the code and opens the pinned page from
-its own action.
+closed; an in-flight request keeps only its own `TOKEN_REQUEST_TIMEOUT`. It
+explores the caller's cancellation flag before the first request, before every
+poll, and every 100 ms of a poll wait, and reports `Cancelled` when it is set.
+The mechanism never opens a browser: the application shows the code and opens
+the pinned page from its own action.
 
 ### The stored grant
 
@@ -571,11 +585,18 @@ The stored document is JSON:
 ```
 
 Absent expiries and absent refresh tokens are omitted; times are whole seconds
-since the Unix epoch. A stored value that is not that document — not JSON,
-another version, or a blank access token — is read as a bare access token with
-no expiry and no refresh token. That is the shape an earlier build of the
-application wrote, and refusing it would strand a signed-in operator; a forced
-refresh on such a value is `SignInExpired`.
+since the Unix epoch.
+
+An expiry the clock cannot represent — a stored document or a token response
+declaring an absurd number of seconds — is read as no declared expiry, which
+the grant already covers as "does not expire on its own". No duration that an
+endpoint or a store supplies panics the mechanism.
+
+A stored value that is not that document — not JSON, another version, or a
+blank access token — is read as a bare access token with no expiry and no
+refresh token. That is the shape an earlier build of the application wrote, and
+refusing it would strand a signed-in operator; a forced refresh on such a value
+is `SignInExpired`.
 
 Every read, write and removal goes through the caller's `CredentialStore` and
 `CredentialSlot`. A store failure is `CredentialStoreUnavailable`, never "not

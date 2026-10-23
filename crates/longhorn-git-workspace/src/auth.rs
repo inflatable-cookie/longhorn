@@ -300,7 +300,10 @@ impl fmt::Debug for AccessTokenResponse {
                 &self.refresh_token.as_ref().map(|_| "[redacted]"),
             )
             .field("refresh_token_expires_in", &self.refresh_token_expires_in)
-            .field("error", &self.error)
+            // The error field is body text, not a fixed code: an endpoint can
+            // echo anything there, including a token. `Debug` shows only that
+            // it was present.
+            .field("error", &self.error.as_ref().map(|_| "[redacted]"))
             .field("interval", &self.interval)
             .finish()
     }
@@ -360,6 +363,10 @@ impl TokenClient for GithubTokenClient {
 /// Separates a successful exchange, a refused refresh grant, a client
 /// misconfiguration, an outage and anything else from one token response.
 ///
+/// A successful answer is returned with its `error` field cleared: the field
+/// is body text that can echo a token, and nothing reads it once a token is
+/// present.
+///
 /// # Errors
 ///
 /// Returns [`GithubAuthFailure::SignInExpired`] for `bad_refresh_token` and
@@ -369,13 +376,14 @@ impl TokenClient for GithubTokenClient {
 /// [`GithubAuthFailure::Failed`] otherwise.
 pub fn classify_token_exchange(
     status: u16,
-    parsed: AccessTokenResponse,
+    mut parsed: AccessTokenResponse,
 ) -> Result<AccessTokenResponse, GithubAuthFailure> {
     if parsed
         .access_token
         .as_deref()
         .is_some_and(|token| !token.trim().is_empty())
     {
+        parsed.error = None;
         return Ok(parsed);
     }
     if matches!(
@@ -714,8 +722,20 @@ fn unix_secs(time: SystemTime) -> Option<u64> {
         .map(|duration| duration.as_secs())
 }
 
-fn system_time_from_unix(secs: u64) -> SystemTime {
-    UNIX_EPOCH + Duration::from_secs(secs)
+/// One stored expiry, when the clock can represent it.
+///
+/// A store that hands back an absurd number of seconds is not trusted to be a
+/// time: the grant is read as having no declared expiry, which already means
+/// "does not expire on its own". Nothing panics on a stored value.
+fn system_time_from_unix(secs: u64) -> Option<SystemTime> {
+    UNIX_EPOCH.checked_add(Duration::from_secs(secs))
+}
+
+/// `now` plus an endpoint-declared number of seconds, when the clock can
+/// represent it. An expiry too far away to represent is no declared expiry,
+/// which the grant already covers.
+fn expiry_after(now: SystemTime, seconds: u64) -> Option<SystemTime> {
+    now.checked_add(Duration::from_secs(seconds))
 }
 
 fn parse_grant(raw: &str) -> TokenGrant {
@@ -727,12 +747,12 @@ fn parse_grant(raw: &str) -> TokenGrant {
     {
         return TokenGrant {
             access_token: SecretString::from(stored.access_token),
-            access_expires_at: stored.access_expires_at.map(system_time_from_unix),
+            access_expires_at: stored.access_expires_at.and_then(system_time_from_unix),
             refresh_token: stored
                 .refresh_token
                 .filter(|token| !token.trim().is_empty())
                 .map(SecretString::from),
-            refresh_expires_at: stored.refresh_expires_at.map(system_time_from_unix),
+            refresh_expires_at: stored.refresh_expires_at.and_then(system_time_from_unix),
         };
     }
     TokenGrant {
@@ -773,7 +793,7 @@ fn grant_from_token_response(
         access_token: SecretString::from(access_token),
         access_expires_at: response
             .expires_in
-            .map(|seconds| now + Duration::from_secs(seconds)),
+            .and_then(|seconds| expiry_after(now, seconds)),
         refresh_token: response
             .refresh_token
             .as_deref()
@@ -782,7 +802,7 @@ fn grant_from_token_response(
             .map(SecretString::from),
         refresh_expires_at: response
             .refresh_token_expires_in
-            .map(|seconds| now + Duration::from_secs(seconds)),
+            .and_then(|seconds| expiry_after(now, seconds)),
     })
 }
 
@@ -832,7 +852,11 @@ fn wait_with_cancel(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<(), GithubAuthFailure> {
-    let end = (Instant::now() + interval).min(deadline);
+    // An interval too large to represent waits only until the flow's deadline,
+    // so an endpoint's suggestion cannot panic the wait.
+    let end = Instant::now()
+        .checked_add(interval)
+        .map_or(deadline, |end| end.min(deadline));
     while Instant::now() < end {
         if cancel.load(Ordering::SeqCst) {
             return Err(GithubAuthFailure::Cancelled);

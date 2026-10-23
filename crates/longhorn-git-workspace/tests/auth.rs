@@ -918,6 +918,186 @@ fn sign_out_removes_the_grant_and_repeats_cleanly() {
     sign_out(&scope(&store, &slot)).expect("removing an empty slot is quiet");
 }
 
+#[test]
+fn a_stored_expiry_the_clock_cannot_represent_is_no_expiry() {
+    let store = MemoryCredentialStore::new();
+    let slot = test_slot();
+    // A store that hands back an absurd number of seconds is not trusted to be
+    // a time, and it must not panic the reader.
+    store
+        .store(
+            &slot,
+            r#"{"v":1,"access_token":"access-huge","access_expires_at":18446744073709551615,"refresh_token":"refresh-huge","refresh_expires_at":18446744073709551615}"#,
+        )
+        .expect("the stored document");
+    let now = SystemTime::now();
+
+    let grant = read_grant(&scope(&store, &slot))
+        .expect("the store is readable")
+        .expect("a grant is stored");
+    assert_eq!(grant.access_token.expose_secret(), "access-huge");
+    assert_eq!(grant.access_expires_at, None);
+    assert_eq!(grant.refresh_expires_at, None);
+
+    let client = FakeTokenClient::new(vec![Ok(token_response(
+        "access-rotated",
+        "refresh-rotated",
+        28_800,
+    ))]);
+    let token = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, false, None)
+        .expect("an unrepresentable expiry is no expiry")
+        .expect("a grant is stored");
+    assert_eq!(token.expose_secret(), "access-huge");
+    assert_eq!(client.request_count(), 0);
+
+    // A forced refresh still exchanges, and the stored refresh expiry cannot
+    // panic the usability check either.
+    let refreshed = force_refresh_token(
+        &scope(&store, &slot),
+        CLIENT_ID,
+        &client,
+        &SecretString::from("access-huge"),
+    )
+    .expect("the forced refresh succeeds")
+    .expect("a grant is stored");
+    assert_eq!(refreshed.expose_secret(), "access-rotated");
+    assert_eq!(client.request_count(), 1);
+}
+
+#[test]
+fn a_token_response_with_an_unrepresentable_expiry_has_no_declared_expiry() {
+    let store = MemoryCredentialStore::new();
+    let slot = test_slot();
+    let now = SystemTime::now();
+    seed_grant(
+        &store,
+        "access-soon",
+        Some(60),
+        Some("refresh-valid"),
+        Some(86_400),
+        now,
+    );
+    let client = FakeTokenClient::new(vec![Ok(AccessTokenResponse {
+        access_token: Some("access-huge".to_owned()),
+        expires_in: Some(u64::MAX),
+        refresh_token: Some("refresh-huge".to_owned()),
+        refresh_token_expires_in: Some(u64::MAX),
+        error: None,
+        interval: None,
+    })]);
+
+    let token = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, false, None)
+        .expect("an unrepresentable expiry is no expiry")
+        .expect("a grant is stored");
+
+    assert_eq!(token.expose_secret(), "access-huge");
+    let stored = read_grant(&scope(&store, &slot))
+        .expect("the store is readable")
+        .expect("a grant is stored");
+    assert_eq!(stored.access_expires_at, None);
+    assert_eq!(stored.refresh_expires_at, None);
+}
+
+#[test]
+fn a_device_interval_the_clock_cannot_represent_waits_only_for_the_declared_wait() {
+    let server = auth_server(
+        vec![(200, device_body("HUGE-0001", 1, Some(u64::MAX)))],
+        vec![(200, device_error_body("authorization_pending"))],
+        Vec::new(),
+    );
+    let cancel = AtomicBool::new(false);
+    let started = Instant::now();
+
+    let (result, _) = run_flow(&server, &cancel);
+
+    assert_eq!(
+        result.expect_err("the wait elapsed"),
+        GithubAuthFailure::TimedOut
+    );
+    assert!(
+        started.elapsed() < Duration::from_secs(4),
+        "the flow waited {:?}",
+        started.elapsed()
+    );
+    assert_eq!(server.request_count(ACCESS_TOKEN_PATH), 0);
+}
+
+#[test]
+fn a_device_wait_the_clock_cannot_represent_is_capped_and_cancellable() {
+    let server = auth_server(
+        vec![(200, device_body("HUGE-0002", u64::MAX, Some(5)))],
+        vec![(200, device_error_body("authorization_pending"))],
+        Vec::new(),
+    );
+    let cancel = AtomicBool::new(false);
+    let device = server.url(DEVICE_CODE_PATH);
+    let token = server.url(ACCESS_TOKEN_PATH);
+    let endpoints =
+        DeviceFlowEndpoints::loopback_for_tests(&device, &token).expect("loopback endpoints");
+    let started = Instant::now();
+    let result = thread::scope(|threads| {
+        threads.spawn(|| {
+            thread::sleep(Duration::from_millis(200));
+            cancel.store(true, Ordering::SeqCst);
+        });
+        run_device_flow(CLIENT_ID, &endpoints, &cancel, &mut |_| {})
+    });
+
+    assert_eq!(
+        result.expect_err("the test cancelled the flow"),
+        GithubAuthFailure::Cancelled
+    );
+    assert!(
+        started.elapsed() < Duration::from_secs(3),
+        "the capped wait ran for {:?}",
+        started.elapsed()
+    );
+    assert_eq!(server.request_count(ACCESS_TOKEN_PATH), 0);
+}
+
+#[test]
+fn a_token_response_error_never_reaches_debug_or_a_successful_answer() {
+    let echoed = AccessTokenResponse {
+        access_token: Some("echoed-access-token".to_owned()),
+        expires_in: Some(28_800),
+        refresh_token: Some("echoed-refresh-token".to_owned()),
+        refresh_token_expires_in: Some(86_400),
+        error: Some("echoed-access-token".to_owned()),
+        interval: None,
+    };
+    let debug = format!("{echoed:?}");
+    for secret in ["echoed-access-token", "echoed-refresh-token"] {
+        assert!(!debug.contains(secret), "{debug}");
+    }
+    assert!(debug.contains("[redacted]"), "{debug}");
+
+    let granted = classify_token_exchange(200, echoed).expect("a non-blank token is a success");
+    assert_eq!(granted.access_token.as_deref(), Some("echoed-access-token"));
+    assert_eq!(
+        granted.error, None,
+        "a successful answer carries no error text"
+    );
+    let granted_debug = format!("{granted:?}");
+    assert!(
+        !granted_debug.contains("echoed-access-token"),
+        "{granted_debug}"
+    );
+
+    let failure = classify_token_exchange(
+        200,
+        AccessTokenResponse {
+            error: Some("echoed-access-token".to_owned()),
+            ..AccessTokenResponse::default()
+        },
+    )
+    .expect_err("an answer without a token is a failure");
+    let failure_debug = format!("{failure:?}");
+    assert!(
+        !failure_debug.contains("echoed-access-token"),
+        "{failure_debug}"
+    );
+}
+
 /// A token client that signs the operator out while its exchange is in flight,
 /// as a second surface of the same application could.
 struct SigningOutClient<'a> {
