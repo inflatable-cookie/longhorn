@@ -405,19 +405,35 @@ pub(crate) fn resize(session: &PtySession, size: PtySize) -> Result<(), Failure>
     tcsetwinsize(master, winsize).map_err(|_| Failure::Resize)?;
     match kill_process_group(process.process_group, Signal::WINCH) {
         Ok(()) => Ok(()),
-        Err(Errno::SRCH) => {
-            if !poll_exit(&mut process, &shared.changed)? {
-                Err(Failure::Ended)
-            } else {
-                Err(Failure::Signal)
-            }
-        }
-        Err(_) => Err(Failure::Signal),
+        Err(error) => match group_failure(Err(error), &mut process, &shared.changed) {
+            None => Err(Failure::Ended),
+            Some(failure) => Err(failure),
+        },
     }
 }
 
 pub(crate) fn close(session: &PtySession) -> Result<(), Failure> {
     close_shared(&session.inner.shared)
+}
+
+/// Classifies a failed process-group signal. `ESRCH` means the group is gone.
+/// macOS and BSDs answer `EPERM` instead when the group holds only zombies, so
+/// `EPERM` counts as gone only once the leader is collected as exited. A live
+/// leader that refuses the signal stays a `Signal` failure.
+fn group_failure(
+    result: Result<(), Errno>,
+    process: &mut Process,
+    changed: &Condvar,
+) -> Option<Failure> {
+    match result {
+        Ok(()) | Err(Errno::SRCH) => None,
+        Err(Errno::PERM) if !process.wait_failed => match poll_child(process, changed) {
+            Ok(true) => Some(Failure::Signal),
+            Ok(false) => None,
+            Err(failure) => Some(failure),
+        },
+        Err(_) => Some(Failure::Signal),
+    }
 }
 
 fn close_shared(shared: &Shared) -> Result<(), Failure> {
@@ -430,24 +446,24 @@ fn close_shared(shared: &Shared) -> Result<(), Failure> {
         process.process_group
     };
 
-    let mut failure = match kill_process_group(process_group, Signal::HUP) {
-        Ok(()) | Err(Errno::SRCH) => None,
-        Err(_) => Some(Failure::Signal),
+    let mut failure = {
+        let mut process = process_lock(shared);
+        group_failure(
+            kill_process_group(process_group, Signal::HUP),
+            &mut process,
+            &shared.changed,
+        )
     };
     thread::sleep(CLOSE_GRACE_PERIOD);
 
     {
         let mut process = process_lock(shared);
-        match test_kill_process_group(process_group) {
-            Ok(()) => {
-                if let Err(error) = kill_process_group(process_group, Signal::KILL)
-                    && error != Errno::SRCH
-                {
-                    failure = Some(Failure::Signal);
-                }
-            }
-            Err(error) if error == Errno::SRCH => {}
-            Err(_) => failure = Some(Failure::Signal),
+        let escalation = match test_kill_process_group(process_group) {
+            Ok(()) => kill_process_group(process_group, Signal::KILL),
+            Err(error) => Err(error),
+        };
+        if let Some(error) = group_failure(escalation, &mut process, &shared.changed) {
+            failure = Some(error);
         }
         process.closed = true;
         process.closing = false;
@@ -472,4 +488,37 @@ fn abort_child(shared: &Shared) {
         }
     }
     process.closed = true;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_live_leader_that_refuses_a_group_signal_is_a_signal_failure() {
+        let mut child = Command::new("/bin/sleep")
+            .arg("30")
+            .spawn()
+            .expect("the sleeper starts");
+        let mut process = Process {
+            process_group: Pid::from_child(&child),
+            exit: None,
+            wait_failed: false,
+            closing: false,
+            closed: false,
+        };
+        let changed = Condvar::new();
+
+        assert_eq!(
+            group_failure(Err(Errno::PERM), &mut process, &changed),
+            Some(Failure::Signal)
+        );
+        assert!(
+            process.exit.is_none(),
+            "a live leader is not recorded as exited"
+        );
+
+        child.kill().expect("the sleeper is stopped");
+        child.wait().expect("the sleeper is reaped");
+    }
 }

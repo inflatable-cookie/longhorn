@@ -185,6 +185,17 @@ fn close_escalates_to_a_grandchild_in_the_same_process_group() {
     assert!(!marker.exists(), "the grandchild was killed with its group");
 }
 
+/// HUP ends the shell itself, so the group is only a zombie when close probes
+/// it after the grace period. Close must count that group as closed.
+#[test]
+fn close_succeeds_when_hangup_ends_the_group() {
+    let (session, receiver) = open(shell("printf READY; while :; do sleep 1; done"));
+    let _ready = receive_until_text(&receiver, "READY");
+    session.close().expect("a group that hangup ends closes");
+    let (exit, _) = receive_until_exit(&receiver);
+    assert_eq!(exit, ExitResult::Signal(1));
+}
+
 #[test]
 fn operations_after_exit_are_classified_as_ended() {
     let (session, receiver) = open(shell("exit 0"));
@@ -313,12 +324,16 @@ fn check_stress_signal(id: usize, signal: i32) {
 
 fn check_stress_close(id: usize) {
     let marker = format!("marker-close-{id}");
+    // The trap comes before the marker. Otherwise a hangup that lands between
+    // them ends the shell itself and close sees a zombie-only group, which is
+    // a different case from the escalation this check covers.
     let (session, receiver) = open(shell(&format!(
-        "printf '{marker}'; trap '' HUP; while :; do sleep 1; done"
+        "trap '' HUP; printf '{marker}'; while :; do sleep 1; done"
     )));
-    // The marker arriving here proves the session was alive and streaming
-    // before close; nothing is written after it, so the post-close output
-    // is legitimately empty and only the exit is asserted below.
+    // The marker arriving here proves the session was alive, streaming, and
+    // ignoring hangup before close; nothing is written after it, so the
+    // post-close output is legitimately empty and only the exit is asserted
+    // below.
     receive_until_text(&receiver, &marker);
     session.close().expect("the process group closes");
     let (exit, _) = receive_until_exit(&receiver);
