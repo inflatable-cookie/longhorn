@@ -112,6 +112,33 @@ Its `>=2, <4` requirement permits both. The planner accepted this graph
 re-resolution on 2026-10-18: no package is added or removed, and only
 `yoke-derive` changes version.
 
+`tokio` 1.53.1 and 1.53.2 are replaced by 1.53.3 for RUSTSEC-2026-0386
+(`AsyncFd` constructors violated I/O safety) in the root lock and the six
+affected prototype locks: `agent-control`, `gpui-composition`,
+`gpui-windowing`, `native-content-backing-surface`,
+`native-content-child-webview` and `native-content-isolated-window`. The
+manifests' `1.45.1` requirements and 1.53.3's `rust-version` 1.71 already
+admit it, so no manifest changes and no `deny.toml` allowance. Tom approved
+this bounded update for 0.4.3 on 2026-10-23 (decision `e4881db7`): only
+`tokio` changes version and checksum; no package is added or removed and no
+dependency edge moves.
+
+Those locks are Longhorn's own. The Rust crates are `publish = false` and
+consumers take them by git tag, so the tag carries the requirement, not the
+resolution: a consumer's own `Cargo.lock` keeps whatever Tokio it already
+resolved until that consumer updates it, and it needs a patched Tokio
+resolution (`>= 1.53.3`, or `>= 1.51.6, < 1.52.0`) there too. Longhorn neither
+writes consumer repositories nor raises the `1.45.1` manifest requirement to
+force that upgrade.
+
+A bare `cargo update` on this workspace also rewrites 11 pre-existing
+`windows-sys`/`syn` dependency-qualifier edges in the root lock (and two in
+four of the affected prototype locks): on rewrite Cargo re-derives each edge
+from the registry and picks a different version that is already locked. No
+package version, checksum or package set changes, but the rewrite is unrelated
+to the advisory, so a lock-only security patch keeps the edges the version
+bump wrote instead of folding an unrelated re-resolution into its diff.
+
 ## Publishing credentials
 
 No `NPM_TOKEN`. npmjs.com accepts publishes for each package only from this

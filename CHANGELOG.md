@@ -11,6 +11,9 @@ crates by git tag and the packages by version.
 ### Fixed
 - **`longhorn-pty`: close and resize no longer report `Failure::Signal` for a process group that has already exited.** macOS and BSDs answer `EPERM`, not `ESRCH`, when a group holds only zombies, and close treated that as a live group that refused the signal. An exited leader is read with `waitid` `WNOWAIT`, so the zombie is not collected during close. A live leader that refuses is still `Signal`. Contract 028 records the rule and its one limit.
 
+### Security
+- **Update `tokio` to 1.53.3 (RUSTSEC-2026-0386).** `AsyncFd`'s safe constructors accepted any `AsRawFd`, so safe code could register an arbitrary or closed file descriptor; when the number was reused, dropping the first `AsyncFd` deregistered the reused number and left the original registration in `epoll`, which a readiness event could turn into a use-after-free. This is a lock-only update to a fixed release in the root lock and the six affected prototype locks; the manifests' `1.45.1` requirements and 1.53.3's `rust-version` 1.71 already admit it, and there is no `deny.toml` allowance.
+
 ## [0.4.2] - 2026-10-23
 
 ### Added
