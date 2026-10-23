@@ -1008,9 +1008,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.2"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e"
+checksum = "38d28fb6aa7dd680b3ffd1a3e64e115c177bdba63c0ae7f9cd48129ff05c4fa0"
 dependencies = [
  "cmov",
 ]
@@ -2917,7 +2917,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "longhorn-agent-control"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-agent-control-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-command",
  "longhorn-core",
@@ -2952,15 +2952,15 @@ dependencies = [
 
 [[package]]
 name = "longhorn-agent-tool-dispatch"
-version = "0.4.1"
+version = "0.4.2"
 
 [[package]]
 name = "longhorn-archive-path"
-version = "0.4.1"
+version = "0.4.2"
 
 [[package]]
 name = "longhorn-bindings"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-bridge",
  "longhorn-command",
@@ -2985,7 +2985,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-bridge"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -2995,7 +2995,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-browser"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-licence",
  "longhorn-url",
@@ -3005,7 +3005,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-command"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3016,7 +3016,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-command-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-command",
  "longhorn-config",
@@ -3031,7 +3031,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-command-settings"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-settings",
@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "cap-std",
  "fs4",
@@ -3059,7 +3059,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-config-age"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "age",
  "longhorn-config",
@@ -3072,7 +3072,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-core"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "proptest",
  "serde",
@@ -3082,7 +3082,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-credential-keyring"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "keyring",
  "longhorn-core",
@@ -3090,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-diagnostics"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-redact",
  "longhorn-support-log",
@@ -3098,7 +3098,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-display"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3107,7 +3107,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-git-workspace"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-redact",
@@ -3124,7 +3124,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-gpui-windowing"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3137,7 +3137,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-history"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "proptest",
@@ -3148,7 +3148,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-history-tree"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "base64 0.23.1",
  "longhorn-core",
@@ -3161,7 +3161,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-jetstream-command-artifact-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-command",
  "longhorn-core",
@@ -3170,7 +3170,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-licence"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek",
@@ -3186,7 +3186,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-loophole-command-artifact-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-command",
  "longhorn-command-config",
@@ -3199,7 +3199,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-native-content"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3209,7 +3209,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-native-content-backing-surface"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-native-content",
@@ -3218,7 +3218,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-native-content-isolated-window"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-native-content",
@@ -3228,7 +3228,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-notifications"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-operation",
@@ -3239,7 +3239,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-nucleus-no-surface-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-surfaces",
@@ -3249,7 +3249,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-operation"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3259,7 +3259,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-packaged-update-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "flate2",
  "longhorn-update",
@@ -3274,7 +3274,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-poodle"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3290,7 +3290,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-pty"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "rustix",
  "tempfile",
@@ -3298,14 +3298,14 @@ dependencies = [
 
 [[package]]
 name = "longhorn-redact"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "longhorn-settings"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3316,7 +3316,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-settings-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3330,7 +3330,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-storage-layout"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -3340,7 +3340,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-support-log"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-redact",
  "tempfile",
@@ -3348,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-surface-transfer"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3364,7 +3364,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-surface-windowing"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3375,7 +3375,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-surfaces"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "serde",
@@ -3385,7 +3385,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-surfaces-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3399,7 +3399,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-agent-control"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "block2",
  "longhorn-agent-control",
@@ -3419,7 +3419,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-bridge"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-bridge",
  "longhorn-core",
@@ -3430,7 +3430,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-command"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-command-config",
  "longhorn-core",
@@ -3441,7 +3441,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3453,7 +3453,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-history"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-history",
@@ -3464,7 +3464,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-history-tree"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-history-tree",
@@ -3475,7 +3475,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-licence"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-licence",
@@ -3486,7 +3486,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-native-content-child-view"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-native-content",
@@ -3497,7 +3497,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-notifications"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-notifications",
@@ -3508,7 +3508,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-operation"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-operation",
@@ -3519,7 +3519,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-settings"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-settings",
@@ -3530,7 +3530,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-transfer"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-surface-transfer",
@@ -3543,7 +3543,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-update"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-update",
@@ -3555,7 +3555,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-update-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-browser",
  "longhorn-core",
@@ -3573,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-windowing"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3587,7 +3587,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tauri-windowing-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3601,7 +3601,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-tool-provision"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "flate2",
  "fs4",
@@ -3622,7 +3622,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-transfer"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
@@ -3637,7 +3637,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-update"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-url",
@@ -3652,7 +3652,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-update-install"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "flate2",
  "longhorn-archive-path",
@@ -3666,7 +3666,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-update-licence-proof"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "ed25519-dalek",
  "longhorn-browser",
@@ -3680,11 +3680,11 @@ dependencies = [
 
 [[package]]
 name = "longhorn-url"
-version = "0.4.1"
+version = "0.4.2"
 
 [[package]]
 name = "longhorn-windowing"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-core",
  "longhorn-display",
@@ -3694,7 +3694,7 @@ dependencies = [
 
 [[package]]
 name = "longhorn-windowing-config"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "longhorn-config",
  "longhorn-core",
