@@ -5,14 +5,32 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Generic Git workspace mechanism: policy-hooked execution, status, remote preflight, sync, branch switch, clone staging and attach (contract 029)"
+description = "Generic Git workspace mechanism: policy-hooked execution, status, remote preflight, sync, branch switch, clone staging and attach (contract 029, part 5a); GitHub device-flow sign-in, grant refresh, commit identity and the askpass credential bridge (part 5b)"
 publish = false
 
+[features]
+# Test support, off by default: a loopback HTTP server that answers recorded
+# GitHub device-flow, token and user-profile responses, and the loopback
+# endpoint constructors that point the mechanism at it. Plain HTTP exists for
+# that server only. Adds no dependencies.
+fixture-server = []
+
 [dependencies]
+longhorn-core.workspace = true
 longhorn-redact.workspace = true
 longhorn-support-log.workspace = true
+# Blocking client for the device flow, the token exchange and the user profile,
+# with rustls for https. Default features stay off: no gzip (the response bound
+# counts the bytes the server sent), no system proxy, no cookies, no charset.
+reqwest = { workspace = true, features = ["blocking", "rustls"] }
 secrecy.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+# Token fingerprints for the commit-identity cache: an account is looked up by
+# the digest of the token, so the cache never holds a token.
+sha2.workspace = true
+# The invocation-scoped askpass folder, removed when its bridge is dropped.
+tempfile.workspace = true
 uuid.workspace = true
 
 # Same-parent exclusive rename (`renameat_with` with the exclusive flag exists
@@ -20,9 +38,6 @@ uuid.workspace = true
 # process-group kill a timeout or a cancellation uses.
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true, features = ["process"] }
-
-[dev-dependencies]
-tempfile.workspace = true
 
 [lints]
 workspace = true

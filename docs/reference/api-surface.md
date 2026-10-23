@@ -24,7 +24,7 @@
 | `longhorn-credential-keyring` | library | none | [source](../../crates/longhorn-credential-keyring/src/lib.rs) |
 | `longhorn-diagnostics` | library | none | [source](../../crates/longhorn-diagnostics/README.md) |
 | `longhorn-display` | library | none | [source](../../crates/longhorn-display/src/lib.rs) |
-| `longhorn-git-workspace` | library | none | [source](../../crates/longhorn-git-workspace/README.md) |
+| `longhorn-git-workspace` | library | `fixture-server` | [source](../../crates/longhorn-git-workspace/README.md) |
 | `longhorn-gpui-windowing` | library | none | [source](../../crates/longhorn-gpui-windowing/src/lib.rs) |
 | `longhorn-history` | library | `bindings` | [source](../../crates/longhorn-history/README.md) |
 | `longhorn-history-tree` | library | `bindings`, `default` | [source](../../crates/longhorn-history-tree/README.md) |

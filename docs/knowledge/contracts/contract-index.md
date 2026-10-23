@@ -60,7 +60,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [026 Diagnostics Bundle](026-diagnostics-bundle.md) | pure diagnostics renderer: exact layout, redact-last with the app's redactor, marker count, caller-owned product text | active compiled boundary |
 | [027 Managed Tool Provisioning](027-managed-tool-provisioning.md) | verified artifacts (digest, then vendor team on the extracted executable), bounded single-member extraction, release resolution and bounded download, install pipeline, health and login-shell PATH discovery | active; 4a, 4b and 4c compiled |
 | [028 PTY Sessions](028-pty-sessions.md) | one child on a real PTY, bounded output, process-group lifecycle, close escalation, typed exit result | active compiled boundary |
-| [029 Git Workspace](029-git-workspace.md) | policy-hooked Git execution, status, remote-refusal preflight, sync, branch switch, clone staging and attach | active compiled boundary for part 5a; part 5b (GitHub sign-in) not yet specified |
+| [029 Git Workspace](029-git-workspace.md) | policy-hooked Git execution, status, remote-refusal preflight, sync, branch switch, clone staging and attach; GitHub device-flow sign-in, grant refresh, commit identity and the askpass credential bridge | active compiled boundary for parts 5a and 5b |
 
 ## Notes
 

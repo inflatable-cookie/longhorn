@@ -3109,11 +3109,15 @@ dependencies = [
 name = "longhorn-git-workspace"
 version = "0.4.1"
 dependencies = [
+ "longhorn-core",
  "longhorn-redact",
  "longhorn-support-log",
+ "reqwest",
  "rustix",
  "secrecy",
  "serde",
+ "serde_json",
+ "sha2 0.11.0",
  "tempfile",
  "uuid",
 ]

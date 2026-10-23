@@ -69,7 +69,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `pty` | `check:pty` | `longhorn-pty` and its public PTY lifecycle tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `storage-layout` | `check:storage-layout` | `longhorn-storage-layout` (identity, resolver, roots, locator, native facts) plus the workspace-wide API-reference inventory check; `longhorn-config`'s transition suite and every consumer import are workspace Rust lane inputs, not group members. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
-| `git-workspace` | `check:git-workspace` | `longhorn-git-workspace` and its real-Git integration tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
+| `git-workspace` | `check:git-workspace` | `longhorn-git-workspace`, its real-Git integration tests and its loopback sign-in suite, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `desktop-support-conformance` | `proof:desktop-support-conformance` | The six staged desktop support crates (024-028 plus `longhorn-archive-path`), the conformance example and its proof script. The crates' own obligations stay in their own groups; this group runs the outside-crate proof only, and it runs on Unix hosts. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
@@ -180,15 +180,21 @@ transition and legacy-discovery suite, so its changes ride `lint:rust`,
 
 **`lint:git-workspace`**, **`test:git-workspace`**, **`docs:git-workspace`** —
 role: scoped compile/test/rustdoc for `crates/longhorn-git-workspace/**`
-(contract 029, part 5a). `test:git-workspace` runs real `git` against temporary
-local repositories and bare remotes, with no network and no stored credential,
-under nextest's 30-second slow-test period, two-period termination with a
-one-second forced-kill grace, and immediate stop of remaining tests after the
-first failure. Companions: `check:api-reference` (aggregated by
-`check:git-workspace`). Limits: no live remote host and no real authentication
-refusal, so the network and authentication classes are proved by their
-classification and the credential-refresh retry is unproved; the exclusive
-rename is Linux and macOS only.
+(contract 029, parts 5a and 5b). All three pass
+`--features longhorn-git-workspace/fixture-server`, so the sign-in suite and its
+loopback fixture server compile and run. `test:git-workspace` runs real `git`
+against temporary local repositories and bare remotes, and drives the device
+flow, token exchange and profile read against the loopback server with an
+in-memory credential store: no network, no live host and no OS credential
+backend. It runs under nextest's 30-second slow-test period, two-period
+termination with a one-second forced-kill grace, and immediate stop of
+remaining tests after the first failure. Companions: `check:api-reference`
+(aggregated by `check:git-workspace`). Limits: the authentication refusal that
+drives refresh-and-retry is a scripted local `ext::` program and the token
+endpoints are loopback, so the network and authentication classes are proved by
+their classification and by local refusals rather than a live host; the device
+flow's wait bound is proved at one second, not the 900-second ceiling; the
+exclusive rename is Linux and macOS only.
 
 Limits: these, the diagnostics, support-log, redact, agent-tool-dispatch and
 git-workspace selectors are the only per-crate Rust selectors.
