@@ -415,9 +415,10 @@ pub(crate) fn run() -> String {
     );
 
     // A second clone onto the same target is refused, and the target it would
-    // have replaced is unchanged. The caller's composition refuses an existing
-    // target before it creates a staging folder, and the exclusive rename
-    // refuses one that appeared in the meantime.
+    // have replaced is unchanged. `target_already_present` reads the existing
+    // target first; a clone that still filled its own staging folder is then
+    // refused by the same-parent exclusive rename, which never replaces a
+    // destination that appeared.
     assert!(target_already_present(&target), "the target exists now");
     assert!(
         staging_leftovers(fixture.temp.path()).is_empty(),
