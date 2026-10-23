@@ -3,6 +3,7 @@ import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
+import { rustCommand } from "./rust-command.ts";
 
 type CargoMetadata = {
   packages: Array<{
@@ -55,7 +56,7 @@ console.log(JSON.stringify({
 }, null, 2));
 
 async function renderReference(): Promise<string> {
-  const cargo = JSON.parse(await run(["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"])) as CargoMetadata;
+  const cargo = JSON.parse(await run(rustCommand(["metadata", "--locked", "--no-deps", "--format-version", "1"]))) as CargoMetadata;
   const crateRoot = join(repoRoot, "crates") + sep;
   const rustPackages = cargo.packages
     .filter(({ manifest_path, name }) => manifest_path.startsWith(crateRoot) && name.startsWith("longhorn-"))

@@ -30,6 +30,10 @@ type Timing = {
 
 const timings: Timing[] = [];
 let failed = false;
+// PENDING OXIDE ONE-USE WORKSPACE SUPPORT: every member builds in the packaged-crate
+// scratch workspace this loop creates under a private CARGO_TARGET_DIR, which Oxide
+// replaces with `<checkout>/target`. The members stay on Cargo; the routing table in
+// AGENTS.md lists them.
 const retainedTargetDir = process.env.CARGO_TARGET_DIR;
 const targetDir = retainedTargetDir ?? await mkdtemp(
   resolve(tmpdir(), "longhorn-proof-artifacts-target-"),

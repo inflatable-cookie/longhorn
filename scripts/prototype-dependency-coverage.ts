@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { dependencyReferences, isLonghornPathPackage, parseLock } from "./sync-prototype-locks.ts";
+import { rustCommand } from "./rust-command.ts";
 
 type CargoMetadata = {
   packages: {
@@ -16,7 +17,7 @@ type CargoMetadata = {
 };
 
 async function metadataFor(directory: string): Promise<CargoMetadata> {
-  const command = ["cargo", "metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"];
+  const command = rustCommand(["metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"]);
   const process = Bun.spawn(command, { cwd: directory, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),

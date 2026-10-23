@@ -19,8 +19,9 @@ include = ["config/release.toml"]
 # sibling repository in and reformats it under this workspace's style edition.
 # Longhorn is edition 2024 and Poodle is 2021, so `poodle-specs` failed here
 # while passing its own gate. The package list comes from `--no-deps`, which
-# is genuinely members-only.
-"fmt:rust" = "sh -c 'exec cargo fmt --check $(cargo metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
+# is genuinely members-only. Both halves are non-building Cargo subcommands, so
+# they run through the one switch point like every other Rust selector.
+"fmt:rust" = "sh -c 'exec bash scripts/rust-command.sh fmt --check $(bash scripts/rust-command.sh metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
 "lint:rust" = "bash scripts/rust-command.sh clippy --workspace --all-targets --locked -- -D warnings"
 "lint:rust:cargo" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
 "lint:agent-tool-dispatch" = "bash scripts/rust-command.sh clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
@@ -258,7 +259,7 @@ include = ["config/release.toml"]
 # fails if this list drifts. The runner still runs `effigy qa` separately.
 "release:gates" = [
   "bun scripts/verify-private-candidate-docs-card127.ts",
-  "cargo deny check advisories",
+  "bash scripts/rust-command.sh deny check advisories",
   { task = "docs:rust" },
   { task = "check:prototypes" },
   { task = "release:floor" },

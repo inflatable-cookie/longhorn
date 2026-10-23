@@ -6,6 +6,8 @@
 import { readdir, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { rustCommand } from "./rust-command.ts";
+
 const repoRoot = resolve(import.meta.dir, "..");
 const DISPATCH = "longhorn-agent-tool-dispatch";
 const DEV_CONTROL = "longhorn-agent-control";
@@ -21,22 +23,26 @@ const forbidden = [
   "serve_control_surface",
 ];
 
-const tree = await run([
-  "cargo",
-  "tree",
-  "-p",
-  DISPATCH,
-  "--locked",
-  "-e",
-  "normal",
-  "--prefix",
-  "none",
-]);
+const tree = await run(
+  rustCommand([
+    "tree",
+    "-p",
+    DISPATCH,
+    "--locked",
+    "-e",
+    "normal",
+    "--prefix",
+    "none",
+  ]),
+  {},
+);
 if (tree.includes(DEV_CONTROL) || tree.includes("longhorn_agent_control")) {
   throw new Error(`${DISPATCH} imports contract 022's ${DEV_CONTROL} graph`);
 }
 
 await rm(scanRoot, { recursive: true, force: true });
+// PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the scan inspects rlibs in a private
+// CARGO_TARGET_DIR it chooses itself, so the route stays on Cargo.
 await run(
   [
     "cargo",

@@ -5,12 +5,14 @@
 // Missing Longhorn path-package entries are copied from the root workspace
 // lock with their dependency edges. The lock diff is restricted to these
 // additions and Longhorn version rewrites. Third-party movement is rejected;
-// `cargo metadata --locked --offline --no-deps` proves each resulting lock.
+// `cargo metadata --locked --offline --no-deps` proves each resulting lock. The
+// call runs through `scripts/rust-command.sh`, the one Cargo switch point.
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 
 import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
+import { rustCommand } from "./rust-command.ts";
 
 export type LockPackage = {
   name: string;
@@ -209,7 +211,7 @@ export function assessLock(
 }
 
 export async function cargoMetadataLocked(cwd: string, repoRoot: string): Promise<void> {
-  const command = ["cargo", "metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"];
+  const command = rustCommand(["metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"]);
   const process = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),

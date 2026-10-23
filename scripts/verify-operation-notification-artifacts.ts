@@ -21,6 +21,9 @@ await mkdir(artifactRoot);
 try {
   for (const domain of ["operation", "notifications"]) {
     await run(
+      // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: `proof:artifacts` hands this member
+      // a private CARGO_TARGET_DIR, and its packaged crates build in a `mktemp -d`
+      // workspace. Both stay on Cargo.
       ["cargo", "run", "-p", "longhorn-bindings", "--", domain, "check"],
       repoRoot,
     );

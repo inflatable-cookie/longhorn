@@ -7,6 +7,7 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
 import type { ArtifactIdentity, Shape } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
+import { rustCommand } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry; poodleRelease() checks each published
@@ -68,7 +69,14 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   await mkdir(workspace);
   const identities: ArtifactIdentity[] = [];
   for (const name of rustCrates) {
-    const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    // Non-building and checkout-level: `package --list` reads the manifest, so
+    // it runs through the switch point at the MSRV pin. The `run`/`tree` calls
+    // below build in the `mktemp -d` workspace and stay on Cargo (PENDING
+    // OXIDE ONE-USE WORKSPACE SUPPORT).
+    const inventory = await run(
+      rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
+      repoRoot,
+    );
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} source inventory is incomplete`);
     const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
     await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
@@ -86,6 +94,9 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
   const nativeTraces = {} as Record<Shape, Record<string, unknown>>;
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build in the `mktemp -d`
+  // workspace the parent proof passes in, at `cargo +<MSRV toolchain>`, which
+  // Oxide does not manage.
   const graphs = {} as Record<Shape, readonly string[]>;
   const packages: Record<Shape, string> = {
     "minimal-operation": "longhorn-minimal-operation-artifact-proof",

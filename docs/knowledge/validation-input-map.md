@@ -113,9 +113,11 @@ lease; unmarked = no lease, ordinary priority).
 
 ### Rust
 
-**`fmt:rust`** — role: format. Runs `cargo fmt --check` over `cargo metadata
---no-deps` members only, so it never walks a path dependency into a sibling
-repo. Owns every workspace member's Rust source: `crates/*/{src,tests,
+**`fmt:rust`** — role: format. Runs `fmt --check` through
+`scripts/rust-command.sh` over a package list from the same script's `metadata
+--no-deps`, so it never walks a path dependency into a sibling repo and the
+whole selector is `oxide` locally and `cargo` on a runner. Owns every
+workspace member's Rust source: `crates/*/{src,tests,
 examples,benches}/**`, `crates/*/build.rs`, `examples/*/src-tauri/**`,
 `examples/*/rust/**`, `examples/nucleus-no-surface-proof/**`,
 `examples/packaged-update-proof/**`, `examples/update-licence-proof/rust/**`.
@@ -319,7 +321,8 @@ It does not compile prototypes. Admission: unmarked. In the
 path-package versions and copies missing Longhorn path-package entries with
 their dependency edges from the root lock. A missing third-party package or
 any third-party movement stops and restores the lock. It proves each result
-with `cargo metadata --locked --offline --no-deps`. Owns the root and
+with `metadata --locked --offline --no-deps` through
+`scripts/rust-command.sh`. Owns the root and
 `prototypes/*/Cargo.lock` files and the workspace version. Admission:
 unmarked. Pre-gate step for `effigy release:bump`; not in
 `[release.gates]`. Never runs `cargo update` or accesses the network.
@@ -349,7 +352,8 @@ the receipt is a fixture, so the generic fixtures rule must not route it to
 `proof:artifacts` -- that aggregate does not run this check.
 
 **`advisories`** — role: supply-chain scan (release gate, reachable only
-through `release:gates`). Runs `cargo deny check advisories`. Owns `deny.toml`
+through `release:gates`). Runs `bash scripts/rust-command.sh deny check
+advisories` — `oxide deny` locally, plain `cargo deny` on a runner. Owns `deny.toml`
 (the dated allowances), `Cargo.toml`/`Cargo.lock` (the resolved graph), and
 the external `cargo-deny` tool plus the advisory database it fetches.
 Companions: `check:runner-tools` (`.github/workflows/release.yml` must install
@@ -469,14 +473,15 @@ for any of them returns `needs_planner`, as does the opaque
 gate; the writer behind `check:bindings`.
 
 **`check:api-reference`** — role: generated-doc drift.
-`bun scripts/generate-api-reference-card126.ts` (check mode) runs `cargo
-metadata --locked --no-deps`, lists every `crates/*` package and every
-`packages/*/package.json` export, and diffs `docs/reference/api-surface.md`.
+`bun scripts/generate-api-reference-card126.ts` (check mode) runs `metadata
+--locked --no-deps` through `scripts/rust-command.sh`, lists every `crates/*`
+package and every `packages/*/package.json` export, and diffs `docs/reference/api-surface.md`.
 Owns `scripts/generate-api-reference-card126.ts`, `Cargo.toml`, crate
 manifests and targets, `packages/*/package.json`, and the generated doc.
 Companions: `test:release-tooling` (bump path), `proof:artifacts` (member
 `scripts/verify-guides-card126.ts`).
-Admission: unmarked. In `qa`. Limits: needs `cargo metadata`.
+Admission: unmarked. In `qa`. Limits: needs `metadata` through the switch
+point.
 
 **`generate:api-reference`** — role: generator (`--write`).
 

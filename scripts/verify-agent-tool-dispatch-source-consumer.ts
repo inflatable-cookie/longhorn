@@ -50,6 +50,9 @@ try {
   }
 
   for (let index = 0; index < CLEAN_RUNS; index += 1) {
+    // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: this builds the `mktemp -d`
+    // provider-free consumer with a CARGO_TARGET_DIR inside it, which Oxide does
+    // not manage. The route stays on Cargo.
     const outcome = (
       await run(
         ["cargo", "run", "--locked", "--quiet"],
@@ -110,6 +113,8 @@ async function prepare(directory: string) {
   const manifest = renderManifest(longhornRoot, swallowtailRoot);
   await writeFile(join(directory, "Cargo.toml"), manifest);
   await copyFile(sourcePath, join(directory, "main.rs"));
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: lockfile for the throwaway consumer
+  // above; same one-use workspace reason.
   await run(["cargo", "generate-lockfile"], directory);
   const normalized = renderManifest(
     "${AGENT_LONGHORN_REPO}",

@@ -18,6 +18,7 @@ import {
 } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
+import { rustCommand } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -184,8 +185,12 @@ export async function packAndCheckRustArtifacts(
   await mkdir(workspace);
   const identities = [];
   for (const name of rustCrates) {
+    // Non-building and checkout-level: `package --list` reads the manifest, so
+    // it runs through the switch point. The `run`/`tree` calls below build in
+    // the `mktemp -d` workspace, which stays on Cargo (PENDING OXIDE ONE-USE
+    // WORKSPACE SUPPORT).
     const inventory = await run(
-      ["cargo", "package", "-p", name, "--list", "--allow-dirty"],
+      rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
       repoRoot,
     );
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
@@ -214,6 +219,8 @@ export async function packAndCheckRustArtifacts(
     );
   }
   await writeFile(join(workspace, "Cargo.toml"), privateWorkspaceManifest());
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build in the `mktemp -d`
+  // workspace the parent proof passes in, which Oxide does not manage.
   const traces = {
     jetstream: parseTrace(
       await run(
