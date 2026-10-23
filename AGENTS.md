@@ -62,18 +62,60 @@ Effigy Rust build selectors use `oxide` locally and plain `cargo` when
 fallback. If Oxide is unavailable, use `lint:rust:cargo`, `test:rust:cargo`, or
 `test:pty:cargo` for those three lanes.
 
-`fmt:rust` stays on Cargo because it only reads workspace metadata and formats
-the members-only package list. Keep Cargo for commands that intentionally set
-`CARGO_TARGET_DIR`: `scripts/verify-agent-control-release-absence.ts`,
-`scripts/verify-agent-tool-dispatch-release-absence.ts`,
-`scripts/verify-agent-tool-dispatch-source-consumer.ts`, and
-`scripts/proof-artifacts.ts` with its artifact proof scripts.
-`scripts/verify-desktop-support-conformance.ts` calls plain Cargo too: it builds
-its consumer in a disposable private workspace that Oxide does not manage, and
-its package inventories run in this checkout. Tauri CLI example builds and the
-Queue warm-merge hook manifest under `.git/queue-hooks` also stay on Cargo.
-Leave direct Cargo uses in `config/release.toml` and all
-`.github/workflows/` unchanged.
+The switch point is `scripts/rust-command.sh`; every switched route calls it, and
+no route adds a second rule. `fmt:rust` and the `advisories` gate are switched
+too: they run non-building Cargo subcommands (`fmt`, `metadata`, `deny`) that
+Oxide passes straight through.
+
+### Cargo entry points: what runs `oxide`
+
+Every Longhorn route that ran Cargo was classified at #077. A switched route
+calls `scripts/rust-command.sh` (the one switch point: `oxide` locally, `cargo`
+under `GITHUB_ACTIONS=true`). A pending route carries a
+`PENDING OXIDE ONE-USE WORKSPACE SUPPORT` comment at its call site and stays on
+Cargo. A route reaching the same arguments on a runner either way is still
+listed, because the runner has no Oxide.
+
+Switched:
+
+| Route | Now calls |
+| --- | --- |
+| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` and `rust-command.sh metadata --no-deps` |
+| `[release.gates] advisories` / `effigy release:gates` | `rust-command.sh deny check advisories` |
+| `scripts/ci-rehearse.sh` step 5 | `rust-command.sh fetch --locked`, `rust-command.sh metadata --locked --offline` |
+| `scripts/sync-prototype-locks.ts` | `rust-command.sh metadata --locked --offline --no-deps` |
+| `scripts/prototype-dependency-coverage.ts` | same |
+| `scripts/generate-api-reference-card126.ts` | `rust-command.sh metadata --locked --no-deps` |
+| `scripts/check-release-floor.sh`, `check:prototypes`, `check:bindings`, every `lint:*`/`test:*`/`docs:*` Rust selector | already switched by #061 |
+
+Pending — one-use workspace or a private `CARGO_TARGET_DIR`, which Oxide
+replaces with `<checkout>/target`:
+
+| Route | Why it waits |
+| --- | --- |
+| `scripts/proof-artifacts.ts` | Sets every member's `CARGO_TARGET_DIR` to a `mktemp -d` |
+| `scripts/verify-bridge-topology-artifacts.ts`, `scripts/verify-command-system-artifacts.ts`, `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-operation-notification-artifacts.ts`, `scripts/verify-greenfield-card125.ts`, and the `scripts/*-artifact-proof/artifacts.ts` modules | Packaged crates build in a `mktemp -d` workspace, some at `cargo +${MSRV_TOOLCHAIN}` |
+| `scripts/verify-agent-control-release-absence.ts` | Private `target/agent-control-scan` target dir |
+| `scripts/verify-agent-tool-dispatch-release-absence.ts` | Private `target/agent-tool-dispatch-scan` target dir |
+| `scripts/verify-agent-tool-dispatch-source-consumer.ts` | `mktemp -d` consumer with its own target dir |
+| `scripts/verify-desktop-support-conformance.ts` | Disposable private workspace for the consumer |
+| `scripts/verify-source-consumer.sh` (`effigy release:source-consumer`) | Throwaway consumer cloned against the release commit |
+| `cargo tauri build` in the example READMEs | Manual documented commands; `oxide exec` is unproven for the Tauri CLI here |
+
+Genuine Cargo exceptions:
+
+| Route | Category |
+| --- | --- |
+| `.github/workflows/*`, including its `cargo metadata` step | CI, and workflow edits need approval |
+| Effigy's own `cargo update --workspace` lockfile sync from `config/release.toml` | Not a Longhorn entry point; Effigy runs it |
+| `scripts/check-runner-tools.ts`, `scripts/check-release-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
+| `scripts/workspace-dependencies.ts` | Reads `Cargo.toml` text; runs no Cargo |
+| `.git/queue-hooks` warm-merge manifest | Queue-owned, outside the repository |
+
+Integration tests that re-exec themselves (`current_exe()` in
+`longhorn-config`, `longhorn-settings-config`, `longhorn-surfaces-config`) need
+no change: they re-run their own test binary, not a sibling binary beside it,
+and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
 
 ## Product rules
 

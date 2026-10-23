@@ -51,8 +51,11 @@ bun scripts/check-runner-tools.ts
 
 step "5/6 fresh CARGO_HOME (lockfile pins must fetch without a warm cache)"
 cargo_home=$(mktemp -d)
-CARGO_HOME="$cargo_home" cargo fetch --locked
-CARGO_HOME="$cargo_home" cargo metadata --locked --offline --format-version 1 >/dev/null
+# The one switch point: `oxide fetch`/`oxide metadata` locally, plain `cargo`
+# on a runner. Both are non-building subcommands, so Oxide passes them straight
+# through with the same arguments and this fresh CARGO_HOME.
+CARGO_HOME="$cargo_home" bash scripts/rust-command.sh fetch --locked
+CARGO_HOME="$cargo_home" bash scripts/rust-command.sh metadata --locked --offline --format-version 1 >/dev/null
 printf 'fetch + offline metadata ok under CARGO_HOME=%s\n' "$cargo_home"
 
 step "6/6 CI=1 proofs under that CARGO_HOME (coloured vitest + cold cache)"

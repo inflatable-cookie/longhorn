@@ -67,6 +67,10 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   await mkdir(artifactRoot);
   await mkdir(workspace);
   const identities: ArtifactIdentity[] = [];
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the packaged crates are unpacked into
+  // the `mktemp -d` workspace the parent proof passes in, built at
+  // `cargo +<MSRV toolchain>`, and `proof:artifacts` also hands every member a
+  // private CARGO_TARGET_DIR. All three stay on Cargo.
   for (const name of rustCrates) {
     const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} source inventory is incomplete`);

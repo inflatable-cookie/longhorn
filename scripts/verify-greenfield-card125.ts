@@ -485,6 +485,10 @@ async function verifyRustArtifacts() {
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(workspace);
   const identities: ArtifactIdentity[] = [];
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the packaged crates are unpacked into a
+  // `mktemp -d` private workspace and built there with `cargo +<MSRV toolchain>`, and
+  // `proof:artifacts` also hands every member a private CARGO_TARGET_DIR. Both are
+  // outside Oxide today, so this route stays on Cargo.
   for (const name of allRustCrates) {
     const inventory = await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory incomplete`);

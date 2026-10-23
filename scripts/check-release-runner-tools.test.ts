@@ -148,6 +148,17 @@ describe("release-gate runner tools", () => {
     expect(() => toolsNeededByCommand("sh -c 'echo hi'")).toThrow(/without executing/);
   });
 
+  test("the rust-command.sh switch point keeps the runner Cargo identity", () => {
+    // Locally that gate runs `oxide`; a runner still needs `cargo` and the
+    // plugin, so the launcher must not hide the requirement.
+    expect(
+      toolsNeededByCommand("bash scripts/rust-command.sh deny check advisories").map((item) => item.tool),
+    ).toEqual(["cargo", "cargo-deny"]);
+    expect(
+      toolsNeededByCommand("bash scripts/rust-command.sh test --workspace").map((item) => item.tool),
+    ).toEqual(["cargo"]);
+  });
+
   test("cargo install is taken from run scripts, not comments or step names", () => {
     const scripts = workflowRunScripts(workflowWithDeny);
     expect(scripts).toContain("cargo install cargo-deny --locked --version 0.19.4");

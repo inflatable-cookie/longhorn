@@ -43,8 +43,12 @@ initial-tag-current-version = true
 [release.gates]
 # Docs-level candidate assertion. 38ms.
 private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
-# The advisory database against the dated allowances in deny.toml.
-advisories = "cargo deny check advisories"
+# The advisory database against the dated allowances in deny.toml. `deny` is a
+# Cargo plugin, not a build, so it runs through the rust-command.sh switch point
+# like every other Rust route: `oxide deny` locally, plain `cargo deny` on a
+# runner. `check:runner-tools` still reads the Cargo subcommand out of this line
+# and still requires `cargo install cargo-deny` in release.yml.
+advisories = "bash scripts/rust-command.sh deny check advisories"
 # Rustdoc warnings are denied. Not in `qa`: it is a release-shaped concern and
 # the slowest of the cheap gates.
 rustdoc = "effigy docs:rust"

@@ -37,6 +37,8 @@ if (tree.includes(DEV_CONTROL) || tree.includes("longhorn_agent_control")) {
 }
 
 await rm(scanRoot, { recursive: true, force: true });
+// PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the scan inspects rlibs in a private
+// CARGO_TARGET_DIR it chooses itself, so the route stays on Cargo.
 await run(
   [
     "cargo",

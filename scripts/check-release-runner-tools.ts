@@ -488,7 +488,11 @@ function howProvided(installs: WorkflowInstalls, tool: string): string | null {
 
 function cargoSubcommands(command: string): string[] {
   const subcommands: string[] = [];
-  const pattern = /\bcargo\b/g;
+  // A gate that launches Cargo through `scripts/rust-command.sh` runs `cargo`
+  // on a CI runner and `oxide` on a developer machine, so the word `cargo` may
+  // not appear at all. The runner tool is the same either way, so read the
+  // subcommand after the launcher exactly as after a literal `cargo`.
+  const pattern = /\bcargo\b|scripts\/rust-command\.sh/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(command))) {
     const rest = command.slice(match.index + match[0].length);

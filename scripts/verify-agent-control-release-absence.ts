@@ -103,6 +103,8 @@ async function runExactTest(command: readonly string[], testName: string) {
 async function build(features: FeatureSet): Promise<BuildResult> {
   const args = featureArgs(features);
   const targetDir = join(SCAN_ROOT, features);
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the release scan reads rlibs out of a
+  // private CARGO_TARGET_DIR it chooses itself, so the route stays on Cargo.
   const env = { CARGO_TARGET_DIR: targetDir };
 
   // Drop prior scan artifacts for the two crates under test (only) so a

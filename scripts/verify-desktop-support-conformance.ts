@@ -82,6 +82,9 @@ try {
   await cp(join(repoRoot, "Cargo.lock"), join(stage, "Cargo.lock"));
 
   const startedAt = performance.now();
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the consumer builds in the disposable
+  // private workspace staged under `stage`, which Oxide does not manage. This route
+  // and its `cargo package --list` inventories stay on Cargo.
   const output = run(["cargo", "run", "-p", consumerName, "--offline", "--quiet"], stage);
   const seconds = Number(((performance.now() - startedAt) / 1000).toFixed(1));
   const lines = output.trim().split("\n");

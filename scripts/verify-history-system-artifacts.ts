@@ -73,6 +73,9 @@ const policies = {
 } as const;
 
 try {
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: `proof:artifacts` hands this member a
+  // private CARGO_TARGET_DIR, and its packaged crates build in a `mktemp -d`
+  // workspace at `cargo +<MSRV toolchain>`. Both stay on Cargo.
   await run(
     ["cargo", "run", "-p", "longhorn-bindings", "--", "history", "check"],
     repoRoot,

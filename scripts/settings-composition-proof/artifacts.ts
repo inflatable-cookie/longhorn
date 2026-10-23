@@ -70,6 +70,9 @@ export async function packAndCheckRustArtifacts(
   await mkdir(artifactRoot);
   await mkdir(workspace);
   const identities = [];
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the packaged crates are unpacked into
+  // the `mktemp -d` workspace the parent proof passes in, and `proof:artifacts`
+  // hands every member a private CARGO_TARGET_DIR. Both stay on Cargo.
   for (const name of rustCrates) {
     await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
     const archive = join(
