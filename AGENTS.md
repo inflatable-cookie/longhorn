@@ -86,7 +86,7 @@ Switched:
 | `scripts/sync-prototype-locks.ts` | `rust-command.sh metadata --locked --offline --no-deps` |
 | `scripts/prototype-dependency-coverage.ts` | same |
 | `scripts/generate-api-reference-card126.ts` | `rust-command.sh metadata --locked --no-deps` |
-| Checkout-level non-building reads in the proofs: `package --list` inventories in `scripts/verify-bridge-topology-artifacts.ts`, `scripts/verify-command-system-artifacts.ts`, `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-operation-notification-artifacts.ts`, `scripts/verify-greenfield-card125.ts`, `scripts/verify-desktop-support-conformance.ts` and `scripts/*-artifact-proof/artifacts.ts`; the `tree` graphs in `scripts/verify-agent-control-release-absence.ts` and `scripts/verify-agent-tool-dispatch-release-absence.ts` | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
+| Checkout-level non-building reads in the proofs: `package --list` inventories in `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-greenfield-card125.ts`, `scripts/verify-desktop-support-conformance.ts` and the `scripts/bridge-topology-artifact-proof/artifacts.ts`, `scripts/command-system-artifact-proof/artifacts.ts`, `scripts/settings-composition-proof/artifacts.ts`, `scripts/operation-notification-artifact-proof/artifacts.ts` modules; the `tree` graphs in `scripts/verify-agent-control-release-absence.ts` and `scripts/verify-agent-tool-dispatch-release-absence.ts` | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
 | Checkout-level tests in `scripts/verify-agent-control-release-absence.ts` | `rust-command.sh test -p … -- --exact` |
 | `scripts/check-release-floor.sh`, `check:prototypes`, `check:bindings`, every `lint:*`/`test:*`/`docs:*` Rust selector | already switched by #061 |
 
@@ -127,7 +127,8 @@ and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
 ### Known release-gate stop point: `advisories`
 
 `effigy release:gates` passes `private-candidate` and stops at `advisories`:
-RUSTSEC-0000-0000 flags `ctutils 0.4.2` from `Cargo.lock` as a vulnerability.
+RUSTSEC-2026-0385 flags `ctutils 0.4.2` from `Cargo.lock` as a vulnerability (the
+ID comes from the fetched advisory database, so it moves as that database does).
 The stop is the RustSec database against a committed lock, not the routing
 change: `deny.toml` and `Cargo.lock` are untouched by #077, and the same gate
 run on plain `cargo` exits 1 with the same output apart from the `rust runner:`
