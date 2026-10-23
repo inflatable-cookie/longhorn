@@ -72,12 +72,14 @@ not delivered.
 A group that is already gone counts as closed, and so does a group that holds
 only zombies. `ESRCH` always means gone. macOS and BSDs answer `EPERM` for a
 group whose members are all zombies, so Longhorn treats `EPERM` as gone only
-after a `waitpid` with `WNOHANG` on the leader collects it as exited. A leader
-still running that refuses the signal is `Failure::Signal`. Close and resize
-use the same classification; close still sends no further signal once the
-group is gone. Limit: a descendant that outlives its exited leader and refuses
-signals (for example, a setuid program) cannot be told from a zombie without
-process listing, so it is reported as closed.
+when `waitid` with `WNOWAIT` shows the leader has exited. That check reads the
+exit without collecting the zombie, so the group identity stays reserved until
+the reaper runs after close. A leader still running that refuses the signal is
+`Failure::Signal`. Close and resize use the same classification. When the
+escalation probe finds the group gone, close sends no `SIGKILL`. Limit: a
+descendant that outlives its exited leader and refuses signals (for example, a
+setuid program) cannot be told from a zombie without process listing, so it is
+reported as closed.
 
 If `waitpid` fails before a status is available, the reader sends the
 classified `Failure::Wait` and no exit result is available. The session is
