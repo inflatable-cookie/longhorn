@@ -16,6 +16,7 @@ use std::{
 
 use longhorn_git_workspace::{Git, GitCredential, GitFailure, GitPolicy};
 use longhorn_redact::{RedactionRules, Redactor};
+use secrecy::ExposeSecret as _;
 use tempfile::TempDir;
 
 /// The redactor tests hand the mechanism: no application secrets, common
@@ -34,6 +35,7 @@ pub fn handle(policy: &Policy) -> Git<'_> {
 pub struct Policy {
     isolation: Vec<(String, String)>,
     credential: Option<(Vec<(String, String)>, String)>,
+    supplied: Option<GitCredential>,
     credential_error: Option<GitFailure>,
     refreshed: Option<(Vec<(String, String)>, String)>,
     refresh_delay: Duration,
@@ -55,6 +57,7 @@ impl Policy {
                 ("GIT_CONFIG_NOSYSTEM".to_owned(), "1".to_owned()),
             ],
             credential: None,
+            supplied: None,
             credential_error: None,
             refreshed: None,
             refresh_delay: Duration::ZERO,
@@ -69,6 +72,14 @@ impl Policy {
     #[must_use]
     pub fn with_credential(mut self, env: Vec<(String, String)>, secret: &str) -> Self {
         self.credential = Some((env, secret.to_owned()));
+        self
+    }
+
+    /// A policy that supplies one credential value it did not build, such as
+    /// one an askpass bridge produced.
+    #[must_use]
+    pub fn with_supplied_credential(mut self, credential: GitCredential) -> Self {
+        self.supplied = Some(credential);
         self
     }
 
@@ -141,6 +152,12 @@ impl GitPolicy for Policy {
         std::thread::sleep(self.credential_delay);
         if let Some(failure) = &self.credential_error {
             return Err(failure.clone());
+        }
+        if let Some(credential) = &self.supplied {
+            return Ok(Some(GitCredential::new(
+                credential.env_vars().to_vec(),
+                credential.secret().expose_secret().to_owned(),
+            )));
         }
         Ok(self
             .credential

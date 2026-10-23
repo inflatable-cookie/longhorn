@@ -1,7 +1,7 @@
 # Longhorn Git Workspace
 
 Generic Git workspace mechanism for desktop applications. Contract 029 owns its
-behaviour; this crate is part 5a.
+behaviour; this crate is parts 5a and 5b.
 
 One `Git` handle carries the caller's `GitPolicy` and the caller's
 `longhorn-redact` `Redactor`. Every reading is a method on it:
@@ -59,10 +59,40 @@ integration base, contract-readable root admission, and every user-facing
 sentence stay with the application. Failures are `GitFailure` values that carry
 a `GitFailureCode` wire string, Git's own redacted words, and no product copy.
 
-Part 5b adds GitHub sign-in to the same crate: device flow, token exchange and
-refresh, askpass, commit identity, and credential storage over contract 021's
-credential slots. It is not part of this part.
+Part 5b is GitHub sign-in in the same crate:
 
-Tests run real `git` against temporary local repositories and bare remotes, with
-no network and no stored credential. They are integration tests under `tests/`;
-`tests/support/` builds the fixtures and scripted policies they share.
+- `run_device_flow` runs GitHub's device and poll protocol — a one-time code,
+  GitHub's pinned verification page, a five-second floor on the interval, a
+  `slow_down` increase, a wait bounded by the shorter of the declared expiry and
+  fifteen minutes, and the caller's cancellation flag. The mechanism opens no
+  browser and authors no sentence.
+- `TokenGrant`, `read_grant`, `write_grant`, `read_credential_presence` and
+  `sign_out` store one grant in the caller's `longhorn-core` credential slot, in
+  the version 1 JSON document contract 029 defines.
+- `fresh_access_token` and `force_refresh_token` refresh inside the five-minute
+  skew under one process-wide lock, so concurrent callers cause one exchange,
+  and a refused refresh reports `SignInExpired` while leaving the grant in place.
+  A refresh writes only over the grant it read, so a sign-out that lands while
+  the exchange runs stays signed out and a newer sign-in is adopted rather than
+  overwritten.
+- `GithubCommitIdentityResolver` derives the operator's Git name and GitHub
+  noreply address from the stored grant, caching per account and per token
+  digest.
+- `AskpassConfig` names the token variable; `GitCredentialBridge::from_token`
+  writes this crate's own askpass helper into an owner-only temporary folder and
+  `credential()` hands the policy a `GitCredential`. The token reaches Git only
+  as the child environment value the helper prints, and the folder is removed
+  when the bridge is dropped.
+
+The application composes 5b inside its `GitPolicy`: `credential` reads a fresh
+token, builds a bridge and returns its credential; `refresh_credential` passes
+the rejected credential's `secret()` to `force_refresh_token`, builds a new
+bridge and returns its credential. Part 5a then retries once under the same
+deadline, so a refresh never restarts the wall clock.
+
+Tests run real `git` against temporary local repositories and bare remotes, and
+drive the sign-in against a loopback fixture server with the in-memory
+credential store, with no network. They are integration tests under `tests/`;
+`tests/support/` builds the fixtures and scripted policies they share, and the
+`fixture-server` feature supplies the loopback server and the loopback endpoint
+constructors.

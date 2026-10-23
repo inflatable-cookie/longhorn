@@ -24,6 +24,7 @@ use std::{
     time::Duration,
 };
 
+use secrecy::ExposeSecret as _;
 use uuid::Uuid;
 
 use crate::{
@@ -239,7 +240,7 @@ impl Git<'_> {
                 self.redactor(),
                 &stderr,
                 overflowed,
-                credential.map(GitCredential::secret),
+                credential.map(|credential| credential.secret().expose_secret()),
             ),
         })
     }

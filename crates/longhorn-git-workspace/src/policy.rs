@@ -8,7 +8,7 @@
 
 use std::{fmt, process::Command};
 
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 
 use crate::failure::GitFailure;
 
@@ -71,10 +71,18 @@ impl GitCredential {
         &self.env_vars
     }
 
-    /// The value kept out of failure detail. Callers redact their own Git text
-    /// with [`crate::redact_git_detail`] instead of reading it here.
-    pub(crate) fn secret(&self) -> &str {
-        self.secret.expose_secret()
+    /// The secret value, as the caller supplied it.
+    ///
+    /// The mechanism keeps it out of every failure detail; callers that carry
+    /// Git text themselves redact it with [`crate::redact_git_detail`]. A
+    /// policy also names it back to
+    /// [`force_refresh_token`](crate::force_refresh_token) when the remote
+    /// rejected this credential, since a
+    /// [`GitCredentialBridge`](crate::GitCredentialBridge) built that value
+    /// from the stored grant.
+    #[must_use]
+    pub fn secret(&self) -> &SecretString {
+        &self.secret
     }
 }
 

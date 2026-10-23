@@ -23,6 +23,7 @@ use std::{
 
 use longhorn_redact::{RedactionRules, Redactor};
 use longhorn_support_log::{TailBounds, bound_field, bounded_tail};
+use secrecy::ExposeSecret as _;
 
 use crate::{
     failure::{GitFailure, GitFailureCode},
@@ -168,7 +169,7 @@ impl<'a> Git<'a> {
                 &self.redactor,
                 &capture.stderr,
                 capture.stderr_overflowed,
-                credential.map(GitCredential::secret),
+                credential.map(|credential| credential.secret().expose_secret()),
             ),
         })
     }
@@ -199,7 +200,10 @@ impl<'a> Git<'a> {
                 &self.redactor,
                 &process.capture.stderr,
                 process.capture.stderr_overflowed,
-                process.credential.as_ref().map(GitCredential::secret),
+                process
+                    .credential
+                    .as_ref()
+                    .map(|credential| credential.secret().expose_secret()),
             ),
         })
     }
@@ -207,7 +211,11 @@ impl<'a> Git<'a> {
     /// Redacts Git text for a caller: the invocation secret first, then the
     /// caller's own redactor, bounded to one captured stream.
     pub(crate) fn redacted_output(&self, text: &str, credential: Option<&GitCredential>) -> String {
-        let scrubbed = redact_text(&self.redactor, text, credential.map(GitCredential::secret));
+        let scrubbed = redact_text(
+            &self.redactor,
+            text,
+            credential.map(|credential| credential.secret().expose_secret()),
+        );
         bound_field(&self.redactor, &scrubbed, MAX_CAPTURED_OUTPUT_BYTES)
     }
 

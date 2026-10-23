@@ -1,11 +1,13 @@
 //! Generic Git workspace mechanism for desktop applications.
 //!
-//! This crate implements Longhorn contract 029, part 5a: the Git subprocess
+//! This crate implements Longhorn contract 029. Part 5a is the Git subprocess
 //! executor with its caller-supplied [`GitPolicy`] hook, worktree status and
 //! branch reading, remote-refusal preflight classification, Legacy Sync, the
 //! explicit branch switch, clone into an invocation-owned staging folder with
 //! a same-parent exclusive rename, and attach reading over explicit expected
-//! facts.
+//! facts. Part 5b is GitHub device-flow sign-in: the device and poll protocol,
+//! the stored grant and its single-use refresh, sign-out, the commit identity,
+//! and the invocation-scoped askpass credential bridge.
 //!
 //! Every reading is a method on [`Git`], which holds the caller's policy and
 //! the caller's [`longhorn_redact::Redactor`]. Callers supply, as explicit
@@ -19,22 +21,26 @@
 //! configuration arrive through [`GitPolicy::isolate`]; a credential arrives
 //! through [`GitPolicy::credential`] or as an explicit argument; the allowed
 //! remote, branch naming, the integration base, contract-readable root
-//! admission, and every user-facing sentence belong to the application.
-//!
-//! Part 5b adds the GitHub sign-in mechanism to this crate: device flow,
-//! token exchange and refresh, askpass, commit identity, and credential
-//! storage. It is not part of this part's API.
+//! admission, and every user-facing sentence belong to the application. The
+//! OAuth client id, the credential store and slot, the endpoints, the user
+//! agent and the askpass variable name are explicit values too.
 //!
 //! The integration tests run real `git` against temporary local repositories
-//! and bare remotes. No test reaches the network.
+//! and bare remotes, and drive the GitHub sign-in against a loopback fixture
+//! server. No test reaches the network.
 
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod askpass;
 mod attach;
+mod auth;
 mod clone;
 mod execution;
 mod failure;
+mod identity;
+#[cfg(feature = "fixture-server")]
+mod loopback;
 mod model;
 mod policy;
 mod preflight;
@@ -42,7 +48,16 @@ mod status;
 mod sync;
 mod workspace;
 
+pub use askpass::{AskpassConfig, GitCredentialBridge};
 pub use attach::{AttachReading, remote_for_display, remote_identity, remotes_match};
+pub use auth::{
+    ACCESS_REFRESH_SKEW, AccessTokenResponse, CredentialScope, CredentialStoreReading,
+    DEFAULT_POLL_INTERVAL, DeviceFlowEndpoints, GITHUB_ACCESS_TOKEN_URL, GITHUB_DEVICE_CODE_URL,
+    GITHUB_DEVICE_VERIFICATION_URL, GithubAuthFailure, GithubAuthProgress, GithubTokenClient,
+    MAX_DEVICE_WAIT, TOKEN_REQUEST_TIMEOUT, TokenClient, TokenGrant, classify_token_exchange,
+    force_refresh_token, fresh_access_token, read_credential_presence, read_grant, run_device_flow,
+    sign_out, write_grant,
+};
 pub use clone::{
     CloneFailure, create_owned_staging, remove_owned_staging, rename_exclusive, staging_parent,
     target_already_present,
@@ -52,6 +67,9 @@ pub use execution::{
     is_remote_credential_operation, redact_git_detail,
 };
 pub use failure::{GitFailure, GitFailureCode};
+pub use identity::{GitCommitIdentity, GithubCommitIdentityResolver};
+#[cfg(feature = "fixture-server")]
+pub use loopback::{FixtureRequest, FixtureRoute, FixtureServer};
 pub use model::{GitBranch, GitBranchKind, GitStatus, GitWorkspaceState};
 pub use policy::{GitCredential, GitPolicy};
 pub use preflight::{
