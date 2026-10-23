@@ -14,12 +14,18 @@
 // Builds run release-shaped in isolated target dirs under
 // `target/agent-control-scan/` so a previous opposite-feature build can never
 // leave a stale artifact for the scan to misread, and so parallel qa lanes
-// never observe a half-switched `target/`. Scanning is byte-level against the
-// rlib files themselves — no external binutils, matching the runner-tools
-// posture that a clean runner has a Rust toolchain and nothing else.
+// never observe a half-switched `target/`. Those builds are the only Cargo work
+// here that stays on plain Cargo, because Oxide replaces an inherited
+// `CARGO_TARGET_DIR`; the `tree` reads and the isolated `-p` tests run through
+// `scripts/rust-command.sh` like every other checkout-level route. Scanning is
+// byte-level against the rlib files themselves — no external binutils, matching
+// the runner-tools posture that a clean runner has a Rust toolchain and nothing
+// else.
 
 import { readdir, readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
+
+import { rustCommand } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const PLUGIN = "longhorn-tauri-agent-control";
@@ -122,8 +128,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
   }
 
   const tree = await run(
-    [
-      "cargo",
+    rustCommand([
       "tree",
       "-p",
       PLUGIN,
@@ -133,7 +138,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
       "--prefix",
       "none",
       ...args,
-    ],
+    ]),
     {},
   );
   await run(
@@ -265,10 +270,12 @@ if (missingEvaluate.length > 0) {
 }
 
 // Isolated `-p` tests: workspace unification from the proof example would
-// otherwise compile `agent-control-evaluate` into every crate test.
+// otherwise compile `agent-control-evaluate` into every crate test. Both the
+// dependency graphs and these tests are ordinary checkout-level Cargo work, so
+// they run through the switch point; only the rlib scan below keeps a private
+// CARGO_TARGET_DIR.
 await runExactTest(
-  [
-    "cargo",
+  rustCommand([
     "test",
     "-p",
     CORE,
@@ -278,12 +285,11 @@ await runExactTest(
     "evaluate_answers_typed_unsupported",
     "--",
     "--exact",
-  ],
+  ]),
   "evaluate_answers_typed_unsupported",
 );
 await runExactTest(
-  [
-    "cargo",
+  rustCommand([
     "test",
     "-p",
     PLUGIN,
@@ -295,12 +301,11 @@ await runExactTest(
     "evaluate_answers_typed_unsupported",
     "--",
     "--exact",
-  ],
+  ]),
   "evaluate_answers_typed_unsupported",
 );
 await runExactTest(
-  [
-    "cargo",
+  rustCommand([
     "test",
     "-p",
     CORE,
@@ -312,7 +317,7 @@ await runExactTest(
     "two_clients_interleave_without_cross_talk",
     "--",
     "--exact",
-  ],
+  ]),
   "two_clients_interleave_without_cross_talk",
 );
 

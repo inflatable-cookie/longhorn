@@ -7,6 +7,7 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 import { digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
+import { rustCommand } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -70,11 +71,12 @@ export async function packAndCheckRustArtifacts(
   await mkdir(artifactRoot);
   await mkdir(workspace);
   const identities = [];
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the packaged crates are unpacked into
-  // the `mktemp -d` workspace the parent proof passes in, and `proof:artifacts`
-  // hands every member a private CARGO_TARGET_DIR. Both stay on Cargo.
   for (const name of rustCrates) {
-    await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    // Non-building and checkout-level: `package --list` reads the manifest, so
+    // it runs through the switch point. The `check` call below builds in the
+    // `mktemp -d` workspace, which stays on Cargo (PENDING OXIDE ONE-USE
+    // WORKSPACE SUPPORT).
+    await run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
     const archive = join(
       artifactRoot,
       `${name}-${LONGHORN_VERSION}.private.tar.gz`,
@@ -186,6 +188,8 @@ longhorn-tauri-config.workspace = true
 }
 `,
   );
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: this builds in the `mktemp -d`
+  // workspace the parent proof passes in, which Oxide does not manage.
   await run(
     [
       "cargo",

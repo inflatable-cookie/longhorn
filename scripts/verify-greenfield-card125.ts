@@ -16,6 +16,7 @@ import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { longhornVersion } from "./longhorn-version.ts";
+import { rustCommand } from "./rust-command.ts";
 
 type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
 type ShapePolicy = {
@@ -485,12 +486,15 @@ async function verifyRustArtifacts() {
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(workspace);
   const identities: ArtifactIdentity[] = [];
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the packaged crates are unpacked into a
-  // `mktemp -d` private workspace and built there with `cargo +<MSRV toolchain>`, and
-  // `proof:artifacts` also hands every member a private CARGO_TARGET_DIR. Both are
-  // outside Oxide today, so this route stays on Cargo.
+  // The `package --list` inventories below are checkout-level and
+  // non-building, so they run through the switch point at the MSRV pin. The
+  // unpacked crates then build in the `mktemp -d` workspace, which stays on
+  // Cargo (PENDING OXIDE ONE-USE WORKSPACE SUPPORT).
   for (const name of allRustCrates) {
-    const inventory = await run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    const inventory = await run(
+      rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
+      repoRoot,
+    );
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory incomplete`);
     const archive = join(rustArtifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     await run(["tar", "-cf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
@@ -505,6 +509,9 @@ async function verifyRustArtifacts() {
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
   const shapes = [];
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build the unpacked crates in
+  // the `mktemp -d` workspace at `cargo +<MSRV toolchain>`, which Oxide does not
+  // manage.
   for (const shape of Object.keys(policies) as ShapeName[]) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
     const output = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packageName, "--offline", "--quiet"], workspace);

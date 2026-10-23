@@ -102,15 +102,17 @@ EOF
 } > "$release_consumer_root/src/main.rs"
 
 # PENDING OXIDE ONE-USE WORKSPACE SUPPORT: every Cargo call below resolves a
-# throwaway consumer cloned into a `mktemp -d`, not this checkout's workspace, so
-# Oxide does not manage it. This route stays on Cargo; see the routing table in
-# AGENTS.md. The `metadata` read that follows the build is the same one-use
-# workspace, so it is held with them rather than split out.
-bash scripts/rust-command.sh generate-lockfile --manifest-path "$release_consumer_root/Cargo.toml"
-bash scripts/rust-command.sh check --manifest-path "$release_consumer_root/Cargo.toml" --locked
+# throwaway consumer cloned into a `mktemp -d`, not this checkout's workspace.
+# Oxide binds a build to a checkout it manages and would try to convert this
+# consumer's temporary target into an owned output link, so these three calls
+# stay on plain Cargo here and through the CI-aware rule alike. See the routing
+# table in AGENTS.md.
+cargo generate-lockfile --manifest-path "$release_consumer_root/Cargo.toml"
+cargo check --manifest-path "$release_consumer_root/Cargo.toml" --locked
 
 release_metadata="$release_tmp/metadata.json"
-bash scripts/rust-command.sh metadata \
+# Same one-use workspace as the two calls above; plain Cargo for the same reason.
+cargo metadata \
   --manifest-path "$release_consumer_root/Cargo.toml" \
   --format-version 1 \
   --locked \

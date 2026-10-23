@@ -86,20 +86,27 @@ Switched:
 | `scripts/sync-prototype-locks.ts` | `rust-command.sh metadata --locked --offline --no-deps` |
 | `scripts/prototype-dependency-coverage.ts` | same |
 | `scripts/generate-api-reference-card126.ts` | `rust-command.sh metadata --locked --no-deps` |
+| Checkout-level non-building reads in the proofs: `package --list` inventories in `scripts/verify-bridge-topology-artifacts.ts`, `scripts/verify-command-system-artifacts.ts`, `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-operation-notification-artifacts.ts`, `scripts/verify-greenfield-card125.ts`, `scripts/verify-desktop-support-conformance.ts` and `scripts/*-artifact-proof/artifacts.ts`; the `tree` graphs in `scripts/verify-agent-control-release-absence.ts` and `scripts/verify-agent-tool-dispatch-release-absence.ts` | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
+| Checkout-level tests in `scripts/verify-agent-control-release-absence.ts` | `rust-command.sh test -p … -- --exact` |
 | `scripts/check-release-floor.sh`, `check:prototypes`, `check:bindings`, every `lint:*`/`test:*`/`docs:*` Rust selector | already switched by #061 |
+
+A non-building checkout-level call switches even inside a proof whose other
+calls stay pending: `package --list` and `tree` read manifests and lockfiles,
+so a private target directory is irrelevant to them. Only the calls that
+*compile* wait.
 
 Pending — one-use workspace or a private `CARGO_TARGET_DIR`, which Oxide
 replaces with `<checkout>/target`:
 
 | Route | Why it waits |
 | --- | --- |
-| `scripts/proof-artifacts.ts` | Sets every member's `CARGO_TARGET_DIR` to a `mktemp -d` |
-| `scripts/verify-bridge-topology-artifacts.ts`, `scripts/verify-command-system-artifacts.ts`, `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-operation-notification-artifacts.ts`, `scripts/verify-greenfield-card125.ts`, and the `scripts/*-artifact-proof/artifacts.ts` modules | Packaged crates build in a `mktemp -d` workspace, some at `cargo +${MSRV_TOOLCHAIN}` |
-| `scripts/verify-agent-control-release-absence.ts` | Private `target/agent-control-scan` target dir |
-| `scripts/verify-agent-tool-dispatch-release-absence.ts` | Private `target/agent-tool-dispatch-scan` target dir |
+| `scripts/proof-artifacts.ts` | Sets every member's `CARGO_TARGET_DIR` to a `mktemp -d`, so the members' `cargo run -p longhorn-bindings -- … check` calls stay |
+| The `mktemp -d` workspace builds in `scripts/verify-history-system-artifacts.ts`, `scripts/verify-history-tree-artifacts.ts`, `scripts/verify-native-content-artifacts.ts`, `scripts/verify-operation-notification-artifacts.ts`, `scripts/verify-greenfield-card125.ts` and the `scripts/*-artifact-proof/artifacts.ts` modules | Packaged crates compile in a workspace Oxide does not manage, some at `cargo +${MSRV_TOOLCHAIN}` |
+| `scripts/verify-agent-control-release-absence.ts` | Private `target/agent-control-scan` target dir for its release builds |
+| `scripts/verify-agent-tool-dispatch-release-absence.ts` | Private `target/agent-tool-dispatch-scan` target dir for its release build |
 | `scripts/verify-agent-tool-dispatch-source-consumer.ts` | `mktemp -d` consumer with its own target dir |
 | `scripts/verify-desktop-support-conformance.ts` | Disposable private workspace for the consumer |
-| `scripts/verify-source-consumer.sh` (`effigy release:source-consumer`) | Throwaway consumer cloned against the release commit |
+| `scripts/verify-source-consumer.sh` (`effigy release:source-consumer`) | Throwaway consumer cloned against the release commit; Oxide would try to convert its temporary target into an owned link |
 | `cargo tauri build` in the example READMEs | Manual documented commands; `oxide exec` is unproven for the Tauri CLI here |
 
 Genuine Cargo exceptions:
@@ -116,6 +123,17 @@ Integration tests that re-exec themselves (`current_exe()` in
 `longhorn-config`, `longhorn-settings-config`, `longhorn-surfaces-config`) need
 no change: they re-run their own test binary, not a sibling binary beside it,
 and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
+
+### Known release-gate stop point: `advisories`
+
+`effigy release:gates` passes `private-candidate` and stops at `advisories`:
+RUSTSEC-0000-0000 flags `ctutils 0.4.2` from `Cargo.lock` as a vulnerability.
+The stop is the RustSec database against a committed lock, not the routing
+change: `deny.toml` and `Cargo.lock` are untouched by #077, and the same gate
+run on plain `cargo` exits 1 with the same output apart from the `rust runner:`
+line. Clearing it needs a `ctutils` bump, which is its own task, so nothing
+later in `release:gates` is proved here: `docs:rust`, `prototypes`, `floor` and
+`source` are covered by their own selectors instead.
 
 ## Product rules
 

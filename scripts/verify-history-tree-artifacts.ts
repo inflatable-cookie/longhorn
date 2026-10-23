@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
+import { rustCommand } from "./rust-command.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -131,7 +132,14 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const crates = ["longhorn-core", "longhorn-history", "longhorn-history-tree", "longhorn-tauri-history-tree"] as const;
   const identities = [];
   for (const name of crates) {
-    const inventory = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+    // Checkout-level and non-building: `package --list` runs through the switch
+    // point at the MSRV pin. The `test`/`run`/`tree` calls below build in the
+    // `mktemp -d` workspace and stay on Cargo (PENDING OXIDE ONE-USE WORKSPACE
+    // SUPPORT).
+    const inventory = await run(
+      rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
+      repoRoot,
+    );
     if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory is incomplete`);
     const tarArchive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     const archive = `${tarArchive}.gz`;

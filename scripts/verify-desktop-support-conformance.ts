@@ -33,6 +33,8 @@ import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { rustCommand } from "./rust-command.ts";
+
 const repoRoot = resolve(import.meta.dir, "..");
 const consumerName = "longhorn-desktop-support-conformance";
 const exampleRoot = join(repoRoot, "examples/desktop-support-conformance");
@@ -82,9 +84,8 @@ try {
   await cp(join(repoRoot, "Cargo.lock"), join(stage, "Cargo.lock"));
 
   const startedAt = performance.now();
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the consumer builds in the disposable
-  // private workspace staged under `stage`, which Oxide does not manage. This route
-  // and its `cargo package --list` inventories stay on Cargo.
+  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the consumer builds in the private
+  // `stage` workspace, which Oxide does not manage.
   const output = run(["cargo", "run", "-p", consumerName, "--offline", "--quiet"], stage);
   const seconds = Number(((performance.now() - startedAt) / 1000).toFixed(1));
   const lines = output.trim().split("\n");
@@ -179,7 +180,10 @@ async function verifyExampleSources(): Promise<void> {
  * the check that those sources are the ones a package ships.
  */
 function verifyPackageInventory(name: string): { name: string; files: number } {
-  const listing = run(["cargo", "package", "-p", name, "--list", "--allow-dirty"], repoRoot);
+  const listing = run(
+    rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
+    repoRoot,
+  );
   const files = listing.trim().split("\n");
   for (const required of ["Cargo.toml"]) {
     if (!files.includes(required)) throw new Error(`${name}'s package inventory omits ${required}`);
@@ -225,10 +229,10 @@ async function privateWorkspaceManifest(): Promise<string> {
 }
 
 function run(command: readonly string[], cwd: string): string {
-  // Plain Cargo, not `scripts/rust-command.sh`: the consumer and its
-  // dependencies build in a disposable private workspace that Oxide does not
-  // manage, exactly as the greenfield artifact proof does. The package
-  // inventories run here because no selector compiles them.
+  // `scripts/rust-command.sh` for the checkout-level `package --list`
+  // inventories; plain Cargo for the consumer build, which runs in a
+  // disposable private workspace that Oxide does not manage (PENDING OXIDE
+  // ONE-USE WORKSPACE SUPPORT).
   const result = spawnSync(command[0]!, command.slice(1), {
     cwd,
     encoding: "utf8",

@@ -9,7 +9,19 @@ import { join, resolve } from "node:path";
 const repositoryRoot = resolve(import.meta.dir, "..");
 const switchPoint = join(repositoryRoot, "scripts", "rust-command.sh");
 
-/** Full argv for the given Cargo arguments, run through the switch point. */
-export function rustCommand(args: readonly string[]): string[] {
-  return ["bash", switchPoint, ...args];
+/**
+ * Full argv for the given Cargo arguments, run through the switch point.
+ *
+ * `toolchain` mirrors `cargo +<toolchain>`: Oxide refuses a `+` argument, so
+ * the pin travels as `RUSTUP_TOOLCHAIN`, which is also what `cargo` reads when
+ * the same argv runs on a runner.
+ */
+export function rustCommand(
+  args: readonly string[],
+  toolchain?: string,
+): string[] {
+  const command = ["bash", switchPoint, ...args];
+  return toolchain === undefined
+    ? command
+    : ["env", `RUSTUP_TOOLCHAIN=${toolchain}`, ...command];
 }
