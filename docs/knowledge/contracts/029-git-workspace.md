@@ -820,14 +820,15 @@ Part 5b's deltas from `git/mechanism/auth.rs` at `4993376c`:
 
 ## Extraction state
 
-Contract 003 steps 1 to 4 are done for unit 5. The donor is admitted at
-`4993376c`; part 5a and part 5b are compiled, specified here, and proved by
-real-Git and loopback integration tests; the crate has its selectors, its QA
-group and its documentation. Unit 5 is complete in Longhorn.
-
-Step 5, consumer migration, needs a Longhorn release after this merges and
-Tom's approval, then the Acowtancy Supervisor routes the Desktop change;
-Longhorn does not write to Acowtancy.
+Contract 003 steps 1 to 7 are done for unit 5. The donor was admitted at
+`4993376c`, after Acowtancy split its product remote policy out (acowtancy-v2
+#700, PR 984). Parts 5a and 5b are specified here and proved by real-Git and
+loopback integration tests. Acowtancy Desktop migrated in acowtancy-v2 #722
+(PR 1009, merged 2026-10-23 at `8404fdb7`): it takes every Longhorn crate at
+`v0.4.2`, its `git/mechanism/` copy is removed, and `DesktopGit` is its
+`GitPolicy`. The OAuth registration, credential slot, allowed remote, branch
+policy and all copy stay in Desktop. Desktop turns on `fixture-server` only in
+its `dev` feature. Longhorn's contract and tests are now authoritative.
 
 Step 6 is done by the neutral second consumer at
 `examples/desktop-support-conformance/` (task 078, Tom approved 2026-10-23). A
@@ -855,11 +856,6 @@ grant's single-use refresh (the stored access token is still outside its refresh
 rotation rows, sign-out, and the commit identity, whose profile route the
 loopback server does not serve. Those stay with the crate's own `auth`,
 `commit_identity` and `askpass` suites under `test:git-workspace`.
-
-Open:
-
-- Step 5 for unit 5: no Longhorn release carrying this crate has been cut and
-  Acowtancy Desktop has not migrated yet.
 
 ## Stop conditions
 
