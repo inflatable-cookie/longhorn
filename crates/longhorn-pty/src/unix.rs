@@ -15,8 +15,8 @@ use rustix::fd::OwnedFd;
 use rustix::fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open as open_file};
 use rustix::io::{Errno, FdFlags, dup, fcntl_setfd};
 use rustix::process::{
-    Pid, Signal, WaitOptions, WaitStatus, ioctl_tiocsctty, kill_process_group, setsid,
-    test_kill_process_group, waitpid,
+    Pid, Signal, WaitId, WaitIdOptions, WaitOptions, WaitStatus, ioctl_tiocsctty,
+    kill_process_group, setsid, test_kill_process_group, waitid, waitpid,
 };
 use rustix::pty::{OpenptFlags, grantpt, openpt, ptsname, unlockpt};
 use rustix::termios::{Winsize, tcsetwinsize};
@@ -405,19 +405,44 @@ pub(crate) fn resize(session: &PtySession, size: PtySize) -> Result<(), Failure>
     tcsetwinsize(master, winsize).map_err(|_| Failure::Resize)?;
     match kill_process_group(process.process_group, Signal::WINCH) {
         Ok(()) => Ok(()),
-        Err(Errno::SRCH) => {
-            if !poll_exit(&mut process, &shared.changed)? {
-                Err(Failure::Ended)
-            } else {
-                Err(Failure::Signal)
-            }
-        }
-        Err(_) => Err(Failure::Signal),
+        Err(error) => match group_failure(Err(error), process.process_group) {
+            None => Err(Failure::Ended),
+            Some(failure) => Err(failure),
+        },
     }
 }
 
 pub(crate) fn close(session: &PtySession) -> Result<(), Failure> {
     close_shared(&session.inner.shared)
+}
+
+/// Classifies a failed process-group signal. `ESRCH` means the group is gone.
+/// macOS and BSDs answer `EPERM` instead when the group holds only zombies, so
+/// `EPERM` counts as gone only when the leader has exited. The leader is read
+/// with `waitid` and `WNOWAIT`: the exit is seen but the zombie is not
+/// collected, so the group identity stays reserved until close finishes. A
+/// live leader that refuses the signal stays a `Signal` failure.
+fn group_failure(result: Result<(), Errno>, process_group: Pid) -> Option<Failure> {
+    match result {
+        Ok(()) | Err(Errno::SRCH) => None,
+        Err(Errno::PERM) => match leader_exited_uncollected(process_group) {
+            Ok(true) => None,
+            Ok(false) => Some(Failure::Signal),
+            Err(_) => Some(Failure::Wait),
+        },
+        Err(_) => Some(Failure::Signal),
+    }
+}
+
+fn leader_exited_uncollected(process_group: Pid) -> Result<bool, Errno> {
+    let options = WaitIdOptions::EXITED | WaitIdOptions::NOHANG | WaitIdOptions::NOWAIT;
+    loop {
+        match waitid(WaitId::Pid(process_group), options) {
+            Ok(status) => return Ok(status.is_some()),
+            Err(Errno::INTR) => {}
+            Err(error) => return Err(error),
+        }
+    }
 }
 
 fn close_shared(shared: &Shared) -> Result<(), Failure> {
@@ -430,24 +455,23 @@ fn close_shared(shared: &Shared) -> Result<(), Failure> {
         process.process_group
     };
 
-    let mut failure = match kill_process_group(process_group, Signal::HUP) {
-        Ok(()) | Err(Errno::SRCH) => None,
-        Err(_) => Some(Failure::Signal),
-    };
+    let mut failure = group_failure(
+        kill_process_group(process_group, Signal::HUP),
+        process_group,
+    );
     thread::sleep(CLOSE_GRACE_PERIOD);
 
     {
         let mut process = process_lock(shared);
-        match test_kill_process_group(process_group) {
-            Ok(()) => {
-                if let Err(error) = kill_process_group(process_group, Signal::KILL)
-                    && error != Errno::SRCH
-                {
-                    failure = Some(Failure::Signal);
-                }
-            }
-            Err(error) if error == Errno::SRCH => {}
-            Err(_) => failure = Some(Failure::Signal),
+        // A probe that finds the group gone sends no KILL. The leader stays a
+        // zombie until the reaper runs after close, so the probe and the
+        // escalation never signal a reaped, reusable group identity.
+        let escalation = match test_kill_process_group(process_group) {
+            Ok(()) => kill_process_group(process_group, Signal::KILL),
+            Err(error) => Err(error),
+        };
+        if let Some(error) = group_failure(escalation, process_group) {
+            failure = Some(error);
         }
         process.closed = true;
         process.closing = false;
@@ -472,4 +496,51 @@ fn abort_child(shared: &Shared) {
         }
     }
     process.closed = true;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_live_leader_that_refuses_a_group_signal_is_a_signal_failure() {
+        let mut child = Command::new("/bin/sleep")
+            .arg("30")
+            .spawn()
+            .expect("the sleeper starts");
+        let process_group = Pid::from_child(&child);
+
+        assert_eq!(
+            group_failure(Err(Errno::PERM), process_group),
+            Some(Failure::Signal)
+        );
+
+        child.kill().expect("the sleeper is stopped");
+        child.wait().expect("the sleeper is reaped");
+    }
+
+    #[test]
+    fn a_zombie_leader_is_gone_and_is_not_collected() {
+        let mut child = Command::new("/bin/sh")
+            .args(["-c", "exit 0"])
+            .spawn()
+            .expect("the shell starts");
+        let process_group = Pid::from_child(&child);
+        // Blocks until the leader exits; WNOWAIT leaves it a zombie.
+        let exited = waitid(
+            WaitId::Pid(process_group),
+            WaitIdOptions::EXITED | WaitIdOptions::NOWAIT,
+        )
+        .expect("the exit is observed");
+        assert!(exited.is_some(), "the leader exited");
+
+        assert_eq!(group_failure(Err(Errno::PERM), process_group), None);
+        assert_eq!(
+            leader_exited_uncollected(process_group),
+            Ok(true),
+            "classification left the zombie for close's reaper"
+        );
+
+        child.wait().expect("the zombie is reaped by its parent");
+    }
 }
