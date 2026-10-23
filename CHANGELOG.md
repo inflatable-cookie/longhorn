@@ -6,6 +6,8 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-23
+
 ### Fixed
 - **`longhorn-pty`: close and resize no longer report `Failure::Signal` for a process group that has already exited.** macOS and BSDs answer `EPERM`, not `ESRCH`, when a group holds only zombies, and close treated that as a live group that refused the signal. An exited leader is read with `waitid` `WNOWAIT`, so the zombie is not collected during close. A live leader that refuses is still `Signal`. Contract 028 records the rule and its one limit.
 
