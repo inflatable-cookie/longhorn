@@ -827,8 +827,33 @@ group and its documentation. Unit 5 is complete in Longhorn.
 
 Step 5, consumer migration, needs a Longhorn release after this merges and
 Tom's approval, then the Acowtancy Supervisor routes the Desktop change;
-Longhorn does not write to Acowtancy. Step 6's second-consumer question is open
-for this unit: no second consumer is named, and contract 003's caveat applies.
+Longhorn does not write to Acowtancy.
+
+Step 6 is done by the neutral second consumer at
+`examples/desktop-support-conformance/` (task 078, Tom approved 2026-10-23). A
+consumer crate staged from the packaged crates into a disposable private
+workspace replays this contract's rows through the public API of parts 5a and
+5b, with real local Git and no network: a clone into an invocation-owned
+staging folder and through the exclusive rename, a second clone refused with the
+existing workspace unchanged, a failed clone that leaves no target, worktree
+status and branch reading, a missing-credential and a missing-repository
+preflight refusal, a sync that fast-forwards and then pushes, a branch switch in
+its switched, already-current, not-found, blocked and remote-tracking readings,
+an attach in all five readings, and a loopback device-flow sign-in whose grant
+lands in an in-memory store under a consumer-scoped slot, read back through
+`fresh_access_token` and spent on a fetch through the askpass bridge, with the
+token proved absent from the child's arguments, the failure detail and the
+returned output. Limits: the flow, the token exchange and the askpass fetch use
+the crate's loopback server with a local bare repository behind the remote, so
+no live GitHub host, real OAuth registration or published release is involved;
+the clone, sync, switch and attach rows run on temporary local repositories, so
+the network and authentication classes are proved by classification and local
+refusals only; the proof is one row set per reading and runs on Unix hosts only.
+
+Open:
+
+- Step 5 for unit 5: no Longhorn release carrying this crate has been cut and
+  Acowtancy Desktop has not migrated yet.
 
 ## Stop conditions
 

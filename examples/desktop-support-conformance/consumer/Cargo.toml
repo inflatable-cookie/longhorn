@@ -1,5 +1,5 @@
 # A neutral second consumer for Longhorn's desktop support crates (contract
-# 003 step 6, contracts 024-028). Every value is a caller value: no product
+# 003 step 6, contracts 024-029). Every value is a caller value: no product
 # name, path, key or rule set appears anywhere in this crate.
 #
 # The workspace dependencies below are inherited on purpose. This manifest is
@@ -20,7 +20,11 @@ path = "src/main.rs"
 [dependencies]
 flate2.workspace = true
 hex.workspace = true
+longhorn-core.workspace = true
 longhorn-diagnostics.workspace = true
+# The loopback fixture server is the crate's off-by-default test support: this
+# consumer is a test build, and the sign-in unit needs it.
+longhorn-git-workspace = { workspace = true, features = ["fixture-server"] }
 longhorn-pty.workspace = true
 longhorn-redact.workspace = true
 longhorn-support-log.workspace = true

@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-10-22
+Updated: 2026-10-23
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -70,7 +70,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `storage-layout` | `check:storage-layout` | `longhorn-storage-layout` (identity, resolver, roots, locator, native facts) plus the workspace-wide API-reference inventory check; `longhorn-config`'s transition suite and every consumer import are workspace Rust lane inputs, not group members. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
 | `git-workspace` | `check:git-workspace` | `longhorn-git-workspace`, its real-Git integration tests and its loopback sign-in suite, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
-| `desktop-support-conformance` | `proof:desktop-support-conformance` | The six staged desktop support crates (024-028 plus `longhorn-archive-path`), the conformance example and its proof script. The crates' own obligations stay in their own groups; this group runs the outside-crate proof only, and it runs on Unix hosts. |
+| `desktop-support-conformance` | `proof:desktop-support-conformance` | The eight staged desktop support crates (024-029 plus `longhorn-archive-path` and `longhorn-core`), the conformance example and its proof script. The crates' own obligations stay in their own groups; this group runs the outside-crate proof only, and it runs on Unix hosts. |
 | `longhorn-ts` | Package selectors for `longhorn` plus its Tauri and Poodle-Svelte consumers | Typechecks and tests the source package and both workspace consumers. |
 | `longhorn-tauri-ts` | `check:ts:longhorn-tauri`, `test:ts:longhorn-tauri` | The Tauri package only. |
 | `longhorn-poodle-svelte-ts` | Its TypeScript check, `check:svelte`, and package Vitest selector | The Poodle-Svelte package only. |
@@ -212,23 +212,25 @@ fixture-gated tests.
 
 **`proof:desktop-support-conformance`** — role: proof. `bun
 scripts/verify-desktop-support-conformance.ts`. Owns the second-consumer claim
-for contracts 024-028 (contract 003 step 6): it stages
-`crates/longhorn-{archive-path,diagnostics,pty,redact,support-log,tool-provision}`
+for contracts 024-029 (contract 003 step 6): it stages
+`crates/longhorn-{archive-path,core,diagnostics,git-workspace,pty,redact,support-log,tool-provision}`
 and `examples/desktop-support-conformance/**` into a disposable private
 workspace, builds the neutral consumer there from packaged crate sources, and
 runs it. The consumer asserts each contract's behaviour through public APIs,
 including a live install against the crate's loopback `fixture-server` with
-the production `CommandRunner`, and a live `/bin/sh` PTY session. Propagation:
+the production `CommandRunner`, a live `/bin/sh` PTY session, and real local
+Git through clone, sync, branch switch and attach with a loopback device-flow
+sign-in and an askpass fetch. Propagation:
 a change to any staged crate source, the example or the script. Companions:
 the crates' own groups (`redact`, `support-log`, `diagnostics`, `tool-provision`,
-`pty`) still own their selects. Admission: unmarked. Not in `qa` and not a
-`proof:artifacts` member: a cold run compiles six crates in a throwaway
-workspace (minutes; seconds with a warm compiler cache). Limits: Unix hosts
-only; the fixture server stands
-in for GitHub (no public network, published release, token or code signature);
-the consumer replays one row set per unit rather than the crates' suites or
-their committed fixtures; and it stages crate sources rather than installing a
-released registry tag.
+`pty`, `git-workspace`) still own their selects. Admission: unmarked. Not in
+`qa` and not a `proof:artifacts` member: a cold run compiles eight crates in a
+throwaway workspace (minutes; seconds with a warm compiler cache). Limits: Unix
+hosts only; the fixture server stands in for GitHub (no public network,
+published release, token or code signature, and the Git unit's remote is a local
+bare repository behind it); the consumer replays one row set per unit rather
+than the crates' suites or their committed fixtures; and it stages crate sources
+rather than installing a released registry tag.
 
 **`docs:rust`** — role: compile (rustdoc). `RUSTDOCFLAGS="-D warnings" cargo
 doc --workspace --no-deps --locked`. Owns all Rust doc comments and crate
@@ -760,7 +762,7 @@ workspace, minutes each):
 | `verify-native-content-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; three prototype Cargo manifests; fixture and generated protocol | yes | None; also invokes `check:bindings`, whose transitive compile closure is an existing planner gap |
 | `verify-greenfield-card125.ts` | `proof-install.ts`, `msrv.ts`, `poodle-release.ts`, `longhorn-version.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes | None; generated Cargo workspace/24-crate compile closure is not mapped to a member group |
 | `verify-pack-typecheck.ts` | `proof-install.ts`, `poodle-release.ts` | none | — | `@inflatable-cookie/longhorn`, `@inflatable-cookie/longhorn-poodle-svelte` | both `packages/<package>/**` trees; root `package.json`; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no | Existing selector; new `longhorn-pack-typecheck` group |
-| `verify-desktop-support-conformance.ts` | none | archive-path, diagnostics, pty, redact, support-log, tool-provision | — | none | `examples/desktop-support-conformance/**`; the consumer's assertions, including a live install against the crate's loopback `fixture-server` and a live `/bin/sh` PTY session | yes | New: `proof:desktop-support-conformance`, `desktop-support-conformance` group (Unix hosts only) |
+| `verify-desktop-support-conformance.ts` | none | archive-path, core, diagnostics, git-workspace, pty, redact, support-log, tool-provision | — | none | `examples/desktop-support-conformance/**`; the consumer's assertions, including a live install against the crate's loopback `fixture-server`, a live `/bin/sh` PTY session, real local Git, and a loopback device-flow sign-in with an askpass fetch | yes | New: `proof:desktop-support-conformance`, `desktop-support-conformance` group (Unix hosts only) |
 
 The 24 Rust crates greenfield stages are `longhorn-bridge`,
 `longhorn-command`, `longhorn-command-config`, `longhorn-command-settings`,
