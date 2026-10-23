@@ -441,8 +441,13 @@ own paths.
   and both expiries, the refresh inside the skew, an access token outside it,
   an expired and a refused refresh token (grant kept), a token-endpoint outage
   (grant kept), a registration error, two concurrent callers causing one
-  exchange, two forced refreshes reusing a rotated grant, a bare stored value,
-  the store readings, sign-out, and the exchange classification. The commit
+  exchange, two forced refreshes reusing a rotated grant, a refresh whose
+  exchange signs out (the slot stays empty) and one whose exchange completes a
+  new sign-in (that grant is adopted and kept), a bare stored value, the store
+  readings, sign-out, and the exchange classification. The production token
+  client is proved against the loopback server for a non-JSON 429, 503 and 200
+  answer (the first two `Offline`, the third `Failed`) and for a body that
+  stalls past the request clock (`TimedOut`). The commit
   identity suite covers the noreply address, the cache across a rotated token
   and a cleared cache, the display-name fallback, an unauthorized, rate-limited
   and unusable profile, an empty slot, and an identity read that refreshes.
@@ -477,6 +482,12 @@ Part 5b's own limits. The device flow, the token exchange and the profile read
 are proved on a loopback server, so the `https` requirement of the production
 constructors is proved by refusal, not by a live TLS request. The flow's wait
 bound is proved at one second of declared wait, not at the 900-second ceiling.
+The body timeout is proved against a loopback server that sends headers and
+withholds the body, at the real ten-second clock. The credential store has no
+conditional write (contract 021), so a refresh closes the sign-out and new
+sign-in windows by re-reading the slot immediately before it writes; a
+sign-out that lands between that read and the write is the one window the crate
+cannot close.
 The askpass bridge and the commit identity are proved on the current host only,
 and the permission rules are checked on Unix. The token exists in `secrecy`
 memory in three places at once during an invocation — the refreshed grant, the
@@ -499,8 +510,13 @@ application builds one.
 Every production endpoint is `https`. Each request follows no redirect, has a
 `TOKEN_REQUEST_TIMEOUT` (10 s) wall clock, and reads at most 64 KiB of the
 answer. A request that times out is `TimedOut`; any other transport error is
-`Offline`. A response body is parsed once and never echoed into a failure, a
-log line or a `Debug` output.
+`Offline`. A body that outlives the same clock — headers received, body still
+arriving — is `TimedOut` too: `reqwest` reports it as an opaque I/O error that
+wraps its own timeout, and the mechanism reads the wrapped value before it
+trusts the kind. A rate limit or a server fault is `Offline` whatever its body
+holds: 429 and 5xx are classified before the body is parsed, because GitHub's
+edge answers a rate limit with a page, not a token document. A response body is
+parsed once and never echoed into a failure, a log line or a `Debug` output.
 
 Plain `http` exists only through the `fixture-server` feature's loopback
 constructors (`DeviceFlowEndpoints::loopback_for_tests`,
@@ -587,6 +603,13 @@ The exchange posts `client_id`, `grant_type=refresh_token` and the refresh
 token in a form body, never in a URL. A successful answer replaces both tokens
 in the store; an answer without a refresh token is `Failed` and the stored
 grant is left in place.
+
+A refresh writes only over the grant it read. The exchange takes time and the
+store has no conditional write, so the slot can be emptied by `sign_out` or
+replaced by a new sign-in while it runs. The slot is read again after the
+exchange and the write is abandoned when it no longer holds this grant: a
+signed-out slot stays empty and the call reports no token, and a newer sign-in
+is adopted as it stands rather than overwritten by a stale refresh.
 
 A missing or expired refresh token is `SignInExpired` when the caller forced a
 refresh or the grant declares an access expiry; otherwise the stored token is

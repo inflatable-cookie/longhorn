@@ -346,6 +346,12 @@ impl TokenClient for GithubTokenClient {
         let client = build_client()?;
         let response = post_form(&client, &self.url, fields)?;
         let (status, body) = read_body(response)?;
+        // An outage is an outage whatever its body holds. GitHub's edge
+        // answers a rate limit with a page, not a token document, so the
+        // status is read before the body.
+        if is_outage(status) {
+            return Err(GithubAuthFailure::Offline);
+        }
         let parsed = parse_body(&body)?;
         classify_token_exchange(status, parsed)
     }
@@ -550,6 +556,9 @@ pub fn write_grant(
 
 /// Removes the grant from the caller's slot. Removing an empty slot succeeds.
 ///
+/// A refresh never writes a removed grant back: see
+/// [`fresh_access_token`], which re-reads the slot before it writes.
+///
 /// # Errors
 ///
 /// Returns [`GithubAuthFailure::CredentialStoreUnavailable`] when the store
@@ -569,6 +578,13 @@ pub fn sign_out(scope: &CredentialScope<'_>) -> Result<(), GithubAuthFailure> {
 /// adopts the rotated grant. `rejected_access` names an access token the remote
 /// refused: when the stored grant already holds another value, that rotated
 /// grant is reused instead of spending the refresh token again.
+///
+/// A refresh writes only over the grant it read. The exchange takes time and
+/// the store has no conditional write, so the slot can be emptied by a
+/// [`sign_out`] or replaced by a new sign-in while it runs: the slot is read
+/// again and, when it no longer holds this grant, the write is abandoned. A
+/// sign-out therefore stays signed out (`Ok(None)`), and a newer sign-in is
+/// adopted (`Ok(Some(..))` of its token) instead of being overwritten.
 ///
 /// The call does no waiting of its own beyond its token request's
 /// [`TOKEN_REQUEST_TIMEOUT`], so a caller inside
@@ -620,8 +636,23 @@ pub fn fresh_access_token(
     if refreshed.refresh_token.is_none() {
         return Err(GithubAuthFailure::Failed);
     }
-    write_grant(scope, &refreshed)?;
-    Ok(Some(refreshed.access_token))
+    // The exchange takes time, and the store has no conditional write, so a
+    // sign-out or a new sign-in can land while it runs. Re-read the slot and
+    // write only over the grant this refresh started from: a signed-out grant
+    // is never resurrected, and a newer sign-in is adopted instead of being
+    // overwritten by a stale refresh.
+    match read_grant(scope)? {
+        None => Ok(None),
+        Some(current)
+            if current.access_token.expose_secret() != grant.access_token.expose_secret() =>
+        {
+            Ok(Some(current.access_token))
+        }
+        Some(_) => {
+            write_grant(scope, &refreshed)?;
+            Ok(Some(refreshed.access_token))
+        }
+    }
 }
 
 /// Forces a refresh after a remote rejected `rejected_access`.
@@ -866,8 +897,26 @@ pub(crate) fn read_body(response: Response) -> Result<(u16, Vec<u8>), GithubAuth
     response
         .take(MAX_RESPONSE_BYTES)
         .read_to_end(&mut body)
-        .map_err(|_| GithubAuthFailure::Offline)?;
+        .map_err(read_error)?;
     Ok((status, body))
+}
+
+/// A body that could not be read: the request's own wall clock may have
+/// expired between the headers and the body.
+///
+/// `reqwest` reports that case as an opaque I/O error wrapping its own timeout,
+/// so the wrapped value is read before the kind is trusted.
+fn read_error(error: std::io::Error) -> GithubAuthFailure {
+    let timed_out = error.kind() == std::io::ErrorKind::TimedOut
+        || error
+            .get_ref()
+            .and_then(|source| source.downcast_ref::<reqwest::Error>())
+            .is_some_and(reqwest::Error::is_timeout);
+    if timed_out {
+        GithubAuthFailure::TimedOut
+    } else {
+        GithubAuthFailure::Offline
+    }
 }
 
 fn parse_body<T: serde::de::DeserializeOwned>(body: &[u8]) -> Result<T, GithubAuthFailure> {

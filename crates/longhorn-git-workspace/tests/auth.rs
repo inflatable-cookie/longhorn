@@ -21,9 +21,9 @@ use longhorn_core::{CredentialSlot, CredentialStore, MemoryCredentialStore};
 use longhorn_git_workspace::{
     ACCESS_REFRESH_SKEW, AccessTokenResponse, CredentialScope, CredentialStoreReading,
     DEFAULT_POLL_INTERVAL, DeviceFlowEndpoints, GITHUB_DEVICE_VERIFICATION_URL, GithubAuthFailure,
-    GithubAuthProgress, GithubTokenClient, MAX_DEVICE_WAIT, TokenClient, TokenGrant,
-    classify_token_exchange, force_refresh_token, fresh_access_token, read_credential_presence,
-    read_grant, run_device_flow, sign_out, write_grant,
+    GithubAuthProgress, GithubTokenClient, MAX_DEVICE_WAIT, TOKEN_REQUEST_TIMEOUT, TokenClient,
+    TokenGrant, classify_token_exchange, force_refresh_token, fresh_access_token,
+    read_credential_presence, read_grant, run_device_flow, sign_out, write_grant,
 };
 use longhorn_git_workspace::{FixtureRoute, FixtureServer};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -916,6 +916,186 @@ fn sign_out_removes_the_grant_and_repeats_cleanly() {
             .is_none()
     );
     sign_out(&scope(&store, &slot)).expect("removing an empty slot is quiet");
+}
+
+/// A token client that signs the operator out while its exchange is in flight,
+/// as a second surface of the same application could.
+struct SigningOutClient<'a> {
+    store: &'a MemoryCredentialStore,
+    slot: &'a CredentialSlot,
+}
+
+impl TokenClient for SigningOutClient<'_> {
+    fn exchange(&self, _fields: &[(&str, &str)]) -> Result<AccessTokenResponse, GithubAuthFailure> {
+        sign_out(&CredentialScope {
+            store: self.store,
+            slot: self.slot,
+        })?;
+        Ok(token_response(
+            "access-after-sign-out",
+            "refresh-rotated",
+            28_800,
+        ))
+    }
+}
+
+/// A token client that completes a new sign-in while its exchange is in flight.
+struct SigningInClient<'a> {
+    store: &'a MemoryCredentialStore,
+    slot: &'a CredentialSlot,
+}
+
+impl TokenClient for SigningInClient<'_> {
+    fn exchange(&self, _fields: &[(&str, &str)]) -> Result<AccessTokenResponse, GithubAuthFailure> {
+        write_grant(
+            &CredentialScope {
+                store: self.store,
+                slot: self.slot,
+            },
+            &TokenGrant {
+                access_token: SecretString::from("access-new-sign-in"),
+                access_expires_at: Some(SystemTime::now() + Duration::from_secs(28_800)),
+                refresh_token: Some(SecretString::from("refresh-new-sign-in")),
+                refresh_expires_at: Some(SystemTime::now() + Duration::from_secs(15_897_600)),
+            },
+        )?;
+        Ok(token_response("access-rotated", "refresh-rotated", 28_800))
+    }
+}
+
+#[test]
+fn a_refresh_that_finishes_after_sign_out_leaves_the_grant_removed() {
+    let store = MemoryCredentialStore::new();
+    let slot = test_slot();
+    let now = SystemTime::now();
+    seed_grant(
+        &store,
+        "access-soon",
+        Some(60),
+        Some("refresh-valid"),
+        Some(86_400),
+        now,
+    );
+    let client = SigningOutClient {
+        store: &store,
+        slot: &slot,
+    };
+
+    let token = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, false, None)
+        .expect("a sign-out during the exchange is not a failure");
+
+    assert!(token.is_none(), "the signed-out slot yields no token");
+    assert_eq!(
+        read_credential_presence(&scope(&store, &slot)),
+        CredentialStoreReading::Missing,
+        "the refresh must not write the grant back"
+    );
+}
+
+#[test]
+fn a_refresh_never_overwrites_a_newer_sign_in() {
+    let store = MemoryCredentialStore::new();
+    let slot = test_slot();
+    let now = SystemTime::now();
+    seed_grant(
+        &store,
+        "access-soon",
+        Some(60),
+        Some("refresh-valid"),
+        Some(86_400),
+        now,
+    );
+    let client = SigningInClient {
+        store: &store,
+        slot: &slot,
+    };
+
+    let token = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, false, None)
+        .expect("the exchange still answers")
+        .expect("a grant is stored");
+
+    assert_eq!(token.expose_secret(), "access-new-sign-in");
+    let stored = read_grant(&scope(&store, &slot))
+        .expect("the store is readable")
+        .expect("a grant is stored");
+    assert_eq!(stored.access_token.expose_secret(), "access-new-sign-in");
+    assert_eq!(
+        stored
+            .refresh_token
+            .as_ref()
+            .map(|token| token.expose_secret().to_owned()),
+        Some("refresh-new-sign-in".to_owned())
+    );
+}
+
+#[test]
+fn an_outage_is_offline_even_when_its_body_is_not_a_token_document() {
+    let server = FixtureServer::spawn(vec![
+        FixtureRoute::new("/rate-limited", 429, "Too Many Requests"),
+        FixtureRoute::new("/unavailable", 503, "<html>Service Unavailable</html>"),
+        FixtureRoute::new("/not-json", 200, "not a token document"),
+    ])
+    .expect("a loopback fixture server");
+
+    for (path, expected) in [
+        ("/rate-limited", GithubAuthFailure::Offline),
+        ("/unavailable", GithubAuthFailure::Offline),
+        ("/not-json", GithubAuthFailure::Failed),
+    ] {
+        let client =
+            GithubTokenClient::loopback_for_tests(&server.url(path)).expect("a loopback client");
+        assert_eq!(
+            client
+                .exchange(&[("client_id", CLIENT_ID), ("grant_type", "refresh_token")])
+                .expect_err("the endpoint answers without a token"),
+            expected,
+            "{path}"
+        );
+    }
+}
+
+/// A loopback server that sends response headers and a partial body, then holds
+/// the connection until the client drops it.
+fn stalling_token_endpoint() -> (String, std::thread::JoinHandle<()>) {
+    use std::io::{Read as _, Write as _};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("a loopback listener");
+    let port = listener.local_addr().expect("the bound port").port();
+    let worker = thread::spawn(move || {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        let mut request = [0u8; 1024];
+        let _ = stream.read(&mut request);
+        let _ = stream.write_all(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 64\r\nContent-Type: application/json\r\n\r\n{\"access_token\":",
+        );
+        let _ = stream.flush();
+        // Block until the client gives up and closes the connection.
+        let mut sink = [0u8; 1];
+        let _ = stream.read(&mut sink);
+    });
+    (format!("http://127.0.0.1:{port}/token"), worker)
+}
+
+#[test]
+fn a_body_that_outlives_the_request_timeout_is_a_timeout() {
+    let (url, worker) = stalling_token_endpoint();
+    let client = GithubTokenClient::loopback_for_tests(&url).expect("a loopback client");
+    let started = Instant::now();
+
+    let failure = client
+        .exchange(&[("client_id", CLIENT_ID), ("grant_type", "refresh_token")])
+        .expect_err("the body never arrives");
+
+    assert_eq!(failure, GithubAuthFailure::TimedOut);
+    assert!(
+        started.elapsed() < TOKEN_REQUEST_TIMEOUT + Duration::from_secs(5),
+        "the body read ran for {:?}",
+        started.elapsed()
+    );
+    let _ = worker.join();
 }
 
 #[test]

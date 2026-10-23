@@ -72,6 +72,9 @@ Part 5b is GitHub sign-in in the same crate:
 - `fresh_access_token` and `force_refresh_token` refresh inside the five-minute
   skew under one process-wide lock, so concurrent callers cause one exchange,
   and a refused refresh reports `SignInExpired` while leaving the grant in place.
+  A refresh writes only over the grant it read, so a sign-out that lands while
+  the exchange runs stays signed out and a newer sign-in is adopted rather than
+  overwritten.
 - `GithubCommitIdentityResolver` derives the operator's Git name and GitHub
   noreply address from the stored grant, caching per account and per token
   digest.
