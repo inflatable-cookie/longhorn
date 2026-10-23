@@ -1,6 +1,6 @@
 //! A neutral second consumer for Longhorn's desktop support crates.
 //!
-//! This binary is contract 003 step 6's proof for contracts 024 to 028. It is
+//! This binary is contract 003 step 6's proof for contracts 024 to 029. It is
 //! staged and built outside the Longhorn workspace, from packaged crate
 //! sources, and uses only each crate's public API. Every value it passes in is
 //! a caller value: a seeded secret, a rule set, a capacity, a bound, a section
@@ -12,6 +12,14 @@
 //! held.
 
 mod bundle;
+#[cfg(unix)]
+mod git;
+#[cfg(not(unix))]
+mod git {
+    pub(crate) fn run() -> String {
+        panic!("contract 029's real-Git unit runs on Unix hosts only")
+    }
+}
 mod logs;
 #[cfg(unix)]
 mod pty;
@@ -34,6 +42,7 @@ fn main() -> ExitCode {
         ("026 longhorn-diagnostics", bundle::run()),
         ("027 longhorn-tool-provision", provision::run()),
         ("028 longhorn-pty", pty::run()),
+        ("029 longhorn-git-workspace", git::run()),
     ];
 
     println!("desktop support conformance (contract 003 step 6)");

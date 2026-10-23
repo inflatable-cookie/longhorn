@@ -2,7 +2,7 @@
 
 A neutral second consumer for Longhorn's desktop support crates. Contract 003
 step 6 asks each extracted mechanism for a second consumer's conformance or
-adoption; contracts 024 to 028 record their own extraction against Acowtancy
+adoption; contracts 024 to 029 record their own extraction against Acowtancy
 Desktop, and this example is the second consumer that lets step 6 close.
 
 | Unit | Crate | What it proves |
@@ -12,13 +12,15 @@ Desktop, and this example is the second consumer that lets step 6 close.
 | 026 | `longhorn-diagnostics` | `render` over facts that include a `RingRecord` tail: the exact layout, redact-last (a span across a label and its value), CR/LF escaping, empty-section sentences, the marker count |
 | 027 | `longhorn-tool-provision` | A live install against the crate's loopback `fixture-server`: resolve, a bounded download, a checksum file, tar.gz extraction, a `CommandRunner` version probe, the swap, the receipt and health, then a pinned upgrade, a current short-circuit and a forced rollback |
 | 028 | `longhorn-pty` | A live `/bin/sh` session: output, a stdin round trip, a resize the child reads back, the exit code, and a close that escalates to `SIGKILL` |
+| 029 | `longhorn-git-workspace` | Real local Git: clone into staging and through the exclusive rename (a second clone refused, a failed clone leaving no target), worktree status and branch reading, two preflight refusals, sync fast-forward and push, branch switch, attach in every reading, and a loopback device-flow sign-in whose token reaches Git only through the askpass environment |
 
 `consumer/` is the whole consumer: one binary and one manifest. It is a
 template, not a workspace member. `scripts/verify-desktop-support-conformance.ts`
-copies the six crates and this consumer into a disposable private workspace,
-writes a manifest naming only those crates, and builds the consumer there, so
-every assertion goes through a public API as an outside crate. The consumer
-inherits workspace dependencies because that private workspace supplies them.
+copies the eight staged crates and this consumer into a disposable private
+workspace, writes a manifest naming only those crates, and builds the consumer
+there, so every assertion goes through a public API as an outside crate. The
+consumer inherits workspace dependencies because that private workspace supplies
+them.
 
 Run it:
 
@@ -34,15 +36,17 @@ Inputs to change with care:
 - The crate list in the proof script. It is the staged set; a crate missing from
   it is a unit with no second consumer.
 - The consumer manifest's dependency block. The proof fails if it names a crate
-  outside the six.
+  outside the staged set.
 
 Limits, recorded in `effigy.toml` as the `desktop-support-conformance` group's
 proof limits:
 
-- Unix hosts only. The PTY unit starts real children and the install unit needs
-  POSIX file modes.
+- Unix hosts only. The PTY unit starts real children, the install unit needs
+  POSIX file modes, and the Git unit needs the same-parent exclusive rename.
 - The fixture server stands in for GitHub. No request leaves the host, and no
-  published release, API token or code signature is involved.
+  published release, API token or code signature is involved. The Git unit's
+  device flow and askpass fetch use that server with a local bare repository
+  behind the remote.
 - Crates are staged from their packaged sources. Nothing is installed from a
   registry, and no release tag is exercised.
 - It runs one row set per unit. It does not repeat the crates' own suites.

@@ -1,8 +1,8 @@
 // Desktop support second-consumer conformance (contract 003 step 6).
 //
-// Contracts 024 to 028 each need a second consumer's conformance before their
+// Contracts 024 to 029 each need a second consumer's conformance before their
 // extraction is done. This proof is that consumer, and it is deliberately not
-// another Longhorn test: the six desktop support crates are copied out of the
+// another Longhorn test: the desktop support crates are copied out of the
 // workspace, a neutral consumer crate beside them is built from their packaged
 // sources only, and every assertion runs through their public APIs.
 //
@@ -11,22 +11,25 @@
 //
 // - The consumer lives under `examples/desktop-support-conformance/`, is not a
 //   root workspace member, and is built in a disposable private workspace
-//   whose manifest names only the six crates.
+//   whose manifest names only the staged crates.
 // - It imports no workspace path, reads no fixture from this repository, and
-//   carries no product value: every secret, capacity, bound, rule set, section
-//   and release query is its own.
+//   carries no product value: every secret, capacity, bound, rule set, section,
+//   release query, remote and credential slot is its own.
 // - It runs the live paths Acowtancy's adoption only compiled: a real tool
 //   install against the crate's loopback `fixture-server` (with a real
-//   `CommandRunner` version probe), and a real `/bin/sh` PTY session.
+//   `CommandRunner` version probe), a real `/bin/sh` PTY session, and real local
+//   Git through clone, sync, branch switch and attach, with a loopback
+//   device-flow sign-in and an askpass fetch.
 //
-// Unix hosts only: the PTY unit starts real child processes and the install
-// unit needs POSIX file modes. The fixture server stands in for GitHub, so no
-// request leaves the host and no release, token or code signature is involved.
+// Unix hosts only: the PTY unit starts real child processes, the install unit
+// needs POSIX file modes and the Git unit needs the same-parent exclusive
+// rename. The fixture server stands in for GitHub, so no request leaves the
+// host and no release, token or code signature is involved.
 //
-// A cold run compiles the six crates and their dependency graph in the private
-// workspace, which is minutes; with a warm compiler cache it is seconds. Either
-// way it is a standalone selector, not a member of `qa`. Keep the stage for
-// inspection with KEEP_DESKTOP_SUPPORT_CONFORMANCE=1.
+// A cold run compiles the staged crates and their dependency graph in the
+// private workspace, which is minutes; with a warm compiler cache it is
+// seconds. Either way it is a standalone selector, not a member of `qa`. Keep
+// the stage for inspection with KEEP_DESKTOP_SUPPORT_CONFORMANCE=1.
 
 import { spawnSync } from "node:child_process";
 import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -38,10 +41,15 @@ const consumerName = "longhorn-desktop-support-conformance";
 const exampleRoot = join(repoRoot, "examples/desktop-support-conformance");
 const consumerRoot = join(exampleRoot, "consumer");
 
-/** The crates the proof stages. Contract 027's shared path rule travels with it. */
+/**
+ * The crates the proof stages. Contract 027's shared path rule travels with it,
+ * and contract 029's credential-slot vocabulary comes from `longhorn-core`.
+ */
 const crates = [
   "longhorn-archive-path",
+  "longhorn-core",
   "longhorn-diagnostics",
+  "longhorn-git-workspace",
   "longhorn-pty",
   "longhorn-redact",
   "longhorn-support-log",
@@ -49,7 +57,7 @@ const crates = [
 ] as const;
 
 /** The units the consumer asserts, in the order it runs them. */
-const units = ["024", "025", "026", "027", "028"] as const;
+const units = ["024", "025", "026", "027", "028", "029"] as const;
 
 /** The crate each unit exercises. */
 const unitCrates: Record<(typeof units)[number], readonly string[]> = {
@@ -58,6 +66,7 @@ const unitCrates: Record<(typeof units)[number], readonly string[]> = {
   "026": ["longhorn-diagnostics"],
   "027": ["longhorn-tool-provision"],
   "028": ["longhorn-pty"],
+  "029": ["longhorn-git-workspace"],
 };
 
 const platform = process.platform;
@@ -104,8 +113,8 @@ try {
           output: lines,
         },
         proofLimits: [
-          "Unix hosts only: the PTY unit starts real /bin/sh children and the install unit needs POSIX file modes",
-          "The crate's loopback fixture server stands in for GitHub: no public network, no published release, no API token and no code signature",
+          "Unix hosts only: the PTY unit starts real /bin/sh children, the install unit needs POSIX file modes and the Git unit needs the same-parent exclusive rename",
+          "The crate's loopback fixture server stands in for GitHub: no public network, no published release, no API token and no code signature; the Git unit's device flow and askpass fetch run against it with a local bare repository behind the remote",
           "Crates are staged from their packaged sources into a disposable workspace; nothing is installed from a registry",
           "Runs one contract row set per unit; it does not repeat the crates' own suites",
         ],
@@ -144,9 +153,9 @@ async function verifyExampleSources(): Promise<void> {
       throw new Error(`the consumer depends on ${name}, which is not a desktop support crate`);
     }
   }
-  // The five unit crates are direct dependencies. `longhorn-archive-path` is
-  // staged but not imported here: it is contract 027's shared path rule, which
-  // travels with `longhorn-tool-provision`.
+  // The unit crates are direct dependencies. `longhorn-archive-path` is staged
+  // but not imported here: it is contract 027's shared path rule, which travels
+  // with `longhorn-tool-provision`.
   for (const name of units.flatMap((unit) => unitCrates[unit])) {
     if (!declared.includes(name)) throw new Error(`the consumer does not depend on ${name}`);
   }
@@ -188,7 +197,7 @@ function verifyPackageInventory(name: string): { name: string; files: number } {
 }
 
 /**
- * The private workspace: only the six crates and the consumer, with the
+ * The private workspace: only the staged crates and the consumer, with the
  * repository's `[workspace.package]`, dependency versions and lints. Every
  * `longhorn-*` dependency line outside the selected set is dropped, so nothing
  * the consumer builds can reach a crate this proof does not stage.
