@@ -3,8 +3,13 @@
 Longhorn is a pre-1.0 workspace of shared Rust and Svelte/TypeScript systems
 for Tauri desktop apps, with GPUI as a second first-class host. Four consumers are migrated: Nucleus, Loophole, Soundcheck and Jetstream. A minimal consumer was retired on 2026-10-22 ([Q-006](knowledge/questions.md)).
 
-- **Released:** `0.4.2` (2026-10-23). Three npm packages under
-  `@inflatable-cookie` and git tag `v0.4.2` for the Rust crates. `0.4.2`
+- **Released:** `0.4.3` (2026-10-24). Three npm packages under
+  `@inflatable-cookie` and git tag `v0.4.3` for the Rust crates. `0.4.3`
+  fixes PTY close and resize for exited process groups
+  ([contract 028](knowledge/contracts/028-pty-sessions.md)) and updates Tokio to
+  `1.53.3` in the workspace and affected prototype locks for
+  `RUSTSEC-2026-0386`. Git-tag consumers still need a patched Tokio in their
+  own lockfiles ([release contract](knowledge/contracts/release.md#lock-maintenance)). `0.4.2`
   adds `longhorn-git-workspace`
   ([contract 029](knowledge/contracts/029-git-workspace.md)): Git workspace
   execution, status, sync, clone and attach, plus GitHub device-flow sign-in
