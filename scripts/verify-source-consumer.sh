@@ -138,20 +138,28 @@ mkdir -p "$release_consumer_root/target"
 
 # One exec lease over the throwaway consumer's workspace per call. The tool
 # inside each lease is plain Cargo, never Oxide: a nested lease takes its own
-# slot and can deadlock the host permits.
-release_rust() {
-  bash scripts/rust-command.sh exec \
-    --manifest-path "$release_consumer_root/Cargo.toml" \
-    -- "$@"
+# slot and can deadlock the host permits. Cargo is also pointed at that
+# workspace explicitly, because this script runs from the repository root and
+# Cargo would otherwise resolve the repository's own workspace.
+release_manifest="$release_consumer_root/Cargo.toml"
+
+release_exec() {
+  bash scripts/rust-command.sh exec --manifest-path "$release_manifest" -- "$@"
 }
 
-release_rust cargo generate-lockfile
-release_rust \
+release_cargo() {
+  local subcommand=$1
+  shift
+  release_exec cargo "$subcommand" --manifest-path "$release_manifest" "$@"
+}
+
+release_cargo generate-lockfile
+release_exec \
   bash scripts/private-cargo.sh --target "$release_scratch" -- \
-  cargo check --locked
+  cargo check --locked --manifest-path "$release_manifest"
 
 release_metadata="$release_tmp/metadata.json"
-release_rust cargo metadata --format-version 1 --locked > "$release_metadata"
+release_cargo metadata --format-version 1 --locked > "$release_metadata"
 # Every Longhorn package except the throwaway consumer itself must carry a git
 # source at the exact commit.
 #
