@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,6 +49,50 @@ exit "\${FAKE_TOOL_EXIT:-0}"
   }
 
   return { bin, capture };
+}
+
+/**
+ * Fake Oxide that records its own environment and then runs the tool after
+ * `--`, plus a fake Cargo for that tool. This is how the placement rule is
+ * exercised end to end: the outer lease and the inner Cargo each report the
+ * Cargo output variables they saw.
+ */
+async function passthroughSandbox() {
+  const root = await mkdtemp(join(tmpdir(), "longhorn-rust-exec-"));
+  temporaryDirectories.push(root);
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  const outer = join(root, "outer");
+  const inner = join(root, "inner");
+
+  await writeFile(
+    join(bin, "oxide"),
+    "#!/usr/bin/env bash\n" +
+      "{\n" +
+      "  printf 'tool=oxide\\n'\n" +
+      "  for argument in \"$@\"; do printf 'arg=%s\\n' \"$argument\"; done\n" +
+      "  printf 'env=CARGO_TARGET_DIR=%s\\n' \"${CARGO_TARGET_DIR-<unset>}\"\n" +
+      "  printf 'env=CARGO_BUILD_BUILD_DIR=%s\\n' \"${CARGO_BUILD_BUILD_DIR-<unset>}\"\n" +
+      "} > \"$RUST_COMMAND_CAPTURE\"\n" +
+      "while (($#)); do\n" +
+      "  if [[ \"$1\" == \"--\" ]]; then shift; break; fi\n" +
+      "  shift\n" +
+      "done\n" +
+      "exec \"$@\"\n",
+  );
+  await writeFile(
+    join(bin, "cargo"),
+    "#!/bin/sh\n" +
+      "{\n" +
+      "  printf 'tool=cargo\\n'\n" +
+      "  for argument in \"$@\"; do printf 'arg=%s\\n' \"$argument\"; done\n" +
+      "  printf 'env=CARGO_TARGET_DIR=%s\\n' \"${CARGO_TARGET_DIR-<unset>}\"\n" +
+      "  printf 'env=CARGO_BUILD_BUILD_DIR=%s\\n' \"${CARGO_BUILD_BUILD_DIR-<unset>}\"\n" +
+      "} > \"$RUST_COMMAND_INNER_CAPTURE\"\n",
+  );
+  await chmod(join(bin, "oxide"), 0o755);
+  await chmod(join(bin, "cargo"), 0o755);
+  return { bin, outer, inner };
 }
 
 type Invocation = {
@@ -192,6 +236,43 @@ describe("Rust exec routing", () => {
     expect(result.run.startsWith("tool=oxide\narg=exec\narg=--\narg=cargo\n")).toBe(true);
     expect(result.run).not.toContain("--manifest-path");
     expect(result.run).not.toContain("--profile");
+  });
+
+  test("keeps the private output directories inside the lease, not on it", async () => {
+    // Oxide replaces a `CARGO_TARGET_DIR` inherited on the outer exec call with
+    // `<workspace>/target`, and the same holds for the scan build directory. The
+    // private directories therefore have to be set by the tool the lease runs.
+    const { bin, outer, inner } = await passthroughSandbox();
+    const result = await invoke(
+      bin,
+      outer,
+      [
+        "exec",
+        "--manifest-path",
+        "/scratch/staged/Cargo.toml",
+        "--",
+        "bash",
+        privateHelper,
+        "--target",
+        "/scratch/final",
+        "--build-dir",
+        "--",
+        "cargo",
+        "run",
+        "--locked",
+      ],
+      { RUST_COMMAND_INNER_CAPTURE: inner },
+    );
+
+    expect(result.exitCode).toBe(0);
+    // The lease itself carries no Cargo output override.
+    expect(result.run).toContain("tool=oxide");
+    expect(result.run).toContain("env=CARGO_TARGET_DIR=<unset>");
+    expect(result.run).toContain("env=CARGO_BUILD_BUILD_DIR=<unset>");
+    // The tool's Cargo child does.
+    const innerRun = await readFile(inner, "utf8");
+    expect(innerRun).toContain("env=CARGO_TARGET_DIR=/scratch/final");
+    expect(innerRun).toContain("env=CARGO_BUILD_BUILD_DIR=/scratch/final");
   });
 
   test("pins the toolchain before the lease and hands it to the tool", async () => {
@@ -431,60 +512,84 @@ describe("Switch point argv", () => {
   });
 });
 
+const externalScratchOwner = process.env.OXIDE_TASK_SCRATCH_ROOT ?? "/Volumes/Builds/scratch";
+const externalScratchAvailable = (await stat(externalScratchOwner).catch(() => null))?.isDirectory() ?? false;
+
 describe("Task scratch", () => {
-  test("allocates on the configured scratch root and removes only its own directory", async () => {
-    const base = await mkdtemp(join(tmpdir(), "longhorn-scratch-root-"));
-    temporaryDirectories.push(base);
+  async function withConfiguredRoot<T>(value: string | undefined, body: () => Promise<T>): Promise<T> {
     const previous = process.env.OXIDE_TASK_SCRATCH_ROOT;
-    process.env.OXIDE_TASK_SCRATCH_ROOT = base;
+    if (value === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
+    else process.env.OXIDE_TASK_SCRATCH_ROOT = value;
     try {
-      const scratch = await taskScratch("longhorn-proof");
-      expect(scratch.root.startsWith(join(base, "longhorn-proof-"))).toBe(true);
-      expect((await stat(scratch.root)).isDirectory()).toBe(true);
-      await scratch.dispose();
-      await expect(stat(scratch.root)).rejects.toThrow();
-      expect((await stat(base)).isDirectory()).toBe(true);
+      return await body();
     } finally {
       if (previous === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
       else process.env.OXIDE_TASK_SCRATCH_ROOT = previous;
     }
-  });
+  }
+
+  test.skipIf(!externalScratchAvailable)(
+    "allocates on the configured scratch root and removes only its own directory",
+    async () => {
+      const owner = await mkdtemp(join(externalScratchOwner, "longhorn-scratch-test-"));
+      temporaryDirectories.push(owner);
+      await withConfiguredRoot(owner, async () => {
+        const scratch = await taskScratch("longhorn-proof");
+        expect(scratch.root.startsWith(join(owner, "longhorn-proof-"))).toBe(true);
+        expect((await stat(scratch.root)).isDirectory()).toBe(true);
+        await scratch.dispose();
+        await expect(stat(scratch.root)).rejects.toThrow();
+        expect((await stat(owner)).isDirectory()).toBe(true);
+      });
+    },
+  );
+
+  test.skipIf(!externalScratchAvailable)(
+    "creates only its own directory under the build volume's scratch",
+    async () => {
+      await withConfiguredRoot(undefined, async () => {
+        const scratch = await taskScratch("longhorn-default");
+        expect(scratch.root.startsWith(join(externalScratchOwner, "longhorn", "longhorn-default-"))).toBe(true);
+        await scratch.dispose();
+      });
+    },
+  );
 
   test("uses runner-owned temporary storage on GitHub Actions", async () => {
     const previous = process.env.GITHUB_ACTIONS;
-    const previousRoot = process.env.OXIDE_TASK_SCRATCH_ROOT;
     process.env.GITHUB_ACTIONS = "true";
-    process.env.OXIDE_TASK_SCRATCH_ROOT = "/nonexistent/scratch";
     try {
-      const scratch = await taskScratch("longhorn-ci-proof");
-      expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
-      await scratch.dispose();
+      await withConfiguredRoot("/nonexistent/scratch", async () => {
+        const scratch = await taskScratch("longhorn-ci-proof");
+        expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
+        await scratch.dispose();
+      });
     } finally {
       if (previous === undefined) delete process.env.GITHUB_ACTIONS;
       else process.env.GITHUB_ACTIONS = previous;
-      if (previousRoot === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
-      else process.env.OXIDE_TASK_SCRATCH_ROOT = previousRoot;
     }
   });
 
-  test("fails clearly when the external scratch root is unavailable", async () => {
-    const previous = process.env.OXIDE_TASK_SCRATCH_ROOT;
-    const previousActions = process.env.GITHUB_ACTIONS;
-    const sandboxRoot = await mkdtemp(join(tmpdir(), "longhorn-scratch-file-"));
-    temporaryDirectories.push(sandboxRoot);
-    const notADirectory = join(sandboxRoot, "file");
-    await writeFile(notADirectory, "");
-    delete process.env.GITHUB_ACTIONS;
-    process.env.OXIDE_TASK_SCRATCH_ROOT = join(notADirectory, "scratch");
-    try {
+  test("fails closed when the scratch root does not exist", async () => {
+    const missing = join(tmpdir(), "longhorn-missing-scratch-root");
+    await withConfiguredRoot(missing, async () => {
       await expect(taskScratch("longhorn-missing")).rejects.toThrow(
-        /cannot reach build scratch .*OXIDE_TASK_SCRATCH_ROOT/,
+        /does not exist\. No local build output is created/,
       );
-    } finally {
-      if (previous === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
-      else process.env.OXIDE_TASK_SCRATCH_ROOT = previous;
-      if (previousActions === undefined) delete process.env.GITHUB_ACTIONS;
-      else process.env.GITHUB_ACTIONS = previousActions;
+      // A missing build volume must not become an ordinary directory.
+      await expect(stat(missing)).rejects.toThrow();
+    });
+  });
+
+  test("refuses the internal temp directory, the account home and a drive root", async () => {
+    for (const [value, expected] of [
+      [tmpdir(), /is the internal temporary directory/],
+      [homedir(), /is the account home/],
+      ["/", /is a drive root/],
+    ] as const) {
+      await withConfiguredRoot(value, async () => {
+        await expect(taskScratch("longhorn-refused")).rejects.toThrow(expected);
+      });
     }
   });
 });

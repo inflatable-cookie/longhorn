@@ -80,16 +80,28 @@ own: `rustCommand` for a Cargo command, `rustExec` for a leased tool,
 ### Storage and lease boundaries
 
 Oxide owns local Cargo output placement. A route that needs a private directory
-keeps final outputs on external build scratch — `OXIDE_TASK_SCRATCH_ROOT`, or
-its default under the build volume's `scratch/longhorn` — and never on the
-internal drive, the account home or a drive root. A missing scratch root fails
-the route clearly instead of borrowing internal temp.
+keeps final outputs on external build scratch and never on the internal drive,
+the account home or a drive root:
 
-Only `CARGO_TARGET_DIR` moves final outputs. An inherited
-`CARGO_BUILD_BUILD_DIR` still sends intermediates to the held slot, so an inner
-target is not a second build store. `scripts/private-cargo.sh` is the tool
-behind a lease that pins those variables, and it makes no routing decision of
-its own. Hosted CI keeps its runner-owned temporary storage.
+- `OXIDE_TASK_SCRATCH_ROOT`, when set, must already exist. Missing scratch fails
+  the route; nothing creates it, so an unmounted build volume cannot turn into
+  an ordinary directory on the internal drive.
+- The default is the build volume's own `scratch` directory, which must exist;
+  the repository creates only its `longhorn` child below it.
+- `scripts/rust-command.ts` resolves a path before accepting it and refuses one
+  inside the internal temp directory, the account home, a boot-volume top-level
+  directory or a volume mount root.
+- Hosted CI keeps its runner-owned temporary storage.
+
+`oxide exec` replaces a `CARGO_TARGET_DIR` inherited on the outer call with
+`<workspace>/target`, so the private directory survives only when it is set
+inside the lease: `scripts/private-cargo.sh` is the tool behind the lease, it
+exports `CARGO_TARGET_DIR` (and, for the two scans, `CARGO_BUILD_BUILD_DIR`) for
+the plain Cargo child it runs, and it makes no routing decision of its own.
+Setting either variable on the outer `exec` call, or in a proof's member
+environment, does nothing. Only `CARGO_TARGET_DIR` moves final outputs: an
+inherited `CARGO_BUILD_BUILD_DIR` still sends intermediates to the held slot, so
+an inner target is not a second build store.
 
 One lease covers one Cargo workspace and one toolchain. A proof that stages
 several consumers, or builds at the MSRV, runs one `exec` boundary per staged

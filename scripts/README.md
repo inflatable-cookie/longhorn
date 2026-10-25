@@ -176,8 +176,11 @@ None attempts registry publication.
 `cargo` under `GITHUB_ACTIONS=true` or `EFFIGY_OXIDE_ESCAPE=cargo`, with an
 `exec` form for a tool that calls Cargo itself. `scripts/rust-command.ts` builds
 that argv for the scripts here, and `scripts/private-cargo.sh` is the tool behind
-a lease that pins the private output directories for one staged workspace.
-`AGENTS.md` owns the routing table, the storage rules and the named exceptions.
+a lease that sets the private output directories for one staged workspace. Those
+directories must be set inside the lease: `oxide exec` replaces a
+`CARGO_TARGET_DIR` inherited on the outer call. Scratch roots fail closed rather
+than being created on the internal drive. `AGENTS.md` owns the routing table, the
+storage rules and the named exceptions.
 
 ## Language
 

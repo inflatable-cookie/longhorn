@@ -6,9 +6,9 @@
 // no rule of its own; it only names that script and the two helpers that keep a
 // disposable workspace's build inside the supported storage recipe.
 
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve, sep } from "node:path";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
 const switchPoint = join(repositoryRoot, "scripts", "rust-command.sh");
@@ -93,21 +93,24 @@ export type TaskScratch = {
 };
 
 /**
+ * The build volume `scratch` directory. Its own existence is the operator's
+ * side of the contract; `longhorn` below it is the repository's, and it is the
+ * only directory this module ever creates under it.
+ */
+const defaultVolumeScratch = "/Volumes/Builds/scratch";
+
+/**
  * Allocates one disposable private Cargo output root on external scratch.
  *
- * Local build scratch lives on `OXIDE_TASK_SCRATCH_ROOT` (or
- * `/Volumes/Builds/scratch/longhorn`), never on the internal drive, the account
- * home or a drive root. Hosted CI keeps its runner-owned temporary storage.
+ * Local build scratch lives under `OXIDE_TASK_SCRATCH_ROOT`, or under the build
+ * volume's `scratch/longhorn`, never on the internal temp directory, the
+ * account home or a drive root. The configured root must already exist: a
+ * missing build volume fails closed here instead of becoming an ordinary
+ * directory on the internal drive. Hosted CI keeps its runner-owned temporary
+ * storage.
  */
 export async function taskScratch(label: string): Promise<TaskScratch> {
-  const base = scratchBase();
-  try {
-    await mkdir(base, { recursive: true });
-  } catch (error) {
-    throw new Error(
-      `cannot reach build scratch ${base}: ${String(error)}. Set OXIDE_TASK_SCRATCH_ROOT to a writable directory on a build volume.`,
-    );
-  }
+  const base = await scratchBase();
   const root = await mkdtemp(join(base, `${label}-`));
   return {
     root,
@@ -117,10 +120,60 @@ export async function taskScratch(label: string): Promise<TaskScratch> {
   };
 }
 
-function scratchBase(): string {
+async function scratchBase(): Promise<string> {
   if (process.env.GITHUB_ACTIONS === "true") return tmpdir();
   const configured = process.env.OXIDE_TASK_SCRATCH_ROOT;
-  return configured !== undefined && configured !== ""
-    ? resolve(configured)
-    : "/Volumes/Builds/scratch/longhorn";
+  const owner = configured !== undefined && configured !== "" ? resolve(configured) : defaultVolumeScratch;
+  await assertExternalScratch(owner);
+  const base = configured !== undefined && configured !== ""
+    ? owner
+    : join(owner, "longhorn");
+  try {
+    await mkdir(base);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      throw new Error(
+        `cannot create build scratch ${base}: ${String(error)}. Its parent must already be an external build scratch root.`,
+      );
+    }
+  }
+  return base;
+}
+
+/**
+ * Fails closed on a scratch root that would put local build outputs somewhere
+ * the recipe forbids. Checked against the resolved path, so an alias cannot
+ * slip past it.
+ */
+async function assertExternalScratch(owner: string): Promise<void> {
+  const resolved = await realpath(owner).catch(() => null);
+  if (resolved === null) {
+    throw new Error(
+      `build scratch ${owner} does not exist. No local build output is created on the internal drive, the account home or a drive root; set OXIDE_TASK_SCRATCH_ROOT to an existing directory on a build volume.`,
+    );
+  }
+  if (!(await stat(resolved)).isDirectory()) {
+    throw new Error(`build scratch ${resolved} is not a directory`);
+  }
+  const forbidden = await forbiddenScratchRoots();
+  for (const { path, label } of forbidden) {
+    if (resolved === path || resolved.startsWith(`${path}${sep}`)) {
+      throw new Error(
+        `build scratch ${resolved} is ${label}. Local build outputs stay on external build scratch, never there.`,
+      );
+    }
+  }
+}
+
+async function forbiddenScratchRoots(): Promise<Array<{ path: string; label: string }>> {
+  const [internalTemp, home] = await Promise.all([
+    realpath(tmpdir()).catch(() => tmpdir()),
+    realpath(homedir()).catch(() => homedir()),
+  ]);
+  return [
+    { path: "/", label: "a drive root" },
+    { path: dirname("/x"), label: "a boot-volume top-level directory" },
+    { path: internalTemp, label: "the internal temporary directory" },
+    { path: home, label: "the account home" },
+  ].filter((entry) => entry.path !== "/x");
 }
