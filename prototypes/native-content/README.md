@@ -25,8 +25,12 @@ native-content shapes without sharing their host implementation?
 
 ## Validation
 
+The prototype is its own workspace, so Oxide is entered from that directory
+rather than by a Cargo `--manifest-path`. From the repository root:
+
 ```sh
-cargo +1.85.0 test --manifest-path prototypes/native-content/Cargo.toml --offline
-cargo clippy --manifest-path prototypes/native-content/Cargo.toml --all-targets --offline -- -D warnings
-cargo fmt --manifest-path prototypes/native-content/Cargo.toml --all --check
+(cd prototypes/native-content && \
+  RUSTUP_TOOLCHAIN=1.85.0 oxide test --offline && \
+  oxide clippy --all-targets --offline -- -D warnings && \
+  oxide fmt --all --check)
 ```

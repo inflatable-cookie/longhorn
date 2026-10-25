@@ -17,8 +17,10 @@ was proved against, because it is a real product that already composes five
 `longhorn-tauri-*` crates.
 
 ```sh
+# In the consumer's own checkout; its project commands stay that project's Cargo.
 cd ~/Dev/projects/soundcheck && cargo tauri build --debug --bundles app
-cd ~/Dev/projects/longhorn && cargo run -p longhorn-packaged-update-proof -- \
+# In this checkout, through the switch point.
+cd ~/Dev/projects/longhorn && oxide run -p longhorn-packaged-update-proof -- \
   --app ~/Dev/projects/soundcheck/target/debug/bundle/macos/Soundcheck.app
 ```
 

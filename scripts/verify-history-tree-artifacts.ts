@@ -7,7 +7,12 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
-import { rustCommand } from "./rust-command.ts";
+import {
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -20,6 +25,9 @@ const proofRoot = join(repoRoot, "examples", "history-tree-artifact-proof");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-tree-artifact-proof-"));
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
+// Private final Cargo outputs for the staged workspace, on external build
+// scratch. The intermediates keep the build directory each exec lease supplies.
+const buildScratch = await taskScratch("longhorn-history-tree-rust");
 
 type Shape = "document" | "loophole";
 type Json = Record<string, any>;
@@ -46,10 +54,10 @@ const policies = {
 } as const;
 
 try {
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: `proof:artifacts` hands this member a
-  // private CARGO_TARGET_DIR, and its packaged crates build in a `mktemp -d`
-  // workspace at `cargo +<MSRV toolchain>`. Both stay on Cargo.
-  await run(["cargo", "run", "-p", "longhorn-bindings", "--", "history-tree", "check"], repoRoot);
+  // Checkout-level and non-building: the bindings check runs through the switch
+  // point and pools. Only the staged-workspace builds below keep private
+  // outputs.
+  await run(rustCommand(["run", "-p", "longhorn-bindings", "--", "history-tree", "check"]), repoRoot);
   const typescript = await packTypescriptArtifacts();
   const rust = await packAndRunRustArtifacts();
   const consumers = [];
@@ -91,6 +99,7 @@ try {
 } finally {
   if (process.env.KEEP_HISTORY_TREE_PROOF === "1") console.error(`retained proof workspace: ${temporaryRoot}`);
   else await rm(temporaryRoot, { recursive: true, force: true });
+  await buildScratch.dispose();
 }
 
 async function packTypescriptArtifacts(): Promise<{ identities: readonly ArtifactIdentity[]; paths: ReadonlyMap<string, string> }> {
@@ -133,9 +142,8 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const identities = [];
   for (const name of crates) {
     // Checkout-level and non-building: `package --list` runs through the switch
-    // point at the MSRV pin. The `test`/`run`/`tree` calls below build in the
-    // `mktemp -d` workspace and stay on Cargo (PENDING OXIDE ONE-USE WORKSPACE
-    // SUPPORT).
+    // point at the MSRV pin. The `test`/`run`/`tree` calls below lease the
+    // staged workspace instead.
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
       repoRoot,
@@ -159,7 +167,14 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   ].join("\n");
   for (const marker of ["PulseMutation", "PulseHistoryMutation", "project_version", "prototype"]) if (source.toLowerCase().includes(marker.toLowerCase())) throw new Error(`Rust artifacts contain product/prototype marker ${marker}`);
 
-  const testOutput = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "test", "-p", "longhorn-history-tree", "--all-features", "--offline"], workspace);
+  // One exec lease over the staged workspace at the MSRV pin, with private final
+  // outputs on build scratch: the tool inside calls plain Cargo.
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildScratch.root, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+      toolchain: MSRV_TOOLCHAIN,
+    });
+  const testOutput = await run(staged(["cargo", "test", "-p", "longhorn-history-tree", "--all-features", "--offline"]), workspace);
   const testCount = [...testOutput.matchAll(/test result: ok\. (\d+) passed/g)].reduce((sum, match) => sum + Number(match[1]), 0);
   // 51 since Card 191 named the origin: the default path still reports it
   // after a prune -- which is what protection guarantees and what a lying
@@ -173,8 +188,8 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   const graphs = {} as Record<Shape, readonly string[]>;
   for (const shape of ["document", "loophole"] as const) {
     const packageName = `longhorn-${shape}-history-tree-artifact-proof`;
-    traces[shape] = parseTrace(await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packageName, "--offline", "--quiet"], workspace));
-    const tree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", packageName, "--offline", "--prefix", "none"], workspace);
+    traces[shape] = parseTrace(await run(staged(["cargo", "run", "-p", packageName, "--offline", "--quiet"]), workspace));
+    const tree = await run(staged(["cargo", "tree", "-p", packageName, "--offline", "--prefix", "none"]), workspace);
     graphs[shape] = longhornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graphs[shape], policies[shape].rust);
     assertMetrics(shape, traces[shape]);

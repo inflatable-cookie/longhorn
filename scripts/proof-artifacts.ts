@@ -1,5 +1,3 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -30,50 +28,42 @@ type Timing = {
 
 const timings: Timing[] = [];
 let failed = false;
-// PENDING OXIDE ONE-USE WORKSPACE SUPPORT: every member builds in the packaged-crate
-// scratch workspace this loop creates under a private CARGO_TARGET_DIR, which Oxide
-// replaces with `<checkout>/target`. The members stay on Cargo; the routing table in
-// AGENTS.md lists them.
-const retainedTargetDir = process.env.CARGO_TARGET_DIR;
-const targetDir = retainedTargetDir ?? await mkdtemp(
-  resolve(tmpdir(), "longhorn-proof-artifacts-target-"),
-);
-const ownsTargetDir = retainedTargetDir === undefined;
+// Every member resolves its own storage now: checkout-level routes run through
+// the switch point and pool, and each member's staged workspaces lease their own
+// private final outputs under external build scratch. A `CARGO_TARGET_DIR`
+// inherited from the caller would quietly move a checkout-level build off the
+// pool, so it is dropped rather than forwarded.
+const memberEnvironment = { ...process.env };
+delete memberEnvironment.CARGO_TARGET_DIR;
 
-try {
-  for (const member of members) {
-    console.log(`proof ${member}`);
+for (const member of members) {
+  console.log(`proof ${member}`);
 
-    const startedAt = performance.now();
-    let exitCode = 1;
-    try {
-      const child = Bun.spawn(["bun", `scripts/verify-${member}.ts`], {
-        cwd: repoRoot,
-        env: { ...process.env, CARGO_TARGET_DIR: targetDir },
-        stdout: "ignore",
-        stderr: "inherit",
-      });
-      exitCode = await child.exited;
-    } catch (error) {
-      console.error(`failed to start proof ${member}: ${String(error)}`);
-    }
-
-    timings.push({
-      member,
-      seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
-      result: exitCode === 0 ? "pass" : "fail",
+  const startedAt = performance.now();
+  let exitCode = 1;
+  try {
+    const child = Bun.spawn(["bun", `scripts/verify-${member}.ts`], {
+      cwd: repoRoot,
+      env: memberEnvironment,
+      stdout: "ignore",
+      stderr: "inherit",
     });
-
-    if (exitCode !== 0) {
-      reportTimings();
-      process.exitCode = 1;
-      failed = true;
-      break;
-    }
+    exitCode = await child.exited;
+  } catch (error) {
+    console.error(`failed to start proof ${member}: ${String(error)}`);
   }
-} finally {
-  if (ownsTargetDir) {
-    await rm(targetDir, { recursive: true, force: true });
+
+  timings.push({
+    member,
+    seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
+    result: exitCode === 0 ? "pass" : "fail",
+  });
+
+  if (exitCode !== 0) {
+    reportTimings();
+    process.exitCode = 1;
+    failed = true;
+    break;
   }
 }
 

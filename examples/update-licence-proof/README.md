@@ -19,7 +19,7 @@ passed.
   dependencies. Run it with:
 
   ```sh
-  cargo run -p longhorn-update-licence-proof
+  oxide run -p longhorn-update-licence-proof
   ```
 
 - **Concrete installer: landed.** `PluginUpdaterInstaller` in

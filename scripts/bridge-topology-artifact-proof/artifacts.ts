@@ -11,7 +11,11 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 import { assertExactSet, digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import { rustCommand } from "../rust-command.ts";
+import {
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+} from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 const typescriptPackages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
@@ -87,6 +91,7 @@ export async function packTypescriptArtifacts(
 export async function packAndCheckRustArtifacts(
   repoRoot: string,
   temporaryRoot: string,
+  buildTarget: string,
 ): Promise<{
   readonly identities: readonly ArtifactIdentity[];
   readonly packaging: {
@@ -108,9 +113,8 @@ export async function packAndCheckRustArtifacts(
   const identities = [];
   for (const name of rustCrates) {
     // Non-building and checkout-level: `package --list` reads the manifest, so
-    // it runs through the switch point. The `check`/`tree` calls below build in
-    // the `mktemp -d` workspace, which stays on Cargo (PENDING OXIDE ONE-USE
-    // WORKSPACE SUPPORT).
+    // it runs through the switch point. The `check`/`tree` calls below lease the
+    // staged workspace instead.
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
       repoRoot,
@@ -297,19 +301,23 @@ async function checkRustConsumers(workspace: string): Promise<{
 `,
   );
 
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build and read graphs in the
-  // `mktemp -d` workspace the parent proof passes in, which Oxide does not
-  // manage.
+  // One exec lease over the staged workspace, with private final outputs on
+  // build scratch: the tool inside calls plain Cargo, and the intermediates keep
+  // the build directory the lease supplies.
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildTarget, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+    });
   await run(
-    ["cargo", "check", "-p", "longhorn-bridge-query-artifact-proof", "--offline"],
+    staged(["cargo", "check", "-p", "longhorn-bridge-query-artifact-proof", "--offline"]),
     workspace,
   );
   await run(
-    ["cargo", "check", "-p", "longhorn-bridge-full-artifact-proof", "--offline"],
+    staged(["cargo", "check", "-p", "longhorn-bridge-full-artifact-proof", "--offline"]),
     workspace,
   );
   const queryTree = await run(
-    [
+    staged([
       "cargo",
       "tree",
       "-p",
@@ -319,11 +327,11 @@ async function checkRustConsumers(workspace: string): Promise<{
       "1",
       "--prefix",
       "none",
-    ],
+    ]),
     workspace,
   );
   const queryFeatures = await run(
-    [
+    staged([
       "cargo",
       "tree",
       "-p",
@@ -331,11 +339,11 @@ async function checkRustConsumers(workspace: string): Promise<{
       "--offline",
       "--edges",
       "features",
-    ],
+    ]),
     workspace,
   );
   const fullTree = await run(
-    [
+    staged([
       "cargo",
       "tree",
       "-p",
@@ -345,7 +353,7 @@ async function checkRustConsumers(workspace: string): Promise<{
       "1",
       "--prefix",
       "none",
-    ],
+    ]),
     workspace,
   );
   if (

@@ -17,7 +17,12 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
-import { rustCommand } from "./rust-command.ts";
+import {
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -46,6 +51,9 @@ const temporaryRoot = await mkdtemp(
 );
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
+// Private final Cargo outputs for the staged workspace, on external build
+// scratch. The intermediates keep the build directory each exec lease supplies.
+const buildScratch = await taskScratch("longhorn-native-content-rust");
 
 type Shape = "nucleus" | "soundcheck" | "jetstream";
 
@@ -63,11 +71,11 @@ interface PackageManifest {
 }
 
 try {
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: `proof:artifacts` hands this member a
-  // private CARGO_TARGET_DIR, and its packaged crates build in a `mktemp -d`
-  // workspace at `cargo +<MSRV toolchain>`. Both stay on Cargo.
+  // Checkout-level and non-building: the bindings check runs through the switch
+  // point and pools. Only the staged-workspace builds below keep private
+  // outputs.
   await run(
-    ["cargo", "run", "-p", "longhorn-bindings", "--", "native-content", "check"],
+    rustCommand(["run", "-p", "longhorn-bindings", "--", "native-content", "check"]),
     repoRoot,
   );
   const protocolIsolation = await verifyProtocolIsolation();
@@ -175,6 +183,7 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+  await buildScratch.dispose();
 }
 
 async function verifyProtocolIsolation() {
@@ -336,8 +345,8 @@ async function packAndRunRustArtifacts() {
   const identities: ArtifactIdentity[] = [];
   for (const name of crates) {
     // Checkout-level and non-building: `package --list` runs through the switch
-    // point at the MSRV pin. The `run`/`tree` calls below build in the `mktemp
-    // -d` workspace and stay on Cargo (PENDING OXIDE ONE-USE WORKSPACE SUPPORT).
+    // point at the MSRV pin. The `run`/`tree` calls below lease the staged
+    // workspace instead.
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
       repoRoot,
@@ -392,34 +401,32 @@ async function packAndRunRustArtifacts() {
       "longhorn-native-content-backing-surface",
     ],
   } as const;
+  // One exec lease over the staged workspace at the MSRV pin, with private final
+  // outputs on build scratch: the tool inside calls plain Cargo.
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildScratch.root, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+      toolchain: MSRV_TOOLCHAIN,
+    });
   const traces: Record<string, Record<string, unknown>> = {};
   const graphs: Record<string, readonly string[]> = {};
   for (const shape of Object.keys(packages) as Array<keyof typeof packages>) {
     traces[shape] = parseTrace(
       await run(
-        [
-          "cargo",
-          `+${MSRV_TOOLCHAIN}`,
-          "run",
-          "-p",
-          packages[shape],
-          "--offline",
-          "--quiet",
-        ],
+        staged(["cargo", "run", "-p", packages[shape], "--offline", "--quiet"]),
         workspace,
       ),
     );
     const tree = await run(
-      [
+      staged([
         "cargo",
-        `+${MSRV_TOOLCHAIN}`,
         "tree",
         "-p",
         packages[shape],
         "--offline",
         "--prefix",
         "none",
-      ],
+      ]),
       workspace,
     );
     graphs[shape] = longhornPackages(tree);

@@ -6,6 +6,12 @@ import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
+import {
+  privateCargoCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
+
 const LONGHORN_BASE = "c20ac0a208840ff6424f2d334f5bc0a09ff6a07e";
 const SWALLOWTAIL_SHA = "d7e93e5552c5b272e55ddef8a531b5dd32e81bf0";
 const CLEAN_RUNS = 32;
@@ -37,6 +43,9 @@ await run(["git", "merge-base", "--is-ancestor", LONGHORN_BASE, longhornHead], l
 const sourceGraphBefore = await sourceGraphDigests(longhornRoot, swallowtailRoot);
 const first = await mkdtemp(join(tmpdir(), "longhorn-agent-tool-dispatch-"));
 const second = await mkdtemp(join(tmpdir(), "longhorn-agent-tool-dispatch-repeat-"));
+// Private final Cargo outputs for both throwaway consumers, on external build
+// scratch. The intermediates keep the build directory each exec lease supplies.
+const buildScratch = await taskScratch("longhorn-agent-tool-dispatch-source-consumer");
 let receipt: Record<string, unknown> | undefined;
 
 try {
@@ -50,14 +59,15 @@ try {
   }
 
   for (let index = 0; index < CLEAN_RUNS; index += 1) {
-    // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: this builds the `mktemp -d`
-    // provider-free consumer with a CARGO_TARGET_DIR inside it, which Oxide does
-    // not manage. The route stays on Cargo.
+    // One exec lease per run over the staged consumer, with private final outputs
+    // on build scratch: the tool inside calls plain Cargo.
     const outcome = (
       await run(
-        ["cargo", "run", "--locked", "--quiet"],
+        rustExec(
+          privateCargoCommand(buildScratch.root, ["cargo", "run", "--locked", "--quiet"]),
+          { manifestPath: join(first, "Cargo.toml") },
+        ),
         first,
-        { CARGO_TARGET_DIR: join(first, "target") },
       )
     ).trim();
     if (outcome !== SAFE_OUTCOME) {
@@ -105,6 +115,7 @@ try {
 } finally {
   await rm(first, { recursive: true, force: true });
   await rm(second, { recursive: true, force: true });
+  await buildScratch.dispose();
 }
 if (!receipt) throw new Error("fixture completed without a receipt");
 console.log(JSON.stringify(receipt, null, 2));
@@ -113,9 +124,14 @@ async function prepare(directory: string) {
   const manifest = renderManifest(longhornRoot, swallowtailRoot);
   await writeFile(join(directory, "Cargo.toml"), manifest);
   await copyFile(sourcePath, join(directory, "main.rs"));
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: lockfile for the throwaway consumer
-  // above; same one-use workspace reason.
-  await run(["cargo", "generate-lockfile"], directory);
+  // Non-building, but still the throwaway consumer's own workspace: one exec
+  // lease over it, with plain Cargo inside.
+  await run(
+    rustExec(["cargo", "generate-lockfile"], {
+      manifestPath: join(directory, "Cargo.toml"),
+    }),
+    directory,
+  );
   const normalized = renderManifest(
     "${AGENT_LONGHORN_REPO}",
     "${AGENT_PROJECTS_ROOT}/swallowtail",

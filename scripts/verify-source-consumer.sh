@@ -13,7 +13,20 @@ source release-baselines/rust-toolchains.env
 release_msrv="${LONGHORN_GENERAL_MSRV%.*}"
 
 release_tmp=$(mktemp -d)
-trap 'rm -rf "$release_tmp"' EXIT
+
+# The throwaway consumer's own Cargo workspace is not this checkout's, so its
+# one lease is `rust-command.sh exec` over that workspace's manifest. Final
+# outputs go to a private directory on external build scratch; the
+# intermediates keep the build directory the lease supplies. Hosted CI keeps its
+# runner-owned temporary storage.
+release_scratch=
+release_cleanup() {
+  if [[ -n "$release_scratch" ]]; then
+    rm -rf "$release_scratch"
+  fi
+  rm -rf "$release_tmp"
+}
+trap release_cleanup EXIT
 
 release_consumer_root="$release_tmp/consumer"
 mkdir -p "$release_consumer_root/src"
@@ -101,22 +114,34 @@ EOF
   printf '}\n'
 } > "$release_consumer_root/src/main.rs"
 
-# PENDING OXIDE ONE-USE WORKSPACE SUPPORT: every Cargo call below resolves a
-# throwaway consumer cloned into a `mktemp -d`, not this checkout's workspace.
-# Oxide binds a build to a checkout it manages and would try to convert this
-# consumer's temporary target into an owned output link, so these three calls
-# stay on plain Cargo here and through the CI-aware rule alike. See the routing
-# table in AGENTS.md.
-cargo generate-lockfile --manifest-path "$release_consumer_root/Cargo.toml"
-cargo check --manifest-path "$release_consumer_root/Cargo.toml" --locked
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  release_scratch=$(mktemp -d "$release_tmp/cargo-target-XXXXXX")
+else
+  release_scratch_root="${OXIDE_TASK_SCRATCH_ROOT:-/Volumes/Builds/scratch/longhorn}"
+  if ! mkdir -p "$release_scratch_root" 2>/dev/null; then
+    printf 'build scratch %s is unavailable; set OXIDE_TASK_SCRATCH_ROOT to a writable directory on a build volume\n' \
+      "$release_scratch_root" >&2
+    exit 1
+  fi
+  release_scratch=$(mktemp -d "$release_scratch_root/longhorn-source-consumer-XXXXXX")
+fi
+
+# One exec lease over the throwaway consumer's workspace per call. The tool
+# inside each lease is plain Cargo, never Oxide: a nested lease takes its own
+# slot and can deadlock the host permits.
+release_rust() {
+  bash scripts/rust-command.sh exec \
+    --manifest-path "$release_consumer_root/Cargo.toml" \
+    -- "$@"
+}
+
+release_rust cargo generate-lockfile
+release_rust \
+  bash scripts/private-cargo.sh --target "$release_scratch" -- \
+  cargo check --locked
 
 release_metadata="$release_tmp/metadata.json"
-# Same one-use workspace as the two calls above; plain Cargo for the same reason.
-cargo metadata \
-  --manifest-path "$release_consumer_root/Cargo.toml" \
-  --format-version 1 \
-  --locked \
-  > "$release_metadata"
+release_rust cargo metadata --format-version 1 --locked > "$release_metadata"
 # Every Longhorn package except the throwaway consumer itself must carry a git
 # source at the exact commit.
 #

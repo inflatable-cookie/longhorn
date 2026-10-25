@@ -8,6 +8,7 @@ import {
   packTypescriptArtifacts,
 } from "./settings-composition-proof/artifacts.ts";
 import { verifyConsumers } from "./settings-composition-proof/consumers.ts";
+import { taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/settings-composition-proof");
@@ -16,11 +17,16 @@ const temporaryRoot = await mkdtemp(
 );
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
+const buildScratch = await taskScratch("longhorn-settings-composition-rust");
 
 try {
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
   const artifacts = new Map(typescript.paths);
-  const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot);
+  const rust = await packAndCheckRustArtifacts(
+    repoRoot,
+    temporaryRoot,
+    buildScratch.root,
+  );
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,
@@ -52,4 +58,5 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+  await buildScratch.dispose();
 }

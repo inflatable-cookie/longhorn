@@ -19,10 +19,12 @@ worth wiring, and if it is not wired it should be deleted.
 
 `scripts/proof-artifacts.ts` keeps that order and fail-fast behavior, suppresses
 member stdout as before, and prints each member's elapsed seconds and result to
-stderr when the run ends. All members share one temporary Cargo target
-directory for the run, which is removed afterward; a caller-provided
-`CARGO_TARGET_DIR` is reused and left in place. A failed member is included in
-the summary.
+stderr when the run ends. Each member resolves its own Cargo storage:
+checkout-level routes run through `scripts/rust-command.sh` and pool, and each
+staged workspace leases its own private final outputs on external build scratch
+through `scripts/private-cargo.sh`. It drops an inherited `CARGO_TARGET_DIR` so
+a checkout-level route cannot be moved off the pool. A failed member is included
+in the summary.
 
 Artifact consumer stages install packed Longhorn tarballs with a private Bun
 cache. Exact consumer pins stay exact; other third-party versions use the root
@@ -167,6 +169,15 @@ Not a substitute for dispatching `release.yml`. Run it before a release when
   unpacked adapter tree).
 
 None attempts registry publication.
+
+## Rust routing
+
+`scripts/rust-command.sh` is the one Cargo switch point: `oxide` locally, plain
+`cargo` under `GITHUB_ACTIONS=true` or `EFFIGY_OXIDE_ESCAPE=cargo`, with an
+`exec` form for a tool that calls Cargo itself. `scripts/rust-command.ts` builds
+that argv for the scripts here, and `scripts/private-cargo.sh` is the tool behind
+a lease that pins the private output directories for one staged workspace.
+`AGENTS.md` owns the routing table, the storage rules and the named exceptions.
 
 ## Language
 
