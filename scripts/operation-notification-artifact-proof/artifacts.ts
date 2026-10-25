@@ -8,6 +8,7 @@ import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./share
 import type { ArtifactIdentity, Shape } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -99,7 +100,10 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   const nativeTraces = {} as Record<Shape, Record<string, unknown>>;
   // One exec lease over the staged workspace at the MSRV pin, with private final
   // outputs on build scratch: the tool inside calls plain Cargo, and the
-  // intermediates keep the build directory the lease supplies.
+  // intermediates keep the build directory the lease supplies. The real
+  // `target/` directory keeps the lease adoption-free; see
+  // `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
   const staged = (args: readonly string[]) =>
     rustExec(privateCargoCommand(buildTarget, args), {
       manifestPath: join(workspace, "Cargo.toml"),

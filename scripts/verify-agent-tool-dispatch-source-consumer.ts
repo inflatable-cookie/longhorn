@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustExec,
   taskScratch,
@@ -121,6 +122,9 @@ if (!receipt) throw new Error("fixture completed without a receipt");
 console.log(JSON.stringify(receipt, null, 2));
 
 async function prepare(directory: string) {
+  // The real `target/` directory keeps every lease on this throwaway consumer
+  // adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(directory);
   const manifest = renderManifest(longhornRoot, swallowtailRoot);
   await writeFile(join(directory, "Cargo.toml"), manifest);
   await copyFile(sourcePath, join(directory, "main.rs"));

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -514,6 +515,58 @@ describe("Switch point argv", () => {
 
 const externalScratchOwner = process.env.OXIDE_TASK_SCRATCH_ROOT ?? "/Volumes/Builds/scratch";
 const externalScratchAvailable = (await stat(externalScratchOwner).catch(() => null))?.isDirectory() ?? false;
+
+describe("Staged workspace preparation", () => {
+  async function stagedWorkspace() {
+    const root = await mkdtemp(join(tmpdir(), "longhorn-staged-workspace-"));
+    temporaryDirectories.push(root);
+    return root;
+  }
+
+  test("creates the real target directory that keeps a lease adoption-free", async () => {
+    const workspace = await stagedWorkspace();
+    const target = await prepareStagedWorkspace(workspace);
+
+    expect(target).toBe(join(workspace, "target"));
+    const info = await stat(target);
+    expect(info.isDirectory()).toBe(true);
+    expect(info.isSymbolicLink()).toBe(false);
+    // The workspace itself carries no Git metadata: the recipe must not need any.
+    await expect(stat(join(workspace, ".git"))).rejects.toThrow();
+  });
+
+  test("leaves an existing real target directory and its contents alone", async () => {
+    const workspace = await stagedWorkspace();
+    const target = join(workspace, "target");
+    await mkdir(join(target, "debug"), { recursive: true });
+    await writeFile(join(target, "keep.txt"), "kept");
+
+    await expect(prepareStagedWorkspace(workspace)).resolves.toBe(target);
+    expect(await readFile(join(target, "keep.txt"), "utf8")).toBe("kept");
+  });
+
+  test("refuses to replace a symlink and never touches its target", async () => {
+    const workspace = await stagedWorkspace();
+    const owned = await stagedWorkspace();
+    await symlink(owned, join(workspace, "target"));
+
+    await expect(prepareStagedWorkspace(workspace)).rejects.toThrow(
+      /exists and is not a real directory; refusing to replace it/,
+    );
+    expect((await lstat(join(workspace, "target"))).isSymbolicLink()).toBe(true);
+    expect((await stat(owned)).isDirectory()).toBe(true);
+  });
+
+  test("refuses a non-directory target", async () => {
+    const workspace = await stagedWorkspace();
+    await writeFile(join(workspace, "target"), "not a directory");
+
+    await expect(prepareStagedWorkspace(workspace)).rejects.toThrow(
+      /exists and is not a real directory/,
+    );
+    expect(await readFile(join(workspace, "target"), "utf8")).toBe("not a directory");
+  });
+});
 
 describe("Task scratch", () => {
   async function withConfiguredRoot<T>(value: string | undefined, body: () => Promise<T>): Promise<T> {

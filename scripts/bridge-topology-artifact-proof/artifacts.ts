@@ -12,6 +12,7 @@ import { assertExactSet, digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -303,7 +304,9 @@ async function checkRustConsumers(workspace: string): Promise<{
 
   // One exec lease over the staged workspace, with private final outputs on
   // build scratch: the tool inside calls plain Cargo, and the intermediates keep
-  // the build directory the lease supplies.
+  // the build directory the lease supplies. The real `target/` directory keeps
+  // the lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
   const staged = (args: readonly string[]) =>
     rustExec(privateCargoCommand(buildTarget, args), {
       manifestPath: join(workspace, "Cargo.toml"),

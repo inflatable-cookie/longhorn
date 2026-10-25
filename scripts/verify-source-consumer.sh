@@ -126,6 +126,16 @@ else
   release_scratch=$(mktemp -d "$release_scratch_root/longhorn-source-consumer-XXXXXX")
 fi
 
+# Adoption-free lease preparation: an existing REAL target/ directory opts the
+# throwaway workspace out of Oxide's automatic first conversion (which refuses a
+# workspace with no Git work tree to confirm) and creates no Oxide output root.
+# Never replace an existing link here.
+if [[ -L "$release_consumer_root/target" ]]; then
+  printf 'refusing to replace the owned-output link at %s/target\n' "$release_consumer_root" >&2
+  exit 1
+fi
+mkdir -p "$release_consumer_root/target"
+
 # One exec lease over the throwaway consumer's workspace per call. The tool
 # inside each lease is plain Cargo, never Oxide: a nested lease takes its own
 # slot and can deadlock the host permits.

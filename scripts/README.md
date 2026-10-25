@@ -178,9 +178,10 @@ None attempts registry publication.
 that argv for the scripts here, and `scripts/private-cargo.sh` is the tool behind
 a lease that sets the private output directories for one staged workspace. Those
 directories must be set inside the lease: `oxide exec` replaces a
-`CARGO_TARGET_DIR` inherited on the outer call. Scratch roots fail closed rather
-than being created on the internal drive. `AGENTS.md` owns the routing table, the
-storage rules and the named exceptions.
+`CARGO_TARGET_DIR` inherited on the outer call. `prepareStagedWorkspace` creates
+the empty real `target/` directory that keeps a staged lease adoption-free.
+Scratch roots fail closed rather than being created on the internal drive.
+`AGENTS.md` owns the routing table, the storage rules and the named exceptions.
 
 ## Language
 

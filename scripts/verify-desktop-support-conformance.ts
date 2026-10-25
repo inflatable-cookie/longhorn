@@ -37,6 +37,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -102,7 +103,9 @@ try {
 
   const startedAt = performance.now();
   // One exec lease over the staged workspace, with private final outputs on
-  // build scratch: the tool inside calls plain Cargo.
+  // build scratch: the tool inside calls plain Cargo. The real `target/`
+  // directory keeps the lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(stage);
   const output = run(
     rustExec(
       privateCargoCommand(buildScratch.root, [

@@ -18,6 +18,7 @@ import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -402,7 +403,10 @@ async function packAndRunRustArtifacts() {
     ],
   } as const;
   // One exec lease over the staged workspace at the MSRV pin, with private final
-  // outputs on build scratch: the tool inside calls plain Cargo.
+  // outputs on build scratch: the tool inside calls plain Cargo. The real
+  // `target/` directory keeps the lease adoption-free; see
+  // `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
   const staged = (args: readonly string[]) =>
     rustExec(privateCargoCommand(buildScratch.root, args), {
       manifestPath: join(workspace, "Cargo.toml"),

@@ -6,7 +6,7 @@
 // no rule of its own; it only names that script and the two helpers that keep a
 // disposable workspace's build inside the supported storage recipe.
 
-import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 
@@ -84,6 +84,31 @@ export function privateCargoCommand(
   if (options.buildDir === true) command.push("--build-dir");
   command.push("--", ...args);
   return command;
+}
+
+/**
+ * Prepares one owned disposable Cargo workspace for an adoption-free lease.
+ *
+ * Oxide's automatic first conversion turns `<workspace>/target` into an owned
+ * output link, which refuses on a staged workspace with no Git work tree to
+ * confirm. An existing REAL `target/` directory opts that workspace out of
+ * automatic conversion: Oxide reports the outputs as not converted and creates
+ * no output root. Never call this for a real checkout, and never replace an
+ * existing link: an owned-output link is not this function's to overwrite.
+ */
+export async function prepareStagedWorkspace(workspace: string): Promise<string> {
+  const target = join(workspace, "target");
+  const existing = await lstat(target).catch(() => null);
+  if (existing !== null) {
+    if (!existing.isDirectory()) {
+      throw new Error(
+        `${target} exists and is not a real directory; refusing to replace it. Staged-workspace preparation never overwrites an existing target or an Oxide owned-output link.`,
+      );
+    }
+    return target;
+  }
+  await mkdir(target);
+  return target;
 }
 
 export type TaskScratch = {

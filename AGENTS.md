@@ -109,6 +109,17 @@ workspace: that workspace's `--manifest-path`, and `RUSTUP_TOOLCHAIN` pinned
 before the lease. Inside a lease the tool calls plain `cargo`, never oxide: a
 nested lease takes its own slot and can deadlock the host permits.
 
+Staged workspaces need `prepareStagedWorkspace`: it creates an empty real
+`target/` directory in the owned disposable workspace before the lease. An
+existing real target opts that workspace out of Oxide's automatic first
+conversion — which otherwise refuses a workspace with no Git work tree to
+confirm — reports `outputs not converted`, and creates no Oxide output root.
+Never apply it to a real checkout, never overwrite an existing target or an
+owned-output link, and do not substitute `git init` or target-ignore metadata
+for it. The conversion refusal is an Oxide defect (upstream `755757db`); this is
+the supported interim rule on the installed Oxide (`4df3dfd`). Real Rust stages
+live on external build scratch and are removed after use.
+
 ### Cargo entry points
 
 | Route | Form |

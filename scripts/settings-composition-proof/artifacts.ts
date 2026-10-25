@@ -8,6 +8,7 @@ import { digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {
+  prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -194,7 +195,9 @@ longhorn-tauri-config.workspace = true
   );
   // One exec lease over the staged workspace, with private final outputs on
   // build scratch: the tool inside calls plain Cargo, and the intermediates keep
-  // the build directory the lease supplies.
+  // the build directory the lease supplies. The real `target/` directory keeps
+  // the lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
   await run(
     rustExec(
       privateCargoCommand(buildTarget, [
