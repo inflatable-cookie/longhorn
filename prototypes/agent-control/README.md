@@ -44,7 +44,7 @@ channel the async tool awaits.
 
 ```sh
 cd proof-app/src-tauri
-cargo run
+oxide run
 ```
 
 Then point any MCP client that speaks streamable HTTP at the printed URL
@@ -58,7 +58,7 @@ Then point any MCP client that speaks streamable HTTP at the printed URL
   `tauri-runtime = "2.10.1"` (caret), which drifts to 2.11.x on a fresh
   lockfile and no longer compiles (the `new_window_handler` box lost its
   `Sync` bound); the lockfile pins `tauri-runtime`/`tauri-runtime-wry` back
-  to 2.10.1 via `cargo update --precise`.
+  to 2.10.1 via `oxide update --precise`.
 - rmcp `3.1.3` (features `transport-streamable-http-server` + defaults
   `server`, `macros`, `base64`).
 - objc2-web-kit `0.3.2` (features `WKWebView`, `WKSnapshotConfiguration`,

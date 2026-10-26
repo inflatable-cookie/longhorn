@@ -18,7 +18,12 @@ import {
 } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import { rustCommand } from "../rust-command.ts";
+import {
+  prepareStagedWorkspace,
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+} from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -163,6 +168,7 @@ async function inspectNpmArtifact(
 export async function packAndCheckRustArtifacts(
   repoRoot: string,
   temporaryRoot: string,
+  buildTarget: string,
 ): Promise<{
   readonly identities: readonly ArtifactIdentity[];
   readonly packaging: {
@@ -186,9 +192,8 @@ export async function packAndCheckRustArtifacts(
   const identities = [];
   for (const name of rustCrates) {
     // Non-building and checkout-level: `package --list` reads the manifest, so
-    // it runs through the switch point. The `run`/`tree` calls below build in
-    // the `mktemp -d` workspace, which stays on Cargo (PENDING OXIDE ONE-USE
-    // WORKSPACE SUPPORT).
+    // it runs through the switch point. The `run`/`tree` calls below lease the
+    // staged workspace instead.
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
       repoRoot,
@@ -219,38 +224,45 @@ export async function packAndCheckRustArtifacts(
     );
   }
   await writeFile(join(workspace, "Cargo.toml"), privateWorkspaceManifest());
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build in the `mktemp -d`
-  // workspace the parent proof passes in, which Oxide does not manage.
+  // One exec lease per staged workspace, with private final outputs on build
+  // scratch: the tool inside calls plain Cargo, and the intermediates keep the
+  // build directory the lease supplies. The real `target/` directory keeps the
+  // lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildTarget, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+    });
   const traces = {
     jetstream: parseTrace(
       await run(
-        [
+        staged([
           "cargo",
           "run",
           "-p",
           "longhorn-jetstream-command-artifact-proof",
           "--offline",
           "--quiet",
-        ],
+        ]),
         workspace,
       ),
     ),
     loophole: parseTrace(
       await run(
-        [
+        staged([
           "cargo",
           "run",
           "-p",
           "longhorn-loophole-command-artifact-proof",
           "--offline",
           "--quiet",
-        ],
+        ]),
         workspace,
       ),
     ),
   };
   const jetstreamTree = await run(
-    [
+    staged([
       "cargo",
       "tree",
       "-p",
@@ -258,11 +270,11 @@ export async function packAndCheckRustArtifacts(
       "--offline",
       "--prefix",
       "none",
-    ],
+    ]),
     workspace,
   );
   const loopholeTree = await run(
-    [
+    staged([
       "cargo",
       "tree",
       "-p",
@@ -270,7 +282,7 @@ export async function packAndCheckRustArtifacts(
       "--offline",
       "--prefix",
       "none",
-    ],
+    ]),
     workspace,
   );
   for (const edge of optionalRustEdges) {

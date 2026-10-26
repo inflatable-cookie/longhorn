@@ -16,7 +16,13 @@ import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { longhornVersion } from "./longhorn-version.ts";
-import { rustCommand } from "./rust-command.ts";
+import {
+  prepareStagedWorkspace,
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
 
 type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
 type ShapePolicy = {
@@ -49,6 +55,9 @@ const LONGHORN_VERSION = longhornVersion();
 const publishedPoodle = poodleRelease();
 const POODLE_VERSION = publishedPoodle.version;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
+// Private final Cargo outputs for the staged workspace, on external build
+// scratch. The intermediates keep the build directory each exec lease supplies.
+const buildScratch = await taskScratch("longhorn-greenfield-rust");
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 const rustArtifactRoot = join(temporaryRoot, "rust-artifacts");
 const allRustCrates = [
@@ -201,6 +210,7 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+  await buildScratch.dispose();
 }
 
 async function writeReceipt(report: {
@@ -488,8 +498,8 @@ async function verifyRustArtifacts() {
   const identities: ArtifactIdentity[] = [];
   // The `package --list` inventories below are checkout-level and
   // non-building, so they run through the switch point at the MSRV pin. The
-  // unpacked crates then build in the `mktemp -d` workspace, which stays on
-  // Cargo (PENDING OXIDE ONE-USE WORKSPACE SUPPORT).
+  // unpacked crates then build in the `mktemp -d` workspace under one exec lease
+  // per invocation.
   for (const name of allRustCrates) {
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
@@ -509,17 +519,25 @@ async function verifyRustArtifacts() {
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
   const shapes = [];
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build the unpacked crates in
-  // the `mktemp -d` workspace at `cargo +<MSRV toolchain>`, which Oxide does not
-  // manage.
+  // One exec lease over the staged workspace at the MSRV pin, with private final
+  // outputs on build scratch: the tool inside calls plain Cargo, and the
+  // intermediates keep the build directory the lease supplies. The real
+  // `target/` directory keeps the lease adoption-free; see
+  // `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildScratch.root, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+      toolchain: MSRV_TOOLCHAIN,
+    });
   for (const shape of Object.keys(policies) as ShapeName[]) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
-    const output = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packageName, "--offline", "--quiet"], workspace);
+    const output = await run(staged(["cargo", "run", "-p", packageName, "--offline", "--quiet"]), workspace);
     const trace = JSON.parse(output.trim()) as Record<string, unknown>;
     if (trace.firstLoad !== "compiled-default" || trace.mutation !== "atomic-published" || trace.reload !== "file" || trace.mutationPathConfined !== true) {
       throw new Error(`${shape} config lifecycle trace failed`);
     }
-    const tree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"], workspace);
+    const tree = await run(staged(["cargo", "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
     const graph = rustLonghornPackages(tree);
     equalSet(graph, policies[shape].rust, `${shape} Rust graph`);
     for (const forbidden of policies[shape].forbiddenRust) {
@@ -527,9 +545,9 @@ async function verifyRustArtifacts() {
     }
     shapes.push({ shape, rustPackages: graph, trace });
   }
-  const localOutput = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--quiet"], workspace);
+  const localOutput = await run(staged(["cargo", "run", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--quiet"]), workspace);
   const localTrace = JSON.parse(localOutput.trim()) as Record<string, unknown>;
-  const localTree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"], workspace);
+  const localTree = await run(staged(["cargo", "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
   const localGraph = rustLonghornPackages(localTree);
   equalSet(localGraph, baseRust, "optional-server local Rust graph");
   if (localTrace.service !== "absent-local-authority-ready" || localTrace.reload !== "file") throw new Error("optional server local authority failed");

@@ -42,7 +42,7 @@ receipt.
 
 ```sh
 cd prototypes/gpui-windowing
-cargo run --bin smoke
+oxide run --bin smoke
 ```
 
 Historical run recorded 2026-08-09, macOS 25.5, with `gpui` 0.2.2:
@@ -67,7 +67,7 @@ in the same turn as the call.
 displays, and asks whether one scale answer per display holds.
 
 ```sh
-cargo run --bin multiwindow
+oxide run --bin multiwindow
 ```
 
 Recorded 2026-08-09, macOS 25.5, an external panel plus the built-in one:
@@ -113,5 +113,5 @@ Neither binary can join `effigy qa`: they need a window server, and
 
 ```sh
 cd prototypes/gpui-windowing
-cargo clippy --all-targets
+oxide clippy --all-targets
 ```

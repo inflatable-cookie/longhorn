@@ -23,7 +23,6 @@ include = ["config/release.toml"]
 # they run through the one switch point like every other Rust selector.
 "fmt:rust" = "sh -c 'exec bash scripts/rust-command.sh fmt --check $(bash scripts/rust-command.sh metadata --no-deps --format-version 1 | jq -r .packages[].name | sed s/^/-p/)'"
 "lint:rust" = "bash scripts/rust-command.sh clippy --workspace --all-targets --locked -- -D warnings"
-"lint:rust:cargo" = "cargo clippy --workspace --all-targets --locked -- -D warnings"
 "lint:agent-tool-dispatch" = "bash scripts/rust-command.sh clippy -p longhorn-agent-tool-dispatch --all-targets --locked -- -D warnings"
 "lint:redact" = "bash scripts/rust-command.sh clippy -p longhorn-redact --all-targets --locked -- -D warnings"
 "lint:support-log" = "bash scripts/rust-command.sh clippy -p longhorn-support-log --all-targets --locked -- -D warnings"
@@ -43,7 +42,6 @@ include = ["config/release.toml"]
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "bash scripts/rust-command.sh clippy --workspace --all-targets --all-features --locked -- -D warnings"
 "test:rust" = "bash scripts/rust-command.sh test --workspace --locked"
-"test:rust:cargo" = "cargo test --workspace --locked"
 # The agent-control test lane with the stdio carrier enabled (contract 022,
 # g02.044): the package's unit tests plus every integration target, including
 # the whole carrier end-to-end suite (HTTP parity, listen/resource
@@ -61,7 +59,6 @@ include = ["config/release.toml"]
 "test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
-"test:pty:cargo" = "cargo nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 # Real local Git only: the fixtures build their own bare remotes in temporary
 # folders, and the GitHub sign-in runs against a loopback fixture server with
 # an in-memory credential store. nextest's slow-test period, two-period

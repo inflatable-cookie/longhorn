@@ -7,7 +7,12 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
 import type { ArtifactIdentity, Shape } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import { rustCommand } from "../rust-command.ts";
+import {
+  prepareStagedWorkspace,
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+} from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry; poodleRelease() checks each published
@@ -62,7 +67,7 @@ async function inspectTypescriptArtifact(name: string, path: string, artifactRoo
   for (const marker of ["PulseMutation", "PluginRecord", "ExportReport", "executeProductPayload"]) if (source.includes(marker)) throw new Error(`${name} contains donor payload marker ${marker}`);
 }
 
-export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: string, temporaryRoot: string) {
+export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: string, temporaryRoot: string, buildTarget: string) {
   const artifactRoot = join(temporaryRoot, "rust-archives");
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(artifactRoot);
@@ -71,8 +76,7 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   for (const name of rustCrates) {
     // Non-building and checkout-level: `package --list` reads the manifest, so
     // it runs through the switch point at the MSRV pin. The `run`/`tree` calls
-    // below build in the `mktemp -d` workspace and stay on Cargo (PENDING
-    // OXIDE ONE-USE WORKSPACE SUPPORT).
+    // below lease the staged workspace instead.
     const inventory = await run(
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
       repoRoot,
@@ -94,9 +98,17 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
   const nativeTraces = {} as Record<Shape, Record<string, unknown>>;
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: these build in the `mktemp -d`
-  // workspace the parent proof passes in, at `cargo +<MSRV toolchain>`, which
-  // Oxide does not manage.
+  // One exec lease over the staged workspace at the MSRV pin, with private final
+  // outputs on build scratch: the tool inside calls plain Cargo, and the
+  // intermediates keep the build directory the lease supplies. The real
+  // `target/` directory keeps the lease adoption-free; see
+  // `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
+  const staged = (args: readonly string[]) =>
+    rustExec(privateCargoCommand(buildTarget, args), {
+      manifestPath: join(workspace, "Cargo.toml"),
+      toolchain: MSRV_TOOLCHAIN,
+    });
   const graphs = {} as Record<Shape, readonly string[]>;
   const packages: Record<Shape, string> = {
     "minimal-operation": "longhorn-minimal-operation-artifact-proof",
@@ -111,8 +123,8 @@ export async function packAndRunRustArtifacts(repoRoot: string, proofRoot: strin
     "notification-only": ["longhorn-core", "longhorn-notifications", "longhorn-tauri-notifications"],
   };
   for (const shape of shapes) {
-    nativeTraces[shape] = parseTrace(await run(["cargo", `+${MSRV_TOOLCHAIN}`, "run", "-p", packages[shape], "--offline", "--quiet"], workspace));
-    const tree = await run(["cargo", `+${MSRV_TOOLCHAIN}`, "tree", "-p", packages[shape], "--offline", "--prefix", "none"], workspace);
+    nativeTraces[shape] = parseTrace(await run(staged(["cargo", "run", "-p", packages[shape], "--offline", "--quiet"]), workspace));
+    const tree = await run(staged(["cargo", "tree", "-p", packages[shape], "--offline", "--prefix", "none"]), workspace);
     graphs[shape] = longhornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graphs[shape], expected[shape]);
   }

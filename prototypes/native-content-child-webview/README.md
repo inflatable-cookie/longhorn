@@ -26,12 +26,21 @@ controller also has an empty permission set.
 
 ## Validation
 
+The prototype is its own workspace, so Oxide is entered from that directory
+rather than by a Cargo `--manifest-path`. From the repository root:
+
 ```sh
-cargo +1.85.0 test --manifest-path prototypes/native-content-child-webview/Cargo.toml --offline
-cargo clippy --manifest-path prototypes/native-content-child-webview/Cargo.toml --workspace --all-targets --offline -- -D warnings
-cargo fmt --manifest-path prototypes/native-content-child-webview/Cargo.toml --all --check
+(cd prototypes/native-content-child-webview && \
+  RUSTUP_TOOLCHAIN=1.85.0 oxide test --offline && \
+  oxide clippy --workspace --all-targets --offline -- -D warnings && \
+  oxide fmt --all --check)
+```
+
+The packaged app builds through one `exec` lease over the proof app's workspace:
+
+```sh
 cd prototypes/native-content-child-webview/proof-app/src-tauri
-cargo +1.85.0 tauri build --bundles app --ci
+RUSTUP_TOOLCHAIN=1.85.0 oxide exec -- cargo tauri build --bundles app --ci
 ```
 
 The nested lock pins Tauri's mutually compatible 2.10 runtime family and

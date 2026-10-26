@@ -16,6 +16,6 @@ exercises the direct-window panel-host binding.
 Run:
 
 ```sh
-cargo check -p longhorn-nucleus-no-surface-proof
-cargo tree -p longhorn-nucleus-no-surface-proof --edges normal
+oxide check -p longhorn-nucleus-no-surface-proof
+oxide tree -p longhorn-nucleus-no-surface-proof --edges normal
 ```

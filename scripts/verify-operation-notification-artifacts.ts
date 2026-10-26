@@ -9,6 +9,7 @@ import {
 } from "./operation-notification-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./operation-notification-artifact-proof/consumers.ts";
 import { containsKey, run } from "./operation-notification-artifact-proof/shared.ts";
+import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "operation-notification-proof");
@@ -17,20 +18,26 @@ const temporaryRoot = await mkdtemp(
 );
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
+const buildScratch = await taskScratch("longhorn-operation-notification-rust");
 
 try {
   for (const domain of ["operation", "notifications"]) {
+    // Checkout-level and non-building: the bindings check runs through the
+    // switch point and pools. Only the staged-workspace builds keep private
+    // outputs.
     await run(
-      // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: `proof:artifacts` hands this member
-      // a private CARGO_TARGET_DIR, and its packaged crates build in a `mktemp -d`
-      // workspace. Both stay on Cargo.
-      ["cargo", "run", "-p", "longhorn-bindings", "--", domain, "check"],
+      rustCommand(["run", "-p", "longhorn-bindings", "--", domain, "check"]),
       repoRoot,
     );
   }
   const poodle = POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
-  const rust = await packAndRunRustArtifacts(repoRoot, proofRoot, temporaryRoot);
+  const rust = await packAndRunRustArtifacts(
+    repoRoot,
+    proofRoot,
+    temporaryRoot,
+    buildScratch.root,
+  );
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,
@@ -85,4 +92,5 @@ try {
   } else {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
+  await buildScratch.dispose();
 }

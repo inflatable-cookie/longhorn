@@ -70,22 +70,22 @@ measure the thing that destroys it.
 ### Rebuild from clean
 
 `build.rs` does not declare the frontend as a rerun trigger, so an earlier
-`cargo check` can bake stale assets into the binary and `tauri build` will
+`oxide check` can bake stale assets into the binary and `tauri build` will
 happily reuse them — a changed `index.html` then does not appear in the app.
 Clean the package first:
 
 ```sh
-cargo clean -p longhorn-tauri-update-proof
+oxide clean -p longhorn-tauri-update-proof
 ```
 
 ### To complete it
 
 ```sh
-cd examples/tauri-update-proof/src-tauri && cargo tauri build
+cd examples/tauri-update-proof/src-tauri && oxide exec -- cargo tauri build
 ```
 
-**From this directory, not the repository root.** `cargo tauri build` at the
-root applies to the whole workspace, and four of the six Tauri proofs here ship
+**From this directory, not the repository root.** A `tauri build` at the root
+applies to the whole workspace, and four of the six Tauri proofs here ship
 no `icons/` at all — the first one reached fails `generate_context!` on a
 missing `icon.png` before this proof is touched. Nothing to do with this build;
 it just gets blamed for it.
@@ -105,10 +105,10 @@ tauri#11392 predicts:
 "target/release/bundle/macos/Longhorn Update Proof.app/Contents/MacOS/longhorn-tauri-update-proof"
 ```
 
-**Not `cargo tauri dev`.** `request_restart` restarts the process from its own
-executable path, so under dev you would be asking whether the dev binary
-relaunches rather than whether a packaged macOS application does. That is a
-different question from the one this claim asks.
+**Not `oxide exec -- cargo tauri dev`.** `request_restart` restarts the process
+from its own executable path, so under dev you would be asking whether the dev
+binary relaunches rather than whether a packaged macOS application does. That is
+a different question from the one this claim asks.
 
 Then:
 

@@ -36,7 +36,13 @@ import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { rustCommand } from "./rust-command.ts";
+import {
+  prepareStagedWorkspace,
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const consumerName = "longhorn-desktop-support-conformance";
@@ -80,6 +86,9 @@ if (platform !== "darwin" && platform !== "linux") {
 }
 
 const stage = await mkdtemp(join(tmpdir(), "longhorn-desktop-support-conformance-"));
+// Private final Cargo outputs for the disposable consumer, on external build
+// scratch. The intermediates keep the build directory the exec lease supplies.
+const buildScratch = await taskScratch("longhorn-desktop-support-conformance");
 
 try {
   await verifyExampleSources();
@@ -93,9 +102,24 @@ try {
   await cp(join(repoRoot, "Cargo.lock"), join(stage, "Cargo.lock"));
 
   const startedAt = performance.now();
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the consumer builds in the private
-  // `stage` workspace, which Oxide does not manage.
-  const output = run(["cargo", "run", "-p", consumerName, "--offline", "--quiet"], stage);
+  // One exec lease over the staged workspace, with private final outputs on
+  // build scratch: the tool inside calls plain Cargo. The real `target/`
+  // directory keeps the lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(stage);
+  const output = run(
+    rustExec(
+      privateCargoCommand(buildScratch.root, [
+        "cargo",
+        "run",
+        "-p",
+        consumerName,
+        "--offline",
+        "--quiet",
+      ]),
+      { manifestPath: join(stage, "Cargo.toml") },
+    ),
+    stage,
+  );
   const seconds = Number(((performance.now() - startedAt) / 1000).toFixed(1));
   const lines = output.trim().split("\n");
   if (!lines.includes("outcome: pass")) {
@@ -136,6 +160,7 @@ try {
   } else {
     await rm(stage, { recursive: true, force: true });
   }
+  await buildScratch.dispose();
 }
 
 /**
@@ -238,10 +263,9 @@ async function privateWorkspaceManifest(): Promise<string> {
 }
 
 function run(command: readonly string[], cwd: string): string {
-  // `scripts/rust-command.sh` for the checkout-level `package --list`
-  // inventories; plain Cargo for the consumer build, which runs in a
-  // disposable private workspace that Oxide does not manage (PENDING OXIDE
-  // ONE-USE WORKSPACE SUPPORT).
+  // `scripts/rust-command.sh` feeds every command here: the checkout-level
+  // `package --list` inventories and the consumer build's `oxide exec` lease,
+  // whose tool calls plain Cargo.
   const result = spawnSync(command[0]!, command.slice(1), {
     cwd,
     encoding: "utf8",

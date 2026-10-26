@@ -11,26 +11,34 @@
 //   both features — the same probes FIND `evaluate`, proving the markers
 //     are live and the scan can detect what it forbids.
 //
-// Builds run release-shaped in isolated target dirs under
-// `target/agent-control-scan/` so a previous opposite-feature build can never
-// leave a stale artifact for the scan to misread, and so parallel qa lanes
-// never observe a half-switched `target/`. Those builds are the only Cargo work
-// here that stays on plain Cargo, because Oxide replaces an inherited
-// `CARGO_TARGET_DIR`; the `tree` reads and the isolated `-p` tests run through
-// `scripts/rust-command.sh` like every other checkout-level route. Scanning is
-// byte-level against the rlib files themselves — no external binutils, matching
-// the runner-tools posture that a clean runner has a Rust toolchain and nothing
-// else.
+// Builds run release-shaped in a private per-feature target directory on
+// external build scratch, so a previous opposite-feature build can never leave
+// a stale artifact for the scan to misread, and so parallel qa lanes never
+// observe a half-switched `target/`. Cargo is invoked inside one `oxide exec`
+// lease per feature state with both Cargo output roots pinned to that private
+// directory (AGENTS.md names this scan as the intentional private-layout
+// exception): the binaries are release-shaped and read out of
+// `<target>/release/deps`, so their intermediates cannot pool with a
+// differently-featured build. The scratch is this run's own and is removed when
+// it finishes. Scanning is byte-level against the rlib files themselves — no
+// external binutils, matching the runner-tools posture that a clean runner has
+// a Rust toolchain and nothing else.
 
-import { readdir, readFile, rm } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import { rustCommand } from "./rust-command.ts";
+import {
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+  taskScratch,
+} from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const PLUGIN = "longhorn-tauri-agent-control";
 const CORE = "longhorn-agent-control";
-const SCAN_ROOT = join(repoRoot, "target", "agent-control-scan");
+const scratch = await taskScratch("longhorn-agent-control-scan");
+const SCAN_ROOT = scratch.root;
 
 // A core-crate symbol reference (underscored crate name) and a core-crate
 // source path (panic locations record it). Both are absent when the core
@@ -109,23 +117,7 @@ async function runExactTest(command: readonly string[], testName: string) {
 async function build(features: FeatureSet): Promise<BuildResult> {
   const args = featureArgs(features);
   const targetDir = join(SCAN_ROOT, features);
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: the release scan reads rlibs out of a
-  // private CARGO_TARGET_DIR it chooses itself, so the route stays on Cargo.
-  const env = { CARGO_TARGET_DIR: targetDir };
-
-  // Drop prior scan artifacts for the two crates under test (only) so a
-  // source change since the last run cannot leave a second hash beside the
-  // current one; the dependency cache stays warm.
   const depsDir = join(targetDir, "release", "deps");
-  const prior = await readdir(depsDir).catch(() => [] as string[]);
-  for (const entry of prior) {
-    if (
-      entry.startsWith("liblonghorn_agent_control-") ||
-      entry.startsWith("liblonghorn_tauri_agent_control-")
-    ) {
-      await rm(join(depsDir, entry));
-    }
-  }
 
   const tree = await run(
     rustCommand([
@@ -142,17 +134,15 @@ async function build(features: FeatureSet): Promise<BuildResult> {
     {},
   );
   await run(
-    [
-      "cargo",
-      "build",
-      "-p",
-      PLUGIN,
-      "--release",
-      "--locked",
-      "--lib",
-      ...args,
-    ],
-    env,
+    rustExec(
+      privateCargoCommand(
+        targetDir,
+        ["cargo", "build", "-p", PLUGIN, "--release", "--locked", "--lib", ...args],
+        { buildDir: true },
+      ),
+      { manifestPath: join(repoRoot, "Cargo.toml"), profile: "release" },
+    ),
+    {},
   );
 
   const entries = await readdir(depsDir);
@@ -239,114 +229,118 @@ async function proveServerPresent(buildResult: BuildResult): Promise<{
   return { pluginMarkersFound: pluginHits, coreMarkersFound: coreHits };
 }
 
-const off = await build("off");
-const packaged = await build("agent-control");
-const withEvaluate = await build("agent-control-evaluate");
+try {
+  const off = await build("off");
+  const packaged = await build("agent-control");
+  const withEvaluate = await build("agent-control-evaluate");
 
-const offHits = await markerHits(off.pluginRlib, MARKERS);
-if (offHits.length > 0) {
-  throw new Error(
-    `feature-off release artifact carries gated surface markers: ${offHits.join(", ")}`,
+  const offHits = await markerHits(off.pluginRlib, MARKERS);
+  if (offHits.length > 0) {
+    throw new Error(
+      `feature-off release artifact carries gated surface markers: ${offHits.join(", ")}`,
+    );
+  }
+
+  const packagedHits = await proveServerPresent(packaged);
+  const packagedEvaluate = await markerHits(packaged.coreRlib!, EVALUATE_MARKERS);
+  if (packagedEvaluate.length > 0) {
+    throw new Error(
+      `agent-control-only core artifact carries evaluate markers: ${packagedEvaluate.join(", ")}`,
+    );
+  }
+
+  const evaluateHits = await proveServerPresent(withEvaluate);
+  const evaluatePresent = await markerHits(withEvaluate.coreRlib!, EVALUATE_MARKERS);
+  const missingEvaluate = EVALUATE_MARKERS.filter(
+    (marker) => !evaluatePresent.includes(marker),
   );
-}
+  if (missingEvaluate.length > 0) {
+    throw new Error(
+      `agent-control-evaluate core artifact is missing evaluate markers: ${missingEvaluate.join(", ")} — the scan would pass vacuously`,
+    );
+  }
 
-const packagedHits = await proveServerPresent(packaged);
-const packagedEvaluate = await markerHits(packaged.coreRlib!, EVALUATE_MARKERS);
-if (packagedEvaluate.length > 0) {
-  throw new Error(
-    `agent-control-only core artifact carries evaluate markers: ${packagedEvaluate.join(", ")}`,
-  );
-}
-
-const evaluateHits = await proveServerPresent(withEvaluate);
-const evaluatePresent = await markerHits(withEvaluate.coreRlib!, EVALUATE_MARKERS);
-const missingEvaluate = EVALUATE_MARKERS.filter(
-  (marker) => !evaluatePresent.includes(marker),
-);
-if (missingEvaluate.length > 0) {
-  throw new Error(
-    `agent-control-evaluate core artifact is missing evaluate markers: ${missingEvaluate.join(", ")} — the scan would pass vacuously`,
-  );
-}
-
-// Isolated `-p` tests: workspace unification from the proof example would
-// otherwise compile `agent-control-evaluate` into every crate test. Both the
-// dependency graphs and these tests are ordinary checkout-level Cargo work, so
-// they run through the switch point; only the rlib scan below keeps a private
-// CARGO_TARGET_DIR.
-await runExactTest(
-  rustCommand([
-    "test",
-    "-p",
-    CORE,
-    "--locked",
-    "--test",
-    "conformance",
+  // Isolated `-p` tests: workspace unification from the proof example would
+  // otherwise compile `agent-control-evaluate` into every crate test. Both the
+  // dependency graphs and these tests are ordinary checkout-level Cargo work, so
+  // they run through the switch point and pool; only the per-feature rlib builds
+  // above keep the private target directory this scan reads.
+  await runExactTest(
+    rustCommand([
+      "test",
+      "-p",
+      CORE,
+      "--locked",
+      "--test",
+      "conformance",
+      "evaluate_answers_typed_unsupported",
+      "--",
+      "--exact",
+    ]),
     "evaluate_answers_typed_unsupported",
-    "--",
-    "--exact",
-  ]),
-  "evaluate_answers_typed_unsupported",
-);
-await runExactTest(
-  rustCommand([
-    "test",
-    "-p",
-    PLUGIN,
-    "--features",
-    "agent-control",
-    "--locked",
-    "--test",
-    "mount",
+  );
+  await runExactTest(
+    rustCommand([
+      "test",
+      "-p",
+      PLUGIN,
+      "--features",
+      "agent-control",
+      "--locked",
+      "--test",
+      "mount",
+      "evaluate_answers_typed_unsupported",
+      "--",
+      "--exact",
+    ]),
     "evaluate_answers_typed_unsupported",
-    "--",
-    "--exact",
-  ]),
-  "evaluate_answers_typed_unsupported",
-);
-await runExactTest(
-  rustCommand([
-    "test",
-    "-p",
-    CORE,
-    "--features",
-    "agent-control-evaluate",
-    "--locked",
-    "--test",
-    "conformance",
+  );
+  await runExactTest(
+    rustCommand([
+      "test",
+      "-p",
+      CORE,
+      "--features",
+      "agent-control-evaluate",
+      "--locked",
+      "--test",
+      "conformance",
+      "two_clients_interleave_without_cross_talk",
+      "--",
+      "--exact",
+    ]),
     "two_clients_interleave_without_cross_talk",
-    "--",
-    "--exact",
-  ]),
-  "two_clients_interleave_without_cross_talk",
-);
+  );
 
-console.log(
-  JSON.stringify(
-    {
-      schema: "longhorn.agent-control-release-absence.v2",
-      outcome: "pass",
-      defaultOff: {
-        coreInGraph: false,
-        coreArtifacts: 0,
-        markersFound: offHits,
+  console.log(
+    JSON.stringify(
+      {
+        schema: "longhorn.agent-control-release-absence.v2",
+        outcome: "pass",
+        defaultOff: {
+          coreInGraph: false,
+          coreArtifacts: 0,
+          markersFound: offHits,
+        },
+        agentControl: {
+          coreInGraph: true,
+          pluginMarkersFound: packagedHits.pluginMarkersFound,
+          coreMarkersFound: packagedHits.coreMarkersFound,
+          evaluateMarkersFound: packagedEvaluate,
+        },
+        agentControlEvaluate: {
+          coreInGraph: true,
+          pluginMarkersFound: evaluateHits.pluginMarkersFound,
+          coreMarkersFound: evaluateHits.coreMarkersFound,
+          evaluateMarkersFound: evaluatePresent,
+        },
+        markers: MARKERS,
+        evaluateMarkers: EVALUATE_MARKERS,
       },
-      agentControl: {
-        coreInGraph: true,
-        pluginMarkersFound: packagedHits.pluginMarkersFound,
-        coreMarkersFound: packagedHits.coreMarkersFound,
-        evaluateMarkersFound: packagedEvaluate,
-      },
-      agentControlEvaluate: {
-        coreInGraph: true,
-        pluginMarkersFound: evaluateHits.pluginMarkersFound,
-        coreMarkersFound: evaluateHits.coreMarkersFound,
-        evaluateMarkersFound: evaluatePresent,
-      },
-      markers: MARKERS,
-      evaluateMarkers: EVALUATE_MARKERS,
-    },
-    null,
-    2,
-  ),
-);
+      null,
+      2,
+    ),
+  );
+} finally {
+  await scratch.dispose();
+}

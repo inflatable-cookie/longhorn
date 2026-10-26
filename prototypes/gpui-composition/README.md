@@ -4,7 +4,7 @@ The assembly from [the GPUI composition guide](../../docs/guides/gpui-compositio
 as something that compiles.
 
 ```sh
-cd prototypes/gpui-composition && cargo run
+cd prototypes/gpui-composition && oxide run
 ```
 
 Read `src/main.rs` against the guide. Its sections are the guide's composition

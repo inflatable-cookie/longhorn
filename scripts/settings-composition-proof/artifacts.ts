@@ -7,7 +7,12 @@ import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 import { digest, run } from "./shared.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import { rustCommand } from "../rust-command.ts";
+import {
+  prepareStagedWorkspace,
+  privateCargoCommand,
+  rustCommand,
+  rustExec,
+} from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -65,6 +70,7 @@ export async function packTypescriptArtifacts(
 export async function packAndCheckRustArtifacts(
   repoRoot: string,
   temporaryRoot: string,
+  buildTarget: string,
 ): Promise<readonly ArtifactIdentity[]> {
   const artifactRoot = join(temporaryRoot, "rust-archives");
   const workspace = join(temporaryRoot, "rust-workspace");
@@ -73,9 +79,8 @@ export async function packAndCheckRustArtifacts(
   const identities = [];
   for (const name of rustCrates) {
     // Non-building and checkout-level: `package --list` reads the manifest, so
-    // it runs through the switch point. The `check` call below builds in the
-    // `mktemp -d` workspace, which stays on Cargo (PENDING OXIDE ONE-USE
-    // WORKSPACE SUPPORT).
+    // it runs through the switch point. The `check` call below leases the staged
+    // workspace instead.
     await run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
     const archive = join(
       artifactRoot,
@@ -99,7 +104,7 @@ export async function packAndCheckRustArtifacts(
       sha256: await digest(archive),
     });
   }
-  await checkRustConsumer(workspace);
+  await checkRustConsumer(workspace, buildTarget);
   return identities;
 }
 
@@ -159,6 +164,7 @@ function assertFrameworkRootBoundary(manifest: {
 
 async function checkRustConsumer(
   workspace: string,
+  buildTarget: string,
 ): Promise<void> {
   const consumer = join(workspace, "consumer");
   await mkdir(join(consumer, "src"), { recursive: true });
@@ -188,16 +194,22 @@ longhorn-tauri-config.workspace = true
 }
 `,
   );
-  // PENDING OXIDE ONE-USE WORKSPACE SUPPORT: this builds in the `mktemp -d`
-  // workspace the parent proof passes in, which Oxide does not manage.
+  // One exec lease over the staged workspace, with private final outputs on
+  // build scratch: the tool inside calls plain Cargo, and the intermediates keep
+  // the build directory the lease supplies. The real `target/` directory keeps
+  // the lease adoption-free; see `prepareStagedWorkspace`.
+  await prepareStagedWorkspace(workspace);
   await run(
-    [
-      "cargo",
-      "check",
-      "-p",
-      "longhorn-settings-artifact-proof",
-      "--offline",
-    ],
+    rustExec(
+      privateCargoCommand(buildTarget, [
+        "cargo",
+        "check",
+        "-p",
+        "longhorn-settings-artifact-proof",
+        "--offline",
+      ]),
+      { manifestPath: join(workspace, "Cargo.toml") },
+    ),
     workspace,
   );
 }
