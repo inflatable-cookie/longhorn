@@ -136,7 +136,7 @@ export async function packAndCheckRustArtifacts(
     });
   }
   await auditRustBoundary(workspace);
-  const compileGraphs = await checkRustConsumers(workspace);
+  const compileGraphs = await checkRustConsumers(workspace, buildTarget);
   return {
     identities,
     packaging: {
@@ -266,7 +266,10 @@ async function readSourceTree(root: string): Promise<string> {
   ).join("\n");
 }
 
-async function checkRustConsumers(workspace: string): Promise<{
+async function checkRustConsumers(
+  workspace: string,
+  buildTarget: string,
+): Promise<{
   readonly queryOnly: readonly string[];
   readonly fullHost: readonly string[];
   readonly supervisionOptional: true;

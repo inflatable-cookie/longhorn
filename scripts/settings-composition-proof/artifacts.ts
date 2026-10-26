@@ -104,7 +104,7 @@ export async function packAndCheckRustArtifacts(
       sha256: await digest(archive),
     });
   }
-  await checkRustConsumer(workspace);
+  await checkRustConsumer(workspace, buildTarget);
   return identities;
 }
 
@@ -164,6 +164,7 @@ function assertFrameworkRootBoundary(manifest: {
 
 async function checkRustConsumer(
   workspace: string,
+  buildTarget: string,
 ): Promise<void> {
   const consumer = join(workspace, "consumer");
   await mkdir(join(consumer, "src"), { recursive: true });
