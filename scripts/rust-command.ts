@@ -180,25 +180,23 @@ async function assertExternalScratch(owner: string): Promise<void> {
   if (!(await stat(resolved)).isDirectory()) {
     throw new Error(`build scratch ${resolved} is not a directory`);
   }
-  const forbidden = await forbiddenScratchRoots();
-  for (const { path, label } of forbidden) {
-    if (resolved === path || resolved.startsWith(`${path}${sep}`)) {
-      throw new Error(
-        `build scratch ${resolved} is ${label}. Local build outputs stay on external build scratch, never there.`,
-      );
-    }
-  }
-}
-
-async function forbiddenScratchRoots(): Promise<Array<{ path: string; label: string }>> {
+  const refuse = (label: string): never => {
+    throw new Error(
+      `build scratch ${resolved} is ${label}. Local build outputs stay on external build scratch, never there.`,
+    );
+  };
+  // `dirname("/")` is `/`, so the drive root is tested before its children.
+  if (resolved === sep) refuse("a drive root");
+  if (dirname(resolved) === sep) refuse("a boot-volume top-level directory");
+  if (/^\/Volumes\/[^/]+$/.test(resolved)) refuse("a volume mount root");
   const [internalTemp, home] = await Promise.all([
     realpath(tmpdir()).catch(() => tmpdir()),
     realpath(homedir()).catch(() => homedir()),
   ]);
-  return [
-    { path: "/", label: "a drive root" },
-    { path: dirname("/x"), label: "a boot-volume top-level directory" },
-    { path: internalTemp, label: "the internal temporary directory" },
-    { path: home, label: "the account home" },
-  ].filter((entry) => entry.path !== "/x");
+  for (const [root, label] of [
+    [internalTemp, "the internal temporary directory"],
+    [home, "the account home"],
+  ] as const) {
+    if (resolved === root || resolved.startsWith(`${root}${sep}`)) refuse(label);
+  }
 }

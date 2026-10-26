@@ -114,17 +114,10 @@ EOF
   printf '}\n'
 } > "$release_consumer_root/src/main.rs"
 
-if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  release_scratch=$(mktemp -d "$release_tmp/cargo-target-XXXXXX")
-else
-  release_scratch_root="${OXIDE_TASK_SCRATCH_ROOT:-/Volumes/Builds/scratch/longhorn}"
-  if ! mkdir -p "$release_scratch_root" 2>/dev/null; then
-    printf 'build scratch %s is unavailable; set OXIDE_TASK_SCRATCH_ROOT to a writable directory on a build volume\n' \
-      "$release_scratch_root" >&2
-    exit 1
-  fi
-  release_scratch=$(mktemp -d "$release_scratch_root/longhorn-source-consumer-XXXXXX")
-fi
+# Private final Cargo outputs on external build scratch. The helper is the shell
+# counterpart of `taskScratch`: it fails closed on a missing or internal root,
+# creates only its own directory, and keeps runner-owned temp on hosted CI.
+release_scratch=$(bash scripts/external-scratch.sh longhorn-source-consumer)
 
 # Adoption-free lease preparation: an existing REAL target/ directory opts the
 # throwaway workspace out of Oxide's automatic first conversion (which refuses a
@@ -134,7 +127,9 @@ if [[ -L "$release_consumer_root/target" ]]; then
   printf 'refusing to replace the owned-output link at %s/target\n' "$release_consumer_root" >&2
   exit 1
 fi
-mkdir -p "$release_consumer_root/target"
+if [[ ! -d "$release_consumer_root/target" ]]; then
+  mkdir "$release_consumer_root/target"
+fi
 
 # One exec lease over the throwaway consumer's workspace per call. The tool
 # inside each lease is plain Cargo, never Oxide: a nested lease takes its own

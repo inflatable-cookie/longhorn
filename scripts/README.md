@@ -179,8 +179,10 @@ that argv for the scripts here, and `scripts/private-cargo.sh` is the tool behin
 a lease that sets the private output directories for one staged workspace. Those
 directories must be set inside the lease: `oxide exec` replaces a
 `CARGO_TARGET_DIR` inherited on the outer call. `prepareStagedWorkspace` creates
-the empty real `target/` directory that keeps a staged lease adoption-free.
-Scratch roots fail closed rather than being created on the internal drive.
+the empty real `target/` directory that keeps a staged lease adoption-free, and
+`scripts/external-scratch.sh` gives a shell route the same fail-closed private
+directory `taskScratch` gives a TypeScript one. Scratch roots fail closed rather
+than being created on the internal drive.
 `AGENTS.md` owns the routing table, the storage rules and the named exceptions.
 
 ## Language

@@ -88,9 +88,10 @@ the account home or a drive root:
   an ordinary directory on the internal drive.
 - The default is the build volume's own `scratch` directory, which must exist;
   the repository creates only its `longhorn` child below it.
-- `scripts/rust-command.ts` resolves a path before accepting it and refuses one
-  inside the internal temp directory, the account home, a boot-volume top-level
-  directory or a volume mount root.
+- `scripts/rust-command.ts` (`taskScratch`, for TypeScript routes) and
+  `scripts/external-scratch.sh` (its shell counterpart) resolve a path before
+  accepting it and refuse one inside the internal temp directory, the account
+  home, a boot-volume top-level directory or a volume mount root.
 - Hosted CI keeps its runner-owned temporary storage.
 
 `oxide exec` replaces a `CARGO_TARGET_DIR` inherited on the outer call with
