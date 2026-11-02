@@ -14,6 +14,9 @@ pub enum ChildViewError {
     DuplicateTransportLabel,
     /// The initial child source is not a remote HTTP or HTTPS URL.
     InvalidContentSource,
+    /// A bundled document path is empty, oversized, absolute, escaping, or
+    /// outside the bounded grammar.
+    InvalidBundledContentSource,
     /// The initialization script is empty, oversized, or contains NUL.
     InvalidInitializationScript,
     /// Consumer policy denied the requested child document.
@@ -80,6 +83,7 @@ impl ChildViewError {
             Self::InvalidLabel => "child:invalid-label",
             Self::DuplicateTransportLabel => "child:duplicate-label",
             Self::InvalidContentSource => "child:invalid-source",
+            Self::InvalidBundledContentSource => "child:invalid-bundled-source",
             Self::InvalidInitializationScript => "child:invalid-script",
             Self::NavigationDenied(_) => "child:navigation-denied",
             Self::ForeignIsland { .. } => "child:foreign-island",
@@ -123,6 +127,9 @@ impl fmt::Display for ChildViewError {
             Self::InvalidContentSource => {
                 formatter.write_str("child content source must be remote HTTP or HTTPS")
             }
+            Self::InvalidBundledContentSource => formatter.write_str(
+                "bundled child document must be a bounded relative path inside the application assets",
+            ),
             Self::InvalidInitializationScript => {
                 formatter.write_str("invalid child initialization script")
             }

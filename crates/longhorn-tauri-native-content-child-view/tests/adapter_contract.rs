@@ -20,8 +20,8 @@ use longhorn_native_content::{
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
     ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewNavigationOutcome, ChildViewPolicyHooks,
-    ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSpec,
-    ChildViewTeardownOutcome, RuntimeAttachRequest,
+    ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSource,
+    ChildViewSpec, ChildViewTeardownOutcome, RuntimeAttachRequest,
 };
 use tauri::Url;
 
@@ -95,13 +95,23 @@ impl FakeRuntime {
             .clone();
         callback(runtime_event(generation, kind));
     }
+
+    fn urls_of(&self, handle: u64) -> Url {
+        self.state
+            .lock()
+            .unwrap()
+            .urls
+            .get(&handle)
+            .cloned()
+            .unwrap()
+    }
 }
 
 impl ChildViewRuntime for FakeRuntime {
     type Handle = u64;
 
     fn attach(&self, request: RuntimeAttachRequest) -> Result<Self::Handle, ChildViewError> {
-        let source = request.spec.source().clone();
+        let source = test_document_url(request.spec.source());
         let handle = {
             let mut state = self.state.lock().unwrap();
             state.next_handle += 1;
@@ -334,12 +344,24 @@ fn spec() -> ChildViewSpec {
         host_window_id(),
         ChildViewLabel::new("host").unwrap(),
         ChildViewLabel::new("proof-child").unwrap(),
-        source,
+        ChildViewSource::external(source).unwrap(),
         Some(*b"longhorn-proof-1"),
         Arc::new(move |candidate| candidate.origin().ascii_serialization() == origin),
         ChildViewPolicyHooks::new(None, Arc::new(|_| {})).unwrap(),
     )
     .unwrap()
+}
+
+/// The URL the test runtime reports for an initial source. Bundled documents
+/// encode this test file's own macOS expectation of Tauri's app-scheme
+/// mapping; the real mapping is pinned by the native local-document proof.
+fn test_document_url(source: &ChildViewSource) -> Url {
+    match source {
+        ChildViewSource::External(url) => url.clone(),
+        ChildViewSource::Bundled(document) => {
+            Url::parse(&format!("tauri://localhost/{}", document.as_str())).unwrap()
+        }
+    }
 }
 
 fn runtime_event(generation: u64, kind: ChildViewRuntimeEventKind) -> ChildViewRuntimeEvent {
@@ -483,7 +505,10 @@ fn admitted_navigation_reuses_one_generation_and_same_url_is_unchanged() {
     let requested = Url::parse("http://127.0.0.1:43119/next").unwrap();
     let submitted = adapter.navigate(generation(1), requested.clone()).unwrap();
     assert_eq!(submitted.generation(), generation(1));
-    assert_eq!(submitted.previous_url(), spec().source());
+    assert_eq!(
+        submitted.previous_url(),
+        &test_document_url(spec().source())
+    );
     assert_eq!(submitted.requested_url(), &requested);
     assert_eq!(submitted.outcome(), ChildViewNavigationOutcome::Submitted);
 
@@ -810,5 +835,86 @@ fn construction_policy_and_capability_example_are_closed_by_default() {
             .unwrap()
             .iter()
             .any(|label| label == "proof-child")
+    );
+}
+
+#[test]
+fn bundled_local_source_attaches_through_the_same_lifecycle() {
+    let timeline = Arc::new(Mutex::new(Vec::new()));
+    let runtime = FakeRuntime::with_timeline(timeline.clone());
+    let bundled = ChildViewSpec::new(
+        island_id(),
+        host_window_id(),
+        ChildViewLabel::new("host").unwrap(),
+        ChildViewLabel::new("proof-child").unwrap(),
+        ChildViewSource::bundled("docs/offline/index.html").unwrap(),
+        Some(*b"longhorn-proof-1"),
+        // The app origin is host-owned: this test policy admits exactly the
+        // application asset protocol and denies every remote candidate.
+        Arc::new(|candidate| candidate.as_str().starts_with("tauri://localhost/")),
+        ChildViewPolicyHooks::new(
+            Some("globalThis.__bundled = true;".to_owned()),
+            Arc::new(|_| {}),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let adapter = ChildViewAdapter::new(runtime.clone(), bundled, Arc::new(|_| {}));
+
+    let authority = coordinator(1);
+    let receipt = adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    assert!(
+        receipt
+            .steps()
+            .iter()
+            .all(|step| step.outcome() == &OperationOutcome::Applied)
+    );
+    let document = test_document_url(&ChildViewSource::bundled("docs/offline/index.html").unwrap());
+    assert_eq!(runtime.urls_of(1).as_str(), document.as_str());
+
+    runtime.emit(1, 1, ChildViewRuntimeEventKind::PageLoadFinished);
+    assert_eq!(
+        serde_json::to_value(adapter.observe(generation(1)).unwrap()).unwrap()["readiness"],
+        "ready"
+    );
+
+    // Same bundled document is unchanged; a second bundled document is
+    // submitted through the consumer policy; a remote escape stays typed.
+    let unchanged = adapter.navigate(generation(1), document.clone()).unwrap();
+    assert_eq!(unchanged.outcome(), ChildViewNavigationOutcome::Unchanged);
+    let next = Url::parse("tauri://localhost/docs/offline/next.html").unwrap();
+    let submitted = adapter.navigate(generation(1), next.clone()).unwrap();
+    assert_eq!(submitted.outcome(), ChildViewNavigationOutcome::Submitted);
+    assert_eq!(
+        adapter.navigate(
+            generation(1),
+            Url::parse("https://escape.invalid/x").unwrap()
+        ),
+        Err(ChildViewError::NavigationDenied(
+            Url::parse("https://escape.invalid/x").unwrap()
+        ))
+    );
+    assert!(
+        runtime
+            .calls()
+            .iter()
+            .any(|call| matches!(call, NativeCall::Navigate { handle: 1, .. }))
+    );
+
+    let mut detach_authority = attached_coordinator(1);
+    detach_authority
+        .update_desired(
+            detach_authority.desired().revision(),
+            desired_update(1, DesiredPresence::Absent, DesiredVisibility::Visible),
+        )
+        .unwrap();
+    adapter
+        .apply(&detach_authority, &detach_authority.plan().unwrap())
+        .unwrap();
+    assert_eq!(
+        adapter.teardown().unwrap().outcome(),
+        ChildViewTeardownOutcome::AlreadyDetached
     );
 }

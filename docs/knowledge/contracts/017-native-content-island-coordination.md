@@ -2,7 +2,7 @@
 
 Status: active promoted production boundary  
 Owner: Tom  
-Updated: 2026-08-15
+Updated: 2026-11-02
 Evidence: `017-native-content-island-boundary.md` (Git history)
 
 ## Boundary
@@ -100,6 +100,33 @@ lookup and raw-handle escape are not canonical control paths.
 
 Back, forward, reload, browser-history persistence, redirects, downloads,
 popups, and permissions remain outside this operation.
+
+## Child-view Bundled Local Source
+
+The child-view seam's initial source is a bounded typed carrier,
+`ChildViewSource`: the historical remote HTTP/HTTPS URL, or a bundled local
+document. A bundled document is one validated relative path inside the
+application bundle (ASCII alphanumerics plus `-`, `_`, `.`, `/`; no absolute,
+empty, `.`, `..`, backslash, or URL-syntax components), so the path can
+neither escape the asset root nor inject URL syntax. At attach it maps to
+Tauri's own application asset protocol (`WebviewUrl::App`). No local server,
+no generic filesystem read, and no arbitrary scheme ever enters the adapter.
+
+The host application owns bundled-document identity, path authority, CSP,
+capability scope, and injected-script policy. A bundled-local child webview
+shares the app's local capability scope deliberately; remote capabilities are
+still excluded unless the consumer grants them. The concrete app-scheme URL
+is Tauri-owned and platform-specific; Longhorn observes it through
+`current_url` and never promises its spelling. The consumer navigation policy
+remains the sole admission path for every navigation, including the initial
+document's origin.
+
+This support is implemented but unreleased: it ships with the next release.
+`ChildViewSpec::new` taking `ChildViewSource` instead of a bare `Url` is the
+one deliberate source break for external callers, coordinated under the
+pre-1.0 rule. It closes the exact offline bundled-document dependency gap
+named by the Praxis requirement evidence without making Longhorn a file
+browser, a server, or a Praxis renderer.
 
 Poodle owns layout and visual primitives. `longhorn-windowing` owns desired and
 observed outer-window placement. Native-content coordination may bind to a
@@ -283,6 +310,19 @@ depend on it without a later public-seam proof and contract change.
   detach policy; live scale switching was unavailable
 - stale renderer measurements and native completions leave exact state
   unchanged
+- bundled local source: `proof:native-content:local` runs a real macOS
+  WKWebView from a staged product-free consumer through the public API —
+  bundled document loads under the ordinary plan lifecycle with observed
+  asset-protocol source identity, injected-initialization-script nonce
+  round-trip through exactly one permitted IPC command, unpermitted command
+  denied by capability scope, a connect-src CSP violation probe, native download denial, no page-load event outside the
+  application asset protocol, denied popup and navigation escapes plus the
+  adapter-typed escape denial, and truthful detach/post-detach/idempotent-
+  teardown receipts; `check:native-content:local` compiles the staged
+  consumer and `test:native-content:local` covers typed source validation,
+  path/scheme refusal, and the external-source policy and lifecycle
+  regression. Hosts without a GUI session cannot run the native proof and
+  report that honestly. Windows and Linux stay unproved
 - partial apply exposes attempted, failed, and dependency-skipped operations
 - macOS packaged proof covers all three shapes within the recorded live-scale
   environment limit
@@ -353,3 +393,9 @@ fixture and generated TypeScript digests remain exact. Packaged macOS evidence
 proves submitted navigation, same-URL idempotence, policy denial, readiness,
 and retained generation. Figmatic owns its preview URLs and command policy;
 Nucleus owns its browser actions and later removal of global-label lookup.
+
+Queue task longhorn#084 (2026-11) adds the bounded bundled local document
+source (`ChildViewSource::bundled`) and its real macOS native proof; see
+Child-view Bundled Local Source above. The support is implemented but
+unreleased: no version, tag, or release inventory changed, and the next
+release carries the one documented `ChildViewSpec::new` source break.

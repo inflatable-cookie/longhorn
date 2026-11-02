@@ -1,0 +1,33 @@
+# A disposable native consumer for Longhorn's bundled local child-view source
+# (contract 017). It hosts one offline document inside a real child webview
+# and carries no product value: every label, island, window and command name
+# is its own.
+#
+# This manifest is a template, not a root workspace member:
+# `scripts/verify-native-content-local.ts` copies it into a disposable private
+# workspace and builds it there, so the proof resolves staged crate sources
+# and never the live Longhorn workspace. Building it in place would need that
+# private workspace.
+[package]
+name = "longhorn-native-content-local-consumer"
+version = "0.0.0"
+edition.workspace = true
+publish = false
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[[bin]]
+name = "longhorn-native-content-local-consumer"
+path = "src/main.rs"
+
+[dependencies]
+longhorn-core.workspace = true
+longhorn-native-content.workspace = true
+longhorn-tauri-native-content-child-view.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { workspace = true, features = ["wry", "unstable"] }
+
+[lints]
+workspace = true

@@ -12,14 +12,39 @@ The crate owns:
 - exact partial execution receipts through current coordinator authority
 - stale callback rejection, explicit host invalidation, and idempotent teardown
 
-Consumers inject the source URL, navigation decision, data-store identity,
+Consumers inject the initial source, navigation decision, data-store identity,
 logical-to-Tauri label mapping, capability configuration, and bounded native
-policy hooks. The optional initialization script is limited to 64 KiB and
-never enters the renderer protocol. Page-load, denied-popup, denied-download,
-and supported document-title events return only through the native observer.
-Popup and download creation remain denied by the supplied Tauri runtime.
-Remote content receives no capabilities unless the app adds a matching remote
-capability.
+policy hooks. The initial source is a bounded [`ChildViewSource`]: a remote
+HTTP/HTTPS URL, or a validated bundled local document path inside the
+application's own assets. The optional initialization script is limited to
+64 KiB and never enters the renderer protocol. Page-load, denied-popup,
+denied-download, and supported document-title events return only through the
+native observer. Popup and download creation remain denied by the supplied
+Tauri runtime. Remote content receives no capabilities unless the app adds a
+matching remote capability.
+
+## Bundled Local Documents
+
+`ChildViewSource::bundled` admits one bounded relative path inside the
+application bundle (ASCII alphanumerics plus `-`, `_`, `.`, `/`; no absolute,
+empty, `.`, `..`, backslash, or URL-syntax components). At attach, the path
+maps to Tauri's own application asset protocol — no local server, no
+arbitrary filesystem access, and no network dependency. The document runs
+under the host application's CSP, capability scope (its webview label),
+data-store identity, and injected initialization script; the host application
+owns all of those decisions, and a bundled-local child webview shares the
+app's local capability scope deliberately.
+
+The concrete app-scheme URL is Tauri-owned and platform-specific. Longhorn
+does not promise its spelling: observe it with `current_url(generation)`, and
+admit the application origin in the consumer navigation policy before
+navigating to further bundled documents. macOS-first: this source has a real
+native proof on macOS (`proof:native-content:local`) and stays unproved on
+Windows and Linux like the rest of the child-view mechanism.
+
+This support is implemented but unreleased: it ships with the next release,
+and `ChildViewSpec::new` taking `ChildViewSource` instead of a bare `Url` is
+the one deliberate source break for external callers (pre-1.0, coordinated).
 
 The crate does not own browser navigation products, browsing history, permissions,
 downloads, popups, page content, outer-window placement, Svelte, or Poodle.

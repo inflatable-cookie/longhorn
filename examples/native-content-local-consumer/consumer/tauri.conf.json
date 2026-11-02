@@ -1,0 +1,30 @@
+{
+  "productName": "Longhorn Native Content Local Proof",
+  "version": "0.1.0",
+  "identifier": "native-content.example.longhorn-local-proof",
+  "build": {
+    "frontendDist": "assets"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Longhorn Native Content Local Proof",
+        "width": 520,
+        "height": 420,
+        "visible": true,
+        "resizable": false,
+        "url": "shell.html"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": []
+  }
+}

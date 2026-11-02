@@ -1,0 +1,7 @@
+# The offline document child webview gets exactly one command. The second
+# proof command exists so the document can prove the boundary denies it.
+
+[[permission]]
+identifier = "allow-ipc-proof"
+description = "Invokes the offline proof ping command and nothing else."
+commands.allow = ["ipc_proof_ping"]

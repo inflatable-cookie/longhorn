@@ -7,6 +7,7 @@ mod adapter;
 mod error;
 mod policy;
 mod runtime;
+mod source;
 mod tauri_runtime;
 
 pub use adapter::{
@@ -23,4 +24,5 @@ pub use runtime::{
     ChildViewAdapterEvent, ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind,
     RuntimeAttachRequest,
 };
+pub use source::{BundledLocalDocument, ChildViewSource};
 pub use tauri_runtime::{TauriChildViewHandle, TauriChildViewRuntime};
