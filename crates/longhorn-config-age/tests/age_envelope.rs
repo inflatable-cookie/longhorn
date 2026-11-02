@@ -1,5 +1,7 @@
 //! Binary age v1 backup envelope conformance.
 
+#[path = "age_envelope/compat.rs"]
+mod compat;
 #[path = "age_envelope/failures.rs"]
 mod failures;
 #[path = "age_envelope/passphrase.rs"]

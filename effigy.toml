@@ -59,6 +59,14 @@ include = ["config/release.toml"]
 "test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
+# Contract 004's encrypted-backup envelope crate, post RUSTSEC-2026-0387:
+# `test:config-age:security` runs the crate's suites plus the retained
+# 0.4.3-lineage ciphertext cases in fixtures/config-age-compat.
+# `check:config-age:security` compiles the touched package all-targets and
+# proves public Git consumers resolve the repaired age line with no
+# vulnerable chain, because a root lock cannot fix downstream resolution.
+"test:config-age:security" = "bash scripts/rust-command.sh test -p longhorn-config-age --locked"
+"check:config-age:security" = "bun scripts/verify-config-age-security.ts"
 # Contract 017 bundled local child-view source (implemented, unreleased): the
 # typed source carrier's crate tests — validation, path/scheme refusal, and
 # the existing external-source policy and lifecycle regression.
@@ -258,6 +266,12 @@ include = ["config/release.toml"]
 # `ci:rehearse`: heavy task table below ([tasks."ci:rehearse"]).
 
 # --- Release ------------------------------------------------------------
+# The release `advisories` gate command, exposed as a task selector so a
+# dependency-security repair can run the exact configured gate without the
+# full release:gates list. Alignment is unaffected: `release:gates` keeps
+# its own declaration order and `check:release-gates` still compares that
+# list to config/release.toml.
+"check:advisories" = "bash scripts/rust-command.sh deny check advisories"
 # `release:floor`: heavy task table below ([tasks."release:floor"]).
 "release:source-consumer" = "bash scripts/verify-source-consumer.sh"
 # `[release.gates]` minus `workspace`, declaration order. `check:release-gates`
@@ -917,6 +931,47 @@ members = [
       "path:crates/longhorn-storage-layout/**",
     ],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+]
+
+[qa.groups.config-age-security]
+lifecycle = "maintained"
+purpose = "Check the config-age envelope against the RUSTSEC-2026-0387 repair and contract 004's age v1 format contract"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = [
+  "Does not run the advisories gate; that stays a release-gate surface (check:advisories runs it standalone)",
+  "Does not cover Cargo.lock or Cargo.toml changes; per the 2026-10-20 planner ruling those are PR gap tokens, not group scope",
+  "Does not cover longhorn-config's backup store, which the workspace Rust lane owns",
+]
+members = [
+  {
+    id = "config-age-security-check",
+    kind = "proof",
+    surface = "published",
+    task = "check:config-age:security",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-config-age",
+      "path:crates/longhorn-config-age/**",
+      "path:fixtures/config-age-compat/**",
+    ],
+    limits = ["Stages its own disposable Git-dependency consumers at the exact tree"],
+  },
+  {
+    id = "config-age-security-tests",
+    kind = "test",
+    surface = "published",
+    task = "test:config-age:security",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-config-age",
+      "path:crates/longhorn-config-age/**",
+      "path:fixtures/config-age-compat/**",
+    ],
+    limits = ["The crate's own suites plus the retained old-ciphertext compatibility cases only"],
   },
 ]
 
