@@ -123,8 +123,61 @@ this bounded update for 0.4.3 on 2026-10-23 (decision `e4881db7`): only
 `tokio` changes version and checksum; no package is added or removed and no
 dependency edge moves.
 
-Those locks are Longhorn's own. The Rust crates are `publish = false` and
-consumers take them by git tag, so the tag carries the requirement, not the
+`age` moves from 0.12.1 to 0.11.5 for RUSTSEC-2026-0387 (crypto-bigint
+constant-time execution issues; patched only in >= 0.7.6, outside the 0.5
+line age 0.12 reaches). The repair is a manifest requirement change, not a
+lock-only bump: age 0.12.x carries a mandatory hpke → p256 →
+elliptic-curve → crypto-bigint path in every `default-features = false`
+build and no published 0.12.x release drops it, while age 0.11.x has no
+mandatory p256/hpke dependency at all. `longhorn-config-age` uses only the
+X25519 and scrypt recipients both lines implement, so no source change was
+needed; the compatibility contract is the age v1 file format (contract
+004), and retained ciphertext captured through the public API on 0.12.1 —
+the line 0.4.3 shipped — is frozen in `fixtures/config-age-compat` and
+restores under 0.11.5 (`test:config-age:security`). The targeted
+`cargo update -p age --precise 0.11.5` moved: age 0.12.1 → 0.11.5,
+age-core 0.12.0 → 0.11.0, bech32 0.11.1 → 0.9.1, fluent 0.17.0 → 0.16.1,
+fluent-bundle 0.16.0 → 0.15.3, fluent-syntax 0.12.0 → 0.11.1,
+i18n-embed 0.16.0 → 0.15.4, i18n-embed-fl 0.10.1 → 0.9.4, nom 8.0.0 →
+7.1.3; removed twenty packages (aes-gcm, base16ct, crypto-bigint, ctr, der,
+elliptic-curve, ff, ghash, group, hpke, keccak, kem, ml-kem, p256, polyval,
+primeorder, proc-macro-error-attr3, proc-macro-error3, sec1, sha3) and
+added three leaves of the moved lines (minimal-lexical,
+proc-macro-error-attr2, proc-macro-error2). No unrelated edge moved — in
+particular none of the pre-existing `windows-sys`/`syn` qualifier edges.
+No prototype lock carries age, so no prototype lock moves.
+
+The advisories gate then failed on a new error the downgrade exposed:
+i18n-embed-fl 0.9.4 — the newest release satisfying age 0.11.5's `0.9`
+requirement — depends on `proc-macro-error2`, unmaintained with no patched
+release (RUSTSEC-2026-0173). The repair does not add an allowance for it;
+it pins i18n-embed-fl to 0.9.1, the newest `^0.9` release that still uses
+the original `proc-macro-error` 1.0.4 already locked through the
+glib/gtk build chain and already covered by the existing RUSTSEC-2024-0370
+allowance. That second targeted update (`cargo update -p i18n-embed-fl
+--precise 0.9.1`) moves only i18n-embed-fl 0.9.4 → 0.9.1, removes
+proc-macro-error2 and proc-macro-error-attr2, and adds dashmap 6.2.1 and
+hashbrown 0.14.5 (i18n-embed-fl 0.9.1's own leaves; hashbrown joins three
+pre-existing copies under `multiple-versions = "warn"`). `basic-toml`
+stays reachable through `i18n-config`, so the RUSTSEC-2026-0374 allowance
+keeps matching. The gate runs green with no new advisory ignore, no
+removed gate, and no manifest change beyond the age line. The
+`rustc-hash` 1.1.0 and `self_cell` 0.10.3 duplicate copies the moved fluent
+line adds sit under the existing `multiple-versions = "warn"` posture; no
+new `deny.toml` allowance. The workspace `rust-version` 1.95 floor is
+preserved (age 0.11.5 declares 1.65). Consumers taking the crates by git
+get the repaired requirement from the manifest, so their own fresh
+resolution lands on 0.11.x with no vulnerable chain; a consumer lock
+resolved against the old line is refused under `--locked` and re-locks
+clean (`check:config-age:security` proves both). A consumer that pins its
+own separate age 0.12.x direct dependency keeps that copy as a
+semver-incompatible duplicate for its own use — no manifest requirement
+can prevent that, and Longhorn's guarantee covers the resolution it
+participates in.
+
+Both repairs touch only Longhorn's own locks. The Rust crates are
+`publish = false` and consumers take them by git tag, so the tag carries
+the requirement, not the
 resolution: a consumer's own `Cargo.lock` keeps whatever Tokio it already
 resolved until that consumer updates it, and it needs a patched Tokio
 resolution (`>= 1.53.3`, or `>= 1.51.6, < 1.52.0`) there too. Longhorn neither

@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-10-23
+Updated: 2026-11-02
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -68,6 +68,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `diagnostics` | `check:diagnostics` | `longhorn-diagnostics`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact` or `longhorn-support-log`. |
 | `pty` | `check:pty` | `longhorn-pty` and its public PTY lifecycle tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `storage-layout` | `check:storage-layout` | `longhorn-storage-layout` (identity, resolver, roots, locator, native facts) plus the workspace-wide API-reference inventory check; `longhorn-config`'s transition suite and every consumer import are workspace Rust lane inputs, not group members. |
+| `config-age-security` | `check:config-age:security`, `test:config-age:security` | `longhorn-config-age`'s suites plus the retained old-lineage ciphertext cases in `fixtures/config-age-compat`, and public Git-consumer resolution of the repaired age line (RUSTSEC-2026-0387). Not the advisories gate (`check:advisories` runs it standalone; the gate stays a release surface), not `longhorn-config`'s backup store, and not a general workspace or lockfile group. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
 | `git-workspace` | `check:git-workspace` | `longhorn-git-workspace`, its real-Git integration tests and its loopback sign-in suite, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `desktop-support-conformance` | `proof:desktop-support-conformance` | The eight staged desktop support crates (024-029 plus `longhorn-archive-path` and `longhorn-core`), the conformance example and its proof script. The crates' own obligations stay in their own groups; this group runs the outside-crate proof only, and it runs on Unix hosts. |

@@ -60,7 +60,13 @@ The rest are wired individually: `check:api-reference` runs
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
 each their own selector. `check:agent-control-skill` runs
 `verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
-install fixtures). `check:native-content:local` and
+install fixtures). `check:config-age:security` runs
+`verify-config-age-security.ts`: it compiles `longhorn-config-age`
+all-targets and stages disposable Git-dependency consumers at the exact tree
+to prove the repaired age line (RUSTSEC-2026-0387) is what public consumers
+resolve, that a stale consumer lock resolved on the old line is refused
+under `--locked`, and that one re-lock lands clean.
+`check:native-content:local` and
 `proof:native-content:local` run `verify-native-content-local.ts` (`--check-only`
 and plain): they stage the child-view crate with a product-free native
 consumer into a disposable workspace — the check compiles it at the MSRV pin,

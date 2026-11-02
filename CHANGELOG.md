@@ -57,6 +57,36 @@ crates by git tag and the packages by version.
   plain Cargo, so hosted CI is unchanged. The published crates and packages
   are unchanged.
 
+### Security
+- **Move the pinned `age` line from 0.12.1 to 0.11.5 (RUSTSEC-2026-0387).**
+  crypto-bigint 0.5.5, reached only through age 0.12.1's mandatory
+  hpke → p256 → elliptic-curve path (present even with
+  `default-features = false`), has constant-time execution issues patched
+  only in crypto-bigint ≥ 0.7.6, and no published 0.12.x release drops the
+  path. age 0.11.5 carries no mandatory p256 or hpke dependency at all, and
+  `longhorn-config-age` uses only the X25519 and scrypt recipients both
+  lines implement, so the public API is unchanged. The compatibility
+  contract is the age v1 file format (contract 004), not a crate line:
+  retained ciphertext captured through the public API on 0.12.1 — the line
+  0.4.3 shipped — still restores (fixtures/config-age-compat;
+  `test:config-age:security` decrypts, inspects, rotates and retains it for
+  the X25519 recipient and human passphrase envelopes, wrong keys stay
+  `Locked`, tampering still reports `Corrupt`). `check:config-age:security`
+  proves a public Git-dependency consumer at the exact tree resolves age
+  0.11.5 with no vulnerable chain and compiles, that a consumer lock
+  resolved on the old line is refused under `--locked` and one re-lock lands
+  clean, and the release advisories gate runs green with no new `deny.toml`
+  allowance. The lock delta removes twenty packages (the whole hpke chain,
+  including crypto-bigint, ml-kem and sha3) and moves only age, age-core,
+  bech32, nom and the i18n-embed/fluent line age 0.11 requires; no prototype
+  lock carries age, so no prototype lock moves. The downgrade first resolved
+  i18n-embed-fl 0.9.4, whose proc-macro-error2 dependency is unmaintained
+  with no patched release (RUSTSEC-2026-0173); rather than adding an
+  allowance, the lock pins i18n-embed-fl 0.9.1, the newest `^0.9` release
+  that still uses the proc-macro-error 1.0.4 the existing RUSTSEC-2024-0370
+  allowance already covers through the gtk build chain, so the advisories
+  gate is green with no new ignore.
+
 ## [0.4.3] - 2026-10-23
 
 ### Fixed

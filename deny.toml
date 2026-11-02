@@ -11,7 +11,10 @@
 
 [advisories]
 ignore = [
-  # proc-macro-error (unmaintained) — via Tauri build chain.
+  # proc-macro-error (unmaintained) — via the Tauri/gtk build chain and, since
+  # the RUSTSEC-2026-0387 repair, via age 0.11.5 -> i18n-embed-fl 0.9.1 (the
+  # newest ^0.9 release that does not use the unmaintained proc-macro-error2
+  # fork instead). Proc macros only; build-time only.
   "RUSTSEC-2024-0370",
   # zbus_names 4.3.4, zvariant 5.15.0, zvariant_derive 5.15.0 (unmaintained)
   # — via keyring 4.2.0 -> zbus-secret-service-keyring-store ->
@@ -30,6 +33,10 @@ ignore = [
 
 [bans]
 # Duplicate versions land as warnings, not errors: they are upstream-pinned
-# (base64 0.21.7 via swift-rs and 0.22.1 via age/reqwest/wry/tauri-codegen,
-# sha2 0.10.9 via age/wry/secret-service) and none are ours to chase.
+# (base64 0.21.7 via age/swift-rs and 0.22.1 via reqwest/wry/tauri-codegen,
+# sha2 0.10.9 via age/wry/secret-service; the RUSTSEC-2026-0387 repair added
+# rustc-hash 1.1.0 and self_cell 0.10.3 alongside their 2.x/1.x counterparts
+# through the fluent line i18n-embed 0.15 needs, and hashbrown 0.14.5
+# alongside the other three copies through the dashmap i18n-embed-fl 0.9.1
+# uses) and none are ours to chase.
 multiple-versions = "warn"

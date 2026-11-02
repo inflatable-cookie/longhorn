@@ -1,0 +1,31 @@
+{
+  "passphrase": {
+    "ciphertextSha256": "1bfe26f44a7414c3775d5365a6e49e0704407fe3f2024264ee7dd78729c687ae",
+    "file": "passphrase.age",
+    "innerArchiveSha256": "b1b493cf927ec736531f619927c980808939a0c5229040c070f23d97384d065e",
+    "passphraseLength": 38
+  },
+  "provenance": {
+    "api": [
+      "encrypt_export_to_recipients",
+      "encrypt_export_with_passphrase"
+    ],
+    "capturedAtCommit": "1e1f570c88091b7a9196438bc05e140071babc33",
+    "capturedWith": {
+      "ageCore": "0.12.0",
+      "crate": "age",
+      "shippedIn": "0.4.3",
+      "version": "0.12.1"
+    },
+    "keyMaterial": "synthetic test-only key; the fixture archive holds example data and the identity file is committed deliberately",
+    "repository": "inflatable-cookie/longhorn"
+  },
+  "recipient": {
+    "ciphertextSha256": "43f56df3fe1432771950aa476313a65207cf58efc598b65a971fdb0e246efeab",
+    "file": "recipient.age",
+    "identityFile": "recipient-identity.txt",
+    "innerArchiveSha256": "b1b493cf927ec736531f619927c980808939a0c5229040c070f23d97384d065e",
+    "recipient": "age1u52fr47czvmdyexkgpm942k4l4tdrv4pu6g6ha87g2cpcam2muzqrmtnqw"
+  },
+  "schema": "longhorn.config-age.retained-capture.v1"
+}

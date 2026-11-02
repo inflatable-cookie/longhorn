@@ -82,8 +82,20 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 # Caret range: Longhorn's Cargo.lock is the tested set. Encrypted-backup
 # output from this line is what the capture/restore/key-rotation suites
 # freeze against; every dependency refresh reruns those suites. Consumers
-# taking Longhorn by git tag can resolve a compatible age 0.12.x.
-age = { version = "0.12.1", default-features = false }
+# taking Longhorn by git tag can resolve a compatible age 0.11.x.
+#
+# The line is 0.11.x, not the newer 0.12.x, for RUSTSEC-2026-0387
+# (crypto-bigint timing variability; patched only in >= 0.7.6): age 0.12.x
+# carries a mandatory hpke -> p256 -> elliptic-curve -> crypto-bigint 0.5
+# path in every default-features=false build, and no published 0.12.x
+# release drops it. age 0.11.x has no mandatory p256/hpke dependency at
+# all, and `longhorn-config-age` uses only the X25519 and scrypt
+# recipients both lines implement. The compatibility contract is the age
+# v1 file format (contract 004), not a crate line; retained
+# fixtures/config-age-compat ciphertext captured on 0.12.1 proves old
+# stored data restores. Revisit 0.12.x only when a published release
+# removes the vulnerable transitive path.
+age = { version = "0.11.5", default-features = false }
 axum = "0.8.4"
 base64 = "0.23.1"
 # The Card 231 capture bridge's objc2 line (longhorn-tauri-agent-control,
