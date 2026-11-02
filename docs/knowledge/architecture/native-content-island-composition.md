@@ -65,8 +65,8 @@ document path inside the application bundle, mapped at attach to Tauri's own
 application asset protocol. The host application owns bundled-document
 identity, CSP, capability scope, and injected-script policy; the concrete
 app-scheme URL stays Tauri-owned and observable, never promised. Bundled
-local support is implemented but unreleased (Queue longhorn#084) and carries
-its own macOS native proof.
+local support ships with 0.5.0 (Queue longhorn#084, candidate prepared by
+longhorn#085) and carries its own macOS native proof.
 
 Navigation is deliberately absent from `longhorn-native-content` and
 `@inflatable-cookie/longhorn/native-content`. It is specific to the retained child-view

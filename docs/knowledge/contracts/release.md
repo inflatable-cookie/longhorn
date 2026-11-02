@@ -139,6 +139,18 @@ package version, checksum or package set changes, but the rewrite is unrelated
 to the advisory, so a lock-only security patch keeps the edges the version
 bump wrote instead of folding an unrelated re-resolution into its diff.
 
+## 0.5.0 candidate
+
+Tom authorized preparing the 0.5.0 candidate on 2026-11-02 (decision
+`cc2087bb`): the reviewed bump-preparation slice only. That decision never
+authorizes workflow dispatch, tagging, or publication; those stay gated by
+the steps above. The release carries one coordinated pre-1.0 source break:
+`ChildViewSpec::new` takes a `ChildViewSource` instead of a bare `Url`, and
+`ChildViewSpec::source` returns the typed carrier (contract 017). External
+callers migrate through `ChildViewSource::external` — the historical remote
+HTTP/HTTPS behavior — or `ChildViewSource::bundled`, a validated relative
+path inside the application bundle served by the application asset protocol.
+
 ## Publishing credentials
 
 No `NPM_TOKEN`. npmjs.com accepts publishes for each package only from this

@@ -42,9 +42,9 @@ navigating to further bundled documents. macOS-first: this source has a real
 native proof on macOS (`proof:native-content:local`) and stays unproved on
 Windows and Linux like the rest of the child-view mechanism.
 
-This support is implemented but unreleased: it ships with the next release,
-and `ChildViewSpec::new` taking `ChildViewSource` instead of a bare `Url` is
-the one deliberate source break for external callers (pre-1.0, coordinated).
+This support ships with 0.5.0, and `ChildViewSpec::new` taking
+`ChildViewSource` instead of a bare `Url` is the one deliberate source break
+for external callers (pre-1.0, coordinated).
 
 The crate does not own browser navigation products, browsing history, permissions,
 downloads, popups, page content, outer-window placement, Svelte, or Poodle.

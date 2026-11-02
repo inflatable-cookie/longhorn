@@ -6,6 +6,57 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-02
+
+### Breaking
+- **`longhorn-tauri-native-content-child-view`: `ChildViewSpec::new` takes a
+  `ChildViewSource` instead of a bare `Url`, and `source()` returns the typed
+  carrier.** Remote callers migrate the one constructor argument:
+  `ChildViewSource::external(url)` keeps the historical behavior exactly —
+  HTTP and HTTPS with a host, re-checked at construction, every other scheme
+  still refused with `ChildViewError::InvalidContentSource` — and
+  `ChildViewSource::bundled(path)` names a bundled local document (next
+  entry). New public types `ChildViewSource` and `BundledLocalDocument`; new
+  `ChildViewError::InvalidBundledContentSource` (wire code
+  `child:invalid-bundled-source`). This is the release's one coordinated
+  pre-1.0 source break; contract 017 owns the carrier and its guarantees.
+
+### Added
+- **`longhorn-tauri-native-content-child-view`: a bounded bundled local
+  document source.** `ChildViewSource::bundled` carries one validated relative
+  path inside the application bundle: at most 512 UTF-8 bytes of ASCII
+  alphanumerics plus `-`, `_`, `.`, `/`, with no absolute, empty, `.` or `..`
+  component, no backslash, and no URL syntax, so the path can neither escape
+  the bundled asset root nor inject a scheme. At attach the runtime maps it to
+  the application's own asset protocol (Tauri `WebviewUrl::App`): no local
+  server, no arbitrary filesystem URL, and no other scheme ever enters the
+  adapter. The concrete app-scheme URL is Tauri-owned, observable through
+  `ChildViewAdapter::current_url`, and never promised by name. The host
+  application keeps bundled-document identity, path authority, CSP, capability
+  scope, and injected-script policy; a bundled child deliberately shares the
+  app's local capability scope, remote capabilities stay excluded unless the
+  consumer grants them, and the consumer navigation policy remains the sole
+  admission path for every navigation, including the initial document's
+  origin. Evidence: `proof:native-content:local` runs a real macOS WKWebView
+  from a staged product-free consumer through the public API, proving observed
+  asset-protocol source identity, scoped IPC with an initialization-script
+  nonce round-trip through exactly one permitted command, an unpermitted
+  command denied by capability scope, the page's explicit CSP, denied popup
+  and navigation escapes with the adapter-typed denial, and truthful detach,
+  post-detach, and idempotent-teardown receipts. Limits: Windows and Linux
+  are unproved, hosts without a GUI session cannot run the proof, and the
+  evidence carries no signed-product or data-store isolation claim beyond the
+  app-owned policy.
+
+### Changed
+- **Local Cargo routes run through Oxide.** `scripts/rust-command.sh` is the
+  one switch point: locally every ordinary Cargo command runs as `oxide` (or
+  `oxide exec` for a leased tool) and build output stays on Oxide-managed
+  roots, with private directories refused on the internal drive, the account
+  home, and volume roots; with `GITHUB_ACTIONS=true` the same routes keep
+  plain Cargo, so hosted CI is unchanged. The published crates and packages
+  are unchanged.
+
 ## [0.4.3] - 2026-10-23
 
 ### Fixed

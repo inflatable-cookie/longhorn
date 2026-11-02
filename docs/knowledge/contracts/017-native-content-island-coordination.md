@@ -121,7 +121,8 @@ is Tauri-owned and platform-specific; Longhorn observes it through
 remains the sole admission path for every navigation, including the initial
 document's origin.
 
-This support is implemented but unreleased: it ships with the next release.
+This support ships with 0.5.0; its candidate is prepared under decision
+`cc2087bb`, and publication stays a later release-contract step.
 `ChildViewSpec::new` taking `ChildViewSource` instead of a bare `Url` is the
 one deliberate source break for external callers, coordinated under the
 pre-1.0 rule. It closes the exact offline bundled-document dependency gap
@@ -396,6 +397,8 @@ Nucleus owns its browser actions and later removal of global-label lookup.
 
 Queue task longhorn#084 (2026-11) adds the bounded bundled local document
 source (`ChildViewSource::bundled`) and its real macOS native proof; see
-Child-view Bundled Local Source above. The support is implemented but
-unreleased: no version, tag, or release inventory changed, and the next
-release carries the one documented `ChildViewSpec::new` source break.
+Child-view Bundled Local Source above. Queue task longhorn#085 prepares the
+0.5.0 candidate that carries it (decision `cc2087bb`): the version inventory
+and the changelog now promote the one documented `ChildViewSpec::new` source
+break. No tag or publication exists yet; the release contract's remaining
+steps run on the merged candidate.
