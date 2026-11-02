@@ -167,7 +167,7 @@ Select the pure kernel plus exactly the mechanism the product owns:
 
 | Mechanism | Consumer-owned content | Current host evidence |
 | --- | --- | --- |
-| Tauri child view | browser construction, navigation/security/data-store policy, bundled-document identity, CSP, capability scope, injected-script policy | macOS first; packaged proof plus a real bundled-local-document native proof (`proof:native-content:local`, implemented but unreleased), live scale switch unavailable, focus/visibility may be unknown; Windows/Linux unproved |
+| Tauri child view | browser construction, navigation/security/data-store policy, bundled-document identity, CSP, capability scope, injected-script policy | macOS first; packaged proof plus a real bundled-local-document native proof (`proof:native-content:local`, carried by 0.5.0), live scale switch unavailable, focus/visibility may be unknown; Windows/Linux unproved |
 | isolated window | helper/process, plugin ABI, authorization, native content | macOS packaged 11/11; Windows/Linux unsupported |
 | backing surface | native storage, renderer/GPU, clipping execution, semantic input | macOS packaged 10/11; live scale transition unavailable; Windows/Linux unsupported |
 
