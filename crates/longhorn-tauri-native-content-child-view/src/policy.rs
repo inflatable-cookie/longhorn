@@ -7,7 +7,7 @@ use longhorn_native_content::{
 };
 use tauri::Url;
 
-use crate::ChildViewError;
+use crate::{ChildViewError, ChildViewSource};
 
 const MAX_LABEL_BYTES: usize = 128;
 const MAX_INITIALIZATION_SCRIPT_BYTES: usize = 64 * 1024;
@@ -127,32 +127,44 @@ impl fmt::Display for ChildViewLabel {
 }
 
 /// Consumer-supplied construction and security inputs for one child island.
+///
+/// The initial [`ChildViewSource`] is bounded: a remote HTTP/HTTPS document
+/// or a validated bundled local document inside the application assets.
+/// Bundled documents run under the host application's own asset protocol,
+/// CSP, capability scope, and injected-script policy; the host application
+/// owns all of those decisions. Arbitrary filesystem URLs are never accepted.
 #[derive(Clone)]
 pub struct ChildViewSpec {
     island_id: NativeContentIslandId,
     host_window_id: WindowId,
     host_window_label: ChildViewLabel,
     child_label: ChildViewLabel,
-    source: Url,
+    source: ChildViewSource,
     data_store_identifier: Option<[u8; 16]>,
     navigation_policy: Arc<dyn Fn(&Url) -> bool + Send + Sync>,
     policy_hooks: ChildViewPolicyHooks,
 }
 
 impl ChildViewSpec {
-    /// Creates complete injected construction policy for one remote child.
+    /// Creates complete injected construction policy for one child with a
+    /// bounded initial source.
+    ///
+    /// Remote [`ChildViewSource::External`] URLs are re-validated here;
+    /// bundled documents carry their validation in their type.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         island_id: NativeContentIslandId,
         host_window_id: WindowId,
         host_window_label: ChildViewLabel,
         child_label: ChildViewLabel,
-        source: Url,
+        source: ChildViewSource,
         data_store_identifier: Option<[u8; 16]>,
         navigation_policy: Arc<dyn Fn(&Url) -> bool + Send + Sync>,
         policy_hooks: ChildViewPolicyHooks,
     ) -> Result<Self, ChildViewError> {
-        if !matches!(source.scheme(), "http" | "https") || source.host_str().is_none() {
+        if let ChildViewSource::External(url) = &source
+            && (!matches!(url.scheme(), "http" | "https") || url.host_str().is_none())
+        {
             return Err(ChildViewError::InvalidContentSource);
         }
         if host_window_label == child_label {
@@ -194,9 +206,9 @@ impl ChildViewSpec {
         &self.child_label
     }
 
-    /// Returns the consumer-supplied initial remote source.
+    /// Returns the bounded consumer-supplied initial source.
     #[must_use]
-    pub const fn source(&self) -> &Url {
+    pub const fn source(&self) -> &ChildViewSource {
         &self.source
     }
 

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use longhorn_core::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use tauri::{
     AppHandle, Manager, PhysicalPosition, PhysicalSize as TauriPhysicalSize, Position, Rect,
@@ -7,7 +9,7 @@ use tauri::{
 
 use crate::{
     ChildViewError, ChildViewPolicyEvent, ChildViewRuntime, ChildViewRuntimeEvent,
-    ChildViewRuntimeEventKind, RuntimeAttachRequest,
+    ChildViewRuntimeEventKind, ChildViewSource, RuntimeAttachRequest,
 };
 
 /// Opaque retained child handle. The underlying Tauri webview stays private.
@@ -69,45 +71,50 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
         let load_policy = request.spec.policy_hooks().clone();
         let popup_policy = request.spec.policy_hooks().clone();
         let download_policy = request.spec.policy_hooks().clone();
-        let builder = WebviewBuilder::new(
-            request.spec.child_label().as_str(),
-            WebviewUrl::External(request.spec.source().clone()),
-        )
-        .focused(false)
-        .disable_drag_drop_handler()
-        .on_navigation(move |candidate| navigation_spec.allows_navigation(candidate))
-        .on_new_window(move |url, _| {
-            popup_policy.emit(ChildViewPolicyEvent::PopupDenied { url });
-            NewWindowResponse::Deny
-        })
-        .on_download(move |_, event| {
-            if let DownloadEvent::Requested { url, .. } = event {
-                download_policy.emit(ChildViewPolicyEvent::DownloadDenied { url });
-            }
-            false
-        })
-        .on_page_load(move |_, payload| {
-            let kind = match payload.event() {
-                PageLoadEvent::Started => {
-                    load_policy.emit(ChildViewPolicyEvent::PageLoadStarted {
-                        url: payload.url().clone(),
-                    });
-                    ChildViewRuntimeEventKind::PageLoadStarted
+        // The bounded source maps exactly one-to-one onto Tauri's own
+        // construction surface: remote documents stay `External`, bundled
+        // documents become the application's asset protocol through
+        // `App`. No other URL form is ever constructed here.
+        let webview_url = match request.spec.source() {
+            ChildViewSource::External(url) => WebviewUrl::External(url.clone()),
+            ChildViewSource::Bundled(document) => WebviewUrl::App(PathBuf::from(document.as_str())),
+        };
+        let builder = WebviewBuilder::new(request.spec.child_label().as_str(), webview_url)
+            .focused(false)
+            .disable_drag_drop_handler()
+            .on_navigation(move |candidate| navigation_spec.allows_navigation(candidate))
+            .on_new_window(move |url, _| {
+                popup_policy.emit(ChildViewPolicyEvent::PopupDenied { url });
+                NewWindowResponse::Deny
+            })
+            .on_download(move |_, event| {
+                if let DownloadEvent::Requested { url, .. } = event {
+                    download_policy.emit(ChildViewPolicyEvent::DownloadDenied { url });
                 }
-                PageLoadEvent::Finished => {
-                    load_policy.emit(ChildViewPolicyEvent::PageLoadFinished {
-                        url: payload.url().clone(),
-                    });
-                    ChildViewRuntimeEventKind::PageLoadFinished
-                }
-            };
-            load_callback(ChildViewRuntimeEvent {
-                island_id: load_island.clone(),
-                generation: load_generation,
-                child_label: load_label.clone(),
-                kind,
+                false
+            })
+            .on_page_load(move |_, payload| {
+                let kind = match payload.event() {
+                    PageLoadEvent::Started => {
+                        load_policy.emit(ChildViewPolicyEvent::PageLoadStarted {
+                            url: payload.url().clone(),
+                        });
+                        ChildViewRuntimeEventKind::PageLoadStarted
+                    }
+                    PageLoadEvent::Finished => {
+                        load_policy.emit(ChildViewPolicyEvent::PageLoadFinished {
+                            url: payload.url().clone(),
+                        });
+                        ChildViewRuntimeEventKind::PageLoadFinished
+                    }
+                };
+                load_callback(ChildViewRuntimeEvent {
+                    island_id: load_island.clone(),
+                    generation: load_generation,
+                    child_label: load_label.clone(),
+                    kind,
+                });
             });
-        });
 
         let builder = if let Some(script) = request.spec.policy_hooks().initialization_script() {
             builder.initialization_script(script)

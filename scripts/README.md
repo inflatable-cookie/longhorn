@@ -60,7 +60,12 @@ The rest are wired individually: `check:api-reference` runs
 `verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
 each their own selector. `check:agent-control-skill` runs
 `verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
-install fixtures). `agent-control:install-skill` copies
+install fixtures). `check:native-content:local` and
+`proof:native-content:local` run `verify-native-content-local.ts` (`--check-only`
+and plain): they stage the child-view crate with a product-free native
+consumer into a disposable workspace — the check compiles it at the MSRV pin,
+the proof runs the real macOS application that attaches one bundled local
+document through the public API (contract 017; macOS with a GUI session). `agent-control:install-skill` copies
 `skills/agent-control/` into a consumer repo
 (`effigy agent-control:install-skill -- <git-repo>` or
 `effigy agent-control:install-skill -- --repo <git-repo>`); the bun script

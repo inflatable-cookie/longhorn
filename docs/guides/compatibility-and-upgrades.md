@@ -98,7 +98,7 @@ claim requires target evidence.
 | Host mechanism | macOS | Windows | Linux |
 | --- | --- | --- | --- |
 | Tauri window/transfer proofs | packaged macOS evidence | no packaged claim in current guide set | no packaged claim in current guide set |
-| child view | packaged proof; live scale switch unavailable; focus/visibility may be unknown | unproved | unproved |
+| child view | packaged proof plus the bundled-local native proof (`proof:native-content:local`; implemented but unreleased); live scale switch unavailable; focus/visibility may be unknown | unproved | unproved |
 | isolated native window | packaged proof pass | unsupported | unsupported |
 | backing surface | packaged proof with live scale transition unmet | unsupported | unsupported |
 

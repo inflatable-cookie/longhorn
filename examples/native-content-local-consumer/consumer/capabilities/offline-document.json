@@ -1,0 +1,6 @@
+{
+  "identifier": "offline-document",
+  "description": "The bundled offline child document may invoke exactly one proof command and nothing else.",
+  "webviews": ["proof-child"],
+  "permissions": ["allow-ipc-proof"]
+}

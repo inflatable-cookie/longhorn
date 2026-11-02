@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Offline document</title>
+    <style>
+      body {
+        font-family: -apple-system, sans-serif;
+        background: #f4f2ec;
+        color: #26221c;
+        margin: 0;
+        padding: 14px;
+      }
+      h3 { margin: 0 0 8px 0; }
+      code { background: #e5e1d8; padding: 1px 4px; border-radius: 3px; }
+    </style>
+    <script src="proof.js"></script>
+  </head>
+  <body>
+    <h3>Bundled offline document</h3>
+    <p>
+      This page is served from the application bundle over the asset protocol.
+      It holds no network reference; the only remote URLs below are deliberate
+      denial probes that the host policy must reject.
+    </p>
+    <p id="status">proof running…</p>
+  </body>
+</html>

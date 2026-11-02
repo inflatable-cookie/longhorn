@@ -59,6 +59,10 @@ include = ["config/release.toml"]
 "test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
 "test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
+# Contract 017 bundled local child-view source (implemented, unreleased): the
+# typed source carrier's crate tests — validation, path/scheme refusal, and
+# the existing external-source policy and lifecycle regression.
+"test:native-content:local" = "bash scripts/rust-command.sh test -p longhorn-tauri-native-content-child-view --locked"
 # Real local Git only: the fixtures build their own bare remotes in temporary
 # folders, and the GitHub sign-in runs against a loopback fixture server with
 # an in-memory credential store. nextest's slow-test period, two-period
@@ -119,6 +123,10 @@ include = ["config/release.toml"]
   "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json",
 ]
 "check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
+# Contract 017 bundled local child-view source: the staged disposable native
+# consumer compiles (fmt + check) without running the application. Heavy:
+# the staged tauri stack compiles cold in a private workspace.
+# `check:native-content:local`: heavy task table below.
 "test:ts" = "bash scripts/test-packages.sh"
 # Narrow package tests reuse the existing Bun and Vitest runners. The
 # longhorn-poodle-svelte package is Vitest-owned; the other two use Bun test.
@@ -364,9 +372,26 @@ run = ["bash scripts/ci-rehearse.sh"]
 admission = "heavy"
 run = ["bun scripts/verify-agent-control-release-absence.ts"]
 
+[tasks."check:native-content:local"]
+# Contract 017 bundled local child-view source: the staged disposable native
+# consumer workspace compiles cold (tauri stack, minutes) without running
+# the application.
+admission = "heavy"
+run = ["bun scripts/verify-native-content-local.ts --check-only"]
+
 [tasks."release:floor"]
 admission = "heavy"
 run = ["bash scripts/check-release-floor.sh"]
+
+[tasks."proof:native-content:local"]
+# Contract 017 bundled local child-view source: a real macOS WKWebView run of
+# the staged disposable native consumer. The staged tauri stack compiles cold
+# in the private workspace, then a real window attaches one bundled local
+# document through the public API and asserts source identity, scoped IPC,
+# CSP, denied popups/navigation and truthful teardown. Heavy so a standalone
+# run queues host-wide.
+admission = "heavy"
+run = ["bun scripts/verify-native-content-local.ts"]
 
 [scan.god_files]
 # Contract suites, proof scripts, and prototype adapters accumulate
