@@ -41,6 +41,25 @@ async function run() {
     parts.push("forbidden:denied");
   }
 
+  // CSP must actually block the remote connection, not merely fail DNS.
+  const violation = new Promise((resolve) => {
+    document.addEventListener("securitypolicyviolation", (event) => {
+      if (event.violatedDirective === "connect-src" && event.blockedURI.startsWith("https://escape.invalid")) resolve(true);
+    });
+    setTimeout(() => resolve(false), 2000);
+  });
+  await fetch("https://escape.invalid/csp-probe").catch(() => {});
+  parts.push(await violation ? "csp:denied" : "csp:UNPROVEN");
+
+  // A generated blob download exercises the native download delegate.
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob(["download probe"], { type: "application/octet-stream" }));
+  link.download = "proof.html";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  await sleep(SETTLE_MS);
+
   // 4. Unintended navigation must be denied. If the escape navigation were
   // admitted, this script context would be destroyed and the final title
   // would never arrive, failing the proof from the host side (watchdog).

@@ -153,6 +153,9 @@ try {
     assertClaim(report.steps, "detach-applied");
     assertClaim(report.steps, "post-detach-observation");
     assertClaim(report.steps, "teardown-receipt");
+    if (!report.policyEvents.some((event: { kind: string }) => event.kind === "downloadDenied")) {
+      throw new Error("the native proof recorded no download denial");
+    }
     const pageLoadUrls = report.pageLoadUrls as string[];
     if (pageLoadUrls.length === 0) {
       throw new Error("the proof recorded no page-load events");

@@ -2,7 +2,7 @@
 
 Status: active promoted production boundary  
 Owner: Tom  
-Updated: 2026-11-05
+Updated: 2026-11-02
 Evidence: `017-native-content-island-boundary.md` (Git history)
 
 ## Boundary
@@ -315,7 +315,7 @@ depend on it without a later public-seam proof and contract change.
   bundled document loads under the ordinary plan lifecycle with observed
   asset-protocol source identity, injected-initialization-script nonce
   round-trip through exactly one permitted IPC command, unpermitted command
-  denied by capability scope, explicit CSP, no page-load event outside the
+  denied by capability scope, a connect-src CSP violation probe, native download denial, no page-load event outside the
   application asset protocol, denied popup and navigation escapes plus the
   adapter-typed escape denial, and truthful detach/post-detach/idempotent-
   teardown receipts; `check:native-content:local` compiles the staged

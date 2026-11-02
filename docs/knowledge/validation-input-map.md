@@ -250,7 +250,7 @@ workspace at the MSRV pin. The check compiles the product-free consumer
 runs the real macOS application, which attaches one bundled local document
 through the public API and asserts observed asset-protocol source identity,
 scoped IPC with an injected-initialization-script nonce round-trip, denied
-unpermitted command, explicit CSP, denied popup and navigation escapes plus
+unpermitted command, a connect-src CSP violation probe, native download denial, denied popup and navigation escapes plus
 the adapter-typed escape denial, no page-load outside the application asset
 protocol, and truthful detach/post-detach/idempotent-teardown receipts.
 Admission: both staged selectors are heavy (cold tauri-stack compile in the

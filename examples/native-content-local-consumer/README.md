@@ -22,12 +22,13 @@ coordinator plan lifecycle:
   capability scope;
 - the document's popup and navigation escape probes are denied closed, and
   the adapter reports the escape navigation as a typed `NavigationDenied`;
-- no page-load event names anything but the application asset protocol, so
-  the offline document makes no network trips;
+- a remote fetch triggers a connect-src CSP violation; no page-load event
+  leaves the application asset protocol;
+- a generated blob download triggers the native download denial;
 - detach through the coordinator plan, post-detach observation, and the
   idempotent teardown receipt are truthful.
 
-The host enforces an explicit CSP (`default-src 'self'`, IPC connect
+The host configures an explicit CSP (`default-src 'self'`, IPC connect
 sources) and the child's capability grants exactly one command.
 
 Run it through the selectors (never by hand from a workspace that would

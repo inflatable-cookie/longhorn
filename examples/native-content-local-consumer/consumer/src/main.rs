@@ -48,7 +48,7 @@ const NAVIGATION_POLICY: &str =
     "admit only scheme `tauri` (the application asset protocol); deny every other candidate";
 const CAPABILITY: &str = "offline-document: webviews [proof-child], permissions [allow-ipc-proof]";
 const EXPECTED_TITLE_PREFIX: &str = "ncl-proof|popup:denied|ping:";
-const EXPECTED_TITLE_TAIL: &str = "|forbidden:denied|navigation:denied";
+const EXPECTED_TITLE_TAIL: &str = "|forbidden:denied|csp:denied|navigation:denied";
 const WATCHDOG: Duration = Duration::from_secs(120);
 const ISLAND: &str = "island:local-proof";
 const HOST_WINDOW: &str = "window:local-proof-host";
@@ -75,6 +75,7 @@ struct Ledger {
     ipc_labels: Vec<String>,
     title: Option<String>,
     popup_denied_url: Option<String>,
+    download_denied: bool,
     teardown_started: bool,
     done: bool,
 }
@@ -166,7 +167,6 @@ fn report_line(ledger: &Ledger) -> (String, bool) {
         "navigationPolicy": NAVIGATION_POLICY,
         "csp": CSP,
         "capability": CAPABILITY,
-        "dataStoreIdentityIsolated": true,
         "injectedNonce": ledger.injected_nonce,
         "pageLoadUrls": ledger
             .events
@@ -223,6 +223,7 @@ fn advance(core: &Arc<Core>) {
             && ledger.ipc_nonce.is_some()
             && ledger.title.is_some()
             && ledger.popup_denied_url.is_some()
+            && ledger.download_denied
             && !ledger.teardown_started
         {
             ledger.teardown_started = true;
@@ -477,6 +478,9 @@ fn main() {
                                     if url.as_str() != ESCAPE_POPUP_URL {
                                         guard.fail(format!("unexpected popup denial for {url}"));
                                     }
+                                }
+                                ChildViewPolicyEvent::DownloadDenied { .. } => {
+                                    guard.download_denied = true;
                                 }
                                 ChildViewPolicyEvent::DocumentTitleChanged { title } => {
                                     // macOS reports the document's static
