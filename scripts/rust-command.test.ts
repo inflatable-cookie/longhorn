@@ -683,15 +683,23 @@ describe("External scratch helper (shell)", () => {
 });
 
 describe("Task scratch", () => {
-  async function withConfiguredRoot<T>(value: string | undefined, body: () => Promise<T>): Promise<T> {
-    const previous = process.env.OXIDE_TASK_SCRATCH_ROOT;
+  async function withConfiguredRoot<T>(
+    value: string | undefined,
+    body: () => Promise<T>,
+    githubActions = "",
+  ): Promise<T> {
+    const previousRoot = process.env.OXIDE_TASK_SCRATCH_ROOT;
+    const previousGithubActions = process.env.GITHUB_ACTIONS;
     if (value === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
     else process.env.OXIDE_TASK_SCRATCH_ROOT = value;
+    process.env.GITHUB_ACTIONS = githubActions;
     try {
       return await body();
     } finally {
-      if (previous === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
-      else process.env.OXIDE_TASK_SCRATCH_ROOT = previous;
+      if (previousRoot === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
+      else process.env.OXIDE_TASK_SCRATCH_ROOT = previousRoot;
+      if (previousGithubActions === undefined) delete process.env.GITHUB_ACTIONS;
+      else process.env.GITHUB_ACTIONS = previousGithubActions;
     }
   }
 
@@ -723,18 +731,11 @@ describe("Task scratch", () => {
   );
 
   test("uses runner-owned temporary storage on GitHub Actions", async () => {
-    const previous = process.env.GITHUB_ACTIONS;
-    process.env.GITHUB_ACTIONS = "true";
-    try {
-      await withConfiguredRoot("/nonexistent/scratch", async () => {
-        const scratch = await taskScratch("longhorn-ci-proof");
-        expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
-        await scratch.dispose();
-      });
-    } finally {
-      if (previous === undefined) delete process.env.GITHUB_ACTIONS;
-      else process.env.GITHUB_ACTIONS = previous;
-    }
+    await withConfiguredRoot("/nonexistent/scratch", async () => {
+      const scratch = await taskScratch("longhorn-ci-proof");
+      expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
+      await scratch.dispose();
+    }, "true");
   });
 
   test("fails closed when the scratch root does not exist", async () => {
