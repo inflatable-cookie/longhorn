@@ -10,7 +10,8 @@
 
 use std::collections::BTreeMap;
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::os::fd::AsRawFd;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
@@ -21,6 +22,7 @@ use longhorn_pty::{
     CLOSE_GRACE_PERIOD, CommandSpec, ExitResult, Failure, MAX_BUFFERED_OUTPUT_BYTES,
     OUTPUT_CHUNK_BYTES, OUTPUT_QUEUE_CAPACITY, PtyEvent, PtySession, PtySize,
 };
+use rustix::pty::OpenptFlags;
 
 fn command(program: &str, arguments: &[&str], environment: &[(&str, &str)]) -> CommandSpec {
     CommandSpec {
@@ -43,7 +45,52 @@ fn shell(script: &str) -> CommandSpec {
 }
 
 fn open(spec: CommandSpec) -> (PtySession, Receiver<PtyEvent>) {
-    PtySession::open(spec).expect("the real child starts on a PTY")
+    match PtySession::open(spec) {
+        Ok(opened) => opened,
+        Err(failure) => panic!(
+            "the real child starts on a PTY: {failure:?}{}",
+            open_failure_os_evidence()
+        ),
+    }
+}
+
+/// Reports the OS state at the moment an open failure surfaced.
+///
+/// `Failure` classifies setup failures without carrying the OS errno of the
+/// failed step (contract 028: classified values, not diagnostic strings), so
+/// the panic text is the only place evidence can be retained. This probe is
+/// evidence-only: it runs once on the already-failed path, never retries
+/// `PtySession::open`, and never gates success.
+fn open_failure_os_evidence() -> String {
+    let master_probe = match rustix::pty::openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY) {
+        Ok(descriptor) => {
+            let descriptor_number = descriptor.as_raw_fd();
+            drop(descriptor);
+            format!(
+                "a direct PTY master open succeeded (fd {descriptor_number}, closed): \
+                 the host still had a free pseudo-terminal at evidence time"
+            )
+        }
+        Err(errno) => format!(
+            "a direct PTY master open failed (errno {errno}, raw {})",
+            errno.raw_os_error()
+        ),
+    };
+    let descriptor_directory = if Path::new("/dev/fd").exists() {
+        "/dev/fd"
+    } else {
+        "/proc/self/fd"
+    };
+    let descriptor_line = match std::fs::read_dir(descriptor_directory) {
+        Ok(entries) => format!(
+            "process descriptors open now: {} (via {descriptor_directory})",
+            entries.count()
+        ),
+        Err(error) => format!(
+            "process descriptor count unavailable (reading {descriptor_directory} failed: {error})"
+        ),
+    };
+    format!("\n  same-moment host evidence: {master_probe}; {descriptor_line}")
 }
 
 fn receive_until_text(receiver: &Receiver<PtyEvent>, text: &str) -> Vec<u8> {

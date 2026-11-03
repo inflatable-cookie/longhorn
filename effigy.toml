@@ -58,6 +58,11 @@ include = ["config/release.toml"]
 "test:support-log" = "bash scripts/rust-command.sh test -p longhorn-support-log --locked"
 "test:diagnostics" = "bash scripts/rust-command.sh test -p longhorn-diagnostics --locked"
 "test:pty" = "bash scripts/rust-command.sh nextest run -p longhorn-pty --locked --config-file crates/longhorn-pty/nextest.toml --max-fail 1:immediate"
+# The sessions binary in its original libtest mode, the mode `test:rust` runs:
+# all 14 real-process session cases share one descriptor table and one PTY
+# pool in one process, which nextest's per-test process isolation cannot
+# reproduce.
+"test:pty-sessions" = "bash scripts/rust-command.sh test -p longhorn-pty --test sessions --locked"
 "test:storage-layout" = "bash scripts/rust-command.sh test -p longhorn-storage-layout --locked"
 # Contract 004's encrypted-backup envelope crate, post RUSTSEC-2026-0387:
 # `test:config-age:security` runs the crate's suites plus the retained
@@ -877,6 +882,20 @@ members = [
     targets = ["workspace:root"],
     covers = ["cargo-package:longhorn-pty", "path:crates/longhorn-pty/**"],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
+  },
+  {
+    id = "pty-sessions-libtest",
+    kind = "test",
+    surface = "published",
+    task = "test:pty-sessions",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-pty",
+      "path:crates/longhorn-pty/**",
+      "input:effigy-task-table-test-pty-sessions",
+    ],
+    limits = ["The sessions binary in its original libtest mode only: all 14 real-process cases share one process, one descriptor table and one PTY pool"],
   },
 ]
 
