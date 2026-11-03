@@ -192,7 +192,7 @@ package version, checksum or package set changes, but the rewrite is unrelated
 to the advisory, so a lock-only security patch keeps the edges the version
 bump wrote instead of folding an unrelated re-resolution into its diff.
 
-## 0.5.0 candidate
+## 0.5.0 release
 
 Tom approved the annotated `v0.5.0` tag and publication of all three npm
 packages from exact commit `a3e627f37b218de8d832e26f3fd84424d1f0096a`
@@ -200,6 +200,15 @@ on 2026-11-03 (decision `eb76d858-b844-4cf6-907e-abc7dd5ca352`,
 "Tag and publish v0.5.0"). The approval follows exact-commit qualification
 and the successful hosted release dry run; it does not cover a different
 commit or a change to release policy.
+
+The annotated tag and all three npm `0.5.0` packages were published on
+2026-11-03 by the [tagged release workflow](https://github.com/inflatable-cookie/longhorn/actions/runs/41721811199).
+Registry tarballs match the workflow's packed artifacts byte for byte;
+registry source metadata and provenance statements name the approved commit,
+tag and workflow run. The repository lock pins `i18n-embed-fl` to `0.9.1`;
+unlocked consumers can still resolve `0.9.4` and its unmaintained
+`proc-macro-error2` dependency. That downstream-resolution follow-up remains
+separate from the repaired vulnerable age dependency chain.
 
 Tom authorized preparing the 0.5.0 candidate on 2026-11-02 (decision
 `cc2087bb`): the reviewed bump-preparation slice only. That decision never
