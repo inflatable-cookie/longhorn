@@ -2,7 +2,7 @@
 
 Status: active first pass  
 Owner: Tom  
-Updated: 2026-11-02
+Updated: 2026-11-03
 Gates: `effigy.toml`, `config/release.toml`
 Procedure: [release](contracts/release.md)
 
@@ -66,7 +66,7 @@ plan again without them. Every other unmapped input still needs the planner.
 | `redact` | `check:redact` | `longhorn-redact` and its case table `fixtures/redact/**`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `support-log` | `check:support-log` | `longhorn-support-log`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact`. |
 | `diagnostics` | `check:diagnostics` | `longhorn-diagnostics`, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group, and not `longhorn-redact` or `longhorn-support-log`. |
-| `pty` | `check:pty` | `longhorn-pty` and its public PTY lifecycle tests, plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
+| `pty` | `check:pty`, `test:pty-sessions` | `longhorn-pty` and its public PTY lifecycle tests in both runner modes (nextest plus the original libtest sessions binary), plus the workspace-wide API-reference inventory check; not a general workspace or lockfile group. |
 | `storage-layout` | `check:storage-layout` | `longhorn-storage-layout` (identity, resolver, roots, locator, native facts) plus the workspace-wide API-reference inventory check; `longhorn-config`'s transition suite and every consumer import are workspace Rust lane inputs, not group members. |
 | `config-age-security` | `check:config-age:security`, `test:config-age:security` | `longhorn-config-age`'s suites plus the retained old-lineage ciphertext cases in `fixtures/config-age-compat`, and public Git-consumer resolution of the repaired age line (RUSTSEC-2026-0387). Not the advisories gate (`check:advisories` runs it standalone; the gate stays a release surface), not `longhorn-config`'s backup store, and not a general workspace or lockfile group. |
 | `tool-provision` | `check:tool-provision` | `longhorn-tool-provision` and its shared path crate `longhorn-archive-path`, plus the workspace-wide API-reference inventory check; not `longhorn-update-install` (it consumes the shared path rule and is covered by the Rust lane), and not a general workspace or lockfile group. |
@@ -104,6 +104,7 @@ entries without a listed route also remain `needs_planner`.
 | `input:effigy-task-table-proof-poodle-preview`, `external:root-node-modules`, `external:bun-runtime` | `longhorn-poodle-preview` | `proof:poodle-preview` |
 | `input:effigy-task-table-proof-documented-commands` | `longhorn-documented-commands` | `proof:documented-commands` |
 | `input:effigy-task-table-proof-guides-card126` | `longhorn-getting-started-docs` | `proof:guides-card126` |
+| `input:effigy-task-table-test-pty-sessions` | `pty` | `test:pty-sessions` |
 
 ## Selector detail
 
@@ -167,11 +168,15 @@ role: scoped compile/test/rustdoc for `crates/longhorn-diagnostics/**`
 (contract 026). Companions: `check:api-reference` (aggregated by
 `check:diagnostics`).
 
-**`lint:pty`**, **`test:pty`**, **`docs:pty`** — role: scoped
+**`lint:pty`**, **`test:pty`**, **`test:pty-sessions`**, **`docs:pty`** — role: scoped
 compile/test/rustdoc for `crates/longhorn-pty/**` (contract 028). `test:pty`
 uses nextest's 30-second slow-test period, two-period termination with a
 one-second forced-kill grace, and immediate stop of remaining tests after the
-first failure. Companions: `check:api-reference` (aggregated by `check:pty`).
+first failure. `test:pty-sessions` runs only the sessions integration binary
+in its original libtest mode — all 14 real-process cases in one process,
+sharing one descriptor table and one PTY pool, the mode `test:rust` runs and
+nextest's per-test isolation cannot reproduce. Companions:
+`check:api-reference` (aggregated by `check:pty`).
 
 **`lint:storage-layout`**, **`test:storage-layout`**, **`docs:storage-layout`**
 — role: scoped compile/test/rustdoc for

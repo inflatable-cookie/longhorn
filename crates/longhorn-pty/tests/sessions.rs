@@ -81,13 +81,16 @@ fn open_failure_os_evidence() -> String {
     } else {
         "/proc/self/fd"
     };
-    let open_descriptors = std::fs::read_dir(descriptor_directory)
-        .map(|entries| entries.count())
-        .unwrap_or(0);
-    format!(
-        "\n  same-moment host evidence: {master_probe}; \
-         process descriptors open now: {open_descriptors}"
-    )
+    let descriptor_line = match std::fs::read_dir(descriptor_directory) {
+        Ok(entries) => format!(
+            "process descriptors open now: {} (via {descriptor_directory})",
+            entries.count()
+        ),
+        Err(error) => format!(
+            "process descriptor count unavailable (reading {descriptor_directory} failed: {error})"
+        ),
+    };
+    format!("\n  same-moment host evidence: {master_probe}; {descriptor_line}")
 }
 
 fn receive_until_text(receiver: &Receiver<PtyEvent>, text: &str) -> Vec<u8> {

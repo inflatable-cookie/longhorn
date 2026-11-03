@@ -883,6 +883,20 @@ members = [
     covers = ["cargo-package:longhorn-pty", "path:crates/longhorn-pty/**"],
     limits = ["The aggregate includes the workspace-wide check:api-reference selector"],
   },
+  {
+    id = "pty-sessions-libtest",
+    kind = "test",
+    surface = "published",
+    task = "test:pty-sessions",
+    args = [],
+    targets = ["workspace:root"],
+    covers = [
+      "cargo-package:longhorn-pty",
+      "path:crates/longhorn-pty/**",
+      "input:effigy-task-table-test-pty-sessions",
+    ],
+    limits = ["The sessions binary in its original libtest mode only: all 14 real-process cases share one process, one descriptor table and one PTY pool"],
+  },
 ]
 
 [qa.groups.git-workspace]
