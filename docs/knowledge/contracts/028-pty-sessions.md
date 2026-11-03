@@ -3,7 +3,7 @@
 Status: active compiled boundary
 Owner: Longhorn
 Tier: core
-Updated: 2026-10-23
+Updated: 2026-11-03
 
 ## Boundary
 
@@ -103,6 +103,19 @@ master/slave setup (`OpenPty`, `GrantPty`, `UnlockPty`, `PtyName`, `OpenSlave`),
 descriptor duplication and flags, spawn and worker creation, input, resize,
 signal, output read, child wait, ended sessions, and unsupported targets.
 Every openpt, grantpt, ptsname, and dup failure is checked and classified.
+
+A `Failure` intentionally does not carry the OS errno of the failed setup step,
+so a historical `OpenPty` receipt alone cannot distinguish host resource
+exhaustion from other open causes. The measured signatures on the qualification
+host (macOS): a depleted host pseudo-terminal pool fails `openpt` with `ENXIO`
+(the pool is finite: 502 concurrent masters opened before the next failed),
+while a process descriptor-table limit fails with `EMFILE`; concurrent
+open/close churn with free slots never failed. One release-qualification
+`OpenPty` occurrence matched the pool-depletion mechanism by exclusion: the
+suite's own descriptor peak (25) and live sessions stay far below both limits,
+and the discarded errno cannot confirm the historical value. The sessions
+suite probes the OS once on an open failure and reports that evidence in the
+failure panic; it never retries `open`.
 
 On supported Unix targets, the crate uses `rustix` for PTY allocation,
 descriptor duplication and close-on-exec flags, `setsid`, controlling-terminal
