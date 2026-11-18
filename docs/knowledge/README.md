@@ -15,7 +15,6 @@ Every topic has exactly one owning file. Link to it; don't restate it.
 | How we release | [contracts/release.md](contracts/release.md) |
 | Change-scoped validation inputs | [validation-input-map.md](validation-input-map.md) |
 | Writing policy | [contracts/writing-style.md](contracts/writing-style.md) |
-| Retired concepts | [retired.toml](retired.toml) |
 | Open questions | [questions.md](questions.md) |
 
 Product documentation for consumers lives outside `docs/knowledge/`:

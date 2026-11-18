@@ -45,6 +45,5 @@ and [package selection](../guides/package-selection.md). Governed by
 Status: answered 2026-10-22
 Answer: it no longer exists and is retired. Tom, 2026-10-22: "If it's not in
 ~/Dev/projects now, it won't exist now and we can get rid of it." No checkout
-or repository for it was found (2026-10-21). The retirement and the removal of
-its live references are a Queue task; the entry lands in
-[retired.toml](retired.toml).
+or repository for it was found (2026-10-21). The removal of its live references
+is a Queue task.
