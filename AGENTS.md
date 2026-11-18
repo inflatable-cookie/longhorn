@@ -255,40 +255,6 @@ Use the compressed internal style in
 `docs/knowledge/contracts/writing-style.md`: short, blunt, high signal, and
 clear about outcome, current state, failed validation, and next move.
 
-## Northstar Rust Quality
-
-Scope: Rust source, Cargo manifests, build files, tests, and directly related
-documentation under this directory.
-
-Use Northstar's strict everyday-authoring route for ordinary Rust work, run
-from this checkout:
-
-```sh
-effigy skill run northstar/language:route -- --consumer <this-checkout> --language rust --workflow everyday_authoring
-```
-
-Resolve
-the repository-owned profile and deviations under `docs/knowledge/contracts/`;
-never assume a universal MSRV. Re-enter at task start and coherent batch
-closeout. Preserve unrelated work. A quality audit, no-slop pass, or
-audit-and-fix request is explicit audit intent; never route it through everyday
-authoring.
-
-## Northstar TypeScript/Svelte explicit audit
-
-Use Northstar's TypeScript/Svelte quality pack only when the operator explicitly
-requests a TypeScript or Svelte quality audit, no-slop pass, whole-codebase
-review, or audit-and-fix action. Ordinary TypeScript/Svelte coding does not
-activate it.
-
-For explicit audit intent, run the installed-package route from this
-directory: `effigy skill run northstar/language:route -- --consumer . --marker northstar:typescript-quality --workflow explicit_audit_repair`,
-then follow the `entrypoint_path` it returns. Resolve package ownership and
-strict profile state before assessment. Record findings before mutation, keep
-repairs inside recorder-authorized files, preserve pre-existing dirty work, and
-use repository-owned compiler, framework, lint, and test evidence without
-installing dependencies or inventing commands.
-
 <!-- oxide:begin -->
 ## Rust commands: use `oxide`
 

@@ -7,8 +7,5 @@ owner, and what depends on it.
   contract register. Add each new contract there.
 - [Release](release.md) — how Longhorn releases.
 - [Writing style](writing-style.md) — the internal writing policy.
-- Rust and TypeScript quality profiles and their deviations:
-  `rust-quality-profile.json`, `rust-quality-deviations.json`,
-  `typescript-quality-profile.json`, `typescript-quality-deviations.json`.
 
 Work stops when the boundary it needs is still pending in the index.
