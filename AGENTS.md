@@ -51,7 +51,7 @@ miss and is a full rehearsal.
 
 Prefer `effigy <task>` for supported work. Do not mirror Effigy tasks into
 package scripts. A missing target-local maintenance task is a routing gap;
-use the installed `northstar` skill's tasks (`effigy skill run northstar/<task>`)
+use the installed `northstar-docs` skill's tasks (`effigy skill run northstar-docs/<task>`)
 rather than substituting commands from another repository.
 
 ## Rust build routing
@@ -235,7 +235,7 @@ and groups are cheap, and the QA-group records need them (2026-10-09).
   reported (`null` means unknown), any extra gap token, or why no group was
   used. The planner sends these records to Effigy.
 - **Docs or instruction changes** also run
-  `effigy skill run northstar/cut -- check-links`, and inspect the final diff.
+  `effigy skill run northstar-docs/check-links`, and inspect the final diff.
 - **Full `effigy qa`** runs on `main` at release points
   (`docs/knowledge/contracts/release.md`) and after a major chunk of work, run
   by the planner.
