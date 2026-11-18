@@ -15,7 +15,6 @@ this file; keep that bridge as `@AGENTS.md`.
 - Contracts: `docs/knowledge/contracts/contract-index.md`
 - Architecture: `docs/knowledge/architecture/system-architecture.md`
 - How to release: `docs/knowledge/contracts/release.md`
-- Retired concepts, which must not come back: `docs/knowledge/retired.toml`
 - Open questions: `docs/knowledge/questions.md`
 - Consumer guides and API reference (product docs): `docs/guides/`,
   `docs/reference/`
@@ -236,7 +235,6 @@ and groups are cheap, and the QA-group records need them (2026-10-09).
   reported (`null` means unknown), any extra gap token, or why no group was
   used. The planner sends these records to Effigy.
 - **Docs or instruction changes** also run
-  `effigy skill run northstar/retired-concepts` and
   `effigy skill run northstar/cut -- check-links`, and inspect the final diff.
 - **Full `effigy qa`** runs on `main` at release points
   (`docs/knowledge/contracts/release.md`) and after a major chunk of work, run
