@@ -17,7 +17,7 @@ is the map of those claims, and what an upgrade involves when one arrives.
 
 Longhorn releases one coordinated version: Rust crates use `publish = false`
 and move by git tag; three npm packages publish under `@inflatable-cookie` at
-that version. `docs/README.md` gives the current release.
+that version. [`CHANGELOG.md`](../../CHANGELOG.md) lists each release.
 
 Private consumers use exact clean source receipts or produced archives and an
 exact lock. Moving branches, dirty unrecorded sources, sibling workspace

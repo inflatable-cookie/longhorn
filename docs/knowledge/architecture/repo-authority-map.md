@@ -43,7 +43,9 @@ authority and migrate through explicit batches. Poodle remains independent.
   payload policy, and atomic apply transactions; registration does not
   transfer product authority.
 - A service cache never becomes a second write authority by accident.
-- Audit access is read-only. Consumer writes need an explicit migration card.
+- Audit access is read-only. Adopting a Longhorn feature is the consumer's
+  work: Longhorn writes to a consumer repository only with the operator's
+  go-ahead and an explicit migration card.
 
 ## Planning Gaps
 
