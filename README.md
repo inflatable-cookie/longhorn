@@ -25,7 +25,7 @@ architecture and contracts behind them.
 2. [Adoption guides](docs/guides/README.md) — choose packages, wire them in
 3. [Glossary](docs/guides/glossary.md) — the terms used everywhere else
 4. [Generated API surface](docs/reference/api-surface.md) — exact package names
-5. [Current state](docs/README.md)
+5. [Full docs](docs/README.md)
 6. [Agent rules](AGENTS.md)
 
 ## Effigy
@@ -49,5 +49,4 @@ effigy qa
 Pre-1.0. Four consumers migrated: Nucleus, Loophole, Soundcheck, Jetstream. The three TypeScript packages are on npm under `@inflatable-cookie`,
 and the Rust crates enumerated by the
 [generated API reference](docs/reference/api-surface.md) are taken by git tag.
-[docs/README.md](docs/README.md) has the current release and what is being
-built.
+Releases are listed in [CHANGELOG.md](CHANGELOG.md).

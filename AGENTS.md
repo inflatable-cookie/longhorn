@@ -10,7 +10,7 @@ this file; keep that bridge as `@AGENTS.md`.
 
 ## Where things live
 
-- Current state: `docs/README.md`
+- Docs entry point: `docs/README.md`
 - Knowledge (one owner per fact): `docs/knowledge/README.md`
 - Contracts: `docs/knowledge/contracts/contract-index.md`
 - Architecture: `docs/knowledge/architecture/system-architecture.md`
