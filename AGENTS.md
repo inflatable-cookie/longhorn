@@ -20,7 +20,7 @@ this file; keep that bridge as `@AGENTS.md`.
   `docs/reference/`
 
 The plan (lanes, their documents and their order), leads, papercuts, brief
-drafts, tasks and status live in Queue, never in this repository. Read what's
+drafts, tasks and status live in Nucleus, never in this repository. Read what's
 next with `plan.get` (see the Nucleus skill).
 
 ## Commands
@@ -148,7 +148,7 @@ Genuine Cargo exceptions:
 | `scripts/check-runner-tools.ts`, `scripts/check-release-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
 | `scripts/workspace-dependencies.ts` | Reads `Cargo.toml` text; runs no Cargo |
 | A consumer's own project commands in `docs/guides/` | Product Cargo behavior in the consumer's checkout, not this repository's route |
-| `.git/queue-hooks` warm-merge manifest | Queue-owned, outside the repository |
+| `.git/queue-hooks` warm-merge manifest | Nucleus-owned, outside the repository |
 
 Integration tests that re-exec themselves (`current_exe()` in
 `longhorn-config`, `longhorn-settings-config`, `longhorn-surfaces-config`) need
@@ -178,8 +178,8 @@ and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
 - Stop when a missing contract, contradictory evidence, unresolved product
   choice, or changed package boundary prevents safe progress.
 - Normal tasks use the current checkout. Do not start a worker loop or create
-  another worktree unless Queue or the operator gives you one.
-- Bare `continue` authorizes the next `now` lane in Longhorn's Queue plan.
+  another worktree unless Nucleus or the operator gives you one.
+- Bare `continue` authorizes the next `now` lane in Longhorn's Nucleus plan.
   Do not invent work when nothing there is ready.
 - When a change alters what is true, update the owning knowledge file in the
   same PR. An operator ruling given in conversation goes into its owning file
@@ -200,9 +200,9 @@ and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
   `oxide check --workspace` before committing.
 - During a redaction sweep, treat `scripts/` as executable code. A placeholder
   that reads well in prose can be a runtime failure.
-- When a small, solvable execution hurdle appears, file it in Queue as a
-  papercut and carry on: from `~/Dev/projects/paseo-northstar-queue`, run
-  `node bin/queue-cli.mjs papercut.add -` with the JSON payload on stdin:
+- When a small, solvable execution hurdle appears, file it in Nucleus as a
+  papercut and carry on: run `nucleus papercut.add -` with the JSON payload on
+  stdin:
   `repository: {origin: "inflatable-cookie/longhorn", path}`, `title`,
   `happened`, `impact`, and optional `area` and `fix`. Do not stop or fix it
   unless the current scope includes the fix.
