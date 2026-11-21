@@ -29,7 +29,7 @@ know the pattern every larger composition builds on.
 
 ## 1. Prerequisites
 
-- Rust toolchain (edition 2024; the repo floor is 1.95)
+- Rust toolchain (edition 2024; the repo floor is 1.97.1)
 - `bun` or `npm` (the proofs use bun 1.3.x)
 - the Tauri CLI (2.x) for dev builds
 - the Longhorn Rust artifacts from the

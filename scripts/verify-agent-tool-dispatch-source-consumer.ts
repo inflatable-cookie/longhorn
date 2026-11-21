@@ -6,6 +6,7 @@ import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
+import { MSRV } from "./msrv.ts";
 import {
   prepareStagedWorkspace,
   privateCargoCommand,
@@ -149,7 +150,7 @@ async function prepare(directory: string) {
 
 function renderManifest(longhorn: string, swallowtail: string): string {
   const path = (value: string) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-  return `[package]\nname = "longhorn-agent-tool-dispatch-provider-free-fixture"\nversion = "0.0.0"\nedition = "2024"\nrust-version = "1.95"\npublish = false\n\n[workspace]\n\n[dependencies]\nlonghorn-agent-tool-dispatch = { path = "${path(join(longhorn, "crates", "longhorn-agent-tool-dispatch"))}" }\nswallowtail-core = { path = "${path(join(swallowtail, "crates", "swallowtail-core"))}" }\nswallowtail-host-local = { path = "${path(join(swallowtail, "crates", "swallowtail-host-local"))}" }\nswallowtail-runtime = { path = "${path(join(swallowtail, "crates", "swallowtail-runtime"))}" }\nswallowtail-testkit = { path = "${path(join(swallowtail, "crates", "swallowtail-testkit"))}" }\n\n[[bin]]\nname = "provider-free-fixture"\npath = "main.rs"\n`;
+  return `[package]\nname = "longhorn-agent-tool-dispatch-provider-free-fixture"\nversion = "0.0.0"\nedition = "2024"\nrust-version = "${MSRV}"\npublish = false\n\n[workspace]\n\n[dependencies]\nlonghorn-agent-tool-dispatch = { path = "${path(join(longhorn, "crates", "longhorn-agent-tool-dispatch"))}" }\nswallowtail-core = { path = "${path(join(swallowtail, "crates", "swallowtail-core"))}" }\nswallowtail-host-local = { path = "${path(join(swallowtail, "crates", "swallowtail-host-local"))}" }\nswallowtail-runtime = { path = "${path(join(swallowtail, "crates", "swallowtail-runtime"))}" }\nswallowtail-testkit = { path = "${path(join(swallowtail, "crates", "swallowtail-testkit"))}" }\n\n[[bin]]\nname = "provider-free-fixture"\npath = "main.rs"\n`;
 }
 
 async function cleanHead(repository: string, symbolic: string): Promise<string> {

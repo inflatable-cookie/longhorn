@@ -14,10 +14,10 @@ if (!declared) {
   throw new Error("LONGHORN_GENERAL_MSRV not declared in release-baselines/rust-toolchains.env");
 }
 
-/** The toolchain selector, e.g. "1.95.0" — for `cargo +<toolchain>`. */
+/** The toolchain selector, e.g. "1.97.1" — for `cargo +<toolchain>`. */
 export const MSRV_TOOLCHAIN = declared;
-/** The Cargo `rust-version`, e.g. "1.95" — for generated manifests. */
-export const MSRV = declared.replace(/^(\d+\.\d+)\.\d+$/, "$1");
+/** The exact Cargo `rust-version` for generated manifests. */
+export const MSRV = declared;
 
 // Cross-check at import: the workspace's own rust-version must agree.
 const workspace = await readFile(resolve(import.meta.dir, "../Cargo.toml"), "utf8");

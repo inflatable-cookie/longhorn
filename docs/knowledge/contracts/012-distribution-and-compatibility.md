@@ -16,7 +16,7 @@ policy remain consumer-owned.
 - Cargo and npm workspaces live in one repository.
 - Publishable Rust and TypeScript packages use one coordinated Longhorn
   version.
-- Rust crates use edition 2024 with MSRV 1.95 until an explicit compatibility
+- Rust crates use edition 2024 with MSRV 1.97.1 until an explicit compatibility
   change.
 - TypeScript packages target Svelte 5 and Tauri 2 where those peers apply.
 - Svelte, Poodle, and Tauri are peer dependencies of adapters, never hidden

@@ -21,8 +21,7 @@ in `rust-toolchain.toml` at the repository root. rustup reads it locally, and
 `ci.yml` and `release.yml` parse the channel through
 `scripts/rust-toolchain-channel.sh` and install exactly that version. Floating
 `stable` is banned from workflows: Rust 1.98 added
-`clippy::chunks_exact_to_as_chunks`, green on 1.97.1 locally and red on the
-runner, and stopped a dry run before publish.
+`clippy::chunks_exact_to_as_chunks`, which stopped a dry run before publish.
 
 The MSRV floor is separate. `release-baselines/rust-toolchains.env` holds
 `LONGHORN_GENERAL_MSRV`, which the floor gate exercises through `rustup run`.
@@ -164,7 +163,7 @@ keeps matching. The gate runs green with no new advisory ignore, no
 removed gate, and no manifest change beyond the age line. The
 `rustc-hash` 1.1.0 and `self_cell` 0.10.3 duplicate copies the moved fluent
 line adds sit under the existing `multiple-versions = "warn"` posture; no
-new `deny.toml` allowance. The workspace `rust-version` 1.95 floor is
+new `deny.toml` allowance. The workspace `rust-version` 1.97.1 floor is
 preserved (age 0.11.5 declares 1.65). Consumers taking the crates by git
 get the repaired requirement from the manifest, so their own fresh
 resolution lands on 0.11.x with no vulnerable chain; a consumer lock
