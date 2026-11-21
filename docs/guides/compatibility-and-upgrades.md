@@ -28,10 +28,10 @@ resolution, and unpacked source aliases are not compatibility evidence.
 | Layer | Current checked claim |
 | --- | --- |
 | Frozen consumer receipt | Card 127 private `0.1.0` candidate: 36 Rust crates across seven consumer graphs; historical evidence only |
-| Rust | edition 2024; MSRV 1.95 with exact compatible lock |
+| Rust | edition 2024; MSRV 1.97.1 with exact compatible lock |
 | TypeScript/Svelte | Svelte 5; exact peer ranges are package-specific in the generated API surface |
 | Tauri renderer API | `@inflatable-cookie/longhorn-tauri` peer `^2.10.1`; greenfield proof resolves 2.10.1 |
-| Tauri Rust | private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.95 |
+| Tauri Rust | historical private migration artifacts prove the exact locked Tauri 2.11.5 graph on Rust 1.95 |
 | Poodle | registry installs pin `0.4.4` for the dev and proof installs; `longhorn-poodle-svelte` peers `>=0.4.4 <0.5` (optional) |
 | protocol | exact v1 negotiation; checked generated TypeScript and cross-language fixtures |
 

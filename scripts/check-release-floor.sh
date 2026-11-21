@@ -12,7 +12,7 @@ source release-baselines/rust-toolchains.env
 
 # grep, not rg. Under `set -o pipefail` a missing ripgrep fails the pipeline,
 # which this reads as the toolchain being absent -- so on a runner without it
-# the script reported a missing 1.95.0 that was in fact a missing `rg`.
+# the script reported a missing 1.97.1 that was in fact a missing `rg`.
 if ! rustup toolchain list | grep -qE "^${LONGHORN_GENERAL_MSRV}(-|$)"; then
   printf 'missing required Rust toolchain: %s\n' "$LONGHORN_GENERAL_MSRV" >&2
   exit 1
