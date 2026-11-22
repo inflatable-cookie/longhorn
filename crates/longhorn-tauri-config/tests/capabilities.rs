@@ -31,6 +31,19 @@ fn parse_allowed_commands(toml_text: &str) -> Vec<String> {
     commands
 }
 
+fn parse_permission_identifier(toml_text: &str) -> Option<String> {
+    for line in toml_text.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("identifier") {
+            let start = rest.find('"')?;
+            let after = &rest[start + 1..];
+            let end = after.find('"')?;
+            return Some(after[..end].to_owned());
+        }
+    }
+    None
+}
+
 #[test]
 fn permission_examples_dispatch_through_registered_tauri_commands() {
     let service: Arc<dyn longhorn_tauri_config::ConfigOperationsCommandService> =
@@ -60,18 +73,58 @@ fn permission_examples_dispatch_through_registered_tauri_commands() {
         .build()
         .unwrap();
 
-    let permission_files = [
-        "examples/permissions/read-config-operations.toml",
-        "examples/permissions/mutate-storage.toml",
-        "examples/permissions/mutate-backups.toml",
-        "examples/permissions/mutate-restore.toml",
+    let expected_groups: &[(&str, &str, &[&str])] = &[
+        (
+            "examples/permissions/read-config-operations.toml",
+            "allow-longhorn-config-read",
+            &[
+                "longhorn_config_snapshot",
+                "longhorn_config_storage_inspect",
+                "longhorn_config_restore_inspect",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-storage.toml",
+            "allow-longhorn-storage-mutate",
+            &[
+                "longhorn_config_storage_execute",
+                "longhorn_config_storage_recover",
+                "longhorn_config_storage_cleanup",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-backups.toml",
+            "allow-longhorn-backup-mutate",
+            &[
+                "longhorn_config_backup_create",
+                "longhorn_config_backup_export",
+                "longhorn_config_backup_retention",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-restore.toml",
+            "allow-longhorn-restore-mutate",
+            &[
+                "longhorn_config_restore_plan",
+                "longhorn_config_restore_execute",
+                "longhorn_config_restore_adapter_execute",
+                "longhorn_config_restore_recover",
+            ],
+        ),
     ];
 
     let mut seen = BTreeSet::new();
     let mut callback_id = 0_u32;
-    for file in permission_files {
-        let allowed = parse_allowed_commands(&read(file));
-        assert!(!allowed.is_empty(), "expected commands in {file}");
+    for (file, expected_identifier, expected_commands) in expected_groups {
+        let toml_text = read(file);
+        assert_eq!(
+            parse_permission_identifier(&toml_text).as_deref(),
+            Some(*expected_identifier),
+            "unexpected permission identifier in {file}"
+        );
+        let allowed = parse_allowed_commands(&toml_text);
+        let expected_vec: Vec<String> = expected_commands.iter().map(|s| (*s).to_owned()).collect();
+        assert_eq!(allowed, expected_vec, "permission scope mismatch in {file}");
         for command in allowed {
             assert!(
                 seen.insert(command.clone()),

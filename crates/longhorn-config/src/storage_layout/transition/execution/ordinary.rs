@@ -21,6 +21,11 @@ pub(crate) fn stage_ordinary(
             .as_deref()
             .ok_or(StorageTransitionError::StalePlan)?;
         let bytes = fs::read(source).map_err(|error| fs_error(source, error))?;
+        if bytes.len() > crate::store::load::max_live_domain_bytes() {
+            return Err(StorageTransitionError::BoundExceeded {
+                path: source.to_path_buf(),
+            });
+        }
         verify_bytes(&bytes, entry.source_evidence.as_ref())?;
         io::atomic_write(&stage_path(staging, &entry.domain), &bytes)?;
     }

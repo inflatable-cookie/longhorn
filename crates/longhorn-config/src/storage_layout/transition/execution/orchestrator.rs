@@ -38,6 +38,14 @@ pub fn recover_storage_transition(
     request: &StorageTransitionRequest<'_>,
     lock_timeout: std::time::Duration,
 ) -> Result<Option<StorageTransitionRecoveryReceipt>, StorageTransitionError> {
+    recover_inner(request, lock_timeout, crate::dir_sync::sync_dir_handle)
+}
+
+pub(crate) fn recover_inner(
+    request: &StorageTransitionRequest<'_>,
+    lock_timeout: std::time::Duration,
+    sync_dir: impl Fn(&Dir) -> io::Result<()>,
+) -> Result<Option<StorageTransitionRecoveryReceipt>, StorageTransitionError> {
     let _adapter_guards = acquire_adapter_guards(request, lock_timeout)?;
     let (_first, _second) = acquire_store_guards(request, lock_timeout)?;
     let Some(active) = journal::read(&request.bootstrap)? else {
@@ -62,8 +70,8 @@ pub fn recover_storage_transition(
     )
     .map_err(StorageTransitionError::Locator)?;
     verify_journal_authority(request, &active, target_committed)?;
-    if !target_committed {
-        remove_verified_interrupted_targets(request, &active)?;
+    if !target_committed && active.phase != JournalPhase::Prepared {
+        remove_verified_interrupted_targets(request, &active, &sync_dir)?;
     }
     journal::cleanup(&request.bootstrap, &active.transition_id)?;
     Ok(Some(StorageTransitionRecoveryReceipt {
@@ -80,9 +88,15 @@ pub fn recover_storage_transition(
 /// when resolved through the registered destination capability and proven to
 /// match the interrupted copy's exact expected evidence. Unexpected or
 /// modified target files are preserved untouched and require manual recovery.
+///
+/// Even when the target file is already absent (for example, a prior recovery
+/// attempt unlinked it and then failed before syncing the parent directory),
+/// the destination parent directory is still synced if it exists so a crash
+/// cannot resurrect the unlinked entry after the journal is cleared.
 fn remove_verified_interrupted_targets(
     request: &StorageTransitionRequest<'_>,
     active: &TransitionJournal,
+    sync_dir: &impl Fn(&Dir) -> io::Result<()>,
 ) -> Result<(), StorageTransitionError> {
     for entry in &active.domains {
         if entry.custom || !entry.target_was_absent {
@@ -118,9 +132,29 @@ fn remove_verified_interrupted_targets(
         let root = Dir::open_ambient_dir(target_file.root(), ambient_authority())
             .map_err(|error| fs_error(target_file.root(), error))?;
         let relative = target_file.relative_path().as_path();
+        let parent_path = relative.parent().unwrap_or_else(|| Path::new(""));
         let mut input = match root.open(relative) {
             Ok(file) => file,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                // A previous recovery attempt may have unlinked the file and
+                // failed before syncing its parent; sync the parent if it exists.
+                let parent = if parent_path.as_os_str().is_empty() {
+                    Some(
+                        root.try_clone()
+                            .map_err(|error| fs_error(target_file.full_path(), error))?,
+                    )
+                } else {
+                    match root.open_dir(parent_path) {
+                        Ok(dir) => Some(dir),
+                        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+                        Err(error) => return Err(fs_error(target_file.full_path(), error)),
+                    }
+                };
+                if let Some(parent) = parent {
+                    sync_dir(&parent).map_err(|error| fs_error(target_file.full_path(), error))?;
+                }
+                continue;
+            }
             Err(error) => return Err(fs_error(target_file.full_path(), error)),
         };
         let observed_len = input
@@ -147,7 +181,6 @@ fn remove_verified_interrupted_targets(
             )));
         }
 
-        let parent_path = relative.parent().unwrap_or_else(|| Path::new(""));
         let parent = if parent_path.as_os_str().is_empty() {
             root.try_clone()
         } else {
@@ -161,9 +194,12 @@ fn remove_verified_interrupted_targets(
                 detail: "target has no file name".into(),
             })?;
         match parent.remove_file(file_name) {
-            Ok(()) => crate::dir_sync::sync_dir_handle(&parent)
-                .map_err(|error| fs_error(target_file.full_path(), error))?,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Ok(()) => {
+                sync_dir(&parent).map_err(|error| fs_error(target_file.full_path(), error))?
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                sync_dir(&parent).map_err(|error| fs_error(target_file.full_path(), error))?
+            }
             Err(error) => return Err(fs_error(target_file.full_path(), error)),
         }
     }

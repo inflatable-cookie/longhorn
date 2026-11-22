@@ -215,10 +215,10 @@ and source state under both store coordinators and remains idempotent.
 
 - Missing files yield the domain default and a `missing` diagnostic.
 - Live domain documents share one 4 MiB byte bound (`BackupLimits::default().max_domain_bytes()`)
-  across reads, mutations, migration rewrites, and restore staging so no write
-  path can publish a document that subsequent loads would reject. Pre-existing
-  files exceeding that bound yield `RecoveryKind::ReadFailed` without being
-  overwritten.
+  across reads, mutations, migration rewrites, restore staging, and ordinary
+  storage transitions so no write path can publish a document that subsequent
+  loads would reject. Pre-existing files exceeding that bound yield
+  `RecoveryKind::ReadFailed` without being overwritten.
 - Invalid files yield a typed recovery state. They are not overwritten during
   load.
 - Future schema versions fail safe and preserve the source.
