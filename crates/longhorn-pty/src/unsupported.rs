@@ -2,6 +2,8 @@ use std::sync::mpsc::Receiver;
 
 use crate::api::{CommandSpec, Failure, PtyEvent, PtySession, PtySize};
 
+pub(crate) struct Inner;
+
 pub(crate) fn open(_: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>), Failure> {
     Err(Failure::Unsupported)
 }

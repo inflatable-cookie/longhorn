@@ -48,7 +48,7 @@ fn open(spec: CommandSpec) -> (PtySession, Receiver<PtyEvent>) {
     match PtySession::open(spec) {
         Ok(opened) => opened,
         Err(failure) => panic!(
-            "the real child starts on a PTY: {failure:?}{}",
+            "the real child starts on a PTY: {failure} ({failure:?}){}",
             open_failure_os_evidence()
         ),
     }
@@ -56,11 +56,11 @@ fn open(spec: CommandSpec) -> (PtySession, Receiver<PtyEvent>) {
 
 /// Reports the OS state at the moment an open failure surfaced.
 ///
-/// `Failure` classifies setup failures without carrying the OS errno of the
-/// failed step (contract 028: classified values, not diagnostic strings), so
-/// the panic text is the only place evidence can be retained. This probe is
-/// evidence-only: it runs once on the already-failed path, never retries
-/// `PtySession::open`, and never gates success.
+/// `Failure` carries the raw OS error code of the failed step, and this
+/// evidence-only probe adds the current process descriptor count and a direct
+/// `openpt` probe to help distinguish host pool exhaustion from local limits.
+/// It runs once on the already-failed path, never retries `PtySession::open`,
+/// and never gates success.
 fn open_failure_os_evidence() -> String {
     let master_probe = match rustix::pty::openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY) {
         Ok(descriptor) => {
@@ -93,16 +93,93 @@ fn open_failure_os_evidence() -> String {
     format!("\n  same-moment host evidence: {master_probe}; {descriptor_line}")
 }
 
-fn receive_until_text(receiver: &Receiver<PtyEvent>, text: &str) -> Vec<u8> {
+/// Drains remaining events after an unexpected operation failure so the panic
+/// records any output, async failures, and the child's exit status.
+fn drain_events_for_failure(receiver: &Receiver<PtyEvent>) -> String {
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut output = Vec::new();
+    let mut failures = Vec::new();
+    let mut exit = None;
+    let mut disconnected = false;
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        match receiver.recv_timeout(remaining) {
+            Ok(PtyEvent::Output(bytes)) => output.extend(bytes),
+            Ok(PtyEvent::Failure(failure)) => failures.push(failure),
+            Ok(PtyEvent::Exit(result)) => {
+                exit = Some(result);
+                break;
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                disconnected = true;
+                break;
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => break,
+        }
+    }
+    format!(
+        "\n  drained events: exit={exit:?}, failures={failures:?}, disconnected={disconnected}, output={:?}",
+        text(&output)
+    )
+}
+
+fn write_or_diagnose(
+    session: &PtySession,
+    receiver: &Receiver<PtyEvent>,
+    bytes: &[u8],
+    context: &str,
+) {
+    if let Err(failure) = session.write(bytes) {
+        panic!(
+            "{context}: write failed with {failure} ({failure:?}){}",
+            drain_events_for_failure(receiver)
+        );
+    }
+}
+
+fn resize_or_diagnose(
+    session: &PtySession,
+    receiver: &Receiver<PtyEvent>,
+    size: PtySize,
+    context: &str,
+) {
+    if let Err(failure) = session.resize(size) {
+        panic!(
+            "{context}: resize failed with {failure} ({failure:?}){}",
+            drain_events_for_failure(receiver)
+        );
+    }
+}
+
+fn close_or_diagnose(session: &PtySession, receiver: &Receiver<PtyEvent>, context: &str) {
+    if let Err(failure) = session.close() {
+        panic!(
+            "{context}: close failed with {failure} ({failure:?}){}",
+            drain_events_for_failure(receiver)
+        );
+    }
+}
+
+fn receive_until_text(receiver: &Receiver<PtyEvent>, text_marker: &str) -> Vec<u8> {
     let deadline = Instant::now() + Duration::from_secs(10);
     let mut output = Vec::new();
     loop {
         match receive(receiver, deadline) {
             PtyEvent::Output(bytes) => output.extend(bytes),
-            PtyEvent::Failure(failure) => panic!("unexpected PTY failure: {failure:?}"),
-            PtyEvent::Exit(exit) => panic!("child exited before readiness: {exit:?}"),
+            PtyEvent::Failure(failure) => panic!(
+                "unexpected PTY failure before {text_marker:?}: {failure} ({failure:?}); output={:?}{}",
+                text(&output),
+                drain_events_for_failure(receiver)
+            ),
+            PtyEvent::Exit(exit) => panic!(
+                "child exited before readiness {text_marker:?}: {exit:?}; output={:?}",
+                text(&output)
+            ),
         }
-        if String::from_utf8_lossy(&output).contains(text) {
+        if String::from_utf8_lossy(&output).contains(text_marker) {
             return output;
         }
     }
@@ -114,7 +191,11 @@ fn receive_until_exit(receiver: &Receiver<PtyEvent>) -> (ExitResult, Vec<u8>) {
     loop {
         match receive(receiver, deadline) {
             PtyEvent::Output(bytes) => output.extend(bytes),
-            PtyEvent::Failure(failure) => panic!("unexpected PTY failure: {failure:?}"),
+            PtyEvent::Failure(failure) => panic!(
+                "unexpected PTY failure before exit: {failure} ({failure:?}); output={:?}{}",
+                text(&output),
+                drain_events_for_failure(receiver)
+            ),
             PtyEvent::Exit(exit) => return (exit, output),
         }
     }
@@ -147,9 +228,12 @@ fn stdin_round_trips_through_the_terminal() {
         "stty -echo; printf READY; read line; printf 'got:%s\\n' \"$line\"",
     ));
     let ready = receive_until_text(&receiver, "READY");
-    session
-        .write(b"round-trip-input\n")
-        .expect("input is written");
+    write_or_diagnose(
+        &session,
+        &receiver,
+        b"round-trip-input\n",
+        "stdin_round_trips_through_the_terminal",
+    );
     let (exit, output) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Code(0));
     assert!(text(&[ready, output].concat()).contains("got:round-trip-input"));
@@ -166,15 +250,21 @@ fn child_has_a_controlling_terminal() {
 fn resize_is_visible_to_the_child() {
     let (session, receiver) = open(shell("stty -echo; printf READY; read line; stty size"));
     let ready = receive_until_text(&receiver, "READY");
-    session
-        .resize(PtySize {
+    resize_or_diagnose(
+        &session,
+        &receiver,
+        PtySize {
             rows: 40,
             columns: 100,
-        })
-        .expect("the PTY and process group resize");
-    session
-        .write(b"go\n")
-        .expect("child receives the gate input");
+        },
+        "resize_is_visible_to_the_child",
+    );
+    write_or_diagnose(
+        &session,
+        &receiver,
+        b"go\n",
+        "resize_is_visible_to_the_child",
+    );
     let (exit, output) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Code(0));
     assert!(text(&[ready, output].concat()).contains("40 100"));
@@ -208,7 +298,11 @@ fn close_escalates_when_the_child_ignores_hangup() {
     ));
     let _ready = receive_until_text(&receiver, "READY");
     let started = Instant::now();
-    session.close().expect("the process group closes");
+    close_or_diagnose(
+        &session,
+        &receiver,
+        "close_escalates_when_the_child_ignores_hangup",
+    );
     assert!(started.elapsed() >= CLOSE_GRACE_PERIOD);
     let (exit, _) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Signal(9));
@@ -225,7 +319,11 @@ fn close_escalates_to_a_grandchild_in_the_same_process_group() {
         .insert(OsString::from("MARKER"), marker.as_os_str().to_owned());
     let (session, receiver) = open(spec);
     let _ready = receive_until_text(&receiver, "READY");
-    session.close().expect("the child process group closes");
+    close_or_diagnose(
+        &session,
+        &receiver,
+        "close_escalates_to_a_grandchild_in_the_same_process_group",
+    );
     let (exit, _) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Signal(9));
     thread::sleep(Duration::from_millis(1_100));
@@ -238,7 +336,11 @@ fn close_escalates_to_a_grandchild_in_the_same_process_group() {
 fn close_succeeds_when_hangup_ends_the_group() {
     let (session, receiver) = open(shell("printf READY; while :; do sleep 1; done"));
     let _ready = receive_until_text(&receiver, "READY");
-    session.close().expect("a group that hangup ends closes");
+    close_or_diagnose(
+        &session,
+        &receiver,
+        "close_succeeds_when_hangup_ends_the_group",
+    );
     let (exit, _) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Signal(1));
 }
@@ -270,12 +372,18 @@ fn two_sessions_have_independent_input_and_output() {
     ));
     let first_ready = receive_until_text(&first_events, "READY1");
     let second_ready = receive_until_text(&second_events, "READY2");
-    first
-        .write(b"alpha\n")
-        .expect("first session accepts input");
-    second
-        .write(b"beta\n")
-        .expect("second session accepts input");
+    write_or_diagnose(
+        &first,
+        &first_events,
+        b"alpha\n",
+        "two_sessions_have_independent_input_and_output (first)",
+    );
+    write_or_diagnose(
+        &second,
+        &second_events,
+        b"beta\n",
+        "two_sessions_have_independent_input_and_output (second)",
+    );
     let (first_exit, first_output) = receive_until_exit(&first_events);
     let (second_exit, second_output) = receive_until_exit(&second_events);
     assert_eq!(first_exit, ExitResult::Code(0));
@@ -286,7 +394,6 @@ fn two_sessions_have_independent_input_and_output() {
 
 #[test]
 fn a_slow_consumer_applies_backpressure_without_growing_output_memory() {
-    assert_eq!(MAX_BUFFERED_OUTPUT_BYTES, 9 * OUTPUT_CHUNK_BYTES);
     let (session, receiver) = open(shell("exec /usr/bin/head -c 1048576 /dev/zero"));
     let deadline = Instant::now() + Duration::from_secs(10);
     let first_chunk = match receive(&receiver, deadline) {
@@ -316,7 +423,7 @@ fn a_slow_consumer_applies_backpressure_without_growing_output_memory() {
                 assert!(bytes.len() <= OUTPUT_CHUNK_BYTES);
                 output_bytes += bytes.len();
             }
-            PtyEvent::Failure(failure) => panic!("unexpected PTY failure: {failure:?}"),
+            PtyEvent::Failure(failure) => panic!("unexpected PTY failure: {failure} ({failure:?})"),
             PtyEvent::Exit(exit) => {
                 assert_eq!(exit, ExitResult::Code(0));
                 break;
@@ -328,13 +435,79 @@ fn a_slow_consumer_applies_backpressure_without_growing_output_memory() {
 }
 
 #[test]
+fn close_wakes_a_blocked_reader_when_the_consumer_stops_reading() {
+    let (session, receiver) = open(shell("exec /usr/bin/head -c 1048576 /dev/zero"));
+    // Let the child fill the bounded output queue and stall the reader in send.
+    thread::sleep(Duration::from_millis(200));
+    close_or_diagnose(
+        &session,
+        &receiver,
+        "close_wakes_a_blocked_reader_when_the_consumer_stops_reading",
+    );
+    // Give the woken reader a brief moment to drop its PTY descriptors and
+    // queue the terminal exit event before we touch the receiver.
+    thread::sleep(Duration::from_millis(50));
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut output_events = 0;
+    let exit = loop {
+        match receive(&receiver, deadline) {
+            PtyEvent::Output(_) => output_events += 1,
+            PtyEvent::Failure(failure) => panic!("unexpected PTY failure: {failure} ({failure:?})"),
+            PtyEvent::Exit(exit) => break exit,
+        }
+    };
+    assert!(
+        output_events <= OUTPUT_QUEUE_CAPACITY,
+        "close woke the blocked reader before draining further chunks (got {output_events} chunks, capacity {OUTPUT_QUEUE_CAPACITY})"
+    );
+    assert!(
+        matches!(exit, ExitResult::Signal(1 | 9)),
+        "closed child exited via HUP or KILL, got {exit:?}"
+    );
+}
+
+#[test]
+fn setup_failures_carry_raw_os_error_without_leaking_inputs() {
+    let secret_program = "/nonexistent/longhorn-pty-secret-program-name";
+    let mut spec = command(secret_program, &[], &[("SECRET_TOKEN", "hunter2")]);
+    spec.working_directory = PathBuf::from("/");
+    let failure = PtySession::open(spec).expect_err("missing program fails to spawn");
+    let raw = failure
+        .raw_os_error()
+        .expect("spawn failure carries raw_os_error");
+    assert_eq!(
+        failure,
+        Failure::Spawn {
+            raw_os_error: Some(raw),
+        }
+    );
+    assert_eq!(raw, rustix::io::Errno::NOENT.raw_os_error());
+    let rendered = failure.to_string();
+    assert!(
+        rendered.contains(&format!("(os error {raw})")),
+        "Display includes numeric os error: {rendered:?}"
+    );
+    assert!(
+        !rendered.contains(secret_program) && !rendered.contains("hunter2"),
+        "Display does not leak paths or environment values: {rendered:?}"
+    );
+}
+
+#[test]
 fn a_relative_working_directory_is_applied() {
-    let mut spec = shell("pwd");
-    spec.working_directory = PathBuf::from("/usr");
+    let relative = PathBuf::from("src");
+    assert!(
+        !relative.is_absolute(),
+        "test fixture must pass a relative working directory"
+    );
+    let expected = std::fs::canonicalize(&relative).expect("crate src directory exists");
+    let mut spec = shell("pwd -P");
+    spec.working_directory = relative;
     let (_session, receiver) = open(spec);
     let (exit, output) = receive_until_exit(&receiver);
     assert_eq!(exit, ExitResult::Code(0));
-    assert!(text(&output).contains("/usr"));
+    assert_eq!(text(&output).trim(), expected.to_string_lossy());
 }
 
 fn check_stress_exit(id: usize, code: i32) {
@@ -382,7 +555,7 @@ fn check_stress_close(id: usize) {
     // post-close output is legitimately empty and only the exit is asserted
     // below.
     receive_until_text(&receiver, &marker);
-    session.close().expect("the process group closes");
+    close_or_diagnose(&session, &receiver, &format!("check_stress_close({id})"));
     let (exit, _) = receive_until_exit(&receiver);
     assert_eq!(
         exit,

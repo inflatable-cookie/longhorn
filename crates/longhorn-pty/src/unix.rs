@@ -5,7 +5,7 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
+use std::sync::mpsc::{Receiver, SyncSender, TrySendError, sync_channel};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
@@ -13,7 +13,9 @@ use std::time::Duration;
 use rustix::event::{PollFd, PollFlags, Timespec, poll};
 use rustix::fd::OwnedFd;
 use rustix::fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open as open_file};
-use rustix::io::{Errno, FdFlags, dup, fcntl_setfd};
+use rustix::io::{Errno, fcntl_dupfd_cloexec};
+#[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+use rustix::io::{FdFlags, fcntl_setfd};
 use rustix::process::{
     Pid, Signal, WaitId, WaitIdOptions, WaitOptions, WaitStatus, ioctl_tiocsctty,
     kill_process_group, setsid, test_kill_process_group, waitid, waitpid,
@@ -27,6 +29,7 @@ use crate::api::{
 };
 
 const REAPER_POLL_INTERVAL: Duration = Duration::from_millis(10);
+const SEND_BACKPRESSURE_INTERVAL: Duration = Duration::from_millis(10);
 const OUTPUT_POLL_TIMEOUT: Timespec = Timespec {
     tv_sec: 0,
     tv_nsec: 10_000_000,
@@ -45,21 +48,57 @@ struct Shared {
 struct Process {
     process_group: Pid,
     exit: Option<ExitResult>,
-    wait_failed: bool,
+    wait_failure: Option<Failure>,
     closing: bool,
     closed: bool,
 }
 
+fn open_master() -> Result<OwnedFd, Failure> {
+    // Linux (via `/dev/ptmx` in rustix) and FreeBSD accept `O_CLOEXEC`
+    // atomically in `openpt`. macOS, iOS, and illumos do not expose
+    // `O_CLOEXEC` on `posix_openpt`, so those targets set `FD_CLOEXEC`
+    // immediately after `openpt` returns.
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    {
+        openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY | OpenptFlags::CLOEXEC).map_err(|errno| {
+            Failure::OpenPty {
+                raw_os_error: errno.raw_os_error(),
+            }
+        })
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+    {
+        let master =
+            openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY).map_err(|errno| Failure::OpenPty {
+                raw_os_error: errno.raw_os_error(),
+            })?;
+        fcntl_setfd(&master, FdFlags::CLOEXEC).map_err(|errno| Failure::DescriptorFlags {
+            raw_os_error: errno.raw_os_error(),
+        })?;
+        Ok(master)
+    }
+}
+
 pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>), Failure> {
-    let master = openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY).map_err(|_| Failure::OpenPty)?;
-    set_cloexec(&master)?;
-    grantpt(&master).map_err(|_| Failure::GrantPty)?;
-    unlockpt(&master).map_err(|_| Failure::UnlockPty)?;
-    let slave_name = ptsname(&master, Vec::new()).map_err(|_| Failure::PtyName)?;
+    let master = open_master()?;
+    grantpt(&master).map_err(|errno| Failure::GrantPty {
+        raw_os_error: errno.raw_os_error(),
+    })?;
+    unlockpt(&master).map_err(|errno| Failure::UnlockPty {
+        raw_os_error: errno.raw_os_error(),
+    })?;
+    let slave_name = ptsname(&master, Vec::new()).map_err(|errno| Failure::PtyName {
+        raw_os_error: errno.raw_os_error(),
+    })?;
     let slave_path = Path::new(OsStr::from_bytes(slave_name.to_bytes()));
-    let slave = open_file(slave_path, OFlags::RDWR | OFlags::NOCTTY, Mode::empty())
-        .map_err(|_| Failure::OpenSlave)?;
-    set_cloexec(&slave)?;
+    let slave = open_file(
+        slave_path,
+        OFlags::RDWR | OFlags::NOCTTY | OFlags::CLOEXEC,
+        Mode::empty(),
+    )
+    .map_err(|errno| Failure::OpenSlave {
+        raw_os_error: errno.raw_os_error(),
+    })?;
     tcsetwinsize(
         &master,
         Winsize {
@@ -69,13 +108,25 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
             ws_ypixel: 0,
         },
     )
-    .map_err(|_| Failure::Resize)?;
+    .map_err(|errno| Failure::Resize {
+        raw_os_error: errno.raw_os_error(),
+    })?;
 
+    // Set `O_NONBLOCK` on the master file description before duplicating it.
+    // `control_master` and `reader_master` intentionally share this open file
+    // description: the reader polls and drains without blocking, and `write`
+    // handles `WouldBlock` by releasing the lifecycle lock so a full PTY input
+    // buffer cannot deadlock `close` or `resize`.
+    let master_flags = fcntl_getfl(&master).map_err(|errno| Failure::DescriptorFlags {
+        raw_os_error: errno.raw_os_error(),
+    })?;
+    fcntl_setfl(&master, master_flags | OFlags::NONBLOCK).map_err(|errno| {
+        Failure::DescriptorFlags {
+            raw_os_error: errno.raw_os_error(),
+        }
+    })?;
     let control_master = duplicate(&master)?;
     let reader_master = duplicate(&master)?;
-    let reader_flags = fcntl_getfl(&reader_master).map_err(|_| Failure::DescriptorFlags)?;
-    fcntl_setfl(&reader_master, reader_flags | OFlags::NONBLOCK)
-        .map_err(|_| Failure::DescriptorFlags)?;
     let stdin_fd = duplicate(&slave)?;
     let stdout_fd = duplicate(&slave)?;
     let stderr_fd = duplicate(&slave)?;
@@ -102,7 +153,9 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
 
     install_session_hook(&mut command, ctty_file);
 
-    let child = command.spawn().map_err(|_| Failure::Spawn)?;
+    let child = command.spawn().map_err(|error| Failure::Spawn {
+        raw_os_error: error.raw_os_error(),
+    })?;
     drop(command);
     let process_group = Pid::from_child(&child);
     drop(child);
@@ -110,7 +163,7 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
         process: Mutex::new(Process {
             process_group,
             exit: None,
-            wait_failed: false,
+            wait_failure: None,
             closing: false,
             closed: false,
         }),
@@ -125,16 +178,17 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
     let (sender, receiver) = sync_channel(OUTPUT_QUEUE_CAPACITY);
 
     let reaper_shared = shared.clone();
-    if thread::Builder::new()
+    if let Err(error) = thread::Builder::new()
         .name("longhorn-pty-reaper".to_owned())
         .spawn(move || reap_child(reaper_shared))
-        .is_err()
     {
         abort_child(&shared);
-        return Err(Failure::WorkerSpawn);
+        return Err(Failure::WorkerSpawn {
+            raw_os_error: error.raw_os_error(),
+        });
     }
 
-    if thread::Builder::new()
+    if let Err(error) = thread::Builder::new()
         .name("longhorn-pty-output".to_owned())
         .spawn(move || {
             read_output(
@@ -144,17 +198,14 @@ pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>)
                 shared,
             )
         })
-        .is_err()
     {
         let _ = session.close();
-        return Err(Failure::WorkerSpawn);
+        return Err(Failure::WorkerSpawn {
+            raw_os_error: error.raw_os_error(),
+        });
     }
 
     Ok((session, receiver))
-}
-
-fn set_cloexec(fd: &OwnedFd) -> Result<(), Failure> {
-    fcntl_setfd(fd, FdFlags::CLOEXEC).map_err(|_| Failure::DescriptorFlags)
 }
 
 // This narrow allowance overrides the workspace's `forbid` so the crate can
@@ -173,9 +224,9 @@ fn install_session_hook(command: &mut Command, ctty_file: File) {
 }
 
 fn duplicate(fd: &OwnedFd) -> Result<OwnedFd, Failure> {
-    let duplicate = dup(fd).map_err(|_| Failure::DuplicateDescriptor)?;
-    set_cloexec(&duplicate)?;
-    Ok(duplicate)
+    fcntl_dupfd_cloexec(fd, 0).map_err(|errno| Failure::DuplicateDescriptor {
+        raw_os_error: errno.raw_os_error(),
+    })
 }
 
 fn process_lock(shared: &Shared) -> MutexGuard<'_, Process> {
@@ -206,14 +257,15 @@ fn record_exit(process: &mut Process, status: WaitStatus) -> ExitResult {
 }
 
 fn poll_exit(process: &mut Process, changed: &Condvar) -> Result<bool, Failure> {
-    if process.exit.is_some() || process.wait_failed || process.closed || process.closing {
+    if process.exit.is_some() || process.wait_failure.is_some() || process.closed || process.closing
+    {
         return Ok(false);
     }
     poll_child(process, changed)
 }
 
 fn poll_child(process: &mut Process, changed: &Condvar) -> Result<bool, Failure> {
-    if process.exit.is_some() || process.wait_failed {
+    if process.exit.is_some() || process.wait_failure.is_some() {
         return Ok(false);
     }
     match waitpid(Some(process.process_group), WaitOptions::NOHANG) {
@@ -224,10 +276,13 @@ fn poll_child(process: &mut Process, changed: &Condvar) -> Result<bool, Failure>
         }
         Ok(None) => Ok(true),
         Err(Errno::INTR) => Ok(true),
-        Err(_) => {
-            process.wait_failed = true;
+        Err(errno) => {
+            let failure = Failure::Wait {
+                raw_os_error: errno.raw_os_error(),
+            };
+            process.wait_failure = Some(failure);
             changed.notify_all();
-            Err(Failure::Wait)
+            Err(failure)
         }
     }
 }
@@ -236,12 +291,12 @@ fn reap_child(shared: Arc<Shared>) {
     loop {
         {
             let mut process = process_lock(&shared);
-            if process.exit.is_some() || process.wait_failed {
+            if process.exit.is_some() || process.wait_failure.is_some() {
                 return;
             }
             if !process.closing {
                 let _poll = poll_child(&mut process, &shared.changed);
-                if process.exit.is_some() {
+                if process.exit.is_some() || process.wait_failure.is_some() {
                     return;
                 }
             }
@@ -255,7 +310,42 @@ enum DrainResult {
     Finished,
 }
 
-fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<DrainResult, Failure> {
+enum SendOutcome {
+    Sent,
+    Stop,
+}
+
+/// Sends one output chunk with back-pressure, waking immediately if the session
+/// begins closing while the queue is full so the reader releases the PTY
+/// descriptors.
+fn send_output(sender: &SyncSender<PtyEvent>, shared: &Shared, mut event: PtyEvent) -> SendOutcome {
+    loop {
+        match sender.try_send(event) {
+            Ok(()) => return SendOutcome::Sent,
+            Err(TrySendError::Disconnected(_)) => return SendOutcome::Stop,
+            Err(TrySendError::Full(unsent)) => {
+                let process = process_lock(shared);
+                if process.closing || process.closed {
+                    return SendOutcome::Stop;
+                }
+                let (process, _) = shared
+                    .changed
+                    .wait_timeout(process, SEND_BACKPRESSURE_INTERVAL)
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                if process.closing || process.closed {
+                    return SendOutcome::Stop;
+                }
+                event = unsent;
+            }
+        }
+    }
+}
+
+fn drain_output(
+    master: &mut File,
+    sender: &SyncSender<PtyEvent>,
+    shared: &Shared,
+) -> Result<DrainResult, Failure> {
     loop {
         // A blocked send owns this buffer; no second full-size output buffer
         // remains in the reader while queue capacity is exhausted.
@@ -267,7 +357,10 @@ fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<Drai
             Ok(0) => return Ok(DrainResult::Drained),
             Ok(length) => {
                 buffer.truncate(length);
-                if sender.send(PtyEvent::Output(buffer)).is_err() {
+                if matches!(
+                    send_output(sender, shared, PtyEvent::Output(buffer)),
+                    SendOutcome::Stop
+                ) {
                     return Ok(DrainResult::Finished);
                 }
             }
@@ -278,7 +371,11 @@ fn drain_output(master: &mut File, sender: &SyncSender<PtyEvent>) -> Result<Drai
             Err(error) if error.raw_os_error() == Some(Errno::IO.raw_os_error()) => {
                 return Ok(DrainResult::Finished);
             }
-            Err(_) => return Err(Failure::ReadOutput),
+            Err(error) => {
+                return Err(Failure::ReadOutput {
+                    raw_os_error: error.raw_os_error(),
+                });
+            }
         }
     }
 }
@@ -289,27 +386,27 @@ fn read_output(
     sender: SyncSender<PtyEvent>,
     shared: Arc<Shared>,
 ) {
-    let mut read_failed = false;
+    let mut read_failure = None;
     loop {
-        match drain_output(&mut master, &sender) {
+        match drain_output(&mut master, &sender, &shared) {
             Ok(DrainResult::Drained) => {}
             Ok(DrainResult::Finished) => break,
-            Err(_) => {
-                read_failed = true;
+            Err(failure) => {
+                read_failure = Some(failure);
                 break;
             }
         }
 
         let process_ended = {
             let process = process_lock(&shared);
-            process.exit.is_some() || process.wait_failed
+            process.exit.is_some() || process.wait_failure.is_some()
         };
         if process_ended {
             // The leader may have exited after the prior read reached WouldBlock.
             // Drain once more before reporting its result, without waiting for
             // descendants that still hold the slave descriptor.
-            if drain_output(&mut master, &sender).is_err() {
-                read_failed = true;
+            if let Err(failure) = drain_output(&mut master, &sender, &shared) {
+                read_failure = Some(failure);
             }
             break;
         }
@@ -317,33 +414,36 @@ fn read_output(
         let mut descriptors = [PollFd::new(&master, PollFlags::IN)];
         match poll(&mut descriptors, Some(&OUTPUT_POLL_TIMEOUT)) {
             Ok(_) | Err(Errno::INTR) => {}
-            Err(_) => {
-                read_failed = true;
+            Err(errno) => {
+                read_failure = Some(Failure::ReadOutput {
+                    raw_os_error: Some(errno.raw_os_error()),
+                });
                 break;
             }
         }
     }
     drop(master);
     // The retained slave kept the child's output readable past its death.
-    // It closes only after the final drain above, so its queue is empty.
+    // It closes only after the final drain above (or on close wake when the
+    // consumer stopped reading), releasing the PTY pair back to the OS.
     drop(held_slave);
 
     let mut process = process_lock(&shared);
-    while process.exit.is_none() && !process.wait_failed {
+    while process.exit.is_none() && process.wait_failure.is_none() {
         process = shared
             .changed
             .wait(process)
             .unwrap_or_else(std::sync::PoisonError::into_inner);
     }
     let exit = process.exit;
-    let wait_failed = process.wait_failed;
+    let wait_failure = process.wait_failure;
     drop(process);
 
-    if read_failed {
-        let _ = sender.send(PtyEvent::Failure(Failure::ReadOutput));
+    if let Some(failure) = read_failure {
+        let _ = sender.send(PtyEvent::Failure(failure));
     }
-    if wait_failed {
-        let _ = sender.send(PtyEvent::Failure(Failure::Wait));
+    if let Some(failure) = wait_failure {
+        let _ = sender.send(PtyEvent::Failure(failure));
     }
     if let Some(exit) = exit {
         let _ = sender.send(PtyEvent::Exit(exit));
@@ -369,18 +469,20 @@ pub(crate) fn write(session: &PtySession, bytes: &[u8]) -> Result<(), Failure> {
             master.write(&bytes[written..])
         };
         match result {
-            Ok(0) => return Err(Failure::WriteInput),
+            Ok(0) => return Err(Failure::WriteInput { raw_os_error: None }),
             Ok(length) => written += length,
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 drop(process);
                 thread::sleep(REAPER_POLL_INTERVAL);
             }
-            Err(_) => {
+            Err(error) => {
                 if !poll_exit(&mut process, &shared.changed)? {
                     return Err(Failure::Ended);
                 }
-                return Err(Failure::WriteInput);
+                return Err(Failure::WriteInput {
+                    raw_os_error: error.raw_os_error(),
+                });
             }
         }
     }
@@ -402,7 +504,9 @@ pub(crate) fn resize(session: &PtySession, size: PtySize) -> Result<(), Failure>
         ws_xpixel: 0,
         ws_ypixel: 0,
     };
-    tcsetwinsize(master, winsize).map_err(|_| Failure::Resize)?;
+    tcsetwinsize(master, winsize).map_err(|errno| Failure::Resize {
+        raw_os_error: errno.raw_os_error(),
+    })?;
     match kill_process_group(process.process_group, Signal::WINCH) {
         Ok(()) => Ok(()),
         Err(error) => match group_failure(Err(error), process.process_group) {
@@ -427,10 +531,16 @@ fn group_failure(result: Result<(), Errno>, process_group: Pid) -> Option<Failur
         Ok(()) | Err(Errno::SRCH) => None,
         Err(Errno::PERM) => match leader_exited_uncollected(process_group) {
             Ok(true) => None,
-            Ok(false) => Some(Failure::Signal),
-            Err(_) => Some(Failure::Wait),
+            Ok(false) => Some(Failure::Signal {
+                raw_os_error: Errno::PERM.raw_os_error(),
+            }),
+            Err(errno) => Some(Failure::Wait {
+                raw_os_error: errno.raw_os_error(),
+            }),
         },
-        Err(_) => Some(Failure::Signal),
+        Err(errno) => Some(Failure::Signal {
+            raw_os_error: errno.raw_os_error(),
+        }),
     }
 }
 
@@ -452,6 +562,13 @@ fn close_shared(shared: &Shared) -> Result<(), Failure> {
             return Err(Failure::Ended);
         }
         process.closing = true;
+        // Release the control master and wake any output reader blocked on a
+        // full queue before waiting out the grace period. Nothing uses
+        // `control_master` once `closing` is set, and closing both master
+        // copies when the consumer stopped reading lets a child blocked on a
+        // full TTY buffer finish exiting on SIGHUP.
+        master_lock(shared).take();
+        shared.changed.notify_all();
         process.process_group
     };
 
@@ -475,7 +592,6 @@ fn close_shared(shared: &Shared) -> Result<(), Failure> {
         }
         process.closed = true;
         process.closing = false;
-        master_lock(shared).take();
         shared.changed.notify_all();
     }
 
@@ -496,6 +612,7 @@ fn abort_child(shared: &Shared) {
         }
     }
     process.closed = true;
+    shared.changed.notify_all();
 }
 
 #[cfg(test)]
@@ -512,7 +629,9 @@ mod tests {
 
         assert_eq!(
             group_failure(Err(Errno::PERM), process_group),
-            Some(Failure::Signal)
+            Some(Failure::Signal {
+                raw_os_error: Errno::PERM.raw_os_error(),
+            })
         );
 
         child.kill().expect("the sleeper is stopped");
@@ -542,5 +661,40 @@ mod tests {
         );
 
         child.wait().expect("the zombie is reaped by its parent");
+    }
+
+    #[test]
+    fn send_output_wakes_immediately_when_session_closes_on_full_queue() {
+        let (sender, _receiver) = sync_channel(1);
+        sender
+            .send(PtyEvent::Output(vec![1]))
+            .expect("the single queue slot fills");
+
+        let shared = Arc::new(Shared {
+            process: Mutex::new(Process {
+                process_group: rustix::process::getpid(),
+                exit: None,
+                wait_failure: None,
+                closing: false,
+                closed: false,
+            }),
+            control_master: Mutex::new(None),
+            changed: Condvar::new(),
+        });
+
+        let closer_shared = shared.clone();
+        let closer = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(20));
+            let mut process = process_lock(&closer_shared);
+            process.closed = true;
+            closer_shared.changed.notify_all();
+        });
+
+        let outcome = send_output(&sender, &shared, PtyEvent::Output(vec![2]));
+        closer.join().expect("the closer thread finishes");
+        assert!(
+            matches!(outcome, SendOutcome::Stop),
+            "closing the session stops a send blocked on a full queue"
+        );
     }
 }
