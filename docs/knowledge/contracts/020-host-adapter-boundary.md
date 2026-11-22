@@ -565,18 +565,13 @@ example calls it from the close callback, because a GPUI window is gone the
 moment `on_should_close` returns `true`; a product with a real shutdown path
 calls it there instead.
 
-### One behaviour recorded rather than changed
+### Current placement flush behaviour
 
-A window moved just before it is closed takes its final capture during the
-close, stages it, reports the user close, and permits the close — with no
-flush in that pass and none scheduled. The placement reaches the sink's
-staging and its durability then depends on whatever flushes next.
-
-This belongs to the shared coordinator, not to either adapter, so **both
-backends have it**. Whether a per-window close should force its own flush is a
-contract question and not an adapter bug, so it is written down here and
-asserted as-is in `teardown.rs` rather than quietly changed. If it should
-change, it changes for both hosts at once.
+GPUI now returns successful and failed capture outcomes to the shared
+lifecycle coordinator. A close with a pending capture flushes the captured
+generation before permitting close. Shutdown collects targets across windows
+for one bounded sink write. The receipt keeps per-window failures even when
+that write succeeds. See [contract 009](009-display-identity-coordinates-and-window-planning.md).
 
 Most of the GPUI adapter's behavioural evidence comes from an in-memory host
 implementing exactly `gpui::PlatformWindow`'s surface. That the surface is the

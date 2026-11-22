@@ -17,16 +17,22 @@ pub fn probe_tauri_desktop<R: Runtime>(
     managed_windows: &[ManagedWebviewWindow<R>],
     metadata_provider: &mut impl DisplayMetadataProvider,
 ) -> Result<PhysicalDesktopSnapshot, TauriProbeError> {
-    let mut available = host_result(
+    let displays = probe_displays(
         app.available_monitors(),
-        HostProbeOperation::AvailableMonitors,
-        None,
+        || app.primary_monitor(),
+        metadata_provider,
     )?;
-    let primary = host_result(
-        app.primary_monitor(),
-        HostProbeOperation::PrimaryMonitor,
-        None,
-    )?;
+    let windows = probe_managed_windows(managed_windows)?;
+    Ok(PhysicalDesktopSnapshot::new(displays, windows))
+}
+
+pub(crate) fn probe_displays(
+    available: tauri::Result<Vec<Monitor>>,
+    primary: impl FnOnce() -> tauri::Result<Option<Monitor>>,
+    metadata_provider: &mut impl DisplayMetadataProvider,
+) -> Result<Vec<PhysicalDisplayObservation>, TauriProbeError> {
+    let mut available = host_result(available, HostProbeOperation::AvailableMonitors, None)?;
+    let primary = host_result(primary(), HostProbeOperation::PrimaryMonitor, None)?;
     let primary_index = match primary.as_ref() {
         Some(primary) => {
             monitor_facts(primary, ProbeTarget::PrimaryDisplay)?;
@@ -67,9 +73,7 @@ pub fn probe_tauri_desktop<R: Runtime>(
         displays.push(PhysicalDisplayObservation::new(facts, metadata));
     }
 
-    let windows = probe_managed_windows(managed_windows)?;
-
-    Ok(PhysicalDesktopSnapshot::new(displays, windows))
+    Ok(displays)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -160,11 +164,12 @@ pub fn observe_tauri_desktop_with<R: Runtime>(
     metadata_provider: &mut impl DisplayMetadataProvider,
     mapper: &impl DesktopCoordinateMapper,
 ) -> Result<DesktopObservation, TauriObservationError> {
+    crate::mapping::ensure_mapper_platform(mapper).map_err(crate::DesktopObservationError::from)?;
     let snapshot = probe_tauri_desktop(app, managed_windows, metadata_provider)?;
     Ok(project_desktop(&snapshot, mapper)?)
 }
 
-fn monitor_facts(
+pub(crate) fn monitor_facts(
     monitor: &Monitor,
     target: ProbeTarget,
 ) -> Result<PhysicalMonitorFacts, TauriProbeError> {
@@ -280,7 +285,7 @@ fn probe_window<R: Runtime>(
     ))
 }
 
-fn host_result<T>(
+pub(crate) fn host_result<T>(
     result: tauri::Result<T>,
     operation: HostProbeOperation,
     handle: Option<&HostWindowHandle>,

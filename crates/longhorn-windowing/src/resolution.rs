@@ -18,6 +18,21 @@ pub fn resolve_window_placement(
     inventory: &DisplayInventory,
     policy: PlacementPolicy,
 ) -> Result<WindowPlacementResolution, PlacementResolutionError> {
+    resolve_placement(config, inventory, policy, PlacementFit::Contain)
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum PlacementFit {
+    Contain,
+    PreserveReachableOrigin,
+}
+
+pub(crate) fn resolve_placement(
+    config: &WindowPlacementConfig,
+    inventory: &DisplayInventory,
+    policy: PlacementPolicy,
+    fit: PlacementFit,
+) -> Result<WindowPlacementResolution, PlacementResolutionError> {
     if !config.is_enabled() {
         return Ok(WindowPlacementResolution::Disabled {
             window_id: config.window_id().clone(),
@@ -46,13 +61,25 @@ pub fn resolve_window_placement(
 
     let requested = config.normal_placement_for(target.id).unwrap_or(reference);
     let requested_rect = ScreenRect::new(requested.outer_origin(), requested.inner_size());
-    let fitted = requested_rect
-        .fit_within(&target.facts.work_area(), &policy.minimum_size())
+    let work_area = target.facts.work_area();
+    let mut fitted = requested_rect
+        .fit_within(&work_area, &policy.minimum_size())
         .map_err(|source| PlacementResolutionError::Geometry {
             window_id: config.window_id().clone(),
             display_id: target.id.clone(),
             source,
         })?;
+    if matches!(fit, PlacementFit::PreserveReachableOrigin) {
+        let at_saved_origin = ScreenRect::new(requested.outer_origin(), fitted.size());
+        if at_saved_origin
+            .intersection(&work_area)
+            .is_some_and(|intersection| {
+                is_useful(&intersection, &at_saved_origin, &work_area, policy)
+            })
+        {
+            fitted = at_saved_origin;
+        }
+    }
 
     Ok(WindowPlacementResolution::Resolved(
         ResolvedWindowPlacement {

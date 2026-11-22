@@ -192,3 +192,9 @@ impl DesktopObservation {
         &self.windows
     }
 }
+
+impl AsRef<[longhorn_windowing::LiveWindow]> for DesktopObservation {
+    fn as_ref(&self) -> &[longhorn_windowing::LiveWindow] {
+        self.windows()
+    }
+}

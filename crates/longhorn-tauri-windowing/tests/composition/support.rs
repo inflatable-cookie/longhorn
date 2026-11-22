@@ -5,20 +5,20 @@ use std::sync::{
 };
 
 use longhorn_core::{
-    LiveWindowMetrics, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
+    LiveWindowMetrics, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
 };
 use longhorn_tauri_windowing::{
-    CapturedDisplayAssociation, CapturedWindowPlacement, DesktopObservation,
-    ManagedDesktopReadback, ManagedWindowRegistry, NativeWindowCall, NativeWindowMutationError,
-    ScheduledWindowLifecycleWake, TauriObservationError, TauriWindowLifecycleServices,
-    UniformWindowGeometryMapper, WindowCaptureBackend, WindowLifecycleClock, WindowLifecycleReport,
-    WindowLifecycleReporter, WindowLifecycleScheduler, WindowMutationBackend,
-    WindowPlacementFlushCompletion, WindowPlacementFlushTicket, WindowPlacementSink,
-    WindowRevealBackend, WindowUserCloseHandler,
+    DesktopObservation, ManagedDesktopReadback, ManagedWindowRegistry, NativeWindowCall,
+    NativeWindowMutationError, TauriObservationError, TauriWindowCaptureError,
+    TauriWindowLifecycleServices, WindowCaptureBackend, WindowLifecycleReport,
+    WindowLifecycleReporter, WindowLifecycleScheduler, WindowMutationBackend, WindowRevealBackend,
 };
 use longhorn_windowing::{
-    ApplyGeneration, DesiredWindow, HostCapabilities, HostWindowHandle, LiveWindow,
-    MonotonicMillis, WindowDiffInput, WindowLifecycleDuration, WindowLifecyclePolicy,
+    ApplyGeneration, CapturedDisplayAssociation, CapturedWindowPlacement, DesiredWindow,
+    HostCapabilities, HostWindowHandle, LiveWindow, MonotonicMillis, ScheduledWindowLifecycleWake,
+    WindowDiffInput, WindowLifecycleClock, WindowLifecycleDuration, WindowLifecyclePolicy,
+    WindowPlacementFlushCompletion, WindowPlacementFlushTicket, WindowPlacementSink,
+    WindowUserCloseHandler,
 };
 use tauri::{AppHandle, Runtime, WebviewWindow, test::MockRuntime};
 
@@ -113,7 +113,7 @@ impl WindowCaptureBackend<MockRuntime> for TestCapture {
         window_id: &WindowId,
         _window: &WebviewWindow<MockRuntime>,
         retained_normal: Option<WindowPlacement>,
-    ) -> Result<CapturedWindowPlacement, String> {
+    ) -> Result<CapturedWindowPlacement, TauriWindowCaptureError> {
         Ok(CapturedWindowPlacement::new(
             window_id.clone(),
             retained_normal.unwrap_or_else(|| placement(20, 30, 800, 600)),
@@ -133,7 +133,7 @@ pub(super) enum SinkMode {
 pub(super) struct TestSink {
     mode: SinkMode,
     staged: Mutex<Vec<CapturedWindowPlacement>>,
-    requests: Mutex<Vec<longhorn_tauri_windowing::WindowFlushRequest>>,
+    requests: Mutex<Vec<longhorn_windowing::WindowFlushRequest>>,
 }
 
 impl TestSink {
@@ -149,7 +149,7 @@ impl TestSink {
         self.staged.lock().unwrap().len()
     }
 
-    pub(super) fn requests(&self) -> Vec<longhorn_tauri_windowing::WindowFlushRequest> {
+    pub(super) fn requests(&self) -> Vec<longhorn_windowing::WindowFlushRequest> {
         self.requests.lock().unwrap().clone()
     }
 }
@@ -162,7 +162,7 @@ impl WindowPlacementSink for TestSink {
 
     fn request_flush(
         &self,
-        request: &longhorn_tauri_windowing::WindowFlushRequest,
+        request: &longhorn_windowing::WindowFlushRequest,
     ) -> Result<WindowPlacementFlushTicket, String> {
         self.requests.lock().unwrap().push(request.clone());
         if let SinkMode::RequestFail(detail) = &self.mode {
@@ -221,9 +221,6 @@ pub(super) fn services(mode: SinkMode) -> ServiceFixture {
         services: TauriWindowLifecycleServices::new(
             Arc::new(TestClock::default()),
             Arc::new(TestScheduler),
-            Arc::new(UniformWindowGeometryMapper::new(
-                ScaleFactor::from_thousandths(1000).unwrap(),
-            )),
             Arc::new(TestCapture),
             sink.clone(),
             user_close.clone(),

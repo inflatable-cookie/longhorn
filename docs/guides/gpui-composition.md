@@ -50,12 +50,12 @@ here is a seam you would otherwise discover from a compiler error.
 | `GpuiWindowBackend` | `longhorn-gpui-windowing` | create, resize, maximize, activate, close, observe, displays |
 | `GpuiDisplayFactsSource` | `longhorn-gpui-windowing` | scale, work area, position, builtin status — per platform |
 | `GpuiWindowCaptureBackend` | `longhorn-gpui-windowing` | capture one window's placement |
-| `GpuiLifecycleClock` | `longhorn-gpui-windowing` | monotonic milliseconds |
+| `WindowLifecycleClock` | `longhorn-windowing` | monotonic milliseconds |
 | `GpuiLifecycleScheduler` | `longhorn-gpui-windowing` | accept one deadline |
-| `GpuiUserCloseHandler` | `longhorn-gpui-windowing` | product policy on user close |
+| `WindowUserCloseHandler` | `longhorn-windowing` | product policy on user close |
 | `WindowPlacementSink` | `longhorn-windowing` | stage and flush placements |
 
-`NoopGpuiUserCloseHandler` exists for an application with no close policy.
+`NoopWindowUserCloseHandler` exists for an application with no close policy.
 Everything else you write.
 
 ## Composition Order
@@ -133,11 +133,9 @@ enough to copy.
 **Feed the capture cache from `Render::render`, not from the close.** The rule
 is: *the window you are inside comes from your `Window`; every other window
 comes from the backend.* `on_window_should_close` runs inside the closing
-window's own dispatch, so observing it there fails — and the failure is quiet,
-because a capture that fails stages nothing and a flush with nothing staged
-reports success. A window that had moved would lose its final placement with no
-diagnostic anywhere. A render has `&mut Window` for its own window and gpui
-redraws on move and resize, so recording there is both possible and fresh.
+window's own dispatch, so observing it there fails. A render has
+`&mut Window` for its own window and GPUI redraws on move and resize, so it
+can keep the capture cache current.
 
 ## Lifecycle And Close
 
@@ -159,15 +157,10 @@ other's.
 A deferred close resumes only when the user asks again. Design your close
 policy knowing that.
 
-**Call `shutdown_flush` before your last window goes.** A GPUI window is gone
-the moment `on_should_close` returns `true`, and whatever its close staged has
-no later chance — a window moved and then closed loses its placement without
-it. Tauri does not need this as urgently, because it prevents every user close
-and the window survives to be flushed later; GPUI has no such reprieve.
-
-It captures every window and issues one aggregate write. Read
-`GpuiShutdownReceipt::is_complete` before you exit: a store that refused is the
-difference between a clean shutdown and a silent loss.
+Call `shutdown_flush` while windows are still installed. It settles pending
+captures and sends one bounded sink request with the ready capture generations.
+Check `GpuiShutdownReceipt::is_complete`, the per-window results, and the
+aggregate write outcome before exit.
 
 ## Drawing
 

@@ -108,7 +108,7 @@ fn explicit_flush_and_destroy_are_bounded_and_destroy_forgets_state() {
             reason: FlushReason::Explicit,
         }]
     );
-    assert!(coordinator.is_tracking(&id()));
+    assert!(!coordinator.is_tracking(&id()));
 
     assert_eq!(
         coordinator
@@ -239,7 +239,7 @@ fn retag_migrates_pending_state_and_reschedules_under_the_new_identity() {
 }
 
 #[test]
-fn retag_merges_a_tracked_target_and_release_removes_state() {
+fn retag_merges_a_tracked_target_and_destroy_removes_state() {
     let mut coordinator = coordinator();
     let previous = id();
     let next = WindowId::new("occupied").unwrap();
@@ -258,7 +258,55 @@ fn retag_merges_a_tracked_target_and_release_removes_state() {
     assert!(!coordinator.is_tracking(&previous));
     assert!(coordinator.is_tracking(&next));
 
-    assert!(coordinator.release(&next));
+    coordinator
+        .handle(
+            at(1_002),
+            WindowLifecycleEvent::Destroyed {
+                window_id: next.clone(),
+            },
+        )
+        .unwrap();
     assert!(!coordinator.is_tracking(&next));
-    assert!(!coordinator.release(&next));
+}
+
+#[test]
+fn delayed_capture_and_flush_events_cannot_recreate_destroyed_state() {
+    let mut coordinator = coordinator();
+    let directives = coordinator.handle(at(100), moved(10, 20)).unwrap();
+    let [WindowLifecycleDirective::ScheduleCapture { generation, .. }] = directives.as_slice()
+    else {
+        panic!("a move should schedule capture");
+    };
+    let generation = *generation;
+    coordinator
+        .handle(at(110), WindowLifecycleEvent::Destroyed { window_id: id() })
+        .unwrap();
+
+    for event in [
+        WindowLifecycleEvent::CaptureDeadline {
+            window_id: id(),
+            generation,
+        },
+        WindowLifecycleEvent::CaptureCompleted {
+            window_id: id(),
+            generation,
+        },
+        WindowLifecycleEvent::CaptureFailed {
+            window_id: id(),
+            generation,
+        },
+        WindowLifecycleEvent::FlushDeadline {
+            window_id: id(),
+            generation,
+        },
+    ] {
+        assert!(matches!(
+            coordinator.handle(at(1_000), event).unwrap().as_slice(),
+            [WindowLifecycleDirective::Ignore {
+                reason: IgnoreReason::NoPendingCapture,
+                ..
+            }]
+        ));
+        assert!(!coordinator.is_tracking(&id()));
+    }
 }

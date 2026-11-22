@@ -35,34 +35,15 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc, time::Instant};
 use gpui::{AnyWindowHandle, App, Window};
 use longhorn_core::WindowId;
 use longhorn_gpui_windowing::{
-    GpuiLifecycleClock, GpuiLifecycleScheduler, GpuiWindowCaptureBackend, GpuiWindowFacts,
-    GpuiWindowKey, NoopGpuiUserCloseHandler, capture_from_gpui_facts,
+    GpuiLifecycleScheduler, GpuiWindowCaptureBackend, GpuiWindowFacts, GpuiWindowKey,
+    capture_from_gpui_facts,
 };
 use longhorn_windowing::{
-    CapturedWindowPlacement, MonotonicMillis, ScheduledWindowLifecycleWake, WindowLifecycleEvent,
-    WindowLifecyclePolicy,
+    CapturedWindowPlacement, NoopWindowUserCloseHandler, ProcessMonotonicClock,
+    ScheduledWindowLifecycleWake, WindowLifecycleEvent, WindowLifecyclePolicy,
 };
 
 use crate::store::sink;
-
-/// A real monotonic clock, counted from process start.
-pub struct ProcessClock {
-    started: Instant,
-}
-
-impl ProcessClock {
-    fn new() -> Self {
-        Self {
-            started: Instant::now(),
-        }
-    }
-}
-
-impl GpuiLifecycleClock for ProcessClock {
-    fn now(&self) -> MonotonicMillis {
-        MonotonicMillis::new(u64::try_from(self.started.elapsed().as_millis()).unwrap_or(u64::MAX))
-    }
-}
 
 /// Records deadlines for the application to drain.
 ///
@@ -121,10 +102,10 @@ impl GpuiWindowCaptureBackend for CachedCapture {
 }
 
 type Host = longhorn_gpui_windowing::GpuiWindowLifecycleHost<
-    ProcessClock,
+    ProcessMonotonicClock,
     DrainingScheduler,
     CachedCapture,
-    NoopGpuiUserCloseHandler,
+    NoopWindowUserCloseHandler,
 >;
 
 /// The lifecycle host, shared across both windows' callbacks.
@@ -145,10 +126,10 @@ impl LifecycleHost {
         let mut host = Host::new(
             WindowLifecyclePolicy::recommended(),
             longhorn_gpui_windowing::GpuiWindowLifecycleServices {
-                clock: ProcessClock::new(),
+                clock: ProcessMonotonicClock::new(),
                 scheduler: scheduler.clone(),
                 capture: capture.clone(),
-                user_close: NoopGpuiUserCloseHandler,
+                user_close: NoopWindowUserCloseHandler,
                 sink: Box::new(sink()),
             },
         );

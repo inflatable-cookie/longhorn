@@ -196,25 +196,52 @@ impl Tier {
         }
     }
 
-    fn evidence(self, known: &DisplayEvidence, observed: &DisplayEvidence) -> AssociationEvidence {
+    fn evidence<'a>(
+        self,
+        known: impl IntoIterator<Item = &'a KnownDisplay>,
+        observed: &ObservedDisplay,
+    ) -> Option<AssociationEvidence> {
+        let observed_evidence = observed.evidence();
         match self {
-            Self::Strong => {
-                AssociationEvidence::StrongKeys(common(known.strong_keys(), observed.strong_keys()))
-            }
-            Self::RememberedAdapter => AssociationEvidence::AdapterKeys(common(
-                known.adapter_keys(),
-                observed.adapter_keys(),
-            )),
-            Self::ExactGeometryAndScale => AssociationEvidence::ExactGeometryAndScale,
-            Self::Weak => {
-                AssociationEvidence::WeakKeys(common(known.weak_keys(), observed.weak_keys()))
-            }
+            Self::Strong => common_keys(
+                known,
+                observed_evidence.strong_keys(),
+                DisplayEvidence::strong_keys,
+            )
+            .map(AssociationEvidence::StrongKeys),
+            Self::RememberedAdapter => common_keys(
+                known,
+                observed_evidence.adapter_keys(),
+                DisplayEvidence::adapter_keys,
+            )
+            .map(AssociationEvidence::AdapterKeys),
+            Self::ExactGeometryAndScale => known
+                .into_iter()
+                .any(|known| {
+                    known.facts().full_bounds() == observed.facts().full_bounds()
+                        && known.facts().scale() == observed.facts().scale()
+                })
+                .then_some(AssociationEvidence::ExactGeometryAndScale),
+            Self::Weak => common_keys(
+                known,
+                observed_evidence.weak_keys(),
+                DisplayEvidence::weak_keys,
+            )
+            .map(AssociationEvidence::WeakKeys),
         }
     }
 }
 
-fn common<T: Clone + Ord>(left: &BTreeSet<T>, right: &BTreeSet<T>) -> Vec<T> {
-    left.intersection(right).cloned().collect()
+fn common_keys<'a, K: Clone + Ord>(
+    known: impl IntoIterator<Item = &'a KnownDisplay>,
+    observed: &BTreeSet<K>,
+    keys: impl Fn(&DisplayEvidence) -> &BTreeSet<K>,
+) -> Option<Vec<K>> {
+    let mut common = BTreeSet::new();
+    for display in known {
+        common.extend(keys(display.evidence()).intersection(observed).cloned());
+    }
+    (!common.is_empty()).then(|| common.into_iter().collect())
 }
 
 struct TierResult {
@@ -253,7 +280,7 @@ fn resolve_tier(
             let known = registry
                 .get(display_id)
                 .expect("remaining known display must exist");
-            if tier_matches(tier, known, observation) {
+            if tier.evidence([known], observation).is_some() {
                 by_observation
                     .entry(observation_id.clone())
                     .or_default()
@@ -286,7 +313,9 @@ fn resolve_tier(
             observation_id: observation_id.clone(),
             association: AssociationKind::Correlated {
                 confidence: tier.confidence(),
-                evidence: tier.evidence(known.evidence(), observed.evidence()),
+                evidence: tier
+                    .evidence([known], observed)
+                    .expect("matched edge has tier evidence"),
             },
         });
         matched_observations.insert(observation_id.clone());
@@ -321,60 +350,11 @@ fn ambiguity_evidence(
     observed: &ObservedDisplay,
     candidates: &BTreeSet<DisplayId>,
 ) -> AssociationEvidence {
-    match tier {
-        Tier::Strong => AssociationEvidence::StrongKeys(
-            candidates
-                .iter()
-                .flat_map(|id| {
-                    common(
-                        registry
-                            .get(id)
-                            .expect("candidate known must exist")
-                            .evidence()
-                            .strong_keys(),
-                        observed.evidence().strong_keys(),
-                    )
-                })
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect(),
-        ),
-        Tier::RememberedAdapter => AssociationEvidence::AdapterKeys(
-            candidates
-                .iter()
-                .flat_map(|id| {
-                    common(
-                        registry
-                            .get(id)
-                            .expect("candidate known must exist")
-                            .evidence()
-                            .adapter_keys(),
-                        observed.evidence().adapter_keys(),
-                    )
-                })
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect(),
-        ),
-        Tier::ExactGeometryAndScale => AssociationEvidence::ExactGeometryAndScale,
-        Tier::Weak => AssociationEvidence::WeakKeys(
-            candidates
-                .iter()
-                .flat_map(|id| {
-                    common(
-                        registry
-                            .get(id)
-                            .expect("candidate known must exist")
-                            .evidence()
-                            .weak_keys(),
-                        observed.evidence().weak_keys(),
-                    )
-                })
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect(),
-        ),
-    }
+    tier.evidence(
+        candidates.iter().filter_map(|id| registry.get(id)),
+        observed,
+    )
+    .expect("candidate edges have matching tier evidence")
 }
 
 fn exactly_one<T: Ord>(values: &BTreeSet<T>) -> Option<&T> {
@@ -382,26 +362,5 @@ fn exactly_one<T: Ord>(values: &BTreeSet<T>) -> Option<&T> {
         values.first()
     } else {
         None
-    }
-}
-
-fn tier_matches(tier: Tier, known: &KnownDisplay, observed: &ObservedDisplay) -> bool {
-    match tier {
-        Tier::Strong => !known
-            .evidence()
-            .strong_keys()
-            .is_disjoint(observed.evidence().strong_keys()),
-        Tier::RememberedAdapter => !known
-            .evidence()
-            .adapter_keys()
-            .is_disjoint(observed.evidence().adapter_keys()),
-        Tier::ExactGeometryAndScale => {
-            known.facts().full_bounds() == observed.facts().full_bounds()
-                && known.facts().scale() == observed.facts().scale()
-        }
-        Tier::Weak => !known
-            .evidence()
-            .weak_keys()
-            .is_disjoint(observed.evidence().weak_keys()),
     }
 }

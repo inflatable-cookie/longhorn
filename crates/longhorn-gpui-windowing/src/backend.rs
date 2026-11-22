@@ -124,7 +124,10 @@ pub trait GpuiWindowBackend {
     /// Returns whether this host can create new windows.
     fn can_create(&self) -> bool;
 
-    /// Opens a window in its final placement and returns its slot.
+    /// Opens a window in its final placement and returns its fresh native slot.
+    ///
+    /// The slot must uniquely identify this creation among live windows so
+    /// the adapter can close it if registry admission fails.
     fn create(
         &mut self,
         window_id: &WindowId,

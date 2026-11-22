@@ -1,35 +1,42 @@
-use std::sync::Arc;
+use std::{error::Error, fmt, sync::Arc};
 
 use longhorn_core::{
-    PhysicalPoint, PhysicalRect, PhysicalSize, RoundingMode, ScaleFactor, ScreenPoint, ScreenRect,
-    ScreenSize, WindowId, WindowPlacement,
+    PhysicalPoint, PhysicalRect, PhysicalSize, RoundingMode, ScaleFactor, ScreenPoint, ScreenSize,
+    WindowId, WindowPlacement,
 };
-use tauri::{Runtime, WebviewWindow};
-
-use super::{
+use longhorn_windowing::{
     CapturedDisplayAssociation, CapturedDisplayEvidence, CapturedWindowPlacement,
-    WindowCaptureBackend,
 };
-use crate::scale_factor_from_tauri;
+use tauri::{Runtime, WebviewWindow, WindowEvent};
 
-/// Maps native event/capture geometry into the declared global screen plane.
-pub trait WindowGeometryMapper: Send + Sync {
-    /// Maps one outer-frame physical origin.
+use super::WindowCaptureBackend;
+use crate::{
+    DefaultDisplayMetadata, DesktopCoordinateMapper, DesktopMappingError, HostProbeOperation,
+    LogicalLayoutMapper, ManagedWebviewWindow, MappedDesktopGeometry, PhysicalDesktopSnapshot,
+    PhysicalLiveWindowObservation, PlatformDesktopMapper, ProbeTarget, TauriProbeError,
+    mapping::{ensure_mapper_platform, map_desktop_by_scale},
+    probe::{host_result, monitor_facts, probe_displays},
+    probe_managed_windows,
+};
+
+/// Point and size conversion primitives for scale-based desktop mappers.
+pub trait WindowGeometryMapper: DesktopCoordinateMapper {
+    /// Maps one physical outer-frame origin.
     fn map_outer_origin(
         &self,
         origin: PhysicalPoint,
         window_scale: ScaleFactor,
-    ) -> Result<ScreenPoint, String>;
+    ) -> Result<ScreenPoint, DesktopMappingError>;
 
-    /// Maps one inner-content physical size.
+    /// Maps one physical inner-content size.
     fn map_inner_size(
         &self,
         size: PhysicalSize,
         window_scale: ScaleFactor,
-    ) -> Result<ScreenSize, String>;
+    ) -> Result<ScreenSize, DesktopMappingError>;
 }
 
-/// Mapper for a desktop whose one global scale was established by the caller.
+/// Scale-based mapper for a test or a host with an explicitly established plane.
 #[derive(Clone, Copy, Debug)]
 pub struct UniformWindowGeometryMapper {
     scale: ScaleFactor,
@@ -43,12 +50,18 @@ impl UniformWindowGeometryMapper {
     }
 
     /// Declares an exact 1× physical/logical desktop.
-    ///
-    /// This is not a generic Tauri default. Tauri capture values are physical,
-    /// so using this on a scaled display doubles persisted logical geometry.
     #[must_use]
     pub fn identity_scale() -> Self {
         Self::new(ScaleFactor::from_thousandths(1_000).expect("identity scale is valid"))
+    }
+}
+
+impl DesktopCoordinateMapper for UniformWindowGeometryMapper {
+    fn map_desktop(
+        &self,
+        snapshot: &PhysicalDesktopSnapshot,
+    ) -> Result<MappedDesktopGeometry, DesktopMappingError> {
+        map_desktop_by_scale(snapshot, |_| self.scale)
     }
 }
 
@@ -57,64 +70,138 @@ impl WindowGeometryMapper for UniformWindowGeometryMapper {
         &self,
         origin: PhysicalPoint,
         _window_scale: ScaleFactor,
-    ) -> Result<ScreenPoint, String> {
-        self.scale
-            .physical_point_to_screen(origin, RoundingMode::Nearest)
-            .map_err(|error| error.to_string())
+    ) -> Result<ScreenPoint, DesktopMappingError> {
+        Ok(self
+            .scale
+            .physical_point_to_screen(origin, RoundingMode::Nearest)?)
     }
 
     fn map_inner_size(
         &self,
         size: PhysicalSize,
         _window_scale: ScaleFactor,
-    ) -> Result<ScreenSize, String> {
-        self.scale
-            .physical_size_to_screen(size, RoundingMode::Nearest)
-            .map_err(|error| error.to_string())
+    ) -> Result<ScreenSize, DesktopMappingError> {
+        Ok(self
+            .scale
+            .physical_size_to_screen(size, RoundingMode::Nearest)?)
     }
 }
 
-/// Mapper using the live Tauri window or monitor scale for each conversion.
-///
-/// This keeps captured sizes correct as a window crosses displays with
-/// different scale factors. Global origins are correct only on platforms where
-/// dividing Tauri's physical origin by the current scale establishes one
-/// coherent logical desktop plane. Otherwise inject a platform mapper.
+/// Scale-based projection for hosts whose native facts derive from logical layout.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowScaleGeometryMapper;
+
+impl DesktopCoordinateMapper for WindowScaleGeometryMapper {
+    fn supports_current_platform(&self) -> bool {
+        LogicalLayoutMapper.supports_current_platform()
+    }
+
+    fn map_desktop(
+        &self,
+        snapshot: &PhysicalDesktopSnapshot,
+    ) -> Result<MappedDesktopGeometry, DesktopMappingError> {
+        LogicalLayoutMapper.map_desktop(snapshot)
+    }
+}
 
 impl WindowGeometryMapper for WindowScaleGeometryMapper {
     fn map_outer_origin(
         &self,
         origin: PhysicalPoint,
         window_scale: ScaleFactor,
-    ) -> Result<ScreenPoint, String> {
-        window_scale
-            .physical_point_to_screen(origin, RoundingMode::Nearest)
-            .map_err(|error| error.to_string())
+    ) -> Result<ScreenPoint, DesktopMappingError> {
+        Ok(window_scale.physical_point_to_screen(origin, RoundingMode::Nearest)?)
     }
 
     fn map_inner_size(
         &self,
         size: PhysicalSize,
         window_scale: ScaleFactor,
-    ) -> Result<ScreenSize, String> {
-        window_scale
-            .physical_size_to_screen(size, RoundingMode::Nearest)
-            .map_err(|error| error.to_string())
+    ) -> Result<ScreenSize, DesktopMappingError> {
+        Ok(window_scale.physical_size_to_screen(size, RoundingMode::Nearest)?)
     }
 }
 
-/// Direct complete Tauri capture using an injected global-plane mapper.
+/// Failure to produce a complete durable placement proposal.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TauriWindowCaptureError {
+    /// Native window or monitor facts were unavailable.
+    Probe(TauriProbeError),
+    /// The desktop coordinate plane could not be mapped.
+    Mapping(DesktopMappingError),
+    /// A maximized window had no known normal bounds.
+    MissingNormalPlacement,
+    /// An injected capture backend rejected the request.
+    Provider {
+        /// Backend diagnostic.
+        detail: String,
+    },
+}
+
+impl fmt::Display for TauriWindowCaptureError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Probe(error) => error.fmt(formatter),
+            Self::Mapping(error) => error.fmt(formatter),
+            Self::MissingNormalPlacement => {
+                formatter.write_str("maximized capture has no retained normal placement")
+            }
+            Self::Provider { detail } => formatter.write_str(detail),
+        }
+    }
+}
+
+impl Error for TauriWindowCaptureError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Probe(source) => Some(source),
+            Self::Mapping(source) => Some(source),
+            _ => None,
+        }
+    }
+}
+
+impl From<TauriProbeError> for TauriWindowCaptureError {
+    fn from(error: TauriProbeError) -> Self {
+        Self::Probe(error)
+    }
+}
+
+impl From<DesktopMappingError> for TauriWindowCaptureError {
+    fn from(error: DesktopMappingError) -> Self {
+        Self::Mapping(error)
+    }
+}
+
+/// Complete native capture in the same coordinate plane as desktop observation.
 pub struct TauriWindowCaptureBackend {
-    mapper: Arc<dyn WindowGeometryMapper>,
+    mapper: Arc<dyn DesktopCoordinateMapper + Send + Sync>,
 }
 
 impl TauriWindowCaptureBackend {
-    /// Constructs capture with explicit global coordinate authority.
+    /// Uses the platform desktop mapper for capture.
     #[must_use]
-    pub fn new(mapper: Arc<dyn WindowGeometryMapper>) -> Self {
-        Self { mapper }
+    pub fn new() -> Self {
+        Self {
+            mapper: Arc::new(PlatformDesktopMapper::default()),
+        }
+    }
+
+    /// Uses a nominated desktop mapper for a test or an undescribed host.
+    ///
+    /// # Errors
+    /// The mapper must describe the current host.
+    pub fn with_mapper(
+        mapper: Arc<dyn DesktopCoordinateMapper + Send + Sync>,
+    ) -> Result<Self, DesktopMappingError> {
+        ensure_mapper_platform(mapper.as_ref())?;
+        Ok(Self { mapper })
+    }
+}
+
+impl Default for TauriWindowCaptureBackend {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -124,89 +211,118 @@ impl<R: Runtime> WindowCaptureBackend<R> for TauriWindowCaptureBackend {
         window_id: &WindowId,
         window: &WebviewWindow<R>,
         retained_normal: Option<WindowPlacement>,
-    ) -> Result<CapturedWindowPlacement, String> {
-        let scale = scale_factor_from_tauri(
-            window
-                .scale_factor()
-                .map_err(|error| format!("window scale probe failed: {error}"))?,
-        )
-        .map_err(|error| error.to_string())?;
-        let maximized = window
-            .is_maximized()
-            .map_err(|error| format!("maximized probe failed: {error}"))?;
-        let normal_placement = if maximized {
-            retained_normal
-                .ok_or_else(|| "maximized capture has no retained normal placement".to_string())?
+    ) -> Result<CapturedWindowPlacement, TauriWindowCaptureError> {
+        let (snapshot, mapped) =
+            map_lifecycle_window(window_id, window, None, self.mapper.as_ref())?;
+        let raw = snapshot
+            .windows()
+            .first()
+            .ok_or(DesktopMappingError::MissingLifecycleGeometry)?;
+        let geometry = mapped
+            .windows()
+            .iter()
+            .find(|geometry| geometry.transport_handle() == raw.transport_handle())
+            .ok_or(DesktopMappingError::MissingLifecycleGeometry)?;
+        let normal_placement = if raw.is_maximized() {
+            retained_normal.ok_or(TauriWindowCaptureError::MissingNormalPlacement)?
         } else {
-            let position = window
-                .outer_position()
-                .map_err(|error| format!("outer position probe failed: {error}"))?;
-            let size = window
-                .inner_size()
-                .map_err(|error| format!("inner size probe failed: {error}"))?;
-            WindowPlacement::new(
-                self.mapper
-                    .map_outer_origin(PhysicalPoint::new(position.x, position.y), scale)?,
-                self.mapper
-                    .map_inner_size(PhysicalSize::new(size.width, size.height), scale)?,
-            )
+            WindowPlacement::new(geometry.outer_bounds().origin(), geometry.inner_size())
         };
 
-        let display = match window
-            .current_monitor()
-            .map_err(|error| format!("current monitor probe failed: {error}"))?
-        {
-            Some(monitor) => {
-                let monitor_scale = scale_factor_from_tauri(monitor.scale_factor())
-                    .map_err(|error| format!("current monitor scale is invalid: {error}"))?;
-                let position = monitor.position();
-                let size = monitor.size();
-                let work = monitor.work_area();
-                let logical_full_bounds = ScreenRect::new(
-                    self.mapper.map_outer_origin(
-                        PhysicalPoint::new(position.x, position.y),
-                        monitor_scale,
-                    )?,
-                    self.mapper.map_inner_size(
-                        PhysicalSize::new(size.width, size.height),
-                        monitor_scale,
-                    )?,
-                );
-                let logical_work_area = ScreenRect::new(
-                    self.mapper.map_outer_origin(
-                        PhysicalPoint::new(work.position.x, work.position.y),
-                        monitor_scale,
-                    )?,
-                    self.mapper.map_inner_size(
-                        PhysicalSize::new(work.size.width, work.size.height),
-                        monitor_scale,
-                    )?,
-                );
-                CapturedDisplayAssociation::Observed {
-                    evidence: CapturedDisplayEvidence::new(
-                        monitor.name().cloned(),
-                        PhysicalRect::new(
-                            PhysicalPoint::new(position.x, position.y),
-                            PhysicalSize::new(size.width, size.height),
-                        ),
-                        PhysicalRect::new(
-                            PhysicalPoint::new(work.position.x, work.position.y),
-                            PhysicalSize::new(work.size.width, work.size.height),
-                        ),
-                        monitor_scale,
-                        logical_full_bounds,
-                        logical_work_area,
-                    ),
-                }
+        let monitor = host_result(
+            window.current_monitor(),
+            HostProbeOperation::CurrentMonitor,
+            Some(raw.transport_handle()),
+        )?;
+        let display = if let Some(monitor) = monitor {
+            let facts = monitor_facts(
+                &monitor,
+                ProbeTarget::Window(raw.transport_handle().clone()),
+            )?;
+            let raw_display = snapshot
+                .displays()
+                .iter()
+                .find(|display| {
+                    let observed = display.facts();
+                    observed.machine_label() == facts.machine_label()
+                        && observed.full_bounds() == facts.full_bounds()
+                        && observed.scale() == facts.scale()
+                })
+                .ok_or(DesktopMappingError::MissingLifecycleGeometry)?;
+            let display = mapped
+                .displays()
+                .iter()
+                .find(|display| display.observation_id() == raw_display.metadata().observation_id())
+                .ok_or(DesktopMappingError::MissingLifecycleGeometry)?;
+            CapturedDisplayAssociation::Observed {
+                evidence: CapturedDisplayEvidence::new(
+                    raw_display.facts().machine_label().cloned(),
+                    raw_display.facts().full_bounds(),
+                    raw_display.facts().work_area(),
+                    raw_display.facts().scale(),
+                    display.full_bounds(),
+                    display.work_area(),
+                ),
             }
-            None => CapturedDisplayAssociation::Unresolved,
+        } else {
+            CapturedDisplayAssociation::Unresolved
         };
 
         Ok(CapturedWindowPlacement::new(
             window_id.clone(),
             normal_placement,
-            maximized,
+            raw.is_maximized(),
             display,
         ))
     }
+}
+
+pub(super) fn map_lifecycle_window<R: Runtime>(
+    window_id: &WindowId,
+    window: &WebviewWindow<R>,
+    event: Option<&WindowEvent>,
+    mapper: &(impl DesktopCoordinateMapper + ?Sized),
+) -> Result<(PhysicalDesktopSnapshot, MappedDesktopGeometry), TauriWindowCaptureError> {
+    ensure_mapper_platform(mapper)?;
+    let displays = probe_displays(
+        window.available_monitors(),
+        || window.primary_monitor(),
+        &mut DefaultDisplayMetadata,
+    )?;
+    let mut windows = probe_managed_windows(&[ManagedWebviewWindow::new(
+        Some(window_id.clone()),
+        window.clone(),
+    )])?;
+    let raw = windows
+        .first_mut()
+        .ok_or(DesktopMappingError::MissingLifecycleGeometry)?;
+    let geometry = match event {
+        Some(WindowEvent::Moved(position)) => Some((
+            PhysicalRect::new(
+                PhysicalPoint::new(position.x, position.y),
+                raw.outer_bounds().size(),
+            ),
+            raw.inner_size(),
+        )),
+        Some(WindowEvent::Resized(size)) => Some((
+            raw.outer_bounds(),
+            PhysicalSize::new(size.width, size.height),
+        )),
+        _ => None,
+    };
+    if let Some((bounds, size)) = geometry {
+        *raw = PhysicalLiveWindowObservation::new(
+            Some(window_id.clone()),
+            raw.transport_handle().clone(),
+            bounds,
+            size,
+            raw.scale(),
+            raw.is_maximized(),
+            raw.is_visible(),
+            raw.is_focused(),
+        );
+    }
+    let snapshot = PhysicalDesktopSnapshot::new(displays, windows);
+    let mapped = mapper.map_desktop(&snapshot)?;
+    Ok((snapshot, mapped))
 }

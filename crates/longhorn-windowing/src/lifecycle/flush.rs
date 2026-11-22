@@ -101,6 +101,22 @@ impl WindowFlushRequest {
         }
     }
 
+    /// Builds one bounded aggregate from the windows ready to flush at shutdown.
+    #[must_use]
+    pub fn for_shutdown(
+        mut targets: Vec<WindowFlushTarget>,
+        timeout: WindowLifecycleDuration,
+    ) -> Option<Self> {
+        targets.sort_by(|left, right| {
+            left.window_id
+                .cmp(&right.window_id)
+                .then(left.generation.cmp(&right.generation))
+        });
+        targets.dedup();
+        (!targets.is_empty())
+            .then(|| Self::new(targets, timeout, WindowFlushScope::ApplicationShutdown))
+    }
+
     /// Returns stable sorted flush targets.
     #[must_use]
     pub fn targets(&self) -> &[WindowFlushTarget] {

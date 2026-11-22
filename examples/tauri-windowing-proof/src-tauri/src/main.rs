@@ -20,19 +20,19 @@ use longhorn_display::{
     DisplayIdAllocator, KnownDisplayRegistry, ObservedDisplay, reconcile_displays,
 };
 use longhorn_tauri_windowing::{
-    ApplyConvergence, ApplyReadback, CapturedDisplayAssociation, CapturedWindowPlacement,
-    DefaultDisplayMetadata, ManagedWebviewWindow, PredeclaredTauriWindow, ProcessMonotonicClock,
-    ScheduledWindowLifecycleWake, TauriDesktopReadback, TauriWindowCaptureBackend, TauriWindowHost,
+    ApplyConvergence, ApplyReadback, DefaultDisplayMetadata, ManagedWebviewWindow,
+    PredeclaredTauriWindow, TauriDesktopReadback, TauriWindowCaptureBackend, TauriWindowHost,
     TauriWindowLifecycleServices, TauriWindowMutationBackend, TauriWindowRevealBackend,
-    UniformWindowGeometryMapper, WindowFlushRequest, WindowLifecycleClock, WindowLifecycleReport,
-    WindowLifecycleScheduler, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
-    WindowPlacementSink, WindowRevealReceipt, WindowShutdownReceipt, WindowUserCloseHandler,
-    assemble_tauri_window_host, observe_tauri_desktop, scale_factor_from_tauri,
+    WindowLifecycleReport, WindowLifecycleScheduler, WindowRevealReceipt, WindowShutdownReceipt,
+    assemble_tauri_window_host, observe_tauri_desktop,
 };
 use longhorn_windowing::{
-    ApplyGeneration, DesiredWindow, HostWindowHandle, PlacementPolicy, ProtectedPrimaryPolicy,
-    WindowDiffInput, WindowLifecycleDuration, WindowLifecycleEvent, WindowLifecyclePolicy,
-    WindowPlacementConfig, WindowPlacementResolution, WindowRole, resolve_window_placement,
+    ApplyGeneration, CapturedDisplayAssociation, CapturedWindowPlacement, DesiredWindow,
+    HostWindowHandle, PlacementPolicy, ProcessMonotonicClock, ProtectedPrimaryPolicy,
+    ScheduledWindowLifecycleWake, WindowDiffInput, WindowFlushRequest, WindowLifecycleClock,
+    WindowLifecycleDuration, WindowLifecycleEvent, WindowLifecyclePolicy, WindowPlacementConfig,
+    WindowPlacementFlushCompletion, WindowPlacementFlushTicket, WindowPlacementResolution,
+    WindowPlacementSink, WindowRole, WindowUserCloseHandler, resolve_window_placement,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -882,9 +882,7 @@ fn setup(app: &mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> {
     let main = app
         .get_webview_window(MAIN_LABEL)
         .ok_or("predeclared main window is missing")?;
-    let scale = scale_factor_from_tauri(main.scale_factor()?)?;
-    let mapper = Arc::new(UniformWindowGeometryMapper::new(scale));
-    let capture = Arc::new(TauriWindowCaptureBackend::new(mapper.clone()));
+    let capture = Arc::new(TauriWindowCaptureBackend::new());
     let clock = Arc::new(ProcessMonotonicClock::new());
     let scheduler = Arc::new(ProofScheduler::new(
         app_handle.clone(),
@@ -898,13 +896,13 @@ fn setup(app: &mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> {
         let _ = reporter_log.record("lifecycle_report", detail);
     });
     let close_log = log.clone();
-    let close_handler: Arc<dyn WindowUserCloseHandler> = Arc::new(move |id: &WindowId| {
-        close_log.record("user_close_reported", json!({"window_id": id}))
-    });
+    let close_handler: Arc<dyn WindowUserCloseHandler + Send + Sync> =
+        Arc::new(move |id: &WindowId| {
+            close_log.record("user_close_reported", json!({"window_id": id}))
+        });
     let services = TauriWindowLifecycleServices::new(
         clock,
         scheduler.clone(),
-        mapper,
         capture,
         sink.clone(),
         close_handler,

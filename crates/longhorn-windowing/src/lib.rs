@@ -1,5 +1,6 @@
 //! Pure window placement, settled-state proposals, and desired/live diff planning.
 
+mod apply;
 mod config;
 mod diff;
 mod lifecycle;
@@ -8,6 +9,10 @@ mod resolution;
 mod restore;
 mod settled;
 
+pub use apply::{
+    RejectedWindow, WindowApplyHost, WindowApplyReadback, WindowApplyResult, WindowApplyRun,
+    accept_created_window, apply_window_diff,
+};
 pub use config::{PlacementPolicy, WindowPlacementConfig, WindowRole};
 pub use diff::{
     ApplyFeedbackEvidence, ApplyGeneration, DeferredSettlement, DesiredWindow, FocusPolicy,
@@ -18,11 +23,12 @@ pub use diff::{
 pub use lifecycle::{
     ApplyRegistrationOutcome, CaptureGeneration, CaptureReason, CapturedDisplayAssociation,
     CapturedDisplayEvidence, CapturedWindowPlacement, FlushReason, IgnoreReason, MonotonicMillis,
-    ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest, WindowFlushScope,
-    WindowFlushTarget, WindowLifecycleCoordinator, WindowLifecycleDirective,
+    NoopWindowUserCloseHandler, ProcessMonotonicClock, ScheduledWindowLifecycleWake,
+    WindowFlushOutcome, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
+    WindowLifecycleClock, WindowLifecycleCoordinator, WindowLifecycleDirective,
     WindowLifecycleDuration, WindowLifecycleError, WindowLifecycleEvent, WindowLifecycleEventKind,
     WindowLifecyclePolicy, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
-    WindowPlacementSink,
+    WindowPlacementSink, WindowUserCloseHandler, flush_window_placements,
 };
 pub use outcome::{
     PlacementReason, PlacementResolutionError, ResolvedWindowPlacement, UnavailablePlacementReason,

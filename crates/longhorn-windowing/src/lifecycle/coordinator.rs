@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::Entry};
 
 use longhorn_core::WindowId;
 
 use super::{
-    ApplyExpectation, ApplyGeneration, ApplyRegistrationOutcome, ExpectedEffect, FlushReason,
-    IgnoreReason, MonotonicMillis, WindowLifecycleDirective, WindowLifecycleError,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation, WindowState, handle_event,
+    ApplyExpectation, ApplyGeneration, ApplyRegistrationOutcome, ExpectedEffect, IgnoreReason,
+    MonotonicMillis, WindowLifecycleDirective, WindowLifecycleError, WindowLifecycleEvent,
+    WindowLifecycleEventKind, WindowLifecyclePolicy, WindowOperation, WindowState, handle_event,
     ignore,
 };
 
@@ -80,44 +80,37 @@ impl WindowLifecycleCoordinator {
     ) -> Result<Vec<WindowLifecycleDirective>, WindowLifecycleError> {
         let window_id = event.window_id().clone();
 
-        // Destruction is terminal native evidence. It must release state even
-        // when callback delivery is reordered behind a newer timestamp.
-        if matches!(event, WindowLifecycleEvent::Destroyed { .. }) {
-            let generation = self
-                .windows
-                .remove(&window_id)
-                .and_then(|state| state.pending.map(|pending| pending.generation));
-            return Ok(vec![
-                WindowLifecycleDirective::Flush {
-                    window_id: window_id.clone(),
-                    generation,
-                    timeout: self.policy.flush_timeout(),
-                    reason: FlushReason::Destroy,
-                },
-                WindowLifecycleDirective::Forget { window_id },
-            ]);
+        // Terminal native evidence can arrive behind a newer timestamp.
+        if event.kind() == WindowLifecycleEventKind::Destroyed {
+            let mut state = self.windows.remove(&window_id).unwrap_or_default();
+            return handle_event(self.policy, &mut state, at, window_id, event);
         }
 
-        if let Some(latest) = self
-            .windows
-            .get(&window_id)
-            .and_then(|state| state.last_input_at)
-            && at < latest
-        {
-            return Ok(vec![ignore(
-                window_id,
-                IgnoreReason::StaleTimestamp { latest },
-            )]);
+        match self.windows.entry(window_id.clone()) {
+            Entry::Occupied(mut entry) => {
+                let state = entry.get_mut();
+                if let Some(latest) = state.last_input_at
+                    && at < latest
+                {
+                    return Ok(vec![ignore(
+                        window_id,
+                        IgnoreReason::StaleTimestamp { latest },
+                    )]);
+                }
+                let directives = handle_event(self.policy, state, at, window_id, event)?;
+                state.last_input_at = Some(at);
+                Ok(directives)
+            }
+            Entry::Vacant(entry) => {
+                let mut state = WindowState::default();
+                let directives = handle_event(self.policy, &mut state, at, window_id, event)?;
+                if state.pending.is_some() {
+                    state.last_input_at = Some(at);
+                    entry.insert(state);
+                }
+                Ok(directives)
+            }
         }
-
-        let directives = {
-            let state = self.windows.entry(window_id.clone()).or_default();
-            handle_event(self.policy, state, at, window_id.clone(), event)?
-        };
-        if let Some(state) = self.windows.get_mut(&window_id) {
-            state.last_input_at = Some(at);
-        }
-        Ok(directives)
     }
 
     /// Returns whether one logical window currently has coordinator state.
@@ -180,12 +173,5 @@ impl WindowLifecycleCoordinator {
         }
         self.windows.insert(next.clone(), state);
         Ok(directives)
-    }
-
-    /// Releases one window's coordinator state without emitting directives.
-    /// Used by hosts to undo state recreated by an event that lost a race
-    /// with destruction. Returns whether state existed.
-    pub fn release(&mut self, window_id: &WindowId) -> bool {
-        self.windows.remove(window_id).is_some()
     }
 }

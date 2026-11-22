@@ -30,6 +30,7 @@ pub(crate) trait ManagedWindowRegistration<R: Runtime>: Send + Sync {
 /// Managed native windows, stable-id bookkeeping, and current apply evidence.
 pub struct ManagedWindowRegistry<R: Runtime> {
     windows: BTreeMap<HostWindowHandle, ManagedWebviewWindow<R>>,
+    pub(crate) pending_discards: BTreeMap<WindowId, WebviewWindow<R>>,
     protected_primary: Option<HostWindowHandle>,
     generation: Option<ApplyGeneration>,
     evidence: Vec<ProgrammaticApplyEvidence>,
@@ -74,6 +75,7 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
         }
         Ok(Self {
             windows: by_handle,
+            pending_discards: BTreeMap::new(),
             protected_primary,
             generation: None,
             evidence: Vec::new(),
@@ -235,6 +237,23 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
         Ok(())
     }
 
+    pub(crate) fn check_new_id(
+        &self,
+        window_id: &WindowId,
+    ) -> Result<(), ManagedWindowRegistryError> {
+        if self.pending_discards.contains_key(window_id)
+            || self
+                .windows
+                .values()
+                .any(|managed| managed.window_id() == Some(window_id))
+        {
+            return Err(ManagedWindowRegistryError::DuplicateWindowId(
+                window_id.clone(),
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn insert_created(
         &mut self,
         window_id: WindowId,
@@ -250,13 +269,7 @@ impl<R: Runtime> ManagedWindowRegistry<R> {
         if self.windows.contains_key(&handle) {
             return Err(ManagedWindowRegistryError::DuplicateTransportHandle(handle));
         }
-        if self
-            .windows
-            .values()
-            .any(|managed| managed.window_id() == Some(&window_id))
-        {
-            return Err(ManagedWindowRegistryError::DuplicateWindowId(window_id));
-        }
+        self.check_new_id(&window_id)?;
         self.windows.insert(
             handle.clone(),
             ManagedWebviewWindow::new(Some(window_id.clone()), window.clone()),

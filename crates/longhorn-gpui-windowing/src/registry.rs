@@ -92,6 +92,7 @@ impl GpuiApplyEvidence {
 #[derive(Clone, Debug, Default)]
 pub struct GpuiWindowRegistry {
     windows: BTreeMap<HostWindowHandle, ManagedGpuiWindow>,
+    pub(crate) pending_discards: BTreeMap<WindowId, GpuiWindowKey>,
     protected_primary: Option<HostWindowHandle>,
     generation: Option<ApplyGeneration>,
     evidence: Vec<GpuiApplyEvidence>,
@@ -128,6 +129,7 @@ impl GpuiWindowRegistry {
         }
         Ok(Self {
             windows: by_handle,
+            pending_discards: BTreeMap::new(),
             protected_primary,
             generation: None,
             evidence: Vec::new(),
@@ -245,6 +247,20 @@ impl GpuiWindowRegistry {
         Ok(())
     }
 
+    pub(crate) fn check_new_id(&self, window_id: &WindowId) -> Result<(), GpuiWindowRegistryError> {
+        if self.pending_discards.contains_key(window_id)
+            || self
+                .windows
+                .values()
+                .any(|managed| managed.window_id() == Some(window_id))
+        {
+            return Err(GpuiWindowRegistryError::DuplicateWindowId(
+                window_id.clone(),
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn insert_created(
         &mut self,
         window_id: WindowId,
@@ -254,13 +270,7 @@ impl GpuiWindowRegistry {
         if self.windows.contains_key(&handle) {
             return Err(GpuiWindowRegistryError::DuplicateTransportHandle(handle));
         }
-        if self
-            .windows
-            .values()
-            .any(|managed| managed.window_id() == Some(&window_id))
-        {
-            return Err(GpuiWindowRegistryError::DuplicateWindowId(window_id));
-        }
+        self.check_new_id(&window_id)?;
         self.windows
             .insert(handle.clone(), ManagedGpuiWindow::new(key, Some(window_id)));
         Ok(handle)

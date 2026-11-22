@@ -1,8 +1,8 @@
 use tauri::{AppHandle, Runtime};
 
 use crate::{
-    DesktopCoordinateMapper, DesktopObservation, DisplayMetadataProvider, ManagedWindowRegistry,
-    TauriObservationError,
+    DesktopCoordinateMapper, DesktopMappingError, DesktopObservation, DisplayMetadataProvider,
+    ManagedWindowRegistry, TauriObservationError,
 };
 
 /// Fresh complete desktop observation after native mutation attempts.
@@ -37,17 +37,20 @@ impl<M> TauriDesktopReadback<M, crate::PlatformDesktopMapper> {
     }
 }
 
-impl<M, C> TauriDesktopReadback<M, C> {
+impl<M, C: DesktopCoordinateMapper> TauriDesktopReadback<M, C> {
     /// Constructs a readback through a nominated coordinate mapper.
     ///
     /// [`TauriDesktopReadback::new`] is the ordinary path. Reach for this only
     /// with a reason the platform default does not cover.
-    #[must_use]
-    pub const fn with_mapper(metadata_provider: M, mapper: C) -> Self {
-        Self {
+    ///
+    /// # Errors
+    /// The mapper must describe the current host.
+    pub fn with_mapper(metadata_provider: M, mapper: C) -> Result<Self, DesktopMappingError> {
+        crate::mapping::ensure_mapper_platform(&mapper)?;
+        Ok(Self {
             metadata_provider,
             mapper,
-        }
+        })
     }
 }
 

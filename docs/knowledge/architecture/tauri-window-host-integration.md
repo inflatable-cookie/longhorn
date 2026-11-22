@@ -55,8 +55,9 @@ Use `TauriAsyncWindowLifecycleScheduler` with
 `TauriWindowLifecycleHost::shared` or either assembly helper. Shared
 construction binds a weak wake target after the host exists; consumers do not
 need an `OnceLock` cycle or thread-per-wake policy. Use
-`NoopWindowUserCloseHandler` and `NoopWindowLifecycleReporter` when those
-policies are deliberately empty.
+`longhorn-windowing::NoopWindowUserCloseHandler` and
+`NoopWindowLifecycleReporter` for empty close and reporting policies. Import
+the shared clock, capture records and placement sink from `longhorn-windowing`.
 
 `longhorn-tauri-windowing` stays independent of configuration.
 `longhorn-windowing-config::ConfigWindowPlacementSink` is the optional bridge
@@ -66,55 +67,11 @@ supplies only the projection into its domain value.
 
 ## Geometry Scale
 
-Tauri capture reads physical positions and sizes. Unit scale is not a Tauri
-default. `UniformWindowGeometryMapper::identity_scale` is valid only for an
-established 1× physical/logical desktop. Using it on a 2× display persists
-double-sized logical geometry.
-
-`WindowScaleGeometryMapper` uses the live Tauri window or monitor scale for
-each conversion. It keeps sizes correct when a window crosses differently
-scaled displays. Its global origin is valid only where the platform's physical
-origin divided by current scale forms one coherent logical desktop. Mixed-scale
-global origins otherwise require an injected platform mapper.
-
-`LogicalLayoutMapper` is that mapper for macOS and Linux. It exists because a
-laptop plus an external monitor is an ordinary arrangement that
-`UniformScaleMapper` refuses outright, which stopped a consumer completing
-hidden-window restore before startup could read saved state.
-
-It converts every display and window through its own scale. That works on
-macOS and Linux for one reason: both lay the desktop out in logical units and
-report physical facts as those units times each object's scale, so dividing
-returns the original layout exactly.
-
-Windows does not work that way, and is the case the general prohibition exists
-for. Its virtual desktop is a real physical-pixel plane read from the OS. Put a
-3840x2160 display at 200% beside a 1920x1080 display at 100% and the second
-monitor's physical origin is x=3840; divided by its own scale that stays 3840,
-where a coherent logical layout wants 1920 — a phantom gap between monitors
-that touch. Windows needs a mapper that reads its own layout, and until one
-exists a mixed-scale Windows desktop keeps the typed refusal.
-
-Mappers name the hosts they are valid for rather than selecting a strategy at
-runtime. Longhorn states host differences instead of erasing them.
-
-Longhorn also picks. `PlatformDesktopMapper` resolves at compile time to
-`LogicalLayoutMapper` on macOS and Linux and to `UniformScaleMapper`
-elsewhere, and the consumer-facing entry points take no mapper argument.
-Choosing one was never a product decision — an application has no information
-about the host that Longhorn lacks — and leaving the choice in each
-application meant every app had to know the platform rule, with a silently
-wrong plane as the cost of getting it wrong. `observe_tauri_desktop_with` and
-`TauriDesktopReadback::with_mapper` remain for a test double or a host
-Longhorn does not yet describe.
-
-Restore through `SavedWindowPlacement` and `restore_window_placement`.
-The record carries optional canonical `DisplayId` plus mapped display evidence.
-Resolution tries the saved display, useful intersection, main display, then
-canonical deterministic fallback, and fits size into the selected work area.
-`plan_tauri_window_restore` is the complete adapter entry point: it observes
-current displays, reconciles the persistent `KnownDisplayRegistry`, returns the
-updated reconciliation, and runs pure restore planning.
+Tauri capture, event translation and desktop readback use the platform
+mapper defined in [contract 009](../contracts/009-display-identity-coordinates-and-window-planning.md).
+The default capture backend takes no scale or mapper. The explicit mapper
+entry points support test doubles and hosts with their own coordinate
+description. They reject mappers that do not support the current platform.
 
 ## Simple Host
 

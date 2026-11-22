@@ -95,6 +95,8 @@ pub enum NativeWindowCall {
     Focus,
     /// Request close.
     Close,
+    /// Discard a native window that failed admission.
+    DiscardCreated,
 }
 
 /// Stable category for one failed native operation.

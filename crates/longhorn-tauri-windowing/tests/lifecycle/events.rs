@@ -4,11 +4,13 @@ use longhorn_core::{
     PhysicalPoint, PhysicalSize as LonghornPhysicalSize, ScaleFactor, ScreenPoint, ScreenSize,
 };
 use longhorn_tauri_windowing::{
-    CapturedDisplayAssociation, CapturedWindowPlacement, ProgrammaticApplyObserver,
-    TauriWindowLifecycleAction, UniformWindowGeometryMapper, WindowGeometryMapper,
-    WindowScaleGeometryMapper, translate_tauri_window_event,
+    ProgrammaticApplyObserver, TauriWindowLifecycleAction, UniformWindowGeometryMapper,
+    WindowGeometryMapper, WindowScaleGeometryMapper, translate_tauri_window_event,
 };
-use longhorn_windowing::{ApplyGeneration, WindowLifecycleEvent, WindowOperation};
+use longhorn_windowing::{
+    ApplyGeneration, CapturedDisplayAssociation, CapturedWindowPlacement, WindowLifecycleEvent,
+    WindowOperation,
+};
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindowBuilder, WindowEvent};
 
 use super::support::{FlushMode, TestCapture, TestSink, harness, id, placement};

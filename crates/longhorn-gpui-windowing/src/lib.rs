@@ -36,10 +36,10 @@ pub use error::{
     GpuiWindowLifecycleError, UnobtainableDisplayFact,
 };
 pub use lifecycle::{
-    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleClock, GpuiLifecycleReceipt,
-    GpuiLifecycleScheduler, GpuiUserCloseHandler, GpuiWindowCaptureBackend, GpuiWindowEvent,
-    GpuiWindowLifecycleHost, GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe,
-    NoopGpuiUserCloseHandler, capture_from_gpui_facts, close_is_safe, translate_gpui_window_event,
+    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleReceipt, GpuiLifecycleScheduler,
+    GpuiShutdownReceipt, GpuiWindowCaptureBackend, GpuiWindowEvent, GpuiWindowLifecycleHost,
+    GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe, capture_from_gpui_facts, close_is_safe,
+    translate_gpui_window_event,
 };
 pub use model::{
     GpuiDisplayFacts, GpuiGeometryError, GpuiLogicalRect, GpuiLogicalSize, GpuiWindowBoundsState,

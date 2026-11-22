@@ -2,13 +2,10 @@
 
 use longhorn_core::WindowId;
 use longhorn_windowing::{
-    ApplyGeneration, CaptureGeneration, CaptureReason, IgnoreReason, WindowLifecycleEventKind,
+    ApplyGeneration, CaptureGeneration, CaptureReason, CapturedWindowPlacement, IgnoreReason,
+    ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest, WindowLifecycleEventKind,
 };
 use serde::{Deserialize, Serialize};
-
-use super::{
-    CapturedWindowPlacement, ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest,
-};
 
 /// One executed adapter action.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

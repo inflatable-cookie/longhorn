@@ -1,11 +1,13 @@
 //! Wake and programmatic-apply observer adapters.
 
-use longhorn_windowing::{ApplyGeneration, ApplyRegistrationOutcome, WindowOperation};
+use longhorn_windowing::{
+    ApplyGeneration, ApplyRegistrationOutcome, ScheduledWindowLifecycleWake, WindowOperation,
+};
 use tauri::Runtime;
 
 use crate::lifecycle::{
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriWindowLifecycleError,
-    WindowLifecycleReport, WindowLifecycleWakeHandler,
+    ProgrammaticApplyObserver, TauriWindowLifecycleError, WindowLifecycleReport,
+    WindowLifecycleWakeHandler,
 };
 
 use super::TauriWindowLifecycleHost;

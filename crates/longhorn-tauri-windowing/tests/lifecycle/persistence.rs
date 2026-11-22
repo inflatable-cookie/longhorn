@@ -1,9 +1,8 @@
+use longhorn_windowing::{CapturedDisplayAssociation, WindowFlushOutcome};
 use std::sync::Arc;
 
-use longhorn_core::ScaleFactor;
 use longhorn_tauri_windowing::{
-    CapturedDisplayAssociation, TauriWindowCaptureBackend, TauriWindowLifecycleAction,
-    UniformWindowGeometryMapper, WindowCaptureBackend, WindowFlushOutcome,
+    TauriWindowCaptureBackend, TauriWindowLifecycleAction, WindowCaptureBackend,
 };
 use longhorn_windowing::WindowLifecycleEvent;
 use tauri::WebviewWindowBuilder;
@@ -105,9 +104,7 @@ fn timeout_disconnect_and_unresolved_direct_capture_are_explicit() {
     let window = WebviewWindowBuilder::new(&app, "direct-capture", Default::default())
         .build()
         .unwrap();
-    let capture = TauriWindowCaptureBackend::new(Arc::new(UniformWindowGeometryMapper::new(
-        ScaleFactor::from_thousandths(1000).unwrap(),
-    )));
+    let capture = TauriWindowCaptureBackend::new();
     let captured =
         WindowCaptureBackend::capture(&capture, &id("window:direct"), &window, None).unwrap();
     assert!(matches!(

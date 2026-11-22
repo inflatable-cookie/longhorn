@@ -1,8 +1,8 @@
 use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{ApplyGeneration, WindowOperation};
+use longhorn_windowing::{ApplyGeneration, CapturedWindowPlacement, WindowOperation};
 use tauri::{Runtime, WebviewWindow};
 
-use super::super::{CapturedWindowPlacement, WindowLifecycleReport};
+use super::super::WindowLifecycleReport;
 
 /// Complete live capture seam.
 pub trait WindowCaptureBackend<R: Runtime>: Send + Sync {
@@ -12,32 +12,7 @@ pub trait WindowCaptureBackend<R: Runtime>: Send + Sync {
         window_id: &WindowId,
         window: &WebviewWindow<R>,
         retained_normal: Option<WindowPlacement>,
-    ) -> Result<CapturedWindowPlacement, String>;
-}
-
-/// Consumer-owned user-close policy callback.
-pub trait WindowUserCloseHandler: Send + Sync {
-    /// Receives user close without inferred desired-state mutation.
-    fn user_close(&self, window_id: &WindowId) -> Result<(), String>;
-}
-
-/// Explicit no-op user-close policy.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct NoopWindowUserCloseHandler;
-
-impl WindowUserCloseHandler for NoopWindowUserCloseHandler {
-    fn user_close(&self, _window_id: &WindowId) -> Result<(), String> {
-        Ok(())
-    }
-}
-
-impl<F> WindowUserCloseHandler for F
-where
-    F: Fn(&WindowId) -> Result<(), String> + Send + Sync,
-{
-    fn user_close(&self, window_id: &WindowId) -> Result<(), String> {
-        self(window_id)
-    }
+    ) -> Result<CapturedWindowPlacement, super::super::TauriWindowCaptureError>;
 }
 
 /// Async listener receipt observer.

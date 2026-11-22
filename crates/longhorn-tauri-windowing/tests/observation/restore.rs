@@ -6,13 +6,11 @@ use longhorn_display::{
     DisplayBuiltinStatus, DisplayEvidence, DisplayFacts, DisplayIdAllocator, KnownDisplayRegistry,
     ObservationId, ObservedDisplay,
 };
-use longhorn_tauri_windowing::{
-    CapturedDisplayAssociation, CapturedDisplayEvidence, CapturedWindowPlacement,
-    DesktopObservation, plan_window_restore_from_observation,
-};
+use longhorn_tauri_windowing::{DesktopObservation, plan_window_restore_from_observation};
 use longhorn_windowing::{
-    PlacementPolicy, PlacementReason, SavedDisplayAssociation, SavedDisplayEvidence,
-    SavedWindowPlacement, WindowPlacementResolution, WindowRole,
+    CapturedDisplayAssociation, CapturedDisplayEvidence, CapturedWindowPlacement, PlacementPolicy,
+    PlacementReason, SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
+    WindowPlacementResolution, WindowRole,
 };
 
 struct ObservationAllocator;

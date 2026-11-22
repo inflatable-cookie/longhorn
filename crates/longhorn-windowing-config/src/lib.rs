@@ -1,10 +1,5 @@
 //! Configuration-backed persistence for captured window placements.
 //!
-//! Host-neutral, despite what this comment used to say. The crate takes
-//! `longhorn-config` and `longhorn-windowing` and no host adapter, so a GPUI
-//! application uses it unchanged — which the composition example does. The
-//! word "Tauri" here was a leftover from when there was only one host.
-//!
 //! Consumers retain authority over their domain schema. This crate owns the
 //! repeated stage, coalesce, coordinated mutation, and synchronous flush
 //! mechanics behind `WindowPlacementSink`.
@@ -37,6 +32,7 @@ where
     domain: D,
     mutation_options: MutationOptions,
     patch: Box<PlacementPatch<D>>,
+    flush: Mutex<()>,
     staged: Mutex<BTreeMap<WindowId, CapturedWindowPlacement>>,
 }
 
@@ -63,6 +59,7 @@ where
             domain,
             mutation_options,
             patch: Box::new(patch),
+            flush: Mutex::new(()),
             staged: Mutex::new(BTreeMap::new()),
         })
     }
@@ -89,7 +86,7 @@ where
         let mut catalog = BackupCatalog::new();
         catalog
             .include(&self.domain)
-            .expect("a new backup catalog accepts one registered domain");
+            .map_err(|error| MigrationRewriteError::Preparation(error.to_string()))?;
         self.store
             .rewrite_migrated_domain(&catalog, &self.domain, options)
     }
@@ -150,6 +147,11 @@ where
         &self,
         request: &WindowFlushRequest,
     ) -> Result<WindowPlacementFlushTicket, String> {
+        // A waiting flush must take its snapshot after the previous publication.
+        let _flush = self
+            .flush
+            .lock()
+            .map_err(|_| "window placement flush lock is poisoned".to_string())?;
         let placements = self.staged_for(request)?;
         if placements.is_empty() {
             return Ok(WindowPlacementFlushTicket::completed());

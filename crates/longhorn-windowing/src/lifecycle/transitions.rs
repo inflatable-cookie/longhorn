@@ -60,7 +60,15 @@ pub(super) fn handle_event(
             FlushReason::Explicit,
             CaptureReason::Flush,
         )),
-        WindowLifecycleEvent::Destroyed { .. } => unreachable!(),
+        WindowLifecycleEvent::Destroyed { .. } => Ok(vec![
+            WindowLifecycleDirective::Flush {
+                window_id: window_id.clone(),
+                generation: state.pending.as_ref().map(|pending| pending.generation),
+                timeout: policy.flush_timeout(),
+                reason: FlushReason::Destroy,
+            },
+            WindowLifecycleDirective::Forget { window_id },
+        ]),
     }
 }
 
