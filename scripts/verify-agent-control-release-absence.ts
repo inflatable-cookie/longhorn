@@ -13,21 +13,19 @@
 //
 // Builds run release-shaped in a private per-feature target directory on
 // external build scratch, so a previous opposite-feature build can never leave
-// a stale artifact for the scan to misread, and so parallel qa lanes never
-// observe a half-switched `target/`. Cargo is invoked inside one `oxide exec`
-// lease per feature state with both Cargo output roots pinned to that private
-// directory (AGENTS.md names this scan as the intentional private-layout
-// exception): the binaries are release-shaped and read out of
-// `<target>/release/deps`, so their intermediates cannot pool with a
-// differently-featured build. The scratch is this run's own and is removed when
-// it finishes. Scanning is byte-level against the rlib files themselves — no
-// external binutils, matching the runner-tools posture that a clean runner has
-// a Rust toolchain and nothing else.
+// a stale final output for the scan to misread, and so parallel qa lanes never
+// observe a half-switched `target/`. Each feature state is one `oxide exec`
+// lease. The archives the scan reads are the paths Cargo reports for that build
+// (`--message-format=json`), not a guessed directory layout. Scanning is
+// byte-level against the rlib files themselves — no external binutils, matching
+// the runner-tools posture that a clean runner has a Rust toolchain and nothing
+// else.
 
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import {
+  libraryArchives,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -117,7 +115,6 @@ async function runExactTest(command: readonly string[], testName: string) {
 async function build(features: FeatureSet): Promise<BuildResult> {
   const args = featureArgs(features);
   const targetDir = join(SCAN_ROOT, features);
-  const depsDir = join(targetDir, "release", "deps");
 
   const tree = await run(
     rustCommand([
@@ -133,26 +130,26 @@ async function build(features: FeatureSet): Promise<BuildResult> {
     ]),
     {},
   );
-  await run(
+  const built = await run(
     rustExec(
-      privateCargoCommand(
-        targetDir,
-        ["cargo", "build", "-p", PLUGIN, "--release", "--locked", "--lib", ...args],
-        { buildDir: true },
-      ),
+      privateCargoCommand(targetDir, [
+        "cargo",
+        "build",
+        "-p",
+        PLUGIN,
+        "--release",
+        "--locked",
+        "--lib",
+        ...args,
+        "--message-format=json",
+      ]),
       { manifestPath: join(repoRoot, "Cargo.toml"), profile: "release" },
     ),
     {},
   );
 
-  const entries = await readdir(depsDir);
-  const coreRlibs = entries.filter(
-    (entry) => entry.startsWith("liblonghorn_agent_control-") && entry.endsWith(".rlib"),
-  );
-  const pluginRlibs = entries.filter(
-    (entry) =>
-      entry.startsWith("liblonghorn_tauri_agent_control-") && entry.endsWith(".rlib"),
-  );
+  const coreRlibs = libraryArchives(built, CORE);
+  const pluginRlibs = libraryArchives(built, PLUGIN);
 
   if (features === "off") {
     if (tree.includes(`${CORE} `) || tree.includes(`${CORE}@`)) {
@@ -184,8 +181,8 @@ async function build(features: FeatureSet): Promise<BuildResult> {
     features,
     targetDir,
     tree,
-    pluginRlib: join(depsDir, pluginRlibs[0]!),
-    coreRlib: coreRlibs.length === 0 ? null : join(depsDir, coreRlibs[0]!),
+    pluginRlib: pluginRlibs[0]!,
+    coreRlib: coreRlibs.length === 0 ? null : coreRlibs[0]!,
   };
 }
 

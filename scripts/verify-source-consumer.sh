@@ -115,8 +115,9 @@ EOF
 } > "$release_consumer_root/src/main.rs"
 
 # Private final Cargo outputs on external build scratch. The helper is the shell
-# counterpart of `taskScratch`: it fails closed on a missing or internal root,
-# creates only its own directory, and keeps runner-owned temp on hosted CI.
+# counterpart of `taskScratch`: it fails closed on a missing root or one on the
+# boot volume, creates only its own directory, and keeps runner-owned temp on
+# hosted CI.
 release_scratch=$(bash scripts/external-scratch.sh longhorn-source-consumer)
 
 # Adoption-free lease preparation: an existing REAL target/ directory opts the

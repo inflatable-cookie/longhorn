@@ -1,14 +1,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  type BootVolume,
+  libraryArchives,
   prepareStagedWorkspace,
   privateCargoCommand,
   rustCommand,
   rustExec,
+  scratchRefusal,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -265,8 +268,8 @@ describe("Rust exec routing", () => {
 
   test("keeps the private output directories inside the lease, not on it", async () => {
     // Oxide replaces a `CARGO_TARGET_DIR` inherited on the outer exec call with
-    // `<workspace>/target`, and the same holds for the scan build directory. The
-    // private directories therefore have to be set by the tool the lease runs.
+    // `<workspace>/target`. The private directory therefore has to be set by the
+    // tool the lease runs.
     const { bin, outer, inner } = await passthroughSandbox();
     const result = await invoke(
       bin,
@@ -280,7 +283,6 @@ describe("Rust exec routing", () => {
         privateHelper,
         "--target",
         "/scratch/final",
-        "--build-dir",
         "--",
         "cargo",
         "run",
@@ -294,10 +296,10 @@ describe("Rust exec routing", () => {
     expect(result.run).toContain("tool=oxide");
     expect(result.run).toContain("env=CARGO_TARGET_DIR=<unset>");
     expect(result.run).toContain("env=CARGO_BUILD_BUILD_DIR=<unset>");
-    // The tool's Cargo child does.
+    // The tool's Cargo child does, and leaves the lease's build directory alone.
     const innerRun = await readFile(inner, "utf8");
     expect(innerRun).toContain("env=CARGO_TARGET_DIR=/scratch/final");
-    expect(innerRun).toContain("env=CARGO_BUILD_BUILD_DIR=/scratch/final");
+    expect(innerRun).toContain("env=CARGO_BUILD_BUILD_DIR=<unset>");
   });
 
   test("pins the toolchain before the lease and hands it to the tool", async () => {
@@ -406,7 +408,7 @@ describe("Private Cargo outputs", () => {
     expect(result.run).toContain("env=CARGO_BUILD_BUILD_DIR=/pool/slot/build");
   });
 
-  test("pins the build directory too for the release-absence scans", async () => {
+  test("no longer pins the build directory, so the retired flag is refused", async () => {
     const { bin, capture } = await sandbox(["cargo"]);
     const result = await invokePrivate(bin, capture, [
       "--target",
@@ -414,14 +416,11 @@ describe("Private Cargo outputs", () => {
       "--build-dir",
       "--",
       "build",
-      "-p",
-      "longhorn-agent-control",
-      "--release",
     ]);
 
-    expect(result.exitCode).toBe(0);
-    expect(result.run).toContain("env=CARGO_TARGET_DIR=/scratch/scan");
-    expect(result.run).toContain("env=CARGO_BUILD_BUILD_DIR=/scratch/scan");
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("unexpected argument --build-dir before --");
+    expect(await readFile(capture, "utf8").catch(() => "")).toBe("");
   });
 
   test("accepts the command with or without its leading cargo", async () => {
@@ -466,33 +465,28 @@ describe("Private Cargo outputs", () => {
 
 describe("Switch point argv", () => {
   test("rustCommand feeds the Cargo form", () => {
-    expect(rustCommand(["tree", "-p", "longhorn-core"])).toEqual([
+    expect(rustCommand(["clippy", "--workspace"])).toEqual([
       "bash",
       helper,
-      "tree",
-      "-p",
-      "longhorn-core",
+      "clippy",
+      "--workspace",
     ]);
-    expect(rustCommand(["package", "--list"], "1.95.0")).toEqual([
+    expect(rustCommand(["check"], "1.95.0")).toEqual([
       "env",
       "RUSTUP_TOOLCHAIN=1.95.0",
       "bash",
       helper,
-      "package",
-      "--list",
+      "check",
     ]);
   });
 
   test("rustExec feeds the exec form", () => {
     expect(
-      rustExec(["cargo", "run", "-p", "proof"], {
+      rustExec(["cargo", "run", "--locked"], {
         manifestPath: "/scratch/staged/Cargo.toml",
         profile: "release",
-        toolchain: "1.95.0",
       }),
     ).toEqual([
-      "env",
-      "RUSTUP_TOOLCHAIN=1.95.0",
       "bash",
       helper,
       "exec",
@@ -503,10 +497,25 @@ describe("Switch point argv", () => {
       "--",
       "cargo",
       "run",
-      "-p",
-      "proof",
+      "--locked",
     ]);
-
+    expect(
+      rustExec(["cargo", "check"], {
+        manifestPath: "/scratch/staged/Cargo.toml",
+        toolchain: "1.95.0",
+      }),
+    ).toEqual([
+      "env",
+      "RUSTUP_TOOLCHAIN=1.95.0",
+      "bash",
+      helper,
+      "exec",
+      "--manifest-path",
+      "/scratch/staged/Cargo.toml",
+      "--",
+      "cargo",
+      "check",
+    ]);
     expect(rustExec(["cargo", "check"], { manifestPath: "/x/Cargo.toml" })).not.toContain(
       "--profile",
     );
@@ -522,25 +531,43 @@ describe("Switch point argv", () => {
       "cargo",
       "run",
     ]);
-    expect(
-      privateCargoCommand("/scratch/scan", ["cargo", "build"], { buildDir: true }),
-    ).toEqual([
-      "bash",
-      privateHelper,
-      "--target",
-      "/scratch/scan",
-      "--build-dir",
-      "--",
-      "cargo",
-      "build",
-    ]);
   });
 });
 
-const externalScratchOwner = process.env.OXIDE_TASK_SCRATCH_ROOT ?? "/Volumes/Builds/scratch";
-const externalScratchAvailable = (await stat(externalScratchOwner).catch(() => null))?.isDirectory() ?? false;
-const bootVolumeTopLevel = (await stat("/usr").catch(() => null))?.isDirectory() ?? false;
-const buildVolumeMountRoot = (await stat("/Volumes/Builds").catch(() => null))?.isDirectory() ?? false;
+describe("Library archive paths from Cargo's JSON", () => {
+  const message = (reason: string, target: object, filenames: string[] = []) =>
+    JSON.stringify({ reason, target, filenames });
+  const lib = (name: string) => ({ name, kind: ["lib"] });
+
+  test("reports the rlib Cargo built for the named package, wherever Cargo put it", () => {
+    const output = [
+      "Compiling longhorn-agent-tool-dispatch v0.1.0",
+      message("compiler-artifact", lib("longhorn_agent_tool_dispatch"), [
+        "/scratch/final/release/liblonghorn_agent_tool_dispatch.rlib",
+        "/scratch/final/release/deps/liblonghorn_agent_tool_dispatch-abc.rmeta",
+      ]),
+      message("compiler-artifact", lib("serde"), ["/scratch/final/release/libserde.rlib"]),
+      message("build-finished", {}),
+    ].join("\n");
+
+    expect(libraryArchives(output, "longhorn-agent-tool-dispatch")).toEqual([
+      "/scratch/final/release/liblonghorn_agent_tool_dispatch.rlib",
+    ]);
+  });
+
+  test("ignores a binary target that shares the name, and a crate that was not built", () => {
+    const output = [
+      message("compiler-artifact", { name: "longhorn_agent_control", kind: ["bin"] }, [
+        "/scratch/final/release/longhorn_agent_control",
+      ]),
+      message("compiler-artifact", lib("longhorn_agent_control_other"), [
+        "/scratch/final/release/liblonghorn_agent_control_other.rlib",
+      ]),
+    ].join("\n");
+
+    expect(libraryArchives(output, "longhorn-agent-control")).toEqual([]);
+  });
+});
 
 describe("Staged workspace preparation", () => {
   async function stagedWorkspace() {
@@ -594,21 +621,234 @@ describe("Staged workspace preparation", () => {
   });
 });
 
+/** The boot volume as this host sees it, and whether this run's TMPDIR is off it. */
+const boot: BootVolume = {
+  devices: await Promise.all(["/", homedir()].map(async (path) => (await stat(path)).dev)),
+  home: await realpath(homedir()),
+};
+const temporaryIsExternal =
+  scratchRefusal({ path: await realpath(tmpdir()), device: (await stat(tmpdir())).dev }, boot) === null;
+
+/** A fresh fixture under this run's temporary directory, removed after its test. */
+async function fixtureDirectory(label: string): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), `${label}-`));
+  temporaryDirectories.push(root);
+  return root;
+}
+
+/**
+ * A directory holding a fake `oxide`. With `report`, `oxide pool describe --json`
+ * prints it; with `null`, that call fails. Every other Oxide call fails too.
+ */
+async function fakeOxide(report: string | null): Promise<string> {
+  const bin = join(await fixtureDirectory("longhorn-fake-oxide"), "bin");
+  await mkdir(bin);
+  const body = report === null ? "exit 1" : `cat <<'JSON'\n${report}\nJSON\nexit 0`;
+  await writeFile(
+    join(bin, "oxide"),
+    `#!/bin/sh\nif [ "$1" = pool ] && [ "$2" = describe ] && [ "$3" = --json ]; then\n${body}\nfi\nexit 1\n`,
+  );
+  await chmod(join(bin, "oxide"), 0o755);
+  return bin;
+}
+
+/** The `oxide pool describe --json` shape, with only the removable pool given. */
+function poolReport(removable: Record<string, unknown>): string {
+  return JSON.stringify({ schema: "oxide.pool.describe/1", selected: "removable", removable });
+}
+
+/** Sets process environment entries for `body` (undefined deletes), then restores them. */
+async function withEnvironment<T>(
+  entries: Record<string, string | undefined>,
+  body: () => Promise<T>,
+): Promise<T> {
+  const previous = Object.fromEntries(Object.keys(entries).map((key) => [key, process.env[key]]));
+  const assign = (values: Record<string, string | undefined>) => {
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  };
+  assign(entries);
+  try {
+    return await body();
+  } finally {
+    assign(previous);
+  }
+}
+
+describe("Scratch refusal rule", () => {
+  const bootFacts: BootVolume = { devices: [1], home: "/Users/builder" };
+
+  test("accepts external scratch, judged by volume and not by TMPDIR", () => {
+    expect(scratchRefusal({ path: "/Volumes/Stash/scratch/nucleus/run", device: 2 }, bootFacts)).toBeNull();
+  });
+
+  test("refuses any path on the boot volume, wherever TMPDIR points", () => {
+    expect(scratchRefusal({ path: "/private/var/folders/tmp", device: 1 }, bootFacts)).toBe(
+      "on the boot volume, the internal drive",
+    );
+  });
+
+  test("refuses the account home and anything below it", () => {
+    expect(scratchRefusal({ path: "/Users/builder", device: 2 }, bootFacts)).toBe("the account home");
+    expect(scratchRefusal({ path: "/Users/builder/scratch", device: 2 }, bootFacts)).toBe("the account home");
+    expect(scratchRefusal({ path: "/Users/builder-scratch", device: 2 }, bootFacts)).toBeNull();
+  });
+
+  test("refuses a drive root, a boot-volume top-level directory and a volume mount root", () => {
+    expect(scratchRefusal({ path: "/", device: 1 }, bootFacts)).toBe("a drive root");
+    expect(scratchRefusal({ path: "/usr", device: 2 }, bootFacts)).toBe("a boot-volume top-level directory");
+    expect(scratchRefusal({ path: "/Volumes/Builds", device: 2 }, bootFacts)).toBe("a volume mount root");
+  });
+});
+
+describe("Task scratch", () => {
+  test("uses runner-owned temporary storage on GitHub Actions", async () => {
+    await withEnvironment({ GITHUB_ACTIONS: "true", OXIDE_TASK_SCRATCH_ROOT: "/nonexistent/scratch" }, async () => {
+      const scratch = await taskScratch("longhorn-ci-proof");
+      expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
+      await scratch.dispose();
+    });
+  });
+
+  test.skipIf(!temporaryIsExternal)(
+    "allocates on the configured root and removes only its own directory",
+    async () => {
+      const owner = await fixtureDirectory("longhorn-configured");
+      await withEnvironment({ GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: owner }, async () => {
+        const scratch = await taskScratch("longhorn-proof");
+        expect(scratch.root.startsWith(join(owner, "longhorn-proof-"))).toBe(true);
+        expect((await stat(scratch.root)).isDirectory()).toBe(true);
+        await scratch.dispose();
+        await expect(stat(scratch.root)).rejects.toThrow();
+        expect((await stat(owner)).isDirectory()).toBe(true);
+      });
+    },
+  );
+
+  test.skipIf(!temporaryIsExternal)(
+    "takes the scratch root Oxide reports for the removable pool, in its longhorn child",
+    async () => {
+      const pool = await fixtureDirectory("longhorn-pool");
+      const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
+      await withEnvironment(
+        { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+        async () => {
+          const scratch = await taskScratch("longhorn-default");
+          expect(scratch.root.startsWith(join(pool, "longhorn", "longhorn-default-"))).toBe(true);
+          await scratch.dispose();
+        },
+      );
+    },
+  );
+
+  test.skipIf(temporaryIsExternal)(
+    "refuses a reported root that is on the boot volume",
+    async () => {
+      const pool = await fixtureDirectory("longhorn-boot-pool");
+      const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
+      await withEnvironment(
+        { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+        async () => {
+          await expect(taskScratch("longhorn-boot")).rejects.toThrow(/is on the boot volume, the internal drive/);
+        },
+      );
+    },
+  );
+
+  test("fails closed when Oxide reports no available removable pool, and names the variable", async () => {
+    const bin = await fakeOxide(poolReport({ available: false, unavailable_reason: "volume absent" }));
+    await withEnvironment(
+      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      async () => {
+        await expect(taskScratch("longhorn-unavailable")).rejects.toThrow(
+          /no available removable build pool \(volume absent\)\. Set OXIDE_TASK_SCRATCH_ROOT/,
+        );
+      },
+    );
+  });
+
+  test("fails closed when Oxide reports no suggested scratch root", async () => {
+    const bin = await fakeOxide(poolReport({ available: true }));
+    await withEnvironment(
+      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      async () => {
+        await expect(taskScratch("longhorn-no-root")).rejects.toThrow(
+          /no suggested scratch root[\s\S]*OXIDE_TASK_SCRATCH_ROOT/,
+        );
+      },
+    );
+  });
+
+  test("fails closed when Oxide cannot be run, and names the variable", async () => {
+    const empty = await fixtureDirectory("longhorn-no-oxide");
+    await withEnvironment(
+      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: empty },
+      async () => {
+        await expect(taskScratch("longhorn-no-oxide")).rejects.toThrow(
+          /cannot run oxide pool describe --json[\s\S]*OXIDE_TASK_SCRATCH_ROOT/,
+        );
+      },
+    );
+  });
+
+  test("fails closed on a reported root that is missing, and never creates it", async () => {
+    const missing = join(await fixtureDirectory("longhorn-missing-pool"), "absent");
+    const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: missing }));
+    await withEnvironment(
+      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      async () => {
+        await expect(taskScratch("longhorn-missing")).rejects.toThrow(
+          /does not exist\. No local build output is created[\s\S]*OXIDE_TASK_SCRATCH_ROOT/,
+        );
+      },
+    );
+    await expect(stat(missing)).rejects.toThrow();
+  });
+
+  test("fails closed on a configured root that is missing, and never creates it", async () => {
+    const missing = join(await fixtureDirectory("longhorn-missing-configured"), "absent");
+    await withEnvironment({ GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: missing }, async () => {
+      await expect(taskScratch("longhorn-missing")).rejects.toThrow(/does not exist\. No local build output is created/);
+    });
+    await expect(stat(missing)).rejects.toThrow();
+  });
+
+  test("refuses the account home and a drive root, configured explicitly", async () => {
+    for (const [value, expected] of [
+      [homedir(), /is the account home/],
+      ["/", /is a drive root/],
+      ["/usr", /is a boot-volume top-level directory/],
+    ] as const) {
+      await withEnvironment({ GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: value }, async () => {
+        await expect(taskScratch("longhorn-refused")).rejects.toThrow(expected);
+      });
+    }
+  });
+});
+
 describe("External scratch helper (shell)", () => {
   const helperPath = fileURLToPath(new URL("./external-scratch.sh", import.meta.url));
-  const externalOwner = process.env.OXIDE_TASK_SCRATCH_ROOT ?? "/Volumes/Builds/scratch";
 
+  /**
+   * Runs the shell route with a PATH that holds only the given fake Oxide
+   * directory, Bun (the route's own TypeScript runner) and the system tools.
+   */
   async function invokeExternalScratch(
     arguments_: readonly string[],
     environment: Record<string, string> = {},
+    oxideBin?: string,
   ) {
+    const path = [oxideBin, dirname(process.execPath), "/usr/bin", "/bin"]
+      .filter((entry): entry is string => entry !== undefined)
+      .join(":");
     const proc = Bun.spawn(["/bin/bash", helperPath, ...arguments_], {
       env: {
-        PATH: `${process.env.PATH ?? "/usr/bin:/bin"}`,
+        PATH: path,
         HOME: process.env.HOME ?? "/tmp",
         TMPDIR: process.env.TMPDIR ?? "",
         GITHUB_ACTIONS: "",
-        EFFIGY_OXIDE_ESCAPE: "",
         OXIDE_TASK_SCRATCH_ROOT: "",
         ...environment,
       },
@@ -623,38 +863,40 @@ describe("External scratch helper (shell)", () => {
     return { exitCode, stdout: stdout.trim(), stderr };
   }
 
-  test.skipIf(!externalScratchAvailable)(
-    "creates its private directory below an existing configured root",
+  test.skipIf(!temporaryIsExternal)(
+    "creates its private directory below the root Oxide reports, and only its own longhorn child",
     async () => {
-      const owner = await mkdtemp(join(externalOwner, "longhorn-shell-scratch-"));
-      temporaryDirectories.push(owner);
-      const result = await invokeExternalScratch(["longhorn-source-consumer"], {
-        OXIDE_TASK_SCRATCH_ROOT: owner,
-      });
+      const pool = await fixtureDirectory("longhorn-shell-pool");
+      const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
+      const result = await invokeExternalScratch(["longhorn-source-consumer"], {}, bin);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.startsWith(join(owner, "longhorn-source-consumer-"))).toBe(true);
+      expect(result.stdout.startsWith(join(pool, "longhorn", "longhorn-source-consumer-"))).toBe(true);
       expect((await stat(result.stdout)).isDirectory()).toBe(true);
-      // Only its own directory, never a recursive chain.
-      expect(await stat(join(owner, "longhorn")).catch(() => null)).toBeNull();
     },
   );
 
-  test.skipIf(!externalScratchAvailable)(
-    "creates only the longhorn child under the build volume's scratch",
-    async () => {
-      const result = await invokeExternalScratch(["longhorn-default-probe"]);
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.startsWith(join(externalOwner, "longhorn", "longhorn-default-probe-"))).toBe(true);
-      await rm(result.stdout, { recursive: true, force: true });
-    },
-  );
+  test("fails closed when Oxide reports no available pool, and names the variable", async () => {
+    const bin = await fakeOxide(poolReport({ available: false, unavailable_reason: "volume absent" }));
+    const result = await invokeExternalScratch(["longhorn-unavailable"], {}, bin);
 
-  test("fails closed on a missing root and never creates it", async () => {
-    const missing = join(tmpdir(), "longhorn-shell-missing-root");
-    const result = await invokeExternalScratch(["longhorn-missing"], {
-      OXIDE_TASK_SCRATCH_ROOT: missing,
-    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("no available removable build pool");
+    expect(result.stderr).toContain("OXIDE_TASK_SCRATCH_ROOT");
+    expect(result.stdout).toBe("");
+  });
+
+  test("fails closed when Oxide is not installed, and names the variable", async () => {
+    const result = await invokeExternalScratch(["longhorn-no-oxide"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("OXIDE_TASK_SCRATCH_ROOT");
+    expect(result.stdout).toBe("");
+  });
+
+  test("fails closed on a configured root that is missing, and never creates it", async () => {
+    const missing = join(await fixtureDirectory("longhorn-shell-missing"), "absent");
+    const result = await invokeExternalScratch(["longhorn-missing"], { OXIDE_TASK_SCRATCH_ROOT: missing });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("does not exist");
@@ -662,30 +904,11 @@ describe("External scratch helper (shell)", () => {
     await expect(stat(missing)).rejects.toThrow();
   });
 
-  test("refuses the internal temp directory and the account home", async () => {
-    const inTemp = await invokeExternalScratch(["longhorn-refused"], {
-      OXIDE_TASK_SCRATCH_ROOT: tmpdir(),
-    });
-    expect(inTemp.exitCode).toBe(1);
-    expect(inTemp.stderr).toContain("is the internal temporary directory");
-
-    const inHome = await invokeExternalScratch(["longhorn-refused"], {
-      OXIDE_TASK_SCRATCH_ROOT: homedir(),
-    });
-    expect(inHome.exitCode).toBe(1);
-    expect(inHome.stderr).toContain("is the account home");
+  test("refuses the account home", async () => {
+    const result = await invokeExternalScratch(["longhorn-refused"], { OXIDE_TASK_SCRATCH_ROOT: homedir() });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("is the account home");
   });
-
-  test.skipIf(!bootVolumeTopLevel)(
-    "refuses a boot-volume top-level directory",
-    async () => {
-      const result = await invokeExternalScratch(["longhorn-refused"], {
-        OXIDE_TASK_SCRATCH_ROOT: "/usr",
-      });
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain("is a boot-volume top-level directory");
-    },
-  );
 
   test("uses runner-owned temporary storage on GitHub Actions", async () => {
     const result = await invokeExternalScratch(["longhorn-ci-scratch"], {
@@ -703,107 +926,5 @@ describe("External scratch helper (shell)", () => {
     const traversal = await invokeExternalScratch(["../escape"]);
     expect(traversal.exitCode).toBe(2);
     expect(traversal.stderr).toContain("usage: external-scratch.sh");
-  });
-});
-
-describe("Task scratch", () => {
-  async function withConfiguredRoot<T>(
-    value: string | undefined,
-    body: () => Promise<T>,
-    githubActions = "",
-  ): Promise<T> {
-    const previousRoot = process.env.OXIDE_TASK_SCRATCH_ROOT;
-    const previousGithubActions = process.env.GITHUB_ACTIONS;
-    if (value === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
-    else process.env.OXIDE_TASK_SCRATCH_ROOT = value;
-    process.env.GITHUB_ACTIONS = githubActions;
-    try {
-      return await body();
-    } finally {
-      if (previousRoot === undefined) delete process.env.OXIDE_TASK_SCRATCH_ROOT;
-      else process.env.OXIDE_TASK_SCRATCH_ROOT = previousRoot;
-      if (previousGithubActions === undefined) delete process.env.GITHUB_ACTIONS;
-      else process.env.GITHUB_ACTIONS = previousGithubActions;
-    }
-  }
-
-  test.skipIf(!externalScratchAvailable)(
-    "allocates on the configured scratch root and removes only its own directory",
-    async () => {
-      const owner = await mkdtemp(join(externalScratchOwner, "longhorn-scratch-test-"));
-      temporaryDirectories.push(owner);
-      await withConfiguredRoot(owner, async () => {
-        const scratch = await taskScratch("longhorn-proof");
-        expect(scratch.root.startsWith(join(owner, "longhorn-proof-"))).toBe(true);
-        expect((await stat(scratch.root)).isDirectory()).toBe(true);
-        await scratch.dispose();
-        await expect(stat(scratch.root)).rejects.toThrow();
-        expect((await stat(owner)).isDirectory()).toBe(true);
-      });
-    },
-  );
-
-  test.skipIf(!externalScratchAvailable)(
-    "creates only its own directory under the build volume's scratch",
-    async () => {
-      await withConfiguredRoot(undefined, async () => {
-        const scratch = await taskScratch("longhorn-default");
-        expect(scratch.root.startsWith(join(externalScratchOwner, "longhorn", "longhorn-default-"))).toBe(true);
-        await scratch.dispose();
-      });
-    },
-  );
-
-  test("uses runner-owned temporary storage on GitHub Actions", async () => {
-    await withConfiguredRoot("/nonexistent/scratch", async () => {
-      const scratch = await taskScratch("longhorn-ci-proof");
-      expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
-      await scratch.dispose();
-    }, "true");
-  });
-
-  test("fails closed when the scratch root does not exist", async () => {
-    const missing = join(tmpdir(), "longhorn-missing-scratch-root");
-    await withConfiguredRoot(missing, async () => {
-      await expect(taskScratch("longhorn-missing")).rejects.toThrow(
-        /does not exist\. No local build output is created/,
-      );
-      // A missing build volume must not become an ordinary directory.
-      await expect(stat(missing)).rejects.toThrow();
-    });
-  });
-
-  test.skipIf(!bootVolumeTopLevel)(
-    "refuses a boot-volume top-level directory",
-    async () => {
-      await withConfiguredRoot("/usr", async () => {
-        await expect(taskScratch("longhorn-refused")).rejects.toThrow(
-          /is a boot-volume top-level directory/,
-        );
-      });
-    },
-  );
-
-  test.skipIf(!buildVolumeMountRoot)(
-    "refuses a volume mount root",
-    async () => {
-      await withConfiguredRoot("/Volumes/Builds", async () => {
-        await expect(taskScratch("longhorn-refused")).rejects.toThrow(
-          /is a volume mount root/,
-        );
-      });
-    },
-  );
-
-  test("refuses the internal temp directory, the account home and a drive root", async () => {
-    for (const [value, expected] of [
-      [tmpdir(), /is the internal temporary directory/],
-      [homedir(), /is the account home/],
-      ["/", /is a drive root/],
-    ] as const) {
-      await withConfiguredRoot(value, async () => {
-        await expect(taskScratch("longhorn-refused")).rejects.toThrow(expected);
-      });
-    }
   });
 });

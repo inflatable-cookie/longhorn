@@ -3,8 +3,10 @@
 // locally, plain `cargo` when `GITHUB_ACTIONS=true` or under
 // `EFFIGY_OXIDE_ESCAPE=cargo`), so the CI-aware rule, the exec form and the
 // loud missing-Oxide failure have exactly one implementation. This module adds
-// no rule of its own; it only names that script and the two helpers that keep a
-// disposable workspace's build inside the supported storage recipe.
+// no rule of its own; it only names that script and the helpers that keep a
+// disposable workspace's build, and its private output, inside the supported
+// storage recipe. Run it as `bun scripts/rust-command.ts scratch <label>` to
+// print a private scratch directory for a shell route.
 
 import { lstat, mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -71,19 +73,37 @@ export function rustExec(
 /**
  * Full argv that runs one disposable workspace's Cargo with private final
  * outputs under `target`.
- *
- * `buildDir` pins `CARGO_BUILD_BUILD_DIR` as well, for the two release-absence
- * scans that read Cargo's own `target/<profile>/deps` layout.
  */
 export function privateCargoCommand(
   target: string,
   args: readonly string[],
-  options: { readonly buildDir?: boolean } = {},
 ): string[] {
-  const command = ["bash", privateCargo, "--target", target];
-  if (options.buildDir === true) command.push("--build-dir");
-  command.push("--", ...args);
-  return command;
+  return ["bash", privateCargo, "--target", target, "--", ...args];
+}
+
+/**
+ * Library archive paths Cargo reports for `packageName`'s lib target, read from
+ * `cargo ... --message-format=json` output. Cargo chooses where its artifacts
+ * land, and that layout is not stable across builds (an rlib is uplifted to
+ * `<target>/<profile>/`, not `deps/`), so a scan reads the files this build
+ * reported rather than assuming a directory.
+ */
+export function libraryArchives(messages: string, packageName: string): string[] {
+  const libraryName = packageName.replaceAll("-", "_");
+  const archives: string[] = [];
+  for (const line of messages.split("\n")) {
+    if (!line.startsWith("{")) continue;
+    const message = JSON.parse(line) as {
+      reason?: string;
+      target?: { name?: string; kind?: string[] };
+      filenames?: string[];
+    };
+    if (message.reason !== "compiler-artifact") continue;
+    if (message.target?.name !== libraryName) continue;
+    if (!message.target.kind?.includes("lib")) continue;
+    archives.push(...(message.filenames ?? []).filter((file) => file.endsWith(".rlib")));
+  }
+  return archives;
 }
 
 /**
@@ -117,22 +137,17 @@ export type TaskScratch = {
   dispose(): Promise<void>;
 };
 
-/**
- * The build volume `scratch` directory. Its own existence is the operator's
- * side of the contract; `longhorn` below it is the repository's, and it is the
- * only directory this module ever creates under it.
- */
-const defaultVolumeScratch = "/Volumes/Builds/scratch";
+const scratchVariable = "OXIDE_TASK_SCRATCH_ROOT";
 
 /**
  * Allocates one disposable private Cargo output root on external scratch.
  *
- * Local build scratch lives under `OXIDE_TASK_SCRATCH_ROOT`, or under the build
- * volume's `scratch/longhorn`, never on the internal temp directory, the
- * account home or a drive root. The configured root must already exist: a
- * missing build volume fails closed here instead of becoming an ordinary
- * directory on the internal drive. Hosted CI keeps its runner-owned temporary
- * storage.
+ * Local build scratch lives under `OXIDE_TASK_SCRATCH_ROOT`, or under the
+ * scratch root Oxide reports for its registered removable build pool, in its
+ * `longhorn` child. It is never on the boot volume, the account home or a drive
+ * root. The root must already exist: a missing build volume fails closed here
+ * instead of becoming an ordinary directory on the internal drive. Hosted CI
+ * keeps its runner-owned temporary storage.
  */
 export async function taskScratch(label: string): Promise<TaskScratch> {
   const base = await scratchBase();
@@ -147,12 +162,11 @@ export async function taskScratch(label: string): Promise<TaskScratch> {
 
 async function scratchBase(): Promise<string> {
   if (process.env.GITHUB_ACTIONS === "true") return tmpdir();
-  const configured = process.env.OXIDE_TASK_SCRATCH_ROOT;
-  const owner = configured !== undefined && configured !== "" ? resolve(configured) : defaultVolumeScratch;
+  const configured = process.env[scratchVariable];
+  const explicit = configured !== undefined && configured !== "";
+  const owner = explicit ? resolve(configured) : await reportedScratchRoot();
   await assertExternalScratch(owner);
-  const base = configured !== undefined && configured !== ""
-    ? owner
-    : join(owner, "longhorn");
+  const base = explicit ? owner : join(owner, "longhorn");
   try {
     await mkdir(base);
   } catch (error) {
@@ -165,6 +179,88 @@ async function scratchBase(): Promise<string> {
   return base;
 }
 
+type PoolDescription = {
+  removable?: {
+    available?: unknown;
+    unavailable_reason?: unknown;
+    suggested_scratch_root?: unknown;
+  };
+};
+
+/**
+ * The scratch root Oxide reports for its registered removable build pool.
+ * Oxide owns that fact, so no volume name is written here. Every gap refuses
+ * and names `OXIDE_TASK_SCRATCH_ROOT`, the operator's way to set it.
+ */
+async function reportedScratchRoot(): Promise<string> {
+  const refusal = (why: string) =>
+    new Error(
+      `no build scratch root: ${why}. Set ${scratchVariable} to an existing directory on a build volume; nothing is created on the internal drive.`,
+    );
+  let proc: ReturnType<typeof Bun.spawn>;
+  try {
+    // An explicit environment, so `oxide` is looked up on the current PATH.
+    proc = Bun.spawn(["oxide", "pool", "describe", "--json"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env },
+    });
+  } catch (error) {
+    throw refusal(`cannot run oxide pool describe --json (${String(error)})`);
+  }
+  const [code, output, errors] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  if (code !== 0) throw refusal(`oxide pool describe --json exited ${code}: ${errors.trim()}`);
+
+  let report: PoolDescription;
+  try {
+    report = JSON.parse(output) as PoolDescription;
+  } catch {
+    throw refusal("oxide pool describe --json printed no JSON");
+  }
+  const removable = report.removable;
+  if (removable === undefined || removable.available !== true) {
+    const reason = typeof removable?.unavailable_reason === "string" ? ` (${removable.unavailable_reason})` : "";
+    throw refusal(`oxide reports no available removable build pool${reason}`);
+  }
+  const root = removable.suggested_scratch_root;
+  if (typeof root !== "string" || root === "") {
+    throw refusal("oxide reports no suggested scratch root for the removable pool");
+  }
+  return resolve(root);
+}
+
+export type ScratchLocation = { readonly path: string; readonly device: number };
+
+/** Facts about the boot volume: its device numbers and the account home. */
+export type BootVolume = { readonly devices: readonly number[]; readonly home: string };
+
+/**
+ * The reason a resolved scratch location is refused, or `null` when it is
+ * external scratch. The internal drive is judged by volume (`device`), never by
+ * `TMPDIR`, which Nucleus points at external scratch. Pure, so the rule is
+ * tested without depending on this host's drives.
+ */
+export function scratchRefusal(location: ScratchLocation, boot: BootVolume): string | null {
+  const { path, device } = location;
+  // `dirname("/")` is `/`, so the drive root is tested before its children.
+  if (path === sep) return "a drive root";
+  if (dirname(path) === sep) return "a boot-volume top-level directory";
+  if (/^\/Volumes\/[^/]+$/.test(path)) return "a volume mount root";
+  if (path === boot.home || path.startsWith(`${boot.home}${sep}`)) return "the account home";
+  if (boot.devices.includes(device)) return "on the boot volume, the internal drive";
+  return null;
+}
+
+async function bootVolume(): Promise<BootVolume> {
+  const home = await realpath(homedir()).catch(() => homedir());
+  const devices = await Promise.all([sep, home].map(async (path) => (await stat(path)).dev));
+  return { devices, home };
+}
+
 /**
  * Fails closed on a scratch root that would put local build outputs somewhere
  * the recipe forbids. Checked against the resolved path, so an alias cannot
@@ -174,29 +270,29 @@ async function assertExternalScratch(owner: string): Promise<void> {
   const resolved = await realpath(owner).catch(() => null);
   if (resolved === null) {
     throw new Error(
-      `build scratch ${owner} does not exist. No local build output is created on the internal drive, the account home or a drive root; set OXIDE_TASK_SCRATCH_ROOT to an existing directory on a build volume.`,
+      `build scratch ${owner} does not exist. No local build output is created on the internal drive, the account home or a drive root; set ${scratchVariable} to an existing directory on a build volume.`,
     );
   }
-  if (!(await stat(resolved)).isDirectory()) {
-    throw new Error(`build scratch ${resolved} is not a directory`);
-  }
-  const refuse = (label: string): never => {
+  const info = await stat(resolved);
+  if (!info.isDirectory()) throw new Error(`build scratch ${resolved} is not a directory`);
+  const refusal = scratchRefusal({ path: resolved, device: info.dev }, await bootVolume());
+  if (refusal !== null) {
     throw new Error(
-      `build scratch ${resolved} is ${label}. Local build outputs stay on external build scratch, never there.`,
+      `build scratch ${resolved} is ${refusal}. Local build outputs stay on external build scratch, never there.`,
     );
-  };
-  // `dirname("/")` is `/`, so the drive root is tested before its children.
-  if (resolved === sep) refuse("a drive root");
-  if (dirname(resolved) === sep) refuse("a boot-volume top-level directory");
-  if (/^\/Volumes\/[^/]+$/.test(resolved)) refuse("a volume mount root");
-  const [internalTemp, home] = await Promise.all([
-    realpath(tmpdir()).catch(() => tmpdir()),
-    realpath(homedir()).catch(() => homedir()),
-  ]);
-  for (const [root, label] of [
-    [internalTemp, "the internal temporary directory"],
-    [home, "the account home"],
-  ] as const) {
-    if (resolved === root || resolved.startsWith(`${root}${sep}`)) refuse(label);
+  }
+}
+
+if (import.meta.main) {
+  const [command, label, ...extra] = process.argv.slice(2);
+  if (command !== "scratch" || label === undefined || extra.length > 0 || !/^[A-Za-z0-9._-]+$/.test(label)) {
+    console.error("usage: external-scratch.sh <label>");
+    process.exit(2);
+  }
+  try {
+    console.log((await taskScratch(label)).root);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
   }
 }

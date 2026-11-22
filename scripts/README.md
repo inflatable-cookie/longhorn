@@ -196,8 +196,10 @@ directories must be set inside the lease: `oxide exec` replaces a
 `CARGO_TARGET_DIR` inherited on the outer call. `prepareStagedWorkspace` creates
 the empty real `target/` directory that keeps a staged lease adoption-free, and
 `scripts/external-scratch.sh` gives a shell route the same fail-closed private
-directory `taskScratch` gives a TypeScript one. Scratch roots fail closed rather
-than being created on the internal drive.
+directory `taskScratch` gives a TypeScript one; the shell route only runs the
+TypeScript rule. The root is `OXIDE_TASK_SCRATCH_ROOT` when set, otherwise the
+scratch root Oxide reports for its removable build pool. Scratch roots fail
+closed rather than being created on the internal drive.
 `AGENTS.md` owns the routing table, the storage rules and the named exceptions.
 
 ## Language
